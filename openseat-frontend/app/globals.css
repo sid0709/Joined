@@ -8,30 +8,30 @@
   min-height: 100vh;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-4);
+  padding: var(--space-4);
   box-sizing: border-box;
   background: var(--canvas);
 }
 
 .marketplace-theme-toggle {
   position: absolute;
-  top: var(--spacing-4);
-  right: var(--spacing-4);
+  top: var(--space-4);
+  right: var(--space-4);
 }
 
 .marketplace-auth-card {
   width: 100%;
   max-width: 30rem;
-  padding: var(--spacing-6);
+  padding: var(--space-6);
 }
 
 .marketplace-join-card { max-width: 36rem; }
 .marketplace-full-width { width: 100%; }
 .marketplace-auth-footer { margin: 0; text-align: center; }
 .marketplace-centered-copy { text-align: center; }
-.marketplace-role-button { min-height: 8rem; flex-direction: column; gap: var(--spacing-2); }
+.marketplace-role-button { min-height: 8rem; flex-direction: column; gap: var(--space-2); }
 .marketplace-role-button span { color: var(--ink-muted); font-weight: 400; }
-.marketplace-back-link { display: inline-block; margin-top: var(--spacing-4); }
+.marketplace-back-link { display: inline-block; margin-top: var(--space-4); }
 
 .marketplace-page-toolbar,
 .marketplace-page-header,
@@ -41,50 +41,50 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-4);
+  gap: var(--space-4);
 }
 
-.marketplace-toolbar-note { margin-left: var(--spacing-2); }
-.marketplace-results-label { margin: 0 0 var(--spacing-3); }
+.marketplace-toolbar-note { margin-left: var(--space-2); }
+.marketplace-results-label { margin: 0 0 var(--space-3); }
 .marketplace-narrow-page { max-width: 42rem; margin: 0 auto; }
-.marketplace-form-card { margin-top: var(--spacing-4); }
-.marketplace-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-4); }
-.marketplace-filter-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-4); align-items: end; }
-.marketplace-filter-layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--spacing-6); align-items: start; }
-.marketplace-filter-sidebar { display: flex; flex-direction: column; gap: var(--spacing-4); }
-.marketplace-filter-section { border-top: var(--border-width-hairline) solid var(--border-subtle); padding-top: var(--spacing-4); }
-.marketplace-jobs-grid { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: var(--spacing-6); align-items: start; }
+.marketplace-form-card { margin-top: var(--space-4); }
+.marketplace-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.marketplace-filter-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); align-items: end; }
+.marketplace-filter-layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.marketplace-filter-sidebar { display: flex; flex-direction: column; gap: var(--space-4); }
+.marketplace-filter-section { border-top: var(--border-width-hairline) solid var(--border-subtle); padding-top: var(--space-4); }
+.marketplace-jobs-grid { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: var(--space-6); align-items: start; }
 .marketplace-job-card { width: 100%; }
 .marketplace-card-title-button { display: block; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .marketplace-card-title-button:hover .h2 { color: var(--primary); }
 .marketplace-job-meta,
 .marketplace-tag-list,
-.marketplace-applicant-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2); }
+.marketplace-applicant-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .marketplace-job-summary,
 .marketplace-job-description { margin: 0; }
-.marketplace-step-list { display: flex; flex-direction: column; gap: var(--spacing-2); margin: 0; padding-left: var(--spacing-5); }
+.marketplace-step-list { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding-left: var(--space-5); }
 .marketplace-job-modal { width: min(38rem, 100%); }
 .marketplace-modal-actions { justify-content: flex-end; }
 
-.marketplace-applications-grid { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--spacing-4); min-height: 22rem; }
-.marketplace-applicants-grid { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: var(--spacing-4); }
-.marketplace-selection-list { display: flex; flex-direction: column; gap: var(--spacing-2); }
-.marketplace-selection-item { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-1); width: 100%; padding: var(--spacing-2); border: var(--border-width-hairline) solid transparent; border-radius: var(--radius-inner); background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.marketplace-applications-grid { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--space-4); min-height: 22rem; }
+.marketplace-applicants-grid { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: var(--space-4); }
+.marketplace-selection-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.marketplace-selection-item { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); width: 100%; padding: var(--space-2); border: var(--border-width-hairline) solid transparent; border-radius: var(--radius-inner); background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
 .marketplace-selection-item:hover,
 .marketplace-selection-item-active { border-color: var(--border-default); background: var(--surface-sunken); }
 .marketplace-truncate { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .marketplace-applicant-chat { min-width: 0; }
-.marketplace-cover-letter { margin: 0; padding: var(--spacing-2); border-radius: var(--radius-inner); background: var(--surface-sunken); font-style: italic; }
+.marketplace-cover-letter { margin: 0; padding: var(--space-2); border-radius: var(--radius-inner); background: var(--surface-sunken); font-style: italic; }
 
 .home-page { min-height: 100vh; background: var(--canvas); color: var(--ink); }
 .home-hero,
-.home-secondary-grid { width: min(100% - var(--spacing-8), 74rem); margin: 0 auto; }
-.home-hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: var(--spacing-12); align-items: center; padding: clamp(4rem, 12vw, 9rem) 0 var(--spacing-12); }
-.home-hero-title { max-width: 48rem; margin: var(--spacing-4) 0; }
+.home-secondary-grid { width: min(100% - var(--space-8), 74rem); margin: 0 auto; }
+.home-hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: var(--space-12); align-items: center; padding: clamp(4rem, 12vw, 9rem) 0 var(--space-12); }
+.home-hero-title { max-width: 48rem; margin: var(--space-4) 0; }
 .home-hero-copy { max-width: 39rem; }
-.home-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-3); margin-top: var(--spacing-8); }
-.home-workflow { margin-top: var(--spacing-5); }
-.home-secondary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-6); padding-bottom: var(--spacing-12); }
+.home-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-8); }
+.home-workflow { margin-top: var(--space-5); }
+.home-secondary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); padding-bottom: var(--space-12); }
 
 @media (max-width: 48rem) {
   .marketplace-page-header,

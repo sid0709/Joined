@@ -173,6 +173,17 @@
   --radius-2xl: var(--radius-page);
   --radius-pill: var(--radius-full);
 
+  /* Astryx spacing aliases used by the migrated design-system components. */
+  --space-1: var(--spacing-1);
+  --space-2: var(--spacing-2);
+  --space-3: var(--spacing-3);
+  --space-4: var(--spacing-4);
+  --space-5: var(--spacing-5);
+  --space-6: var(--spacing-6);
+  --space-8: var(--spacing-8);
+  --space-12: var(--spacing-12);
+  --space-16: var(--spacing-16);
+
   --elevation-0: none;
   --elevation-1: 0 1px 2px var(--color-shadow);
   --elevation-2: 0 4px 16px var(--color-shadow);
