@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@openseat/design-system/styles/theme.css";
+@import "@openseat/design-system/styles/astryx.css";
 
 .marketplace-auth-shell {
   position: relative;

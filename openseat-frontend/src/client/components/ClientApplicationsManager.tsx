@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, EmptyState, Stack } from "@openseat/design-system";
+import { Card, EmptyState, Stack } from "@/src/shared/marketplace-ui";
 import { ApplicantChat } from "@/src/client/components/ApplicantChat";
 import { ApplicantList } from "@/src/client/components/ApplicantList";
 import { RoomThreadList } from "@/src/client/components/RoomThreadList";

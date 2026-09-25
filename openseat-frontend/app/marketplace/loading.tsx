@@ -1,4 +1,4 @@
-import { PageBody, Skeleton, Stack } from "@openseat/design-system";
+import { PageBody, Skeleton, Stack } from "@/src/shared/marketplace-ui";
 
 export default function MarketplaceLoading() {
   return (

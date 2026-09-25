@@ -1,0 +1,4 @@
+/* The full OpenSeat stylesheet — Astryx foundation, then OpenSeat
+   composites. Apps import this one file. */
+@import "./astryx.css";
+@import "./components.css";

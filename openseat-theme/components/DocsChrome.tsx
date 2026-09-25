@@ -2,12 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { AppShell } from "@astryxdesign/core/AppShell";
-import { TopNav, TopNavHeading, TopNavItem } from "@astryxdesign/core/TopNav";
-import { SideNav, SideNavHeading, SideNavItem } from "@astryxdesign/core/SideNav";
-import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
-import { TextInput } from "@astryxdesign/core/TextInput";
+import { AppShell, Button, Icon, SideNav, SideNavHeading, SideNavItem, TextInput, TopNav, TopNavHeading, TopNavItem } from "@openseat/design-system";
 import { CATALOG, itemHref } from "@/lib/catalog";
 import { useColorMode } from "@/components/Providers";
 import { ClientOnly } from "@/components/ClientOnly";

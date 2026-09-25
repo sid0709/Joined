@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Button, Chat, ChatComposer, ChatMessage, EmptyState, Stack } from "@openseat/design-system";
+import { Badge, Button, Chat, ChatComposer, ChatMessage, EmptyState, Stack } from "@/src/shared/marketplace-ui";
 import { ChatMessage as ChatMessageRecord, ProposalRecord } from "@/src/shared/types/job-room";
 
 interface ApplicantChatProps {

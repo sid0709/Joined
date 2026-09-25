@@ -1,108 +1,179 @@
 "use client";
 
-import { useState } from "react";
-import { Badge } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Heading } from "@astryxdesign/core/Text";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { Section } from "@astryxdesign/core/Section";
-import { Selector } from "@astryxdesign/core/Selector";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { Table } from "@astryxdesign/core/Table";
-import { TextInput } from "@astryxdesign/core/TextInput";
-import { Toolbar } from "@astryxdesign/core/Toolbar";
+import { useMemo, useState } from "react";
+import {
+  Badge,
+  Button,
+  ButtonGroup,
+  Card,
+  DropdownMenu,
+  Heading,
+  Icon,
+  IconButton,
+  MoreMenu,
+  SegmentedControl,
+  SegmentedControlItem,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  ToggleButton,
+  ToggleButtonGroup,
+  Toolbar,
+  icons,
+  type TableColumn,
+  type ToolbarSize,
+} from "@openseat/design-system";
 import { Caption, Examples, Preview, Row } from "./shared";
 
-const SIZES = [
-  { size: "sm" as const, label: "Small" },
-  { size: "md" as const, label: "Medium" },
-  { size: "lg" as const, label: "Large" },
+const SIZES: ToolbarSize[] = ["sm", "md", "lg"];
+
+type Person = { id: string; name: string; role: string; status: string };
+
+const PEOPLE: Person[] = [
+  { id: "1", name: "Alex Johnson", role: "Admin", status: "Active" },
+  { id: "2", name: "Sam Rivera", role: "Editor", status: "Active" },
+  { id: "3", name: "Jordan Lee", role: "Viewer", status: "Invited" },
+  { id: "4", name: "Taylor Kim", role: "Editor", status: "Active" },
 ];
 
-const TASKS = [
-  { id: "1", task: "Fix login bug", status: "Open", priority: "High" },
-  { id: "2", task: "Update docs", status: "In progress", priority: "Medium" },
-  { id: "3", task: "Add unit tests", status: "Open", priority: "Low" },
-];
-
-const PEOPLE = [
-  { id: "1", name: "Alex Johnson", status: "Active", role: "Admin" },
-  { id: "2", name: "Sam Rivera", status: "Active", role: "Editor" },
-  { id: "3", name: "Jordan Lee", status: "Invited", role: "Viewer" },
-  { id: "4", name: "Taylor Kim", status: "Active", role: "Editor" },
+const COLUMNS: TableColumn<Person>[] = [
+  { key: "name", header: "Name", sortable: true },
+  { key: "role", header: "Role", sortable: true },
+  { key: "status", header: "Status", render: (row) => <Badge label={row.status} variant={row.status === "Active" ? "success" : "neutral"} /> },
 ];
 
 export default function ToolbarDemo() {
-  const [tab, setTab] = useState("overview");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
-  const [priority, setPriority] = useState<string | null>(null);
-  const [selectedCount, setSelectedCount] = useState(3);
+  const [format, setFormat] = useState<string[]>(["bold"]);
+  const [align, setAlign] = useState<string | null>("left");
+  const [query, setQuery] = useState("");
+  const [role, setRole] = useState("All");
+  const [selected, setSelected] = useState<string[]>(["2"]);
+  const [view, setView] = useState("table");
+
+  const people = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return PEOPLE.filter((p) => (role === "All" || p.role === role) && (!q || p.name.toLowerCase().includes(q)));
+  }, [query, role]);
 
   return (
     <Examples>
-      <Preview label="Formatting">
-        <Toolbar
-          label="Formatting"
-          startContent={
-            <Row>
-              <Button label="Bold" variant="secondary" size="sm" />
-              <Button label="Italic" variant="secondary" size="sm" />
-              <IconButton label="Search" size="sm" icon={<Icon icon="search" />} />
-            </Row>
-          }
-        />
+      <Preview label="Editor formatting" description="Groups of related controls, separated by the toolbar's rhythm.">
+        <Card>
+          <Toolbar
+            label="Formatting"
+            size="sm"
+            startContent={
+              <Row>
+                <ButtonGroup label="History" size="sm">
+                  <IconButton label="Undo" icon={<Icon icon={icons.undo} />} />
+                  <IconButton label="Redo" icon={<Icon icon={icons.redo} />} />
+                </ButtonGroup>
+                <ToggleButtonGroup type="multiple" label="Text style" size="sm" value={format} onChange={setFormat}>
+                  <ToggleButton value="bold" label="Bold" isIconOnly icon={<Icon icon={icons.bold} />} />
+                  <ToggleButton value="italic" label="Italic" isIconOnly icon={<Icon icon={icons.italic} />} />
+                  <ToggleButton value="underline" label="Underline" isIconOnly icon={<Icon icon={icons.underline} />} />
+                </ToggleButtonGroup>
+                <ToggleButtonGroup label="Alignment" size="sm" value={align} onChange={setAlign}>
+                  <ToggleButton value="left" label="Left" isIconOnly icon={<Icon icon={icons.alignLeft} />} />
+                  <ToggleButton value="center" label="Center" isIconOnly icon={<Icon icon={icons.alignCenter} />} />
+                  <ToggleButton value="right" label="Right" isIconOnly icon={<Icon icon={icons.alignRight} />} />
+                </ToggleButtonGroup>
+              </Row>
+            }
+            endContent={
+              <Row>
+                <IconButton label="Insert link" variant="ghost" icon={<Icon icon={icons.link} />} />
+                <IconButton label="Insert image" variant="ghost" icon={<Icon icon={icons.image} />} />
+                <IconButton label="Code" variant="ghost" icon={<Icon icon={icons.code} />} />
+              </Row>
+            }
+          />
+        </Card>
       </Preview>
-      <Preview label="Three slots">
+
+      <Preview label="Three slots — page header">
         <Card>
           <Toolbar
             label="Document toolbar"
-            dividers={["bottom"]}
-            startContent={<IconButton label="Back" variant="ghost" icon={<Icon icon="chevronLeft" />} />}
-            centerContent={<Heading level={4}>Title</Heading>}
+            startContent={<IconButton label="Back" variant="ghost" icon={<Icon icon={icons.chevronLeft} />} />}
+            centerContent={<Heading level={4}>Brand refresh brief</Heading>}
             endContent={
               <Row>
-                <Button label="Discard" variant="secondary" />
+                <Button label="Discard" variant="ghost" />
                 <Button label="Save" variant="primary" />
               </Row>
             }
           />
-          <Section />
         </Card>
       </Preview>
-      <Preview label="Card header">
-        <Card>
+
+      <Preview label="Data table toolbar" description="Search, filter, view, and bulk actions over a Table.">
+        <Stack gap={3}>
           <Toolbar
-            label="User list actions"
-            size="sm"
-            dividers={["bottom"]}
-            startContent={<Heading level={4}>Card title</Heading>}
+            label="People toolbar"
+            startContent={
+              <Row>
+                <Stack width={220}>
+                  <TextInput
+                    size="sm"
+                    label="Search people"
+                    isLabelHidden
+                    placeholder="Search people"
+                    value={query}
+                    onChange={setQuery}
+                    startIcon={<Icon icon={icons.search} />}
+                    hasClear
+                  />
+                </Stack>
+                <DropdownMenu
+                  button={{ label: `Role: ${role}`, size: "sm", icon: <Icon icon={icons.filter} /> }}
+                  items={["All", "Admin", "Editor", "Viewer"].map((r) => ({ label: r, onClick: () => setRole(r) }))}
+                />
+              </Row>
+            }
             endContent={
               <Row>
-                <IconButton label="Filter" variant="ghost" icon={<Icon icon="funnel" />} />
-                <IconButton label="Add user" icon={<Icon icon="check" />} />
+                <SegmentedControl label="View" size="sm" value={view} onChange={setView}>
+                  <SegmentedControlItem value="table" label="Table" isLabelHidden icon={<Icon icon={icons.list} />} />
+                  <SegmentedControlItem value="grid" label="Grid" isLabelHidden icon={<Icon icon={icons.grid} />} />
+                </SegmentedControl>
+                <Button label="Invite" variant="primary" size="sm" icon={<Icon icon={icons.plus} />} />
               </Row>
             }
           />
-          <Section />
-        </Card>
+          <Table columns={COLUMNS} rows={people} rowKey={(row) => row.id} selection="multiple" selectedKeys={selected} onSelectionChange={setSelected} />
+          {selected.length > 0 && (
+            <Toolbar
+              label="Bulk actions"
+              size="sm"
+              variant="muted"
+              startContent={<Text weight="medium">{selected.length} selected</Text>}
+              endContent={
+                <Row>
+                  <Button label="Change role" size="sm" />
+                  <Button label="Remove" size="sm" variant="destructive" />
+                  <IconButton label="Clear selection" size="sm" variant="ghost" icon={<Icon icon={icons.close} />} onClick={() => setSelected([])} />
+                </Row>
+              }
+            />
+          )}
+        </Stack>
       </Preview>
-      <Preview label="Sizes">
-        <Stack gap={4}>
-          {SIZES.map(({ size, label }) => (
+
+      <Preview label="Sizes" description="Children inherit the toolbar size as their default.">
+        <Stack gap={3}>
+          {SIZES.map((size) => (
             <Card key={size}>
               <Toolbar
-                label={`${label} toolbar`}
+                label={`${size} toolbar`}
                 size={size}
-                startContent={<Heading level={4}>{label}</Heading>}
+                startContent={<Heading level={4}>{size.toUpperCase()}</Heading>}
                 endContent={
                   <Row>
-                    <IconButton label="Filter" variant="ghost" icon={<Icon icon="funnel" />} />
-                    <Button label="Add" icon={<Icon icon="check" />} />
+                    <IconButton label="Filter" variant="ghost" icon={<Icon icon={icons.filter} />} />
+                    <MoreMenu variant="ghost" items={[{ label: "Export" }, { label: "Print" }]} />
+                    <Button label="Add" variant="primary" icon={<Icon icon={icons.plus} />} />
                   </Row>
                 }
               />
@@ -110,110 +181,34 @@ export default function ToolbarDemo() {
           ))}
         </Stack>
       </Preview>
-      <Preview label="With tabs">
+
+      <Preview label="Vertical rail">
+        <Row>
+          <Toolbar
+          label="Tools"
+          orientation="vertical"
+          variant="muted"
+          startContent={
+            <Stack gap={1}>
+              <IconButton label="Select" variant="ghost" icon={<Icon icon={icons.arrowUp} />} />
+              <IconButton label="Draw" variant="ghost" icon={<Icon icon={icons.edit} />} />
+              <IconButton label="Image" variant="ghost" icon={<Icon icon={icons.image} />} />
+              <IconButton label="Comment" variant="ghost" icon={<Icon icon={icons.mail} />} />
+            </Stack>
+          }
+          endContent={<IconButton label="Settings" variant="ghost" icon={<Icon icon={icons.settings} />} />}
+          />
+        </Row>
+      </Preview>
+
+      <Preview label="Dividers">
         <Card>
-          <Toolbar
-            label="Section navigation"
-            dividers={["bottom"]}
-            startContent={
-              <TabList value={tab} onChange={setTab}>
-                <Tab value="overview" label="Overview" />
-                <Tab value="analytics" label="Analytics" />
-                <Tab value="settings" label="Settings" />
-              </TabList>
-            }
-            endContent={<IconButton label="New item" icon={<Icon icon="check" />} />}
-          />
-          <Section />
+          <Stack gap={0}>
+            <Toolbar label="Top bar" dividers={["bottom"]} startContent={<Heading level={4}>Messages</Heading>} endContent={<IconButton label="New message" variant="ghost" icon={<Icon icon={icons.edit} />} />} />
+            <Caption>Body content sits between toolbars.</Caption>
+            <Toolbar label="Bottom bar" dividers={["top"]} endContent={<Button label="Send" variant="primary" size="sm" icon={<Icon icon={icons.send} />} />} />
+          </Stack>
         </Card>
-      </Preview>
-      <Preview label="Table filter">
-        <Stack gap={0}>
-          <Toolbar
-            label="Table filters"
-            size="sm"
-            dividers={["bottom"]}
-            startContent={
-              <Row>
-                <TextInput
-                  label="Search"
-                  isLabelHidden
-                  placeholder="Search..."
-                  value={search}
-                  onChange={setSearch}
-                  startIcon="search"
-                />
-                <Selector
-                  label="Status"
-                  isLabelHidden
-                  placeholder="Status"
-                  hasClear
-                  value={status}
-                  onChange={setStatus}
-                  options={["Open", "In progress", "Done"]}
-                />
-                <Selector
-                  label="Priority"
-                  isLabelHidden
-                  placeholder="Priority"
-                  hasClear
-                  value={priority}
-                  onChange={setPriority}
-                  options={["High", "Medium", "Low"]}
-                />
-              </Row>
-            }
-            endContent={
-              <MoreMenu
-                className=""
-                style={{}}
-                items={[{ label: "Compact view" }, { label: "Comfortable view" }, { label: "Export CSV" }]}
-              />
-            }
-          />
-          <Table
-            idKey="id"
-            columns={[
-              { key: "task", header: "Task" },
-              { key: "status", header: "Status" },
-              { key: "priority", header: "Priority" },
-            ]}
-            data={TASKS}
-          />
-        </Stack>
-      </Preview>
-      <Preview label="Bulk actions">
-        <Stack gap={0}>
-          {selectedCount > 0 ? (
-            <Toolbar
-              label="Bulk actions"
-              size="sm"
-              variant="muted"
-              dividers={["bottom"]}
-              startContent={
-                <Row>
-                  <Badge label={`${selectedCount} selected`} />
-                  <IconButton label="Delete" variant="ghost" icon={<Icon icon="error" />} />
-                  <IconButton label="Archive" variant="ghost" icon={<Icon icon="copy" />} />
-                </Row>
-              }
-              endContent={
-                <Button label="Deselect all" variant="ghost" onClick={() => setSelectedCount(0)} />
-              }
-            />
-          ) : (
-            <Caption>Select rows to show bulk actions.</Caption>
-          )}
-          <Table
-            idKey="id"
-            columns={[
-              { key: "name", header: "Name" },
-              { key: "status", header: "Status" },
-              { key: "role", header: "Role" },
-            ]}
-            data={PEOPLE}
-          />
-        </Stack>
       </Preview>
     </Examples>
   );

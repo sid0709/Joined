@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState, PageBody, Stack } from "@openseat/design-system";
+import { EmptyState, PageBody, Stack } from "@/src/shared/marketplace-ui";
 import { JobRoomCard } from "@/src/shared/components/JobRoomCard";
 import { useClientDashboard } from "@/src/client/hooks/useClientDashboard";
 

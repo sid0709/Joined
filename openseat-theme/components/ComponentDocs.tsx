@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
-import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { CodeBlock } from "@astryxdesign/core/CodeBlock";
-import { DEMO_COMPONENTS } from "@/components/demos/load";
+import { useState, type ComponentType } from "react";
+import dynamic from "next/dynamic";
+import { CodeBlock, Spinner, Stack, Tab, TabList, Text } from "@openseat/design-system";
+import { DEMO_LOADERS } from "@/components/demos/load";
+
+const DEMOS = Object.fromEntries(
+  Object.entries(DEMO_LOADERS).map(([slug, loader]) => [
+    slug,
+    dynamic(loader, {
+      ssr: false,
+      loading: () => <Spinner label="Loading example" />,
+    }),
+  ])
+) as Record<string, ComponentType>;
 
 export function ComponentDocs({ slug, importName }: { slug: string; importName: string }) {
   const [tab, setTab] = useState("overview");
-  const Demo = DEMO_COMPONENTS[slug];
+  const Demo = DEMOS[slug];
 
   return (
     <Stack gap={5}>
@@ -24,7 +32,7 @@ export function ComponentDocs({ slug, importName }: { slug: string; importName: 
           language="tsx"
           title="Import"
           width="100%"
-          code={`import { ${importName} } from "@astryxdesign/core/${importName}";`}
+          code={`import { ${importName} } from "@openseat/design-system";`}
         />
       )}
     </Stack>

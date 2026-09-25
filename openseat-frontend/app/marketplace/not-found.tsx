@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EmptyState, PageBody } from "@openseat/design-system";
+import { EmptyState, PageBody } from "@/src/shared/marketplace-ui";
 
 export default function MarketplaceNotFound() {
   return (

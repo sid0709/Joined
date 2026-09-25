@@ -1,72 +1,35 @@
-"use client";
-
-import { ReactNode } from "react";
-import { Avatar } from "./Avatar";
-import { IconButton } from "./Action";
-import { Input } from "./Input";
-
-export interface ChatMessageProps {
-  author?: string;
-  initials?: string;
-  body: ReactNode;
-  own?: boolean;
-  time?: string;
-}
-
-export function ChatMessage({ author, initials = "OS", body, own, time }: ChatMessageProps) {
-  return (
-    <div className={"os-chat-msg" + (own ? " os-chat-msg-own" : "")}>
-      {!own && <Avatar initials={initials} size={24} />}
-      <div>
-        {!own && author && <p className="caption text-ink-muted" style={{ margin: "0 0 4px" }}>{author}</p>}
-        <div className="body os-chat-bubble">{body}</div>
-        {time && <p className="caption text-ink-faint" style={{ margin: "4px 0 0" }}>{time}</p>}
-      </div>
-    </div>
-  );
-}
-
-export function ChatComposer({
-  value,
-  onChange,
-  onSend,
-  placeholder = "Message",
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  onSend?: () => void;
-  placeholder?: string;
-}) {
-  return (
-    <div className="os-chat-composer">
-      <div style={{ flex: 1 }}>
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              onSend?.();
-            }
-          }}
-        />
-      </div>
-      <IconButton label="Send" onClick={onSend}>
-        ➤
-      </IconButton>
-    </div>
-  );
-}
-
-export function Chat({ children }: { children: ReactNode }) {
-  return <div className="os-chat">{children}</div>;
-}
-
-export function ChatSystemMessage({ children }: { children: ReactNode }) {
-  return (
-    <p className="caption text-ink-muted" style={{ textAlign: "center", margin: 0 }}>
-      {children}
-    </p>
-  );
-}
+/**
+ * Chat is original Astryx — OpenSeat only themes it. Compose ChatLayout,
+ * ChatMessageList, ChatMessage, and ChatComposer for any thread.
+ */
+export {
+  ChatLayout,
+  ChatLayoutScrollButton,
+  ChatMessageList,
+  ChatMessage,
+  ChatMessageBubble,
+  ChatMessageMetadata,
+  ChatSystemMessage,
+  ChatComposer,
+  ChatComposerInput,
+  ChatComposerDrawer,
+  ChatSendButton,
+  ChatToolCalls,
+  useChatStreamScroll,
+  useChatNewMessages,
+} from "@astryxdesign/core/Chat";
+export type {
+  ChatLayoutProps,
+  ChatMessageListProps,
+  ChatMessageProps,
+  ChatMessageBubbleProps,
+  ChatMessageMetadataProps,
+  ChatMessageStatus,
+  ChatMessageSender,
+  ChatSystemMessageProps,
+  ChatComposerProps,
+  ChatComposerStatus,
+  ChatToolCallsProps,
+  ChatToolCallItem,
+  ChatToolCallStatus,
+} from "@astryxdesign/core/Chat";

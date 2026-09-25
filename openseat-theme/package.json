@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@astryxdesign/cli": "^0.6.2",
+    "@openseat/design-system": "workspace:*",
     "@astryxdesign/core": "^0.6.2",
     "@astryxdesign/theme-neutral": "^0.6.2",
     "@stylexjs/stylex": "^0.19.1",

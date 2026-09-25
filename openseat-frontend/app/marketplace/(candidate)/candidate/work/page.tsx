@@ -1,4 +1,4 @@
-import { Card, EmptyState, PageBody } from "@openseat/design-system";
+import { Card, EmptyState, PageBody } from "@/src/shared/marketplace-ui";
 
 export default function CandidateWorkPage() {
   return (

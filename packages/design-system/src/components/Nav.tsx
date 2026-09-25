@@ -1,9 +1,9 @@
 "use client";
 
-import { ReactNode } from "react";
-import { Button } from "./Button";
-import { Avatar } from "./Avatar";
-import { ThemeToggle } from "./ThemeToggle";
+import type { ReactNode } from "react";
+import { Button } from "./Action";
+import { Avatar } from "./Content";
+import { TopNav, TopNavHeading, TopNavItem } from "./LayoutPrimitives";
 
 export interface NavItem {
   label: string;
@@ -12,54 +12,36 @@ export interface NavItem {
 }
 
 export interface NavProps {
-  brand?: ReactNode;
+  brand?: string;
   items?: NavItem[];
   cta?: string;
   onCtaClick?: () => void;
-  initials?: string;
+  /** The signed-in person; the avatar derives initials from it. */
+  userName?: string;
   trailing?: ReactNode;
   showAvatar?: boolean;
-  showThemeToggle?: boolean;
 }
 
-/** The 48px top-level product bar — calm infrastructure, never a second accent. */
-export function Nav({
-  brand = "OpenSeat",
-  items = [],
-  cta,
-  onCtaClick,
-  initials = "JM",
-  trailing,
-  showAvatar = false,
-  showThemeToggle = false,
-}: NavProps) {
+/** The OpenSeat product bar — an Astryx TopNav with one primary action and the signed-in person. */
+export function Nav({ brand = "OpenSeat", items = [], cta, onCtaClick, userName = "Jordan Miles", trailing, showAvatar = false }: NavProps) {
   return (
-    <div className="os-nav">
-      <span className="h3 os-nav-brand">{brand}</span>
-      <div className="os-nav-items">
-        {items.map((it) => (
-          <a
-            key={it.label}
-            href={it.href ?? "#"}
-            className={"label os-nav-item" + (it.active ? " os-nav-item-active" : "")}
-          >
-            {it.label}
-          </a>
-        ))}
-      </div>
-      <div className="os-nav-right">
-        {showThemeToggle && <ThemeToggle />}
-        {cta && (
-          <Button variant="primary" size="sm" onClick={onCtaClick}>
-            {cta}
-          </Button>
-        )}
-        {trailing}
-        {showAvatar && <Avatar initials={initials} size={24} />}
-      </div>
-    </div>
+    <TopNav
+      label={brand}
+      heading={<TopNavHeading heading={brand} />}
+      startContent={
+        <>
+          {items.map((item) => (
+            <TopNavItem key={item.label} label={item.label} href={item.href ?? "#"} isSelected={item.active} />
+          ))}
+        </>
+      }
+      endContent={
+        <>
+          {cta && <Button label={cta} variant="primary" size="sm" onClick={onCtaClick} />}
+          {trailing}
+          {showAvatar && <Avatar name={userName} size="sm" />}
+        </>
+      }
+    />
   );
 }
-
-export const TopNav = Nav;
-export type TopNavProps = NavProps;

@@ -1,6 +1,6 @@
 "use client";
 
-import { PageBody } from "@openseat/design-system";
+import { PageBody } from "@/src/shared/marketplace-ui";
 import { ClientApplicationsManager } from "@/src/client/components/ClientApplicationsManager";
 import { useClientDashboard } from "@/src/client/hooks/useClientDashboard";
 

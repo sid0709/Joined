@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ButtonLink, Card, Stack, ThemeToggle } from "@openseat/design-system";
+import { ButtonLink, Card, Stack, ThemeToggle } from "@/src/shared/marketplace-ui";
 
 export default function Home() {
   return (

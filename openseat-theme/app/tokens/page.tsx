@@ -1,9 +1,4 @@
-import { Heading } from "@astryxdesign/core/Heading";
-import { Text } from "@astryxdesign/core/Text";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Grid } from "@astryxdesign/core/Grid";
-import { Card } from "@astryxdesign/core/Card";
-import { MetadataList, MetadataListItem } from "@astryxdesign/core/MetadataList";
+import { Card, Grid, Heading, MetadataList, MetadataListItem, Stack, Text } from "@openseat/design-system";
 
 const TOKEN_GROUPS: { title: string; tokens: string[] }[] = [
   {

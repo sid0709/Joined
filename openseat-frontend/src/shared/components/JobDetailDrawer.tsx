@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Modal, Stack } from "@openseat/design-system";
+import { Badge, Button, Card, Modal, Stack } from "@/src/shared/marketplace-ui";
 import { JobRoomRecord } from "@/src/shared/types/job-room";
 
 interface JobDetailDrawerProps {

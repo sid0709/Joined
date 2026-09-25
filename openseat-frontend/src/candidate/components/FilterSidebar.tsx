@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox, Stack } from "@openseat/design-system";
+import { Checkbox, Stack } from "@/src/shared/marketplace-ui";
 import { BudgetType, ExperienceLevel, FilterState } from "@/src/shared/types/job-room";
 
 interface FilterSidebarProps {

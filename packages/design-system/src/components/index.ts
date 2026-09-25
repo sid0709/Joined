@@ -1,170 +1,89 @@
-export { Button } from "./Button";
-export type { ButtonProps, ButtonVariant, ButtonSize } from "./Button";
+// Original Astryx, OpenSeat-themed: primitives, actions, content, containers,
+// data input, feedback, navigation, overlays, lists, and chat.
+export * from "./Primitives";
+export * from "./Action";
+export * from "./Content";
+export * from "./Container";
+export * from "./DataInput";
+export * from "./Feedback";
+export * from "./Navigation";
+export * from "./Overlay";
+export * from "./Lists";
+export * from "./Chat";
 
-export { Input } from "./Input";
-export type { FieldProps, InputFieldProps, TextareaFieldProps } from "./Input";
+export type { ControlSize, FieldSize } from "./size";
 
-export { Card } from "./Card";
-export type { CardProps } from "./Card";
+export { JobCard } from "./Card";
+export type { JobCardProps } from "./Card";
 
-export { Badge } from "./Badge";
-export type { BadgeProps, BadgeTone } from "./Badge";
-
-export { Avatar, AvatarStack } from "./Avatar";
-export type { AvatarProps, AvatarStackProps } from "./Avatar";
-
-export { Nav, TopNav } from "./Nav";
-export type { NavProps, NavItem, TopNavProps } from "./Nav";
-
-export { EmptyState } from "./EmptyState";
-export type { EmptyStateProps } from "./EmptyState";
-
-export { Toast } from "./Toast";
-export type { ToastProps, ToastTone } from "./Toast";
+export { Nav } from "./Nav";
+export type { NavProps, NavItem } from "./Nav";
 
 export { TokenDemo } from "./TokenDemo";
 
-export {
-  ButtonGroup,
-  ButtonLink,
-  IconButton,
-  Link,
-  SegmentedControl,
-  ToggleButton,
-  ToggleButtonGroup,
-  Toolbar,
-  ToolbarDivider,
-} from "./Action";
-export type {
-  ButtonLinkProps,
-  IconButtonProps,
-  LinkProps,
-  SegmentedControlProps,
-  ToggleButtonProps,
-  ToggleButtonGroupProps,
-} from "./Action";
+export * from "./LayoutPrimitives";
 
-export { Modal, Dialog } from "./Modal";
-export type { ModalProps, DialogProps } from "./Modal";
+// Responsive layer — OpenSeat composites on Astryx breakpoints.
+export { GridSystem, GridColumn, GRID_COLUMNS } from "./GridSystem";
+export type { GridSystemProps, GridColumnProps, GridSpanValue, Responsive } from "./GridSystem";
+export { ResponsiveStack, ResponsiveContainer, Show, Hide, useElementWidth, useContainerBreakpoint, useViewportBreakpoint } from "./Responsive";
+export type { ResponsiveStackProps, ResponsiveContainerProps, ShowProps } from "./Responsive";
+export { ResponsiveFrame, FRAME_PRESETS } from "./ResponsiveFrame";
+export type { ResponsiveFrameProps, FramePreset } from "./ResponsiveFrame";
+export { Tile } from "./Tile";
+export type { TileProps } from "./Tile";
+export { TIERS, VIEWPORT_TIERS, CONTAINER_TIERS, tierFor } from "./breakpoints";
+export type { Tier, TierOrBase, ResponsiveTo } from "./breakpoints";
 
-export { Menu, DropdownMenu, TopNavMenu, MoreMenu, ContextMenu } from "./Menu";
-export type { MenuProps, MenuItemDef, DropdownMenuProps, TopNavMenuProps, MoreMenuProps } from "./Menu";
+export { Glyph, icons } from "./Glyph";
+export type { GlyphName, GlyphProps } from "./Glyph";
 
-export {
-  Layout,
-  Stack,
-  Grid,
-  Section,
-  AspectRatio,
-  Divider,
-  FormLayout,
-  AppShell,
-  ScrollableArea,
-  ResizeHandle,
-} from "./Layout";
-export type { LayoutProps, StackProps, GridProps, SectionProps, AspectRatioProps, AppShellProps, ResizeHandleProps } from "./Layout";
+export { Timeline } from "./Timeline";
+export type { TimelineProps, TimelineItem, TimelineTone, TimelineStatus, TimelineVariant } from "./Timeline";
 
-export { Banner, ProgressBar, Skeleton, Spinner, StatusDot } from "./Status";
-export type { BannerProps, ProgressBarProps, SkeletonProps, StatusTone } from "./Status";
+export { Tree } from "./Tree";
+export type { TreeProps, TreeNode, TreeVariant, TreeCheckState } from "./Tree";
 
-export {
-  Heading,
-  Text,
-  Blockquote,
-  Citation,
-  Code,
-  CodeBlock,
-  Kbd,
-  Timestamp,
-  Token,
-  Thumbnail,
-  Icon,
-  Markdown,
-} from "./Typography";
-export type {
-  HeadingProps,
-  TextProps,
-  BlockquoteProps,
-  CitationProps,
-  CodeBlockProps,
-  TimestampProps,
-  TokenProps,
-  ThumbnailProps,
-  IconProps,
-} from "./Typography";
+export { Table } from "./Table";
+export type { TableProps, TableColumn, TableSort, SortDirection, TableVariant, TableSelection, TableDensity } from "./Table";
+
+export { Clock } from "./Clock";
+export type { ClockProps, ClockVariant } from "./Clock";
+export { TimeField } from "./TimeField";
+export type { TimeFieldProps, TimePicker } from "./TimeField";
+export { TimeDial } from "./TimeDial";
+export type { TimeDialProps } from "./TimeDial";
+export { TimeColumns } from "./TimeColumns";
+export type { TimeColumnsProps } from "./TimeColumns";
+export { TimeSlots } from "./TimeSlots";
+export type { TimeSlotsProps } from "./TimeSlots";
+export { displayTime } from "./time";
+
+export { Calendar } from "./Calendar";
+export type { CalendarProps, CalendarEvent, CalendarView, CalendarTone, DateRange } from "./Calendar";
+export { DateField } from "./DateField";
+export type { DateFieldProps } from "./DateField";
+
+// Drag-and-drop uploads, built from Astryx parts.
+export { FileUploader } from "./FileUploader";
+export type { FileUploaderProps, UploadItem, UploadStatus, UploadHandler } from "./FileUploader";
+export { useFileDrop, formatBytes, matchesAccept } from "./useFileDrop";
+export type { UseFileDropOptions, FileDropProps } from "./useFileDrop";
+
+export { Rating, RATING_MAX } from "./Rating";
+export type { RatingProps } from "./Rating";
+
+// OpenSeat pickers — typed segments plus a dial, wheels, or slot list.
+export { TimeInput } from "./TimeInput";
+export type { TimeInputProps, TimeInputVariant, HourCycle, MinuteStep } from "./TimeInput";
 
 export {
-  Field,
-  TextInput,
-  TextArea,
-  Checkbox,
-  Radio,
-  RadioList,
-  Switch,
-  Slider,
-  Select,
-  Selector,
-  NumberInput,
-  DateInput,
-  TimeInput,
-  DateTimeInput,
-  FileInput,
-  InputGroup,
-  InputGroupText,
-  Tokenizer,
-  Typeahead,
-} from "./Form";
-export type {
-  CheckboxProps,
-  RadioProps,
-  RadioListProps,
-  SwitchProps,
-  SliderProps,
-  SelectProps,
-  FileInputProps,
-  TokenizerProps,
-  TypeaheadProps,
-} from "./Form";
-
-export { BottomSheet, Overlay, Tooltip, Popover, HoverCard, Lightbox, CommandPalette } from "./Overlay";
-export type { BottomSheetProps, CommandItem } from "./Overlay";
-
-export {
-  Breadcrumbs,
-  TabList,
-  Pagination,
-  Stepper,
-  SideNav,
-  Outline,
-} from "./Navigation";
-export type {
-  BreadcrumbItem,
-  TabItem,
-  StepDef,
-  SideNavEntry,
-  SideNavChild,
-} from "./Navigation";
-
-export {
-  Collapsible,
-  CollapsibleGroup,
-  Table,
-  List,
-  MetadataList,
   TreeList,
-  OverflowList,
-  VisuallyHidden,
   PageBody,
   PageHero,
   Preview,
   PreviewGrid,
 } from "./Data";
-export type { TableColumn, ListItemDef } from "./Data";
-
-export { Calendar, Carousel } from "./Media";
-
-export { Chat, ChatMessage, ChatComposer, ChatSystemMessage } from "./Chat";
-export type { ChatMessageProps } from "./Chat";
 
 export { ThemeToggle } from "./ThemeToggle";
 export type { ThemeName } from "./ThemeToggle";

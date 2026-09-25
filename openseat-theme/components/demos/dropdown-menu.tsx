@@ -1,139 +1,192 @@
 "use client";
 
 import { useState } from "react";
-import { DropdownMenu, DropdownMenuItem, DropdownMenuSubMenu } from "@astryxdesign/core/DropdownMenu";
-import { Icon } from "@astryxdesign/core/Icon";
-import { Stack } from "@astryxdesign/core/Stack";
+import {
+  Badge,
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuSubMenu,
+  Icon,
+  Stack,
+  Text,
+  icons,
+} from "@openseat/design-system";
 import { Caption, Examples, Preview, Row } from "./shared";
 
+const SORTS = ["Newest", "Budget: high to low", "Budget: low to high", "Most bids"];
+const STATUSES = ["Open", "Review", "Awarded", "Archived"];
+
 export default function DropdownMenuDemo() {
-  const [action, setAction] = useState<string | null>(null);
-  const [file, setFile] = useState<string | null>(null);
-  const [sub, setSub] = useState<string | null>(null);
-  const [team, setTeam] = useState<string | null>(null);
-  const [overflow, setOverflow] = useState<string | null>(null);
+  const [last, setLast] = useState<string | null>(null);
+  const [sort, setSort] = useState(SORTS[0]);
+  const [statuses, setStatuses] = useState<string[]>(["Open", "Review"]);
+  const [open, setOpen] = useState(false);
+
+  const run = (label: string) => () => setLast(label);
 
   return (
     <Examples>
-      <Preview label="Showcase">
-        <DropdownMenu
-          button={{ label: "Actions" }}
-          items={[
-            { label: "Edit", onClick: () => {} },
-            { label: "Duplicate", onClick: () => {} },
-            { label: "Delete", onClick: () => {} },
-          ]}
-        />
-      </Preview>
-      <Preview label="Actions">
-        <Stack gap={3}>
-          <Caption>A trigger-anchored list of commands, with a divider before destructive work.</Caption>
-          <DropdownMenu
-            button={{ label: "Actions" }}
-            items={[
-              { label: "Edit", onClick: () => setAction("Edit") },
-              { label: "Duplicate", onClick: () => setAction("Duplicate") },
-              { label: "Move to folder", onClick: () => setAction("Move") },
-              { type: "divider" },
-              { label: "Archive", onClick: () => setAction("Archive") },
-              { label: "Delete", onClick: () => setAction("Delete") },
-            ]}
-          />
-          {action ? <Caption>Last action: {action}</Caption> : null}
-        </Stack>
-      </Preview>
-      <Preview label="Sections">
-        <Stack gap={3}>
-          <Caption>Group related commands under titled sections.</Caption>
-          <DropdownMenu
-            button={{ label: "File", variant: "ghost" }}
-            items={[
-              {
-                type: "section",
-                title: "Create",
-                items: [
-                  { label: "New document", onClick: () => setFile("New document") },
-                  { label: "New spreadsheet", onClick: () => setFile("New spreadsheet") },
-                  { label: "New folder", onClick: () => setFile("New folder") },
-                ],
-              },
-              {
-                type: "section",
-                title: "Manage",
-                items: [
-                  { label: "Share", onClick: () => setFile("Share") },
-                  { label: "Move", onClick: () => setFile("Move") },
-                  { label: "Archive", onClick: () => setFile("Archive") },
-                ],
-              },
-            ]}
-          />
-          {file ? <Caption>Selected: {file}</Caption> : null}
-        </Stack>
-      </Preview>
-      <Preview label="Submenu">
-        <Stack gap={3}>
-          <Caption>Nest a second level for related destinations.</Caption>
-          <DropdownMenu button={{ label: "Actions" }}>
-            <DropdownMenuItem className="" style={{}} icon="wrench" label="Rename" onClick={() => setSub("Rename")} />
-            <DropdownMenuSubMenu className="" style={{}} icon="menu" label="Move to">
-              <DropdownMenuItem className="" style={{}} label="Projects" onClick={() => setSub("Move to Projects")} />
-              <DropdownMenuItem className="" style={{}} label="Archive" onClick={() => setSub("Move to Archive")} />
-              <DropdownMenuItem className="" style={{}} label="Trash" onClick={() => setSub("Move to Trash")} />
-            </DropdownMenuSubMenu>
-            <DropdownMenuItem className="" style={{}} icon="error" label="Delete" onClick={() => setSub("Delete")} />
-          </DropdownMenu>
-          {sub ? <Caption>Last action: {sub}</Caption> : null}
-        </Stack>
-      </Preview>
-      <Preview label="Disabled items">
-        <Stack gap={3}>
-          <Caption>Destructive actions stay visible but disabled for non-admin users.</Caption>
-          <DropdownMenu
-            button={{ label: "Manage team" }}
-            items={[
-              { label: "Invite member", onClick: () => setTeam("Invite") },
-              { label: "Edit roles", onClick: () => setTeam("Edit roles") },
-              { type: "divider" },
-              { label: "Transfer ownership", isDisabled: true },
-              { label: "Delete team", isDisabled: true },
-            ]}
-          />
-          {team ? <Caption>Last action: {team}</Caption> : null}
-        </Stack>
-      </Preview>
-      <Preview label="No chevron">
-        <Stack gap={3}>
-          <Caption>An icon-only trigger with hasChevron=false.</Caption>
+      <Preview align="start" label="Basic" description="A trigger-anchored list of commands.">
+        <Stack gap={2} hAlign="start">
           <Row>
             <DropdownMenu
-              button={{
-                label: "More actions",
-                icon: <Icon icon="moreHorizontal" />,
-                variant: "ghost",
-                isIconOnly: true,
-              }}
-              hasChevron={false}
+              button={{ label: "Actions" }}
               items={[
-                { label: "Copy link", onClick: () => setOverflow("Copy link") },
-                { label: "Download", onClick: () => setOverflow("Download") },
-                { label: "Print", onClick: () => setOverflow("Print") },
-                { type: "divider" },
-                { label: "Report", onClick: () => setOverflow("Report") },
+                { label: "Edit", onClick: run("Edit") },
+                { label: "Duplicate", onClick: run("Duplicate") },
+                { label: "Archive", onClick: run("Archive") },
+              ]}
+            />
+            <DropdownMenu
+              button={{ label: "Create", variant: "primary", icon: <Icon icon={icons.plus} /> }}
+              items={[
+                { label: "Sealed room", icon: icons.lock, onClick: run("Sealed room") },
+                { label: "Open room", icon: icons.home, onClick: run("Open room") },
+                { label: "Invite link", icon: icons.link, onClick: run("Invite link") },
+              ]}
+            />
+            <DropdownMenu
+              button={{ label: "View", variant: "ghost" }}
+              items={[
+                { label: "Grid", icon: icons.grid, onClick: run("Grid") },
+                { label: "List", icon: icons.list, onClick: run("List") },
               ]}
             />
           </Row>
-          {overflow ? <Caption>Last action: {overflow}</Caption> : null}
+          <Caption>{last ? `Last action: ${last}` : "Pick something from a menu."}</Caption>
         </Stack>
       </Preview>
-      <Preview label="Ghost trigger">
+
+      <Preview align="start" label="Icons, descriptions, and shortcuts">
         <DropdownMenu
-          button={{ label: "More", variant: "ghost" }}
+          button={{ label: "Room", icon: <Icon icon={icons.seat} /> }}
+          menuWidth={280}
           items={[
-            { label: "Edit", icon: "wrench" },
-            { label: "Duplicate", icon: "copy" },
+            { label: "Rename", description: "Change the room title", icon: icons.edit, endContent: <Text type="supporting" color="secondary">⌘R</Text>, onClick: run("Rename") },
+            { label: "Share", description: "Invite bidders by link", icon: icons.share, endContent: <Text type="supporting" color="secondary">⌘S</Text>, onClick: run("Share") },
+            { label: "Download brief", description: "PDF, 2.4 MB", icon: icons.download, onClick: run("Download") },
             { type: "divider" },
-            { label: "Delete", variant: "destructive" },
+            { label: "Delete room", description: "Removes all bids", icon: icons.trash, variant: "destructive", onClick: run("Delete") },
+          ]}
+        />
+      </Preview>
+
+      <Preview align="start" label="Sections">
+        <DropdownMenu
+          button={{ label: "File", variant: "ghost" }}
+          items={[
+            {
+              type: "section",
+              title: "Create",
+              items: [
+                { label: "New room", icon: icons.plus, onClick: run("New room") },
+                { label: "New folder", icon: icons.folder, onClick: run("New folder") },
+              ],
+            },
+            {
+              type: "section",
+              title: "Manage",
+              items: [
+                { label: "Move", icon: icons.folderOpen, onClick: run("Move") },
+                { label: "Export", icon: icons.upload, onClick: run("Export") },
+              ],
+            },
+          ]}
+        />
+      </Preview>
+
+      <Preview align="start" label="Single choice" description="Show the current choice in the trigger and a check in the list.">
+        <DropdownMenu
+          button={{ label: `Sort: ${sort}`, variant: "secondary", icon: <Icon icon={icons.sort} /> }}
+          items={SORTS.map((option) => ({
+            label: option,
+            endContent: option === sort ? <Icon icon={icons.check} color="accent" /> : undefined,
+            onClick: () => setSort(option),
+          }))}
+        />
+      </Preview>
+
+      <Preview align="start" label="Multiple choice" description="Keep the menu open while toggling filters.">
+        <Stack gap={2} hAlign="start">
+          <DropdownMenu
+            button={{
+              label: "Status",
+              icon: <Icon icon={icons.filter} />,
+              endContent: statuses.length ? <Badge label={String(statuses.length)} variant="info" /> : undefined,
+            }}
+            items={STATUSES.map((status) => ({
+              label: status,
+              hasCloseOnSelect: false,
+              icon: statuses.includes(status) ? icons.check : undefined,
+              onClick: () => setStatuses((current) => (current.includes(status) ? current.filter((s) => s !== status) : [...current, status])),
+            }))}
+          />
+          <Caption>Showing: {statuses.length ? statuses.join(", ") : "nothing"}</Caption>
+        </Stack>
+      </Preview>
+
+      <Preview align="start" label="Submenu">
+        <DropdownMenu button={{ label: "Move to" }}>
+          <DropdownMenuItem label="Inbox" icon={icons.mail} onClick={run("Inbox")} />
+          <DropdownMenuSubMenu label="Projects" icon={icons.folder}>
+            <DropdownMenuItem label="Brand refresh" onClick={run("Brand refresh")} />
+            <DropdownMenuItem label="Landing page" onClick={run("Landing page")} />
+            <DropdownMenuItem label="Motion system" onClick={run("Motion system")} />
+          </DropdownMenuSubMenu>
+          <DropdownMenuItem label="Archive" icon={icons.bookmark} onClick={run("Archive")} />
+        </DropdownMenu>
+      </Preview>
+
+      <Preview align="start" label="Disabled items" description="Keep actions visible but unavailable so people learn they exist.">
+        <DropdownMenu
+          button={{ label: "Manage team" }}
+          items={[
+            { label: "Invite member", icon: icons.user, onClick: run("Invite") },
+            { label: "Edit roles", icon: icons.settings, onClick: run("Edit roles") },
+            { type: "divider" },
+            { label: "Transfer ownership", isDisabled: true },
+            { label: "Delete team", variant: "destructive", isDisabled: true },
+          ]}
+        />
+      </Preview>
+
+      <Preview align="start" label="Triggers" description="Any Button variant, icon-only, or no chevron.">
+        <Row>
+          <DropdownMenu button={{ label: "Primary", variant: "primary" }} items={[{ label: "One" }, { label: "Two" }]} />
+          <DropdownMenu button={{ label: "Secondary" }} items={[{ label: "One" }, { label: "Two" }]} />
+          <DropdownMenu button={{ label: "Ghost", variant: "ghost" }} items={[{ label: "One" }, { label: "Two" }]} />
+          <DropdownMenu button={{ label: "Small", size: "sm" }} items={[{ label: "One" }, { label: "Two" }]} />
+          <DropdownMenu
+            button={{ label: "Notifications", isIconOnly: true, variant: "ghost", icon: <Icon icon={icons.bell} /> }}
+            hasChevron={false}
+            items={[{ label: "Mark all read" }, { label: "Settings" }]}
+          />
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="Controlled and placement">
+        <Stack gap={2} hAlign="start">
+          <Row>
+            <DropdownMenu
+              button={{ label: open ? "Close menu" : "Open menu" }}
+              isMenuOpen={open}
+              onOpenChange={setOpen}
+              items={[{ label: "Stays in sync with state" }, { label: "Close me", onClick: () => setOpen(false) }]}
+            />
+            <DropdownMenu button={{ label: "Opens above", variant: "ghost" }} placement="above" items={[{ label: "One" }, { label: "Two" }]} />
+          </Row>
+          <Caption>Menu is {open ? "open" : "closed"}.</Caption>
+        </Stack>
+      </Preview>
+
+      <Preview align="start" label="Bottom sheet" description="On touch layouts the same menu can rise from the bottom.">
+        <DropdownMenu
+          button={{ label: "Share room", icon: <Icon icon={icons.share} /> }}
+          presentation="bottom-sheet"
+          items={[
+            { label: "Copy link", icon: icons.link, onClick: run("Copy link") },
+            { label: "Email", icon: icons.mail, onClick: run("Email") },
+            { label: "Send to bidder", icon: icons.send, onClick: run("Send") },
           ]}
         />
       </Preview>

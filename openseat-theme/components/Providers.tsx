@@ -2,13 +2,9 @@
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Theme } from "@astryxdesign/core/theme";
-import { LinkProvider } from "@astryxdesign/core/Link";
-import { LayerProvider } from "@astryxdesign/core/Layer";
-import type { ThemeMode } from "@astryxdesign/core/theme";
-import { openSeatTheme } from "@/lib/theme";
+import { OpenSeatProvider, type ColorMode as ThemeColorMode } from "@openseat/design-system/theme";
 
-type ColorMode = Exclude<ThemeMode, "system">;
+type ColorMode = Exclude<ThemeColorMode, "system">;
 
 const ColorModeContext = createContext<{
   mode: ColorMode;
@@ -27,12 +23,8 @@ export function Providers({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({ mode, setMode }), [mode]);
 
   return (
-    <Theme theme={openSeatTheme} mode={mode}>
-      <LinkProvider component={Link}>
-        <LayerProvider>
-          <ColorModeContext.Provider value={value}>{children}</ColorModeContext.Provider>
-        </LayerProvider>
-      </LinkProvider>
-    </Theme>
+    <OpenSeatProvider mode={mode} linkComponent={Link}>
+      <ColorModeContext.Provider value={value}>{children}</ColorModeContext.Provider>
+    </OpenSeatProvider>
   );
 }

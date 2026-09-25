@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AppShell, NavItem } from "@openseat/design-system";
+import { AppShell, NavItem } from "@/src/shared/marketplace-ui";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
 

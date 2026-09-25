@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Button, Card, EmptyState, Input, PageBody, Stack } from "@openseat/design-system";
+import { Badge, Button, Card, EmptyState, Input, PageBody, Stack } from "@/src/shared/marketplace-ui";
 import { JobRoomCard } from "@/src/shared/components/JobRoomCard";
 import { JobDetailDrawer } from "@/src/shared/components/JobDetailDrawer";
 import { useJobRoomsContext } from "@/src/shared/job-rooms/JobRoomsContext";

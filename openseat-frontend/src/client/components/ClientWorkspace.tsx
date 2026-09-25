@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Banner, Button, Card, FormLayout, Input, Select, TextArea } from "@openseat/design-system";
+import { Banner, Button, Card, FormLayout, Input, Select, TextArea } from "@/src/shared/marketplace-ui";
 import { ClientJobPost } from "@/src/client/types";
 import { DEFAULT_JOB_DURATION, DEFAULT_WEEKLY_COMMITMENT } from "@/src/shared/data/mockClientData";
 

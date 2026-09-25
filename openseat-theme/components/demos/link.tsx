@@ -1,63 +1,120 @@
 "use client";
 
-import { Link } from "@astryxdesign/core/Link";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
+import { Heading, Icon, Link, Stack, Text, icons } from "@openseat/design-system";
 import { Caption, Examples, Preview, Row } from "./shared";
+
+const FOOTER = [
+  { title: "Product", links: ["Rooms", "Bidding", "Pricing"] },
+  { title: "Company", links: ["About", "Careers", "Press"] },
+  { title: "Help", links: ["Docs", "Status", "Contact"] },
+];
 
 export default function LinkDemo() {
   return (
     <Examples>
-      <Preview label="Showcase">
-        <Link href="#docs" isStandalone>
-          Documentation
-        </Link>
-      </Preview>
-      <Preview label="Inline">
+      <Preview align="start" label="Inline" description="Links navigate. For actions, use a Button.">
         <Text>
-          Read the <Link href="#docs">documentation</Link> for more information about using OpenSeat
-          components.
+          Sealed rooms keep bids private until you choose. Read <Link href="#rooms">how rooms work</Link> or see the{" "}
+          <Link href="#pricing">pricing</Link> before you post.
         </Text>
       </Preview>
-      <Preview label="External">
-        <Stack gap={2}>
-          <Link href="https://astryx.atmeta.com/" isExternalLink isStandalone>
-            OpenSeat docs
+
+      <Preview align="start" label="Standalone" description="isStandalone for links that sit on their own, outside a sentence.">
+        <Stack gap={2} hAlign="start">
+          <Link href="#all-rooms" isStandalone>
+            View all rooms
           </Link>
-          <Link href="https://react.dev/" isExternalLink isStandalone>
-            React documentation
+          <Link href="#new" isStandalone weight="semibold">
+            Post a sealed room
           </Link>
-          <Link href="https://github.com/" isExternalLink hasUnderline isStandalone>
-            GitHub
+          <Link href="#help" isStandalone color="secondary">
+            Need help?
           </Link>
         </Stack>
       </Preview>
-      <Preview label="With tooltip">
+
+      <Preview align="start" label="Underline">
         <Row>
-          <Link href="#settings" tooltip="Configure your account settings" isStandalone>
+          <Link href="#terms" hasUnderline isStandalone>
+            Terms of service
+          </Link>
+          <Link href="#privacy" hasUnderline isStandalone>
+            Privacy policy
+          </Link>
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="External" description="Opens in a new tab and says so to screen readers.">
+        <Stack gap={2} hAlign="start">
+          <Link href="https://astryx.atmeta.com/" isExternalLink isStandalone>
+            Astryx design system
+          </Link>
+          <Link href="https://react.dev/" isExternalLink isStandalone newTabLabel="(new window)">
+            React documentation
+          </Link>
+        </Stack>
+      </Preview>
+
+      <Preview align="start" label="Sizes and weights">
+        <Stack gap={2} hAlign="start">
+          <Link href="#sm" isStandalone type="supporting">
+            Supporting size
+          </Link>
+          <Link href="#body" isStandalone>
+            Body size
+          </Link>
+          <Link href="#large" isStandalone type="large" weight="semibold">
+            Large, semibold
+          </Link>
+        </Stack>
+      </Preview>
+
+      <Preview align="start" label="Tooltip, download, disabled">
+        <Row>
+          <Link href="#settings" tooltip="Account and notifications" isStandalone>
             Settings
           </Link>
-          <Link href="#profile" tooltip="View and edit your profile" isStandalone>
-            Profile
+          <Link href="#" download="brief.pdf" isStandalone>
+            Download brief
           </Link>
-          <Link href="#help" tooltip="Get help and support" color="secondary" isStandalone>
-            Help
+          <Link href="#locked" isDisabled isStandalone>
+            Archived room
           </Link>
         </Row>
       </Preview>
-      <Preview label="Colors">
+
+      <Preview align="start" label="Pattern — breadcrumb trail">
         <Row>
-          <Link href="#primary" isStandalone>
-            Primary
+          <Link href="#home" isStandalone color="secondary">
+            Home
           </Link>
-          <Link href="#secondary" color="secondary" isStandalone>
-            Secondary
+          <Icon icon={icons.chevronRight} size="sm" color="secondary" />
+          <Link href="#rooms" isStandalone color="secondary">
+            Rooms
           </Link>
+          <Icon icon={icons.chevronRight} size="sm" color="secondary" />
+          <Text weight="medium">Brand refresh</Text>
         </Row>
       </Preview>
-      <Preview label="In supporting copy">
+
+      <Preview align="start" label="Pattern — footer columns">
+        <Row>
+          {FOOTER.map((column) => (
+            <Stack key={column.title} gap={2} width={160}>
+              <Heading level={4}>{column.title}</Heading>
+              {column.links.map((label) => (
+                <Link key={label} href={`#${label.toLowerCase()}`} isStandalone color="secondary">
+                  {label}
+                </Link>
+              ))}
+            </Stack>
+          ))}
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="Pattern — helper copy">
         <Caption>
-          Need more context? Open the <Link href="#docs">usage notes</Link>.
+          Didn’t get the invite? <Link href="#resend">Resend it</Link> or <Link href="#support">contact support</Link>.
         </Caption>
       </Preview>
     </Examples>

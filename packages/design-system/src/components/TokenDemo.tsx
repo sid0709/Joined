@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { Button } from "./Button";
-import { Checkbox } from "./Form";
+import { Button } from "./Action";
 
 type Theme = "dark" | "light";
 
@@ -120,19 +119,14 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
   return (
     <div className="os-token-demo">
       <div className="os-token-demo-toolbar">
-        <Checkbox
-          label={<span className="body-strong">Show design token demo</span>}
-          checked={open}
-          onChange={(e) => show(e.target.checked)}
-        />
+        <label className="os-check">
+          <input type="checkbox" checked={open} onChange={(e) => show(e.target.checked)} />
+          <span className="body-strong">Show design token demo</span>
+        </label>
         {open && (
           <div role="group" aria-label="Theme">
-            <Button size="sm" variant={theme === "dark" ? "secondary" : "ghost"} onClick={() => switchTheme("dark")}>
-              Dark
-            </Button>
-            <Button size="sm" variant={theme === "light" ? "secondary" : "ghost"} onClick={() => switchTheme("light")}>
-              Light
-            </Button>
+            <Button label="Dark" size="sm" variant={theme === "dark" ? "secondary" : "ghost"} onClick={() => switchTheme("dark")} />
+            <Button label="Light" size="sm" variant={theme === "light" ? "secondary" : "ghost"} onClick={() => switchTheme("light")} />
           </div>
         )}
       </div>
@@ -241,9 +235,7 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
             <p className="body-sm text-ink-muted" style={{ marginBottom: 12 }}>
               Each row pairs a duration with an easing. Press play to run them all.
             </p>
-            <Button size="sm" variant="secondary" onClick={() => setMotionKey((k) => k + 1)}>
-              Play
-            </Button>
+            <Button label="Play" size="sm" variant="secondary" onClick={() => setMotionKey((k) => k + 1)} />
             <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
               {DURATIONS.map((d, i) => {
                 const e = EASINGS[i];

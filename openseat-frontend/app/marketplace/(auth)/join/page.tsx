@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button, Card, Grid, Stack } from "@openseat/design-system";
+import { Button, Card, Grid, Stack } from "@/src/shared/marketplace-ui";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
 

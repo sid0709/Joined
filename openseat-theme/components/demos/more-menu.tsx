@@ -1,122 +1,120 @@
 "use client";
 
-import { MoreMenu } from "@astryxdesign/core/MoreMenu";
-import { Heading, Text } from "@astryxdesign/core/Text";
-import { HStack, Stack } from "@astryxdesign/core/Stack";
-import { Caption, Examples, Preview } from "./shared";
+import { useState } from "react";
+import { Card, HStack, Heading, Icon, MoreMenu, Stack, Table, Text, icons, type DropdownMenuOption, type TableColumn } from "@openseat/design-system";
+import { Caption, Examples, Preview, Row } from "./shared";
 
-const SHOWCASE_ITEMS = [
-  { label: "Edit", onClick: () => {} },
-  { label: "Duplicate", onClick: () => {} },
-  { label: "Delete", onClick: () => {} },
+type Room = { id: string; name: string; bids: number };
+
+const ROOMS: Room[] = [
+  { id: "brand", name: "Brand refresh", bids: 6 },
+  { id: "landing", name: "Landing page", bids: 2 },
+  { id: "motion", name: "Motion system", bids: 0 },
 ];
 
 export default function MoreMenuDemo() {
+  const [last, setLast] = useState<string | null>(null);
+  const run = (label: string) => () => setLast(label);
+
+  const roomActions = (name: string): DropdownMenuOption[] => [
+    { label: "Open", icon: icons.eye, onClick: run(`Open ${name}`) },
+    { label: "Rename", icon: icons.edit, onClick: run(`Rename ${name}`) },
+    { label: "Duplicate", icon: icons.file, onClick: run(`Duplicate ${name}`) },
+    { type: "divider" },
+    { label: "Delete", icon: icons.trash, variant: "destructive", onClick: run(`Delete ${name}`) },
+  ];
+
+  const columns: TableColumn<Room>[] = [
+    { key: "name", header: "Room" },
+    { key: "bids", header: "Bids", align: "end" },
+    {
+      key: "actions",
+      header: "",
+      align: "end",
+      width: 48,
+      render: (row) => <MoreMenu label={`Actions for ${row.name}`} variant="ghost" size="sm" items={roomActions(row.name)} />,
+    },
+  ];
+
   return (
     <Examples>
-      <Preview label="Showcase">
-        <HStack>
-          <MoreMenu className="" style={{}} items={SHOWCASE_ITEMS} />
-        </HStack>
-      </Preview>
-      <Preview label="Default">
-        <Stack gap={2}>
-          <Caption>The overflow trigger — three dots, never a labeled button.</Caption>
-          <HStack>
-            <MoreMenu className="" style={{}} items={SHOWCASE_ITEMS} />
-          </HStack>
+      <Preview align="start" label="Default" description="The overflow trigger — three dots, never a labeled button.">
+        <Stack gap={2} hAlign="start">
+          <Row>
+            <MoreMenu items={roomActions("room")} />
+            <MoreMenu variant="ghost" items={roomActions("room")} />
+            <MoreMenu variant="primary" items={roomActions("room")} />
+          </Row>
+          <Caption>{last ? `Last action: ${last}` : "Open a menu and pick an action."}</Caption>
         </Stack>
       </Preview>
-      <Preview label="With dividers">
-        <HStack>
-          <MoreMenu
-            className=""
-            style={{}}
-            variant="secondary"
-            items={[
-              { label: "Edit", icon: "wrench", onClick: () => {} },
-              { label: "Duplicate", icon: "copy", onClick: () => {} },
-              { type: "divider" },
-              { label: "Delete", icon: "error", onClick: () => {} },
-            ]}
-          />
-        </HStack>
+
+      <Preview align="start" label="Sizes">
+        <Row>
+          <MoreMenu size="sm" variant="ghost" items={roomActions("small")} />
+          <MoreMenu size="md" variant="ghost" items={roomActions("medium")} />
+          <MoreMenu size="lg" variant="ghost" items={roomActions("large")} />
+        </Row>
       </Preview>
-      <Preview label="Sections">
-        <HStack>
-          <MoreMenu
-            className=""
-            style={{}}
-            variant="secondary"
-            label="Document actions"
-            items={[
-              {
-                type: "section",
-                title: "Actions",
-                items: [
-                  { label: "Edit", icon: "wrench", onClick: () => {} },
-                  { label: "Duplicate", icon: "copy", onClick: () => {} },
-                ],
-              },
-              {
-                type: "section",
-                title: "Danger zone",
-                items: [{ label: "Delete", icon: "error", onClick: () => {} }],
-              },
-            ]}
-          />
-        </HStack>
+
+      <Preview align="start" label="Custom icon">
+        <Row>
+          <MoreMenu label="Settings" icon={<Icon icon={icons.settings} />} variant="ghost" items={[{ label: "Preferences" }, { label: "Keyboard shortcuts" }]} />
+          <MoreMenu label="Share" icon={<Icon icon={icons.share} />} variant="ghost" items={[{ label: "Copy link", icon: icons.link }, { label: "Email", icon: icons.mail }]} />
+        </Row>
       </Preview>
-      <Preview label="Bottom sheet">
-        <Stack gap={3}>
-          <Caption>On compact layouts, present the same actions as a bottom sheet.</Caption>
+
+      <Preview align="start" label="Sections">
+        <MoreMenu
+          label="Document actions"
+          items={[
+            {
+              type: "section",
+              title: "Actions",
+              items: [
+                { label: "Edit", icon: icons.edit, onClick: run("Edit") },
+                { label: "Duplicate", icon: icons.file, onClick: run("Duplicate") },
+              ],
+            },
+            {
+              type: "section",
+              title: "Danger zone",
+              items: [{ label: "Delete", icon: icons.trash, variant: "destructive", onClick: run("Delete") }],
+            },
+          ]}
+        />
+      </Preview>
+
+      <Preview label="Pattern — card header">
+        <Card>
           <HStack hAlign="between" vAlign="center">
-            <Stack gap={1}>
+            <Stack gap={0.5} hAlign="start">
               <Heading level={4}>Quarterly plan</Heading>
               <Text type="supporting" color="secondary">
                 Updated a few minutes ago
               </Text>
             </Stack>
-            <MoreMenu
-              className=""
-              style={{}}
-              presentation="bottom-sheet"
-              label="Project actions"
-              items={[
-                {
-                  label: "Rename project",
-                  description: "Update the project title.",
-                  icon: "wrench",
-                  onClick: () => {},
-                },
-                {
-                  label: "Duplicate project",
-                  description: "Create a copy in this workspace.",
-                  icon: "copy",
-                  onClick: () => {},
-                },
-                {
-                  label: "Share project",
-                  description: "Invite people to collaborate.",
-                  icon: "externalLink",
-                  onClick: () => {},
-                },
-                {
-                  label: "Delete project",
-                  description: "Move this project to the trash.",
-                  icon: "error",
-                  variant: "destructive",
-                  onClick: () => {},
-                },
-              ]}
-            />
+            <MoreMenu label="Plan actions" variant="ghost" items={roomActions("plan")} />
           </HStack>
-        </Stack>
+        </Card>
       </Preview>
-      <Preview label="Disabled">
-        <HStack>
-          <MoreMenu className="" style={{}} items={SHOWCASE_ITEMS} isDisabled />
-        </HStack>
+
+      <Preview label="Pattern — table row actions">
+        <Table columns={columns} rows={ROOMS} rowKey={(row) => row.id} />
+      </Preview>
+
+      <Preview align="start" label="Disabled and bottom sheet">
+        <Row>
+          <MoreMenu isDisabled items={roomActions("disabled")} />
+          <MoreMenu
+            label="Project actions"
+            presentation="bottom-sheet"
+            items={[
+              { label: "Rename project", description: "Update the project title.", icon: icons.edit, onClick: run("Rename project") },
+              { label: "Share project", description: "Invite collaborators.", icon: icons.share, onClick: run("Share project") },
+            ]}
+          />
+        </Row>
       </Preview>
     </Examples>
   );

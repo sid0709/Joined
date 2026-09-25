@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, EmptyState, PageBody, Stack } from "@openseat/design-system";
+import { Button, EmptyState, PageBody, Stack } from "@/src/shared/marketplace-ui";
 import { ClientWorkspace } from "@/src/client/components/ClientWorkspace";
 import { ClientApplicationsManager } from "@/src/client/components/ClientApplicationsManager";
 import { JobRoomCard } from "@/src/shared/components/JobRoomCard";

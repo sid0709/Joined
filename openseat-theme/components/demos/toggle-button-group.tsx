@@ -1,87 +1,104 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@astryxdesign/core/Icon";
-import { ToggleButton, ToggleButtonGroup } from "@astryxdesign/core/ToggleButton";
-import { Stack } from "@astryxdesign/core/Stack";
-import { Caption, Examples, Preview } from "./shared";
+import { Icon, Stack, Text, ToggleButton, ToggleButtonGroup, icons, type ButtonSize } from "@openseat/design-system";
+import { Caption, Examples, Preview, Row } from "./shared";
+
+const SIZES: ButtonSize[] = ["sm", "md", "lg"];
+const SKILLS = ["Branding", "Web", "Motion", "Illustration", "Copy", "3D"];
 
 export default function ToggleButtonGroupDemo() {
-  const [view, setView] = useState<string | null>("grid");
-  const [filters, setFilters] = useState<string[]>(["active"]);
-  const [iconView, setIconView] = useState<string | null>("list");
-  const [formats, setFormats] = useState<string[]>(["copy"]);
-  const [vertView, setVertView] = useState<string | null>("grid");
-  const [vertFilters, setVertFilters] = useState<string[]>(["active"]);
+  const [align, setAlign] = useState<string | null>("left");
+  const [format, setFormat] = useState<string[]>(["bold"]);
+  const [view, setView] = useState<string | null>("list");
+  const [skills, setSkills] = useState<string[]>(["Branding", "Web"]);
+  const [days, setDays] = useState<string[]>(["mon", "wed", "fri"]);
+  const [sizes, setSizes] = useState<Record<ButtonSize, string | null>>({ sm: "a", md: "b", lg: "c" });
 
   return (
     <Examples>
-      <Preview label="Showcase">
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Caption>Single select</Caption>
-            <ToggleButtonGroup value={view} onChange={setView} label="View mode">
-              <ToggleButton value="list" label="List" />
-              <ToggleButton value="grid" label="Grid" />
-              <ToggleButton value="board" label="Board" />
-            </ToggleButtonGroup>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Multi select</Caption>
-            <ToggleButtonGroup type="multiple" value={filters} onChange={setFilters} label="Status filters">
-              <ToggleButton value="active" label="Active" />
-              <ToggleButton value="pending" label="Pending" />
-              <ToggleButton value="closed" label="Closed" />
-            </ToggleButtonGroup>
-          </Stack>
+      <Preview align="start" label="Single — one or none" description="Pressing the active item again clears it, unlike a SegmentedControl.">
+        <Stack gap={2} hAlign="start">
+          <ToggleButtonGroup label="Text alignment" value={align} onChange={setAlign}>
+            <ToggleButton value="left" label="Align left" isIconOnly icon={<Icon icon={icons.alignLeft} />} />
+            <ToggleButton value="center" label="Align center" isIconOnly icon={<Icon icon={icons.alignCenter} />} />
+            <ToggleButton value="right" label="Align right" isIconOnly icon={<Icon icon={icons.alignRight} />} />
+          </ToggleButtonGroup>
+          <Caption>Alignment: {align ?? "none"}</Caption>
         </Stack>
       </Preview>
-      <Preview label="With icons">
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Caption>Single selection</Caption>
-            <ToggleButtonGroup value={iconView} onChange={setIconView} label="View mode">
-              <ToggleButton value="list" label="List view" icon={<Icon icon="menu" />} isIconOnly />
-              <ToggleButton value="grid" label="Grid view" icon={<Icon icon="viewColumns" />} isIconOnly />
-              <ToggleButton value="table" label="Table view" icon={<Icon icon="copy" />} isIconOnly />
-            </ToggleButtonGroup>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Multiple selections</Caption>
-            <ToggleButtonGroup type="multiple" value={formats} onChange={setFormats} label="Actions">
-              <ToggleButton value="copy" label="Copy" icon={<Icon icon="copy" />} isIconOnly />
-              <ToggleButton value="search" label="Search" icon={<Icon icon="search" />} isIconOnly />
-              <ToggleButton value="info" label="Info" icon={<Icon icon="info" />} isIconOnly />
-              <ToggleButton value="funnel" label="Filter" icon={<Icon icon="funnel" />} isIconOnly />
-            </ToggleButtonGroup>
-          </Stack>
+
+      <Preview align="start" label="Multiple — any combination">
+        <Stack gap={2} hAlign="start">
+          <ToggleButtonGroup type="multiple" label="Text formatting" value={format} onChange={setFormat}>
+            <ToggleButton value="bold" label="Bold" isIconOnly icon={<Icon icon={icons.bold} />} />
+            <ToggleButton value="italic" label="Italic" isIconOnly icon={<Icon icon={icons.italic} />} />
+            <ToggleButton value="underline" label="Underline" isIconOnly icon={<Icon icon={icons.underline} />} />
+            <ToggleButton value="strike" label="Strikethrough" isIconOnly icon={<Icon icon={icons.strike} />} />
+          </ToggleButtonGroup>
+          <Caption>Formatting: {format.length ? format.join(", ") : "none"}</Caption>
         </Stack>
       </Preview>
-      <Preview label="Vertical">
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Caption>Single select</Caption>
-            <ToggleButtonGroup orientation="vertical" value={vertView} onChange={setVertView} label="View mode">
-              <ToggleButton value="list" label="List" />
-              <ToggleButton value="grid" label="Grid" />
-              <ToggleButton value="board" label="Board" />
+
+      <Preview align="start" label="Labels with icons">
+        <ToggleButtonGroup label="Layout" value={view} onChange={setView}>
+          <ToggleButton value="list" label="List" icon={<Icon icon={icons.list} />} />
+          <ToggleButton value="grid" label="Grid" icon={<Icon icon={icons.grid} />} />
+          <ToggleButton value="calendar" label="Calendar" icon={<Icon icon={icons.calendar} />} />
+        </ToggleButtonGroup>
+      </Preview>
+
+      <Preview align="start" label="Sizes">
+        <Stack gap={3} hAlign="start">
+          {SIZES.map((size) => (
+            <ToggleButtonGroup key={size} label={`${size} group`} size={size} value={sizes[size]} onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))}>
+              <ToggleButton value="a" label="One" />
+              <ToggleButton value="b" label="Two" />
+              <ToggleButton value="c" label="Three" />
             </ToggleButtonGroup>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Multi select</Caption>
-            <ToggleButtonGroup
-              orientation="vertical"
-              type="multiple"
-              value={vertFilters}
-              onChange={setVertFilters}
-              label="Status filters"
-            >
-              <ToggleButton value="active" label="Active" />
-              <ToggleButton value="pending" label="Pending" />
-              <ToggleButton value="closed" label="Closed" />
-            </ToggleButtonGroup>
-          </Stack>
+          ))}
         </Stack>
+      </Preview>
+
+      <Preview align="start" label="Vertical">
+        <Row>
+          <ToggleButtonGroup label="Side panel" orientation="vertical" value={view} onChange={setView}>
+            <ToggleButton value="list" label="Outline" icon={<Icon icon={icons.list} />} />
+            <ToggleButton value="grid" label="Assets" icon={<Icon icon={icons.image} />} />
+            <ToggleButton value="calendar" label="Comments" icon={<Icon icon={icons.mail} />} />
+          </ToggleButtonGroup>
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="Pattern — skill filter chips">
+        <Stack gap={2} hAlign="start">
+          <ToggleButtonGroup type="multiple" label="Skills" size="sm" value={skills} onChange={setSkills}>
+            {SKILLS.map((skill) => (
+              <ToggleButton key={skill} value={skill} label={skill} />
+            ))}
+          </ToggleButtonGroup>
+          <Text type="supporting" color="secondary">
+            {skills.length} of {SKILLS.length} skills — {skills.join(", ") || "any"}
+          </Text>
+        </Stack>
+      </Preview>
+
+      <Preview align="start" label="Pattern — weekday picker">
+        <Stack gap={2} hAlign="start">
+          <ToggleButtonGroup type="multiple" label="Available days" value={days} onChange={setDays}>
+            {["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((day) => (
+              <ToggleButton key={day} value={day} label={day[0].toUpperCase() + day.slice(1)} />
+            ))}
+          </ToggleButtonGroup>
+          <Caption>Available {days.length} days a week.</Caption>
+        </Stack>
+      </Preview>
+
+      <Preview align="start" label="Disabled">
+        <ToggleButtonGroup label="Locked" value="a" onChange={() => {}} isDisabled>
+          <ToggleButton value="a" label="Draft" />
+          <ToggleButton value="b" label="Published" />
+        </ToggleButtonGroup>
       </Preview>
     </Examples>
   );

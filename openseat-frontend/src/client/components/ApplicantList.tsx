@@ -1,4 +1,4 @@
-import { Avatar, Badge } from "@openseat/design-system";
+import { Avatar, Badge } from "@/src/shared/marketplace-ui";
 import { ProposalRecord } from "@/src/shared/types/job-room";
 
 interface ApplicantListProps {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, EmptyState, Input, PageBody, Stack } from "@openseat/design-system";
+import { Button, EmptyState, Input, PageBody, Stack } from "@/src/shared/marketplace-ui";
 import { FilterSidebar } from "@/src/candidate/components/FilterSidebar";
 import { JobRoomCard } from "@/src/shared/components/JobRoomCard";
 import { useCandidateDashboard } from "@/src/candidate/hooks/useCandidateDashboard";

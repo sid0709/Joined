@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, FormLayout, Input, PageBody, TextArea } from "@openseat/design-system";
+import { Banner, Button, Card, FormLayout, Input, PageBody, TextArea } from "@/src/shared/marketplace-ui";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 
 export function CandidateProfileForm() {

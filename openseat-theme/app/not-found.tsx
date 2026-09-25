@@ -1,5 +1,4 @@
-import { EmptyState } from "@astryxdesign/core/EmptyState";
-import { Button } from "@astryxdesign/core/Button";
+import { Button, EmptyState } from "@openseat/design-system";
 
 export default function NotFound() {
   return (

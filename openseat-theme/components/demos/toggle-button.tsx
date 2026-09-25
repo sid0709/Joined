@@ -1,242 +1,105 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "@astryxdesign/core/Icon";
-import { ToggleButton, ToggleButtonGroup } from "@astryxdesign/core/ToggleButton";
-import { Stack } from "@astryxdesign/core/Stack";
+import { Icon, Stack, ToggleButton, icons, type ButtonSize } from "@openseat/design-system";
 import { Caption, Examples, Preview, Row } from "./shared";
 
+const SIZES: ButtonSize[] = ["sm", "md", "lg"];
+const SYNC_MS = 900;
+
 export default function ToggleButtonDemo() {
-  const [favorited, setFavorited] = useState(false);
-  const [bookmarked, setBookmarked] = useState(true);
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(true);
   const [muted, setMuted] = useState(false);
   const [visible, setVisible] = useState(true);
-  const [filters, setFilters] = useState<string[]>([]);
-  const [toolbar, setToolbar] = useState<Record<string, boolean>>({
-    search: true,
-    copy: false,
-    info: true,
-  });
-  const [reactions, setReactions] = useState<Record<string, boolean>>({
-    check: false,
-    warning: false,
-    copy: true,
-  });
+  const [pinned, setPinned] = useState(false);
+  const [watching, setWatching] = useState(false);
+  const [sizes, setSizes] = useState<Record<ButtonSize, boolean>>({ sm: false, md: true, lg: false });
+  const [format, setFormat] = useState({ bold: true, italic: false, underline: false });
 
   return (
     <Examples>
-      <Preview label="Showcase">
+      <Preview align="start" label="Label and icon" description="A binary on/off control shaped like a Button. The pressed icon swaps in when on.">
         <Row>
-          <ToggleButton
-            label="Favorite"
-            icon={<Icon icon="check" />}
-            pressedIcon={<Icon icon="success" />}
-            isPressed={favorited}
-            onPressedChange={setFavorited}
-            isIconOnly
-          />
-          <ToggleButton
-            label="Bookmark"
-            icon={<Icon icon="copy" />}
-            pressedIcon={<Icon icon="checkDouble" />}
-            isPressed={bookmarked}
-            onPressedChange={setBookmarked}
-            isIconOnly
-          />
-          <ToggleButton
-            label="Notifications"
-            icon={<Icon icon="info" />}
-            pressedIcon={<Icon icon="eyeSlash" />}
-            isPressed={muted}
-            onPressedChange={setMuted}
-          >
-            Notifications
-          </ToggleButton>
+          <ToggleButton label="Like" icon={<Icon icon={icons.heart} />} isPressed={liked} onPressedChange={setLiked} />
+          <ToggleButton label={saved ? "Saved" : "Save"} icon={<Icon icon={icons.bookmark} />} pressedIcon={<Icon icon={icons.check} />} isPressed={saved} onPressedChange={setSaved} />
+          <ToggleButton label={pinned ? "Pinned" : "Pin"} icon={<Icon icon={icons.pin} />} isPressed={pinned} onPressedChange={setPinned} />
         </Row>
       </Preview>
-      <Preview label="States">
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Caption>Default</Caption>
-            <Row>
-              <ToggleButton label="Favorite" icon={<Icon icon="check" />} isPressed={false} onPressedChange={() => {}} />
-              <ToggleButton
-                label="Favorite"
-                icon={<Icon icon="check" />}
-                isPressed={false}
-                onPressedChange={() => {}}
-                isIconOnly
-              />
-            </Row>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Pressed</Caption>
-            <Row>
-              <ToggleButton
-                label="Favorite"
-                icon={<Icon icon="check" />}
-                pressedIcon={<Icon icon="success" />}
-                isPressed
-                onPressedChange={() => {}}
-              />
-              <ToggleButton
-                label="Favorite"
-                icon={<Icon icon="check" />}
-                pressedIcon={<Icon icon="success" />}
-                isPressed
-                onPressedChange={() => {}}
-                isIconOnly
-              />
-            </Row>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Disabled</Caption>
-            <Row>
-              <ToggleButton label="Favorite" icon={<Icon icon="check" />} isPressed={false} onPressedChange={() => {}} isDisabled />
-              <ToggleButton
-                label="Favorite"
-                icon={<Icon icon="check" />}
-                isPressed={false}
-                onPressedChange={() => {}}
-                isIconOnly
-                isDisabled
-              />
-            </Row>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Loading</Caption>
-            <Row>
-              <ToggleButton label="Favorite" icon={<Icon icon="check" />} isPressed={false} onPressedChange={() => {}} isLoading />
-              <ToggleButton
-                label="Favorite"
-                icon={<Icon icon="check" />}
-                isPressed={false}
-                onPressedChange={() => {}}
-                isIconOnly
-                isLoading
-              />
-            </Row>
-          </Stack>
-        </Stack>
+
+      <Preview align="start" label="Icon only" description="Tooltips carry the name for sighted users.">
+        <Row>
+          <ToggleButton label="Mute" tooltip={muted ? "Unmute" : "Mute"} isIconOnly icon={<Icon icon={icons.bell} />} pressedIcon={<Icon icon={icons.minus} />} isPressed={muted} onPressedChange={setMuted} />
+          <ToggleButton label="Show preview" tooltip={visible ? "Hide preview" : "Show preview"} isIconOnly icon={<Icon icon={icons.eye} />} isPressed={visible} onPressedChange={setVisible} />
+          <ToggleButton label="Favorite" tooltip="Favorite" isIconOnly icon={<Icon icon={icons.star} />} isPressed={liked} onPressedChange={setLiked} />
+        </Row>
       </Preview>
-      <Preview label="Label">
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Caption>Standalone with label and icon</Caption>
+
+      <Preview align="start" label="Sizes">
+        <Row>
+          {SIZES.map((size) => (
             <ToggleButton
-              label="Visible"
-              icon={<Icon icon="search" />}
-              pressedIcon={<Icon icon="eyeSlash" />}
-              isPressed={visible}
-              onPressedChange={setVisible}
-            >
-              {visible ? "Visible" : "Hidden"}
-            </ToggleButton>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Labeled group — filter toolbar</Caption>
-            <ToggleButtonGroup type="multiple" value={filters} onChange={setFilters} label="Filters">
-              <ToggleButton value="filter" label="Filter" icon={<Icon icon="funnel" />}>
-                Filter
-              </ToggleButton>
-              <ToggleButton value="nearby" label="Nearby" icon={<Icon icon="search" />}>
-                Nearby
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Stack>
+              key={size}
+              size={size}
+              label={`${size.toUpperCase()} toggle`}
+              icon={<Icon icon={icons.sparkle} />}
+              isPressed={sizes[size]}
+              onPressedChange={(on) => setSizes((c) => ({ ...c, [size]: on }))}
+            />
+          ))}
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="States">
+        <Row>
+          <ToggleButton label="Off" isPressed={false} onPressedChange={() => {}} />
+          <ToggleButton label="On" isPressed onPressedChange={() => {}} />
+          <ToggleButton label="Disabled off" isPressed={false} isDisabled onPressedChange={() => {}} />
+          <ToggleButton label="Disabled on" isPressed isDisabled onPressedChange={() => {}} />
+          <ToggleButton label="Loading" isPressed={false} isLoading onPressedChange={() => {}} />
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="Async" description="pressedChangeAction shows a spinner while the change saves.">
+        <Stack gap={2} hAlign="start">
+          <ToggleButton
+            label={watching ? "Watching room" : "Watch room"}
+            icon={<Icon icon={icons.eye} />}
+            isPressed={watching}
+            pressedChangeAction={async (on) => {
+              await new Promise((resolve) => setTimeout(resolve, SYNC_MS));
+              setWatching(on);
+            }}
+          />
+          <Caption>{watching ? "You’ll be notified about new bids." : "Not watching."}</Caption>
         </Stack>
       </Preview>
-      <Preview label="Icon swap">
-        <Stack gap={2}>
-          <Caption>Swap the glyph when the control is pressed.</Caption>
+
+      <Preview align="start" label="Elevation">
+        <Row>
+          <ToggleButton label="Floating" elevation="med" isIconOnly icon={<Icon icon={icons.star} />} isPressed={liked} onPressedChange={setLiked} />
+          <ToggleButton label="Show grid" elevation="low" icon={<Icon icon={icons.grid} />} isPressed={visible} onPressedChange={setVisible} />
+        </Row>
+      </Preview>
+
+      <Preview align="start" label="Pattern — independent formatting" description="Each toggle is its own on/off. For one-of-many, use a ToggleButtonGroup or SegmentedControl.">
+        <Stack gap={2} hAlign="start">
           <Row>
-            <ToggleButton
-              label="Favorite"
-              icon={<Icon icon="check" />}
-              pressedIcon={<Icon icon="success" />}
-              isPressed={favorited}
-              onPressedChange={setFavorited}
-              isIconOnly
-            />
-            <ToggleButton
-              label="Bookmark"
-              icon={<Icon icon="copy" />}
-              pressedIcon={<Icon icon="checkDouble" />}
-              isPressed={bookmarked}
-              onPressedChange={setBookmarked}
-              isIconOnly
-            />
-            <ToggleButton
-              label={muted ? "Unmute notifications" : "Mute notifications"}
-              icon={<Icon icon="info" />}
-              pressedIcon={<Icon icon="eyeSlash" />}
-              isPressed={muted}
-              onPressedChange={setMuted}
-              isIconOnly
-            />
+            {(["bold", "italic", "underline"] as const).map((key) => (
+              <ToggleButton
+                key={key}
+                label={key[0].toUpperCase() + key.slice(1)}
+                tooltip={key}
+                isIconOnly
+                icon={<Icon icon={icons[key]} />}
+                isPressed={format[key]}
+                onPressedChange={(on) => setFormat((c) => ({ ...c, [key]: on }))}
+              />
+            ))}
           </Row>
-        </Stack>
-      </Preview>
-      <Preview label="Color">
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Caption>Toolbar</Caption>
-            <Row>
-              <ToggleButton
-                label="Search"
-                icon={<Icon icon="search" color="secondary" />}
-                pressedIcon={<Icon icon="search" color="accent" />}
-                isPressed={toolbar.search}
-                onPressedChange={() => setToolbar((prev) => ({ ...prev, search: !prev.search }))}
-                isIconOnly
-              />
-              <ToggleButton
-                label="Copy"
-                icon={<Icon icon="copy" color="secondary" />}
-                pressedIcon={<Icon icon="copy" color="accent" />}
-                isPressed={toolbar.copy}
-                onPressedChange={() => setToolbar((prev) => ({ ...prev, copy: !prev.copy }))}
-                isIconOnly
-              />
-              <ToggleButton
-                label="Info"
-                icon={<Icon icon="info" color="secondary" />}
-                pressedIcon={<Icon icon="info" color="accent" />}
-                isPressed={toolbar.info}
-                onPressedChange={() => setToolbar((prev) => ({ ...prev, info: !prev.info }))}
-                isIconOnly
-              />
-            </Row>
-          </Stack>
-          <Stack gap={1}>
-            <Caption>Reactions</Caption>
-            <Row>
-              <ToggleButton
-                label="Done"
-                icon={<Icon icon="check" color="secondary" />}
-                pressedIcon={<Icon icon="success" color="green" />}
-                isPressed={reactions.check}
-                onPressedChange={() => setReactions((prev) => ({ ...prev, check: !prev.check }))}
-                isIconOnly
-              />
-              <ToggleButton
-                label="Flag"
-                icon={<Icon icon="warning" color="secondary" />}
-                pressedIcon={<Icon icon="warning" color="yellow" />}
-                isPressed={reactions.warning}
-                onPressedChange={() => setReactions((prev) => ({ ...prev, warning: !prev.warning }))}
-                isIconOnly
-              />
-              <ToggleButton
-                label="Save"
-                icon={<Icon icon="copy" color="secondary" />}
-                pressedIcon={<Icon icon="copy" color="blue" />}
-                isPressed={reactions.copy}
-                onPressedChange={() => setReactions((prev) => ({ ...prev, copy: !prev.copy }))}
-                isIconOnly
-              />
-            </Row>
-          </Stack>
+          <Caption>
+            Active: {Object.entries(format).filter(([, on]) => on).map(([k]) => k).join(", ") || "none"}
+          </Caption>
         </Stack>
       </Preview>
     </Examples>

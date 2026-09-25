@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Heading } from "@astryxdesign/core/Heading";
-import { Text } from "@astryxdesign/core/Text";
-import { Stack } from "@astryxdesign/core/Stack";
+import { Heading, Stack, Text } from "@openseat/design-system";
 import { COMPONENT_ITEMS, findItem } from "@/lib/catalog";
 import { ComponentDocs } from "@/components/ComponentDocs";
 

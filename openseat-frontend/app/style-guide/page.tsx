@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import {
   Button,
-  Input,
-  Card,
+  JobCard,
   Badge,
-  Avatar,
-  AvatarStack,
   Nav,
   EmptyState,
-  Toast,
   TokenDemo,
-} from "@openseat/design-system";
+} from "@/components/ui";
+import { AvatarSamples } from "./_components/AvatarSamples";
+import { InputSamples } from "./_components/InputSamples";
+import { ToastSamples } from "./_components/ToastSamples";
+
+const CARD_WIDTH = 208;
 
 const SWATCHES = [
   "canvas",
@@ -112,56 +113,42 @@ export default function StyleGuidePage() {
 
       <Section title="Buttons" description="32px by default, 28px in dense rows, 40px for a hero CTA.">
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="primary">Post a sealed job</Button>
-          <Button variant="secondary">Save as draft</Button>
-          <Button variant="ghost">Cancel</Button>
-          <Button variant="danger">Close this room</Button>
-          <Button variant="primary" disabled>
-            Disabled
-          </Button>
+          <Button label="Post a sealed job" variant="primary" />
+          <Button label="Save as draft" variant="secondary" />
+          <Button label="Cancel" variant="ghost" />
+          <Button label="Close this room" variant="destructive" />
+          <Button label="Disabled" variant="primary" isDisabled />
         </div>
       </Section>
 
       <Section title="Inputs">
         <div className="flex max-w-sm flex-col gap-4">
-          <Input label="When can you start" placeholder="e.g. Next Monday" />
-          <Input label="Your rate" defaultValue="0" error helper="Enter an amount greater than $0" />
+          <InputSamples />
         </div>
       </Section>
 
       <Section title="Badges">
         <div className="flex flex-wrap gap-2">
-          <Badge label="Invited" tone="neutral" />
-          <Badge label="Selected" tone="primary" />
-          <Badge label="Bid submitted" tone="success" />
-          <Badge label="Pending review" tone="warning" />
-          <Badge label="Revoked" tone="danger" />
-          <Badge label="Viewed" tone="outline" />
+          <Badge label="Invited" variant="neutral" />
+          <Badge label="Selected" variant="info" />
+          <Badge label="Bid submitted" variant="success" />
+          <Badge label="Pending review" variant="warning" />
+          <Badge label="Revoked" variant="error" />
+          <Badge label="Design" variant="purple" />
         </div>
       </Section>
 
       <Section title="Avatars">
         <div className="flex flex-wrap items-center gap-3">
-          <Avatar initials="JM" size={20} />
-          <Avatar initials="AR" size={24} />
-          <Avatar initials="DK" size={32} />
-          <Avatar initials="RS" size={32} status />
-          <AvatarStack
-            people={[
-              { initials: "JM", size: 24 },
-              { initials: "AR", size: 24 },
-              { initials: "DK", size: 24 },
-            ]}
-            overflow={3}
-          />
+          <AvatarSamples />
         </div>
       </Section>
 
       <Section title="Cards">
         <div className="flex flex-wrap gap-3">
-          <Card title="Brand refresh brief" meta="Fixed · $2,400" footer="Posted 2 days ago" className="w-52" />
-          <Card title="Landing page copy" meta="Hourly · $65/hr" interactive className="w-52" />
-          <Card title="Selected bid" meta="Chosen for this room" selected className="w-52" />
+          <JobCard title="Brand refresh brief" meta="Fixed · $2,400" footer="Posted 2 days ago" width={CARD_WIDTH} />
+          <JobCard title="Landing page copy" meta="Hourly · $65/hr" href="#landing" width={CARD_WIDTH} />
+          <JobCard title="Selected bid" meta="Chosen for this room" selected width={CARD_WIDTH} />
         </div>
       </Section>
 
@@ -178,15 +165,13 @@ export default function StyleGuidePage() {
         <EmptyState
           title="No bids yet"
           description="Invited bidders can see this room and will show up here once they respond."
-          actionLabel="Invite a bidder"
+          actions={<Button label="Invite a bidder" variant="secondary" />}
         />
       </Section>
 
       <Section title="Toasts">
-        <div className="flex flex-col items-start gap-2">
-          <Toast message="Invite sent to 2 bidders" tone="success" />
-          <Toast message="This invite expires in 24 hours" tone="warning" />
-          <Toast message="Failed to send — try again" tone="danger" />
+        <div className="flex flex-wrap items-center gap-2">
+          <ToastSamples />
         </div>
       </Section>
     </div>

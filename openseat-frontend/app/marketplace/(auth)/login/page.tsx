@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, FormLayout, Input } from "@openseat/design-system";
+import { Banner, Button, Card, FormLayout, Input } from "@/src/shared/marketplace-ui";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 
 export default function MarketplaceLoginPage() {

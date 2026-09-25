@@ -1,46 +1,62 @@
 "use client";
 
-import { HTMLAttributes, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { ClickableCard } from "./Container";
+import { Card, Heading, Stack, Text, type CardVariant } from "./Primitives";
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  title?: string;
+/** Card width in px, or any CSS width. */
+type Width = number | string;
+
+export interface JobCardProps {
+  title: string;
   meta?: string;
+  /** Status, badges, or anything that describes the room at a glance. */
+  children?: ReactNode;
   footer?: ReactNode;
-  /** surface-hover fill + border-strong on hover, pointer cursor */
-  interactive?: boolean;
-  /** border-focus edge + primary-bg fill */
+  /** Makes the whole card a link. */
+  href?: string;
+  /** Makes the whole card a button. */
+  onClick?: () => void;
+  /** Tints the card to mark the chosen room or bid. */
   selected?: boolean;
-  /** adds elevation-1 — only for a card that overlaps content beneath it */
+  /** Lifts the card — only for a card that overlaps content beneath it. */
   raised?: boolean;
+  width?: Width;
 }
 
-export function Card({
-  title,
-  meta,
-  footer,
-  interactive,
-  selected,
-  raised,
-  className = "",
-  children,
-  ...props
-}: CardProps) {
-  const classes = [
-    "os-card",
-    interactive && "os-card-hover",
-    selected && "os-card-selected",
-    raised && "os-card-raised",
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  return (
-    <div className={classes} {...props}>
-      {title && <p className="h3 os-card-title">{title}</p>}
-      {meta && <p className="body-sm os-card-meta">{meta}</p>}
+/** The OpenSeat room card: title, meta line, optional body and footer, on an Astryx Card. */
+export function JobCard({ title, meta, children, footer, href, onClick, selected, raised, width }: JobCardProps) {
+  const variant: CardVariant = selected ? "blue" : "default";
+  const elevation = raised ? "low" : undefined;
+  const body = (
+    <Stack gap={2}>
+      <Stack gap={0.5}>
+        <Heading level={4}>{title}</Heading>
+        {meta && (
+          <Text type="supporting" color="secondary">
+            {meta}
+          </Text>
+        )}
+      </Stack>
       {children}
-      {footer && <div className="os-card-foot">{footer}</div>}
-    </div>
+      {footer && (
+        <Text type="supporting" color="secondary">
+          {footer}
+        </Text>
+      )}
+    </Stack>
+  );
+
+  if (href || onClick) {
+    return (
+      <ClickableCard label={title} href={href} onClick={onClick} variant={variant} elevation={elevation} width={width}>
+        {body}
+      </ClickableCard>
+    );
+  }
+  return (
+    <Card variant={variant} elevation={elevation} width={width}>
+      {body}
+    </Card>
   );
 }

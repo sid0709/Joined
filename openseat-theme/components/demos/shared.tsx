@@ -1,9 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Card } from "@astryxdesign/core/Card";
-import { Stack, HStack } from "@astryxdesign/core/Stack";
-import { Text } from "@astryxdesign/core/Text";
+import { Card, HStack, Stack, Text } from "@openseat/design-system";
 
 export const SEARCH_ITEMS = [
   { id: "button", label: "Button" },
@@ -20,13 +18,31 @@ export function Row({ children }: { children: ReactNode }) {
   );
 }
 
-export function Preview({ label, children }: { label: string; children: ReactNode }) {
+export function Preview({
+  label,
+  description,
+  align = "stretch",
+  children,
+}: {
+  label: string;
+  description?: string;
+  /** start keeps controls at their natural width; stretch lets tables, toolbars, and cards fill. */
+  align?: "start" | "stretch";
+  children: ReactNode;
+}) {
   return (
     <Card>
-      <Stack gap={3}>
-        <Text type="label" color="secondary">
-          {label}
-        </Text>
+      <Stack gap={3} hAlign={align}>
+        <Stack gap={0.5}>
+          <Text type="label" color="secondary">
+            {label}
+          </Text>
+          {description && (
+            <Text type="supporting" color="secondary">
+              {description}
+            </Text>
+          )}
+        </Stack>
         {children}
       </Stack>
     </Card>
@@ -44,3 +60,21 @@ export function Caption({ children }: { children: ReactNode }) {
 export function Examples({ children }: { children: ReactNode }) {
   return <Stack gap={5}>{children}</Stack>;
 }
+
+/** Local sample images from /public, so image demos never depend on a remote host. */
+export const SAMPLE_IMAGES = {
+  globe: "/globe.svg",
+  window: "/window.svg",
+  file: "/file.svg",
+  missing: "/missing-image.png",
+} as const;
+
+export const PEOPLE = [
+  { name: "Jordan Miles", role: "Room owner" },
+  { name: "Alex Rivera", role: "Designer" },
+  { name: "Dana Kim", role: "Copywriter" },
+  { name: "Riley Chen", role: "Engineer" },
+  { name: "Sam Okafor", role: "Producer" },
+  { name: "Priya Nair", role: "Strategist" },
+  { name: "Morgan Lee", role: "Illustrator" },
+];
