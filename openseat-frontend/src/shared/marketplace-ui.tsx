@@ -1,6 +1,7 @@
 "use client";
 
-import type { ChangeEvent, ReactNode, SelectHTMLAttributes } from "react";
+import { Children, isValidElement } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import * as DesignSystem from "@openseat/design-system";
 
 export {
@@ -20,6 +21,7 @@ const DesignStack = DesignSystem.Stack;
 const DesignTextInput = DesignSystem.TextInput;
 const DesignTextArea = DesignSystem.TextArea;
 const DesignCheckboxInput = DesignSystem.CheckboxInput;
+const DesignSelector = DesignSystem.Selector;
 const DesignBadge = DesignSystem.Badge;
 const DesignBanner = DesignSystem.Banner;
 const DesignDialog = DesignSystem.Dialog;
@@ -132,17 +134,38 @@ export function TextArea({ disabled, onChange, ...props }: TextAreaProps) {
   return <DesignTextArea {...props} isDisabled={disabled} onChange={(value, event) => onChange?.(event)} />;
 }
 
-export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+export interface SelectProps {
   label: string;
+  value?: string;
+  onChange?: (event: ChangeEvent<HTMLSelectElement>) => void;
+  children?: ReactNode;
+  disabled?: boolean;
+  className?: string;
+  placeholder?: string;
 }
 
-export function Select({ label, id, className, ...props }: SelectProps) {
-  const inputId = id ?? `marketplace-select-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+export function Select({ label, value, onChange, children, disabled, className, placeholder }: SelectProps) {
+  const options = Children.toArray(children)
+    .filter(isValidElement)
+    .map((child) => {
+      const option = child.props as { value?: string; children?: ReactNode; disabled?: boolean };
+      return {
+        value: String(option.value ?? ""),
+        label: String(option.children ?? option.value ?? ""),
+        disabled: option.disabled,
+      } satisfies DesignSystem.SelectorOptionData;
+    });
+
   return (
-    <label className={className} htmlFor={inputId}>
-      <span className="label">{label}</span>
-      <select {...props} id={inputId} />
-    </label>
+    <DesignSelector
+      label={label}
+      options={options}
+      value={value}
+      placeholder={placeholder}
+      isDisabled={disabled}
+      className={className}
+      onChange={(nextValue) => onChange?.({ target: { value: nextValue } } as ChangeEvent<HTMLSelectElement>)}
+    />
   );
 }
 
