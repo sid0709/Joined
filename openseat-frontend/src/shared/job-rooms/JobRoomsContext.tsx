@@ -9,6 +9,11 @@ import {
 } from "@/src/shared/types/job-room";
 import { CandidateProfile } from "@/src/shared/types/auth";
 import { MOCK_JOB_ROOMS } from "@/src/shared/data/mockRooms";
+import {
+  FALLBACK_CANDIDATE_NAME,
+  FALLBACK_CANDIDATE_TITLE,
+  FALLBACK_COVER_LETTER,
+} from "@/src/shared/data/mockClientData";
 
 interface JobRoomsContextValue {
   rooms: JobRoomRecord[];
@@ -77,10 +82,10 @@ export function JobRoomsProvider({ children }: { children: React.ReactNode }) {
             ...current.proposals,
             {
               id: "logged-in-user",
-              candidateName: candidateProfile.fullName || "Zenith Luca",
-              candidateTitle: candidateProfile.title || "Full-Stack Next.js Developer",
+              candidateName: candidateProfile.fullName || FALLBACK_CANDIDATE_NAME,
+              candidateTitle: candidateProfile.title || FALLBACK_CANDIDATE_TITLE,
               candidateRate: `${candidateProfile.hourlyRate}/hr`,
-              coverLetterText: candidateProfile.bio || "Interested in launching milestones parameters loop.",
+              coverLetterText: candidateProfile.bio || FALLBACK_COVER_LETTER,
               status: "Pending" as const,
             },
           ],

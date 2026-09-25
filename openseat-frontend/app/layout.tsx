@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   description: "A permissioned help marketplace — sealed job rooms, invited bidders.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

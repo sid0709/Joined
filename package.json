@@ -1,6 +1,7 @@
 {
   "name": "openseat",
   "private": true,
+  "packageManager": "bun@1.4.2",
   "workspaces": [
     "openseat-frontend",
     "openseat-theme",

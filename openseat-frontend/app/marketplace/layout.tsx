@@ -1,13 +1,15 @@
-"use client";
+import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { MarketplaceProviders } from "./providers";
 
-import React from "react";
-import { MockAuthProvider } from "@/src/shared/auth/MockAuthContext";
-import { JobRoomsProvider } from "@/src/shared/job-rooms/JobRoomsContext";
+export const metadata: Metadata = {
+  title: {
+    default: "Marketplace | OpenSeat",
+    template: "%s | OpenSeat",
+  },
+  description: "Browse job rooms, place bids, and manage delivery in OpenSeat.",
+};
 
-export default function MarketplaceRootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <MockAuthProvider>
-      <JobRoomsProvider>{children}</JobRoomsProvider>
-    </MockAuthProvider>
-  );
+export default function MarketplaceRootLayout({ children }: { children: ReactNode }) {
+  return <MarketplaceProviders>{children}</MarketplaceProviders>;
 }

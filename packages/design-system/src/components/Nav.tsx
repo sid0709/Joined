@@ -19,6 +19,7 @@ export interface NavProps {
   initials?: string;
   trailing?: ReactNode;
   showAvatar?: boolean;
+  showThemeToggle?: boolean;
 }
 
 /** The 48px top-level product bar — calm infrastructure, never a second accent. */
@@ -30,6 +31,7 @@ export function Nav({
   initials = "JM",
   trailing,
   showAvatar = false,
+  showThemeToggle = false,
 }: NavProps) {
   return (
     <div className="os-nav">
@@ -46,7 +48,7 @@ export function Nav({
         ))}
       </div>
       <div className="os-nav-right">
-        <ThemeToggle />
+        {showThemeToggle && <ThemeToggle />}
         {cta && (
           <Button variant="primary" size="sm" onClick={onCtaClick}>
             {cta}

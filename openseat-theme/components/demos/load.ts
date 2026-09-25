@@ -1,4 +1,6 @@
-import type { ComponentType } from "react";
+import { createElement, type ComponentType } from "react";
+import dynamic from "next/dynamic";
+import { Spinner } from "@astryxdesign/core/Spinner";
 
 type DemoLoader = () => Promise<{ default: ComponentType }>;
 
@@ -83,3 +85,13 @@ export const DEMO_LOADERS: Record<string, DemoLoader> = {
   chat: () => import("./chat"),
   "visually-hidden": () => import("./visually-hidden"),
 };
+
+export const DEMO_COMPONENTS: Record<string, ComponentType> = Object.fromEntries(
+  Object.entries(DEMO_LOADERS).map(([slug, loader]) => [
+    slug,
+    dynamic(loader, {
+      ssr: false,
+      loading: () => createElement(Spinner, { label: "Loading example" }),
+    }),
+  ]),
+) as Record<string, ComponentType>;

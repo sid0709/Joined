@@ -2,6 +2,21 @@
 
 import { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 
+type ButtonLinkVariant = "primary" | "secondary" | "ghost";
+type ButtonLinkSize = "sm" | "md" | "lg";
+
+const BUTTON_LINK_VARIANT_CLASS: Record<ButtonLinkVariant, string> = {
+  primary: "os-btn-primary",
+  secondary: "os-btn-secondary",
+  ghost: "os-btn-ghost",
+};
+
+const BUTTON_LINK_SIZE_CLASS: Record<ButtonLinkSize, string> = {
+  sm: "os-btn-sm",
+  md: "",
+  lg: "os-btn-lg",
+};
+
 /** Groups related Buttons into one visually joined cluster. */
 export function ButtonGroup({ children }: { children: ReactNode }) {
   return <div className="os-button-group">{children}</div>;
@@ -39,6 +54,28 @@ export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {}
 /** Navigation, never an action — use Button for actions. */
 export function Link({ className = "", ...props }: LinkProps) {
   return <a className={["body", "os-link", className].filter(Boolean).join(" ")} {...props} />;
+}
+
+export interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+  variant?: ButtonLinkVariant;
+  size?: ButtonLinkSize;
+}
+
+/** A navigation link with Button styling; unlike Button it remains a valid anchor. */
+export function ButtonLink({
+  variant = "primary",
+  size = "md",
+  className = "",
+  ...props
+}: ButtonLinkProps) {
+  return (
+    <a
+      className={["button", "os-btn", BUTTON_LINK_VARIANT_CLASS[variant], BUTTON_LINK_SIZE_CLASS[size], className]
+        .filter(Boolean)
+        .join(" ")}
+      {...props}
+    />
+  );
 }
 
 export interface SegmentedControlProps {

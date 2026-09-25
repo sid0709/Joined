@@ -3,6 +3,10 @@
 import { useJobRoomsContext } from "@/src/shared/job-rooms/JobRoomsContext";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { ClientJobPost } from "@/src/client/types";
+import {
+  DEFAULT_CLIENT_LOCATION,
+  DEFAULT_CLIENT_SPEND,
+} from "@/src/shared/data/mockClientData";
 
 export function useClientDashboard() {
   const { rooms, applicationsRegistry, postJobRoom, sendChatMessage, approveProposal } = useJobRoomsContext();
@@ -18,8 +22,8 @@ export function useClientDashboard() {
     postJobRoom({
       title: job.title,
       isPaymentVerified: true,
-      clientTotalSpentText: "$0 spent",
-      clientLocationCode: "USA",
+      clientTotalSpentText: DEFAULT_CLIENT_SPEND,
+      clientLocationCode: DEFAULT_CLIENT_LOCATION,
       budgetType: job.budgetType,
       rateOrBudgetRangeText: job.rateOrBudgetRangeText,
       experienceLevelRequired: job.experienceLevelRequired,

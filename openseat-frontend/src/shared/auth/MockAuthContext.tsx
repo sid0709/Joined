@@ -1,13 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { RegisteredUser, UserRole, CandidateProfile } from "@/src/shared/types/auth";
 
 interface MockAuthContextType {
   currentUser: RegisteredUser | null;
   profile: CandidateProfile;
-  loginUser: (email: string, passwordText: string) => { success: boolean; error?: string };
+  loginUser: (email: string, passwordText: string) => { success: boolean; error?: string; role?: UserRole };
   registerUser: (fullName: string, email: string, passwordText: string) => { success: boolean; error?: string };
   assignRole: (role: UserRole) => void;
   updateProfile: (updated: Partial<CandidateProfile>) => void;
@@ -16,24 +16,63 @@ interface MockAuthContextType {
 
 const MockAuthContext = createContext<MockAuthContextType | undefined>(undefined);
 
+const USERS_STORAGE_KEY = "os_mock_db_users";
+const ACTIVE_USER_STORAGE_KEY = "os_mock_db_active";
+const AUTH_STORAGE_EVENT = "os-mock-auth-storage";
+const EMPTY_USERS_SNAPSHOT = "[]";
+
+function subscribeToAuthStorage(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === USERS_STORAGE_KEY || event.key === ACTIVE_USER_STORAGE_KEY) onStoreChange();
+  };
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(AUTH_STORAGE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(AUTH_STORAGE_EVENT, onStoreChange);
+  };
+}
+
+function readUsersSnapshot() {
+  return typeof window === "undefined" ? EMPTY_USERS_SNAPSHOT : window.localStorage.getItem(USERS_STORAGE_KEY) ?? EMPTY_USERS_SNAPSHOT;
+}
+
+function readActiveUserSnapshot() {
+  return typeof window === "undefined" ? null : window.localStorage.getItem(ACTIVE_USER_STORAGE_KEY);
+}
+
+function parseUsers(snapshot: string): RegisteredUser[] {
+  try {
+    const parsed = JSON.parse(snapshot);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseActiveUser(snapshot: string | null): RegisteredUser | null {
+  if (!snapshot) return null;
+  try {
+    return JSON.parse(snapshot) as RegisteredUser;
+  } catch {
+    return null;
+  }
+}
+
+function notifyAuthStorage() {
+  window.dispatchEvent(new Event(AUTH_STORAGE_EVENT));
+}
+
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
-  const [users, setUsers] = useState<RegisteredUser[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedUsers = localStorage.getItem("os_mock_db_users");
-      return savedUsers ? JSON.parse(savedUsers) : [];
-    }
-    return [];
-  });
-
-  const [currentUser, setCurrentUser] = useState<RegisteredUser | null>(() => {
-    if (typeof window !== "undefined") {
-      const savedActive = localStorage.getItem("os_mock_db_active");
-      return savedActive ? JSON.parse(savedActive) : null;
-    }
-    return null;
-  });
+  const usersSnapshot = useSyncExternalStore(subscribeToAuthStorage, readUsersSnapshot, () => EMPTY_USERS_SNAPSHOT);
+  const activeUserSnapshot = useSyncExternalStore(subscribeToAuthStorage, readActiveUserSnapshot, () => null);
+  const users = useMemo(() => parseUsers(usersSnapshot), [usersSnapshot]);
+  const currentUser = useMemo(() => parseActiveUser(activeUserSnapshot), [activeUserSnapshot]);
 
   const [profile, setProfile] = useState<CandidateProfile>({
     title: "Full-Stack Next.js Developer",
@@ -49,10 +88,9 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     const newUser: RegisteredUser = { email, passwordText, fullName, role: null };
     const nextUsers = [...users, newUser];
 
-    setUsers(nextUsers);
-    localStorage.setItem("os_mock_db_users", JSON.stringify(nextUsers));
-    setCurrentUser(newUser);
-    localStorage.setItem("os_mock_db_active", JSON.stringify(newUser));
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(nextUsers));
+    localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(newUser));
+    notifyAuthStorage();
 
     return { success: true };
   };
@@ -63,20 +101,19 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     );
     if (!match) return { success: false, error: "Invalid email credentials or missing user registry entry." };
 
-    setCurrentUser(match);
-    localStorage.setItem("os_mock_db_active", JSON.stringify(match));
-    return { success: true };
+    localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(match));
+    notifyAuthStorage();
+    return { success: true, role: match.role };
   };
 
   const assignRole = (role: UserRole) => {
     if (!currentUser) return;
     const updatedUser = { ...currentUser, role };
-    setCurrentUser(updatedUser);
-    localStorage.setItem("os_mock_db_active", JSON.stringify(updatedUser));
+    localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(updatedUser));
 
     const updatedUsers = users.map((u) => (u.email === currentUser.email ? updatedUser : u));
-    setUsers(updatedUsers);
-    localStorage.setItem("os_mock_db_users", JSON.stringify(updatedUsers));
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+    notifyAuthStorage();
   };
 
   const updateProfile = (updated: Partial<CandidateProfile>) => {
@@ -84,8 +121,8 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logoutUser = () => {
-    setCurrentUser(null);
-    localStorage.removeItem("os_mock_db_active");
+    localStorage.removeItem(ACTIVE_USER_STORAGE_KEY);
+    notifyAuthStorage();
     router.push("/marketplace/login");
   };
 

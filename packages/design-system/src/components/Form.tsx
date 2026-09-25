@@ -1,25 +1,35 @@
 "use client";
 
-import { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, useId, type ComponentProps } from "react";
-import { Input } from "./Input";
+import { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, useId } from "react";
+import { Input, InputFieldProps, TextareaFieldProps } from "./Input";
 
 export const Field = Input;
 export const TextInput = Input;
 
-export function TextArea(props: Omit<ComponentProps<typeof Input>, "multiline">) {
-  return <Input multiline {...(props as any)} />;
+export function TextArea(props: Omit<TextareaFieldProps, "multiline">) {
+  return <Input multiline {...props} />;
 }
 
-export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
+export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "className"> {
   label?: ReactNode;
+  className?: string;
+  inputClassName?: string;
 }
 
-export function Checkbox({ label, id, className = "", ...props }: CheckboxProps) {
+export function Checkbox({ label, id, className = "", inputClassName = "", ...props }: CheckboxProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   return (
     <label className={["body os-check", className].filter(Boolean).join(" ")} htmlFor={inputId}>
-      <input id={inputId} type="checkbox" {...props} />
+      <span className="os-checkbox">
+        <input
+          id={inputId}
+          type="checkbox"
+          className={["os-checkbox-input", inputClassName].filter(Boolean).join(" ")}
+          {...props}
+        />
+        <span className="os-checkbox-box" aria-hidden="true" />
+      </span>
       {label}
     </label>
   );
@@ -119,20 +129,20 @@ export function Select({ label, helper, error, className = "", id, children, ...
 
 export const Selector = Select;
 
-export function NumberInput(props: Omit<ComponentProps<typeof Input>, "type" | "multiline">) {
-  return <Input type="number" {...(props as any)} />;
+export function NumberInput(props: Omit<InputFieldProps, "type" | "multiline">) {
+  return <Input type="number" {...props} />;
 }
 
-export function DateInput(props: Omit<ComponentProps<typeof Input>, "type" | "multiline">) {
-  return <Input type="date" {...(props as any)} />;
+export function DateInput(props: Omit<InputFieldProps, "type" | "multiline">) {
+  return <Input type="date" {...props} />;
 }
 
-export function TimeInput(props: Omit<ComponentProps<typeof Input>, "type" | "multiline">) {
-  return <Input type="time" {...(props as any)} />;
+export function TimeInput(props: Omit<InputFieldProps, "type" | "multiline">) {
+  return <Input type="time" {...props} />;
 }
 
-export function DateTimeInput(props: Omit<ComponentProps<typeof Input>, "type" | "multiline">) {
-  return <Input type="datetime-local" {...(props as any)} />;
+export function DateTimeInput(props: Omit<InputFieldProps, "type" | "multiline">) {
+  return <Input type="datetime-local" {...props} />;
 }
 
 export interface FileInputProps {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { Button } from "./Button";
+import { Checkbox } from "./Form";
 
 type Theme = "dark" | "light";
 
@@ -119,10 +120,11 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
   return (
     <div className="os-token-demo">
       <div className="os-token-demo-toolbar">
-        <label className="os-check">
-          <input type="checkbox" checked={open} onChange={(e) => show(e.target.checked)} />
-          <span className="body-strong">Show design token demo</span>
-        </label>
+        <Checkbox
+          label={<span className="body-strong">Show design token demo</span>}
+          checked={open}
+          onChange={(e) => show(e.target.checked)}
+        />
         {open && (
           <div role="group" aria-label="Theme">
             <Button size="sm" variant={theme === "dark" ? "secondary" : "ghost"} onClick={() => switchTheme("dark")}>

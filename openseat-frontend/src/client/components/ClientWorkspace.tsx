@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Card, Input, Button } from "@openseat/design-system";
+import { Banner, Button, Card, FormLayout, Input, Select, TextArea } from "@openseat/design-system";
 import { ClientJobPost } from "@/src/client/types";
+import { DEFAULT_JOB_DURATION, DEFAULT_WEEKLY_COMMITMENT } from "@/src/shared/data/mockClientData";
 
 interface ClientWorkspaceProps {
   onPostJob: (job: ClientJobPost) => void;
@@ -17,8 +18,8 @@ export function ClientWorkspace({ onPostJob }: ClientWorkspaceProps) {
   const [skillsText, setSkillsText] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const handleSubmitPost = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmitPost = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!title || !description || !budgetRange) return;
 
     onPostJob({
@@ -26,10 +27,10 @@ export function ClientWorkspace({ onPostJob }: ClientWorkspaceProps) {
       budgetType,
       rateOrBudgetRangeText: budgetRange,
       experienceLevelRequired: experience,
-      durationEstimateText: "1 to 3 months",
-      weeklyCommitmentText: "30+ hrs/week",
+      durationEstimateText: DEFAULT_JOB_DURATION,
+      weeklyCommitmentText: DEFAULT_WEEKLY_COMMITMENT,
       descriptionParagraph: description,
-      skillsTags: skillsText.split(",").map((s) => s.trim()).filter(Boolean),
+      skillsTags: skillsText.split(",").map((skill) => skill.trim()).filter(Boolean),
     });
 
     setSuccess(true);
@@ -41,94 +42,31 @@ export function ClientWorkspace({ onPostJob }: ClientWorkspaceProps) {
   };
 
   return (
-    <Card style={{ padding: "var(--space-6, 24px)" }}>
-      <form onSubmit={handleSubmitPost} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4, 16px)" }}>
-        <div>
-          <h2 className="h1" style={{ marginBottom: "var(--space-1, 4px)" }}>
-            Post a New Job Room
-          </h2>
-          <p className="body text-ink-muted">Host a custom sealed job room to invite elite engineering talent.</p>
-        </div>
-
-        {success && (
-          <div
-            className="body-sm"
-            style={{
-              color: "var(--success, #2E7D32)",
-              backgroundColor: "var(--success-bg, #E8F5E9)",
-              padding: "var(--space-2, 8px)",
-              border: "1px solid var(--success)",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
-            ✓ Job room broadcasted onto the OpenSeat marketplace network!
+    <Card>
+      <form onSubmit={handleSubmitPost}>
+        <FormLayout>
+          <div>
+            <h1 className="h1">Post a new job room</h1>
+            <p className="body text-ink-muted">Host a focused brief and invite engineering talent to respond.</p>
           </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3, 12px)" }}>
-          <Input
-            placeholder="Job Title (e.g. Next.js Architecture Expert Needed)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4, 16px)" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <span className="caption text-ink-muted">Budget Type</span>
-              <select
-                className="body"
-                style={{
-                  height: "40px",
-                  backgroundColor: "var(--surface-sunken, #F5F2EB)",
-                  color: "var(--ink)",
-                  border: "1px solid var(--border-default)",
-                  borderRadius: "var(--radius-md)",
-                  padding: "0 var(--space-2)",
-                }}
-                value={budgetType}
-                onChange={(e) => setBudgetType(e.target.value as "Hourly" | "Fixed-Price")}
-              >
-                <option value="Hourly">Hourly Rate</option>
-                <option value="Fixed-Price">Fixed-Price Project</option>
-              </select>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <span className="caption text-ink-muted">Rate or Budget Estimate Range</span>
-              <Input placeholder="e.g. $45.00 - $70.00" value={budgetRange} onChange={(e) => setBudgetRange(e.target.value)} />
-            </div>
+          {success && <Banner tone="success" title="Job room published" description="Your new room is now visible in the marketplace." />}
+          <Input label="Job title" placeholder="e.g. Next.js architecture expert needed" value={title} onChange={(event) => setTitle(event.target.value)} />
+          <div className="marketplace-form-grid">
+            <Select label="Budget type" value={budgetType} onChange={(event) => setBudgetType(event.target.value as "Hourly" | "Fixed-Price")}>
+              <option value="Hourly">Hourly rate</option>
+              <option value="Fixed-Price">Fixed-price project</option>
+            </Select>
+            <Input label="Rate or budget range" placeholder="e.g. $45 - $70" value={budgetRange} onChange={(event) => setBudgetRange(event.target.value)} />
           </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <span className="caption text-ink-muted">Target Skill Badges (Comma-separated)</span>
-            <Input
-              placeholder="Next.js, TypeScript, TailWind CSS, Rust"
-              value={skillsText}
-              onChange={(e) => setSkillsText(e.target.value)}
-            />
-          </div>
-
-          <textarea
-            className="body text-ink"
-            style={{
-              width: "100%",
-              height: "120px",
-              backgroundColor: "var(--surface-sunken)",
-              border: "1px solid var(--border-default)",
-              borderRadius: "var(--radius-md)",
-              padding: "var(--space-3)",
-              resize: "vertical",
-              fontFamily: "inherit",
-              outline: "none",
-            }}
-            placeholder="Provide explicit project milestones and operational parameters details..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
-        <Button type="submit" variant="primary">
-          Launch Sealed Room
-        </Button>
+          <Select label="Experience level" value={experience} onChange={(event) => setExperience(event.target.value as typeof experience)}>
+            <option value="Entry Level">Entry level</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Expert">Expert</option>
+          </Select>
+          <Input label="Target skills" placeholder="Next.js, TypeScript, Rust" helper="Separate skills with commas." value={skillsText} onChange={(event) => setSkillsText(event.target.value)} />
+          <TextArea label="Project brief" placeholder="Describe milestones, constraints, and success criteria." value={description} onChange={(event) => setDescription(event.target.value)} />
+          <Button type="submit" variant="primary">Launch sealed room</Button>
+        </FormLayout>
       </form>
     </Card>
   );

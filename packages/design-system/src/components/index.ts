@@ -26,6 +26,7 @@ export { TokenDemo } from "./TokenDemo";
 
 export {
   ButtonGroup,
+  ButtonLink,
   IconButton,
   Link,
   SegmentedControl,
@@ -35,6 +36,7 @@ export {
   ToolbarDivider,
 } from "./Action";
 export type {
+  ButtonLinkProps,
   IconButtonProps,
   LinkProps,
   SegmentedControlProps,

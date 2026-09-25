@@ -17,7 +17,7 @@ export default function BannerDemo() {
             status="error"
             title="Payment failed"
             description="Update the card on file and try again."
-            actions={<Button label="Retry" variant="secondary" size="sm" />}
+            endContent={<Button label="Retry" variant="secondary" size="sm" />}
           />
         </Stack>
       </Preview>

@@ -2,120 +2,47 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Input, Button, Nav } from "@openseat/design-system";
+import { Banner, Button, Card, FormLayout, Input, PageBody, TextArea } from "@openseat/design-system";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 
 export function CandidateProfileForm() {
   const router = useRouter();
   const { currentUser, profile, updateProfile } = useMockAuth();
-
   const [title, setTitle] = useState(profile.title);
   const [hourlyRate, setHourlyRate] = useState(profile.hourlyRate);
   const [bio, setBio] = useState(profile.bio);
-  const [successBanner, setSuccessBanner] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProfile = (event: React.FormEvent) => {
+    event.preventDefault();
     updateProfile({ title, hourlyRate, bio });
-    setSuccessBanner(true);
-    setTimeout(() => {
-      router.push("/marketplace/candidate/dashboard");
-    }, 1200);
+    setSuccess(true);
+    setTimeout(() => router.push("/marketplace/candidate/dashboard"), 1200);
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "var(--canvas)", color: "var(--ink)" }}>
-      <Nav
-        brand="OpenSeat Setup"
-        items={[
-          { label: "Find Work" },
-          { label: "Profile Builder", active: true },
-        ]}
-      />
-
-      <div style={{ maxWidth: "680px", margin: "0 auto", padding: "var(--space-6, 24px) var(--space-4, 16px)" }}>
-        <Button
-          variant="secondary"
-          style={{ marginBottom: "var(--space-4, 16px)" }}
-          onClick={() => router.push("/marketplace/candidate/dashboard")}
-        >
-          ← Skip to Dashboard
+    <PageBody>
+      <div className="marketplace-narrow-page">
+        <Button variant="secondary" onClick={() => router.push("/marketplace/candidate/dashboard")}>
+          Skip to dashboard
         </Button>
-
-        <Card style={{ padding: "var(--space-6, 24px)" }}>
-          <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4, 16px)" }}>
-            <div>
-              <h2 className="h1" style={{ marginBottom: "var(--space-1, 4px)" }}>
-                Set Up Your Bidder Profile
-              </h2>
-              <p className="body text-ink-muted">
-                Configure your professional details to look standout to potential clients.
-              </p>
-            </div>
-
-            {successBanner && (
-              <div
-                className="body-sm"
-                style={{
-                  color: "var(--success, #2E7D32)",
-                  backgroundColor: "var(--success-bg, #E8F5E9)",
-                  padding: "var(--space-2, 8px) var(--space-3, 12px)",
-                  borderRadius: "var(--radius-sm, 6px)",
-                  border: "1px solid var(--success)",
-                }}
-              >
-                ✓ Profile saved! Forwarding to dashboard...
+        <Card className="marketplace-form-card">
+          <form onSubmit={handleSaveProfile}>
+            <FormLayout>
+              <div>
+                <h1 className="h1">Set up your bidder profile</h1>
+                <p className="body text-ink-muted">Configure the professional details clients will see when you bid.</p>
               </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3, 12px)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1, 4px)" }}>
-                <span className="caption text-ink-muted">Account Holder</span>
-                <Input value={currentUser?.fullName || "Alex Miller"} disabled style={{ opacity: 0.6, cursor: "not-allowed" }} />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1, 4px)" }}>
-                <span className="caption text-ink-muted">Professional Title</span>
-                <Input
-                  placeholder="e.g. Senior Frontend Next.js Engineer"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1, 4px)" }}>
-                <span className="caption text-ink-muted">Hourly Rate</span>
-                <Input placeholder="e.g. $50.00" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1, 4px)" }}>
-                <span className="caption text-ink-muted">Professional Biography</span>
-                <textarea
-                  className="body text-ink"
-                  style={{
-                    width: "100%",
-                    height: "140px",
-                    backgroundColor: "var(--surface-sunken, #F5F2EB)",
-                    border: "var(--border-width-hairline, 1px) solid var(--border-default)",
-                    borderRadius: "var(--radius-md, 12px)",
-                    padding: "var(--space-3, 12px)",
-                    resize: "vertical",
-                    outline: "none",
-                    fontFamily: "inherit",
-                  }}
-                  placeholder="Describe your engineering expertise, background accomplishments, and project goals..."
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Button type="submit" variant="primary" style={{ width: "100%" }}>
-              Save Profile & Access Marketplace
-            </Button>
+              {success && <Banner tone="success" title="Profile saved" description="Forwarding you to the candidate dashboard." />}
+              <Input label="Account holder" value={currentUser?.fullName ?? ""} disabled />
+              <Input label="Professional title" placeholder="e.g. Senior Frontend Engineer" value={title} onChange={(event) => setTitle(event.target.value)} />
+              <Input label="Hourly rate" placeholder="e.g. $50.00" value={hourlyRate} onChange={(event) => setHourlyRate(event.target.value)} />
+              <TextArea label="Professional biography" placeholder="Describe your engineering expertise, background, and goals." value={bio} onChange={(event) => setBio(event.target.value)} />
+              <Button type="submit" variant="primary" className="marketplace-full-width">Save profile</Button>
+            </FormLayout>
           </form>
         </Card>
       </div>
-    </div>
+    </PageBody>
   );
 }

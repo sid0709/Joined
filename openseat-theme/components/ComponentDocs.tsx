@@ -1,25 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
+import { useState } from "react";
 import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
-import { Spinner } from "@astryxdesign/core/Spinner";
-import { DEMO_LOADERS } from "@/components/demos/load";
+import { DEMO_COMPONENTS } from "@/components/demos/load";
 
 export function ComponentDocs({ slug, importName }: { slug: string; importName: string }) {
   const [tab, setTab] = useState("overview");
-  const loader = DEMO_LOADERS[slug];
-
-  const Demo = useMemo(() => {
-    if (!loader) return null;
-    return dynamic(loader, {
-      ssr: false,
-      loading: () => <Spinner label="Loading example" />,
-    });
-  }, [loader]);
+  const Demo = DEMO_COMPONENTS[slug];
 
   return (
     <Stack gap={5}>
