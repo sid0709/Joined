@@ -105,7 +105,7 @@ export default function SliderDemo() {
               min={-12}
               max={12}
               value={eq[index]}
-              onChange={(v) => setEq((c) => c.map((x, i) => (i === index ? v : x)))}
+              onChange={(v: number) => setEq((c) => c.map((x, i) => (i === index ? v : x)))}
               formatValue={(v) => `${v > 0 ? "+" : ""}${v} dB`}
             />
           ))}

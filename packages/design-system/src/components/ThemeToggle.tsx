@@ -5,16 +5,30 @@ import { IconButton } from "./Action";
 
 export type ThemeName = "dark" | "light";
 
+function applyTheme(theme: ThemeName) {
+  document.documentElement.setAttribute("data-theme", theme);
+  document.querySelectorAll<HTMLElement>("[data-astryx-theme]").forEach((element) => {
+    element.setAttribute("data-theme", theme);
+  });
+}
+
 export function ThemeToggle() {
   const [theme, setTheme] = useState<ThemeName>("dark");
 
   useEffect(() => {
     const current = document.documentElement.getAttribute("data-theme");
-    if (current === "light" || current === "dark") setTheme(current);
+    const stored = window.localStorage.getItem("openseat-theme");
+    const next = stored === "light" || stored === "dark" ? stored : current;
+    if (next === "light" || next === "dark") {
+      applyTheme(next);
+      setTheme(next);
+    }
   }, []);
 
   const switchTheme = (next: ThemeName) => {
-    document.documentElement.setAttribute("data-theme", next);
+    applyTheme(next);
+    window.localStorage.setItem("openseat-theme", next);
+    document.cookie = `openseat-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
     setTheme(next);
   };
 

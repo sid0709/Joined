@@ -109,4 +109,3 @@ button.os-star { cursor: pointer; }
 .os-token-demo { border: var(--border-width-hairline) solid var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface); padding: var(--space-4); }
 .os-token-demo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 .os-token-group { margin-bottom: var(--space-8); }
-

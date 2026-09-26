@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Inter } from "next/font/google";
+import type { ReactNode } from "react";
 import { OpenSeatProvider } from "@openseat/design-system/theme";
 import "./globals.css";
 
@@ -13,16 +15,25 @@ export const metadata: Metadata = {
   description: "A permissioned help marketplace — sealed job rooms, invited bidders.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const storedTheme = (await cookies()).get("openseat-theme")?.value;
+  const initialTheme = storedTheme === "light" ? "light" : "dark";
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme={initialTheme}
       suppressHydrationWarning
       className={`${inter.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "(function(){try{var t=localStorage.getItem('openseat-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
-        <OpenSeatProvider mode="dark">{children}</OpenSeatProvider>
+        <OpenSeatProvider mode={initialTheme}>{children}</OpenSeatProvider>
       </body>
     </html>
   );
