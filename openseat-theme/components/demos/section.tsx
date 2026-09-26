@@ -14,6 +14,7 @@ import {
   Tile,
   type SectionVariant,
 } from "@openseat/design-system";
+
 import { Examples, Preview } from "./shared";
 
 const VARIANTS: SectionVariant[] = ["section", "muted", "transparent"];
@@ -21,7 +22,10 @@ const VARIANTS: SectionVariant[] = ["section", "muted", "transparent"];
 export default function SectionDemo() {
   return (
     <Examples>
-      <Preview label="Variants" description="section is a raised surface; muted recedes; transparent only adds padding and structure.">
+      <Preview
+        label="Variants"
+        description="section is a raised surface; muted recedes; transparent only adds padding and structure."
+      >
         <Stack gap={3}>
           {VARIANTS.map((variant) => (
             <Section key={variant} variant={variant} padding={4}>
@@ -34,7 +38,10 @@ export default function SectionDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Padding" description="Uniform, inline-only, or block-only padding on the spacing scale.">
+      <Preview
+        label="Padding"
+        description="Uniform, inline-only, or block-only padding on the spacing scale."
+      >
         <Stack gap={3}>
           <Section variant="muted" padding={2}>
             <Tile>padding 2</Tile>
@@ -48,7 +55,10 @@ export default function SectionDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Dividers" description="Hairlines on any edge separate stacked sections without extra chrome.">
+      <Preview
+        label="Dividers"
+        description="Hairlines on any edge separate stacked sections without extra chrome."
+      >
         <Card padding={0}>
           <Section dividers={["bottom"]} padding={4}>
             <Text weight="semibold">Room details</Text>
@@ -65,19 +75,25 @@ export default function SectionDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Constrained width" description="maxWidth keeps long reading content at a comfortable measure.">
+      <Preview
+        label="Constrained width"
+        description="maxWidth keeps long reading content at a comfortable measure."
+      >
         <Section variant="muted" padding={5} maxWidth={560}>
           <Stack gap={2}>
             <Heading level={3}>How sealed rooms work</Heading>
             <Text color="secondary">
-              Bids stay private until you open them. Invite the people you trust, compare offers side by side, and award the seat when
-              you are ready.
+              Bids stay private until you open them. Invite the people you trust, compare offers
+              side by side, and award the seat when you are ready.
             </Text>
           </Stack>
         </Section>
       </Preview>
 
-      <Preview label="Responsive settings page" description="Sections stack on phones; from md, the title sits in a left column beside its fields.">
+      <Preview
+        label="Responsive settings page"
+        description="Sections stack on phones; from md, the title sits in a left column beside its fields."
+      >
         <ResponsiveFrame defaultPreset="Laptop">
           <Stack gap={0}>
             {[
@@ -85,7 +101,11 @@ export default function SectionDemo() {
               { title: "Notifications", hint: "When we reach out." },
               { title: "Billing", hint: "Plans and invoices." },
             ].map((group, index, all) => (
-              <Section key={group.title} dividers={index < all.length - 1 ? ["bottom"] : []} paddingBlock={4}>
+              <Section
+                key={group.title}
+                dividers={index < all.length - 1 ? ["bottom"] : []}
+                paddingBlock={4}
+              >
                 <GridSystem gap={4}>
                   <GridColumn span={12} md={4}>
                     <Stack gap={1}>

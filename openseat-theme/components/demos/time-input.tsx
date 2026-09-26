@@ -1,7 +1,21 @@
 "use client";
 
+import {
+  Badge,
+  Card,
+  Clock,
+  Divider,
+  HStack,
+  Heading,
+  Stack,
+  Switch,
+  Text,
+  TimeInput,
+  displayTime,
+  type FieldSize,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Badge, Card, Clock, Divider, HStack, Heading, Stack, Switch, Text, TimeInput, displayTime, type FieldSize } from "@openseat/design-system";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const SIZES: FieldSize[] = ["sm", "md", "lg"];
@@ -36,29 +50,57 @@ export default function TimeInputDemo() {
   const [start, setStart] = useState("10:00");
   const [end, setEnd] = useState("11:30");
   const [week, setWeek] = useState<Record<string, Hours>>(() =>
-    Object.fromEntries(WEEKDAYS.map((day, index) => [day, { open: index < 5, from: "09:00", to: index === 4 ? "15:00" : "17:00" }])),
+    Object.fromEntries(
+      WEEKDAYS.map((day, index) => [
+        day,
+        { open: index < 5, from: "09:00", to: index === 4 ? "15:00" : "17:00" },
+      ]),
+    ),
   );
-  const [sizes, setSizes] = useState<Record<FieldSize, string>>({ sm: "08:00", md: "12:30", lg: "18:45" });
+  const [sizes, setSizes] = useState<Record<FieldSize, string>>({
+    sm: "08:00",
+    md: "12:30",
+    lg: "18:45",
+  });
 
   return (
     <Examples>
       <Preview label="One value, five ways in — change any of them">
         <Stack gap={5}>
           <HStack gap={6} wrap="wrap" vAlign="start">
-            <TimeInput label="Type or pick" value={shared} onChange={setShared} description="Type digits, use ↑ ↓, or open the list." />
+            <TimeInput
+              label="Type or pick"
+              value={shared}
+              onChange={setShared}
+              description="Type digits, use ↑ ↓, or open the list."
+            />
             <TimeInput label="Dropdowns" value={shared} onChange={setShared} variant="select" />
           </HStack>
           <HStack gap={6} wrap="wrap" vAlign="start">
-            <TimeInput label="Dial — tap or drag" value={shared} onChange={setShared} variant="dial" />
+            <TimeInput
+              label="Dial — tap or drag"
+              value={shared}
+              onChange={setShared}
+              variant="dial"
+            />
             <TimeInput label="Wheels" value={shared} onChange={setShared} variant="columns" />
           </HStack>
-          <Caption>Current value: {shared} · {displayTime(shared, "12h")}</Caption>
+          <Caption>
+            Current value: {shared} · {displayTime(shared, "12h")}
+          </Caption>
         </Stack>
       </Preview>
 
       <Preview label="Field with a dial or a slot list in the dropdown">
         <HStack gap={6} wrap="wrap" vAlign="start">
-          <TimeInput label="Reminder" value={dial} onChange={setDial} picker="dial" hourCycle="24h" description="24-hour — inner ring is 00 and 13–23." />
+          <TimeInput
+            label="Reminder"
+            value={dial}
+            onChange={setDial}
+            picker="dial"
+            hourCycle="24h"
+            description="24-hour — inner ring is 00 and 13–23."
+          />
           <TimeInput
             label="Interview"
             value={slot}
@@ -82,12 +124,29 @@ export default function TimeInputDemo() {
       <Preview label="Seconds, sizes, and states">
         <Stack gap={5}>
           <HStack gap={6} wrap="wrap" vAlign="start">
-            <TimeInput label="Timestamp" value={precise} onChange={setPrecise} hourCycle="24h" withSeconds />
-            <TimeInput label="Every 15 minutes" value={shared} onChange={setShared} minuteStep={15} />
+            <TimeInput
+              label="Timestamp"
+              value={precise}
+              onChange={setPrecise}
+              hourCycle="24h"
+              withSeconds
+            />
+            <TimeInput
+              label="Every 15 minutes"
+              value={shared}
+              onChange={setShared}
+              minuteStep={15}
+            />
           </HStack>
           <HStack gap={6} wrap="wrap" vAlign="end">
             {SIZES.map((size) => (
-              <TimeInput key={size} size={size} label={size} value={sizes[size]} onChange={(value) => setSizes((c) => ({ ...c, [size]: value }))} />
+              <TimeInput
+                key={size}
+                size={size}
+                label={size}
+                value={sizes[size]}
+                onChange={(value) => setSizes((c) => ({ ...c, [size]: value }))}
+              />
             ))}
           </HStack>
           <HStack gap={6} wrap="wrap" vAlign="start">
@@ -122,7 +181,13 @@ export default function TimeInputDemo() {
           <Stack gap={3}>
             <Heading level={4}>Kickoff call</Heading>
             <HStack gap={4} wrap="wrap" vAlign="start">
-              <TimeInput label="Starts" value={start} onChange={setStart} minuteStep={15} size="sm" />
+              <TimeInput
+                label="Starts"
+                value={start}
+                onChange={setStart}
+                minuteStep={15}
+                size="sm"
+              />
               <TimeInput
                 label="Ends"
                 value={end}
@@ -134,7 +199,11 @@ export default function TimeInputDemo() {
               />
             </HStack>
             <HStack gap={2} vAlign="center">
-              {minutes(end) > minutes(start) ? <Badge label={duration(start, end)} variant="info" /> : <Badge label="Invalid" variant="error" />}
+              {minutes(end) > minutes(start) ? (
+                <Badge label={duration(start, end)} variant="info" />
+              ) : (
+                <Badge label="Invalid" variant="error" />
+              )}
               <Caption>
                 {displayTime(start, "12h")} – {displayTime(end, "12h")}
               </Caption>
@@ -148,19 +217,37 @@ export default function TimeInputDemo() {
           <Stack gap={2}>
             {WEEKDAYS.map((day, index) => {
               const hours = week[day];
-              const set = (patch: Partial<Hours>) => setWeek((w) => ({ ...w, [day]: { ...w[day], ...patch } }));
+              const set = (patch: Partial<Hours>) =>
+                setWeek((w) => ({ ...w, [day]: { ...w[day], ...patch } }));
               return (
                 <Stack key={day} gap={2}>
                   {index > 0 && <Divider />}
                   <HStack gap={4} vAlign="center" wrap="wrap">
                     <Stack width={140}>
-                      <Switch label={day} value={hours.open} onChange={(open) => set({ open })} size="sm" />
+                      <Switch
+                        label={day}
+                        value={hours.open}
+                        onChange={(open) => set({ open })}
+                        size="sm"
+                      />
                     </Stack>
                     {hours.open ? (
                       <HStack gap={2} vAlign="center">
-                        <TimeInput label={`${day} opens`} value={hours.from} onChange={(from) => set({ from })} size="sm" minuteStep={30} />
+                        <TimeInput
+                          label={`${day} opens`}
+                          value={hours.from}
+                          onChange={(from) => set({ from })}
+                          size="sm"
+                          minuteStep={30}
+                        />
                         <Text color="secondary">to</Text>
-                        <TimeInput label={`${day} closes`} value={hours.to} onChange={(to) => set({ to })} size="sm" minuteStep={30} />
+                        <TimeInput
+                          label={`${day} closes`}
+                          value={hours.to}
+                          onChange={(to) => set({ to })}
+                          size="sm"
+                          minuteStep={30}
+                        />
                       </HStack>
                     ) : (
                       <Text color="secondary">Closed</Text>

@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
+
 import { Button } from "./Action";
-import type { ControlSize } from "./size";
 import { PickerShell } from "./PickerShell";
 import { ChoiceSegment, NumberSegment, SegmentDivider } from "./Segment";
-import { TimeColumns } from "./TimeColumns";
-import { TimeDial } from "./TimeDial";
-import { TimeSlots, type TimeSlotsProps } from "./TimeSlots";
 import {
   HOURS_PER_HALF,
   MERIDIEMS,
@@ -21,6 +18,11 @@ import {
   type Meridiem,
   type MinuteStep,
 } from "./time";
+import { TimeColumns } from "./TimeColumns";
+import { TimeDial } from "./TimeDial";
+import { TimeSlots, type TimeSlotsProps } from "./TimeSlots";
+
+import type { ControlSize } from "./size";
 
 export type TimePicker = "columns" | "dial" | "slots" | "none";
 
@@ -95,7 +97,9 @@ export function TimeField({
 
   function setNow() {
     const now = new Date();
-    onChange?.(formatTime({ h: now.getHours(), m: now.getMinutes(), s: now.getSeconds() }, withSeconds));
+    onChange?.(
+      formatTime({ h: now.getHours(), m: now.getMinutes(), s: now.getSeconds() }, withSeconds),
+    );
   }
 
   const panelProps = { value, onChange, hourCycle, withSeconds, minuteStep, size, disabled };

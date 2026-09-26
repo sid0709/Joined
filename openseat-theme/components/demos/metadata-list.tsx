@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   Badge,
@@ -18,6 +17,8 @@ import {
   Timestamp,
   icons,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Examples, Preview } from "./shared";
 
 const CREATED = "2026-09-18T15:04:00Z";
@@ -54,13 +55,19 @@ export default function MetadataListDemo() {
 
   return (
     <Examples>
-      <Preview label="Labels on top" description="The default — label above each value, flowing into columns.">
+      <Preview
+        label="Labels on top"
+        description="The default — label above each value, flowing into columns."
+      >
         <MetadataList>
           <RoomDetails />
         </MetadataList>
       </Preview>
 
-      <Preview label="Labels at the start" description="label position start with a fixed width lines values up in one column.">
+      <Preview
+        label="Labels at the start"
+        description="label position start with a fixed width lines values up in one column."
+      >
         <Card maxWidth={420}>
           <MetadataList columns="single" label={{ position: "start", width: 120 }}>
             <RoomDetails />
@@ -68,13 +75,19 @@ export default function MetadataListDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Fixed columns" description="columns as a number, for dashboards with a known grid.">
+      <Preview
+        label="Fixed columns"
+        description="columns as a number, for dashboards with a known grid."
+      >
         <MetadataList columns={3} title={<Heading level={4}>Room summary</Heading>}>
           <RoomDetails />
         </MetadataList>
       </Preview>
 
-      <Preview label="Horizontal" description="A single row of key facts — the header of a detail page.">
+      <Preview
+        label="Horizontal"
+        description="A single row of key facts — the header of a detail page."
+      >
         <MetadataList orientation="horizontal">
           <MetadataListItem label="Bids">6</MetadataListItem>
           <MetadataListItem label="Lowest">$2,150</MetadataListItem>
@@ -102,13 +115,25 @@ export default function MetadataListDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Show more" description="maxNumOfItems keeps long lists short until people ask for the rest.">
+      <Preview
+        label="Show more"
+        description="maxNumOfItems keeps long lists short until people ask for the rest."
+      >
         <Card maxWidth={420}>
           <Stack gap={3}>
-            <MetadataList columns="single" label={{ position: "start", width: 120 }} maxNumOfItems={expanded ? undefined : 3}>
+            <MetadataList
+              columns="single"
+              label={{ position: "start", width: 120 }}
+              maxNumOfItems={expanded ? undefined : 3}
+            >
               <RoomDetails />
             </MetadataList>
-            <Button label={expanded ? "Show less" : "Show all details"} size="sm" variant="ghost" onClick={() => setExpanded((e) => !e)} />
+            <Button
+              label={expanded ? "Show less" : "Show all details"}
+              size="sm"
+              variant="ghost"
+              onClick={() => setExpanded((e) => !e)}
+            />
           </Stack>
         </Card>
       </Preview>

@@ -1,8 +1,19 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
+
 import { Glyph } from "./Glyph";
+
 import type { NotificationTone } from "./Notification";
 
 /** Where a triggered notification sits. Logical start/end mirror under RTL. */
@@ -37,7 +48,11 @@ interface Notice {
 }
 
 function exitDelay() {
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return 0;
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  )
+    return 0;
   return EXIT_MS;
 }
 
@@ -65,21 +80,24 @@ export function NotificationViewport({ children }: { children: ReactNode }) {
     setItems((all) => all.filter((item) => item.id !== id));
   }, []);
 
-  const show = useCallback((options: ShowNotificationOptions): NotificationDismiss => {
-    const id = nextId.current + 1;
-    nextId.current = id;
-    const notice: Notice = {
-      id,
-      title: options.title,
-      description: options.description,
-      tone: options.tone ?? "accent",
-      position: options.position ?? DEFAULT_POSITION,
-      duration: options.duration ?? DEFAULT_DURATION_MS,
-      leaving: false,
-    };
-    setItems((all) => [notice, ...all]);
-    return () => dismiss(id);
-  }, [dismiss]);
+  const show = useCallback(
+    (options: ShowNotificationOptions): NotificationDismiss => {
+      const id = nextId.current + 1;
+      nextId.current = id;
+      const notice: Notice = {
+        id,
+        title: options.title,
+        description: options.description,
+        tone: options.tone ?? "accent",
+        position: options.position ?? DEFAULT_POSITION,
+        duration: options.duration ?? DEFAULT_DURATION_MS,
+        leaving: false,
+      };
+      setItems((all) => [notice, ...all]);
+      return () => dismiss(id);
+    },
+    [dismiss],
+  );
 
   return (
     <NotificationContext.Provider value={{ show, dismiss, items }}>
@@ -103,7 +121,15 @@ export function useNotification(): (options: ShowNotificationOptions) => Notific
   );
 }
 
-function NotificationStacks({ items, onDismiss, onRemove }: { items: Notice[]; onDismiss: (id: number) => void; onRemove: (id: number) => void }) {
+function NotificationStacks({
+  items,
+  onDismiss,
+  onRemove,
+}: {
+  items: Notice[];
+  onDismiss: (id: number) => void;
+  onRemove: (id: number) => void;
+}) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -122,26 +148,65 @@ function NotificationStacks({ items, onDismiss, onRemove }: { items: Notice[]; o
   return createPortal(
     <div ref={layerRef} popover="manual" className="os-note-layer">
       {POSITIONS.map((position) => (
-        <NotificationStack key={position} position={position} items={items.filter((item) => item.position === position)} onDismiss={onDismiss} onRemove={onRemove} />
+        <NotificationStack
+          key={position}
+          position={position}
+          items={items.filter((item) => item.position === position)}
+          onDismiss={onDismiss}
+          onRemove={onRemove}
+        />
       ))}
     </div>,
     document.body,
   );
 }
 
-function NotificationStack({ position, items, onDismiss, onRemove }: { position: NotificationPosition; items: Notice[]; onDismiss: (id: number) => void; onRemove: (id: number) => void }) {
+function NotificationStack({
+  position,
+  items,
+  onDismiss,
+  onRemove,
+}: {
+  position: NotificationPosition;
+  items: Notice[];
+  onDismiss: (id: number) => void;
+  onRemove: (id: number) => void;
+}) {
   if (items.length === 0) return null;
   const fromBottom = position.startsWith("bottom");
   return (
-    <div className={["os-note-stack", `os-note-stack-${position}`, fromBottom && "os-note-stack-reverse"].filter(Boolean).join(" ")} role="region" aria-label="Notifications">
+    <div
+      className={[
+        "os-note-stack",
+        `os-note-stack-${position}`,
+        fromBottom && "os-note-stack-reverse",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      role="region"
+      aria-label="Notifications"
+    >
       {items.map((item) => (
-        <NotificationCard key={item.id} item={item} onDismiss={() => onDismiss(item.id)} onRemove={() => onRemove(item.id)} />
+        <NotificationCard
+          key={item.id}
+          item={item}
+          onDismiss={() => onDismiss(item.id)}
+          onRemove={() => onRemove(item.id)}
+        />
       ))}
     </div>
   );
 }
 
-function NotificationCard({ item, onDismiss, onRemove }: { item: Notice; onDismiss: () => void; onRemove: () => void }) {
+function NotificationCard({
+  item,
+  onDismiss,
+  onRemove,
+}: {
+  item: Notice;
+  onDismiss: () => void;
+  onRemove: () => void;
+}) {
   const titleId = useId();
 
   useEffect(() => {
@@ -157,19 +222,27 @@ function NotificationCard({ item, onDismiss, onRemove }: { item: Notice; onDismi
   }, [item.leaving, onRemove]);
 
   return (
-    <div className={["os-note-slot", item.leaving && "os-note-slot-leaving"].filter(Boolean).join(" ")}>
-    <div className={`os-note-card os-note-card-${item.tone}`} role={item.tone === "danger" ? "alert" : "status"} aria-labelledby={titleId}>
-      <span className="os-note-card-mark" aria-hidden />
-      <span className="os-note-card-copy">
-        <span className="os-note-card-title" id={titleId}>
-          {item.title}
+    <div
+      className={["os-note-slot", item.leaving && "os-note-slot-leaving"].filter(Boolean).join(" ")}
+    >
+      <div
+        className={`os-note-card os-note-card-${item.tone}`}
+        role={item.tone === "danger" ? "alert" : "status"}
+        aria-labelledby={titleId}
+      >
+        <span className="os-note-card-mark" aria-hidden />
+        <span className="os-note-card-copy">
+          <span className="os-note-card-title" id={titleId}>
+            {item.title}
+          </span>
+          {item.description != null && (
+            <span className="os-note-card-description">{item.description}</span>
+          )}
         </span>
-        {item.description != null && <span className="os-note-card-description">{item.description}</span>}
-      </span>
-      <button type="button" className="os-note-dismiss" aria-label="Dismiss" onClick={onDismiss}>
-        <Glyph name="close" />
-      </button>
-    </div>
+        <button type="button" className="os-note-dismiss" aria-label="Dismiss" onClick={onDismiss}>
+          <Glyph name="close" />
+        </button>
+      </div>
     </div>
   );
 }

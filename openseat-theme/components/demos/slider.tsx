@@ -1,7 +1,18 @@
 "use client";
 
+import {
+  Badge,
+  Card,
+  HStack,
+  Heading,
+  Icon,
+  Slider,
+  Stack,
+  Text,
+  icons,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Badge, Card, HStack, Heading, Icon, Slider, Stack, Text, icons } from "@openseat/design-system";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const FIELD_WIDTH = 360;
@@ -39,30 +50,72 @@ export default function SliderDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Single value" description="The value shows in a tooltip while dragging.">
+      <Preview
+        align="start"
+        label="Single value"
+        description="The value shows in a tooltip while dragging."
+      >
         <Stack width={FIELD_WIDTH}>
           <Slider label="Volume" value={volume} onChange={setVolume} />
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Value display" description="tooltip (default), text beside the label, or none.">
+      <Preview
+        align="start"
+        label="Value display"
+        description="tooltip (default), text beside the label, or none."
+      >
         <Stack gap={4} width={FIELD_WIDTH}>
           <Slider label="Tooltip" value={volume} onChange={setVolume} valueDisplay="tooltip" />
-          <Slider label="Text" value={volume} onChange={setVolume} valueDisplay="text" formatValue={(v) => `${v}%`} />
+          <Slider
+            label="Text"
+            value={volume}
+            onChange={setVolume}
+            valueDisplay="text"
+            formatValue={(v) => `${v}%`}
+          />
           <Slider label="None" value={volume} onChange={setVolume} valueDisplay="none" />
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Marks and steps" description="marks label key stops; onChangeEnd fires once when the drag ends.">
+      <Preview
+        align="start"
+        label="Marks and steps"
+        description="marks label key stops; onChangeEnd fires once when the drag ends."
+      >
         <Stack gap={2} width={FIELD_WIDTH}>
-          <Slider label="Delivery window" value={days} onChange={setDays} onChangeEnd={setCommitted} min={1} max={30} marks={DAY_MARKS} valueDisplay="text" formatValue={(v) => `${v} days`} />
+          <Slider
+            label="Delivery window"
+            value={days}
+            onChange={setDays}
+            onChangeEnd={setCommitted}
+            min={1}
+            max={30}
+            marks={DAY_MARKS}
+            valueDisplay="text"
+            formatValue={(v) => `${v} days`}
+          />
           <Caption>Committed: {committed} days (updates on release)</Caption>
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Range" description="Two thumbs for a min and max — with a minimum gap between them.">
+      <Preview
+        align="start"
+        label="Range"
+        description="Two thumbs for a min and max — with a minimum gap between them."
+      >
         <Stack gap={2} width={FIELD_WIDTH}>
-          <Slider label="Budget" value={range} onChange={setRange} min={BUDGET_MIN} max={BUDGET_MAX} step={BUDGET_STEP} minStepsBetweenThumbs={2} valueDisplay="text" formatValue={usd} />
+          <Slider
+            label="Budget"
+            value={range}
+            onChange={setRange}
+            min={BUDGET_MIN}
+            max={BUDGET_MAX}
+            step={BUDGET_STEP}
+            minStepsBetweenThumbs={2}
+            valueDisplay="text"
+            formatValue={usd}
+          />
         </Stack>
       </Preview>
 
@@ -73,7 +126,16 @@ export default function SliderDemo() {
               <Heading level={4}>Rooms</Heading>
               <Badge label={`${matches.length} match`} variant="info" />
             </HStack>
-            <Slider label="Budget" isLabelHidden value={range} onChange={setRange} min={BUDGET_MIN} max={BUDGET_MAX} step={BUDGET_STEP} formatValue={usd} />
+            <Slider
+              label="Budget"
+              isLabelHidden
+              value={range}
+              onChange={setRange}
+              min={BUDGET_MIN}
+              max={BUDGET_MAX}
+              step={BUDGET_STEP}
+              formatValue={usd}
+            />
             <Text type="supporting" color="secondary">
               {usd(range[0])} – {usd(range[1])}
             </Text>
@@ -95,7 +157,11 @@ export default function SliderDemo() {
         </Card>
       </Preview>
 
-      <Preview align="start" label="Vertical" description="orientation=&quot;vertical&quot; for mixers and compact panels.">
+      <Preview
+        align="start"
+        label="Vertical"
+        description='orientation="vertical" for mixers and compact panels.'
+      >
         <HStack gap={6} height={200}>
           {EQ.map((band, index) => (
             <Slider
@@ -105,14 +171,20 @@ export default function SliderDemo() {
               min={-12}
               max={12}
               value={eq[index]}
-              onChange={(v) => setEq((c) => c.map((x, i) => (i === index ? v : x)))}
+              onChange={(v: number) =>
+                setEq((current: number[]) => current.map((value, i) => (i === index ? v : value)))
+              }
               formatValue={(v) => `${v > 0 ? "+" : ""}${v} dB`}
             />
           ))}
         </HStack>
       </Preview>
 
-      <Preview align="start" label="Status and help" description="Description, status, and a tooltip on the label.">
+      <Preview
+        align="start"
+        label="Status and help"
+        description="Description, status, and a tooltip on the label."
+      >
         <Stack width={FIELD_WIDTH}>
           <Slider
             label="Confidence"
@@ -122,18 +194,33 @@ export default function SliderDemo() {
             onChange={setConfidence}
             valueDisplay="text"
             formatValue={(v) => `${v}%`}
-            status={confidence < 40 ? { type: "warning", message: "Low confidence bids are ranked lower." } : undefined}
+            status={
+              confidence < 40
+                ? { type: "warning", message: "Low confidence bids are ranked lower." }
+                : undefined
+            }
           />
         </Stack>
       </Preview>
 
       <Preview align="start" label="Disabled">
         <Stack width={FIELD_WIDTH}>
-          <Slider label="Seats" value={5} min={1} max={20} isDisabled disabledMessage="Seat count is fixed on your plan." />
+          <Slider
+            label="Seats"
+            value={5}
+            min={1}
+            max={20}
+            isDisabled
+            disabledMessage="Seat count is fixed on your plan."
+          />
         </Stack>
       </Preview>
 
-      <Preview align="start" label="With icons" description="Icons at either end hint at the scale.">
+      <Preview
+        align="start"
+        label="With icons"
+        description="Icons at either end hint at the scale."
+      >
         <HStack gap={2} vAlign="center" width={FIELD_WIDTH}>
           <Icon icon={icons.minus} color="secondary" size="sm" />
           <Stack width="100%">

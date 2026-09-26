@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { OpenSeatProvider } from "@openseat/design-system/theme";
+import { Inter } from "next/font/google";
+
+import type { Metadata } from "next";
 import "./globals.css";
 
 const inter = Inter({

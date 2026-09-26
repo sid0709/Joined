@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Badge,
   Button,
@@ -15,6 +14,8 @@ import {
   Tooltip,
   icons,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Examples, Preview, Row } from "./shared";
 
 const PLACEMENTS = ["above", "below", "start", "end"] as const;
@@ -30,7 +31,11 @@ export default function TooltipDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Icon buttons" description="The most common use — name a control that has no visible label.">
+      <Preview
+        align="start"
+        label="Icon buttons"
+        description="The most common use — name a control that has no visible label."
+      >
         <Row>
           <Tooltip content="Search the library">
             <IconButton label="Search" icon={<Icon icon="search" />} />
@@ -44,7 +49,11 @@ export default function TooltipDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="With shortcuts" description="Content can be any node — a label with its keyboard shortcut.">
+      <Preview
+        align="start"
+        label="With shortcuts"
+        description="Content can be any node — a label with its keyboard shortcut."
+      >
         <HStack gap={1}>
           {TOOLS.map((t) => (
             <Tooltip
@@ -72,7 +81,11 @@ export default function TooltipDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Delay" description="Short for toolbars people scan; longer where tooltips would get in the way.">
+      <Preview
+        align="start"
+        label="Delay"
+        description="Short for toolbars people scan; longer where tooltips would get in the way."
+      >
         <Row>
           <Tooltip content="Instant" delay={0}>
             <Button label="0 ms" />
@@ -86,11 +99,17 @@ export default function TooltipDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Explain truncation and status" description="Reveal full text or explain a state on hover.">
+      <Preview
+        align="start"
+        label="Explain truncation and status"
+        description="Reveal full text or explain a state on hover."
+      >
         <Card maxWidth={320}>
           <Stack gap={2}>
             <Tooltip content="Full identity refresh for a regional coffee roaster, including packaging and signage">
-              <Text maxLines={1}>Full identity refresh for a regional coffee roaster, including packaging and signage</Text>
+              <Text maxLines={1}>
+                Full identity refresh for a regional coffee roaster, including packaging and signage
+              </Text>
             </Tooltip>
             <HStack gap={2} vAlign="center">
               <Tooltip content="Synced 2 minutes ago">
@@ -106,7 +125,11 @@ export default function TooltipDemo() {
         </Card>
       </Preview>
 
-      <Preview align="start" label="Disabled control" description="Wrap disabled buttons so people still learn why.">
+      <Preview
+        align="start"
+        label="Disabled control"
+        description="Wrap disabled buttons so people still learn why."
+      >
         <Tooltip content="Available after the room closes">
           <span>
             <Button label="Award" variant="primary" isDisabled />
@@ -114,12 +137,21 @@ export default function TooltipDemo() {
         </Tooltip>
       </Preview>
 
-      <Preview align="start" label="Controlled" description="isOpen for onboarding hints you show on purpose.">
+      <Preview
+        align="start"
+        label="Controlled"
+        description="isOpen for onboarding hints you show on purpose."
+      >
         <Row>
           <Tooltip content="Start here — post your first room" isOpen={forced} placement="end">
             <Button label="Post a room" variant="primary" icon={<Icon icon={icons.plus} />} />
           </Tooltip>
-          <Button label={forced ? "Hide hint" : "Show hint"} size="sm" variant="ghost" onClick={() => setForced((f) => !f)} />
+          <Button
+            label={forced ? "Hide hint" : "Show hint"}
+            size="sm"
+            variant="ghost"
+            onClick={() => setForced((f) => !f)}
+          />
           <Badge label="Tip" variant="purple" />
         </Row>
       </Preview>

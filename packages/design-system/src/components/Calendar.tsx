@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+
 import { Button, IconButton, SegmentedControl, SegmentedControlItem } from "./Action";
-import { Icon } from "./Primitives";
 import { CalendarAgenda } from "./CalendarAgenda";
 import { CalendarMonth } from "./CalendarMonth";
 import { CalendarSchedule } from "./CalendarSchedule";
-import { Glyph, icons } from "./Glyph";
-import type { ControlSize } from "./size";
-import { VIEW_LABELS, type CalendarEvent, type CalendarView, type DateRange } from "./calendarTypes";
+import {
+  VIEW_LABELS,
+  type CalendarEvent,
+  type CalendarView,
+  type DateRange,
+} from "./calendarTypes";
 import {
   DAYS_PER_WEEK,
   DEFAULT_LOCALE,
@@ -19,7 +22,11 @@ import {
   weekOf,
   type WeekStart,
 } from "./date";
+import { Glyph, icons } from "./Glyph";
 import { useControllable, useNow } from "./hooks";
+import { Icon } from "./Primitives";
+
+import type { ControlSize } from "./size";
 import type { HourCycle } from "./time";
 
 export type { CalendarEvent, CalendarView, CalendarTone, DateRange } from "./calendarTypes";
@@ -60,9 +67,21 @@ function MonthYearPicker({ cursor, onPick }: { cursor: Date; onPick: (date: Date
   return (
     <div className="os-cal-jump">
       <div className="os-cal-jump-year">
-        <IconButton label="Previous year" variant="ghost" size="sm" icon={<Icon icon={icons.chevronLeft} />} onClick={() => setYear(year - 1)} />
+        <IconButton
+          label="Previous year"
+          variant="ghost"
+          size="sm"
+          icon={<Icon icon={icons.chevronLeft} />}
+          onClick={() => setYear(year - 1)}
+        />
         <span className="os-cal-jump-label">{year}</span>
-        <IconButton label="Next year" variant="ghost" size="sm" icon={<Icon icon={icons.chevronRight} />} onClick={() => setYear(year + 1)} />
+        <IconButton
+          label="Next year"
+          variant="ghost"
+          size="sm"
+          icon={<Icon icon={icons.chevronRight} />}
+          onClick={() => setYear(year + 1)}
+        />
       </div>
       <div className="os-cal-jump-months">
         {monthNames("short").map((name, month) => (
@@ -114,14 +133,21 @@ export function Calendar({
   const schedule = view === "week" || view === "day";
 
   function isDisabled(date: Date) {
-    return Boolean((min && date < startOfDay(min)) || (max && date > startOfDay(max)) || isDateDisabled?.(date));
+    return Boolean(
+      (min && date < startOfDay(min)) || (max && date > startOfDay(max)) || isDateDisabled?.(date),
+    );
   }
 
   function pick(date: Date) {
     setCursor(date);
     if (selection === "range") {
       if (!range || range.end) onRangeChange?.({ start: date, end: null });
-      else onRangeChange?.(date < range.start ? { start: date, end: range.start } : { start: range.start, end: date });
+      else
+        onRangeChange?.(
+          date < range.start
+            ? { start: date, end: range.start }
+            : { start: range.start, end: date },
+        );
     } else {
       onChange?.(date);
     }
@@ -136,22 +162,39 @@ export function Calendar({
   const unit = view === "week" ? "week" : view === "day" ? "day" : "month";
   const title =
     view === "week"
-      ? `${days[0].toLocaleDateString(DEFAULT_LOCALE, { month: "short", day: "numeric" })} – ${days[days.length - 1].toLocaleDateString(DEFAULT_LOCALE, {
+      ? `${days[0].toLocaleDateString(DEFAULT_LOCALE, { month: "short", day: "numeric" })} – ${days[
+          days.length - 1
+        ].toLocaleDateString(DEFAULT_LOCALE, {
           month: days[0].getMonth() === days[days.length - 1].getMonth() ? undefined : "short",
           day: "numeric",
         })}`
       : view === "day"
-        ? cursor.toLocaleDateString(DEFAULT_LOCALE, { weekday: "long", month: "long", day: "numeric" })
+        ? cursor.toLocaleDateString(DEFAULT_LOCALE, {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          })
         : cursor.toLocaleDateString(DEFAULT_LOCALE, { month: "long" });
 
   return (
     <div
-      className={["os-cal", `os-cal-${size}`, schedule && "os-cal-wide", view === "agenda" && "os-cal-agenda-view", eventDisplay === "chips" && "os-cal-wide"]
+      className={[
+        "os-cal",
+        `os-cal-${size}`,
+        schedule && "os-cal-wide",
+        view === "agenda" && "os-cal-agenda-view",
+        eventDisplay === "chips" && "os-cal-wide",
+      ]
         .filter(Boolean)
         .join(" ")}
     >
       <div className="os-cal-head">
-        <button type="button" className="os-cal-title" aria-expanded={jumping} onClick={() => setJumping(!jumping)}>
+        <button
+          type="button"
+          className="os-cal-title"
+          aria-expanded={jumping}
+          onClick={() => setJumping(!jumping)}
+        >
           <span>{title}</span>
           {view !== "day" && <span className="os-cal-year">{cursor.getFullYear()}</span>}
           <Glyph name="chevronDown" className="os-cal-title-chevron" />
@@ -175,8 +218,20 @@ export function Calendar({
           {size !== "sm" && today && (
             <Button label="Today" variant="secondary" size="sm" onClick={() => setCursor(today)} />
           )}
-          <IconButton label={`Previous ${unit}`} variant="ghost" size="sm" icon={<Icon icon={icons.chevronLeft} />} onClick={() => shift(-1)} />
-          <IconButton label={`Next ${unit}`} variant="ghost" size="sm" icon={<Icon icon={icons.chevronRight} />} onClick={() => shift(1)} />
+          <IconButton
+            label={`Previous ${unit}`}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={icons.chevronLeft} />}
+            onClick={() => shift(-1)}
+          />
+          <IconButton
+            label={`Next ${unit}`}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={icons.chevronRight} />}
+            onClick={() => shift(1)}
+          />
         </div>
       </div>
 
@@ -203,9 +258,25 @@ export function Calendar({
           showWeekNumbers={showWeekNumbers}
         />
       ) : schedule ? (
-        <CalendarSchedule days={days} events={events} value={value} onPick={pick} today={today} now={now} hours={hours} hourCycle={hourCycle} />
+        <CalendarSchedule
+          days={days}
+          events={events}
+          value={value}
+          onPick={pick}
+          today={today}
+          now={now}
+          hours={hours}
+          hourCycle={hourCycle}
+        />
       ) : (
-        <CalendarAgenda cursor={cursor} events={events} value={value} onPick={pick} today={today} hourCycle={hourCycle} />
+        <CalendarAgenda
+          cursor={cursor}
+          events={events}
+          value={value}
+          onPick={pick}
+          today={today}
+          hourCycle={hourCycle}
+        />
       )}
       {footer && <div className="os-cal-footer">{footer}</div>}
     </div>

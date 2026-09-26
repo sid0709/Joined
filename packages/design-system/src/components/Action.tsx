@@ -14,7 +14,11 @@ export type { ButtonGroupProps, ButtonGroupOrientation } from "@astryxdesign/cor
 export { Link, LinkProvider } from "@astryxdesign/core/Link";
 export type { LinkProps, LinkComponentType } from "@astryxdesign/core/Link";
 
-export { DropdownMenu, DropdownMenuItem, DropdownMenuSubMenu } from "@astryxdesign/core/DropdownMenu";
+export {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuSubMenu,
+} from "@astryxdesign/core/DropdownMenu";
 export type {
   DropdownMenuProps,
   DropdownMenuItemData,
@@ -27,7 +31,11 @@ export { MoreMenu } from "@astryxdesign/core/MoreMenu";
 export type { MoreMenuProps } from "@astryxdesign/core/MoreMenu";
 
 export { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-export type { SegmentedControlProps, SegmentedControlItemProps, SegmentedControlSize } from "@astryxdesign/core/SegmentedControl";
+export type {
+  SegmentedControlProps,
+  SegmentedControlItemProps,
+  SegmentedControlSize,
+} from "@astryxdesign/core/SegmentedControl";
 
 export { ToggleButton, ToggleButtonGroup } from "@astryxdesign/core/ToggleButton";
 export type { ToggleButtonProps, ToggleButtonGroupProps } from "@astryxdesign/core/ToggleButton";

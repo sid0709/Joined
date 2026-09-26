@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Button, HStack, Stack, Text, Thumbnail } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, Preview, Row, SAMPLE_IMAGES } from "./shared";
 
 const ATTACHMENTS = [
@@ -28,14 +29,21 @@ export default function ThumbnailDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="States" description="Image on success, a placeholder with no src or on error, a shimmer while loading.">
+      <Preview
+        align="start"
+        label="States"
+        description="Image on success, a placeholder with no src or on error, a shimmer while loading."
+      >
         <Row>
           {[
             { caption: "Image", props: { src: SAMPLE_IMAGES.window, alt: "Window illustration" } },
             { caption: "No src", props: { label: "Untitled" } },
             { caption: "Broken src", props: { src: SAMPLE_IMAGES.missing, alt: "Missing image" } },
             { caption: "Loading", props: { isLoading: true, label: "Uploading" } },
-            { caption: "Disabled", props: { src: SAMPLE_IMAGES.globe, alt: "Globe", isDisabled: true } },
+            {
+              caption: "Disabled",
+              props: { src: SAMPLE_IMAGES.globe, alt: "Globe", isDisabled: true },
+            },
           ].map(({ caption, props }) => (
             <Stack key={caption} gap={1} hAlign="center">
               <Thumbnail {...props} />
@@ -45,7 +53,11 @@ export default function ThumbnailDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Label" description="label is the accessible name and the hover tooltip — usually the file name.">
+      <Preview
+        align="start"
+        label="Label"
+        description="label is the accessible name and the hover tooltip — usually the file name."
+      >
         <Row>
           {ATTACHMENTS.map((file) => (
             <Thumbnail key={file.id} src={file.src} label={file.label} />
@@ -53,46 +65,90 @@ export default function ThumbnailDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Removable" description="The remove button shows on hover and focus by default, or always.">
+      <Preview
+        align="start"
+        label="Removable"
+        description="The remove button shows on hover and focus by default, or always."
+      >
         <Stack gap={3} hAlign="start">
           <Row>
             {files.map((file) => (
-              <Thumbnail key={file.id} src={file.src} label={file.label} onRemove={() => setFiles((all) => all.filter((f) => f.id !== file.id))} />
+              <Thumbnail
+                key={file.id}
+                src={file.src}
+                label={file.label}
+                onRemove={() => setFiles((all) => all.filter((f) => f.id !== file.id))}
+              />
             ))}
             {files.length === 0 && <Caption>All attachments removed.</Caption>}
           </Row>
           <Row>
             {ATTACHMENTS.map((file) => (
-              <Thumbnail key={file.id} src={file.src} label={file.label} showRemoveOn="always" onRemove={() => undefined} />
+              <Thumbnail
+                key={file.id}
+                src={file.src}
+                label={file.label}
+                showRemoveOn="always"
+                onRemove={() => undefined}
+              />
             ))}
           </Row>
           <Button label="Reset" size="sm" variant="ghost" onClick={() => setFiles(ATTACHMENTS)} />
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Clickable" description="onClick opens a lightbox or detail view.">
+      <Preview
+        align="start"
+        label="Clickable"
+        description="onClick opens a lightbox or detail view."
+      >
         <Stack gap={2} hAlign="start">
           <Row>
             {ATTACHMENTS.map((file) => (
-              <Thumbnail key={file.id} src={file.src} label={file.label} alt={file.label} onClick={() => setOpened(file.label)} />
+              <Thumbnail
+                key={file.id}
+                src={file.src}
+                label={file.label}
+                alt={file.label}
+                onClick={() => setOpened(file.label)}
+              />
             ))}
           </Row>
           <Caption>{opened ? `Opened ${opened}` : "Click a thumbnail."}</Caption>
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Upload flow" description="isLoading while the file uploads, then the image.">
+      <Preview
+        align="start"
+        label="Upload flow"
+        description="isLoading while the file uploads, then the image."
+      >
         <HStack gap={3} vAlign="center">
           {uploading || uploaded ? (
-            <Thumbnail isLoading={uploading} src={uploaded ? SAMPLE_IMAGES.file : undefined} label="brief.pdf" onRemove={() => setUploaded(false)} />
+            <Thumbnail
+              isLoading={uploading}
+              src={uploaded ? SAMPLE_IMAGES.file : undefined}
+              label="brief.pdf"
+              onRemove={() => setUploaded(false)}
+            />
           ) : (
             <Thumbnail label="Nothing uploaded" isDisabled />
           )}
-          <Button label={uploading ? "Uploading…" : "Upload"} size="sm" variant="secondary" isDisabled={uploading} onClick={upload} />
+          <Button
+            label={uploading ? "Uploading…" : "Upload"}
+            size="sm"
+            variant="secondary"
+            isDisabled={uploading}
+            onClick={upload}
+          />
         </HStack>
       </Preview>
 
-      <Preview align="start" label="Attachment row" description="Thumbnails with metadata underneath — a message or a bid.">
+      <Preview
+        align="start"
+        label="Attachment row"
+        description="Thumbnails with metadata underneath — a message or a bid."
+      >
         <HStack gap={3} wrap="wrap">
           {ATTACHMENTS.map((file, index) => (
             <Stack key={file.id} gap={1}>

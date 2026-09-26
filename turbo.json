@@ -4,7 +4,15 @@
     "lint": {
       "outputs": []
     },
+    "lint:fix": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
     "build": {
+      "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     }
   }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   Card,
@@ -16,6 +15,8 @@ import {
   type SelectorSection,
   type SelectorSize,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview } from "./shared";
 
 const SIZES: SelectorSize[] = ["sm", "md", "lg"];
@@ -28,14 +29,52 @@ const STATUS: SelectorOptionData[] = [
   { value: "archived", label: "Archived", disabled: true },
 ];
 const VISIBILITY: SelectorOptionData[] = [
-  { value: "sealed", label: "Sealed", description: "Invitees can’t see each other’s bids.", icon: <Icon icon={icons.lock} /> },
-  { value: "open", label: "Open", description: "Everyone sees the lowest bid.", icon: <Icon icon={icons.eye} /> },
-  { value: "public", label: "Public", description: "Anyone with the link can bid.", icon: <Icon icon={icons.link} /> },
+  {
+    value: "sealed",
+    label: "Sealed",
+    description: "Invitees can’t see each other’s bids.",
+    icon: <Icon icon={icons.lock} />,
+  },
+  {
+    value: "open",
+    label: "Open",
+    description: "Everyone sees the lowest bid.",
+    icon: <Icon icon={icons.eye} />,
+  },
+  {
+    value: "public",
+    label: "Public",
+    description: "Anyone with the link can bid.",
+    icon: <Icon icon={icons.link} />,
+  },
 ];
 const CATEGORIES: SelectorSection[] = [
-  { type: "section", title: "Design", options: [{ value: "brand", label: "Branding" }, { value: "ui", label: "UI design" }, { value: "illus", label: "Illustration" }] },
-  { type: "section", title: "Writing", options: [{ value: "copy", label: "Copywriting" }, { value: "tech", label: "Technical writing" }] },
-  { type: "section", title: "Engineering", options: [{ value: "web", label: "Web" }, { value: "mobile", label: "Mobile" }, { value: "data", label: "Data" }] },
+  {
+    type: "section",
+    title: "Design",
+    options: [
+      { value: "brand", label: "Branding" },
+      { value: "ui", label: "UI design" },
+      { value: "illus", label: "Illustration" },
+    ],
+  },
+  {
+    type: "section",
+    title: "Writing",
+    options: [
+      { value: "copy", label: "Copywriting" },
+      { value: "tech", label: "Technical writing" },
+    ],
+  },
+  {
+    type: "section",
+    title: "Engineering",
+    options: [
+      { value: "web", label: "Web" },
+      { value: "mobile", label: "Mobile" },
+      { value: "data", label: "Data" },
+    ],
+  },
 ];
 const TIMEZONES: SelectorOptionData[] = [
   "Pacific/Honolulu",
@@ -53,11 +92,19 @@ const TIMEZONES: SelectorOptionData[] = [
   "Asia/Tokyo",
   "Australia/Sydney",
 ].map((tz) => ({ value: tz, label: tz.replace("_", " ").split("/")[1] }));
-const OWNERS: SelectorOptionData[] = PEOPLE.map((p) => ({ value: p.name, label: p.name, description: p.role }));
+const OWNERS: SelectorOptionData[] = PEOPLE.map((p) => ({
+  value: p.name,
+  label: p.name,
+  description: p.role,
+}));
 const SKILLS = CATEGORIES.flatMap((s) => s.options);
 
 export default function SelectDemo() {
-  const [sizes, setSizes] = useState<Record<SelectorSize, string>>({ sm: "open", md: "open", lg: "open" });
+  const [sizes, setSizes] = useState<Record<SelectorSize, string>>({
+    sm: "open",
+    md: "open",
+    lg: "open",
+  });
   const [visibility, setVisibility] = useState("sealed");
   const [category, setCategory] = useState("brand");
   const [tz, setTz] = useState<string | null>("America/New_York");
@@ -65,7 +112,13 @@ export default function SelectDemo() {
   const [sort, setSort] = useState("newest");
   const [skills, setSkills] = useState<string[]>(["brand", "copy"]);
   const [skillsCount, setSkillsCount] = useState<string[]>(["brand", "ui", "web"]);
-  const [skillsBadges, setSkillsBadges] = useState<string[]>(["brand", "ui", "copy", "web", "data"]);
+  const [skillsBadges, setSkillsBadges] = useState<string[]>([
+    "brand",
+    "ui",
+    "copy",
+    "web",
+    "data",
+  ]);
   const [role, setRole] = useState("");
 
   return (
@@ -73,14 +126,30 @@ export default function SelectDemo() {
       <Preview align="start" label="Sizes">
         <Stack gap={3} width={FIELD_WIDTH}>
           {SIZES.map((size) => (
-            <Selector key={size} size={size} label={`Size ${size}`} options={STATUS} value={sizes[size]} onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))} />
+            <Selector
+              key={size}
+              size={size}
+              label={`Size ${size}`}
+              options={STATUS}
+              value={sizes[size]}
+              onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))}
+            />
           ))}
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Icons and descriptions" description="Each option explains itself; the trigger shows the chosen icon.">
+      <Preview
+        align="start"
+        label="Icons and descriptions"
+        description="Each option explains itself; the trigger shows the chosen icon."
+      >
         <Stack width={FIELD_WIDTH}>
-          <Selector label="Visibility" options={VISIBILITY} value={visibility} onChange={setVisibility} />
+          <Selector
+            label="Visibility"
+            options={VISIBILITY}
+            value={visibility}
+            onChange={setVisibility}
+          />
         </Stack>
       </Preview>
 
@@ -90,14 +159,32 @@ export default function SelectDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Search and clear" description="hasSearch filters long lists; hasClear lets the value go back to empty.">
+      <Preview
+        align="start"
+        label="Search and clear"
+        description="hasSearch filters long lists; hasClear lets the value go back to empty."
+      >
         <Stack gap={2} width={FIELD_WIDTH}>
-          <Selector label="Time zone" options={TIMEZONES} value={tz} onChange={setTz} hasSearch searchPlaceholder="Search cities" hasClear placeholder="Choose a time zone" emptySearchText="No city matches." />
+          <Selector
+            label="Time zone"
+            options={TIMEZONES}
+            value={tz}
+            onChange={setTz}
+            hasSearch
+            searchPlaceholder="Search cities"
+            hasClear
+            placeholder="Choose a time zone"
+            emptySearchText="No city matches."
+          />
           <Caption>{tz ?? "No time zone"}</Caption>
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Custom rendering" description="renderOption and renderValue draw people with avatars.">
+      <Preview
+        align="start"
+        label="Custom rendering"
+        description="renderOption and renderValue draw people with avatars."
+      >
         <Stack width={FIELD_WIDTH}>
           <Selector
             label="Room owner"
@@ -125,7 +212,11 @@ export default function SelectDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Ghost variant" description="variant=&quot;ghost&quot; for inline sort and filter menus inside headers.">
+      <Preview
+        align="start"
+        label="Ghost variant"
+        description='variant="ghost" for inline sort and filter menus inside headers.'
+      >
         <Card width={420}>
           <HStack hAlign="between" vAlign="center">
             <Heading level={4}>Bids</Heading>
@@ -160,17 +251,53 @@ export default function SelectDemo() {
             ]}
             value={role}
             onChange={setRole}
-            status={role ? { type: "success", message: "Thanks!" } : { type: "error", message: "Choose a role to continue." }}
+            status={
+              role
+                ? { type: "success", message: "Thanks!" }
+                : { type: "error", message: "Choose a role to continue." }
+            }
           />
-          <Selector label="Currency" options={[{ value: "usd", label: "USD" }]} value="usd" isDisabled disabledMessage="Set by your workspace." />
+          <Selector
+            label="Currency"
+            options={[{ value: "usd", label: "USD" }]}
+            value="usd"
+            isDisabled
+            disabledMessage="Set by your workspace."
+          />
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Multi-select" description="MultiSelector picks several — with search and select-all.">
+      <Preview
+        align="start"
+        label="Multi-select"
+        description="MultiSelector picks several — with search and select-all."
+      >
         <Stack gap={3} width={FIELD_WIDTH}>
-          <MultiSelector label="Skills (labels)" options={SKILLS} value={skills} onChange={setSkills} hasSearch hasSelectAll triggerDisplay="labels" />
-          <MultiSelector label="Skills (count)" options={SKILLS} value={skillsCount} onChange={setSkillsCount} triggerDisplay="count" hasClear />
-          <MultiSelector label="Skills (badges)" options={SKILLS} value={skillsBadges} onChange={setSkillsBadges} triggerDisplay="badges" maxBadges={3} />
+          <MultiSelector
+            label="Skills (labels)"
+            options={SKILLS}
+            value={skills}
+            onChange={setSkills}
+            hasSearch
+            hasSelectAll
+            triggerDisplay="labels"
+          />
+          <MultiSelector
+            label="Skills (count)"
+            options={SKILLS}
+            value={skillsCount}
+            onChange={setSkillsCount}
+            triggerDisplay="count"
+            hasClear
+          />
+          <MultiSelector
+            label="Skills (badges)"
+            options={SKILLS}
+            value={skillsBadges}
+            onChange={setSkillsBadges}
+            triggerDisplay="badges"
+            maxBadges={3}
+          />
         </Stack>
       </Preview>
     </Examples>

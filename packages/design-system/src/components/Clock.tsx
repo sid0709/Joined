@@ -1,6 +1,5 @@
 "use client";
 
-import type { ControlSize } from "./size";
 import { useNow } from "./hooks";
 import {
   HOURS_PER_HALF,
@@ -13,6 +12,8 @@ import {
   type HourCycle,
   type TimeParts,
 } from "./time";
+
+import type { ControlSize } from "./size";
 
 /**
  * analog  — numerals, minute ticks, three hands.
@@ -54,12 +55,30 @@ function zoned(now: Date, timeZone?: string): TimeParts {
 }
 
 function Hand({ turn, length, className }: { turn: number; length: number; className: string }) {
-  return <line className={className} x1="50" y1="50" x2="50" y2={50 - length} style={{ transform: `rotate(${turn}deg)` }} />;
+  return (
+    <line
+      className={className}
+      x1="50"
+      y1="50"
+      x2="50"
+      y2={50 - length}
+      style={{ transform: `rotate(${turn}deg)` }}
+    />
+  );
 }
 
-function Face({ parts, variant, showSeconds }: { parts: TimeParts; variant: "analog" | "minimal"; showSeconds: boolean }) {
+function Face({
+  parts,
+  variant,
+  showSeconds,
+}: {
+  parts: TimeParts;
+  variant: "analog" | "minimal";
+  showSeconds: boolean;
+}) {
   const minuteTurn = (parts.m + parts.s / SECONDS_PER_MINUTE) * (DEGREES / MINUTES_PER_HOUR);
-  const hourTurn = ((parts.h % HOURS_PER_HALF) + parts.m / MINUTES_PER_HOUR) * (DEGREES / HOURS_PER_HALF);
+  const hourTurn =
+    ((parts.h % HOURS_PER_HALF) + parts.m / MINUTES_PER_HOUR) * (DEGREES / HOURS_PER_HALF);
   const secondTurn = parts.s * (DEGREES / SECONDS_PER_MINUTE);
   const marks = variant === "analog" ? MINUTES_PER_HOUR : HOURS_PER_HALF;
 
@@ -84,7 +103,12 @@ function Face({ parts, variant, showSeconds }: { parts: TimeParts; variant: "ana
         NUMERALS.map((n, i) => {
           const angle = (i / HOURS_PER_HALF) * Math.PI * 2 - Math.PI / 2;
           return (
-            <text key={n} className="os-clock-numeral" x={50 + NUMERAL_RADIUS * Math.cos(angle)} y={50 + NUMERAL_RADIUS * Math.sin(angle)}>
+            <text
+              key={n}
+              className="os-clock-numeral"
+              x={50 + NUMERAL_RADIUS * Math.cos(angle)}
+              y={50 + NUMERAL_RADIUS * Math.sin(angle)}
+            >
               {n}
             </text>
           );
@@ -98,7 +122,15 @@ function Face({ parts, variant, showSeconds }: { parts: TimeParts; variant: "ana
 }
 
 /** Shows a time — fixed or live — in four treatments. It never takes input. */
-export function Clock({ value, variant = "analog", size = "md", hourCycle = "12h", showSeconds = true, timeZone, label }: ClockProps) {
+export function Clock({
+  value,
+  variant = "analog",
+  size = "md",
+  hourCycle = "12h",
+  showSeconds = true,
+  timeZone,
+  label,
+}: ClockProps) {
   const now = useNow(TICK_MS, value === undefined);
   const parts = value !== undefined ? parseTime(value) : now ? zoned(now, timeZone) : null;
   const twelve = hourCycle === "12h";
@@ -107,7 +139,14 @@ export function Clock({ value, variant = "analog", size = "md", hourCycle = "12h
   const second = parts ? pad2(parts.s) : "--";
   const meridiem = parts && twelve ? meridiemOf(parts.h) : "";
   const spoken = parts ? `${hour}:${minute}${meridiem ? ` ${meridiem}` : ""}` : "Loading time";
-  const root = ["os-clock", `os-clock-${variant}`, `os-clock-${size}`, value === undefined && "os-clock-live"].filter(Boolean).join(" ");
+  const root = [
+    "os-clock",
+    `os-clock-${variant}`,
+    `os-clock-${size}`,
+    value === undefined && "os-clock-live",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (variant === "compact") {
     return (
@@ -141,7 +180,11 @@ export function Clock({ value, variant = "analog", size = "md", hourCycle = "12h
 
   return (
     <figure className={root} role="timer" aria-label={label ? `${label}, ${spoken}` : spoken}>
-      {parts ? <Face parts={parts} variant={variant} showSeconds={showSeconds} /> : <span className="os-clock-face os-clock-face-empty" />}
+      {parts ? (
+        <Face parts={parts} variant={variant} showSeconds={showSeconds} />
+      ) : (
+        <span className="os-clock-face os-clock-face-empty" />
+      )}
       {label && (
         <figcaption className="os-clock-caption">
           <span className="os-clock-label">{label}</span>

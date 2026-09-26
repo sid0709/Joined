@@ -55,7 +55,11 @@ export function slotOf<T extends KanbanItemBase>(items: T[], itemId: string): Ka
  * Moves one item to a column (and lane) at an index among that cell's other
  * items. Returns a new array; everything else keeps its order.
  */
-export function moveKanbanItem<T extends KanbanItemBase>(items: T[], itemId: string, to: KanbanSlot): T[] {
+export function moveKanbanItem<T extends KanbanItemBase>(
+  items: T[],
+  itemId: string,
+  to: KanbanSlot,
+): T[] {
   const moving = items.find((i) => i.id === itemId);
   if (!moving) return items;
   const rest = items.filter((i) => i.id !== itemId);

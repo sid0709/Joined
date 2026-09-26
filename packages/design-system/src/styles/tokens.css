@@ -94,7 +94,8 @@
   --radius-full: 9999px;
 
   /* Type — system UI stack, 14px × 1.2 geometric scale */
-  --font-family-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-body:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-family-heading: var(--font-family-body);
   --font-family-code: "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -140,7 +141,11 @@
   --canvas: var(--color-background-body);
   --surface: var(--color-background-surface);
   --surface-sunken: var(--color-background-muted);
-  --surface-hover: color-mix(in srgb, var(--color-text-primary) 6%, var(--color-background-surface));
+  --surface-hover: color-mix(
+    in srgb,
+    var(--color-text-primary) 6%,
+    var(--color-background-surface)
+  );
   --surface-selected: var(--color-neutral);
   --border-subtle: var(--color-border);
   --border-default: var(--color-border-emphasized);
@@ -207,8 +212,12 @@
   --meta-blue-950: var(--color-blue-950);
 }
 
-[data-theme="light"] { color-scheme: light; }
-[data-theme="dark"] { color-scheme: dark; }
+[data-theme="light"] {
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+}
 
 /* Type styles — OpenSeat semantic scale */
 .display {
@@ -241,24 +250,77 @@
   line-height: 1.41;
   color: var(--color-text-primary);
 }
-.body-lg, .body, .body-strong, .body-sm, .label, .caption, .button {
+.body-lg,
+.body,
+.body-strong,
+.body-sm,
+.label,
+.caption,
+.button {
   font-family: var(--font-family-body);
   color: var(--color-text-primary);
 }
-.body-lg { font-size: var(--font-size-lg); font-weight: var(--font-weight-normal); line-height: 1.41; }
-.body { font-size: var(--text-body-size); font-weight: var(--font-weight-normal); line-height: 1.43; }
-.body-strong { font-size: var(--text-body-size); font-weight: var(--font-weight-medium); line-height: 1.43; }
-.body-sm { font-size: var(--text-supporting-size); font-weight: var(--font-weight-normal); line-height: 1.67; }
-.label { font-size: var(--text-label-size); font-weight: var(--font-weight-medium); line-height: 1.43; }
-.caption { font-size: var(--text-supporting-size); font-weight: var(--font-weight-normal); line-height: 1.67; color: var(--color-text-secondary); }
-.button { font-size: var(--text-label-size); font-weight: var(--font-weight-medium); line-height: 20px; }
+.body-lg {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.41;
+}
+.body {
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.43;
+}
+.body-strong {
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.43;
+}
+.body-sm {
+  font-size: var(--text-supporting-size);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.67;
+}
+.label {
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.43;
+}
+.caption {
+  font-size: var(--text-supporting-size);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.67;
+  color: var(--color-text-secondary);
+}
+.button {
+  font-size: var(--text-label-size);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
+}
 
-.text-ink { color: var(--color-text-primary); }
-.text-ink-muted { color: var(--color-text-secondary); }
-.text-ink-faint { color: var(--color-text-disabled); }
-.text-primary { color: var(--color-accent); }
-.text-link { color: var(--color-accent); }
-.text-danger { color: var(--color-error); }
-.text-success { color: var(--color-success); }
-.text-warning { color: var(--color-warning); }
-.text-on-primary { color: var(--color-on-accent); }
+.text-ink {
+  color: var(--color-text-primary);
+}
+.text-ink-muted {
+  color: var(--color-text-secondary);
+}
+.text-ink-faint {
+  color: var(--color-text-disabled);
+}
+.text-primary {
+  color: var(--color-accent);
+}
+.text-link {
+  color: var(--color-accent);
+}
+.text-danger {
+  color: var(--color-error);
+}
+.text-success {
+  color: var(--color-success);
+}
+.text-warning {
+  color: var(--color-warning);
+}
+.text-on-primary {
+  color: var(--color-on-accent);
+}

@@ -3,7 +3,11 @@
 import { useEffect, useState, type RefObject } from "react";
 
 /** Calls `onDismiss` on a pointer-down outside `ref` or on Escape while `active`. */
-export function useDismiss(ref: RefObject<HTMLElement | null>, active: boolean, onDismiss: () => void) {
+export function useDismiss(
+  ref: RefObject<HTMLElement | null>,
+  active: boolean,
+  onDismiss: () => void,
+) {
   useEffect(() => {
     if (!active) return;
     function onPointer(event: PointerEvent) {
@@ -34,7 +38,11 @@ export function useNow(intervalMs: number, enabled = true) {
 }
 
 /** Internal state that defers to `controlled` when the caller passes one. */
-export function useControllable<T>(controlled: T | undefined, initial: T, onChange?: (value: T) => void) {
+export function useControllable<T>(
+  controlled: T | undefined,
+  initial: T,
+  onChange?: (value: T) => void,
+) {
   const [inner, setInner] = useState<T>(initial);
   const value = controlled !== undefined ? controlled : inner;
   function set(next: T) {

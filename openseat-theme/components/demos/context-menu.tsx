@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   Badge,
@@ -15,6 +14,8 @@ import {
   icons,
   type ContextMenuOption,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview, SAMPLE_IMAGES } from "./shared";
 
 const FILES = [
@@ -30,24 +31,40 @@ export default function ContextMenuDemo() {
 
   const roomMenu = (room: string): ContextMenuOption[] => [
     { label: "Open", icon: <Icon icon={icons.eye} />, onClick: () => note(`Open ${room}`) },
-    { label: "Duplicate", icon: <Icon icon={icons.plus} />, onClick: () => note(`Duplicate ${room}`) },
+    {
+      label: "Duplicate",
+      icon: <Icon icon={icons.plus} />,
+      onClick: () => note(`Duplicate ${room}`),
+    },
     {
       label: pinned.includes(room) ? "Unpin" : "Pin",
       icon: <Icon icon={icons.pin} />,
-      onClick: () => setPinned((p) => (p.includes(room) ? p.filter((r) => r !== room) : [...p, room])),
+      onClick: () =>
+        setPinned((p) => (p.includes(room) ? p.filter((r) => r !== room) : [...p, room])),
     },
     {
       label: "Move to",
       icon: <Icon icon={icons.folder} />,
-      items: ["Active", "Archive", "Templates"].map((f) => ({ label: f, onClick: () => note(`Move ${room} to ${f}`) })),
+      items: ["Active", "Archive", "Templates"].map((f) => ({
+        label: f,
+        onClick: () => note(`Move ${room} to ${f}`),
+      })),
     },
     { type: "divider" },
-    { label: "Delete", icon: <Icon icon={icons.trash} />, variant: "destructive", onClick: () => note(`Delete ${room}`) },
+    {
+      label: "Delete",
+      icon: <Icon icon={icons.trash} />,
+      variant: "destructive",
+      onClick: () => note(`Delete ${room}`),
+    },
   ];
 
   return (
     <Examples>
-      <Preview label="Right-click a card" description="Icons, a submenu, a divider, and a destructive action.">
+      <Preview
+        label="Right-click a card"
+        description="Icons, a submenu, a divider, and a destructive action."
+      >
         <HStack gap={3} wrap="wrap">
           {["Brand refresh", "Motion system", "Pitch deck"].map((room) => (
             <ContextMenu key={room} items={roomMenu(room)} label={`${room} actions`}>
@@ -67,23 +84,45 @@ export default function ContextMenuDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Sections and descriptions" description="Group actions and explain the risky ones.">
+      <Preview
+        label="Sections and descriptions"
+        description="Group actions and explain the risky ones."
+      >
         <ContextMenu
           items={[
             {
               type: "section",
               title: "Bid",
               items: [
-                { label: "Shortlist", icon: <Icon icon={icons.star} />, onClick: () => note("Shortlist Jordan") },
-                { label: "Message", icon: <Icon icon={icons.mail} />, onClick: () => note("Message Jordan") },
+                {
+                  label: "Shortlist",
+                  icon: <Icon icon={icons.star} />,
+                  onClick: () => note("Shortlist Jordan"),
+                },
+                {
+                  label: "Message",
+                  icon: <Icon icon={icons.mail} />,
+                  onClick: () => note("Message Jordan"),
+                },
               ],
             },
             {
               type: "section",
               title: "Decision",
               items: [
-                { label: "Award", description: "Closes the room and notifies everyone.", icon: <Icon icon={icons.check} />, onClick: () => note("Award Jordan") },
-                { label: "Reject", description: "Jordan sees a polite note.", variant: "destructive", icon: <Icon icon={icons.close} />, onClick: () => note("Reject Jordan") },
+                {
+                  label: "Award",
+                  description: "Closes the room and notifies everyone.",
+                  icon: <Icon icon={icons.check} />,
+                  onClick: () => note("Award Jordan"),
+                },
+                {
+                  label: "Reject",
+                  description: "Jordan sees a polite note.",
+                  variant: "destructive",
+                  icon: <Icon icon={icons.close} />,
+                  onClick: () => note("Reject Jordan"),
+                },
               ],
             },
           ]}
@@ -101,7 +140,10 @@ export default function ContextMenuDemo() {
         </ContextMenu>
       </Preview>
 
-      <Preview label="On files" description="A compact menu on each thumbnail, with a disabled item.">
+      <Preview
+        label="On files"
+        description="A compact menu on each thumbnail, with a disabled item."
+      >
         <HStack gap={3}>
           {FILES.map((f) => (
             <ContextMenu
@@ -109,10 +151,18 @@ export default function ContextMenuDemo() {
               size="sm"
               items={[
                 { label: "Preview", onClick: () => note(`Preview ${f.name}`) },
-                { label: "Download", icon: <Icon icon={icons.download} />, onClick: () => note(`Download ${f.name}`) },
+                {
+                  label: "Download",
+                  icon: <Icon icon={icons.download} />,
+                  onClick: () => note(`Download ${f.name}`),
+                },
                 { label: "Rename", isDisabled: true },
                 { type: "divider" },
-                { label: "Remove", variant: "destructive", onClick: () => note(`Remove ${f.name}`) },
+                {
+                  label: "Remove",
+                  variant: "destructive",
+                  onClick: () => note(`Remove ${f.name}`),
+                },
               ]}
             >
               <Stack gap={1} hAlign="center">
@@ -124,7 +174,10 @@ export default function ContextMenuDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Disabled" description="isDisabled lets the browser menu through — for areas like text inputs.">
+      <Preview
+        label="Disabled"
+        description="isDisabled lets the browser menu through — for areas like text inputs."
+      >
         <ContextMenu items={[{ label: "Unused" }]} isDisabled>
           <Card maxWidth={360}>
             <Text color="secondary">Right-click here shows the normal browser menu.</Text>

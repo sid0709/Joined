@@ -17,7 +17,7 @@ export const ACCENT_ICON_DARK = "#88BCFF";
 
 /** Platform system UI stack (no webfont). */
 export const FONT_FAMILY_SYSTEM =
-  "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif";
+  'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 /**
  * OpenSeat theme: Neutral structure with Meta blue primary and system fonts.

@@ -1,7 +1,17 @@
 "use client";
 
+import {
+  Button,
+  ButtonGroup,
+  DropdownMenu,
+  Icon,
+  IconButton,
+  Stack,
+  icons,
+  type ButtonSize,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Button, ButtonGroup, DropdownMenu, Icon, IconButton, Stack, icons, type ButtonSize } from "@openseat/design-system";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const SIZES: ButtonSize[] = ["sm", "md", "lg"];
@@ -14,7 +24,11 @@ export default function ButtonGroupDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Connected actions" description="Related buttons share one surface and a single hairline divider.">
+      <Preview
+        align="start"
+        label="Connected actions"
+        description="Related buttons share one surface and a single hairline divider."
+      >
         <Row>
           <ButtonGroup label="History">
             <Button label="Undo" icon={<Icon icon={icons.undo} />} />
@@ -28,7 +42,11 @@ export default function ButtonGroupDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Variants" description="Every child keeps its own variant; ghost reads as a quiet toolbar.">
+      <Preview
+        align="start"
+        label="Variants"
+        description="Every child keeps its own variant; ghost reads as a quiet toolbar."
+      >
         <Stack gap={3} hAlign="start">
           <ButtonGroup label="Primary group">
             <Button label="Publish" variant="primary" />
@@ -42,7 +60,11 @@ export default function ButtonGroupDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Sizes" description="The group sets a default size for every child.">
+      <Preview
+        align="start"
+        label="Sizes"
+        description="The group sets a default size for every child."
+      >
         <Stack gap={3} hAlign="start">
           {SIZES.map((size) => (
             <ButtonGroup key={size} label={`${size} group`} size={size}>
@@ -59,8 +81,16 @@ export default function ButtonGroupDemo() {
           <ButtonGroup label="Text style">
             <IconButton label="Bold" tooltip="Bold" icon={<Icon icon={icons.bold} />} />
             <IconButton label="Italic" tooltip="Italic" icon={<Icon icon={icons.italic} />} />
-            <IconButton label="Underline" tooltip="Underline" icon={<Icon icon={icons.underline} />} />
-            <IconButton label="Strikethrough" tooltip="Strikethrough" icon={<Icon icon={icons.strike} />} />
+            <IconButton
+              label="Underline"
+              tooltip="Underline"
+              icon={<Icon icon={icons.underline} />}
+            />
+            <IconButton
+              label="Strikethrough"
+              tooltip="Strikethrough"
+              icon={<Icon icon={icons.strike} />}
+            />
           </ButtonGroup>
           <ButtonGroup label="Media">
             <IconButton label="Play" icon={<Icon icon={icons.play} />} />
@@ -83,12 +113,21 @@ export default function ButtonGroupDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Split button" description="A default action plus a menu of alternatives.">
+      <Preview
+        align="start"
+        label="Split button"
+        description="A default action plus a menu of alternatives."
+      >
         <Stack gap={2} hAlign="start">
           <ButtonGroup label="Merge options">
             <Button label={merge} variant="primary" />
             <DropdownMenu
-              button={{ label: "More merge options", variant: "primary", isIconOnly: true, icon: <Icon icon={icons.chevronDown} /> }}
+              button={{
+                label: "More merge options",
+                variant: "primary",
+                isIconOnly: true,
+                icon: <Icon icon={icons.chevronDown} />,
+              }}
               hasChevron={false}
               items={[
                 { label: "Merge", onClick: () => setMerge("Merge") },
@@ -104,21 +143,47 @@ export default function ButtonGroupDemo() {
       <Preview align="start" label="Pattern — pager">
         <Stack gap={2} hAlign="start">
           <ButtonGroup label="Pages" size="sm">
-            <IconButton label="Previous page" icon={<Icon icon={icons.chevronLeft} />} isDisabled={page === 1} onClick={() => setPage(page - 1)} />
+            <IconButton
+              label="Previous page"
+              icon={<Icon icon={icons.chevronLeft} />}
+              isDisabled={page === 1}
+              onClick={() => setPage(page - 1)}
+            />
             {Array.from({ length: PAGE_COUNT }, (_, i) => i + 1).map((n) => (
-              <Button key={n} label={String(n)} variant={n === page ? "primary" : "secondary"} onClick={() => setPage(n)} />
+              <Button
+                key={n}
+                label={String(n)}
+                variant={n === page ? "primary" : "secondary"}
+                onClick={() => setPage(n)}
+              />
             ))}
-            <IconButton label="Next page" icon={<Icon icon={icons.chevronRight} />} isDisabled={page === PAGE_COUNT} onClick={() => setPage(page + 1)} />
+            <IconButton
+              label="Next page"
+              icon={<Icon icon={icons.chevronRight} />}
+              isDisabled={page === PAGE_COUNT}
+              onClick={() => setPage(page + 1)}
+            />
           </ButtonGroup>
-          <Caption>Page {page} of {PAGE_COUNT}</Caption>
+          <Caption>
+            Page {page} of {PAGE_COUNT}
+          </Caption>
         </Stack>
       </Preview>
 
       <Preview align="start" label="Pattern — quantity">
         <ButtonGroup label="Seats">
-          <IconButton label="Remove a seat" icon={<Icon icon={icons.minus} />} isDisabled={count <= 1} onClick={() => setCount(count - 1)} />
+          <IconButton
+            label="Remove a seat"
+            icon={<Icon icon={icons.minus} />}
+            isDisabled={count <= 1}
+            onClick={() => setCount(count - 1)}
+          />
           <Button label={`${count} seats`} />
-          <IconButton label="Add a seat" icon={<Icon icon={icons.plus} />} onClick={() => setCount(count + 1)} />
+          <IconButton
+            label="Add a seat"
+            icon={<Icon icon={icons.plus} />}
+            onClick={() => setCount(count + 1)}
+          />
         </ButtonGroup>
       </Preview>
 

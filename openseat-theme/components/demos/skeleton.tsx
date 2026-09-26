@@ -1,7 +1,18 @@
 "use client";
 
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  HStack,
+  Heading,
+  Skeleton,
+  Stack,
+  Text,
+} from "@openseat/design-system";
 import { useEffect, useState } from "react";
-import { Avatar, Badge, Button, Card, HStack, Heading, Skeleton, Stack, Text } from "@openseat/design-system";
+
 import { Examples, PEOPLE, Preview } from "./shared";
 
 const LOAD_MS = 1600;
@@ -24,7 +35,10 @@ export default function SkeletonDemo() {
 
   return (
     <Examples>
-      <Preview label="Shapes" description="Width and height draw any block; radius=&quot;rounded&quot; softens it, none keeps it square.">
+      <Preview
+        label="Shapes"
+        description='Width and height draw any block; radius="rounded" softens it, none keeps it square.'
+      >
         <Stack gap={3}>
           <Skeleton width="60%" height={20} />
           <Skeleton width="100%" height={12} />
@@ -37,7 +51,10 @@ export default function SkeletonDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Staggered shimmer" description="index offsets each block’s animation so a list shimmers as a wave.">
+      <Preview
+        label="Staggered shimmer"
+        description="index offsets each block’s animation so a list shimmers as a wave."
+      >
         <Stack gap={2}>
           {Array.from({ length: 6 }, (_, index) => (
             <Skeleton key={index} index={index} height={14} width={`${90 - index * 8}%`} />
@@ -45,7 +62,10 @@ export default function SkeletonDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Card placeholder" description="Match the real layout so nothing jumps when data arrives.">
+      <Preview
+        label="Card placeholder"
+        description="Match the real layout so nothing jumps when data arrives."
+      >
         <Stack gap={3}>
           <HStack gap={3} wrap="wrap" vAlign="stretch">
             {PEOPLE.slice(0, 3).map((person, index) => (
@@ -73,14 +93,22 @@ export default function SkeletonDemo() {
                         </Text>
                       </Stack>
                     </HStack>
-                    <Text color="secondary">Bid $2,{400 + index * 150} · delivers in {10 + index * 3} days.</Text>
+                    <Text color="secondary">
+                      Bid $2,{400 + index * 150} · delivers in {10 + index * 3} days.
+                    </Text>
                   </Stack>
                 )}
               </Card>
             ))}
           </HStack>
           <HStack>
-            <Button label="Reload" size="sm" variant="ghost" onClick={card.reload} isDisabled={card.loading} />
+            <Button
+              label="Reload"
+              size="sm"
+              variant="ghost"
+              onClick={card.reload}
+              isDisabled={card.loading}
+            />
           </HStack>
         </Stack>
       </Preview>
@@ -90,7 +118,13 @@ export default function SkeletonDemo() {
           <Stack gap={3}>
             <HStack hAlign="between" vAlign="center">
               <Heading level={4}>Rooms</Heading>
-              <Button label="Reload" size="sm" variant="ghost" onClick={list.reload} isDisabled={list.loading} />
+              <Button
+                label="Reload"
+                size="sm"
+                variant="ghost"
+                onClick={list.reload}
+                isDisabled={list.loading}
+              />
             </HStack>
             {Array.from({ length: ROWS }, (_, index) =>
               list.loading ? (
@@ -102,14 +136,19 @@ export default function SkeletonDemo() {
               ) : (
                 <HStack key={index} gap={4} vAlign="center">
                   <Stack width="35%">
-                    <Text>{["Brand refresh", "Landing page", "Motion system", "Pitch deck"][index]}</Text>
+                    <Text>
+                      {["Brand refresh", "Landing page", "Motion system", "Pitch deck"][index]}
+                    </Text>
                   </Stack>
                   <Stack width="20%">
                     <Text color="secondary" hasTabularNumbers>
                       {[6, 2, 0, 11][index]} bids
                     </Text>
                   </Stack>
-                  <Badge label={["Open", "Review", "Draft", "Awarded"][index]} variant={(["success", "warning", "neutral", "info"] as const)[index]} />
+                  <Badge
+                    label={["Open", "Review", "Draft", "Awarded"][index]}
+                    variant={(["success", "warning", "neutral", "info"] as const)[index]}
+                  />
                 </HStack>
               ),
             )}

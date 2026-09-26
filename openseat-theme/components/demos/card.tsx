@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   AvatarGroup,
@@ -20,25 +19,67 @@ import {
   icons,
   type CardVariant,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview, Row, SAMPLE_IMAGES } from "./shared";
 
-const VARIANTS: CardVariant[] = ["default", "muted", "transparent", "blue", "cyan", "teal", "green", "yellow", "orange", "red", "pink", "purple", "gray"];
+const VARIANTS: CardVariant[] = [
+  "default",
+  "muted",
+  "transparent",
+  "blue",
+  "cyan",
+  "teal",
+  "green",
+  "yellow",
+  "orange",
+  "red",
+  "pink",
+  "purple",
+  "gray",
+];
 const ELEVATIONS = ["none", "low", "med", "high"] as const;
 const PADDINGS = [2, 3, 4, 6] as const;
 const TILE = 168;
 const ROOM_WIDTH = 240;
 
 const ROOMS = [
-  { id: "brand", title: "Brand refresh", meta: "Fixed · $2,400", bids: 6, closes: "Closes Friday", status: "Open" as const },
-  { id: "landing", title: "Landing page copy", meta: "Hourly · $65/hr", bids: 2, closes: "Closes in 2 days", status: "Review" as const },
-  { id: "motion", title: "Motion system", meta: "Fixed · $3,200", bids: 0, closes: "Draft", status: "Draft" as const },
+  {
+    id: "brand",
+    title: "Brand refresh",
+    meta: "Fixed · $2,400",
+    bids: 6,
+    closes: "Closes Friday",
+    status: "Open" as const,
+  },
+  {
+    id: "landing",
+    title: "Landing page copy",
+    meta: "Hourly · $65/hr",
+    bids: 2,
+    closes: "Closes in 2 days",
+    status: "Review" as const,
+  },
+  {
+    id: "motion",
+    title: "Motion system",
+    meta: "Fixed · $3,200",
+    bids: 0,
+    closes: "Draft",
+    status: "Draft" as const,
+  },
 ];
 const STATUS_VARIANT = { Open: "success", Review: "warning", Draft: "neutral" } as const;
 
 const PLANS = [
   { id: "starter", name: "Starter", price: "$0", blurb: "Three sealed rooms a month." },
   { id: "team", name: "Team", price: "$24", blurb: "Unlimited rooms and shared shortlists." },
-  { id: "agency", name: "Agency", price: "$79", blurb: "Client workspaces and white-label invites." },
+  {
+    id: "agency",
+    name: "Agency",
+    price: "$79",
+    blurb: "Client workspaces and white-label invites.",
+  },
 ];
 const ADD_ONS = [
   { id: "nda", name: "NDA on invite", price: "+$5" },
@@ -59,7 +100,11 @@ export default function CardDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Variants" description="default and muted for surfaces; transparent to group without a fill; colors for categories and highlights.">
+      <Preview
+        align="start"
+        label="Variants"
+        description="default and muted for surfaces; transparent to group without a fill; colors for categories and highlights."
+      >
         <HStack gap={3} wrap="wrap">
           {VARIANTS.map((variant) => (
             <Card key={variant} variant={variant} width={TILE}>
@@ -74,7 +119,11 @@ export default function CardDemo() {
         </HStack>
       </Preview>
 
-      <Preview align="start" label="Elevation" description="Flat by default. Lift only cards that float above other content.">
+      <Preview
+        align="start"
+        label="Elevation"
+        description="Flat by default. Lift only cards that float above other content."
+      >
         <HStack gap={4} wrap="wrap">
           {ELEVATIONS.map((elevation) => (
             <Card key={elevation} elevation={elevation} width={TILE}>
@@ -84,7 +133,11 @@ export default function CardDemo() {
         </HStack>
       </Preview>
 
-      <Preview align="start" label="Padding" description="Steps from the spacing scale — tighter for dense lists, roomier for heroes.">
+      <Preview
+        align="start"
+        label="Padding"
+        description="Steps from the spacing scale — tighter for dense lists, roomier for heroes."
+      >
         <HStack gap={3} wrap="wrap" vAlign="start">
           {PADDINGS.map((padding) => (
             <Card key={padding} padding={padding} variant="muted">
@@ -94,7 +147,10 @@ export default function CardDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Stat cards" description="A dashboard row — icon, value, and trend in muted cards.">
+      <Preview
+        label="Stat cards"
+        description="A dashboard row — icon, value, and trend in muted cards."
+      >
         <HStack gap={3} wrap="wrap" vAlign="stretch">
           {STATS.map((stat) => (
             <Card key={stat.label} variant="muted" width={200}>
@@ -115,11 +171,20 @@ export default function CardDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Clickable cards" description="The whole card is one link or button, with a single accessible name.">
+      <Preview
+        label="Clickable cards"
+        description="The whole card is one link or button, with a single accessible name."
+      >
         <Stack gap={2}>
           <HStack gap={3} wrap="wrap" vAlign="stretch">
             {ROOMS.map((room) => (
-              <ClickableCard key={room.id} label={`Open ${room.title}`} onClick={() => setOpened(room.title)} width={ROOM_WIDTH} isDisabled={room.status === "Draft"}>
+              <ClickableCard
+                key={room.id}
+                label={`Open ${room.title}`}
+                onClick={() => setOpened(room.title)}
+                width={ROOM_WIDTH}
+                isDisabled={room.status === "Draft"}
+              >
                 <Stack gap={2}>
                   <HStack hAlign="between" vAlign="center">
                     <Badge label={room.status} variant={STATUS_VARIANT[room.status]} />
@@ -139,10 +204,19 @@ export default function CardDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Selectable cards — one plan" description="Cards as big radio options: only one stays selected.">
+      <Preview
+        label="Selectable cards — one plan"
+        description="Cards as big radio options: only one stays selected."
+      >
         <HStack gap={3} wrap="wrap" vAlign="stretch">
           {PLANS.map((p) => (
-            <SelectableCard key={p.id} label={p.name} isSelected={plan === p.id} onChange={() => setPlan(p.id)} width={ROOM_WIDTH}>
+            <SelectableCard
+              key={p.id}
+              label={p.name}
+              isSelected={plan === p.id}
+              onChange={() => setPlan(p.id)}
+              width={ROOM_WIDTH}
+            >
               <Stack gap={1}>
                 <HStack hAlign="between" vAlign="center">
                   <Text weight="semibold">{p.name}</Text>
@@ -164,7 +238,10 @@ export default function CardDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Selectable cards — any add-ons" description="Each card toggles on its own, like a checkbox.">
+      <Preview
+        label="Selectable cards — any add-ons"
+        description="Each card toggles on its own, like a checkbox."
+      >
         <Stack gap={2}>
           <HStack gap={3} wrap="wrap">
             {ADD_ONS.map((a) => (
@@ -173,7 +250,9 @@ export default function CardDemo() {
                 label={a.name}
                 padding={3}
                 isSelected={addOns.includes(a.id)}
-                onChange={(on) => setAddOns((all) => (on ? [...all, a.id] : all.filter((x) => x !== a.id)))}
+                onChange={(on) =>
+                  setAddOns((all) => (on ? [...all, a.id] : all.filter((x) => x !== a.id)))
+                }
                 isDisabled={a.id === "priority" && plan === "starter"}
               >
                 <HStack gap={3} vAlign="center">
@@ -184,12 +263,16 @@ export default function CardDemo() {
             ))}
           </HStack>
           <Caption>
-            {PLANS.find((p) => p.id === plan)?.name} plan · {addOns.length} add-on{addOns.length === 1 ? "" : "s"}
+            {PLANS.find((p) => p.id === plan)?.name} plan · {addOns.length} add-on
+            {addOns.length === 1 ? "" : "s"}
           </Caption>
         </Stack>
       </Preview>
 
-      <Preview label="Room cards" description="JobCard composes Card for OpenSeat rooms — static, clickable, selected, or raised.">
+      <Preview
+        label="Room cards"
+        description="JobCard composes Card for OpenSeat rooms — static, clickable, selected, or raised."
+      >
         <HStack gap={3} wrap="wrap" vAlign="stretch">
           {ROOMS.map((room) => (
             <JobCard
@@ -209,7 +292,12 @@ export default function CardDemo() {
               </HStack>
             </JobCard>
           ))}
-          <JobCard title="Raised card" meta="Floats over a map or canvas" raised width={ROOM_WIDTH} />
+          <JobCard
+            title="Raised card"
+            meta="Floats over a map or canvas"
+            raised
+            width={ROOM_WIDTH}
+          />
         </HStack>
       </Preview>
 
@@ -246,14 +334,23 @@ export default function CardDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Room summary" description="Nested content — progress, people, and a footer action.">
+      <Preview
+        label="Room summary"
+        description="Nested content — progress, people, and a footer action."
+      >
         <Card maxWidth={420}>
           <Stack gap={3}>
             <HStack hAlign="between" vAlign="center">
               <Heading level={4}>Brand refresh</Heading>
               <Badge label="Open" variant="success" icon={<Icon icon={icons.lock} size="xsm" />} />
             </HStack>
-            <ProgressBar label="Invitees who bid" value={4} max={6} hasValueLabel formatValueLabel={(v, m) => `${v} of ${m}`} />
+            <ProgressBar
+              label="Invitees who bid"
+              value={4}
+              max={6}
+              hasValueLabel
+              formatValueLabel={(v, m) => `${v} of ${m}`}
+            />
             <HStack hAlign="between" vAlign="center">
               <AvatarGroup size="sm">
                 {PEOPLE.slice(0, 4).map((person) => (

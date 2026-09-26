@@ -11,6 +11,3 @@ blob-report
 .claude/CLAUDE.md
 next-env.d.ts
 *.tsbuildinfo
-openseat-frontend/**
-openseat-theme/**
-packages/design-system/src/**

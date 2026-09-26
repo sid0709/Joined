@@ -1,6 +1,7 @@
 "use client";
 
 import { Heading, Icon, Link, Stack, Text, icons } from "@openseat/design-system";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const FOOTER = [
@@ -12,14 +13,23 @@ const FOOTER = [
 export default function LinkDemo() {
   return (
     <Examples>
-      <Preview align="start" label="Inline" description="Links navigate. For actions, use a Button.">
+      <Preview
+        align="start"
+        label="Inline"
+        description="Links navigate. For actions, use a Button."
+      >
         <Text>
-          Sealed rooms keep bids private until you choose. Read <Link href="#rooms">how rooms work</Link> or see the{" "}
-          <Link href="#pricing">pricing</Link> before you post.
+          Sealed rooms keep bids private until you choose. Read{" "}
+          <Link href="#rooms">how rooms work</Link> or see the <Link href="#pricing">pricing</Link>{" "}
+          before you post.
         </Text>
       </Preview>
 
-      <Preview align="start" label="Standalone" description="isStandalone for links that sit on their own, outside a sentence.">
+      <Preview
+        align="start"
+        label="Standalone"
+        description="isStandalone for links that sit on their own, outside a sentence."
+      >
         <Stack gap={2} hAlign="start">
           <Link href="#all-rooms" isStandalone>
             View all rooms
@@ -44,7 +54,11 @@ export default function LinkDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="External" description="Opens in a new tab and says so to screen readers.">
+      <Preview
+        align="start"
+        label="External"
+        description="Opens in a new tab and says so to screen readers."
+      >
         <Stack gap={2} hAlign="start">
           <Link href="https://astryx.atmeta.com/" isExternalLink isStandalone>
             Astryx design system
@@ -114,7 +128,8 @@ export default function LinkDemo() {
 
       <Preview align="start" label="Pattern — helper copy">
         <Caption>
-          Didn’t get the invite? <Link href="#resend">Resend it</Link> or <Link href="#support">contact support</Link>.
+          Didn’t get the invite? <Link href="#resend">Resend it</Link> or{" "}
+          <Link href="#support">contact support</Link>.
         </Caption>
       </Preview>
     </Examples>

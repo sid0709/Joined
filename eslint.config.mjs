@@ -1,6 +1,6 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import prettier from "eslint-config-prettier/flat";
-import tseslint from "typescript-eslint";
+
+import sharedLintConfig from "./eslint.shared.mjs";
 
 export default defineConfig([
   globalIgnores([
@@ -9,12 +9,10 @@ export default defineConfig([
     "**/.turbo/**",
     "**/dist/**",
     "**/coverage/**",
-    "openseat-frontend/**",
-    "openseat-theme/**",
   ]),
-  ...tseslint.configs.recommended,
+  ...sharedLintConfig,
   {
-    files: ["packages/design-system/**/*.{ts,tsx,mts,cts}"],
+    files: ["**/*.{ts,tsx,mts,cts}"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -22,9 +20,4 @@ export default defineConfig([
       ],
     },
   },
-  {
-    files: ["packages/design-system/src/theme/openseat.d.ts"],
-    rules: { "@typescript-eslint/triple-slash-reference": "off" },
-  },
-  prettier,
 ]);

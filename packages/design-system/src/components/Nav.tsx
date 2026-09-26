@@ -1,9 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Button } from "./Action";
 import { Avatar } from "./Content";
 import { TopNav, TopNavHeading, TopNavItem } from "./LayoutPrimitives";
+
+import type { ReactNode } from "react";
 
 export interface NavItem {
   label: string;
@@ -23,7 +24,15 @@ export interface NavProps {
 }
 
 /** The OpenSeat product bar — an Astryx TopNav with one primary action and the signed-in person. */
-export function Nav({ brand = "OpenSeat", items = [], cta, onCtaClick, userName = "Jordan Miles", trailing, showAvatar = false }: NavProps) {
+export function Nav({
+  brand = "OpenSeat",
+  items = [],
+  cta,
+  onCtaClick,
+  userName = "Jordan Miles",
+  trailing,
+  showAvatar = false,
+}: NavProps) {
   return (
     <TopNav
       label={brand}
@@ -31,7 +40,12 @@ export function Nav({ brand = "OpenSeat", items = [], cta, onCtaClick, userName 
       startContent={
         <>
           {items.map((item) => (
-            <TopNavItem key={item.label} label={item.label} href={item.href ?? "#"} isSelected={item.active} />
+            <TopNavItem
+              key={item.label}
+              label={item.label}
+              href={item.href ?? "#"}
+              isSelected={item.active}
+            />
           ))}
         </>
       }

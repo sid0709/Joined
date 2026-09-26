@@ -1,6 +1,8 @@
 /* Time — dial, columns, slots, selects, and the display-only Clock. */
 
-.os-time-input { width: auto; }
+.os-time-input {
+  width: auto;
+}
 
 /* Dial */
 .os-dial {
@@ -12,12 +14,28 @@
   width: var(--os-dial-size);
   user-select: none;
 }
-.os-dial-sm { --os-dial-size: 200px; }
-.os-dial-lg { --os-dial-size: 288px; }
-.os-dial-disabled { opacity: 0.45; pointer-events: none; }
+.os-dial-sm {
+  --os-dial-size: 200px;
+}
+.os-dial-lg {
+  --os-dial-size: 288px;
+}
+.os-dial-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
 
-.os-dial-readout { display: flex; align-items: center; justify-content: center; gap: var(--spacing-2); }
-.os-dial-digits { display: flex; align-items: center; gap: 2px; }
+.os-dial-readout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+}
+.os-dial-digits {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
 .os-dial-unit {
   min-width: 1.9em;
   padding: var(--spacing-1) var(--spacing-2);
@@ -32,13 +50,26 @@
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
-.os-dial-unit:hover { color: var(--color-text-primary); }
-.os-dial-unit[aria-pressed="true"] { background: var(--color-accent-muted); color: var(--color-text-accent); }
+.os-dial-unit:hover {
+  color: var(--color-text-primary);
+}
+.os-dial-unit[aria-pressed="true"] {
+  background: var(--color-accent-muted);
+  color: var(--color-text-accent);
+}
 .os-dial-unit:focus-visible,
-.os-dial-meridiem:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
-.os-dial-colon { font-size: calc(var(--os-dial-size) * 0.12); color: var(--color-text-disabled); }
+.os-dial-meridiem:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+.os-dial-colon {
+  font-size: calc(var(--os-dial-size) * 0.12);
+  color: var(--color-text-disabled);
+}
 .os-dial-meridiems {
   display: flex;
   flex-direction: column;
@@ -56,8 +87,13 @@
   font-weight: var(--font-weight-semibold, 600);
   cursor: pointer;
 }
-.os-dial-meridiem + .os-dial-meridiem { box-shadow: inset 0 1px 0 var(--color-border-emphasized); }
-.os-dial-meridiem[aria-pressed="true"] { background: var(--color-accent-muted); color: var(--color-text-accent); }
+.os-dial-meridiem + .os-dial-meridiem {
+  box-shadow: inset 0 1px 0 var(--color-border-emphasized);
+}
+.os-dial-meridiem[aria-pressed="true"] {
+  background: var(--color-accent-muted);
+  color: var(--color-text-accent);
+}
 
 .os-dial-face {
   position: relative;
@@ -70,18 +106,39 @@
   touch-action: none;
   outline: none;
 }
-.os-dial-face:focus-visible { box-shadow: 0 0 0 2px var(--color-background-surface), 0 0 0 4px var(--color-accent); }
-.os-dial-hand { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.os-dial-face:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-background-surface),
+    0 0 0 4px var(--color-accent);
+}
+.os-dial-hand {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
 .os-dial-hand g {
   transform-box: view-box;
   transform-origin: 50px 50px;
   transition: transform var(--duration-fast) var(--ease-standard);
 }
-.os-dial-dragging .os-dial-hand g { transition: none; }
-.os-dial-hand line { stroke: var(--color-accent); stroke-width: 0.8; stroke-linecap: round; }
+.os-dial-dragging .os-dial-hand g {
+  transition: none;
+}
+.os-dial-hand line {
+  stroke: var(--color-accent);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
 .os-dial-knob,
-.os-dial-hub { fill: var(--color-accent); }
-.os-dial-knob-dot { fill: var(--color-on-accent); }
+.os-dial-hub {
+  fill: var(--color-accent);
+}
+.os-dial-knob-dot {
+  fill: var(--color-on-accent);
+}
 .os-dial-label {
   position: absolute;
   display: grid;
@@ -96,8 +153,14 @@
   pointer-events: none;
   transition: color var(--duration-fast) var(--ease-standard);
 }
-.os-dial-label-inner { font-size: calc(var(--os-dial-size) * 0.048); color: var(--color-text-secondary); }
-.os-dial-label-on { color: var(--color-on-accent); font-weight: var(--font-weight-semibold, 600); }
+.os-dial-label-inner {
+  font-size: calc(var(--os-dial-size) * 0.048);
+  color: var(--color-text-secondary);
+}
+.os-dial-label-on {
+  color: var(--color-on-accent);
+  font-weight: var(--font-weight-semibold, 600);
+}
 
 /* Columns */
 .os-tcols {
@@ -106,8 +169,12 @@
   gap: var(--spacing-1);
   font-variant-numeric: tabular-nums;
 }
-.os-tcols-sm { --os-tcol-row: 28px; }
-.os-tcols-lg { --os-tcol-row: 40px; }
+.os-tcols-sm {
+  --os-tcol-row: 28px;
+}
+.os-tcols-lg {
+  --os-tcol-row: 40px;
+}
 .os-tcol {
   position: relative;
   display: flex;
@@ -120,11 +187,21 @@
   overflow-y: auto;
   scrollbar-width: none;
   border-radius: var(--radius-element);
-  mask-image: linear-gradient(to bottom, transparent, currentColor 22%, currentColor 78%, transparent);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    currentColor 22%,
+    currentColor 78%,
+    transparent
+  );
   outline: none;
 }
-.os-tcol::-webkit-scrollbar { display: none; }
-.os-tcol:focus-visible { box-shadow: inset 0 0 0 2px var(--color-accent); }
+.os-tcol::-webkit-scrollbar {
+  display: none;
+}
+.os-tcol:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
 .os-tcol-option {
   flex: none;
   height: var(--os-tcol-row);
@@ -135,9 +212,14 @@
   font: inherit;
   font-size: var(--font-size-base);
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
-.os-tcol-option:hover { background: var(--color-overlay-hover); color: var(--color-text-primary); }
+.os-tcol-option:hover {
+  background: var(--color-overlay-hover);
+  color: var(--color-text-primary);
+}
 .os-tcol-option[aria-selected="true"] {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -149,14 +231,35 @@
   padding: var(--spacing-1);
   border-radius: var(--radius-container);
   background: var(--color-background-surface);
-  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-low, var(--elevation-1));
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    var(--shadow-low, var(--elevation-1));
 }
 
 /* Slots */
-.os-slots { display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%; max-width: 380px; }
-.os-slots-group { display: flex; flex-direction: column; gap: var(--spacing-2); }
-.os-slots-heading { margin: 0; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold, 600); color: var(--color-text-secondary); }
-.os-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--spacing-2); }
+.os-slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
+  max-width: 380px;
+}
+.os-slots-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.os-slots-heading {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-secondary);
+}
+.os-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--spacing-2);
+}
 .os-slot {
   height: 36px;
   border: 0;
@@ -169,13 +272,31 @@
   font-weight: var(--font-weight-medium, 500);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
-.os-slots-sm .os-slot { height: 30px; }
-.os-slots-lg .os-slot { height: 44px; font-size: var(--font-size-base); }
-.os-slot:hover { box-shadow: inset 0 0 0 1.5px var(--color-accent); color: var(--color-text-accent); }
-.os-slot:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.os-slot[aria-checked="true"] { background: var(--color-accent); color: var(--color-on-accent); box-shadow: none; }
+.os-slots-sm .os-slot {
+  height: 30px;
+}
+.os-slots-lg .os-slot {
+  height: 44px;
+  font-size: var(--font-size-base);
+}
+.os-slot:hover {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+  color: var(--color-text-accent);
+}
+.os-slot:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.os-slot[aria-checked="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: none;
+}
 .os-slot:disabled {
   background: transparent;
   box-shadow: inset 0 0 0 1px var(--color-border);
@@ -185,8 +306,15 @@
 }
 
 /* Native selects */
-.os-time-selects { display: inline-flex; align-items: center; gap: var(--spacing-1); }
-.os-time-select { position: relative; padding: 0; }
+.os-time-selects {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+.os-time-select {
+  position: relative;
+  padding: 0;
+}
 .os-time-select select {
   appearance: none;
   height: 100%;
@@ -224,19 +352,50 @@
   margin: 0;
   color: var(--color-text-primary);
 }
-.os-clock-sm { --os-clock-size: 88px; }
-.os-clock-lg { --os-clock-size: 184px; }
-.os-clock-face { display: block; width: var(--os-clock-size); height: var(--os-clock-size); }
-.os-clock-face-empty { border-radius: var(--radius-full); background: var(--color-skeleton); }
-.os-clock-rim { fill: var(--color-background-surface); stroke: var(--color-border); stroke-width: 1; }
-.os-clock-minimal .os-clock-rim { fill: var(--color-background-muted); stroke: var(--color-border); }
+.os-clock-sm {
+  --os-clock-size: 88px;
+}
+.os-clock-lg {
+  --os-clock-size: 184px;
+}
+.os-clock-face {
+  display: block;
+  width: var(--os-clock-size);
+  height: var(--os-clock-size);
+}
+.os-clock-face-empty {
+  border-radius: var(--radius-full);
+  background: var(--color-skeleton);
+}
+.os-clock-rim {
+  fill: var(--color-background-surface);
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+.os-clock-minimal .os-clock-rim {
+  fill: var(--color-background-muted);
+  stroke: var(--color-border);
+}
 .os-clock-mark,
 .os-clock-hour,
 .os-clock-minute,
-.os-clock-second { transform-box: view-box; transform-origin: 50px 50px; stroke-linecap: round; }
-.os-clock-mark { stroke: var(--color-border-emphasized); stroke-width: 0.6; }
-.os-clock-mark-major { stroke: var(--color-text-secondary); stroke-width: 1.2; }
-.os-clock-minimal .os-clock-mark-major { stroke: var(--color-text-disabled); stroke-width: 1.6; }
+.os-clock-second {
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+  stroke-linecap: round;
+}
+.os-clock-mark {
+  stroke: var(--color-border-emphasized);
+  stroke-width: 0.6;
+}
+.os-clock-mark-major {
+  stroke: var(--color-text-secondary);
+  stroke-width: 1.2;
+}
+.os-clock-minimal .os-clock-mark-major {
+  stroke: var(--color-text-disabled);
+  stroke-width: 1.6;
+}
 .os-clock-numeral {
   fill: var(--color-text-primary);
   font-family: var(--font-family-body);
@@ -245,13 +404,37 @@
   text-anchor: middle;
   dominant-baseline: central;
 }
-.os-clock-hour { stroke: var(--color-text-primary); stroke-width: 2.6; }
-.os-clock-minute { stroke: var(--color-text-primary); stroke-width: 1.6; }
-.os-clock-second { stroke: var(--color-accent); stroke-width: 0.9; }
-.os-clock-pin { fill: var(--color-accent); stroke: var(--color-background-surface); stroke-width: 1; }
-.os-clock-caption { display: flex; flex-direction: column; align-items: center; }
-.os-clock-label { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold, 600); }
-.os-clock-small { font-size: var(--font-size-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.os-clock-hour {
+  stroke: var(--color-text-primary);
+  stroke-width: 2.6;
+}
+.os-clock-minute {
+  stroke: var(--color-text-primary);
+  stroke-width: 1.6;
+}
+.os-clock-second {
+  stroke: var(--color-accent);
+  stroke-width: 0.9;
+}
+.os-clock-pin {
+  fill: var(--color-accent);
+  stroke: var(--color-background-surface);
+  stroke-width: 1;
+}
+.os-clock-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.os-clock-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold, 600);
+}
+.os-clock-small {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
 
 .os-clock-digital {
   align-items: flex-start;
@@ -259,7 +442,9 @@
   padding: var(--spacing-4) var(--spacing-5);
   border-radius: var(--radius-container);
   background: var(--color-background-surface);
-  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-low, var(--elevation-1));
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    var(--shadow-low, var(--elevation-1));
 }
 .os-clock-digital .os-clock-digits {
   display: flex;
@@ -270,9 +455,18 @@
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
-.os-clock-colon { margin: 0 0.04em; color: var(--color-text-disabled); }
-.os-clock-live .os-clock-colon { animation: os-clock-breathe 2s ease-in-out infinite; }
-@keyframes os-clock-breathe { 50% { opacity: 0.25; } }
+.os-clock-colon {
+  margin: 0 0.04em;
+  color: var(--color-text-disabled);
+}
+.os-clock-live .os-clock-colon {
+  animation: os-clock-breathe 2s ease-in-out infinite;
+}
+@keyframes os-clock-breathe {
+  50% {
+    opacity: 0.25;
+  }
+}
 .os-clock-tail {
   display: flex;
   flex-direction: column;
@@ -283,9 +477,16 @@
   font-weight: var(--font-weight-semibold, 600);
   letter-spacing: 0;
 }
-.os-clock-meridiem { color: var(--color-text-secondary); }
-.os-clock-seconds { color: var(--color-accent); }
-.os-clock-digital .os-clock-label { font-weight: var(--font-weight-normal, 400); color: var(--color-text-secondary); }
+.os-clock-meridiem {
+  color: var(--color-text-secondary);
+}
+.os-clock-seconds {
+  color: var(--color-accent);
+}
+.os-clock-digital .os-clock-label {
+  font-weight: var(--font-weight-normal, 400);
+  color: var(--color-text-secondary);
+}
 
 .os-clock-compact {
   flex-direction: row;
@@ -296,12 +497,30 @@
   background: var(--color-neutral);
   font-size: var(--font-size-sm);
 }
-.os-clock-pulse { width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--color-success); box-shadow: 0 0 0 3px var(--color-success-muted); }
-.os-clock-compact .os-clock-digits { font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
-.os-clock-compact .os-clock-meridiem { font-weight: var(--font-weight-normal, 400); }
-.os-clock-compact .os-clock-label { font-weight: var(--font-weight-normal, 400); color: var(--color-text-secondary); }
+.os-clock-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-muted);
+}
+.os-clock-compact .os-clock-digits {
+  font-weight: var(--font-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+.os-clock-compact .os-clock-meridiem {
+  font-weight: var(--font-weight-normal, 400);
+}
+.os-clock-compact .os-clock-label {
+  font-weight: var(--font-weight-normal, 400);
+  color: var(--color-text-secondary);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .os-dial-hand g { transition: none; }
-  .os-clock-live .os-clock-colon { animation: none; }
+  .os-dial-hand g {
+    transition: none;
+  }
+  .os-clock-live .os-clock-colon {
+    animation: none;
+  }
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   Badge,
@@ -19,6 +18,8 @@ import {
   TopNavMenu,
   icons,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Examples, Preview, SAMPLE_IMAGES } from "./shared";
 
 const LINKS = ["Dashboard", "Rooms", "Messages", "Reports"];
@@ -36,30 +37,73 @@ export default function TopNavDemo() {
           startContent={
             <>
               {LINKS.map((l) => (
-                <TopNavItem key={l} label={l} href={`#${l}`} isSelected={current === l} onClick={() => setCurrent(l)} />
+                <TopNavItem
+                  key={l}
+                  label={l}
+                  href={`#${l}`}
+                  isSelected={current === l}
+                  onClick={() => setCurrent(l)}
+                />
               ))}
             </>
           }
-          endContent={<Button label="Post a room" variant="primary" size="sm" icon={<Icon icon={icons.plus} />} />}
+          endContent={
+            <Button
+              label="Post a room"
+              variant="primary"
+              size="sm"
+              icon={<Icon icon={icons.plus} />}
+            />
+          }
         />
       </Preview>
 
-      <Preview label="Logo and workspace" description="A logo, a superheading for the workspace, and a subheading for the product area.">
+      <Preview
+        label="Logo and workspace"
+        description="A logo, a superheading for the workspace, and a subheading for the product area."
+      >
         <TopNav
           label="Workspace"
-          heading={<TopNavHeading logo={<Icon icon={icons.seat} color="accent" />} logoLabel="OpenSeat" superheading="Northwind" heading="Rooms" subheading="Sealed bidding" />}
+          heading={
+            <TopNavHeading
+              logo={<Icon icon={icons.seat} color="accent" />}
+              logoLabel="OpenSeat"
+              superheading="Northwind"
+              heading="Rooms"
+              subheading="Sealed bidding"
+            />
+          }
           endContent={<Avatar name="Jordan Miles" size="sm" />}
         />
       </Preview>
 
-      <Preview label="Search, icons, and the user" description="centerContent for search; icon-only items for alerts and help.">
+      <Preview
+        label="Search, icons, and the user"
+        description="centerContent for search; icon-only items for alerts and help."
+      >
         <TopNav
           label="App"
           heading={<TopNavHeading heading="OpenSeat" />}
-          centerContent={<TextInput label="Search" isLabelHidden size="sm" placeholder="Search rooms, people, files" value={query} onChange={setQuery} startIcon={<Icon icon={icons.search} />} width={320} />}
+          centerContent={
+            <TextInput
+              label="Search"
+              isLabelHidden
+              size="sm"
+              placeholder="Search rooms, people, files"
+              value={query}
+              onChange={setQuery}
+              startIcon={<Icon icon={icons.search} />}
+              width={320}
+            />
+          }
           endContent={
             <>
-              <TopNavItem label="Notifications" isIconOnly icon={<Icon icon={icons.bell} />} href="#alerts" />
+              <TopNavItem
+                label="Notifications"
+                isIconOnly
+                icon={<Icon icon={icons.bell} />}
+                href="#alerts"
+              />
               <TopNavItem label="Help" isIconOnly icon={<Icon icon="info" />} href="#help" />
               <Avatar name="Jordan Miles" size="sm" />
             </>
@@ -67,7 +111,10 @@ export default function TopNavDemo() {
         />
       </Preview>
 
-      <Preview label="Dropdown menus" description="TopNavMenu for a short list; TopNavMegaMenu for rich product navigation.">
+      <Preview
+        label="Dropdown menus"
+        description="TopNavMenu for a short list; TopNavMegaMenu for rich product navigation."
+      >
         <TopNav
           label="Marketing"
           heading={<TopNavHeading heading="OpenSeat" />}
@@ -77,12 +124,36 @@ export default function TopNavDemo() {
                 label="Product"
                 items={
                   <>
-                    <TopNavMegaMenuItem title="Sealed rooms" description="Private bids until the deadline." icon={<Icon icon={icons.lock} />} href="#rooms" />
-                    <TopNavMegaMenuItem title="Escrow" description="Pay when the work is done." icon={<Icon icon={icons.seat} />} href="#escrow" />
-                    <TopNavMegaMenuItem title="Shortlists" description="Share picks with your team." icon={<Icon icon={icons.users} />} href="#shortlists" />
+                    <TopNavMegaMenuItem
+                      title="Sealed rooms"
+                      description="Private bids until the deadline."
+                      icon={<Icon icon={icons.lock} />}
+                      href="#rooms"
+                    />
+                    <TopNavMegaMenuItem
+                      title="Escrow"
+                      description="Pay when the work is done."
+                      icon={<Icon icon={icons.seat} />}
+                      href="#escrow"
+                    />
+                    <TopNavMegaMenuItem
+                      title="Shortlists"
+                      description="Share picks with your team."
+                      icon={<Icon icon={icons.users} />}
+                      href="#shortlists"
+                    />
                   </>
                 }
-                featured={<TopNavMegaMenuFeaturedCard title="What’s new" description="Rooms now close automatically." image={SAMPLE_IMAGES.window} imageAlt="" linkLabel="Read the notes" linkHref="#notes" />}
+                featured={
+                  <TopNavMegaMenuFeaturedCard
+                    title="What’s new"
+                    description="Rooms now close automatically."
+                    image={SAMPLE_IMAGES.window}
+                    imageAlt=""
+                    linkLabel="Read the notes"
+                    linkHref="#notes"
+                  />
+                }
               />
               <TopNavMenu
                 label="Resources"
@@ -117,13 +188,33 @@ export default function TopNavDemo() {
               <TopNavItem label="Audit log" isDisabled />
             </>
           }
-          endContent={<IconButton label="Close settings" variant="ghost" size="sm" icon={<Icon icon={icons.close} />} />}
+          endContent={
+            <IconButton
+              label="Close settings"
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={icons.close} />}
+            />
+          }
         />
       </Preview>
 
-      <Preview label="OpenSeat Nav" description="Nav composes TopNav for the product: brand, links, one call to action, and the signed-in person.">
+      <Preview
+        label="OpenSeat Nav"
+        description="Nav composes TopNav for the product: brand, links, one call to action, and the signed-in person."
+      >
         <Card padding={0}>
-          <Nav brand="OpenSeat" items={[{ label: "Dashboard", active: true }, { label: "Job rooms" }, { label: "Messages" }]} cta="Post a sealed job" showAvatar userName="Dana Kim" />
+          <Nav
+            brand="OpenSeat"
+            items={[
+              { label: "Dashboard", active: true },
+              { label: "Job rooms" },
+              { label: "Messages" },
+            ]}
+            cta="Post a sealed job"
+            showAvatar
+            userName="Dana Kim"
+          />
         </Card>
       </Preview>
     </Examples>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Button,
   Divider,
@@ -15,9 +14,14 @@ import {
   TextArea,
   TextInput,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Examples, Preview } from "./shared";
 
-type Fields = Record<"title" | "budget" | "brief" | "first" | "last" | "email" | "street" | "city" | "region" | "zip", string>;
+type Fields = Record<
+  "title" | "budget" | "brief" | "first" | "last" | "email" | "street" | "city" | "region" | "zip",
+  string
+>;
 
 const INITIAL: Fields = {
   title: "Brand refresh",
@@ -46,7 +50,11 @@ export default function FormLayoutDemo() {
         <Stack maxWidth={420}>
           <FormLayout>
             <TextInput label="Room title" {...bind("title")} />
-            <TextInput label="Budget" {...bind("budget")} description="Bidders see this as a ceiling." />
+            <TextInput
+              label="Budget"
+              {...bind("budget")}
+              description="Bidders see this as a ceiling."
+            />
             <TextArea label="Brief" placeholder="What does great look like?" {...bind("brief")} />
             <Selector
               label="Visibility"
@@ -69,7 +77,10 @@ export default function FormLayoutDemo() {
         </FormLayout>
       </Preview>
 
-      <Preview label="Responsive — one column on phones, two from md" description="GridSystem places fields; spans say which pairs share a row.">
+      <Preview
+        label="Responsive — one column on phones, two from md"
+        description="GridSystem places fields; spans say which pairs share a row."
+      >
         <ResponsiveFrame defaultPreset="Laptop">
           <GridSystem gap={4} rowGap={3}>
             <GridColumn span={12} md={6}>
@@ -97,12 +108,19 @@ export default function FormLayoutDemo() {
         </ResponsiveFrame>
       </Preview>
 
-      <Preview label="Responsive settings form" description="Label and hint on the left from md; stacked above the field on phones.">
+      <Preview
+        label="Responsive settings form"
+        description="Label and hint on the left from md; stacked above the field on phones."
+      >
         <ResponsiveFrame defaultPreset="Laptop">
           <Stack gap={4}>
             {[
               { key: "title" as const, label: "Room title", hint: "Shown on invites." },
-              { key: "budget" as const, label: "Budget ceiling", hint: "Bids above this are flagged." },
+              {
+                key: "budget" as const,
+                label: "Budget ceiling",
+                hint: "Bids above this are flagged.",
+              },
               { key: "brief" as const, label: "Brief", hint: "Two or three sentences." },
             ].map((row) => (
               <GridSystem key={row.key} gap={4}>
@@ -115,7 +133,11 @@ export default function FormLayoutDemo() {
                   </Stack>
                 </GridColumn>
                 <GridColumn span={12} md={8}>
-                  {row.key === "brief" ? <TextArea label={row.label} {...bind(row.key)} /> : <TextInput label={row.label} {...bind(row.key)} />}
+                  {row.key === "brief" ? (
+                    <TextArea label={row.label} {...bind(row.key)} />
+                  ) : (
+                    <TextInput label={row.label} {...bind(row.key)} />
+                  )}
                 </GridColumn>
               </GridSystem>
             ))}

@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible problem in OpenSeat.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please search existing issues before opening a duplicate.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: 1. Open ...\n2. Select ...\n3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the app, browser, operating system, and version when relevant.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove credentials and personal information before sharing.
+    validations:
+      required: false

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
+
 import { Button } from "./Action";
 
 type Theme = "dark" | "light";
@@ -22,11 +23,28 @@ const COLOR_GROUPS: { title: string; tokens: string[] }[] = [
       "meta-blue-950",
     ],
   },
-  { title: "Canvas & surface", tokens: ["canvas", "surface", "surface-sunken", "surface-hover", "surface-selected"] },
+  {
+    title: "Canvas & surface",
+    tokens: ["canvas", "surface", "surface-sunken", "surface-hover", "surface-selected"],
+  },
   { title: "Border", tokens: ["border-subtle", "border-default", "border-strong", "border-focus"] },
   { title: "Ink", tokens: ["ink", "ink-muted", "ink-faint", "on-primary"] },
-  { title: "Primary & link", tokens: ["primary", "primary-hover", "primary-active", "primary-bg", "link", "link-hover"] },
-  { title: "Status", tokens: ["success", "success-bg", "warning", "warning-bg", "danger", "danger-hover", "danger-bg"] },
+  {
+    title: "Primary & link",
+    tokens: ["primary", "primary-hover", "primary-active", "primary-bg", "link", "link-hover"],
+  },
+  {
+    title: "Status",
+    tokens: [
+      "success",
+      "success-bg",
+      "warning",
+      "warning-bg",
+      "danger",
+      "danger-hover",
+      "danger-bg",
+    ],
+  },
   { title: "Overlay", tokens: ["overlay"] },
 ];
 
@@ -125,8 +143,18 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
         </label>
         {open && (
           <div role="group" aria-label="Theme">
-            <Button label="Dark" size="sm" variant={theme === "dark" ? "secondary" : "ghost"} onClick={() => switchTheme("dark")} />
-            <Button label="Light" size="sm" variant={theme === "light" ? "secondary" : "ghost"} onClick={() => switchTheme("light")} />
+            <Button
+              label="Dark"
+              size="sm"
+              variant={theme === "dark" ? "secondary" : "ghost"}
+              onClick={() => switchTheme("dark")}
+            />
+            <Button
+              label="Light"
+              size="sm"
+              variant={theme === "light" ? "secondary" : "ghost"}
+              onClick={() => switchTheme("light")}
+            />
           </div>
         )}
       </div>
@@ -157,7 +185,10 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
           <Group title="Radius">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
               {RADII.map((t) => (
-                <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div
+                  key={t}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                >
                   <div
                     style={{
                       width: 64,
@@ -175,9 +206,21 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
           </Group>
 
           <Group title="Elevation">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 24, padding: 24, background: "var(--canvas)", borderRadius: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 24,
+                padding: 24,
+                background: "var(--canvas)",
+                borderRadius: 8,
+              }}
+            >
               {ELEVATIONS.map((t) => (
-                <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div
+                  key={t}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                >
                   <div
                     style={{
                       width: 96,
@@ -198,7 +241,10 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
           <Group title="Border width">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
               {BORDER_WIDTHS.map((t) => (
-                <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <div
+                  key={t}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                >
                   <div
                     style={{
                       width: 96,
@@ -220,9 +266,28 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
           <Group title="Opacity">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
               {OPACITIES.map((t) => (
-                <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <div style={{ position: "relative", width: 96, height: 48, overflow: "hidden", borderRadius: 6, background: "var(--primary)" }}>
-                    <div style={{ position: "absolute", inset: 0, background: "var(--ink)", opacity: `var(--${t})` }} />
+                <div
+                  key={t}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
+                >
+                  <div
+                    style={{
+                      position: "relative",
+                      width: 96,
+                      height: 48,
+                      overflow: "hidden",
+                      borderRadius: 6,
+                      background: "var(--primary)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "var(--ink)",
+                        opacity: `var(--${t})`,
+                      }}
+                    />
                   </div>
                   <span className="caption text-ink">--{t}</span>
                   <Value>{values[t]}</Value>
@@ -235,7 +300,12 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
             <p className="body-sm text-ink-muted" style={{ marginBottom: 12 }}>
               Each row pairs a duration with an easing. Press play to run them all.
             </p>
-            <Button label="Play" size="sm" variant="secondary" onClick={() => setMotionKey((k) => k + 1)} />
+            <Button
+              label="Play"
+              size="sm"
+              variant="secondary"
+              onClick={() => setMotionKey((k) => k + 1)}
+            />
             <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
               {DURATIONS.map((d, i) => {
                 const e = EASINGS[i];
@@ -247,21 +317,30 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
                       </span>
                       <Value>{`${values[d]} · ${values[e]}`}</Value>
                     </div>
-                    <div style={{ position: "relative", height: 24, flex: 1, borderRadius: 999, background: "var(--surface-sunken)" }}>
+                    <div
+                      style={{
+                        position: "relative",
+                        height: 24,
+                        flex: 1,
+                        borderRadius: 999,
+                        background: "var(--surface-sunken)",
+                      }}
+                    >
                       <div
                         key={motionKey}
-                        style={
-                          {
-                            position: "absolute",
-                            top: 4,
-                            height: 16,
-                            width: 16,
-                            borderRadius: 999,
-                            background: "var(--primary)",
-                            left: "4px",
-                            animation: motionKey > 0 ? `os-token-slide var(--${d}) var(--${e}) forwards` : "none",
-                          } as CSSProperties
-                        }
+                        style={{
+                          position: "absolute",
+                          top: 4,
+                          height: 16,
+                          width: 16,
+                          borderRadius: 999,
+                          background: "var(--primary)",
+                          left: "4px",
+                          animation:
+                            motionKey > 0
+                              ? `os-token-slide var(--${d}) var(--${e}) forwards`
+                              : "none",
+                        }}
                       />
                     </div>
                   </div>
@@ -276,7 +355,13 @@ export function TokenDemo({ defaultOpen = false }: { defaultOpen?: boolean }) {
               {TYPE_STYLES.map((cls) => (
                 <div
                   key={cls}
-                  style={{ display: "flex", alignItems: "baseline", gap: 16, borderBottom: "1px solid var(--border-subtle)", paddingBottom: 8 }}
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 16,
+                    borderBottom: "1px solid var(--border-subtle)",
+                    paddingBottom: 8,
+                  }}
                 >
                   <code className="caption text-ink-muted" style={{ width: 96, flex: "none" }}>
                     .{cls}
