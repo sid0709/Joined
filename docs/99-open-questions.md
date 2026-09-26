@@ -1,0 +1,34 @@
+# 99 — Open Questions and Decisions Log
+
+Resolve these before (or during) the build. Record the decision, date, and owner here.
+
+| # | Question | Options | Impact | Status |
+|---|---|---|---|---|
+| 1 | **Product names** | Shortlist (no existing company found): Service 1 — Rolesight, Rolevista, Quietroles, Joblantern, Rolebright, Sought. Service 2 — Openedby, Handoffly, Rolecourier, Seatfor. Earlier candidate: Bidwell (no conflict found). Rejected as taken: Hirewell, Matchwell, Intervue, NextRound, VeriHire, Landit, and others. Run USPTO + domain checks. | Branding, domains, SEO | Open |
+| 2 | **Bidder model** | Managed workforce (piece rate, Phase 1) vs marketplace (bidder-set prices, take rate) vs hybrid | Margin (90%+ vs 10–20% take), scaling, labor law | Open |
+| 3 | **Client fee unit** | Per candidate (first interview) vs per interview round | Revenue (example: $80 vs $120 per job), client perception | Open |
+| 4 | **Company fee unit** | $30 per round capped at 3 vs flat per candidate vs by seniority | Revenue, sales friction | Open |
+| 5 | **Fully loaded cost per job** | Placeholder $300 vs labor-only ~$5 | Margin reporting, investor numbers | Measure |
+| 6 | **Submit handoff implementation** | Browser extension (spec) vs Phase 1 method | Agent UX, consent evidence | Confirm vs Phase 1 |
+| 7 | **Piece rate at scale** | Keep $0.05/bid or raise for external workers | Cost per interview | Open |
+| 8 | **Launch niche** | Industry/region with most Phase 1 interviews | GTM focus | Open |
+| 9 | **Current aggregation sources** | Confirm every source is permitted (feeds/partners) | Legal risk, SEO | Audit |
+| 10 | **Tech stack** | Keep existing job-site stack vs defaults in [02](02-architecture.md) | Build speed | Open |
+| 11 | **Assisted label visibility** | Show "assisted/AI-prepared" to companies on direct jobs (spec: yes) | Employer trust vs conversion | Proposed yes |
+| 12 | **Auto-confirm rule** | Auto-confirm after 72 h at ≥ 90 confidence (spec) vs always require client | Revenue capture vs disputes | Proposed |
+
+## Competitors to study
+
+- NextRound — "real humans apply to jobs for you"
+- ApplyAll — "Real interviews or your money back"
+- AI auto-apply tools: LazyApply, JobCopilot, LoopCV, FastApply, Simplify
+- Introly (warm job introductions), Emissary (text recruiting), StandIn (personal representative at work), FirstLook (hiring platform against AI application spam)
+
+## Decisions made
+
+| Date | Decision | Owner |
+|---|---|---|
+| 2026-09 | Build as one monorepo with separately deployed apps | — |
+| 2026-09 | No live interview assistance features | — |
+| 2026-09 | Route bulk ATS forms to agent, complex forms to humans (validated in Phase 1) | — |
+| 2026-09 | Candidate performs final submit on AI-prepared applications | — |
