@@ -214,6 +214,7 @@ export interface AppShellProps extends Omit<DesignSystem.AppShellProps, "topNav"
     onCtaClick?: () => void;
     initials?: string;
     userName?: string;
+    userHref?: string;
     showAvatar?: boolean;
     showThemeToggle?: boolean;
   };
@@ -230,6 +231,7 @@ export function AppShell({ nav, children, ...props }: AppShellProps) {
           cta={nav.cta}
           onCtaClick={nav.onCtaClick}
           userName={nav.userName ?? nav.initials}
+          userHref={nav.userHref}
           showAvatar={nav.showAvatar}
           trailing={nav.showThemeToggle ? <DesignThemeToggle /> : undefined}
         />

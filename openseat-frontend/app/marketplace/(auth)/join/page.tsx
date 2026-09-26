@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button, Card, Grid, Stack } from "@/src/shared/marketplace-ui";
+import Link from "next/link";
+import { Button, Card, Stack } from "@/src/shared/marketplace-ui";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
 
@@ -22,21 +23,35 @@ export default function MarketplaceJoinPage() {
       <Stack gap={24}>
         <div className="marketplace-centered-copy">
           <h1 className="h1">{greeting}</h1>
-          <p className="body text-ink-muted">Choose how you would like to participate in the OpenSeat marketplace.</p>
+          <p className="body text-ink-muted">How would you like to use OpenSeat?</p>
         </div>
-        <Grid columns={2} gap={16}>
-          <Button type="button" variant="secondary" className="marketplace-role-button" onClick={() => handleRoleSelection("Candidate")}>
-            <strong>Join as a candidate</strong>
-            <span>Find relevant work, place bids, and manage delivery.</span>
+        <div className="marketplace-role-grid">
+          <Button
+            type="button"
+            variant="secondary"
+            label="Join as a candidate"
+            className="marketplace-role-button"
+            onClick={() => handleRoleSelection("Candidate")}
+          >
+            <strong>I’m a candidate</strong>
+            <span>Browse projects, place bids, and manage delivery.</span>
+            <span className="marketplace-role-cta" aria-hidden="true">Continue <span>→</span></span>
           </Button>
-          <Button type="button" variant="secondary" className="marketplace-role-button" onClick={() => handleRoleSelection("Client")}>
-            <strong>Join as a client</strong>
+          <Button
+            type="button"
+            variant="secondary"
+            label="Join as a client"
+            className="marketplace-role-button"
+            onClick={() => handleRoleSelection("Client")}
+          >
+            <strong>I’m a client</strong>
             <span>Post a brief, compare applicants, and manage delivery.</span>
+            <span className="marketplace-role-cta" aria-hidden="true">Continue <span>→</span></span>
           </Button>
-        </Grid>
-        <Button type="button" variant="ghost" size="sm" onClick={() => router.push("/marketplace/login")}>
-          Back to sign in
-        </Button>
+        </div>
+        <Link className="marketplace-back-link os-link" href="/marketplace/login">
+          ← Back to sign in
+        </Link>
       </Stack>
     </Card>
   );

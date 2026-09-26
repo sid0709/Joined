@@ -2,15 +2,18 @@
 
 import React, { createContext, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { RegisteredUser, UserRole, CandidateProfile } from "@/src/shared/types/auth";
+import { AccountUpdate, ClientProfile, RegisteredUser, UserRole, CandidateProfile } from "@/src/shared/types/auth";
 
 interface MockAuthContextType {
   currentUser: RegisteredUser | null;
   profile: CandidateProfile;
+  clientProfile: ClientProfile;
   loginUser: (email: string, passwordText: string) => { success: boolean; error?: string; role?: UserRole };
   registerUser: (fullName: string, email: string, passwordText: string) => { success: boolean; error?: string };
   assignRole: (role: UserRole) => void;
   updateProfile: (updated: Partial<CandidateProfile>) => void;
+  updateClientProfile: (updated: Partial<ClientProfile>) => void;
+  updateAccount: (updated: AccountUpdate) => { success: boolean; error?: string };
   logoutUser: () => void;
 }
 
@@ -79,6 +82,25 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     hourlyRate: "$45.00",
     bio: "Experienced developer building system tokens matching marketplace requirements layout parameters perfectly.",
     skills: ["Next.js", "TypeScript", "React"],
+    specialty: "Product interfaces and workflow systems",
+    yearsExperience: "5+ years",
+    availability: "20+ hrs/week · Available to start soon",
+    timezone: "Eastern Time (ET)",
+    performanceScore: "86 / 100",
+    schedulingReliability: "92%",
+    workExamples: ["https://example.com/portfolio"],
+    verificationStatus: "In review",
+  });
+  const [clientProfile, setClientProfile] = useState<ClientProfile>({
+    organizationName: "OpenSeat Demo Studio",
+    organizationType: "Growing company",
+    industry: "Technology and services",
+    location: "United States",
+    description: "A team that hires specialist bidders for outcome-focused work.",
+    hiringNeeds: "Product design, engineering, growth, and operational specialists",
+    evaluationApproach: "Structured brief, practical evaluation, milestone contract",
+    paymentStatus: "Verified",
+    identityStatus: "Verified",
   });
 
   const registerUser = (fullName: string, email: string, passwordText: string) => {
@@ -120,6 +142,26 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((prev) => ({ ...prev, ...updated }));
   };
 
+  const updateClientProfile = (updated: Partial<ClientProfile>) => {
+    setClientProfile((prev) => ({ ...prev, ...updated }));
+  };
+
+  const updateAccount = ({ fullName, email }: AccountUpdate) => {
+    if (!currentUser) return { success: false, error: "No active account is signed in." };
+    if (!fullName.trim() || !email.trim()) return { success: false, error: "Name and email are required." };
+
+    const emailChanged = email.trim().toLowerCase() !== currentUser.email.toLowerCase();
+    const emailTaken = users.some((user) => user.email.toLowerCase() === email.trim().toLowerCase() && user.email !== currentUser.email);
+    if (emailChanged && emailTaken) return { success: false, error: "That email address is already in use." };
+
+    const updatedUser = { ...currentUser, fullName: fullName.trim(), email: email.trim() };
+    const updatedUsers = users.map((user) => user.email === currentUser.email ? updatedUser : user);
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+    localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    notifyAuthStorage();
+    return { success: true };
+  };
+
   const logoutUser = () => {
     localStorage.removeItem(ACTIVE_USER_STORAGE_KEY);
     notifyAuthStorage();
@@ -128,7 +170,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MockAuthContext.Provider
-      value={{ currentUser, profile, loginUser, registerUser, assignRole, updateProfile, logoutUser }}
+      value={{ currentUser, profile, clientProfile, loginUser, registerUser, assignRole, updateProfile, updateClientProfile, updateAccount, logoutUser }}
     >
       {children}
     </MockAuthContext.Provider>

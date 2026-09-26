@@ -18,12 +18,14 @@ export interface NavProps {
   onCtaClick?: () => void;
   /** The signed-in person; the avatar derives initials from it. */
   userName?: string;
+  /** Optional route for the signed-in person's profile. */
+  userHref?: string;
   trailing?: ReactNode;
   showAvatar?: boolean;
 }
 
 /** The OpenSeat product bar — an Astryx TopNav with one primary action and the signed-in person. */
-export function Nav({ brand = "OpenSeat", items = [], cta, onCtaClick, userName = "Jordan Miles", trailing, showAvatar = false }: NavProps) {
+export function Nav({ brand = "OpenSeat", items = [], cta, onCtaClick, userName = "Jordan Miles", userHref, trailing, showAvatar = false }: NavProps) {
   return (
     <TopNav
       label={brand}
@@ -39,7 +41,7 @@ export function Nav({ brand = "OpenSeat", items = [], cta, onCtaClick, userName 
         <>
           {cta && <Button label={cta} variant="primary" size="sm" onClick={onCtaClick} />}
           {trailing}
-          {showAvatar && <Avatar name={userName} size="sm" />}
+          {showAvatar && <Avatar name={userName} alt={`${userName} profile`} href={userHref} size="sm" />}
         </>
       }
     />

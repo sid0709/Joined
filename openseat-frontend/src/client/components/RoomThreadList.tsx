@@ -19,7 +19,10 @@ export function RoomThreadList({ rooms, registry, selectedRoomId, onSelect }: Ro
           onClick={() => onSelect(room.id)}
         >
           <span className="body-strong marketplace-truncate">{room.title}</span>
-          <span className="caption text-ink-muted">{registry[room.id]?.proposals.length ?? 0} applicants</span>
+          <span className="marketplace-room-row-footer">
+            <span className="caption text-ink-muted">{registry[room.id]?.proposals.length ?? 0} applicants</span>
+            <span className="caption text-ink-muted">{room.budgetType}</span>
+          </span>
         </button>
       ))}
     </div>

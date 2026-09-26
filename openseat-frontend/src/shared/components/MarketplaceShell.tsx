@@ -10,17 +10,23 @@ type MarketplaceRole = "Candidate" | "Client";
 
 const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string }[]> = {
   Candidate: [
-    { label: "Find Work", href: "/marketplace/jobs" },
     { label: "My Bids", href: "/marketplace/candidate/bids" },
+    { label: "Invitations", href: "/marketplace/candidate/invitations" },
+    { label: "Performance", href: "/marketplace/candidate/performance" },
     { label: "Active Work", href: "/marketplace/candidate/work" },
     { label: "Messages", href: "/marketplace/messages" },
+    { label: "Earnings", href: "/marketplace/candidate/earnings" },
     { label: "Profile", href: "/marketplace/candidate/profile" },
   ],
   Client: [
-    { label: "Post Job", href: "/marketplace/client/jobs/new" },
-    { label: "Jobs", href: "/marketplace/client/jobs" },
+    { label: "Add Job Link", href: "/marketplace/client/jobs/new" },
+    { label: "Job Pool", href: "/marketplace/client/jobs" },
+    { label: "Bidders", href: "/marketplace/client/bidders" },
+    { label: "Interview Calendar", href: "/marketplace/client/calendar" },
     { label: "Applications", href: "/marketplace/client/applications" },
-    { label: "Managed Work", href: "/marketplace/client/work" },
+    { label: "Managed Bidders", href: "/marketplace/client/work" },
+    { label: "Payments", href: "/marketplace/client/payments" },
+    { label: "Profile", href: "/marketplace/client/profile" },
   ],
 };
 
@@ -76,6 +82,7 @@ export function MarketplaceShell({ role, children }: { role: MarketplaceRole; ch
           cta: "Log Out",
           onCtaClick: logoutUser,
           initials: initialsFor(currentUser?.fullName),
+          userHref: role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/profile",
           showAvatar: true,
           showThemeToggle: true,
         }}

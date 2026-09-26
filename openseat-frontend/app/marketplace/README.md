@@ -10,9 +10,18 @@ Route tree for the OpenSeat marketplace. Role-specific UI lives in `src/candidat
 | `/marketplace/login` | Shared | Authentication |
 | `/marketplace/register` | Shared | Registration |
 | `/marketplace/join` | Shared | Role selection onboarding |
-| `/marketplace/candidate/dashboard` | Candidate | Browse & bid on job rooms |
-| `/marketplace/candidate/profile` | Candidate | Profile setup |
-| `/marketplace/client/dashboard` | Client | Post jobs & manage applicants |
+| `/marketplace/candidate/dashboard` | Candidate | Candidate home, job discovery, filters, and bidding |
+| `/marketplace/jobs` | Candidate | Full job marketplace, detail drawer, and bid submission |
+| `/marketplace/candidate/profile` | Candidate | Candidate profile, rate, skills, and biography |
+| `/marketplace/candidate/bids` | Candidate | Proposal statuses and links to jobs/messages |
+| `/marketplace/candidate/work` | Candidate | Approved jobs and delivery stages |
+| `/marketplace/messages` | Candidate | Job-based client conversations |
+| `/marketplace/client/dashboard` | Client | Post jobs, review applicants, message, and hire |
+| `/marketplace/client/profile` | Client | Account details and client workspace status |
+| `/marketplace/client/jobs/new` | Client | Publish a new job room |
+| `/marketplace/client/jobs` | Client | Review job rooms and applicant counts |
+| `/marketplace/client/applications` | Client | Compare applicants, chat, and approve hires |
+| `/marketplace/client/work` | Client | Approved hires and delivery stages |
 
 ## Layout Guards
 

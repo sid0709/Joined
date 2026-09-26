@@ -9,18 +9,22 @@ import {
 } from "@/src/shared/data/mockClientData";
 
 export function useClientDashboard() {
-  const { rooms, applicationsRegistry, postJobRoom, sendChatMessage, approveProposal } = useJobRoomsContext();
-  const { currentUser, logoutUser } = useMockAuth();
+  const { allRooms, applicationsRegistry, postJobRoom, sendChatMessage, approveProposal, reviewProposal, updateProposalNote } = useJobRoomsContext();
+  const { currentUser } = useMockAuth();
 
-  const clientRooms = rooms.filter(
+  const clientRooms = allRooms.filter(
     (r) => r.id.startsWith("room-client-generated-") || r.id === "room-cmo-001"
   );
 
-  const postedRooms = rooms.filter((r) => r.id.startsWith("room-client-generated-"));
+  const postedRooms = allRooms.filter((r) => r.id.startsWith("room-client-generated-"));
 
   const handlePostJob = (job: ClientJobPost) => {
     postJobRoom({
       title: job.title,
+      sourceCompany: job.sourceCompany,
+      sourceUrl: job.sourceUrl,
+      applicationDeadline: job.applicationDeadline,
+      sourceJobStatus: "Open",
       isPaymentVerified: true,
       clientTotalSpentText: DEFAULT_CLIENT_SPEND,
       clientLocationCode: DEFAULT_CLIENT_LOCATION,
@@ -41,7 +45,8 @@ export function useClientDashboard() {
     handlePostJob,
     handleSendChatMessage: sendChatMessage,
     handleApproveProposal: approveProposal,
+    handleReviewProposal: reviewProposal,
+    handleUpdateProposalNote: updateProposalNote,
     currentUser,
-    logoutUser,
   };
 }

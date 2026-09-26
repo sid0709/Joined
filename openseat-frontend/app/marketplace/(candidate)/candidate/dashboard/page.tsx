@@ -1,5 +1,5 @@
-import { CandidateDashboardView } from "@/src/candidate/components/CandidateDashboardView";
+import { redirect } from "next/navigation";
 
 export default function CandidateDashboardPage() {
-  return <CandidateDashboardView />;
+  redirect("/marketplace/candidate/bids");
 }
