@@ -34,6 +34,7 @@ function useScrollportHeight(ref: RefObject<HTMLElement | null>, enabled: boolea
     const el = ref.current;
     if (!enabled || !el) return;
     let scroller: HTMLElement | null = null;
+    let frame = 0;
     const observer = new ResizeObserver(() => measure());
     function measure() {
       const next = scrollParent(el);
@@ -44,12 +45,21 @@ function useScrollportHeight(ref: RefObject<HTMLElement | null>, enabled: boolea
       }
       setHeight(scroller ? scroller.clientHeight : window.innerHeight);
     }
+    // A container can start scrolling without resizing (overflow flips from
+    // clip to auto), so re-check once per frame while anything scrolls.
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
     if (el.parentElement) observer.observe(el.parentElement);
     measure();
     window.addEventListener("resize", measure);
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", measure);
+      document.removeEventListener("scroll", onScroll, { capture: true });
     };
   }, [ref, enabled]);
   return height;

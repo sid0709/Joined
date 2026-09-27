@@ -56,7 +56,7 @@ export default function StickyDemo() {
         label="Detail beside a list"
         description="fill sizes the pane to the visible scroll area; its header stays put and the body scrolls inside."
       >
-        <ScrollableArea label="List and detail" height={FRAME_HEIGHT}>
+        <ScrollableArea label="List and detail" height={FRAME_HEIGHT} stickyContainment="always">
           <GridSystem gap={3}>
             <GridColumn span={5}>
               <Stack gap={2}>
@@ -114,7 +114,7 @@ export default function StickyDemo() {
         label="Summary beside a form"
         description="Without fill, a short panel simply stays in view. offset keeps a gap above it."
       >
-        <ScrollableArea label="Form and summary" height={FRAME_HEIGHT}>
+        <ScrollableArea label="Form and summary" height={FRAME_HEIGHT} stickyContainment="always">
           <GridSystem gap={4}>
             <GridColumn span={7}>
               <Stack gap={3}>

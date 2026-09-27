@@ -25,6 +25,7 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@types/bun": "^1.4.2",
+    "@unlighthouse/cli": "^0.18.1",
     "eslint": "^9",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -32,6 +33,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "prettier": "^3.9.8",
+    "puppeteer": "^25.12.0",
     "turbo": "^2.11.2",
     "typescript-eslint": "^8.70.0"
   },
