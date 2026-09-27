@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -14,26 +15,41 @@ import (
 const (
 	requestTimeout = 30 * time.Second
 	copyTimeout    = 20 * time.Minute
+	analyzeTimeout = 15 * time.Minute
 	pingTimeout    = 3 * time.Second
+	maxAnalyzeBody = 16 << 10
 )
 
 type Server struct {
 	store   *jobs.Store
+	reader  jobs.ModelReader
 	origins map[string]struct{}
 }
 
-func New(store *jobs.Store, origins []string) http.Handler {
+func New(store *jobs.Store, reader jobs.ModelReader, origins []string) http.Handler {
 	allowed := make(map[string]struct{}, len(origins))
 	for _, origin := range origins {
 		allowed[origin] = struct{}{}
 	}
-	server := &Server{store: store, origins: allowed}
+	server := &Server{store: store, reader: reader, origins: allowed}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", server.health)
+	mux.HandleFunc("GET /v1/settings", server.settings)
 	mux.HandleFunc("GET /v1/jobs/temp", server.listTempJobs)
 	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.getTempJob)
 	mux.HandleFunc("POST /v1/jobs/temp/sync", server.syncTempJobs)
+	mux.HandleFunc("GET /v1/jobs", server.listSearchJobs)
+	mux.HandleFunc("POST /v1/jobs/analyze", server.analyzeJob)
+	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
 	return server.withCORS(mux)
+}
+
+func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
+	model := ""
+	if s.reader != nil {
+		model = s.reader.Model()
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"model": model})
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +96,70 @@ func (s *Server) getTempJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]json.RawMessage{"job": job})
+}
+
+func (s *Server) listSearchJobs(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	query := r.URL.Query()
+	result, err := s.store.ListSearch(ctx, jobs.ParseListQuery(query.Get("page"), query.Get("pageSize"), query.Get("q")), time.Now())
+	if err != nil {
+		slog.Error("list search jobs", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load jobs")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) getSearchJob(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	record, err := s.store.GetSearch(ctx, r.PathValue("id"), time.Now())
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "job not found")
+		return
+	}
+	if err != nil {
+		slog.Error("get search job", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load job")
+		return
+	}
+	writeJSON(w, http.StatusOK, record)
+}
+
+func (s *Server) analyzeJob(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		TempJobIDs []string `json:"tempJobIds"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAnalyzeBody))
+	if err := decoder.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid analyze request")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
+	defer cancel()
+	batch, err := s.store.AnalyzeSelected(ctx, s.reader, body.TempJobIDs, time.Now())
+	if jobs.IsMissingAPIKey(err) {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		return
+	}
+	if errors.Is(err, jobs.ErrNoSelection) || errors.Is(err, jobs.ErrTooMany) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, jobs.ErrAnalyzeInProgress) {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	if err != nil {
+		slog.Error("analyze jobs", "error", err)
+		writeError(w, http.StatusBadGateway, "could not analyze the job descriptions")
+		return
+	}
+	writeJSON(w, http.StatusOK, batch)
 }
 
 func (s *Server) syncTempJobs(w http.ResponseWriter, r *http.Request) {

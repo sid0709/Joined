@@ -14,6 +14,9 @@ const (
 	defaultSourceCollection = "jobs"
 	defaultDestDB           = "OpenedDB"
 	defaultDestCollection   = "temp_jobs"
+	defaultJobsCollection   = "jobs"
+	defaultOpenAIModel      = "gpt-4o-mini"
+	defaultOpenAIBaseURL    = "https://api.openai.com/v1"
 	envFileName             = ".env"
 )
 
@@ -25,6 +28,10 @@ type Config struct {
 	SourceCollection string
 	DestDB           string
 	DestCollection   string
+	JobsCollection   string
+	OpenAIAPIKey     string
+	OpenAIModel      string
+	OpenAIBaseURL    string
 }
 
 func (c Config) SourceName() string {
@@ -46,6 +53,10 @@ func Load() (Config, error) {
 		SourceCollection: envOr("SOURCE_COLLECTION", defaultSourceCollection),
 		DestDB:           envOr("DEST_DB", defaultDestDB),
 		DestCollection:   envOr("DEST_COLLECTION", defaultDestCollection),
+		JobsCollection:   envOr("JOBS_COLLECTION", defaultJobsCollection),
+		OpenAIAPIKey:     strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
+		OpenAIModel:      envOr("OPENAI_MODEL", defaultOpenAIModel),
+		OpenAIBaseURL:    envOr("OPENAI_BASE_URL", defaultOpenAIBaseURL),
 	}
 	if cfg.MongoURI == "" {
 		return Config{}, fmt.Errorf("MONGO_URI is required")

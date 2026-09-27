@@ -27,7 +27,7 @@ func main() {
 	}
 	defer client.Disconnect(context.Background())
 
-	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection)
+	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection, cfg.JobsCollection)
 	ctx, cancel := context.WithTimeout(context.Background(), copyTimeout)
 	defer cancel()
 
