@@ -5,13 +5,13 @@ import { INITIAL_SAVED_JOB_IDS } from "@/lib/account";
 import {
   DEFAULT_FILTERS,
   GOOD_MATCH,
-  JOBS,
   clearRefinements,
   countRefinements,
   filterJobs,
   scoreFor,
   serializeFilters,
   sortJobs,
+  type Job,
   type JobFilters,
   type ListKey,
 } from "@/lib/jobs";
@@ -26,7 +26,7 @@ function toggle(ids: string[], id: string) {
  * State for the job search page: filters mirrored to the URL, the lists a
  * hunter keeps (saved, applied, hidden), the selected job, and paging.
  */
-export function useJobSearch(initial: JobFilters) {
+export function useJobSearch(initial: JobFilters, jobs: Job[]) {
   const [filters, setFilters] = useState<JobFilters>(initial);
   const [savedIds, setSavedIds] = useState<string[]>(INITIAL_SAVED_JOB_IDS);
   const [appliedIds, setAppliedIds] = useState<string[]>([]);
@@ -57,7 +57,10 @@ export function useJobSearch(initial: JobFilters) {
     setPage(1);
   }, []);
 
-  const visibleJobs = useMemo(() => JOBS.filter((job) => !hiddenIds.includes(job.id)), [hiddenIds]);
+  const visibleJobs = useMemo(
+    () => jobs.filter((job) => !hiddenIds.includes(job.id)),
+    [jobs, hiddenIds],
+  );
 
   /** Jobs that pass the search and refinements, before the list tab narrows them. */
   const matching = useMemo(() => filterJobs(visibleJobs, filters), [visibleJobs, filters]);

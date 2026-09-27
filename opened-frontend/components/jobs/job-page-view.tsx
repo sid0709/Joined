@@ -10,7 +10,7 @@ import {
   Stack,
 } from "@openseat/design-system";
 import { INITIAL_SAVED_JOB_IDS } from "@/lib/account";
-import { JOBS, companyBySlug, matchFor, scoreFor, similarJobs, type Job } from "@/lib/jobs";
+import { companyBySlug, matchFor, scoreFor, similarJobs, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyCard } from "./company-card";
 import { JobDetailHeader } from "./job-detail-header";
@@ -23,7 +23,7 @@ const JOB_PAGE_MAX_WIDTH = 1200;
 const SIMILAR_LIMIT = 4;
 
 /** The standalone job page: shareable, with the match and company beside the role. */
-export function JobPageView({ job }: { job: Job }) {
+export function JobPageView({ job, jobs }: { job: Job; jobs: Job[] }) {
   const [saved, setSaved] = useState(INITIAL_SAVED_JOB_IDS.includes(job.id));
   const [applied, setApplied] = useState(false);
   const actions = useJobActions({
@@ -65,7 +65,7 @@ export function JobPageView({ job }: { job: Job }) {
             <Stack gap={5}>
               <JobMatchCard match={matchFor(job)} />
               {company ? <CompanyCard company={company} /> : null}
-              <SimilarJobs jobs={similarJobs(job, JOBS, SIMILAR_LIMIT)} scoreOf={scoreFor} />
+              <SimilarJobs jobs={similarJobs(job, jobs, SIMILAR_LIMIT)} scoreOf={scoreFor} />
             </Stack>
           </GridColumn>
         </GridSystem>

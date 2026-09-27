@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button, useToast } from "@openseat/design-system";
 import type { Job } from "@/lib/jobs";
-import { ROUTES } from "@/lib/routes";
 import { ApplyDialog } from "./apply-dialog";
 
 type Options = {
@@ -23,21 +22,16 @@ export function useJobActions({ isSaved, toggleSave, markApplied, hide, unhide }
   const [applying, setApplying] = useState<Job | null>(null);
 
   const apply = (job: Job) => {
+    const listing = jobLink(job);
+    if (listing) {
+      window.open(listing, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (job.source === "direct") {
       setApplying(job);
       return;
     }
-    toast({
-      body: `We’d open ${job.company}’s listing here. Tell us once you’ve applied.`,
-      endContent: (
-        <Button
-          label="I applied"
-          size="sm"
-          variant="secondary"
-          onClick={() => markApplied(job.id)}
-        />
-      ),
-    });
+    toast({ body: "This listing has no application link.", type: "error" });
   };
 
   const save = (job: Job) => {
@@ -54,12 +48,16 @@ export function useJobActions({ isSaved, toggleSave, markApplied, hide, unhide }
   };
 
   const share = async (job: Job) => {
-    const url = `${window.location.origin}${ROUTES.job(job.id)}`;
+    const listing = jobLink(job);
+    if (!listing) {
+      toast({ body: "This listing has no application link.", type: "error" });
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(url);
-      toast({ body: "Link copied to your clipboard." });
+      await navigator.clipboard.writeText(listing);
+      toast({ body: "Job link copied." });
     } catch {
-      toast({ body: "Couldn’t copy the link. Try again from the job page.", type: "error" });
+      toast({ body: "Couldn’t copy the job link.", type: "error" });
     }
   };
 
@@ -90,3 +88,8 @@ export function useJobActions({ isSaved, toggleSave, markApplied, hide, unhide }
 }
 
 export type JobActions = ReturnType<typeof useJobActions>;
+
+function jobLink(job: Job) {
+  const link = job.applyLink?.trim();
+  return link ? link : null;
+}
