@@ -104,6 +104,10 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 		return SearchRecord{}, fmt.Errorf("read structured job: %w", err)
 	}
 
+	publicID, companyID, err := s.searchIdentity(ctx, listing)
+	if err != nil {
+		return SearchRecord{}, err
+	}
 	record := storedSearchJob{
 		ID:         listing.ID,
 		TempJobID:  listing.ID.Hex(),
@@ -112,7 +116,8 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 		AnalyzedAt: now.UTC(),
 		Model:      reader.Model(),
 		Job: buildSearchJob(
-			searchID(listing.Title, listing.CompanyName, listing.ID.Hex()),
+			publicID,
+			companyID,
 			listing.Title,
 			listing.CompanyName,
 			listing.PostedAt,

@@ -26,6 +26,8 @@ export type CompanyCardExtras = {
   tagline?: string;
   perks?: string[];
   verified?: boolean;
+  logo?: string;
+  id?: string;
 };
 
 function Fact({ icon, label, value }: { icon: GlyphName; label: string; value: string }) {
@@ -49,18 +51,26 @@ function Fact({ icon, label, value }: { icon: GlyphName; label: string; value: s
 /** The employer at a glance: identity, what they do, three facts, and their open roles. */
 export function CompanyCard({
   company,
+  openRoles,
   hasActions = true,
 }: {
   company: CompanyProfile & CompanyCardExtras;
+  openRoles?: number;
   hasActions?: boolean;
 }) {
-  const openRoles = jobsForCompany(company.slug).length;
+  const roles = openRoles ?? jobsForCompany(company.slug).length;
+  const companyId = company.id || company.slug;
 
   return (
     <Card padding={0}>
       <Section variant="muted" dividers={["bottom"]} padding={5}>
         <HStack gap={3} vAlign="center">
-          <CompanyLogo name={company.name} size={LOGO_SIZE} />
+          <CompanyLogo
+            name={company.name}
+            companyId={companyId}
+            src={company.logo}
+            size={LOGO_SIZE}
+          />
           <Stack gap={0.5}>
             <HStack gap={2} vAlign="center" wrap="wrap">
               <Heading level={3}>{company.name}</Heading>
@@ -106,10 +116,10 @@ export function CompanyCard({
         {hasActions ? (
           <HStack gap={2} wrap="wrap">
             <Button
-              label={`See ${formatCount(openRoles, "open role")}`}
+              label={`See ${formatCount(roles, "open role")}`}
               variant="secondary"
               size="sm"
-              href={ROUTES.companyPublic(company.slug)}
+              href={ROUTES.companyPublic(companyId)}
               icon={<Glyph name="arrowRight" />}
             />
           </HStack>

@@ -41,6 +41,7 @@ type tempListing struct {
 	Title       string        `bson:"title"`
 	CompanyName string        `bson:"companyName"`
 	Description string        `bson:"description"`
+	CompanyID   bson.ObjectID `bson:"companyId"`
 	ApplyLink   string        `bson:"applyLink"`
 	PostedAt    time.Time     `bson:"postedAt"`
 	Metadata    struct {
@@ -58,7 +59,9 @@ const maxSearchCatalog = 2000
 
 type catalogJob struct {
 	SearchJob
-	ApplyLink string `json:"applyLink,omitempty"`
+	ApplyLink   string `json:"applyLink,omitempty"`
+	CompanyURL  string `json:"companyUrl,omitempty"`
+	CompanyLogo string `json:"companyLogo,omitempty"`
 }
 
 type SearchCatalog struct {
@@ -93,7 +96,62 @@ func (s *Store) ListCatalog(ctx context.Context, now time.Time) (SearchCatalog, 
 	for _, doc := range docs {
 		jobs = append(jobs, CatalogJob(doc.view(now)))
 	}
+	jobs, err = s.enrichCompanies(ctx, jobs)
+	if err != nil {
+		return SearchCatalog{}, err
+	}
 	return SearchCatalog{Jobs: jobs, Total: total}, nil
+}
+
+func (s *Store) enrichCompanies(ctx context.Context, jobs []catalogJob) ([]catalogJob, error) {
+	if len(jobs) == 0 {
+		return jobs, nil
+	}
+	ids := make([]string, 0, len(jobs))
+	seen := map[string]struct{}{}
+	for _, job := range jobs {
+		if job.CompanyID == "" {
+			continue
+		}
+		if _, ok := seen[job.CompanyID]; ok {
+			continue
+		}
+		seen[job.CompanyID] = struct{}{}
+		ids = append(ids, job.CompanyID)
+	}
+	if len(ids) == 0 {
+		return jobs, nil
+	}
+	cursor, err := s.companies().Find(ctx, bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}}, options.Find().SetProjection(bson.D{
+		{Key: "id", Value: 1},
+		{Key: "companyUrl", Value: 1},
+		{Key: "companyLogo", Value: 1},
+	}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	briefs := map[string]storedCompany{}
+	for cursor.Next(ctx) {
+		var doc storedCompany
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		briefs[doc.ID] = doc
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	for i := range jobs {
+		brief, ok := briefs[jobs[i].CompanyID]
+		if !ok {
+			continue
+		}
+		jobs[i].CompanyURL = brief.CompanyURL
+		jobs[i].CompanyLogo = brief.CompanyLogo
+	}
+	return jobs, nil
 }
 
 func (s *Store) ListSearch(ctx context.Context, query ListQuery, now time.Time) (SearchList, error) {

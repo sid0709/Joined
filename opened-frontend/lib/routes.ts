@@ -9,7 +9,7 @@ export const ROUTES = {
   profile: "/profile",
   settings: "/settings",
   job: (id: string) => `/jobs/${id}`,
-  companyPublic: (slug: string) => `/companies/${slug}`,
+  companyPublic: (id: string) => `/companies/${id}`,
   company: "/company",
   companyJobs: "/company/jobs",
   companyJobNew: "/company/jobs/new",

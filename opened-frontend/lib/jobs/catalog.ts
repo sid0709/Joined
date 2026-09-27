@@ -1,7 +1,13 @@
 import { openedApiUrl } from "@/lib/config";
-import type { Job } from "./types";
+import type { Job, PublicCompany } from "./types";
 
 const SEARCH_JOBS_PATH = "/v1/search/jobs";
+const SEARCH_COMPANIES_PATH = "/v1/search/companies";
+
+export type CompanyPage = {
+  company: PublicCompany;
+  jobs: Job[];
+};
 
 type CatalogResponse = {
   jobs: Job[];
@@ -15,6 +21,17 @@ export async function loadSearchCatalog(): Promise<Job[]> {
   }
   const body = (await response.json()) as CatalogResponse;
   return body.jobs ?? [];
+}
+
+export async function loadCompany(id: string): Promise<CompanyPage | null> {
+  const response = await fetch(catalogUrl(`${SEARCH_COMPANIES_PATH}/${encodeURIComponent(id)}`), {
+    cache: "no-store",
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error("Could not load company");
+  }
+  return (await response.json()) as CompanyPage;
 }
 
 export async function loadSearchJob(id: string): Promise<Job | null> {

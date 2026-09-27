@@ -54,7 +54,7 @@ export function JobSearch({
   const search = useJobSearch(initialFilters, jobs);
   const totals = {
     jobs: jobs.length,
-    companies: new Set(jobs.map((job) => job.companySlug)).size,
+    companies: new Set(jobs.map((job) => job.companyId).filter(Boolean)).size,
     hidden: jobs.filter((job) => job.source === "scouted").length,
   };
   const isWide = useMediaQuery(WIDE_QUERY, true);

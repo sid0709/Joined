@@ -43,7 +43,7 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
   const [resumeId, setResumeId] = useState(DEFAULT_RESUME_ID);
   const [note, setNote] = useState("");
   const [shareProfile, setShareProfile] = useState(true);
-  const company = job ? companyBySlug(job.companySlug) : undefined;
+  const company = job ? companyBySlug(job.companyId) : undefined;
 
   const close = () => {
     onOpenChange(false);
@@ -71,7 +71,14 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
             <DialogHeader
               title={`Apply to ${job.title}`}
               subtitle={`${job.company} · ${job.location}`}
-              startContent={<CompanyLogo name={job.company} size={40} />}
+              startContent={
+                <CompanyLogo
+                  name={job.company}
+                  companyId={job.companyId}
+                  src={job.companyLogo}
+                  size={40}
+                />
+              }
               onOpenChange={(open) => (open ? undefined : close())}
               hasDivider
             />

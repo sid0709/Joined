@@ -13,7 +13,7 @@ export type SearchJob = {
   id: string;
   title: string;
   company: string;
-  companySlug: string;
+  companyId: string;
   location: string;
   workplace: "remote" | "hybrid" | "onsite";
   pay: SearchPay;

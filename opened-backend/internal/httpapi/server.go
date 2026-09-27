@@ -43,6 +43,8 @@ func New(store *jobs.Store, reader jobs.ModelReader, origins []string) http.Hand
 	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
 	mux.HandleFunc("GET /v1/search/jobs", server.listSearchCatalog)
 	mux.HandleFunc("GET /v1/search/jobs/{id}", server.getSearchCatalogJob)
+	mux.HandleFunc("GET /v1/search/companies/{id}/logo", server.getCompanyLogo)
+	mux.HandleFunc("GET /v1/search/companies/{id}", server.getSearchCompany)
 	return server.withCORS(mux)
 }
 
@@ -117,7 +119,7 @@ func (s *Server) getSearchCatalogJob(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
 
-	record, err := s.store.GetSearch(ctx, r.PathValue("id"), time.Now())
+	job, err := s.store.GetCatalogJob(ctx, r.PathValue("id"), time.Now())
 	if errors.Is(err, jobs.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "job not found")
 		return
@@ -127,7 +129,47 @@ func (s *Server) getSearchCatalogJob(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not load job")
 		return
 	}
-	writeJSON(w, http.StatusOK, jobs.CatalogJob(record))
+	writeJSON(w, http.StatusOK, job)
+}
+
+func (s *Server) getCompanyLogo(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	body, contentType, err := s.store.OpenCompanyLogo(ctx, r.PathValue("id"))
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "logo not found")
+		return
+	}
+	if err != nil {
+		slog.Error("get company logo", "error", err)
+		writeError(w, http.StatusBadGateway, "could not load logo")
+		return
+	}
+	defer body.Close()
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	if _, err := io.Copy(w, body); err != nil {
+		slog.Error("write company logo", "error", err)
+	}
+}
+
+func (s *Server) getSearchCompany(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	page, err := s.store.CompanyPage(ctx, r.PathValue("id"), time.Now())
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "company not found")
+		return
+	}
+	if err != nil {
+		slog.Error("get search company", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load company")
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) listSearchJobs(w http.ResponseWriter, r *http.Request) {

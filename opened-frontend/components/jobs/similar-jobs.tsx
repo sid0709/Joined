@@ -33,7 +33,14 @@ export function SimilarJobs({ jobs, scoreOf, onSelect }: Props) {
             key={job.id}
             label={job.title}
             description={`${job.company} · ${formatPay(job.pay)}`}
-            startContent={<CompanyLogo name={job.company} size={32} />}
+            startContent={
+              <CompanyLogo
+                name={job.company}
+                companyId={job.companyId}
+                src={job.companyLogo}
+                size={32}
+              />
+            }
             endContent={<MatchBadge score={scoreOf(job)} />}
             {...(onSelect ? { onClick: () => onSelect(job) } : { href: ROUTES.job(job.id) })}
           />

@@ -27,21 +27,24 @@ func main() {
 	}
 	defer client.Disconnect(context.Background())
 
-	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection, cfg.JobsCollection, cfg.SourceCompanies, cfg.CompaniesCollection)
+	store := jobs.NewStore(
+		client,
+		cfg.SourceDB,
+		cfg.SourceCollection,
+		cfg.DestDB,
+		cfg.DestCollection,
+		cfg.JobsCollection,
+		cfg.SourceCompanies,
+		cfg.CompaniesCollection,
+	)
 	ctx, cancel := context.WithTimeout(context.Background(), copyTimeout)
 	defer cancel()
 
-	slog.Info("copying jobs", "source", cfg.SourceName(), "destination", cfg.DestName())
-	result, err := store.Copy(ctx)
+	slog.Info("copying companies", "source", cfg.SourceDB+"."+cfg.SourceCompanies, "destination", cfg.DestDB+"."+cfg.CompaniesCollection)
+	result, err := store.CopyCompanies(ctx)
 	if err != nil {
 		slog.Error("copy failed", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
-	slog.Info(
-		"copy finished",
-		"copied", result.Copied,
-		"source", result.Source,
-		"destination", result.Destination,
-		"indexes", result.Indexes,
-	)
+	slog.Info("copy finished", "copied", result.Copied, "linked", result.Linked, "source", result.Source, "destination", result.Dest)
 }
