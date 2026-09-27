@@ -21,8 +21,8 @@ export function TreeList({
   return <Tree nodes={nodes} variant="guides" defaultExpanded={nodes.map((node) => node.id)} />;
 }
 
-export function PageBody({ children }: { children: ReactNode }) {
-  return <div className="os-page-body">{children}</div>;
+export function PageBody({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={className ? `os-page-body ${className}` : "os-page-body"}>{children}</div>;
 }
 
 export function PageHero({ children }: { children: ReactNode }) {
