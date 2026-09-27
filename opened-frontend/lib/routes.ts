@@ -57,14 +57,6 @@ export const SETTINGS_PAGE: PageLink = {
   description: "Notifications, connected calendar, and privacy.",
 };
 
-export const HUNTER_LINKS: PageLink[] = [
-  APPLICATIONS_PAGE,
-  INTERVIEWS_PAGE,
-  RESUMES_PAGE,
-  PROFILE_PAGE,
-  SETTINGS_PAGE,
-];
-
 export const COMPANY_HOME_PAGE: PageLink = {
   href: ROUTES.company,
   label: "Overview",
@@ -131,6 +123,7 @@ export type WorkspaceMode = "hunter" | "company";
 
 export function modeFromPath(pathname: string): WorkspaceMode | null {
   if (pathname === ROUTES.company || pathname.startsWith(`${ROUTES.company}/`)) return "company";
-  if (SHARED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) return null;
+  if (SHARED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)))
+    return null;
   return "hunter";
 }

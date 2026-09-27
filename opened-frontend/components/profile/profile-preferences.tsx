@@ -27,13 +27,17 @@ import {
   type Profile,
   type Workplace,
 } from "@/lib/profile";
-import { ProfileSection } from "./profile-section";
+import { SectionCard } from "@/components/section-card";
 
 const FIELD_MIN_WIDTH = 240;
 
-const toItems = (labels: string[]): SearchableItem[] => labels.map((label) => ({ id: label, label }));
+const toItems = (labels: string[]): SearchableItem[] =>
+  labels.map((label) => ({ id: label, label }));
 
-type Preferences = Pick<Profile, "targetRoles" | "locations" | "workplace" | "salaryFloor" | "authorization" | "noticePeriod">;
+type Preferences = Pick<
+  Profile,
+  "targetRoles" | "locations" | "workplace" | "salaryFloor" | "authorization" | "noticePeriod"
+>;
 
 /** What you want next: roles, places, pay, and eligibility. */
 export function ProfilePreferences({ profile }: { profile: Profile }) {
@@ -59,7 +63,7 @@ export function ProfilePreferences({ profile }: { profile: Profile }) {
   };
 
   return (
-    <ProfileSection
+    <SectionCard
       title="Job preferences"
       description="Used to rank jobs for you and shared with companies when you apply."
       footer={
@@ -69,7 +73,11 @@ export function ProfilePreferences({ profile }: { profile: Profile }) {
           </Text>
           <HStack gap={2}>
             <Button label="Discard" variant="ghost" onClick={reset} />
-            <Button label="Save preferences" variant="primary" onClick={() => toast({ body: "Preferences saved" })} />
+            <Button
+              label="Save preferences"
+              variant="primary"
+              onClick={() => toast({ body: "Preferences saved" })}
+            />
           </HStack>
         </HStack>
       }
@@ -98,7 +106,12 @@ export function ProfilePreferences({ profile }: { profile: Profile }) {
           <Text type="label" display="block">
             Workplace
           </Text>
-          <SegmentedControl label="Workplace" value={workplace} onChange={(value) => setWorkplace(value as Workplace)} layout="fill">
+          <SegmentedControl
+            label="Workplace"
+            value={workplace}
+            onChange={(value) => setWorkplace(value as Workplace)}
+            layout="fill"
+          >
             {WORKPLACE_OPTIONS.map((option) => (
               <SegmentedControlItem key={option.value} value={option.value} label={option.label} />
             ))}
@@ -116,10 +129,20 @@ export function ProfilePreferences({ profile }: { profile: Profile }) {
             formatValue={(value) => formatSalary(value, profile.currency)}
             units={profile.currency}
           />
-          <Selector label="Available to start" options={NOTICE_OPTIONS} value={notice} onChange={setNotice} />
+          <Selector
+            label="Available to start"
+            options={NOTICE_OPTIONS}
+            value={notice}
+            onChange={setNotice}
+          />
         </Grid>
-        <Selector label="Work authorization" options={AUTHORIZATION_OPTIONS} value={authorization} onChange={setAuthorization} />
+        <Selector
+          label="Work authorization"
+          options={AUTHORIZATION_OPTIONS}
+          value={authorization}
+          onChange={setAuthorization}
+        />
       </Stack>
-    </ProfileSection>
+    </SectionCard>
   );
 }

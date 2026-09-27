@@ -1,15 +1,18 @@
 import { Badge, Button, HStack, Glyph, Stack, Text } from "@openseat/design-system";
-import type { ResumeVersion } from "@/lib/account";
+import { formatShortDate } from "@/lib/dates";
+import type { Resume } from "@/lib/resumes";
 import { ROUTES } from "@/lib/routes";
-import { ProfileSection } from "./profile-section";
+import { SectionCard } from "@/components/section-card";
 
 /** The resume sent with direct applications. */
-export function ProfileResume({ resumes }: { resumes: ResumeVersion[] }) {
+export function ProfileResume({ resumes }: { resumes: Resume[] }) {
   return (
-    <ProfileSection
+    <SectionCard
       title="Resumes"
       description="The default goes out with direct applications."
-      footer={<Button label="Manage resumes" variant="secondary" width="100%" href={ROUTES.resumes} />}
+      footer={
+        <Button label="Manage resumes" variant="secondary" width="100%" href={ROUTES.resumes} />
+      }
     >
       <Stack gap={3}>
         {resumes.map((resume) => (
@@ -21,7 +24,7 @@ export function ProfileResume({ resumes }: { resumes: ResumeVersion[] }) {
               <Stack gap={0.5}>
                 <Text weight="medium">{resume.label}</Text>
                 <Text type="supporting" color="secondary">
-                  Updated {resume.updated}
+                  Updated {formatShortDate(resume.updated)}
                 </Text>
               </Stack>
             </HStack>
@@ -29,6 +32,6 @@ export function ProfileResume({ resumes }: { resumes: ResumeVersion[] }) {
           </HStack>
         ))}
       </Stack>
-    </ProfileSection>
+    </SectionCard>
   );
 }

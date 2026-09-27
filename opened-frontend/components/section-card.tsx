@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Card, Divider, HStack, Heading, Stack, Text } from "@openseat/design-system";
 
-/** A titled profile card: heading, quiet description, optional action, then content. */
-export function ProfileSection({
+/** A titled card: heading, quiet description, optional action, then content. */
+export function SectionCard({
   title,
   description,
   action,

@@ -3,15 +3,22 @@
 import { useState } from "react";
 import { Stack, Switch } from "@openseat/design-system";
 import type { Profile, VisibilityKey, VisibilitySetting } from "@/lib/profile";
-import { ProfileSection } from "./profile-section";
+import { SectionCard } from "@/components/section-card";
 
 /** Who can find you, toggled in place. */
-export function ProfileVisibility({ profile, settings }: { profile: Profile; settings: VisibilitySetting[] }) {
+export function ProfileVisibility({
+  profile,
+  settings,
+}: {
+  profile: Profile;
+  settings: VisibilitySetting[];
+}) {
   const [values, setValues] = useState(profile.visibility);
-  const set = (key: VisibilityKey, value: boolean) => setValues((current) => ({ ...current, [key]: value }));
+  const set = (key: VisibilityKey, value: boolean) =>
+    setValues((current) => ({ ...current, [key]: value }));
 
   return (
-    <ProfileSection title="Visibility" description="Changes apply right away.">
+    <SectionCard title="Visibility" description="Changes apply right away.">
       <Stack gap={4}>
         {settings.map((setting) => (
           <Switch
@@ -23,6 +30,6 @@ export function ProfileVisibility({ profile, settings }: { profile: Profile; set
           />
         ))}
       </Stack>
-    </ProfileSection>
+    </SectionCard>
   );
 }

@@ -16,6 +16,32 @@
   column-gap: var(--os-gs-gap);
   row-gap: var(--os-gs-row-gap);
   align-items: var(--os-gs-align);
+
+  /* A GridSystem nested in a GridColumn must not inherit the outer column's
+     per-tier spans: an inner column that sets only `md` would otherwise pick
+     up the outer `lg` at wide sizes. `initial` makes each var unset here, so
+     inner columns fall back to their own values. */
+  --os-gs-display: initial;
+  --os-gs-display-sm: initial;
+  --os-gs-display-md: initial;
+  --os-gs-display-lg: initial;
+  --os-gs-display-xl: initial;
+  --os-gs-span: initial;
+  --os-gs-span-sm: initial;
+  --os-gs-span-md: initial;
+  --os-gs-span-lg: initial;
+  --os-gs-span-xl: initial;
+  --os-gs-start: initial;
+  --os-gs-start-sm: initial;
+  --os-gs-start-md: initial;
+  --os-gs-start-lg: initial;
+  --os-gs-start-xl: initial;
+  --os-gs-order: initial;
+  --os-gs-order-sm: initial;
+  --os-gs-order-md: initial;
+  --os-gs-order-lg: initial;
+  --os-gs-order-xl: initial;
+  --os-gs-rows: initial;
 }
 .os-gs-dense {
   grid-auto-flow: row dense;

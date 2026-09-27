@@ -27,6 +27,7 @@ export const DEMO_COMPONENTS: Record<string, ComponentType> = {
   stack: dynamic(() => import("./stack"), { ssr: false, loading }),
   "resize-handle": dynamic(() => import("./resize-handle"), { ssr: false, loading }),
   "scrollable-area": dynamic(() => import("./scrollable-area"), { ssr: false, loading }),
+  sticky: dynamic(() => import("./sticky"), { ssr: false, loading }),
   avatar: dynamic(() => import("./avatar"), { ssr: false, loading }),
   blockquote: dynamic(() => import("./blockquote"), { ssr: false, loading }),
   citation: dynamic(() => import("./citation"), { ssr: false, loading }),

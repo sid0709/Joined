@@ -29,6 +29,7 @@ export type VisibilitySetting = {
 
 export type Profile = {
   name: string;
+  email: string;
   headline: string;
   location: string;
   about: string;
@@ -73,7 +74,14 @@ export const ROLE_SUGGESTIONS = [
   "Design manager",
 ];
 
-export const LOCATION_SUGGESTIONS = ["Chicago", "New York", "San Francisco", "Austin", "Seattle", "Remote (US)"];
+export const LOCATION_SUGGESTIONS = [
+  "Chicago",
+  "New York",
+  "San Francisco",
+  "Austin",
+  "Seattle",
+  "Remote (US)",
+];
 
 export const HEADLINE_MAX_LENGTH = 120;
 export const ABOUT_MAX_LENGTH = 600;
@@ -81,6 +89,7 @@ export const SALARY_STEP = 5_000;
 
 export const PROFILE: Profile = {
   name: "Jordan Avery",
+  email: "jordan.avery@example.com",
   headline: "Product designer focused on hiring tools",
   location: "Chicago, IL",
   about:
@@ -94,7 +103,14 @@ export const PROFILE: Profile = {
   currency: "USD",
   authorization: "us-citizen",
   noticePeriod: "2w",
-  skills: ["Product strategy", "Design systems", "Prototyping", "User research", "Figma", "Accessibility"],
+  skills: [
+    "Product strategy",
+    "Design systems",
+    "Prototyping",
+    "User research",
+    "Figma",
+    "Accessibility",
+  ],
   visibility: { openToWork: true, recruiterSearch: true, hideFromEmployer: true },
 };
 
@@ -104,7 +120,8 @@ export const EXPERIENCE: ExperienceItem[] = [
     role: "Senior Product Designer",
     company: "Fieldnote",
     period: "2022 — Present",
-    summary: "Leads design for candidate search and the recruiter inbox. Shipped a unified design system across web and mobile.",
+    summary:
+      "Leads design for candidate search and the recruiter inbox. Shipped a unified design system across web and mobile.",
     current: true,
   },
   {
@@ -112,7 +129,8 @@ export const EXPERIENCE: ExperienceItem[] = [
     role: "Product Designer",
     company: "Harbor",
     period: "2019 — 2022",
-    summary: "Owned the application flow end to end. Cut drop-off on mobile applications by a third.",
+    summary:
+      "Owned the application flow end to end. Cut drop-off on mobile applications by a third.",
   },
   {
     id: "exp-3",
@@ -152,7 +170,11 @@ export const VISIBILITY_SETTINGS: VisibilitySetting[] = [
 ];
 
 export function formatSalary(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export function optionLabel(options: Option[], value: string) {

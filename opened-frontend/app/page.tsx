@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { JobBoard } from "@/components/job-board";
+import { JobSearch } from "@/components/jobs/job-search";
+import { parseFilters } from "@/lib/jobs";
 
 export const metadata: Metadata = {
-  title: "Jobs",
-  description: "Search jobs by title, city, and workplace.",
+  title: "Find jobs",
+  description:
+    "Search jobs by title, skill, city, and workplace — including hidden jobs you won’t find on the big boards.",
 };
 
-export default function HomePage() {
-  return <JobBoard />;
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const filters = parseFilters(await searchParams);
+  return <JobSearch initialFilters={filters} />;
 }

@@ -1,6 +1,16 @@
-import { Avatar, Badge, Button, Divider, HStack, Heading, Glyph, Stack, Text } from "@openseat/design-system";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Divider,
+  HStack,
+  Heading,
+  Glyph,
+  Stack,
+  Text,
+} from "@openseat/design-system";
 import type { ExperienceItem } from "@/lib/profile";
-import { ProfileSection } from "./profile-section";
+import { SectionCard } from "@/components/section-card";
 
 const LOGO_SIZE = 48;
 
@@ -25,10 +35,12 @@ function ExperienceRow({ item }: { item: ExperienceItem }) {
 /** Work history, newest first. */
 export function ProfileExperience({ items }: { items: ExperienceItem[] }) {
   return (
-    <ProfileSection
+    <SectionCard
       title="Experience"
       description="Parsed from your default resume. Edit anything that looks off."
-      action={<Button label="Add role" variant="secondary" size="sm" icon={<Glyph name="plus" />} />}
+      action={
+        <Button label="Add role" variant="secondary" size="sm" icon={<Glyph name="plus" />} />
+      }
     >
       <Stack gap={5}>
         {items.map((item, index) => (
@@ -38,6 +50,6 @@ export function ProfileExperience({ items }: { items: ExperienceItem[] }) {
           </Stack>
         ))}
       </Stack>
-    </ProfileSection>
+    </SectionCard>
   );
 }
