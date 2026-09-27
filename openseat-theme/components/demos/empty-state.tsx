@@ -1,7 +1,18 @@
 "use client";
 
+import {
+  Button,
+  Card,
+  EmptyState,
+  HStack,
+  Heading,
+  Icon,
+  Stack,
+  Text,
+  icons,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Button, Card, EmptyState, HStack, Heading, Icon, Stack, Text, icons } from "@openseat/design-system";
+
 import { Examples, Preview } from "./shared";
 
 const COMPACT_WIDTH = 280;
@@ -17,24 +28,47 @@ export default function EmptyStateDemo() {
       </Preview>
 
       <Preview label="With a description" description="Say what will fill this space and when.">
-        <EmptyState title="No bids yet" description="Invited people can see this room. Their bids show up here once they respond." />
+        <EmptyState
+          title="No bids yet"
+          description="Invited people can see this room. Their bids show up here once they respond."
+        />
       </Preview>
 
-      <Preview label="With an icon" description="The icon is decorative and hidden from assistive tech.">
+      <Preview
+        label="With an icon"
+        description="The icon is decorative and hidden from assistive tech."
+      >
         <Stack gap={4}>
-          <EmptyState icon={<Icon icon={icons.mail} size="lg" />} title="Inbox zero" description="You’re all caught up." />
-          <EmptyState icon={<Icon icon={icons.folder} size="lg" color="secondary" />} title="This folder is empty" description="Drop files here or upload from your computer." />
-          <EmptyState icon={<Icon icon={icons.bell} size="lg" color="accent" />} title="No notifications" description="We’ll let you know when a bid comes in." />
+          <EmptyState
+            icon={<Icon icon={icons.mail} size="lg" />}
+            title="Inbox zero"
+            description="You’re all caught up."
+          />
+          <EmptyState
+            icon={<Icon icon={icons.folder} size="lg" color="secondary" />}
+            title="This folder is empty"
+            description="Drop files here or upload from your computer."
+          />
+          <EmptyState
+            icon={<Icon icon={icons.bell} size="lg" color="accent" />}
+            title="No notifications"
+            description="We’ll let you know when a bid comes in."
+          />
         </Stack>
       </Preview>
 
-      <Preview label="With actions" description="One clear next step, or a primary and a secondary.">
+      <Preview
+        label="With actions"
+        description="One clear next step, or a primary and a secondary."
+      >
         <Stack gap={4}>
           <EmptyState
             icon={<Icon icon={icons.seat} size="lg" />}
             title="Post your first room"
             description="Describe the job, invite people, and collect sealed bids."
-            actions={<Button label="Post a room" variant="primary" icon={<Icon icon={icons.plus} />} />}
+            actions={
+              <Button label="Post a room" variant="primary" icon={<Icon icon={icons.plus} />} />
+            }
           />
           <EmptyState
             icon={<Icon icon={icons.upload} size="lg" />}
@@ -42,7 +76,11 @@ export default function EmptyStateDemo() {
             description="Add a brief so bidders know what you need."
             actions={
               <>
-                <Button label="Upload a file" variant="primary" icon={<Icon icon={icons.upload} />} />
+                <Button
+                  label="Upload a file"
+                  variant="primary"
+                  icon={<Icon icon={icons.upload} />}
+                />
                 <Button label="Write a brief" variant="secondary" />
               </>
             }
@@ -57,30 +95,52 @@ export default function EmptyStateDemo() {
           description="Try fewer words, or clear your filters."
           actions={
             <>
-              <Button label="Clear filters" variant="secondary" icon={<Icon icon={icons.filter} />} />
+              <Button
+                label="Clear filters"
+                variant="secondary"
+                icon={<Icon icon={icons.filter} />}
+              />
               <Button label="Clear search" variant="ghost" />
             </>
           }
         />
       </Preview>
 
-      <Preview label="Error with retry" description="Empty because something failed — say so, then let people try again.">
+      <Preview
+        label="Error with retry"
+        description="Empty because something failed — say so, then let people try again."
+      >
         {failed ? (
           <EmptyState
             icon={<Icon icon="warning" size="lg" color="warning" />}
             title="Couldn’t load bids"
             description="Check your connection and try again."
-            actions={<Button label="Retry" variant="secondary" icon={<Icon icon={icons.refresh} />} onClick={() => setFailed(false)} />}
+            actions={
+              <Button
+                label="Retry"
+                variant="secondary"
+                icon={<Icon icon={icons.refresh} />}
+                onClick={() => setFailed(false)}
+              />
+            }
           />
         ) : (
           <Stack gap={2} hAlign="start">
             <Text display="block">3 bids loaded.</Text>
-            <Button label="Simulate failure" size="sm" variant="ghost" onClick={() => setFailed(true)} />
+            <Button
+              label="Simulate failure"
+              size="sm"
+              variant="ghost"
+              onClick={() => setFailed(true)}
+            />
           </Stack>
         )}
       </Preview>
 
-      <Preview label="Compact" description="isCompact tightens spacing and stacks actions for side panels and narrow cards.">
+      <Preview
+        label="Compact"
+        description="isCompact tightens spacing and stacks actions for side panels and narrow cards."
+      >
         <HStack gap={3} wrap="wrap" vAlign="stretch">
           <Card width={COMPACT_WIDTH}>
             <EmptyState
@@ -97,22 +157,39 @@ export default function EmptyStateDemo() {
             />
           </Card>
           <Card width={COMPACT_WIDTH}>
-            <EmptyState isCompact icon={<Icon icon={icons.star} size="md" />} title="No favorites" description="Star a room to pin it here." />
+            <EmptyState
+              isCompact
+              icon={<Icon icon={icons.star} size="md" />}
+              title="No favorites"
+              description="Star a room to pin it here."
+            />
           </Card>
         </HStack>
       </Preview>
 
-      <Preview label="Inside a region" description="Fill the body of a card or panel; keep its header in place.">
+      <Preview
+        label="Inside a region"
+        description="Fill the body of a card or panel; keep its header in place."
+      >
         <Card>
           <Stack gap={3}>
             <HStack hAlign="between" vAlign="center">
               <Heading level={4}>Invitees</Heading>
-              <Button label={invited ? "Reset" : "Invite"} size="sm" variant="secondary" onClick={() => setInvited((v) => !v)} />
+              <Button
+                label={invited ? "Reset" : "Invite"}
+                size="sm"
+                variant="secondary"
+                onClick={() => setInvited((v) => !v)}
+              />
             </HStack>
             {invited ? (
               <Text display="block">Jordan Miles, Alex Rivera, and Dana Kim were invited.</Text>
             ) : (
-              <EmptyState headingLevel={5} title="Nobody invited yet" description="Invitees appear here with their bid status." />
+              <EmptyState
+                headingLevel={5}
+                title="Nobody invited yet"
+                description="Invitees appear here with their bid status."
+              />
             )}
           </Stack>
         </Card>

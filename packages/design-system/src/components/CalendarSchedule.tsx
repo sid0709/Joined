@@ -1,9 +1,10 @@
 "use client";
 
-import type { CSSProperties } from "react";
-import type { CalendarEvent } from "./calendarTypes";
 import { DEFAULT_LOCALE, sameDay } from "./date";
 import { MINUTES_PER_HOUR, displayTime, minutesOf, range, type HourCycle } from "./time";
+
+import type { CalendarEvent } from "./calendarTypes";
+import type { CSSProperties } from "react";
 
 /** Shortest block drawn, so a 10-minute event still has room for its title. */
 const MIN_EVENT_MINUTES = 30;
@@ -68,15 +69,29 @@ function hourLabel(hour: number, hourCycle: HourCycle) {
 }
 
 /** A time grid for one day or a week, with overlap columns and a now line. */
-export function CalendarSchedule({ days, events, value, onPick, today, now, hours, hourCycle }: CalendarScheduleProps) {
+export function CalendarSchedule({
+  days,
+  events,
+  value,
+  onPick,
+  today,
+  now,
+  hours,
+  hourCycle,
+}: CalendarScheduleProps) {
   const [first, last] = hours;
   const span = last - first;
   const nowMinutes = now ? now.getHours() * MINUTES_PER_HOUR + now.getMinutes() : null;
-  const allDay = events.filter((event) => !event.start && days.some((day) => sameDay(day, event.date)));
+  const allDay = events.filter(
+    (event) => !event.start && days.some((day) => sameDay(day, event.date)),
+  );
   const style = { "--os-cal-days": days.length, "--os-cal-span": span } as CSSProperties;
 
   return (
-    <div className={days.length === 1 ? "os-cal-schedule os-cal-schedule-day" : "os-cal-schedule"} style={style}>
+    <div
+      className={days.length === 1 ? "os-cal-schedule os-cal-schedule-day" : "os-cal-schedule"}
+      style={style}
+    >
       <div className="os-cal-sched-head">
         <span className="os-cal-gutter" />
         {days.map((day) => (
@@ -93,7 +108,9 @@ export function CalendarSchedule({ days, events, value, onPick, today, now, hour
             aria-pressed={sameDay(day, value)}
             onClick={() => onPick(day)}
           >
-            <span className="os-cal-sched-dow">{day.toLocaleDateString(DEFAULT_LOCALE, { weekday: "short" })}</span>
+            <span className="os-cal-sched-dow">
+              {day.toLocaleDateString(DEFAULT_LOCALE, { weekday: "short" })}
+            </span>
             <span className="os-cal-sched-num">{day.getDate()}</span>
           </button>
         ))}
@@ -107,7 +124,10 @@ export function CalendarSchedule({ days, events, value, onPick, today, now, hour
               {allDay
                 .filter((event) => sameDay(event.date, day))
                 .map((event) => (
-                  <span key={event.id} className={`os-cal-chip os-cal-tone-${event.tone ?? "accent"}`}>
+                  <span
+                    key={event.id}
+                    className={`os-cal-chip os-cal-tone-${event.tone ?? "accent"}`}
+                  >
                     {event.title}
                   </span>
                 ))}
@@ -126,9 +146,16 @@ export function CalendarSchedule({ days, events, value, onPick, today, now, hour
         </div>
         {days.map((day) => {
           const placed = layout(events.filter((event) => sameDay(event.date, day)));
-          const showNow = sameDay(day, today) && nowMinutes != null && nowMinutes >= first * MINUTES_PER_HOUR && nowMinutes <= last * MINUTES_PER_HOUR;
+          const showNow =
+            sameDay(day, today) &&
+            nowMinutes != null &&
+            nowMinutes >= first * MINUTES_PER_HOUR &&
+            nowMinutes <= last * MINUTES_PER_HOUR;
           return (
-            <div key={day.toISOString()} className={sameDay(day, today) ? "os-cal-lane os-cal-lane-today" : "os-cal-lane"}>
+            <div
+              key={day.toISOString()}
+              className={sameDay(day, today) ? "os-cal-lane os-cal-lane-today" : "os-cal-lane"}
+            >
               {placed.map(({ event, start, end, column, columns }) => {
                 const top = (start - first * MINUTES_PER_HOUR) / MINUTES_PER_HOUR;
                 const height = (end - start) / MINUTES_PER_HOUR;
@@ -157,14 +184,20 @@ export function CalendarSchedule({ days, events, value, onPick, today, now, hour
                       {displayTime(event.start!, hourCycle)}
                       {event.end ? ` – ${displayTime(event.end, hourCycle)}` : ""}
                     </span>
-                    {event.location && <span className="os-cal-event-time os-cal-event-loc">{event.location}</span>}
+                    {event.location && (
+                      <span className="os-cal-event-time os-cal-event-loc">{event.location}</span>
+                    )}
                   </div>
                 );
               })}
               {showNow && (
                 <span
                   className="os-cal-now"
-                  style={{ "--os-cal-top": (nowMinutes! - first * MINUTES_PER_HOUR) / MINUTES_PER_HOUR } as CSSProperties}
+                  style={
+                    {
+                      "--os-cal-top": (nowMinutes - first * MINUTES_PER_HOUR) / MINUTES_PER_HOUR,
+                    } as CSSProperties
+                  }
                   aria-label="Now"
                 />
               )}

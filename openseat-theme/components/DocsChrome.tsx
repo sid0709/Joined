@@ -1,11 +1,23 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import {
+  AppShell,
+  Button,
+  Icon,
+  SideNav,
+  SideNavHeading,
+  SideNavItem,
+  TextInput,
+  TopNav,
+  TopNavHeading,
+  TopNavItem,
+} from "@openseat/design-system";
 import { usePathname } from "next/navigation";
-import { AppShell, Button, Icon, SideNav, SideNavHeading, SideNavItem, TextInput, TopNav, TopNavHeading, TopNavItem } from "@openseat/design-system";
-import { CATALOG, itemHref } from "@/lib/catalog";
-import { useColorMode } from "@/components/Providers";
+import { useMemo, useState, type ReactNode } from "react";
+
 import { ClientOnly } from "@/components/ClientOnly";
+import { useColorMode } from "@/components/Providers";
+import { CATALOG, itemHref } from "@/lib/catalog";
 
 export function DocsChrome({ children }: { children: ReactNode }) {
   const path = usePathname();

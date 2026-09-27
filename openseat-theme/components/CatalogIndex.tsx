@@ -1,4 +1,5 @@
 import { Heading, List, ListItem, Stack, Text } from "@openseat/design-system";
+
 import { ClientOnly } from "@/components/ClientOnly";
 import { CATALOG, itemHref, type CatalogGroup } from "@/lib/catalog";
 
@@ -44,8 +45,8 @@ export function CatalogIndex() {
       <Stack gap={2}>
         <Heading level={1}>Browse the library</Heading>
         <Text color="secondary" display="block">
-          Every component from @openseat/design-system — original Astryx with the OpenSeat theme. Open a component to see
-          live examples.
+          Every component from @openseat/design-system — original Astryx with the OpenSeat theme.
+          Open a component to see live examples.
         </Text>
       </Stack>
       {CATALOG.map((group) => (

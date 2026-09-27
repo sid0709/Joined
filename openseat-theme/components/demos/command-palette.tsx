@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Button,
@@ -16,25 +15,65 @@ import {
   icons,
   type SearchableItem,
 } from "@openseat/design-system";
+import { useEffect, useMemo, useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 
-type Command = SearchableItem<{ group: string; icon: Parameters<typeof Icon>[0]["icon"]; shortcut?: string }>;
+type Command = SearchableItem<{
+  group: string;
+  icon: Parameters<typeof Icon>[0]["icon"];
+  shortcut?: string;
+}>;
 
 const COMMANDS: Command[] = [
-  { id: "new-room", label: "New room", auxiliaryData: { group: "Actions", icon: icons.plus, shortcut: "mod+shift+n" } },
-  { id: "invite", label: "Invite people", auxiliaryData: { group: "Actions", icon: icons.users, shortcut: "mod+i" } },
+  {
+    id: "new-room",
+    label: "New room",
+    auxiliaryData: { group: "Actions", icon: icons.plus, shortcut: "mod+shift+n" },
+  },
+  {
+    id: "invite",
+    label: "Invite people",
+    auxiliaryData: { group: "Actions", icon: icons.users, shortcut: "mod+i" },
+  },
   { id: "export", label: "Export bids", auxiliaryData: { group: "Actions", icon: icons.download } },
-  { id: "rooms", label: "Go to rooms", auxiliaryData: { group: "Navigation", icon: icons.seat, shortcut: "g+r" } },
-  { id: "messages", label: "Go to messages", auxiliaryData: { group: "Navigation", icon: icons.mail, shortcut: "g+m" } },
-  { id: "settings", label: "Open settings", auxiliaryData: { group: "Navigation", icon: icons.settings, shortcut: "mod+comma" } },
-  { id: "theme", label: "Toggle dark mode", auxiliaryData: { group: "Preferences", icon: icons.sparkle } },
+  {
+    id: "rooms",
+    label: "Go to rooms",
+    auxiliaryData: { group: "Navigation", icon: icons.seat, shortcut: "g+r" },
+  },
+  {
+    id: "messages",
+    label: "Go to messages",
+    auxiliaryData: { group: "Navigation", icon: icons.mail, shortcut: "g+m" },
+  },
+  {
+    id: "settings",
+    label: "Open settings",
+    auxiliaryData: { group: "Navigation", icon: icons.settings, shortcut: "mod+comma" },
+  },
+  {
+    id: "theme",
+    label: "Toggle dark mode",
+    auxiliaryData: { group: "Preferences", icon: icons.sparkle },
+  },
 ];
-const PEOPLE_ITEMS: SearchableItem<{ role: string }>[] = PEOPLE.map((p) => ({ id: p.name, label: p.name, auxiliaryData: { role: p.role } }));
+const PEOPLE_ITEMS: SearchableItem<{ role: string }>[] = PEOPLE.map((p) => ({
+  id: p.name,
+  label: p.name,
+  auxiliaryData: { role: p.role },
+}));
 const PALETTE_WIDTH = 560;
 
 export default function CommandPaletteDemo() {
-  const commands = useMemo(() => createStaticSource(COMMANDS, { keywords: (c) => [c.auxiliaryData?.group ?? ""] }), []);
-  const people = useMemo(() => createStaticSource(PEOPLE_ITEMS, { keywords: (p) => [p.auxiliaryData?.role ?? ""] }), []);
+  const commands = useMemo(
+    () => createStaticSource(COMMANDS, { keywords: (c) => [c.auxiliaryData?.group ?? ""] }),
+    [],
+  );
+  const people = useMemo(
+    () => createStaticSource(PEOPLE_ITEMS, { keywords: (p) => [p.auxiliaryData?.role ?? ""] }),
+    [],
+  );
   const [open, setOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [ran, setRan] = useState<string | null>(null);
@@ -53,10 +92,19 @@ export default function CommandPaletteDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Actions with shortcuts" description="Press ⌘K / Ctrl+K anywhere on this page, or use the button.">
+      <Preview
+        align="start"
+        label="Actions with shortcuts"
+        description="Press ⌘K / Ctrl+K anywhere on this page, or use the button."
+      >
         <Stack gap={2}>
           <Row>
-            <Button label="Search commands" icon={<Icon icon={icons.search} />} endContent={<Kbd keys="mod+k" />} onClick={() => setOpen(true)} />
+            <Button
+              label="Search commands"
+              icon={<Icon icon={icons.search} />}
+              endContent={<Kbd keys="mod+k" />}
+              onClick={() => setOpen(true)}
+            />
           </Row>
           <Caption>{ran ? `Ran “${ran}”` : "Pick a command to run it."}</Caption>
         </Stack>
@@ -73,7 +121,9 @@ export default function CommandPaletteDemo() {
           renderItem={(c) => (
             <HStack gap={3} vAlign="center" hAlign="between" width="100%">
               <HStack gap={2} vAlign="center">
-                {c.auxiliaryData && <Icon icon={c.auxiliaryData.icon} size="sm" color="secondary" />}
+                {c.auxiliaryData && (
+                  <Icon icon={c.auxiliaryData.icon} size="sm" color="secondary" />
+                )}
                 <Text>{c.label}</Text>
                 <Text type="supporting" color="secondary">
                   {c.auxiliaryData?.group}
@@ -101,9 +151,17 @@ export default function CommandPaletteDemo() {
         />
       </Preview>
 
-      <Preview align="start" label="People finder" description="Any searchable source — here, people with avatars and roles.">
+      <Preview
+        align="start"
+        label="People finder"
+        description="Any searchable source — here, people with avatars and roles."
+      >
         <Row>
-          <Button label="Find a person" icon={<Icon icon={icons.users} />} onClick={() => setPeopleOpen(true)} />
+          <Button
+            label="Find a person"
+            icon={<Icon icon={icons.users} />}
+            onClick={() => setPeopleOpen(true)}
+          />
         </Row>
         <CommandPalette
           isOpen={peopleOpen}
@@ -128,9 +186,21 @@ export default function CommandPaletteDemo() {
         />
       </Preview>
 
-      <Preview label="Inline" description="isInline renders the palette in the page — a search panel that never closes.">
+      <Preview
+        label="Inline"
+        description="isInline renders the palette in the page — a search panel that never closes."
+      >
         <Card padding={0} maxWidth={PALETTE_WIDTH}>
-          <CommandPalette isInline isOpen onOpenChange={() => undefined} searchSource={commands} label="Quick actions" maxHeight={280} value={inlineValue} onValueChange={setInlineValue} />
+          <CommandPalette
+            isInline
+            isOpen
+            onOpenChange={() => undefined}
+            searchSource={commands}
+            label="Quick actions"
+            maxHeight={280}
+            value={inlineValue}
+            onValueChange={setInlineValue}
+          />
         </Card>
         <Caption>{inlineValue ? `Selected ${inlineValue}` : "Use the arrows and Enter."}</Caption>
       </Preview>

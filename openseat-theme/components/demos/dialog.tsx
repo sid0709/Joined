@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   AlertDialog,
   Avatar,
@@ -23,6 +22,8 @@ import {
   useImperativeAlertDialog,
   useImperativeDialog,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 
 const CLOSE_MS = 900;
@@ -45,18 +46,43 @@ export default function DialogDemo() {
   const dialog = useImperativeDialog();
   const alertDialog = useImperativeAlertDialog();
 
+  const closeRoom = async () => {
+    setClosing(true);
+    await wait(CLOSE_MS);
+    setClosing(false);
+    setConfirm(false);
+    setClosed(true);
+  };
+
   return (
     <Examples>
-      <Preview align="start" label="Confirm a decision" description="Header, a short body, and two buttons — the action names what happens.">
+      <Preview
+        align="start"
+        label="Confirm a decision"
+        description="Header, a short body, and two buttons — the action names what happens."
+      >
         <Row>
-          <Button label="Close room" variant="destructive" onClick={() => setConfirm(true)} isDisabled={closed} />
+          <Button
+            label="Close room"
+            variant="destructive"
+            onClick={() => setConfirm(true)}
+            isDisabled={closed}
+          />
           {closed && <Badge label="Closed" variant="neutral" />}
-          {closed && <Button label="Reopen" size="sm" variant="ghost" onClick={() => setClosed(false)} />}
+          {closed && (
+            <Button label="Reopen" size="sm" variant="ghost" onClick={() => setClosed(false)} />
+          )}
         </Row>
         <Dialog isOpen={confirm} onOpenChange={setConfirm} width={DIALOG_WIDTH}>
           <Layout
             height="auto"
-            header={<DialogHeader title="Close this room?" subtitle="Brand refresh" onOpenChange={setConfirm} />}
+            header={
+              <DialogHeader
+                title="Close this room?"
+                subtitle="Brand refresh"
+                onOpenChange={setConfirm}
+              />
+            }
             content={
               <LayoutContent>
                 <Text>People can no longer bid. Bids you already have will open for review.</Text>
@@ -70,12 +96,8 @@ export default function DialogDemo() {
                     label="Close room"
                     variant="destructive"
                     isLoading={closing}
-                    onClick={async () => {
-                      setClosing(true);
-                      await wait(CLOSE_MS);
-                      setClosing(false);
-                      setConfirm(false);
-                      setClosed(true);
+                    onClick={() => {
+                      void closeRoom();
                     }}
                   />
                 </HStack>
@@ -85,7 +107,11 @@ export default function DialogDemo() {
         </Dialog>
       </Preview>
 
-      <Preview align="start" label="Alert dialog" description="AlertDialog is the short form: title, description, and one action.">
+      <Preview
+        align="start"
+        label="Alert dialog"
+        description="AlertDialog is the short form: title, description, and one action."
+      >
         <Row>
           <Button label="Delete draft" variant="destructive" onClick={() => setAlert(true)} />
         </Row>
@@ -100,9 +126,17 @@ export default function DialogDemo() {
         />
       </Preview>
 
-      <Preview align="start" label="Form dialog" description="purpose=&quot;form&quot; keeps focus inside and warns before losing input.">
+      <Preview
+        align="start"
+        label="Form dialog"
+        description='purpose="form" keeps focus inside and warns before losing input.'
+      >
         <Row>
-          <Button label="Edit room" icon={<Icon icon={icons.edit} />} onClick={() => setForm(true)} />
+          <Button
+            label="Edit room"
+            icon={<Icon icon={icons.edit} />}
+            onClick={() => setForm(true)}
+          />
           <Caption>{title}</Caption>
         </Row>
         <Dialog isOpen={form} onOpenChange={setForm} purpose="form" width={DIALOG_WIDTH}>
@@ -130,7 +164,12 @@ export default function DialogDemo() {
               <LayoutFooter hasDivider>
                 <HStack gap={2} hAlign="end">
                   <Button label="Cancel" variant="ghost" onClick={() => setForm(false)} />
-                  <Button label="Save" variant="primary" isDisabled={!title.trim()} onClick={() => setForm(false)} />
+                  <Button
+                    label="Save"
+                    variant="primary"
+                    isDisabled={!title.trim()}
+                    onClick={() => setForm(false)}
+                  />
                 </HStack>
               </LayoutFooter>
             }
@@ -138,14 +177,25 @@ export default function DialogDemo() {
         </Dialog>
       </Preview>
 
-      <Preview align="start" label="Info dialog" description="purpose=&quot;info&quot; closes on outside click — for details, not decisions.">
+      <Preview
+        align="start"
+        label="Info dialog"
+        description='purpose="info" closes on outside click — for details, not decisions.'
+      >
         <Row>
           <Button label="View bidder" variant="ghost" onClick={() => setInfo(true)} />
         </Row>
         <Dialog isOpen={info} onOpenChange={setInfo} purpose="info" width={400}>
           <Layout
             height="auto"
-            header={<DialogHeader title="Dana Kim" subtitle="Copywriter · Portland" startContent={<Avatar name="Dana Kim" size="md" tooltip={false} />} onOpenChange={setInfo} />}
+            header={
+              <DialogHeader
+                title="Dana Kim"
+                subtitle="Copywriter · Portland"
+                startContent={<Avatar name="Dana Kim" size="md" tooltip={false} />}
+                onOpenChange={setInfo}
+              />
+            }
             content={
               <LayoutContent>
                 <Stack gap={2}>
@@ -161,13 +211,24 @@ export default function DialogDemo() {
         </Dialog>
       </Preview>
 
-      <Preview align="start" label="Fullscreen" description="variant=&quot;fullscreen&quot; for immersive tasks like comparing every bid.">
+      <Preview
+        align="start"
+        label="Fullscreen"
+        description='variant="fullscreen" for immersive tasks like comparing every bid.'
+      >
         <Row>
           <Button label="Compare bids" variant="primary" onClick={() => setFull(true)} />
         </Row>
         <Dialog isOpen={full} onOpenChange={setFull} variant="fullscreen">
           <Layout
-            header={<DialogHeader title="Compare bids" subtitle="Brand refresh · 3 bids" onOpenChange={setFull} hasDivider />}
+            header={
+              <DialogHeader
+                title="Compare bids"
+                subtitle="Brand refresh · 3 bids"
+                onOpenChange={setFull}
+                hasDivider
+              />
+            }
             content={
               <LayoutContent>
                 <Stack gap={3}>
@@ -187,7 +248,11 @@ export default function DialogDemo() {
         </Dialog>
       </Preview>
 
-      <Preview align="start" label="Imperative dialogs" description="useImperativeDialog and useImperativeAlertDialog open a dialog from any handler without wiring state.">
+      <Preview
+        align="start"
+        label="Imperative dialogs"
+        description="useImperativeDialog and useImperativeAlertDialog open a dialog from any handler without wiring state."
+      >
         <Stack gap={2}>
           <Row>
             <Button
@@ -196,10 +261,18 @@ export default function DialogDemo() {
                 dialog.show(
                   <Layout
                     height="auto"
-                    header={<DialogHeader title="Tips for a great brief" onOpenChange={(o) => !o && dialog.hide()} />}
+                    header={
+                      <DialogHeader
+                        title="Tips for a great brief"
+                        onOpenChange={(o) => !o && dialog.hide()}
+                      />
+                    }
                     content={
                       <LayoutContent>
-                        <Text>Say what done looks like, give a budget range, and set a deadline at least a week out.</Text>
+                        <Text>
+                          Say what done looks like, give a budget range, and set a deadline at least
+                          a week out.
+                        </Text>
                       </LayoutContent>
                     }
                   />,

@@ -1,6 +1,15 @@
 "use client";
 
-import { Citation, Icon, Link, Stack, Text, icons, type CitationSource } from "@openseat/design-system";
+import {
+  Citation,
+  Icon,
+  Link,
+  Stack,
+  Text,
+  icons,
+  type CitationSource,
+} from "@openseat/design-system";
+
 import { Examples, Preview, Row, SAMPLE_IMAGES } from "./shared";
 
 const SOURCES: CitationSource[] = [
@@ -14,7 +23,11 @@ const SOURCES: CitationSource[] = [
 export default function CitationDemo() {
   return (
     <Examples>
-      <Preview align="start" label="Label variant" description="The default: a chip with the source title, an optional icon, and a border.">
+      <Preview
+        align="start"
+        label="Label variant"
+        description="The default: a chip with the source title, an optional icon, and a border."
+      >
         <Row>
           {SOURCES.map((source, index) => (
             <Citation key={index} number={index + 1} source={source} />
@@ -22,7 +35,11 @@ export default function CitationDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Number variant" description="A compact numbered badge for dense copy.">
+      <Preview
+        align="start"
+        label="Number variant"
+        description="A compact numbered badge for dense copy."
+      >
         <Row>
           {SOURCES.map((source, index) => (
             <Citation key={index} number={index + 1} source={source} variant="number" />
@@ -30,10 +47,28 @@ export default function CitationDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Source icons" description="src takes an image URL; icon takes a node. With neither, the chip is text only.">
+      <Preview
+        align="start"
+        label="Source icons"
+        description="src takes an image URL; icon takes a node. With neither, the chip is text only."
+      >
         <Row>
-          <Citation number={1} source={{ title: "Image source", url: "https://astryx.atmeta.com/", src: SAMPLE_IMAGES.globe }} />
-          <Citation number={2} source={{ title: "Icon source", url: "https://react.dev/", icon: <Icon icon={icons.code} /> }} />
+          <Citation
+            number={1}
+            source={{
+              title: "Image source",
+              url: "https://astryx.atmeta.com/",
+              src: SAMPLE_IMAGES.globe,
+            }}
+          />
+          <Citation
+            number={2}
+            source={{
+              title: "Icon source",
+              url: "https://react.dev/",
+              icon: <Icon icon={icons.code} />,
+            }}
+          />
           <Citation number={3} source={{ title: "Text only", url: "https://react.dev/" }} />
           <Citation number={4} source={{ title: "No link" }} />
         </Row>
@@ -50,13 +85,18 @@ export default function CitationDemo() {
       <Preview label="In copy — numbers" description="Numbers keep long paragraphs readable.">
         <Text display="block">
           Sealed rooms reduced average bid spread by a third
-          <Citation number={1} source={SOURCES[3]} variant="number" />, while response time stayed flat
-          <Citation number={2} source={SOURCES[3]} variant="number" />. The component library is open
+          <Citation number={1} source={SOURCES[3]} variant="number" />, while response time stayed
+          flat
+          <Citation number={2} source={SOURCES[3]} variant="number" />. The component library is
+          open
           <Citation number={3} source={SOURCES[0]} variant="number" />.
         </Text>
       </Preview>
 
-      <Preview label="With a source list" description="Pair numbered citations with a footnote list at the end.">
+      <Preview
+        label="With a source list"
+        description="Pair numbered citations with a footnote list at the end."
+      >
         <Stack gap={3}>
           <Text display="block">
             OpenSeat is built on Astryx

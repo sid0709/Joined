@@ -9,7 +9,11 @@ export { Banner } from "@astryxdesign/core/Banner";
 export type { BannerProps, BannerStatus, BannerContainer } from "@astryxdesign/core/Banner";
 
 export { ProgressBar } from "@astryxdesign/core/ProgressBar";
-export type { ProgressBarProps, ProgressBarMark, ProgressBarVariant } from "@astryxdesign/core/ProgressBar";
+export type {
+  ProgressBarProps,
+  ProgressBarMark,
+  ProgressBarVariant,
+} from "@astryxdesign/core/ProgressBar";
 
 export { Skeleton } from "@astryxdesign/core/Skeleton";
 export type { SkeletonProps, SkeletonRadius } from "@astryxdesign/core/Skeleton";

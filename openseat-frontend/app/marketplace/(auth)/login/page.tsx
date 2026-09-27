@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, FormLayout, Input } from "@/src/shared/marketplace-ui";
+import React, { useState } from "react";
+
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
+import { Banner, Button, Card, FormLayout, Input } from "@/src/shared/marketplace-ui";
 
 export default function MarketplaceLoginPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function MarketplaceLoginPage() {
         ? "/marketplace/candidate/dashboard"
         : result.role === "Client"
           ? "/marketplace/client/dashboard"
-          : "/marketplace/join"
+          : "/marketplace/join",
     );
   };
 
@@ -46,13 +47,28 @@ export default function MarketplaceLoginPage() {
             <p className="body text-ink-muted">Sign in to your OpenSeat bidding workspace.</p>
           </div>
           {errorMessage && <Banner tone="danger" title={errorMessage} />}
-          <Input label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          <Input label="Password" placeholder="Your password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <Input
+            label="Email address"
+            placeholder="you@example.com"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <Input
+            label="Password"
+            placeholder="Your password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
           <Button type="submit" variant="primary" className="marketplace-full-width">
             Sign in
           </Button>
           <p className="caption text-ink-muted marketplace-auth-footer">
-            Don&apos;t have an account? <Link className="os-link" href="/marketplace/register">Register here</Link>
+            Don&apos;t have an account?{" "}
+            <Link className="os-link" href="/marketplace/register">
+              Register here
+            </Link>
           </p>
         </FormLayout>
       </form>

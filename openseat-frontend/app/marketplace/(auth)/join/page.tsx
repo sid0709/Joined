@@ -1,10 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Stack } from "@/src/shared/marketplace-ui";
+import { useRouter } from "next/navigation";
+
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
+import { Button, Card, Stack } from "@/src/shared/marketplace-ui";
 
 export default function MarketplaceJoinPage() {
   const router = useRouter();
@@ -13,10 +14,13 @@ export default function MarketplaceJoinPage() {
 
   const handleRoleSelection = (role: "Candidate" | "Client") => {
     assignRole(role);
-    router.push(role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/dashboard");
+    router.push(
+      role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/dashboard",
+    );
   };
 
-  const greeting = isMounted && currentUser?.fullName ? `Welcome, ${currentUser.fullName}` : "Welcome";
+  const greeting =
+    isMounted && currentUser?.fullName ? `Welcome, ${currentUser.fullName}` : "Welcome";
 
   return (
     <Card className="marketplace-auth-card marketplace-join-card">
@@ -35,7 +39,9 @@ export default function MarketplaceJoinPage() {
           >
             <strong>I’m a candidate</strong>
             <span>Browse projects, place bids, and manage delivery.</span>
-            <span className="marketplace-role-cta" aria-hidden="true">Continue <span>→</span></span>
+            <span className="marketplace-role-cta" aria-hidden="true">
+              Continue <span>→</span>
+            </span>
           </Button>
           <Button
             type="button"
@@ -46,7 +52,9 @@ export default function MarketplaceJoinPage() {
           >
             <strong>I’m a client</strong>
             <span>Post a brief, compare applicants, and manage delivery.</span>
-            <span className="marketplace-role-cta" aria-hidden="true">Continue <span>→</span></span>
+            <span className="marketplace-role-cta" aria-hidden="true">
+              Continue <span>→</span>
+            </span>
           </Button>
         </div>
         <Link className="marketplace-back-link os-link" href="/marketplace/login">

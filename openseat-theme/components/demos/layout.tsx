@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import {
   Button,
   Card,
@@ -23,9 +22,20 @@ import {
   icons,
   useResizable,
 } from "@openseat/design-system";
+import { useState, type ReactNode } from "react";
+
 import { Caption, Examples, Preview } from "./shared";
 
-const MESSAGES = ["Jordan Mills", "Alex Kim", "Riley Chen", "Sam Ortiz", "Taylor Kim", "Morgan Lee", "Casey Park", "Drew Fox"];
+const MESSAGES = [
+  "Jordan Mills",
+  "Alex Kim",
+  "Riley Chen",
+  "Sam Ortiz",
+  "Taylor Kim",
+  "Morgan Lee",
+  "Casey Park",
+  "Drew Fox",
+];
 
 function Box({ height = 260, children }: { height?: number; children: ReactNode }) {
   return (
@@ -53,7 +63,10 @@ export default function LayoutDemo() {
 
   return (
     <Examples>
-      <Preview label="Header, content, footer" description="The body scrolls; header and footer stay put.">
+      <Preview
+        label="Header, content, footer"
+        description="The body scrolls; header and footer stay put."
+      >
         <Box>
           <Layout
             height="fill"
@@ -81,7 +94,10 @@ export default function LayoutDemo() {
         </Box>
       </Preview>
 
-      <Preview label="Start and end panels" description="Side panels frame the content — navigation on the start, details on the end.">
+      <Preview
+        label="Start and end panels"
+        description="Side panels frame the content — navigation on the start, details on the end."
+      >
         <Box height={280}>
           <Layout
             height="fill"
@@ -90,7 +106,13 @@ export default function LayoutDemo() {
               <LayoutPanel width={180} hasDivider isScrollable label="Conversations">
                 <Stack gap={1}>
                   {MESSAGES.map((name) => (
-                    <Button key={name} label={name} variant={name === selected ? "secondary" : "ghost"} width="100%" onClick={() => setSelected(name)} />
+                    <Button
+                      key={name}
+                      label={name}
+                      variant={name === selected ? "secondary" : "ghost"}
+                      width="100%"
+                      onClick={() => setSelected(name)}
+                    />
                   ))}
                 </Stack>
               </LayoutPanel>
@@ -117,7 +139,10 @@ export default function LayoutDemo() {
         </Box>
       </Preview>
 
-      <Preview label="Resizable panel" description="Pass useResizable props to a panel and drag its edge.">
+      <Preview
+        label="Resizable panel"
+        description="Pass useResizable props to a panel and drag its edge."
+      >
         <Box height={220}>
           <Layout
             height="fill"
@@ -135,7 +160,10 @@ export default function LayoutDemo() {
         </Box>
       </Preview>
 
-      <Preview label="Toggle a panel" description="Panels are just slots — render them conditionally.">
+      <Preview
+        label="Toggle a panel"
+        description="Panels are just slots — render them conditionally."
+      >
         <Stack gap={2}>
           <Box height={200}>
             <Layout
@@ -144,7 +172,11 @@ export default function LayoutDemo() {
                 <LayoutHeader hasDivider>
                   <HStack hAlign="between" vAlign="center">
                     <Text weight="semibold">Room</Text>
-                    <Button label={open ? "Hide details" : "Show details"} size="sm" onClick={() => setOpen(!open)} />
+                    <Button
+                      label={open ? "Hide details" : "Show details"}
+                      size="sm"
+                      onClick={() => setOpen(!open)}
+                    />
                   </HStack>
                 </LayoutHeader>
               }
@@ -165,7 +197,10 @@ export default function LayoutDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Constrained content width" description="contentWidth centers a readable column inside a wide layout.">
+      <Preview
+        label="Constrained content width"
+        description="contentWidth centers a readable column inside a wide layout."
+      >
         <Box height={200}>
           <Layout
             height="fill"
@@ -220,7 +255,9 @@ export default function LayoutDemo() {
             />
           </Box>
         </ResponsiveFrame>
-        <Caption>Show and Hide read the frame, so switching presets moves the Sections panel in and out.</Caption>
+        <Caption>
+          Show and Hide read the frame, so switching presets moves the Sections panel in and out.
+        </Caption>
       </Preview>
     </Examples>
   );

@@ -1,15 +1,29 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { AccountUpdate, ClientProfile, RegisteredUser, UserRole, CandidateProfile } from "@/src/shared/types/auth";
+import React, { createContext, useContext, useMemo, useState, useSyncExternalStore } from "react";
+
+import {
+  AccountUpdate,
+  ClientProfile,
+  RegisteredUser,
+  UserRole,
+  CandidateProfile,
+} from "@/src/shared/types/auth";
 
 interface MockAuthContextType {
   currentUser: RegisteredUser | null;
   profile: CandidateProfile;
   clientProfile: ClientProfile;
-  loginUser: (email: string, passwordText: string) => { success: boolean; error?: string; role?: UserRole };
-  registerUser: (fullName: string, email: string, passwordText: string) => { success: boolean; error?: string };
+  loginUser: (
+    email: string,
+    passwordText: string,
+  ) => { success: boolean; error?: string; role?: UserRole };
+  registerUser: (
+    fullName: string,
+    email: string,
+    passwordText: string,
+  ) => { success: boolean; error?: string };
   assignRole: (role: UserRole) => void;
   updateProfile: (updated: Partial<CandidateProfile>) => void;
   updateClientProfile: (updated: Partial<ClientProfile>) => void;
@@ -40,17 +54,36 @@ function subscribeToAuthStorage(onStoreChange: () => void) {
 }
 
 function readUsersSnapshot() {
-  return typeof window === "undefined" ? EMPTY_USERS_SNAPSHOT : window.localStorage.getItem(USERS_STORAGE_KEY) ?? EMPTY_USERS_SNAPSHOT;
+  return typeof window === "undefined"
+    ? EMPTY_USERS_SNAPSHOT
+    : (window.localStorage.getItem(USERS_STORAGE_KEY) ?? EMPTY_USERS_SNAPSHOT);
 }
 
 function readActiveUserSnapshot() {
-  return typeof window === "undefined" ? null : window.localStorage.getItem(ACTIVE_USER_STORAGE_KEY);
+  return typeof window === "undefined"
+    ? null
+    : window.localStorage.getItem(ACTIVE_USER_STORAGE_KEY);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isRegisteredUser(value: unknown): value is RegisteredUser {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.email === "string" &&
+    typeof value.passwordText === "string" &&
+    typeof value.fullName === "string" &&
+    (value.role === "Candidate" || value.role === "Client" || value.role === null)
+  );
 }
 
 function parseUsers(snapshot: string): RegisteredUser[] {
   try {
-    const parsed = JSON.parse(snapshot);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: unknown = JSON.parse(snapshot);
+    return Array.isArray(parsed) ? parsed.filter(isRegisteredUser) : [];
   } catch {
     return [];
   }
@@ -59,7 +92,8 @@ function parseUsers(snapshot: string): RegisteredUser[] {
 function parseActiveUser(snapshot: string | null): RegisteredUser | null {
   if (!snapshot) return null;
   try {
-    return JSON.parse(snapshot) as RegisteredUser;
+    const parsed: unknown = JSON.parse(snapshot);
+    return isRegisteredUser(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -72,8 +106,16 @@ function notifyAuthStorage() {
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
-  const usersSnapshot = useSyncExternalStore(subscribeToAuthStorage, readUsersSnapshot, () => EMPTY_USERS_SNAPSHOT);
-  const activeUserSnapshot = useSyncExternalStore(subscribeToAuthStorage, readActiveUserSnapshot, () => null);
+  const usersSnapshot = useSyncExternalStore(
+    subscribeToAuthStorage,
+    readUsersSnapshot,
+    () => EMPTY_USERS_SNAPSHOT,
+  );
+  const activeUserSnapshot = useSyncExternalStore(
+    subscribeToAuthStorage,
+    readActiveUserSnapshot,
+    () => null,
+  );
   const users = useMemo(() => parseUsers(usersSnapshot), [usersSnapshot]);
   const currentUser = useMemo(() => parseActiveUser(activeUserSnapshot), [activeUserSnapshot]);
 
@@ -119,9 +161,10 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginUser = (email: string, passwordText: string) => {
     const match = users.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.passwordText === passwordText
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.passwordText === passwordText,
     );
-    if (!match) return { success: false, error: "Invalid email credentials or missing user registry entry." };
+    if (!match)
+      return { success: false, error: "Invalid email credentials or missing user registry entry." };
 
     localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(match));
     notifyAuthStorage();
@@ -148,14 +191,21 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateAccount = ({ fullName, email }: AccountUpdate) => {
     if (!currentUser) return { success: false, error: "No active account is signed in." };
-    if (!fullName.trim() || !email.trim()) return { success: false, error: "Name and email are required." };
+    if (!fullName.trim() || !email.trim())
+      return { success: false, error: "Name and email are required." };
 
     const emailChanged = email.trim().toLowerCase() !== currentUser.email.toLowerCase();
-    const emailTaken = users.some((user) => user.email.toLowerCase() === email.trim().toLowerCase() && user.email !== currentUser.email);
-    if (emailChanged && emailTaken) return { success: false, error: "That email address is already in use." };
+    const emailTaken = users.some(
+      (user) =>
+        user.email.toLowerCase() === email.trim().toLowerCase() && user.email !== currentUser.email,
+    );
+    if (emailChanged && emailTaken)
+      return { success: false, error: "That email address is already in use." };
 
     const updatedUser = { ...currentUser, fullName: fullName.trim(), email: email.trim() };
-    const updatedUsers = users.map((user) => user.email === currentUser.email ? updatedUser : user);
+    const updatedUsers = users.map((user) =>
+      user.email === currentUser.email ? updatedUser : user,
+    );
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
     localStorage.setItem(ACTIVE_USER_STORAGE_KEY, JSON.stringify(updatedUser));
     notifyAuthStorage();
@@ -170,7 +220,18 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MockAuthContext.Provider
-      value={{ currentUser, profile, clientProfile, loginUser, registerUser, assignRole, updateProfile, updateClientProfile, updateAccount, logoutUser }}
+      value={{
+        currentUser,
+        profile,
+        clientProfile,
+        loginUser,
+        registerUser,
+        assignRole,
+        updateProfile,
+        updateClientProfile,
+        updateAccount,
+        logoutUser,
+      }}
     >
       {children}
     </MockAuthContext.Provider>

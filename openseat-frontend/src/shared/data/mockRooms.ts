@@ -20,7 +20,13 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     weeklyCommitmentText: "40 hrs/week",
     descriptionParagraph:
       "Lead positioning, go-to-market strategy, and lifecycle programs that help independent sellers grow on a global marketplace. Partner with product, sales, analytics, and seller success teams to turn customer insight into measurable adoption.",
-    skillsTags: ["Product Marketing", "Go-to-Market", "Market Research", "Lifecycle Marketing", "Analytics"],
+    skillsTags: [
+      "Product Marketing",
+      "Go-to-Market",
+      "Market Research",
+      "Lifecycle Marketing",
+      "Analytics",
+    ],
     proposalsCountText: "12 assigned bidders",
   },
   {
@@ -61,8 +67,15 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     experienceLevelRequired: "Expert",
     durationEstimateText: "Full-time · Permanent",
     weeklyCommitmentText: "40 hrs/week",
-    descriptionParagraph: "Design clear, trustworthy messaging experiences for businesses and their customers. Collaborate with product managers, researchers, engineers, and content designers from early concepts through shipped product.",
-    skillsTags: ["Product Design", "Interaction Design", "Figma", "User Research", "Design Systems"],
+    descriptionParagraph:
+      "Design clear, trustworthy messaging experiences for businesses and their customers. Collaborate with product managers, researchers, engineers, and content designers from early concepts through shipped product.",
+    skillsTags: [
+      "Product Design",
+      "Interaction Design",
+      "Figma",
+      "User Research",
+      "Design Systems",
+    ],
     proposalsCountText: "5 assigned bidders",
   },
   {
@@ -82,8 +95,15 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     experienceLevelRequired: "Intermediate",
     durationEstimateText: "6+ months contract",
     weeklyCommitmentText: "30+ hrs/week",
-    descriptionParagraph: "Use marketplace data and operational insight to improve supply, demand, and service quality across a fast-moving city portfolio. Build business cases, coordinate pilots, and communicate decisions to cross-functional partners.",
-    skillsTags: ["Operations Strategy", "SQL", "Experimentation", "Forecasting", "Stakeholder Management"],
+    descriptionParagraph:
+      "Use marketplace data and operational insight to improve supply, demand, and service quality across a fast-moving city portfolio. Build business cases, coordinate pilots, and communicate decisions to cross-functional partners.",
+    skillsTags: [
+      "Operations Strategy",
+      "SQL",
+      "Experimentation",
+      "Forecasting",
+      "Stakeholder Management",
+    ],
     proposalsCountText: "16 assigned bidders",
   },
   {
@@ -103,7 +123,8 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     experienceLevelRequired: "Expert",
     durationEstimateText: "6+ months contract",
     weeklyCommitmentText: "30+ hrs/week",
-    descriptionParagraph: "Help enterprise customers design secure, scalable cloud architectures and guide technical migrations. Translate business requirements into implementation plans while partnering with engineering, security, and account teams.",
+    descriptionParagraph:
+      "Help enterprise customers design secure, scalable cloud architectures and guide technical migrations. Translate business requirements into implementation plans while partnering with engineering, security, and account teams.",
     skillsTags: ["Azure", "Cloud Architecture", "Kubernetes", "Security", "Enterprise Consulting"],
     proposalsCountText: "9 assigned bidders",
   },
@@ -124,8 +145,15 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     experienceLevelRequired: "Expert",
     durationEstimateText: "Full-time · Permanent",
     weeklyCommitmentText: "40 hrs/week",
-    descriptionParagraph: "Coordinate cross-functional programs that improve measurement products for advertisers. Own planning, risks, dependencies, and communication across product, engineering, privacy, and customer-facing teams.",
-    skillsTags: ["Program Management", "Ads Measurement", "Privacy", "Data Products", "Executive Communication"],
+    descriptionParagraph:
+      "Coordinate cross-functional programs that improve measurement products for advertisers. Own planning, risks, dependencies, and communication across product, engineering, privacy, and customer-facing teams.",
+    skillsTags: [
+      "Program Management",
+      "Ads Measurement",
+      "Privacy",
+      "Data Products",
+      "Executive Communication",
+    ],
     proposalsCountText: "7 assigned bidders",
   },
   {
@@ -145,7 +173,8 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     experienceLevelRequired: "Expert",
     durationEstimateText: "6+ months contract",
     weeklyCommitmentText: "30+ hrs/week",
-    descriptionParagraph: "Build resilient APIs and services that power commerce for independent businesses. Work in small autonomous teams, improve operational reliability, and ship product changes safely at global scale.",
+    descriptionParagraph:
+      "Build resilient APIs and services that power commerce for independent businesses. Work in small autonomous teams, improve operational reliability, and ship product changes safely at global scale.",
     skillsTags: ["Ruby", "GraphQL", "Distributed Systems", "PostgreSQL", "Observability"],
     proposalsCountText: "11 assigned bidders",
   },
@@ -166,7 +195,8 @@ export const MOCK_JOB_ROOMS: JobRoomRecord[] = [
     experienceLevelRequired: "Intermediate",
     durationEstimateText: "Full-time · Permanent",
     weeklyCommitmentText: "40 hrs/week",
-    descriptionParagraph: "Define product strategy for identity and access-risk capabilities used across financial services. Turn security, compliance, and customer needs into prioritized roadmaps and measurable product outcomes.",
+    descriptionParagraph:
+      "Define product strategy for identity and access-risk capabilities used across financial services. Turn security, compliance, and customer needs into prioritized roadmaps and measurable product outcomes.",
     skillsTags: ["Product Management", "Cybersecurity", "Identity", "Risk Management", "Roadmaps"],
     proposalsCountText: "6 assigned bidders",
   },

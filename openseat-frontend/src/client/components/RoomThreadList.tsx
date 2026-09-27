@@ -20,7 +20,9 @@ export function RoomThreadList({ rooms, registry, selectedRoomId, onSelect }: Ro
         >
           <span className="body-strong marketplace-truncate">{room.title}</span>
           <span className="marketplace-room-row-footer">
-            <span className="caption text-ink-muted">{registry[room.id]?.proposals.length ?? 0} applicants</span>
+            <span className="caption text-ink-muted">
+              {registry[room.id]?.proposals.length ?? 0} applicants
+            </span>
             <span className="caption text-ink-muted">{room.budgetType}</span>
           </span>
         </button>

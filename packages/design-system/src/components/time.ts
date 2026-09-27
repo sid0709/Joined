@@ -29,7 +29,9 @@ export function parseTime(value: string): TimeParts | null {
   if (!value) return null;
   const [h = "0", m = "0", s = "0"] = value.split(":");
   const parts = { h: Number(h), m: Number(m), s: Number(s) };
-  return Number.isFinite(parts.h) && Number.isFinite(parts.m) && Number.isFinite(parts.s) ? parts : null;
+  return Number.isFinite(parts.h) && Number.isFinite(parts.m) && Number.isFinite(parts.s)
+    ? parts
+    : null;
 }
 
 export function formatTime({ h, m, s }: TimeParts, withSeconds: boolean) {
@@ -56,7 +58,9 @@ export function displayTime(value: string, hourCycle: HourCycle, withSeconds = f
   const parts = parseTime(value);
   if (!parts) return "";
   const tail = `${pad2(parts.m)}${withSeconds ? `:${pad2(parts.s)}` : ""}`;
-  return hourCycle === "12h" ? `${to12(parts.h)}:${tail} ${meridiemOf(parts.h)}` : `${pad2(parts.h)}:${tail}`;
+  return hourCycle === "12h"
+    ? `${to12(parts.h)}:${tail} ${meridiemOf(parts.h)}`
+    : `${pad2(parts.h)}:${tail}`;
 }
 
 export function range(from: number, to: number, step = 1) {
@@ -72,5 +76,8 @@ export function minutesOf(value: string) {
 }
 
 export function fromMinutes(total: number) {
-  return formatTime({ h: Math.floor(total / MINUTES_PER_HOUR), m: total % MINUTES_PER_HOUR, s: 0 }, false);
+  return formatTime(
+    { h: Math.floor(total / MINUTES_PER_HOUR), m: total % MINUTES_PER_HOUR, s: 0 },
+    false,
+  );
 }

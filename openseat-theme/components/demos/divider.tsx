@@ -1,12 +1,27 @@
 "use client";
 
-import { Button, Card, Divider, HStack, Icon, IconButton, Stack, Text, Tile, icons } from "@openseat/design-system";
+import {
+  Button,
+  Card,
+  Divider,
+  HStack,
+  Icon,
+  IconButton,
+  Stack,
+  Text,
+  Tile,
+  icons,
+} from "@openseat/design-system";
+
 import { Examples, Preview } from "./shared";
 
 export default function DividerDemo() {
   return (
     <Examples>
-      <Preview label="Subtle and strong" description="Subtle separates items in a list; strong marks a real change of region.">
+      <Preview
+        label="Subtle and strong"
+        description="Subtle separates items in a list; strong marks a real change of region."
+      >
         <Stack gap={3}>
           <Text>Above a subtle divider</Text>
           <Divider variant="subtle" />
@@ -16,7 +31,10 @@ export default function DividerDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="With a label" description="Labels name the split — often “or” between two ways to sign in.">
+      <Preview
+        label="With a label"
+        description="Labels name the split — often “or” between two ways to sign in."
+      >
         <Stack gap={3} maxWidth={360}>
           <Button label="Continue with email" variant="primary" width="100%" />
           <Divider label="or" />
@@ -24,7 +42,10 @@ export default function DividerDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Section labels" description="A labeled divider can title a group without a heading.">
+      <Preview
+        label="Section labels"
+        description="A labeled divider can title a group without a heading."
+      >
         <Stack gap={3}>
           <Divider label="Today" />
           <Text>Jordan joined the room</Text>
@@ -38,10 +59,25 @@ export default function DividerDemo() {
         <Stack gap={4}>
           <HStack gap={2} vAlign="center" height={32}>
             <IconButton label="Bold" variant="ghost" size="sm" icon={<Icon icon={icons.bold} />} />
-            <IconButton label="Italic" variant="ghost" size="sm" icon={<Icon icon={icons.italic} />} />
+            <IconButton
+              label="Italic"
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={icons.italic} />}
+            />
             <Divider orientation="vertical" />
-            <IconButton label="Align left" variant="ghost" size="sm" icon={<Icon icon={icons.alignLeft} />} />
-            <IconButton label="Align center" variant="ghost" size="sm" icon={<Icon icon={icons.alignCenter} />} />
+            <IconButton
+              label="Align left"
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={icons.alignLeft} />}
+            />
+            <IconButton
+              label="Align center"
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon={icons.alignCenter} />}
+            />
             <Divider orientation="vertical" />
             <IconButton label="Link" variant="ghost" size="sm" icon={<Icon icon={icons.link} />} />
           </HStack>
@@ -67,7 +103,10 @@ export default function DividerDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Full bleed" description="isFullBleed runs past the container padding to the card edges.">
+      <Preview
+        label="Full bleed"
+        description="isFullBleed runs past the container padding to the card edges."
+      >
         <Card padding={4}>
           <Stack gap={3}>
             <Text weight="semibold">Card title</Text>

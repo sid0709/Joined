@@ -4,8 +4,8 @@ Owned by the **client / hiring** team.
 
 ## Routes
 
-| URL | Page |
-|-----|------|
+| URL                             | Page                         |
+| ------------------------------- | ---------------------------- |
 | `/marketplace/client/dashboard` | Post jobs, review applicants |
 
 ## Structure

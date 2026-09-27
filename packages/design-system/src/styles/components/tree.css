@@ -13,13 +13,31 @@
   font-size: var(--font-size-base);
   color: var(--color-text-primary);
 }
-.os-tree-compact { --os-tree-row: 26px; --os-tree-step: 18px; }
-.os-tree-spacious { --os-tree-row: 44px; --os-tree-step: 24px; }
+.os-tree-compact {
+  --os-tree-row: 26px;
+  --os-tree-step: 18px;
+}
+.os-tree-spacious {
+  --os-tree-row: 44px;
+  --os-tree-step: 24px;
+}
 
-.os-tree-group { list-style: none; margin: 0; padding: 0; animation: os-tree-open var(--duration-fast) var(--ease-standard); }
-@keyframes os-tree-open { from { opacity: 0; transform: translateY(-2px); } }
+.os-tree-group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  animation: os-tree-open var(--duration-fast) var(--ease-standard);
+}
+@keyframes os-tree-open {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
 
-.os-tree-item { outline: none; }
+.os-tree-item {
+  outline: none;
+}
 .os-tree-row {
   position: relative;
   display: flex;
@@ -31,14 +49,30 @@
   user-select: none;
   transition: background-color var(--duration-fast) var(--ease-standard);
 }
-.os-tree-row:hover { background: var(--color-overlay-hover); }
-.os-tree-item:focus-visible > .os-tree-row { box-shadow: inset 0 0 0 2px var(--color-accent); }
-.os-tree-row-selected { background: var(--color-neutral); }
-.os-tree-row-disabled { opacity: 0.45; cursor: default; }
-.os-tree-row-disabled:hover { background: transparent; }
+.os-tree-row:hover {
+  background: var(--color-overlay-hover);
+}
+.os-tree-item:focus-visible > .os-tree-row {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+.os-tree-row-selected {
+  background: var(--color-neutral);
+}
+.os-tree-row-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.os-tree-row-disabled:hover {
+  background: transparent;
+}
 
 /* One column per ancestor. Guides sit where the parent's chevron was. */
-.os-tree-indent { position: relative; flex: none; align-self: stretch; width: var(--os-tree-step); }
+.os-tree-indent {
+  position: relative;
+  flex: none;
+  align-self: stretch;
+  width: var(--os-tree-step);
+}
 .os-tree-indent::before {
   content: "";
   position: absolute;
@@ -53,8 +87,12 @@
 .os-tree-guides .os-tree-indent::before,
 .os-tree-checkbox .os-tree-indent::before,
 .os-tree-explorer:hover .os-tree-indent::before,
-.os-tree-explorer:focus-within .os-tree-indent::before { opacity: 1; }
-.os-tree-explorer { --os-tree-guide: var(--color-border); }
+.os-tree-explorer:focus-within .os-tree-indent::before {
+  opacity: 1;
+}
+.os-tree-explorer {
+  --os-tree-guide: var(--color-border);
+}
 
 .os-tree-chevron {
   flex: none;
@@ -64,15 +102,37 @@
   height: var(--os-tree-step);
   border-radius: calc(var(--radius-inner) - 2px);
   color: var(--color-icon-secondary);
-  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
-.os-tree-chevron .os-glyph { width: 14px; height: 14px; transition: transform var(--duration-fast) var(--ease-standard); }
-.os-tree-item[aria-expanded="true"] > .os-tree-row .os-tree-chevron .os-glyph { transform: rotate(90deg); }
-.os-tree-chevron:not(.os-tree-chevron-empty):hover { background: var(--color-overlay-pressed); color: var(--color-text-primary); }
+.os-tree-chevron .os-glyph {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+.os-tree-item[aria-expanded="true"] > .os-tree-row .os-tree-chevron .os-glyph {
+  transform: rotate(90deg);
+}
+.os-tree-chevron:not(.os-tree-chevron-empty):hover {
+  background: var(--color-overlay-pressed);
+  color: var(--color-text-primary);
+}
 
-.os-tree-lead { flex: none; display: inline-flex; align-items: center; margin-left: var(--spacing-1); color: var(--color-icon-secondary); }
-.os-tree-icon .os-glyph { width: 16px; height: 16px; }
-.os-tree-item[aria-expanded] > .os-tree-row .os-tree-icon { color: var(--color-icon-accent); }
+.os-tree-lead {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--spacing-1);
+  color: var(--color-icon-secondary);
+}
+.os-tree-icon .os-glyph {
+  width: 16px;
+  height: 16px;
+}
+.os-tree-item[aria-expanded] > .os-tree-row .os-tree-icon {
+  color: var(--color-icon-accent);
+}
 
 .os-tree-text {
   flex: 1;
@@ -82,8 +142,15 @@
   margin-left: var(--spacing-2);
   padding: var(--spacing-1) 0;
 }
-.os-tree-label { line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.os-tree-root > .os-tree-row .os-tree-label { font-weight: var(--font-weight-medium, 500); }
+.os-tree-label {
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.os-tree-root > .os-tree-row .os-tree-label {
+  font-weight: var(--font-weight-medium, 500);
+}
 .os-tree-desc {
   font-size: var(--font-size-sm);
   line-height: 16px;
@@ -92,7 +159,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.os-tree-compact .os-tree-text { flex-direction: row; align-items: baseline; gap: var(--spacing-2); padding: 0; }
+.os-tree-compact .os-tree-text {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--spacing-2);
+  padding: 0;
+}
 .os-tree-meta {
   flex: none;
   margin-left: var(--spacing-2);
@@ -100,7 +172,12 @@
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
-.os-tree-mark { background: var(--color-warning-muted); color: inherit; border-radius: 3px; padding: 0 1px; }
+.os-tree-mark {
+  background: var(--color-warning-muted);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
 
 /* Leading avatar used by demos and apps */
 .os-tree-leading {
@@ -117,7 +194,10 @@
 
 /* selection — one chosen row with an accent bar */
 .os-tree-selection .os-tree-row-selected,
-.os-tree-selection .os-tree-row-selected:hover { background: var(--color-accent-muted); color: var(--color-text-accent); }
+.os-tree-selection .os-tree-row-selected:hover {
+  background: var(--color-accent-muted);
+  color: var(--color-text-accent);
+}
 .os-tree-selection .os-tree-row-selected::before {
   content: "";
   position: absolute;
@@ -128,7 +208,9 @@
   border-radius: var(--radius-full);
   background: var(--color-accent);
 }
-.os-tree-selection .os-tree-row-selected :is(.os-tree-desc, .os-tree-meta, .os-tree-chevron) { color: var(--color-text-accent); }
+.os-tree-selection .os-tree-row-selected :is(.os-tree-desc, .os-tree-meta, .os-tree-chevron) {
+  color: var(--color-text-accent);
+}
 
 /* checkbox — tri-state */
 .os-tree-check {
@@ -142,20 +224,37 @@
   background: var(--color-background-surface);
   box-shadow: inset 0 0 0 1.5px var(--color-border-emphasized);
   color: var(--color-on-accent);
-  transition: background-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
 }
-.os-tree-check .os-glyph { width: 12px; height: 12px; stroke-width: 3; }
+.os-tree-check .os-glyph {
+  width: 12px;
+  height: 12px;
+  stroke-width: 3;
+}
 .os-tree-check[data-state="checked"],
-.os-tree-check[data-state="mixed"] { background: var(--color-accent); box-shadow: none; }
-.os-tree-row:hover .os-tree-check[data-state="unchecked"] { box-shadow: inset 0 0 0 1.5px var(--color-accent); }
+.os-tree-check[data-state="mixed"] {
+  background: var(--color-accent);
+  box-shadow: none;
+}
+.os-tree-row:hover .os-tree-check[data-state="unchecked"] {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
 
 /* cards — each top-level branch on its own surface */
-.os-tree-cards { display: flex; flex-direction: column; gap: var(--spacing-2); }
+.os-tree-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
 .os-tree-cards > .os-tree-root {
   padding: var(--spacing-1);
   background: var(--color-background-surface);
   border-radius: var(--radius-element);
-  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-low, var(--elevation-1));
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    var(--shadow-low, var(--elevation-1));
 }
 .os-tree-cards > .os-tree-root > .os-tree-group {
   margin-top: var(--spacing-1);
@@ -164,5 +263,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .os-tree-group { animation: none; }
+  .os-tree-group {
+    animation: none;
+  }
 }

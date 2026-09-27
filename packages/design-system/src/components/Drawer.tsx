@@ -1,8 +1,9 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
 import { Layout, LayoutContent, LayoutFooter } from "./LayoutPrimitives";
 import { Dialog, DialogHeader, type DialogPurpose } from "./Overlay";
+
+import type { CSSProperties, ReactNode } from "react";
 
 export type DrawerSide = "start" | "end" | "top" | "bottom";
 export type DrawerSize = "sm" | "md" | "lg" | "full";
@@ -29,7 +30,7 @@ export interface DrawerProps {
   /** Which edge the drawer slides from. Logical start/end mirror under RTL. */
   side?: DrawerSide;
   /** sm 360, md 480, lg 720, full — or any px/CSS length. */
-  size?: DrawerSize | number | string;
+  size?: number | string;
   /**
    * form keeps focus inside and guards against losing input; info closes on
    * outside click; required must be answered.
@@ -91,7 +92,16 @@ export function Drawer({
     >
       <Layout
         height="fill"
-        header={<DialogHeader title={title} subtitle={subtitle} startContent={headerStart} endContent={headerActions} onOpenChange={onOpenChange} hasDivider />}
+        header={
+          <DialogHeader
+            title={title}
+            subtitle={subtitle}
+            startContent={headerStart}
+            endContent={headerActions}
+            onOpenChange={onOpenChange}
+            hasDivider
+          />
+        }
         content={<LayoutContent>{children}</LayoutContent>}
         footer={footer ? <LayoutFooter hasDivider>{footer}</LayoutFooter> : undefined}
       />

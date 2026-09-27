@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useState } from "react";
 import {
   Button,
   Card,
@@ -14,6 +13,8 @@ import {
   type ToastDismissFn,
   type ToastPosition,
 } from "@openseat/design-system";
+import { useRef, useState } from "react";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const SAVE_MS = 900;
@@ -28,7 +29,11 @@ function Basics() {
   return (
     <Row>
       <Button label="Info toast" onClick={() => toast({ body: "Invite sent to Alex Rivera." })} />
-      <Button label="Error toast" variant="destructive" onClick={() => toast({ body: "Couldn’t send the invite.", type: "error" })} />
+      <Button
+        label="Error toast"
+        variant="destructive"
+        onClick={() => toast({ body: "Couldn’t send the invite.", type: "error" })}
+      />
     </Row>
   );
 }
@@ -46,7 +51,9 @@ function Actions() {
             setArchived(true);
             toast({
               body: "Room archived.",
-              endContent: <Button label="Undo" size="sm" variant="ghost" onClick={() => setArchived(false)} />,
+              endContent: (
+                <Button label="Undo" size="sm" variant="ghost" onClick={() => setArchived(false)} />
+              ),
             });
           }}
         />
@@ -56,7 +63,14 @@ function Actions() {
             toast({
               body: "brief.pdf didn’t upload.",
               type: "error",
-              endContent: <Button label="Retry" size="sm" variant="ghost" icon={<Icon icon={icons.refresh} />} />,
+              endContent: (
+                <Button
+                  label="Retry"
+                  size="sm"
+                  variant="ghost"
+                  icon={<Icon icon={icons.refresh} />}
+                />
+              ),
             })
           }
         />
@@ -70,9 +84,24 @@ function Timing() {
   const toast = useToast();
   return (
     <Row>
-      <Button label="2 seconds" onClick={() => toast({ body: "Copied link.", autoHideDuration: SHORT_MS })} />
-      <Button label="8 seconds" onClick={() => toast({ body: "Deadline extended to Monday.", autoHideDuration: LONG_MS })} />
-      <Button label="Until dismissed" onClick={() => toast({ body: "Payment method expired. Update it in settings.", type: "error", isAutoHide: false })} />
+      <Button
+        label="2 seconds"
+        onClick={() => toast({ body: "Copied link.", autoHideDuration: SHORT_MS })}
+      />
+      <Button
+        label="8 seconds"
+        onClick={() => toast({ body: "Deadline extended to Monday.", autoHideDuration: LONG_MS })}
+      />
+      <Button
+        label="Until dismissed"
+        onClick={() =>
+          toast({
+            body: "Payment method expired. Update it in settings.",
+            type: "error",
+            isAutoHide: false,
+          })
+        }
+      />
     </Row>
   );
 }
@@ -88,12 +117,28 @@ function Dedup() {
           onClick={() => {
             const n = count + 1;
             setCount(n);
-            toast({ body: `${n} bid${n === 1 ? "" : "s"} received`, uniqueID: "bids", collisionBehavior: "overwrite" });
+            toast({
+              body: `${n} bid${n === 1 ? "" : "s"} received`,
+              uniqueID: "bids",
+              collisionBehavior: "overwrite",
+            });
           }}
         />
-        <Button label="Ignore repeats" onClick={() => toast({ body: "You’re offline.", uniqueID: "offline", collisionBehavior: "ignore", type: "error" })} />
+        <Button
+          label="Ignore repeats"
+          onClick={() =>
+            toast({
+              body: "You’re offline.",
+              uniqueID: "offline",
+              collisionBehavior: "ignore",
+              type: "error",
+            })
+          }
+        />
       </Row>
-      <Caption>Click either button several times — one toast updates or stays, never a pile.</Caption>
+      <Caption>
+        Click either button several times — one toast updates or stays, never a pile.
+      </Caption>
     </Stack>
   );
 }
@@ -107,49 +152,88 @@ function Programmatic() {
     dismiss.current = toast({ body: "Saving brief…", isAutoHide: false });
     await wait(SAVE_MS);
     dismiss.current?.();
-    toast({ body: "Brief saved.", onHide: (reason) => setLog((l) => [`Hidden (${reason})`, ...l].slice(0, 3)) });
+    toast({
+      body: "Brief saved.",
+      onHide: (reason) => setLog((l) => [`Hidden (${reason})`, ...l].slice(0, 3)),
+    });
   };
 
   return (
     <Stack gap={2} hAlign="start">
       <Row>
-        <Button label="Save brief" variant="primary" onClick={save} />
+        <Button
+          label="Save brief"
+          variant="primary"
+          onClick={() => {
+            void save();
+          }}
+        />
         <Button label="Dismiss current" variant="ghost" onClick={() => dismiss.current?.()} />
       </Row>
-      <Caption>{log.length ? log.join(" · ") : "toast() returns a dismiss function; onHide says why it closed."}</Caption>
+      <Caption>
+        {log.length
+          ? log.join(" · ")
+          : "toast() returns a dismiss function; onHide says why it closed."}
+      </Caption>
     </Stack>
   );
 }
 
 function PositionButton({ position }: { position: ToastPosition }) {
   const toast = useToast();
-  return <Button label={position} size="sm" onClick={() => toast({ body: `Shown at ${position}` })} />;
+  return (
+    <Button label={position} size="sm" onClick={() => toast({ body: `Shown at ${position}` })} />
+  );
 }
 
 export default function ToastDemo() {
   return (
     <Examples>
-      <Preview align="start" label="Info and error" description="useToast() returns a function. OpenSeatProvider mounts the viewport for you.">
+      <Preview
+        align="start"
+        label="Info and error"
+        description="useToast() returns a function. OpenSeatProvider mounts the viewport for you."
+      >
         <Basics />
       </Preview>
 
-      <Preview align="start" label="Actions" description="endContent holds one quick action — Undo, Retry, or View.">
+      <Preview
+        align="start"
+        label="Actions"
+        description="endContent holds one quick action — Undo, Retry, or View."
+      >
         <Actions />
       </Preview>
 
-      <Preview align="start" label="Timing" description="autoHideDuration in ms, or isAutoHide={false} for messages that need a response.">
+      <Preview
+        align="start"
+        label="Timing"
+        description="autoHideDuration in ms, or isAutoHide={false} for messages that need a response."
+      >
         <Timing />
       </Preview>
 
-      <Preview align="start" label="De-duplicate" description="uniqueID with overwrite updates one toast; with ignore, repeats are dropped.">
+      <Preview
+        align="start"
+        label="De-duplicate"
+        description="uniqueID with overwrite updates one toast; with ignore, repeats are dropped."
+      >
         <Dedup />
       </Preview>
 
-      <Preview align="start" label="Programmatic dismiss" description="Show a pending toast, then replace it when the work finishes.">
+      <Preview
+        align="start"
+        label="Programmatic dismiss"
+        description="Show a pending toast, then replace it when the work finishes."
+      >
         <Programmatic />
       </Preview>
 
-      <Preview align="start" label="Positions" description="A nested ToastViewport scopes position and stack size to part of the app.">
+      <Preview
+        align="start"
+        label="Positions"
+        description="A nested ToastViewport scopes position and stack size to part of the app."
+      >
         <HStack gap={3} wrap="wrap">
           {POSITIONS.map((position) => (
             <ToastViewport key={position} position={position} maxVisible={2}>
@@ -159,7 +243,10 @@ export default function ToastDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="In a flow" description="Confirm what just happened without blocking the next step.">
+      <Preview
+        label="In a flow"
+        description="Confirm what just happened without blocking the next step."
+      >
         <Card maxWidth={420}>
           <FlowCard />
         </Card>
@@ -186,7 +273,14 @@ function FlowCard() {
               setInvited((all) => [...all, name]);
               toast({
                 body: `Invite sent to ${name}.`,
-                endContent: <Button label="Undo" size="sm" variant="ghost" onClick={() => setInvited((all) => all.filter((n) => n !== name))} />,
+                endContent: (
+                  <Button
+                    label="Undo"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setInvited((all) => all.filter((n) => n !== name))}
+                  />
+                ),
               });
             }}
           />

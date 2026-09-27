@@ -15,6 +15,7 @@ import {
   Text,
   icons,
 } from "@openseat/design-system";
+
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 
 const PLACEMENTS = ["above", "below", "start", "end"] as const;
@@ -44,7 +45,11 @@ function PersonCard({ name, role }: { name: string; role: string }) {
 export default function HoverCardDemo() {
   return (
     <Examples>
-      <Preview align="start" label="People" description="Hover a name for a rich preview; interactive content inside stays reachable.">
+      <Preview
+        align="start"
+        label="People"
+        description="Hover a name for a rich preview; interactive content inside stays reachable."
+      >
         <Text>
           Bids from{" "}
           {PEOPLE.slice(0, 3).map((p, i) => (
@@ -59,7 +64,11 @@ export default function HoverCardDemo() {
         </Text>
       </Preview>
 
-      <Preview align="start" label="Room preview" description="A card in the card — progress, deadline, and budget.">
+      <Preview
+        align="start"
+        label="Room preview"
+        description="A card in the card — progress, deadline, and budget."
+      >
         <HoverCard
           content={
             <Stack gap={2}>
@@ -67,7 +76,13 @@ export default function HoverCardDemo() {
               <Text type="supporting" color="secondary">
                 Fixed · $2,400 · closes Friday
               </Text>
-              <ProgressBar label="Invitees who bid" value={4} max={6} hasValueLabel formatValueLabel={(v, m) => `${v} of ${m}`} />
+              <ProgressBar
+                label="Invitees who bid"
+                value={4}
+                max={6}
+                hasValueLabel
+                formatValueLabel={(v, m) => `${v} of ${m}`}
+              />
             </Stack>
           }
         >
@@ -78,14 +93,22 @@ export default function HoverCardDemo() {
       <Preview align="start" label="Placement">
         <Row>
           {PLACEMENTS.map((placement) => (
-            <HoverCard key={placement} placement={placement} content={<Text>Opens {placement}.</Text>}>
+            <HoverCard
+              key={placement}
+              placement={placement}
+              content={<Text>Opens {placement}.</Text>}
+            >
               <Button label={placement} />
             </HoverCard>
           ))}
         </Row>
       </Preview>
 
-      <Preview align="start" label="Delays" description="Longer delays avoid flicker as the pointer passes over dense lists.">
+      <Preview
+        align="start"
+        label="Delays"
+        description="Longer delays avoid flicker as the pointer passes over dense lists."
+      >
         <Row>
           <HoverCard delay={0} content={<Text>Instant</Text>}>
             <Button label="No delay" />

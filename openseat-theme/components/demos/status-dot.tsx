@@ -1,6 +1,18 @@
 "use client";
 
-import { Avatar, Card, HStack, Heading, Icon, Stack, StatusDot, Text, icons, type StatusDotVariant } from "@openseat/design-system";
+import {
+  Avatar,
+  Card,
+  HStack,
+  Heading,
+  Icon,
+  Stack,
+  StatusDot,
+  Text,
+  icons,
+  type StatusDotVariant,
+} from "@openseat/design-system";
+
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 
 const VARIANTS: { variant: StatusDotVariant; label: string }[] = [
@@ -17,12 +29,22 @@ const SERVICES = [
   { name: "File uploads", variant: "error" as const, note: "Outage — investigating" },
 ];
 const PRESENCE: StatusDotVariant[] = ["success", "success", "warning", "neutral", "neutral"];
-const PRESENCE_LABEL: Record<StatusDotVariant, string> = { success: "Active", warning: "Away", neutral: "Offline", error: "Busy", accent: "New" };
+const PRESENCE_LABEL: Record<StatusDotVariant, string> = {
+  success: "Active",
+  warning: "Away",
+  neutral: "Offline",
+  error: "Busy",
+  accent: "New",
+};
 
 export default function StatusDotDemo() {
   return (
     <Examples>
-      <Preview align="start" label="Variants" description="Every dot has a label — read aloud and shown in the tooltip.">
+      <Preview
+        align="start"
+        label="Variants"
+        description="Every dot has a label — read aloud and shown in the tooltip."
+      >
         <Row>
           {VARIANTS.map(({ variant, label }) => (
             <HStack key={variant} gap={2} vAlign="center">
@@ -33,7 +55,11 @@ export default function StatusDotDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Pulsing" description="isPulsing draws the eye to live or urgent states. Use it sparingly.">
+      <Preview
+        align="start"
+        label="Pulsing"
+        description="isPulsing draws the eye to live or urgent states. Use it sparingly."
+      >
         <Row>
           <HStack gap={2} vAlign="center">
             <StatusDot variant="success" label="Live" isPulsing />
@@ -50,16 +76,28 @@ export default function StatusDotDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Tooltip" description="A tooltip can say more than the label when the dot stands alone.">
+      <Preview
+        align="start"
+        label="Tooltip"
+        description="A tooltip can say more than the label when the dot stands alone."
+      >
         <Row>
           <StatusDot variant="success" label="Synced" tooltip="Synced 2 minutes ago" />
           <StatusDot variant="warning" label="Pending" tooltip="3 changes waiting to sync" />
-          <StatusDot variant="error" label="Failed" tooltip="Sync failed — click retry in settings" />
+          <StatusDot
+            variant="error"
+            label="Failed"
+            tooltip="Sync failed — click retry in settings"
+          />
           <Caption>Hover the dots.</Caption>
         </Row>
       </Preview>
 
-      <Preview align="start" label="With an icon" description="An icon inside the dot keeps states apart without color.">
+      <Preview
+        align="start"
+        label="With an icon"
+        description="An icon inside the dot keeps states apart without color."
+      >
         <Row>
           <StatusDot variant="success" label="Done" icon={<Icon icon={icons.check} />} />
           <StatusDot variant="error" label="Blocked" icon={<Icon icon={icons.close} />} />
@@ -67,7 +105,10 @@ export default function StatusDotDemo() {
         </Row>
       </Preview>
 
-      <Preview label="Service status" description="A status page — one dot per system, words beside each.">
+      <Preview
+        label="Service status"
+        description="A status page — one dot per system, words beside each."
+      >
         <Card maxWidth={440}>
           <Stack gap={3}>
             <HStack hAlign="between" vAlign="center">
@@ -113,7 +154,11 @@ export default function StatusDotDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Legend" description="Explain what the dots on a chart or calendar mean.">
+      <Preview
+        align="start"
+        label="Legend"
+        description="Explain what the dots on a chart or calendar mean."
+      >
         <Row>
           {[
             { variant: "accent" as const, label: "Your rooms" },

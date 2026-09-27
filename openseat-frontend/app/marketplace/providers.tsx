@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+
 import { MockAuthProvider } from "@/src/shared/auth/MockAuthContext";
 import { JobRoomsProvider } from "@/src/shared/job-rooms/JobRoomsContext";
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+
 import { Glyph } from "./Glyph";
 import { useControllable } from "./hooks";
 
@@ -85,8 +86,16 @@ export function Tree({
   highlight,
   label = "Tree",
 }: TreeProps) {
-  const [expandedList, setExpandedList] = useControllable(expandedProp, defaultExpanded, onExpandedChange);
-  const [checkedList, setCheckedList] = useControllable(checkedProp, defaultChecked, onCheckedChange);
+  const [expandedList, setExpandedList] = useControllable(
+    expandedProp,
+    defaultExpanded,
+    onExpandedChange,
+  );
+  const [checkedList, setCheckedList] = useControllable(
+    checkedProp,
+    defaultChecked,
+    onCheckedChange,
+  );
   const expanded = useMemo(() => new Set(expandedList), [expandedList]);
   const checked = useMemo(() => new Set(checkedList), [checkedList]);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -104,7 +113,9 @@ export function Tree({
     return out;
   }, [nodes, expanded]);
 
-  const tabStop = visible.some((row) => row.node.id === focusedId) ? focusedId : visible[0]?.node.id;
+  const tabStop = visible.some((row) => row.node.id === focusedId)
+    ? focusedId
+    : visible[0]?.node.id;
 
   function focus(id: string | undefined) {
     if (!id) return;
@@ -151,8 +162,12 @@ export function Tree({
       ArrowUp: () => focus(visible[index - 1]?.node.id),
       Home: () => focus(visible[0]?.node.id),
       End: () => focus(visible[visible.length - 1]?.node.id),
-      ArrowRight: () => (hasChildren && !open ? toggleOpen(node.id, true) : hasChildren && focus(node.children![0].id)),
-      ArrowLeft: () => (hasChildren && open ? toggleOpen(node.id, false) : focus(row.parent ?? undefined)),
+      ArrowRight: () =>
+        hasChildren && !open
+          ? toggleOpen(node.id, true)
+          : hasChildren && focus(node.children![0].id),
+      ArrowLeft: () =>
+        hasChildren && open ? toggleOpen(node.id, false) : focus(row.parent ?? undefined),
       Enter: () => activate(node),
       " ": () => (variant === "checkbox" ? !node.disabled && toggleCheck(node) : activate(node)),
     };
@@ -171,7 +186,10 @@ export function Tree({
       const selected = selectedId === node.id;
       const state = variant === "checkbox" ? checkState(node) : null;
       const icon =
-        node.leading ?? (variant === "explorer" ? <Glyph name={hasChildren ? (open ? "folderOpen" : "folder") : "file"} /> : null);
+        node.leading ??
+        (variant === "explorer" ? (
+          <Glyph name={hasChildren ? (open ? "folderOpen" : "folder") : "file"} />
+        ) : null);
 
       return (
         <li
@@ -192,7 +210,13 @@ export function Tree({
           onKeyDown={(event) => onKeyDown(event, row, index)}
         >
           <div
-            className={["os-tree-row", selected && "os-tree-row-selected", node.disabled && "os-tree-row-disabled"].filter(Boolean).join(" ")}
+            className={[
+              "os-tree-row",
+              selected && "os-tree-row-selected",
+              node.disabled && "os-tree-row-disabled",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={{ ["--os-tree-depth" as string]: depth }}
             onClick={() => activate(node)}
           >
@@ -217,7 +241,17 @@ export function Tree({
                 {state === "mixed" && <Glyph name="minus" />}
               </span>
             )}
-            {icon && <span className={variant === "explorer" && !node.leading ? "os-tree-lead os-tree-icon" : "os-tree-lead"}>{icon}</span>}
+            {icon && (
+              <span
+                className={
+                  variant === "explorer" && !node.leading
+                    ? "os-tree-lead os-tree-icon"
+                    : "os-tree-lead"
+                }
+              >
+                {icon}
+              </span>
+            )}
             <span className="os-tree-text">
               <span className="os-tree-label">
                 <Highlight text={node.label} query={highlight} />

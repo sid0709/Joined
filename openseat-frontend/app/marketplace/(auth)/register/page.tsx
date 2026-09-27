@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, FormLayout, Input } from "@/src/shared/marketplace-ui";
+import React, { useState } from "react";
+
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
+import { Banner, Button, Card, FormLayout, Input } from "@/src/shared/marketplace-ui";
 
 export default function MarketplaceRegisterPage() {
   const router = useRouter();
@@ -37,17 +38,39 @@ export default function MarketplaceRegisterPage() {
         <FormLayout>
           <div>
             <h1 className="h1">Create your account</h1>
-            <p className="body text-ink-muted">Join the OpenSeat marketplace for focused project work.</p>
+            <p className="body text-ink-muted">
+              Join the OpenSeat marketplace for focused project work.
+            </p>
           </div>
           {errorMessage && <Banner tone="danger" title={errorMessage} />}
-          <Input label="Full name" placeholder="Your name" value={fullName} onChange={(event) => setFullName(event.target.value)} />
-          <Input label="Email address" placeholder="you@example.com" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          <Input label="Password" placeholder="Choose a secure password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <Input
+            label="Full name"
+            placeholder="Your name"
+            value={fullName}
+            onChange={(event) => setFullName(event.target.value)}
+          />
+          <Input
+            label="Email address"
+            placeholder="you@example.com"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <Input
+            label="Password"
+            placeholder="Choose a secure password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
           <Button type="submit" variant="primary" className="marketplace-full-width">
             Create account
           </Button>
           <p className="caption text-ink-muted marketplace-auth-footer">
-            Already registered? <Link className="os-link" href="/marketplace/login">Sign in</Link>
+            Already registered?{" "}
+            <Link className="os-link" href="/marketplace/login">
+              Sign in
+            </Link>
           </p>
         </FormLayout>
       </form>

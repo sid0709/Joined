@@ -2,7 +2,9 @@
 
 import { useSyncExternalStore, type ReactNode } from "react";
 
-const emptySubscribe = () => () => {};
+const subscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export function ClientOnly({
   children,
@@ -11,7 +13,7 @@ export function ClientOnly({
   children: ReactNode;
   fallback?: ReactNode;
 }) {
-  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const mounted = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
 
   if (!mounted) return fallback;
   return children;

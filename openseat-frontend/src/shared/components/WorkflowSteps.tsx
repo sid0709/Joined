@@ -21,7 +21,10 @@ export function WorkflowSteps({
     <Card title={title} meta={meta}>
       <ol className="marketplace-workflow-steps">
         {steps.map((step, index) => (
-          <li key={step.label} className={`marketplace-workflow-step marketplace-workflow-step-${step.state}`}>
+          <li
+            key={step.label}
+            className={`marketplace-workflow-step marketplace-workflow-step-${step.state}`}
+          >
             <span className="marketplace-workflow-step-index">{index + 1}</span>
             <span>
               <strong className="body-strong">{step.label}</strong>

@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Heading, Stack, Text } from "@openseat/design-system";
-import { COMPONENT_ITEMS, findItem } from "@/lib/catalog";
+import { notFound } from "next/navigation";
+
 import { ComponentDocs } from "@/components/ComponentDocs";
+import { COMPONENT_ITEMS, findItem } from "@/lib/catalog";
+
+import type { Metadata } from "next";
 
 export function generateStaticParams() {
   return COMPONENT_ITEMS.map((item) => ({ slug: item.slug }));
@@ -21,11 +23,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function ComponentPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function ComponentPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const item = findItem(slug);
   if (!item || item.slug === "tokens") notFound();

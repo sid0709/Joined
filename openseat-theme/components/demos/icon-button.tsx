@@ -1,7 +1,18 @@
 "use client";
 
+import {
+  Card,
+  HStack,
+  Icon,
+  IconButton,
+  Stack,
+  Text,
+  icons,
+  type ButtonSize,
+  type ButtonVariant,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Card, HStack, Icon, IconButton, Stack, Text, icons, type ButtonSize, type ButtonVariant } from "@openseat/design-system";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const VARIANTS: ButtonVariant[] = ["primary", "secondary", "ghost", "destructive"];
@@ -27,10 +38,20 @@ export default function IconButtonDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Variants" description="Every icon button needs a label — it becomes the aria-label and the tooltip.">
+      <Preview
+        align="start"
+        label="Variants"
+        description="Every icon button needs a label — it becomes the aria-label and the tooltip."
+      >
         <Row>
           {VARIANTS.map((variant) => (
-            <IconButton key={variant} label={`Add (${variant})`} tooltip={variant} variant={variant} icon={<Icon icon={icons.plus} />} />
+            <IconButton
+              key={variant}
+              label={`Add (${variant})`}
+              tooltip={variant}
+              variant={variant}
+              icon={<Icon icon={icons.plus} />}
+            />
           ))}
         </Row>
       </Preview>
@@ -40,7 +61,14 @@ export default function IconButtonDemo() {
           {VARIANTS.map((variant) => (
             <Row key={variant}>
               {SIZES.map((size) => (
-                <IconButton key={size} label={`${variant} ${size}`} tooltip={`${variant} · ${size}`} variant={variant} size={size} icon={<Icon icon={icons.edit} />} />
+                <IconButton
+                  key={size}
+                  label={`${variant} ${size}`}
+                  tooltip={`${variant} · ${size}`}
+                  variant={variant}
+                  size={size}
+                  icon={<Icon icon={icons.edit} />}
+                />
               ))}
             </Row>
           ))}
@@ -50,7 +78,13 @@ export default function IconButtonDemo() {
       <Preview align="start" label="Icon set" description="OpenSeat icons drop into any icon slot.">
         <Row>
           {COMMON.map((item) => (
-            <IconButton key={item.label} label={item.label} tooltip={item.label} variant="ghost" icon={<Icon icon={item.icon} />} />
+            <IconButton
+              key={item.label}
+              label={item.label}
+              tooltip={item.label}
+              variant="ghost"
+              icon={<Icon icon={item.icon} />}
+            />
           ))}
         </Row>
       </Preview>
@@ -58,9 +92,19 @@ export default function IconButtonDemo() {
       <Preview align="start" label="States">
         <Row>
           <IconButton label="Loading" isLoading icon={<Icon icon={icons.refresh} />} />
-          <IconButton label="Loading primary" variant="primary" isLoading icon={<Icon icon={icons.send} />} />
+          <IconButton
+            label="Loading primary"
+            variant="primary"
+            isLoading
+            icon={<Icon icon={icons.send} />}
+          />
           <IconButton label="Disabled" isDisabled icon={<Icon icon={icons.lock} />} />
-          <IconButton label="Disabled ghost" variant="ghost" isDisabled icon={<Icon icon={icons.trash} />} />
+          <IconButton
+            label="Disabled ghost"
+            variant="ghost"
+            isDisabled
+            icon={<Icon icon={icons.trash} />}
+          />
           <IconButton
             label="Refresh"
             tooltip="Refresh"
@@ -74,11 +118,33 @@ export default function IconButtonDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Floating action" description="Elevation turns an icon button into a FAB.">
+      <Preview
+        align="start"
+        label="Floating action"
+        description="Elevation turns an icon button into a FAB."
+      >
         <Row>
-          <IconButton label="New room" tooltip="New room" variant="primary" size="lg" elevation="high" icon={<Icon icon={icons.plus} />} />
-          <IconButton label="Compose" tooltip="Compose" elevation="med" icon={<Icon icon={icons.edit} />} />
-          <IconButton label="Back to top" tooltip="Back to top" elevation="low" size="sm" icon={<Icon icon={icons.arrowUp} />} />
+          <IconButton
+            label="New room"
+            tooltip="New room"
+            variant="primary"
+            size="lg"
+            elevation="high"
+            icon={<Icon icon={icons.plus} />}
+          />
+          <IconButton
+            label="Compose"
+            tooltip="Compose"
+            elevation="med"
+            icon={<Icon icon={icons.edit} />}
+          />
+          <IconButton
+            label="Back to top"
+            tooltip="Back to top"
+            elevation="low"
+            size="sm"
+            icon={<Icon icon={icons.arrowUp} />}
+          />
         </Row>
       </Preview>
 
@@ -98,15 +164,32 @@ export default function IconButtonDemo() {
             icon={<Icon icon={icons.bookmark} />}
             onClick={() => setSaved(!saved)}
           />
-          <IconButton label="Share" tooltip="Share" variant="ghost" icon={<Icon icon={icons.share} />} />
+          <IconButton
+            label="Share"
+            tooltip="Share"
+            variant="ghost"
+            icon={<Icon icon={icons.share} />}
+          />
         </Row>
       </Preview>
 
       <Preview align="start" label="Pattern — stepper">
         <Row>
-          <IconButton label="Zoom out" size="sm" icon={<Icon icon={icons.minus} />} isDisabled={zoom <= 50} onClick={() => setZoom(zoom - 10)} />
+          <IconButton
+            label="Zoom out"
+            size="sm"
+            icon={<Icon icon={icons.minus} />}
+            isDisabled={zoom <= 50}
+            onClick={() => setZoom(zoom - 10)}
+          />
           <Text hasTabularNumbers>{zoom}%</Text>
-          <IconButton label="Zoom in" size="sm" icon={<Icon icon={icons.plus} />} isDisabled={zoom >= 200} onClick={() => setZoom(zoom + 10)} />
+          <IconButton
+            label="Zoom in"
+            size="sm"
+            icon={<Icon icon={icons.plus} />}
+            isDisabled={zoom >= 200}
+            onClick={() => setZoom(zoom + 10)}
+          />
         </Row>
       </Preview>
 
@@ -120,9 +203,27 @@ export default function IconButtonDemo() {
               </Text>
             </Stack>
             <HStack gap={1} vAlign="center">
-              <IconButton label="Edit room" tooltip="Edit" variant="ghost" size="sm" icon={<Icon icon={icons.edit} />} />
-              <IconButton label="Pin room" tooltip="Pin" variant="ghost" size="sm" icon={<Icon icon={icons.pin} />} />
-              <IconButton label="Delete room" tooltip="Delete" variant="ghost" size="sm" icon={<Icon icon={icons.trash} />} />
+              <IconButton
+                label="Edit room"
+                tooltip="Edit"
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={icons.edit} />}
+              />
+              <IconButton
+                label="Pin room"
+                tooltip="Pin"
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={icons.pin} />}
+              />
+              <IconButton
+                label="Delete room"
+                tooltip="Delete"
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={icons.trash} />}
+              />
             </HStack>
           </HStack>
         </Card>

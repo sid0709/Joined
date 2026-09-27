@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Card, HStack, Stack, Text } from "@openseat/design-system";
+
+import type { ReactNode } from "react";
 
 export const SEARCH_ITEMS = [
   { id: "button", label: "Button" },

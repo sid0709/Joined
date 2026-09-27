@@ -1,0 +1,56 @@
+import importPlugin from "eslint-plugin-import";
+import reactHooks from "eslint-plugin-react-hooks";
+import tseslint from "typescript-eslint";
+
+const sourceFiles = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
+const typedSourceFiles = ["**/*.{ts,tsx,mts,cts}"];
+
+export default [
+  ...tseslint.config({
+    files: typedSourceFiles,
+    extends: [tseslint.configs.recommendedTypeChecked],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+    },
+  }),
+  {
+    files: sourceFiles,
+    plugins: { import: importPlugin, "react-hooks": reactHooks },
+    settings: {
+      "import/extensions": [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"],
+    },
+    rules: {
+      complexity: ["error", 40],
+      "import/no-cycle": ["error", { ignoreExternal: true }],
+      "import/order": [
+        "error",
+        {
+          groups: [
+            "builtin",
+            "external",
+            "internal",
+            "parent",
+            "sibling",
+            "index",
+            "object",
+            "type",
+          ],
+          "newlines-between": "always",
+          alphabetize: { order: "asc", caseInsensitive: true },
+        },
+      ],
+      "react-hooks/exhaustive-deps": "error",
+      "react-hooks/rules-of-hooks": "error",
+    },
+  },
+  {
+    files: ["packages/design-system/src/theme/openseat.d.ts"],
+    rules: { "@typescript-eslint/triple-slash-reference": "off" },
+  },
+];

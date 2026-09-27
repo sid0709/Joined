@@ -1,15 +1,10 @@
-import type { ReactNode } from "react";
-import {
-  Button,
-  JobCard,
-  Badge,
-  Nav,
-  EmptyState,
-  TokenDemo,
-} from "@/components/ui";
+import { Button, JobCard, Badge, Nav, EmptyState, TokenDemo } from "@/components/ui";
+
 import { AvatarSamples } from "./_components/AvatarSamples";
 import { InputSamples } from "./_components/InputSamples";
 import { ToastSamples } from "./_components/ToastSamples";
+
+import type { ReactNode } from "react";
 
 const CARD_WIDTH = 208;
 
@@ -85,7 +80,10 @@ export default function StyleGuidePage() {
               key={name}
               className="overflow-hidden rounded-lg border border-border-subtle bg-surface"
             >
-              <div className="h-11 border-b border-border-subtle" style={{ background: `var(--${name})` }} />
+              <div
+                className="h-11 border-b border-border-subtle"
+                style={{ background: `var(--${name})` }}
+              />
               <div className="p-2">
                 <span className="caption block text-ink">{name}</span>
               </div>
@@ -94,7 +92,10 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
-      <Section title="Typography" description="One family — Inter — separated by size, weight and tracking.">
+      <Section
+        title="Typography"
+        description="One family — Inter — separated by size, weight and tracking."
+      >
         <div className="flex flex-col gap-3">
           <p className="display">Sealed rooms, invited bidders.</p>
           <p className="h1">Brand refresh brief</p>
@@ -111,7 +112,10 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
-      <Section title="Buttons" description="32px by default, 28px in dense rows, 40px for a hero CTA.">
+      <Section
+        title="Buttons"
+        description="32px by default, 28px in dense rows, 40px for a hero CTA."
+      >
         <div className="flex flex-wrap items-center gap-3">
           <Button label="Post a sealed job" variant="primary" />
           <Button label="Save as draft" variant="secondary" />
@@ -146,8 +150,18 @@ export default function StyleGuidePage() {
 
       <Section title="Cards">
         <div className="flex flex-wrap gap-3">
-          <JobCard title="Brand refresh brief" meta="Fixed · $2,400" footer="Posted 2 days ago" width={CARD_WIDTH} />
-          <JobCard title="Landing page copy" meta="Hourly · $65/hr" href="#landing" width={CARD_WIDTH} />
+          <JobCard
+            title="Brand refresh brief"
+            meta="Fixed · $2,400"
+            footer="Posted 2 days ago"
+            width={CARD_WIDTH}
+          />
+          <JobCard
+            title="Landing page copy"
+            meta="Hourly · $65/hr"
+            href="#landing"
+            width={CARD_WIDTH}
+          />
           <JobCard title="Selected bid" meta="Chosen for this room" selected width={CARD_WIDTH} />
         </div>
       </Section>
@@ -155,7 +169,11 @@ export default function StyleGuidePage() {
       <Section title="Nav">
         <Nav
           brand="OpenSeat"
-          items={[{ label: "Dashboard", active: true }, { label: "Job rooms" }, { label: "Messages" }]}
+          items={[
+            { label: "Dashboard", active: true },
+            { label: "Job rooms" },
+            { label: "Messages" },
+          ]}
           cta="Post a sealed job"
           showAvatar
         />

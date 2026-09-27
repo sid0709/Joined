@@ -14,7 +14,8 @@ const PATHS = {
   plus: "M12 5v14M5 12h14",
   close: "M6 6l12 12M18 6L6 18",
   clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
-  calendar: "M4 9h16M8 3v3M16 3v3M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z",
+  calendar:
+    "M4 9h16M8 3v3M16 3v3M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z",
   arrowUp: "M12 19V5M6 11l6-6 6 6",
   arrowDown: "M12 5v14M6 13l6 6 6-6",
   arrowRight: "M5 12h14M13 6l6 6-6 6",
@@ -36,16 +37,19 @@ const PATHS = {
   bold: "M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z",
   italic: "M10 5h8M6 19h8M14 5l-4 14",
   underline: "M7 4v7a5 5 0 0 0 10 0V4M5 20h14",
-  strike: "M5 12h14M16 7a4 4 0 0 0-4-2c-2.2 0-4 1.3-4 3s1.5 2.4 4 3M8 17a4 4 0 0 0 4 2c2.2 0 4-1.3 4-3",
+  strike:
+    "M5 12h14M16 7a4 4 0 0 0-4-2c-2.2 0-4 1.3-4 3s1.5 2.4 4 3M8 17a4 4 0 0 0 4 2c2.2 0 4-1.3 4-3",
   alignLeft: "M4 6h16M4 10h10M4 14h16M4 18h10",
   alignCenter: "M4 6h16M7 10h10M4 14h16M7 18h10",
   alignRight: "M4 6h16M10 10h10M4 14h16M10 18h10",
   list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
   grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   bell: "M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4",
-  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7 7 0 0 1-2 1.2L14.8 21h-4l-.4-2.4a7 7 0 0 1-2-1.2l-1.9.7-2-3.4 1.6-1.2a7 7 0 0 1 0-2.3L4.5 9.9l2-3.4 1.9.7a7 7 0 0 1 2-1.2L10.8 3h4l.3 2.4a7 7 0 0 1 2 1.2l1.9-.7 2 3.4-1.6 1.2a7 7 0 0 1 0 2.3z",
+  settings:
+    "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 13.5l1.6 1.2-2 3.4-1.9-.7a7 7 0 0 1-2 1.2L14.8 21h-4l-.4-2.4a7 7 0 0 1-2-1.2l-1.9.7-2-3.4 1.6-1.2a7 7 0 0 1 0-2.3L4.5 9.9l2-3.4 1.9.7a7 7 0 0 1 2-1.2L10.8 3h4l.3 2.4a7 7 0 0 1 2 1.2l1.9-.7 2 3.4-1.6 1.2a7 7 0 0 1 0 2.3z",
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
-  users: "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7M18 14.5a7 7 0 0 1 4 6.5",
+  users:
+    "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7M18 14.5a7 7 0 0 1 4 6.5",
   send: "M4 12l16-8-6 16-3-7zM11 13l9-9",
   link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
   eye: "M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7S2.5 12 2.5 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
@@ -95,7 +99,9 @@ export function Glyph({ name, size = "1em", className, ...props }: GlyphProps) {
   );
 }
 
-type IconComponent = ((props: SVGProps<SVGSVGElement>) => React.JSX.Element) & { displayName?: string };
+type IconComponent = ((props: SVGProps<SVGSVGElement>) => React.JSX.Element) & {
+  displayName?: string;
+};
 
 /**
  * Every glyph as an Astryx `IconType`, so it drops straight into
@@ -103,8 +109,10 @@ type IconComponent = ((props: SVGProps<SVGSVGElement>) => React.JSX.Element) & {
  */
 export const icons = Object.fromEntries(
   (Object.keys(PATHS) as GlyphName[]).map((name) => {
-    const Component: IconComponent = ({ name: _ignored, ...props }) => <Glyph {...props} name={name} />;
+    const Component: IconComponent = ({ name: _ignored, ...props }) => (
+      <Glyph {...props} name={name} />
+    );
     Component.displayName = `Icon(${name})`;
     return [name, Component];
-  })
+  }),
 ) as Record<GlyphName, IconComponent>;

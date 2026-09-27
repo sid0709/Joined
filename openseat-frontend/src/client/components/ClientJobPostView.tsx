@@ -1,8 +1,8 @@
 "use client";
 
-import { PageBody } from "@/src/shared/marketplace-ui";
 import { ClientWorkspace } from "@/src/client/components/ClientWorkspace";
 import { useClientDashboard } from "@/src/client/hooks/useClientDashboard";
+import { PageBody } from "@/src/shared/marketplace-ui";
 
 export function ClientJobPostView() {
   const { handlePostJob } = useClientDashboard();

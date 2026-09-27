@@ -28,13 +28,23 @@ export function FilterSidebar({ filters, onFilterChange }: FilterSidebarProps) {
       <Stack gap={12}>
         <p className="body-strong">Experience level</p>
         {(["Entry Level", "Intermediate", "Expert"] as ExperienceLevel[]).map((level) => (
-          <Checkbox key={level} label={level} checked={filters.experienceLevels.includes(level)} onChange={() => toggleExperience(level)} />
+          <Checkbox
+            key={level}
+            label={level}
+            checked={filters.experienceLevels.includes(level)}
+            onChange={() => toggleExperience(level)}
+          />
         ))}
       </Stack>
       <Stack gap={12} className="marketplace-filter-section">
         <p className="body-strong">Job type</p>
         {(["Hourly", "Fixed-Price"] as BudgetType[]).map((type) => (
-          <Checkbox key={type} label={type} checked={filters.budgetTypes.includes(type)} onChange={() => toggleBudget(type)} />
+          <Checkbox
+            key={type}
+            label={type}
+            checked={filters.budgetTypes.includes(type)}
+            onChange={() => toggleBudget(type)}
+          />
         ))}
       </Stack>
     </aside>

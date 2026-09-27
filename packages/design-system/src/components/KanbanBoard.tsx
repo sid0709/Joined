@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
-import { ScrollableArea } from "./LayoutPrimitives";
-import { VisuallyHidden } from "./Lists";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+
 import { Badge } from "./Feedback";
 import { icons } from "./Glyph";
-import { Card, HStack, Heading, Icon, Stack, Text } from "./Primitives";
 import {
   cellItems,
   moveKanbanItem,
@@ -16,6 +21,9 @@ import {
   type KanbanMove,
   type KanbanSlot,
 } from "./kanban";
+import { ScrollableArea } from "./LayoutPrimitives";
+import { VisuallyHidden } from "./Lists";
+import { Card, HStack, Heading, Icon, Stack, Text } from "./Primitives";
 
 export interface KanbanItemState {
   /** Being dragged with the pointer. */
@@ -55,7 +63,8 @@ type Target = { columnId: string; laneId?: string; index: number; allowed: boole
 const COLUMN_WIDTH = 280;
 const MIN_CELL_HEIGHT = 72;
 const DRAGGING_OPACITY = 0.4;
-const KEY_HINT = "Press Space to pick up. Arrow keys move — Left and Right between columns, Up and Down within one, Shift with Up and Down between lanes. Space drops, Escape cancels.";
+const KEY_HINT =
+  "Press Space to pick up. Arrow keys move — Left and Right between columns, Up and Down within one, Shift with Up and Down between lanes. Space drops, Escape cancels.";
 
 /**
  * A Jira-style board. Drag cards between columns and lanes with the pointer,
@@ -92,7 +101,9 @@ export function KanbanBoard<T extends KanbanItemBase>({
   const laneIds: (string | undefined)[] = lanes?.length ? lanes.map((l) => l.id) : [undefined];
   const columnById = new Map(columns.map((c) => [c.id, c]));
   const titleOf = (columnId: string, laneId?: string) =>
-    [columnById.get(columnId)?.title, lanes?.find((l) => l.id === laneId)?.title].filter(Boolean).join(", ");
+    [columnById.get(columnId)?.title, lanes?.find((l) => l.id === laneId)?.title]
+      .filter(Boolean)
+      .join(", ");
 
   // Keep keyboard focus on a card after it moves to another column (it remounts).
   useEffect(() => {
@@ -141,13 +152,24 @@ export function KanbanBoard<T extends KanbanItemBase>({
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
     }
-    const cards: HTMLElement[] = Array.from(event.currentTarget.querySelectorAll<HTMLElement>("[data-kanban-card]") as ArrayLike<HTMLElement>).filter((el) => el.dataset.kanbanCard !== id);
+    const cards: HTMLElement[] = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        "[data-kanban-card]",
+      ) as ArrayLike<HTMLElement>,
+    ).filter((el) => el.dataset.kanbanCard !== id);
     const index = cards.findIndex((el) => {
       const box = el.getBoundingClientRect();
       return event.clientY < box.top + box.height / 2;
     });
     const next = { columnId, laneId, index: index === -1 ? cards.length : index, allowed: ok };
-    if (!target || target.columnId !== next.columnId || target.laneId !== next.laneId || target.index !== next.index || target.allowed !== next.allowed) setTarget(next);
+    if (
+      !target ||
+      target.columnId !== next.columnId ||
+      target.laneId !== next.laneId ||
+      target.index !== next.index ||
+      target.allowed !== next.allowed
+    )
+      setTarget(next);
   };
 
   const onCellDrop = (event: DragEvent<HTMLElement>, columnId: string, laneId?: string) => {
@@ -155,10 +177,21 @@ export function KanbanBoard<T extends KanbanItemBase>({
     const id = dragging.current;
     const item = id ? items.find((i) => i.id === id) : undefined;
     // Fall back to the end of the cell if no dragover landed a target yet.
-    const slot = target && target.columnId === columnId && target.laneId === laneId ? target : { columnId, laneId, index: cellItems(items, columnId, laneId).length, allowed: item ? allowed(item, columnId, laneId) : false };
+    const slot =
+      target && target.columnId === columnId && target.laneId === laneId
+        ? target
+        : {
+            columnId,
+            laneId,
+            index: cellItems(items, columnId, laneId).length,
+            allowed: item ? allowed(item, columnId, laneId) : false,
+          };
     if (id && item && slot.allowed) {
       const landed = commit(id, slot);
-      if (item && landed) setAnnouncement(`Moved ${getItemLabel(item)} to ${titleOf(landed.columnId, landed.laneId)}, position ${landed.index + 1}.`);
+      if (item && landed)
+        setAnnouncement(
+          `Moved ${getItemLabel(item)} to ${titleOf(landed.columnId, landed.laneId)}, position ${landed.index + 1}.`,
+        );
     }
     reset();
   };
@@ -174,7 +207,9 @@ export function KanbanBoard<T extends KanbanItemBase>({
       event.preventDefault();
       if (grabbed?.id === item.id) {
         setGrabbed(null);
-        setAnnouncement(`Dropped ${name} in ${titleOf(here.columnId, here.laneId)}, position ${here.index + 1}.`);
+        setAnnouncement(
+          `Dropped ${name} in ${titleOf(here.columnId, here.laneId)}, position ${here.index + 1}.`,
+        );
       } else {
         setGrabbed({ id: item.id, origin: here });
         setAnnouncement(`Picked up ${name}. ${KEY_HINT}`);
@@ -187,7 +222,9 @@ export function KanbanBoard<T extends KanbanItemBase>({
       event.preventDefault();
       commit(item.id, grabbed.origin, true);
       setGrabbed(null);
-      setAnnouncement(`Cancelled. ${name} is back in ${titleOf(grabbed.origin.columnId, grabbed.origin.laneId)}.`);
+      setAnnouncement(
+        `Cancelled. ${name} is back in ${titleOf(grabbed.origin.columnId, grabbed.origin.laneId)}.`,
+      );
       return;
     }
 
@@ -202,9 +239,14 @@ export function KanbanBoard<T extends KanbanItemBase>({
           break;
         }
       }
-    } else if ((event.key === "ArrowUp" || event.key === "ArrowDown") && event.shiftKey && lanes?.length) {
+    } else if (
+      (event.key === "ArrowUp" || event.key === "ArrowDown") &&
+      event.shiftKey &&
+      lanes?.length
+    ) {
       const nextLane = laneIds[laneIndex + (event.key === "ArrowUp" ? -1 : 1)];
-      if (nextLane !== undefined && allowed(item, here.columnId, nextLane)) to = { columnId: here.columnId, laneId: nextLane, index: here.index };
+      if (nextLane !== undefined && allowed(item, here.columnId, nextLane))
+        to = { columnId: here.columnId, laneId: nextLane, index: here.index };
     } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       const size = cellItems(items, here.columnId, here.laneId).length;
       const index = here.index + (event.key === "ArrowUp" ? -1 : 1);
@@ -213,7 +255,10 @@ export function KanbanBoard<T extends KanbanItemBase>({
     if (!to) return;
     event.preventDefault();
     const landed = commit(item.id, to, true);
-    if (landed) setAnnouncement(`${name}: ${titleOf(landed.columnId, landed.laneId)}, position ${landed.index + 1}.`);
+    if (landed)
+      setAnnouncement(
+        `${name}: ${titleOf(landed.columnId, landed.laneId)}, position ${landed.index + 1}.`,
+      );
   };
 
   // ---- rendering ----
@@ -221,10 +266,12 @@ export function KanbanBoard<T extends KanbanItemBase>({
     const cards = cellItems(items, column.id, laneId);
     const isTarget = dragId !== null && target?.columnId === column.id && target?.laneId === laneId;
     const blocked = isTarget && !target?.allowed;
-    const placeholder = <Card key="kanban-placeholder" variant="blue" height={dragHeight} padding={0} />;
+    const placeholder = (
+      <Card key="kanban-placeholder" variant="blue" height={dragHeight} padding={0} />
+    );
     const visible = cards.filter((c) => c.id !== dragId);
 
-    const list: ReactNode[] = cards.map((item) => {
+    let list: ReactNode[] = cards.map((item) => {
       const isDragging = item.id === dragId;
       const node = (
         <div
@@ -254,8 +301,10 @@ export function KanbanBoard<T extends KanbanItemBase>({
 
     if (isTarget && target?.allowed) {
       const anchor = visible[target.index];
-      const at = anchor ? list.findIndex((n) => (n as { key?: string }).key === anchor.id) : list.length;
-      list.splice(at, 0, placeholder);
+      const at = anchor
+        ? list.findIndex((n) => (n as { key?: string }).key === anchor.id)
+        : list.length;
+      list = [...list.slice(0, at), placeholder, ...list.slice(at)];
     }
 
     return (
@@ -275,7 +324,12 @@ export function KanbanBoard<T extends KanbanItemBase>({
           }}
           onDrop={(e) => onCellDrop(e, column.id, laneId)}
         >
-          <Stack gap={2} minHeight={MIN_CELL_HEIGHT - 16} isScrollable={maxCellHeight !== undefined} height={maxCellHeight}>
+          <Stack
+            gap={2}
+            minHeight={MIN_CELL_HEIGHT - 16}
+            isScrollable={maxCellHeight !== undefined}
+            height={maxCellHeight}
+          >
             {list}
             {cards.length === 0 && !isTarget && (
               <Stack hAlign="center" gap={1} paddingBlock={3}>
@@ -305,11 +359,21 @@ export function KanbanBoard<T extends KanbanItemBase>({
         const count = items.filter((i) => i.columnId === column.id).length;
         const over = column.limit !== undefined && count > column.limit;
         return (
-          <HStack key={column.id} width={columnWidth} gap={2} vAlign="center" hAlign="between" paddingInline={2}>
+          <HStack
+            key={column.id}
+            width={columnWidth}
+            gap={2}
+            vAlign="center"
+            hAlign="between"
+            paddingInline={2}
+          >
             <HStack gap={2} vAlign="center">
               {column.isLocked && <Icon icon={icons.lock} size="sm" color="secondary" />}
               <Text weight="semibold">{column.title}</Text>
-              <Badge label={column.limit !== undefined ? `${count}/${column.limit}` : count} variant={over ? "warning" : "neutral"} />
+              <Badge
+                label={column.limit !== undefined ? `${count}/${column.limit}` : count}
+                variant={over ? "warning" : "neutral"}
+              />
             </HStack>
             {renderColumnActions?.(column)}
           </HStack>
@@ -328,7 +392,8 @@ export function KanbanBoard<T extends KanbanItemBase>({
         {header}
         {laneIds.map((laneId) => {
           const lane = lanes?.find((l) => l.id === laneId);
-          const count = laneId === undefined ? items.length : items.filter((i) => i.laneId === laneId).length;
+          const count =
+            laneId === undefined ? items.length : items.filter((i) => i.laneId === laneId).length;
           return (
             <Stack key={laneId ?? "board"} gap={2}>
               {lane && (

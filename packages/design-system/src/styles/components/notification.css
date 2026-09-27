@@ -84,10 +84,18 @@ button.os-note-main:hover {
   background: var(--color-accent);
 }
 
-.os-note-tone-success.os-note-mark { background: var(--color-success); }
-.os-note-tone-warning.os-note-mark { background: var(--color-warning); }
-.os-note-tone-danger.os-note-mark { background: var(--color-error); }
-.os-note-tone-neutral.os-note-mark { background: var(--color-text-secondary); }
+.os-note-tone-success.os-note-mark {
+  background: var(--color-success);
+}
+.os-note-tone-warning.os-note-mark {
+  background: var(--color-warning);
+}
+.os-note-tone-danger.os-note-mark {
+  background: var(--color-error);
+}
+.os-note-tone-neutral.os-note-mark {
+  background: var(--color-text-secondary);
+}
 
 .os-note:not(.os-note-unread) .os-note-mark {
   background: transparent;
@@ -203,10 +211,22 @@ button.os-note-main:hover {
   pointer-events: none;
 }
 
-.os-note-stack-topStart { top: var(--spacing-4); inset-inline-start: var(--spacing-4); }
-.os-note-stack-topEnd { top: var(--spacing-4); inset-inline-end: var(--spacing-4); }
-.os-note-stack-bottomStart { bottom: var(--spacing-4); inset-inline-start: var(--spacing-4); }
-.os-note-stack-bottomEnd { bottom: var(--spacing-4); inset-inline-end: var(--spacing-4); }
+.os-note-stack-topStart {
+  top: var(--spacing-4);
+  inset-inline-start: var(--spacing-4);
+}
+.os-note-stack-topEnd {
+  top: var(--spacing-4);
+  inset-inline-end: var(--spacing-4);
+}
+.os-note-stack-bottomStart {
+  bottom: var(--spacing-4);
+  inset-inline-start: var(--spacing-4);
+}
+.os-note-stack-bottomEnd {
+  bottom: var(--spacing-4);
+  inset-inline-end: var(--spacing-4);
+}
 
 .os-note-stack-reverse {
   flex-direction: column-reverse;
@@ -247,7 +267,9 @@ button.os-note-main:hover {
 }
 
 @keyframes os-note-open {
-  from { grid-template-rows: 0fr; }
+  from {
+    grid-template-rows: 0fr;
+  }
 }
 
 @keyframes os-note-in {
@@ -282,10 +304,18 @@ button.os-note-main:hover {
   flex-shrink: 0;
 }
 
-.os-note-card-success .os-note-card-mark { background: var(--color-success); }
-.os-note-card-warning .os-note-card-mark { background: var(--color-warning); }
-.os-note-card-danger .os-note-card-mark { background: var(--color-error); }
-.os-note-card-neutral .os-note-card-mark { background: var(--color-text-secondary); }
+.os-note-card-success .os-note-card-mark {
+  background: var(--color-success);
+}
+.os-note-card-warning .os-note-card-mark {
+  background: var(--color-warning);
+}
+.os-note-card-danger .os-note-card-mark {
+  background: var(--color-error);
+}
+.os-note-card-neutral .os-note-card-mark {
+  background: var(--color-text-secondary);
+}
 
 .os-note-card-copy {
   flex: 1;

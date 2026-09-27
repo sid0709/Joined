@@ -1,6 +1,18 @@
 "use client";
 
-import { Button, Card, HStack, Heading, Icon, Stack, Text, icons, type HeadingLevel, type TextColor } from "@openseat/design-system";
+import {
+  Button,
+  Card,
+  HStack,
+  Heading,
+  Icon,
+  Stack,
+  Text,
+  icons,
+  type HeadingLevel,
+  type TextColor,
+} from "@openseat/design-system";
+
 import { Examples, Preview } from "./shared";
 
 const LEVELS: HeadingLevel[] = [1, 2, 3, 4, 5, 6];
@@ -22,7 +34,10 @@ export default function HeadingDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Display types" description="type lifts a heading to the display scale for heroes, without changing its level.">
+      <Preview
+        label="Display types"
+        description="type lifts a heading to the display scale for heroes, without changing its level."
+      >
         <Stack gap={3}>
           {DISPLAY.map((type) => (
             <Heading key={type} level={1} type={type}>
@@ -32,7 +47,10 @@ export default function HeadingDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Accessibility level" description="Keep the look of one level and announce another to fit the document outline.">
+      <Preview
+        label="Accessibility level"
+        description="Keep the look of one level and announce another to fit the document outline."
+      >
         <Stack gap={2}>
           <Heading level={2} accessibilityLevel={3}>
             Looks like h2, announced as h3
@@ -63,18 +81,25 @@ export default function HeadingDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Truncation" description="maxLines clamps long titles; hasTruncateTooltip shows the full text on hover.">
+      <Preview
+        label="Truncation"
+        description="maxLines clamps long titles; hasTruncateTooltip shows the full text on hover."
+      >
         <Stack gap={3} maxWidth={TRUNCATE_WIDTH}>
           <Heading level={3} maxLines={1} hasTruncateTooltip>
             Full identity refresh for a regional coffee roaster, including packaging and signage
           </Heading>
           <Heading level={3} maxLines={2}>
-            Full identity refresh for a regional coffee roaster, including packaging, signage, and a new website
+            Full identity refresh for a regional coffee roaster, including packaging, signage, and a
+            new website
           </Heading>
         </Stack>
       </Preview>
 
-      <Preview label="Wrapping and alignment" description="textWrap=&quot;balance&quot; evens out lines; justify centers hero titles.">
+      <Preview
+        label="Wrapping and alignment"
+        description='textWrap="balance" evens out lines; justify centers hero titles.'
+      >
         <Stack gap={4} maxWidth={420}>
           <Heading level={2}>Collect sealed bids from the people you already trust</Heading>
           <Heading level={2} textWrap="balance">
@@ -92,7 +117,10 @@ export default function HeadingDemo() {
         </Heading>
       </Preview>
 
-      <Preview label="Page header" description="A heading with supporting copy and actions — the top of most screens.">
+      <Preview
+        label="Page header"
+        description="A heading with supporting copy and actions — the top of most screens."
+      >
         <HStack hAlign="between" vAlign="start" gap={3} wrap="wrap">
           <Stack gap={1}>
             <Heading level={1}>Rooms</Heading>
@@ -105,7 +133,10 @@ export default function HeadingDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Card titles" description="Smaller levels title cards and sections inside a page.">
+      <Preview
+        label="Card titles"
+        description="Smaller levels title cards and sections inside a page."
+      >
         <HStack gap={3} wrap="wrap" vAlign="stretch">
           {["Scope", "Budget", "Timeline"].map((title) => (
             <Card key={title} width={200}>

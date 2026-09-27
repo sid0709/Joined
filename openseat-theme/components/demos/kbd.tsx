@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Card, HStack, Icon, Kbd, Stack, Text, icons } from "@openseat/design-system";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const SINGLE = ["enter", "esc", "tab", "backspace", "shift", "alt", "ctrl", "mod"];
@@ -19,7 +20,11 @@ const SHORTCUTS = [
 export default function KbdDemo() {
   return (
     <Examples>
-      <Preview align="start" label="Special keys" description="Named keys render as their symbol. mod is ⌘ on macOS and Ctrl elsewhere.">
+      <Preview
+        align="start"
+        label="Special keys"
+        description="Named keys render as their symbol. mod is ⌘ on macOS and Ctrl elsewhere."
+      >
         <Row>
           {SINGLE.map((keys) => (
             <Stack key={keys} gap={1} hAlign="center">
@@ -38,7 +43,11 @@ export default function KbdDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Combinations" description="Separate keys with +. Use plus for a literal + key.">
+      <Preview
+        align="start"
+        label="Combinations"
+        description="Separate keys with +. Use plus for a literal + key."
+      >
         <Stack gap={2} hAlign="start">
           {COMBOS.map((keys) => (
             <HStack key={keys} gap={3} vAlign="center">
@@ -52,7 +61,8 @@ export default function KbdDemo() {
       <Preview label="In copy" description="Kbd sits inline and follows the line height.">
         <Stack gap={2}>
           <Text display="block">
-            Press <Kbd keys="mod+k" /> to open the command palette, then <Kbd keys="enter" /> to run the first match.
+            Press <Kbd keys="mod+k" /> to open the command palette, then <Kbd keys="enter" /> to run
+            the first match.
           </Text>
           <Text type="supporting" color="secondary" display="block">
             Tip: <Kbd keys="shift+enter" /> adds a new line without sending.
@@ -60,9 +70,17 @@ export default function KbdDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="In a button" description="Show the shortcut as end content so people learn it.">
+      <Preview
+        align="start"
+        label="In a button"
+        description="Show the shortcut as end content so people learn it."
+      >
         <Row>
-          <Button label="Search" icon={<Icon icon={icons.search} />} endContent={<Kbd keys="mod+k" />} />
+          <Button
+            label="Search"
+            icon={<Icon icon={icons.search} />}
+            endContent={<Kbd keys="mod+k" />}
+          />
           <Button label="Submit bid" variant="primary" endContent={<Kbd keys="mod+enter" />} />
           <Button label="Close" variant="ghost" endContent={<Kbd keys="esc" />} />
         </Row>

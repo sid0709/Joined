@@ -1,7 +1,19 @@
 "use client";
 
+import {
+  Button,
+  Card,
+  HStack,
+  Heading,
+  Icon,
+  ProgressBar,
+  Stack,
+  Text,
+  icons,
+  type ProgressBarVariant,
+} from "@openseat/design-system";
 import { useEffect, useState } from "react";
-import { Button, Card, HStack, Heading, Icon, ProgressBar, Stack, Text, icons, type ProgressBarVariant } from "@openseat/design-system";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const VARIANTS: ProgressBarVariant[] = ["accent", "success", "warning", "error", "neutral"];
@@ -40,11 +52,15 @@ export default function ProgressBarDemo() {
   }, [running]);
 
   const ratio = used / QUOTA_GB;
-  const quotaVariant: ProgressBarVariant = ratio >= QUOTA_FULL ? "error" : ratio >= QUOTA_WARN ? "warning" : "accent";
+  const quotaVariant: ProgressBarVariant =
+    ratio >= QUOTA_FULL ? "error" : ratio >= QUOTA_WARN ? "warning" : "accent";
 
   return (
     <Examples>
-      <Preview label="Values" description="Determinate progress from 0 to max. The label names the task.">
+      <Preview
+        label="Values"
+        description="Determinate progress from 0 to max. The label names the task."
+      >
         <Stack gap={3}>
           {[0, 25, 60, 100].map((value) => (
             <ProgressBar key={value} label={`${value}% complete`} value={value} />
@@ -52,7 +68,10 @@ export default function ProgressBarDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Variants" description="accent by default; status variants when progress also means health.">
+      <Preview
+        label="Variants"
+        description="accent by default; status variants when progress also means health."
+      >
         <Stack gap={3}>
           {VARIANTS.map((variant) => (
             <ProgressBar key={variant} label={variant} value={65} variant={variant} />
@@ -60,15 +79,33 @@ export default function ProgressBarDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Value label" description="hasValueLabel shows the number; formatValueLabel writes it your way.">
+      <Preview
+        label="Value label"
+        description="hasValueLabel shows the number; formatValueLabel writes it your way."
+      >
         <Stack gap={3}>
           <ProgressBar label="Profile" value={70} hasValueLabel />
-          <ProgressBar label="Invitees who bid" value={4} max={6} hasValueLabel formatValueLabel={(v, m) => `${v} of ${m}`} />
-          <ProgressBar label="Budget used" value={1800} max={2400} hasValueLabel formatValueLabel={(v, m) => `$${v.toLocaleString()} / $${m.toLocaleString()}`} />
+          <ProgressBar
+            label="Invitees who bid"
+            value={4}
+            max={6}
+            hasValueLabel
+            formatValueLabel={(v, m) => `${v} of ${m}`}
+          />
+          <ProgressBar
+            label="Budget used"
+            value={1800}
+            max={2400}
+            hasValueLabel
+            formatValueLabel={(v, m) => `$${v.toLocaleString()} / $${m.toLocaleString()}`}
+          />
         </Stack>
       </Preview>
 
-      <Preview label="Hidden label" description="isLabelHidden keeps the name for screen readers when the context already says it.">
+      <Preview
+        label="Hidden label"
+        description="isLabelHidden keeps the name for screen readers when the context already says it."
+      >
         <HStack gap={3} vAlign="center">
           <Text>Uploading…</Text>
           <Stack width={200}>
@@ -77,11 +114,17 @@ export default function ProgressBarDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Indeterminate" description="When you can’t know how long — then switch to a value as soon as you can.">
+      <Preview
+        label="Indeterminate"
+        description="When you can’t know how long — then switch to a value as soon as you can."
+      >
         <ProgressBar label="Preparing export" isIndeterminate />
       </Preview>
 
-      <Preview label="Milestones" description="marks label points along the bar — hover a mark for its name.">
+      <Preview
+        label="Milestones"
+        description="marks label points along the bar — hover a mark for its name."
+      >
         <ProgressBar label="Room setup" value={50} marks={MILESTONES} hasValueLabel />
       </Preview>
 
@@ -89,7 +132,10 @@ export default function ProgressBarDemo() {
         <ProgressBar label="Sync paused" value={30} isDisabled hasValueLabel />
       </Preview>
 
-      <Preview label="Live upload" description="A simulated upload — the bar turns success when it finishes.">
+      <Preview
+        label="Live upload"
+        description="A simulated upload — the bar turns success when it finishes."
+      >
         <Stack gap={3}>
           <ProgressBar
             label={upload === 100 ? "Uploaded brief.pdf" : "Uploading brief.pdf"}
@@ -98,13 +144,31 @@ export default function ProgressBarDemo() {
             variant={upload === 100 ? "success" : "accent"}
           />
           <HStack gap={2}>
-            <Button label={running ? "Uploading…" : upload === 100 ? "Upload again" : "Start upload"} size="sm" variant="primary" isDisabled={running} onClick={() => { setUpload(0); setRunning(true); }} />
-            <Button label="Pause" size="sm" variant="ghost" isDisabled={!running} onClick={() => setRunning(false)} />
+            <Button
+              label={running ? "Uploading…" : upload === 100 ? "Upload again" : "Start upload"}
+              size="sm"
+              variant="primary"
+              isDisabled={running}
+              onClick={() => {
+                setUpload(0);
+                setRunning(true);
+              }}
+            />
+            <Button
+              label="Pause"
+              size="sm"
+              variant="ghost"
+              isDisabled={!running}
+              onClick={() => setRunning(false)}
+            />
           </HStack>
         </Stack>
       </Preview>
 
-      <Preview label="Storage quota" description="The variant changes at thresholds — accent, then warning at 80%, error at 95%.">
+      <Preview
+        label="Storage quota"
+        description="The variant changes at thresholds — accent, then warning at 80%, error at 95%."
+      >
         <Card maxWidth={420}>
           <Stack gap={3}>
             <HStack hAlign="between" vAlign="center">
@@ -116,9 +180,19 @@ export default function ProgressBarDemo() {
                 {used.toFixed(1)} of {QUOTA_GB} GB
               </Text>
             </HStack>
-            <ProgressBar label="Storage used" isLabelHidden value={used} max={QUOTA_GB} variant={quotaVariant} />
+            <ProgressBar
+              label="Storage used"
+              isLabelHidden
+              value={used}
+              max={QUOTA_GB}
+              variant={quotaVariant}
+            />
             <HStack gap={2}>
-              <Button label="Add 1 GB" size="sm" onClick={() => setUsed((u) => Math.min(QUOTA_GB, u + 1))} />
+              <Button
+                label="Add 1 GB"
+                size="sm"
+                onClick={() => setUsed((u) => Math.min(QUOTA_GB, u + 1))}
+              />
               <Button label="Clean up" size="sm" variant="ghost" onClick={() => setUsed(2.1)} />
             </HStack>
           </Stack>
@@ -133,7 +207,12 @@ export default function ProgressBarDemo() {
                 <Text>{file.name}</Text>
                 <Caption>{file.done === 100 ? "Done" : `${file.done}%`}</Caption>
               </HStack>
-              <ProgressBar label={file.name} isLabelHidden value={file.done} variant={file.done === 100 ? "success" : "accent"} />
+              <ProgressBar
+                label={file.name}
+                isLabelHidden
+                value={file.done}
+                variant={file.done === 100 ? "success" : "accent"}
+              />
             </Stack>
           ))}
         </Stack>

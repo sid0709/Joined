@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { OpenSeatProvider, type ColorMode as ThemeColorMode } from "@openseat/design-system/theme";
+import Link from "next/link";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 
 type ColorMode = Exclude<ThemeColorMode, "system">;
 

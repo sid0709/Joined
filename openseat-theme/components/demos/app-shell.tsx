@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import {
   AppShell,
   Banner,
@@ -24,6 +23,8 @@ import {
   type AppShellBreakpoint,
   type AppShellVariant,
 } from "@openseat/design-system";
+import { useState, type ReactNode } from "react";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const VARIANTS: AppShellVariant[] = ["elevated", "surface", "section", "wash"];
@@ -47,21 +48,42 @@ function Top({ current = "Rooms" }: { current?: string }) {
           <TopNavItem label="Bidders" href="#bidders" isSelected={current === "Bidders"} />
         </>
       }
-      endContent={<IconButton label="Notifications" variant="ghost" icon={<Icon icon={icons.bell} />} />}
+      endContent={
+        <IconButton label="Notifications" variant="ghost" icon={<Icon icon={icons.bell} />} />
+      }
     />
   );
 }
 
-function Side({ page, onPage, collapsible }: { page: string; onPage: (id: string) => void; collapsible?: boolean }) {
+function Side({
+  page,
+  onPage,
+  collapsible,
+}: {
+  page: string;
+  onPage: (id: string) => void;
+  collapsible?: boolean;
+}) {
   return (
     <SideNav collapsible={collapsible} resizable={collapsible}>
       <SideNavSection title="Workspace">
         {PAGES.map((p) => (
-          <SideNavItem key={p.id} label={p.label} icon={p.icon} isSelected={page === p.id} onClick={() => onPage(p.id)} />
+          <SideNavItem
+            key={p.id}
+            label={p.label}
+            icon={p.icon}
+            isSelected={page === p.id}
+            onClick={() => onPage(p.id)}
+          />
         ))}
       </SideNavSection>
       <SideNavSection title="Account">
-        <SideNavItem label="Settings" icon={icons.settings} onClick={() => onPage("settings")} isSelected={page === "settings"} />
+        <SideNavItem
+          label="Settings"
+          icon={icons.settings}
+          onClick={() => onPage("settings")}
+          isSelected={page === "settings"}
+        />
       </SideNavSection>
     </SideNav>
   );
@@ -79,7 +101,12 @@ function BreakpointShell({ breakpoint }: { breakpoint: AppShellBreakpoint }) {
   const [page, setPage] = useState("rooms");
   return (
     <Frame height={260}>
-      <AppShell mobileNav={{ breakpoint }} topNav={<Top />} sideNav={<Side page={page} onPage={setPage} />} contentPadding={4}>
+      <AppShell
+        mobileNav={{ breakpoint }}
+        topNav={<Top />}
+        sideNav={<Side page={page} onPage={setPage} />}
+        contentPadding={4}
+      >
         <Text>breakpoint “{breakpoint}”</Text>
       </AppShell>
     </Frame>
@@ -91,9 +118,16 @@ export default function AppShellDemo() {
 
   return (
     <Examples>
-      <Preview label="Product frame" description="Top nav, side nav, and content — the content area scrolls on its own and holds any responsive layout.">
+      <Preview
+        label="Product frame"
+        description="Top nav, side nav, and content — the content area scrolls on its own and holds any responsive layout."
+      >
         <Frame height={420}>
-          <AppShell topNav={<Top />} sideNav={<Side page={page} onPage={setPage} collapsible />} contentPadding={5}>
+          <AppShell
+            topNav={<Top />}
+            sideNav={<Side page={page} onPage={setPage} collapsible />}
+            contentPadding={5}
+          >
             <Stack gap={4}>
               <Text type="large" weight="semibold">
                 {PAGES.find((p) => p.id === page)?.label ?? "Settings"}
@@ -118,7 +152,9 @@ export default function AppShellDemo() {
             </Stack>
           </AppShell>
         </Frame>
-        <Caption>The side nav is collapsible and resizable — drag its edge or use its collapse control.</Caption>
+        <Caption>
+          The side nav is collapsible and resizable — drag its edge or use its collapse control.
+        </Caption>
       </Preview>
 
       <Preview label="Variants" description="How the content area separates from the chrome.">
@@ -129,7 +165,12 @@ export default function AppShellDemo() {
                 {variant}
               </Text>
               <Frame height={220}>
-                <AppShell variant={variant} topNav={<Top />} sideNav={<Side page={page} onPage={setPage} />} contentPadding={4}>
+                <AppShell
+                  variant={variant}
+                  topNav={<Top />}
+                  sideNav={<Side page={page} onPage={setPage} />}
+                  contentPadding={4}
+                >
                   <Tile height={80}>{variant}</Tile>
                 </AppShell>
               </Frame>
@@ -167,7 +208,13 @@ export default function AppShellDemo() {
       <Preview label="With a banner" description="A shell-wide message sits above everything.">
         <Frame>
           <AppShell
-            banner={<Banner status="warning" title="Scheduled maintenance tonight" description="Bidding pauses from 1–2 AM." />}
+            banner={
+              <Banner
+                status="warning"
+                title="Scheduled maintenance tonight"
+                description="Bidding pauses from 1–2 AM."
+              />
+            }
             topNav={<Top />}
             sideNav={<Side page={page} onPage={setPage} />}
             contentPadding={4}
@@ -177,7 +224,10 @@ export default function AppShellDemo() {
         </Frame>
       </Preview>
 
-      <Preview label="Top nav only" description="Marketing pages and simple tools skip the side nav.">
+      <Preview
+        label="Top nav only"
+        description="Marketing pages and simple tools skip the side nav."
+      >
         <Frame height={240}>
           <AppShell topNav={<Top current="Bidders" />} contentPadding={5}>
             <Stack gap={3} hAlign="start">
@@ -190,7 +240,10 @@ export default function AppShellDemo() {
         </Frame>
       </Preview>
 
-      <Preview label="Side nav only, full-bleed content" description="contentPadding 0 lets a canvas or map run to the edges.">
+      <Preview
+        label="Side nav only, full-bleed content"
+        description="contentPadding 0 lets a canvas or map run to the edges."
+      >
         <Frame height={240}>
           <AppShell sideNav={<Side page={page} onPage={setPage} />} contentPadding={0}>
             <Tile tone="neutral" height={240}>

@@ -1,8 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { ClickableCard } from "./Container";
 import { Card, Heading, Stack, Text, type CardVariant } from "./Primitives";
+
+import type { ReactNode } from "react";
 
 /** Card width in px, or any CSS width. */
 type Width = number | string;
@@ -25,7 +26,17 @@ export interface JobCardProps {
 }
 
 /** The OpenSeat room card: title, meta line, optional body and footer, on an Astryx Card. */
-export function JobCard({ title, meta, children, footer, href, onClick, selected, raised, width }: JobCardProps) {
+export function JobCard({
+  title,
+  meta,
+  children,
+  footer,
+  href,
+  onClick,
+  selected,
+  raised,
+  width,
+}: JobCardProps) {
   const variant: CardVariant = selected ? "blue" : "default";
   const elevation = raised ? "low" : undefined;
   const body = (
@@ -49,7 +60,14 @@ export function JobCard({ title, meta, children, footer, href, onClick, selected
 
   if (href || onClick) {
     return (
-      <ClickableCard label={title} href={href} onClick={onClick} variant={variant} elevation={elevation} width={width}>
+      <ClickableCard
+        label={title}
+        href={href}
+        onClick={onClick}
+        variant={variant}
+        elevation={elevation}
+        width={width}
+      >
         {body}
       </ClickableCard>
     );

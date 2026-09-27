@@ -4,10 +4,10 @@ Owned by the **candidate / freelancer** team.
 
 ## Routes
 
-| URL | Page |
-|-----|------|
+| URL                                | Page                  |
+| ---------------------------------- | --------------------- |
 | `/marketplace/candidate/dashboard` | Job room browse & bid |
-| `/marketplace/candidate/profile` | Profile setup |
+| `/marketplace/candidate/profile`   | Profile setup         |
 
 ## Structure
 

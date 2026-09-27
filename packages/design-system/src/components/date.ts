@@ -28,7 +28,13 @@ export function daysInMonth(year: number, month: number) {
 }
 
 export function sameDay(a: Date | null | undefined, b: Date | null | undefined) {
-  return Boolean(a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate());
+  return Boolean(
+    a &&
+    b &&
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate(),
+  );
 }
 
 export function sameMonth(a: Date, b: Date) {
@@ -57,15 +63,21 @@ export function isBetween(date: Date, start: Date, end: Date) {
   return t > Math.min(a, b) && t < Math.max(a, b);
 }
 
-export function weekdayNames(weekStartsOn: WeekStart, width: "narrow" | "short", locale = DEFAULT_LOCALE) {
+export function weekdayNames(
+  weekStartsOn: WeekStart,
+  width: "narrow" | "short",
+  locale = DEFAULT_LOCALE,
+) {
   const sunday = new Date(2023, 0, 1);
   return Array.from({ length: DAYS_PER_WEEK }, (_, i) =>
-    addDays(sunday, i + weekStartsOn).toLocaleDateString(locale, { weekday: width })
+    addDays(sunday, i + weekStartsOn).toLocaleDateString(locale, { weekday: width }),
   );
 }
 
 export function monthNames(width: "short" | "long", locale = DEFAULT_LOCALE) {
-  return Array.from({ length: MONTHS_PER_YEAR }, (_, i) => new Date(2023, i, 1).toLocaleDateString(locale, { month: width }));
+  return Array.from({ length: MONTHS_PER_YEAR }, (_, i) =>
+    new Date(2023, i, 1).toLocaleDateString(locale, { month: width }),
+  );
 }
 
 /** Local-date ISO: "2026-09-24". */
