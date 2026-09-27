@@ -3,7 +3,6 @@ package jobs
 import (
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -30,7 +29,6 @@ const (
 	maxBullets          = 6
 	maxSummaryRunes     = 420
 	maxDescriptionRunes = 12_000
-	maxSlugRunes        = 72
 )
 
 // SearchJob is the record Opened job search reads.
@@ -39,7 +37,7 @@ type SearchJob struct {
 	ID               string   `json:"id" bson:"id"`
 	Title            string   `json:"title" bson:"title"`
 	Company          string   `json:"company" bson:"company"`
-	CompanySlug      string   `json:"companySlug" bson:"companySlug"`
+	CompanyID        string   `json:"companyId" bson:"companyId"`
 	Location         string   `json:"location" bson:"location"`
 	Workplace        string   `json:"workplace" bson:"workplace"`
 	Pay              Pay      `json:"pay" bson:"pay"`
@@ -94,9 +92,10 @@ type listingHints struct {
 	Employment string
 }
 
-func buildSearchJob(id, title, company string, posted time.Time, now time.Time, hints listingHints, extracted Extraction) SearchJob {
+func buildSearchJob(id, companyID, title, company string, posted time.Time, now time.Time, hints listingHints, extracted Extraction) SearchJob {
 	job := SearchJob{
 		ID:               id,
+		CompanyID:        companyID,
 		Title:            fallback(strings.TrimSpace(title), "Untitled"),
 		Company:          fallback(strings.TrimSpace(company), "Unknown company"),
 		Location:         fallback(strings.TrimSpace(extracted.Location), strings.TrimSpace(hints.Location), "Location not listed"),
@@ -115,44 +114,7 @@ func buildSearchJob(id, title, company string, posted time.Time, now time.Time, 
 		Requirements:     cleanList(extracted.Requirements, maxBullets),
 		Benefits:         cleanList(extracted.Benefits, maxBullets),
 	}
-	job.CompanySlug = slug(job.Company)
-	if job.CompanySlug == "" {
-		job.CompanySlug = "company"
-	}
 	return job
-}
-
-func searchID(title, company, objectID string) string {
-	base := slug(title + " " + company)
-	if base == "" {
-		base = "job"
-	}
-	suffix := strings.ToLower(objectID)
-	if len(suffix) > 6 {
-		suffix = suffix[len(suffix)-6:]
-	}
-	if suffix == "" {
-		return base
-	}
-	return base + "-" + suffix
-}
-
-func slug(value string) string {
-	var b strings.Builder
-	dash := false
-	for _, r := range strings.ToLower(value) {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			b.WriteRune(r)
-			dash = false
-			continue
-		}
-		if !dash && b.Len() > 0 {
-			b.WriteByte('-')
-			dash = true
-		}
-	}
-	out := strings.Trim(b.String(), "-")
-	return truncate(out, maxSlugRunes)
 }
 
 func hoursSince(posted, now time.Time) int {

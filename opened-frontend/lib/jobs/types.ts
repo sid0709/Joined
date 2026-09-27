@@ -15,7 +15,10 @@ export type Job = {
   id: string;
   title: string;
   company: string;
-  companySlug: string;
+  /** Opaque company id. Company pages and job links use this, not a name slug. */
+  companyId: string;
+  companyUrl?: string;
+  companyLogo?: string;
   location: string;
   workplace: Workplace;
   pay: Pay;
@@ -34,6 +37,14 @@ export type Job = {
   benefits: string[];
   /** Official listing. Apply and copy link use this for aggregated jobs. */
   applyLink?: string;
+};
+
+/** A company the seeker can open: name, logo, and website. */
+export type PublicCompany = {
+  id: string;
+  name: string;
+  url?: string;
+  logo?: string;
 };
 
 export type CompanyProfile = {

@@ -33,7 +33,7 @@ export function JobResultCard({
       data-job-id={job.id}
     >
       <HStack gap={3} vAlign="start">
-        <CompanyLogo name={job.company} size={48} />
+        <CompanyLogo name={job.company} companyId={job.companyId} src={job.companyLogo} size={48} />
         <Stack gap={2} width="100%">
           <HStack hAlign="between" vAlign="start" gap={2}>
             <Stack gap={0.5}>

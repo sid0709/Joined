@@ -96,7 +96,7 @@ function toPreviewJob(draft: Draft): Job {
     id: "draft",
     title: draft.title || "Job title",
     company: WORKSPACE.name,
-    companySlug: WORKSPACE.slug,
+    companyId: WORKSPACE.slug,
     location: draft.location || "Location",
     workplace: draft.workplace,
     pay: { min: draft.payMin, max: draft.payMax, currency: CURRENCY, period: "year" },

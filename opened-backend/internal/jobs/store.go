@@ -41,11 +41,13 @@ type Store struct {
 	destDB               string
 	destCollection       string
 	structuredCollection string
+	sourceCompanies      string
+	destCompanies        string
 	copyMu               sync.Mutex
 	analyzeMu            sync.Mutex
 }
 
-func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection string) *Store {
+func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies string) *Store {
 	return &Store{
 		client:               client,
 		sourceDB:             sourceDB,
@@ -53,6 +55,8 @@ func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destColl
 		destDB:               destDB,
 		destCollection:       destCollection,
 		structuredCollection: structuredCollection,
+		sourceCompanies:      sourceCompanies,
+		destCompanies:        destCompanies,
 	}
 }
 

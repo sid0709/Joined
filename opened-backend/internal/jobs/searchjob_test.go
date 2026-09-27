@@ -9,7 +9,7 @@ import (
 func TestBuildSearchJobUsesFrontendEnums(t *testing.T) {
 	posted := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
 	now := posted.Add(50 * time.Hour)
-	job := buildSearchJob("senior-devops-cyberproof-17cbc3", "Senior DevOps Engineer", "CyberProof", posted, now, listingHints{
+	job := buildSearchJob("4f1c0b3a-6d2e-4a18-8c77-1b9e0d4a6f21", "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30", "Senior DevOps Engineer", "CyberProof", posted, now, listingHints{
 		Location:   "United States",
 		Remote:     "Remote",
 		Seniority:  "Senior Level",
@@ -24,7 +24,7 @@ func TestBuildSearchJobUsesFrontendEnums(t *testing.T) {
 		Visa:       false,
 	})
 
-	if job.ID != "senior-devops-cyberproof-17cbc3" || job.CompanySlug != "cyberproof" {
+	if job.ID != "4f1c0b3a-6d2e-4a18-8c77-1b9e0d4a6f21" || job.CompanyID != "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30" {
 		t.Fatalf("identity = %+v", job)
 	}
 	if job.Workplace != "remote" || job.Seniority != "Senior" || job.Employment != "full-time" || job.Source != "aggregated" {
@@ -51,12 +51,5 @@ func TestNormalizePaySwapsInvertedRange(t *testing.T) {
 func TestExtractionSchemaIsJSON(t *testing.T) {
 	if !json.Valid([]byte(extractionSchema)) {
 		t.Fatal("extraction schema is not valid JSON")
-	}
-}
-
-func TestSearchIDStaysStable(t *testing.T) {
-	id := searchID("Senior DevOps Engineer", "CyberProof", "6a751ddfdbc765362b17cbc3")
-	if id != "senior-devops-engineer-cyberproof-17cbc3" {
-		t.Fatalf("id = %q", id)
 	}
 }

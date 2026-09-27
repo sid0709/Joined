@@ -10,7 +10,15 @@ import {
   Stack,
 } from "@openseat/design-system";
 import { INITIAL_SAVED_JOB_IDS } from "@/lib/account";
-import { companyBySlug, matchFor, scoreFor, similarJobs, type Job } from "@/lib/jobs";
+import {
+  companyFromJob,
+  matchFor,
+  openRolesFor,
+  presentCompany,
+  scoreFor,
+  similarJobs,
+  type Job,
+} from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyCard } from "./company-card";
 import { JobDetailHeader } from "./job-detail-header";
@@ -31,16 +39,18 @@ export function JobPageView({ job, jobs }: { job: Job; jobs: Job[] }) {
     toggleSave: () => setSaved((value) => !value),
     markApplied: () => setApplied(true),
   });
-  const company = companyBySlug(job.companySlug);
+  const company = companyFromJob(job);
 
   return (
     <Stack hAlign="center">
       <Stack gap={5} width="100%" maxWidth={JOB_PAGE_MAX_WIDTH}>
         <Breadcrumbs label="Job location">
           <BreadcrumbItem href={ROUTES.search}>Find jobs</BreadcrumbItem>
-          <BreadcrumbItem href={ROUTES.companyPublic(job.companySlug)}>
-            {job.company}
-          </BreadcrumbItem>
+          {company ? (
+            <BreadcrumbItem href={ROUTES.companyPublic(company.id)}>{job.company}</BreadcrumbItem>
+          ) : (
+            <BreadcrumbItem>{job.company}</BreadcrumbItem>
+          )}
           <BreadcrumbItem isCurrent>{job.title}</BreadcrumbItem>
         </Breadcrumbs>
 
@@ -64,7 +74,12 @@ export function JobPageView({ job, jobs }: { job: Job; jobs: Job[] }) {
           <GridColumn span="full" lg={4}>
             <Stack gap={5}>
               <JobMatchCard match={matchFor(job)} />
-              {company ? <CompanyCard company={company} /> : null}
+              {company ? (
+                <CompanyCard
+                  company={presentCompany(company, jobs)}
+                  openRoles={openRolesFor(company.id, jobs)}
+                />
+              ) : null}
               <SimilarJobs jobs={similarJobs(job, jobs, SIMILAR_LIMIT)} scoreOf={scoreFor} />
             </Stack>
           </GridColumn>

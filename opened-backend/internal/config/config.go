@@ -8,30 +8,34 @@ import (
 )
 
 const (
-	defaultHTTPAddr         = "127.0.0.1:8080"
-	defaultAdminOrigins     = "http://127.0.0.1:3010,http://localhost:3010"
-	defaultSourceDB         = "AthensDB"
-	defaultSourceCollection = "jobs"
-	defaultDestDB           = "OpenedDB"
-	defaultDestCollection   = "temp_jobs"
-	defaultJobsCollection   = "jobs"
-	defaultOpenAIModel      = "gpt-4o-mini"
-	defaultOpenAIBaseURL    = "https://api.openai.com/v1"
-	envFileName             = ".env"
+	defaultHTTPAddr            = "127.0.0.1:8080"
+	defaultAdminOrigins        = "http://127.0.0.1:3010,http://localhost:3010"
+	defaultSourceDB            = "AthensDB"
+	defaultSourceCollection    = "jobs"
+	defaultDestDB              = "OpenedDB"
+	defaultDestCollection      = "temp_jobs"
+	defaultJobsCollection      = "jobs"
+	defaultSourceCompanies     = "companies"
+	defaultCompaniesCollection = "companies"
+	defaultOpenAIModel         = "gpt-4o-mini"
+	defaultOpenAIBaseURL       = "https://api.openai.com/v1"
+	envFileName                = ".env"
 )
 
 type Config struct {
-	MongoURI         string
-	HTTPAddr         string
-	AdminOrigins     []string
-	SourceDB         string
-	SourceCollection string
-	DestDB           string
-	DestCollection   string
-	JobsCollection   string
-	OpenAIAPIKey     string
-	OpenAIModel      string
-	OpenAIBaseURL    string
+	MongoURI            string
+	HTTPAddr            string
+	AdminOrigins        []string
+	SourceDB            string
+	SourceCollection    string
+	DestDB              string
+	DestCollection      string
+	JobsCollection      string
+	SourceCompanies     string
+	CompaniesCollection string
+	OpenAIAPIKey        string
+	OpenAIModel         string
+	OpenAIBaseURL       string
 }
 
 func (c Config) SourceName() string {
@@ -46,17 +50,19 @@ func Load() (Config, error) {
 	loadEnvFile(envFileName)
 
 	cfg := Config{
-		MongoURI:         strings.TrimSpace(os.Getenv("MONGO_URI")),
-		HTTPAddr:         envOr("HTTP_ADDR", defaultHTTPAddr),
-		AdminOrigins:     splitList(envOr("ADMIN_ORIGINS", defaultAdminOrigins)),
-		SourceDB:         envOr("SOURCE_DB", defaultSourceDB),
-		SourceCollection: envOr("SOURCE_COLLECTION", defaultSourceCollection),
-		DestDB:           envOr("DEST_DB", defaultDestDB),
-		DestCollection:   envOr("DEST_COLLECTION", defaultDestCollection),
-		JobsCollection:   envOr("JOBS_COLLECTION", defaultJobsCollection),
-		OpenAIAPIKey:     strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
-		OpenAIModel:      envOr("OPENAI_MODEL", defaultOpenAIModel),
-		OpenAIBaseURL:    envOr("OPENAI_BASE_URL", defaultOpenAIBaseURL),
+		MongoURI:            strings.TrimSpace(os.Getenv("MONGO_URI")),
+		HTTPAddr:            envOr("HTTP_ADDR", defaultHTTPAddr),
+		AdminOrigins:        splitList(envOr("ADMIN_ORIGINS", defaultAdminOrigins)),
+		SourceDB:            envOr("SOURCE_DB", defaultSourceDB),
+		SourceCollection:    envOr("SOURCE_COLLECTION", defaultSourceCollection),
+		DestDB:              envOr("DEST_DB", defaultDestDB),
+		DestCollection:      envOr("DEST_COLLECTION", defaultDestCollection),
+		JobsCollection:      envOr("JOBS_COLLECTION", defaultJobsCollection),
+		SourceCompanies:     envOr("SOURCE_COMPANIES", defaultSourceCompanies),
+		CompaniesCollection: envOr("COMPANIES_COLLECTION", defaultCompaniesCollection),
+		OpenAIAPIKey:        strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
+		OpenAIModel:         envOr("OPENAI_MODEL", defaultOpenAIModel),
+		OpenAIBaseURL:       envOr("OPENAI_BASE_URL", defaultOpenAIBaseURL),
 	}
 	if cfg.MongoURI == "" {
 		return Config{}, fmt.Errorf("MONGO_URI is required")

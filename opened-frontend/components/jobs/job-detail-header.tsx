@@ -55,11 +55,15 @@ export function JobDetailHeader({
           },
         ]
       : []),
-    {
-      label: "View company",
-      icon: icons.seat,
-      onClick: () => router.push(ROUTES.companyPublic(job.companySlug)),
-    },
+    ...(job.companyId
+      ? [
+          {
+            label: "View company",
+            icon: icons.seat,
+            onClick: () => router.push(ROUTES.companyPublic(job.companyId)),
+          },
+        ]
+      : []),
     ...(onHide
       ? [
           { type: "divider" as const },
@@ -71,11 +75,15 @@ export function JobDetailHeader({
   return (
     <Stack gap={4}>
       <HStack gap={4} vAlign="start">
-        <CompanyLogo name={job.company} size={60} />
+        <CompanyLogo name={job.company} companyId={job.companyId} src={job.companyLogo} size={60} />
         <Stack gap={1}>
           <Heading level={2}>{job.title}</Heading>
           <Text color="secondary">
-            <Link href={ROUTES.companyPublic(job.companySlug)}>{job.company}</Link>
+            {job.companyId ? (
+              <Link href={ROUTES.companyPublic(job.companyId)}>{job.company}</Link>
+            ) : (
+              job.company
+            )}
             {` · ${job.location} · ${formatPosted(job.postedHoursAgo)} · ${formatCount(job.applicants, "applicant")}`}
           </Text>
         </Stack>

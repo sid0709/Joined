@@ -38,7 +38,7 @@ func main() {
 	}
 	defer client.Disconnect(context.Background())
 
-	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection, cfg.JobsCollection)
+	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection, cfg.JobsCollection, cfg.SourceCompanies, cfg.CompaniesCollection)
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
