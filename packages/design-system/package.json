@@ -26,14 +26,14 @@
     "theme:build": "astryx theme build src/theme/openseat.theme.ts -o src/theme/theme.css"
   },
   "dependencies": {
-    "@astryxdesign/core": "^0.6.2",
-    "@astryxdesign/theme-neutral": "^0.6.2",
-    "@stylexjs/stylex": "^0.19.1"
+    "@astryxdesign/core": "catalog:",
+    "@astryxdesign/theme-neutral": "catalog:",
+    "@stylexjs/stylex": "catalog:"
   },
   "devDependencies": {
-    "@astryxdesign/cli": "^0.6.2",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "typescript": "^5"
+    "@astryxdesign/cli": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "catalog:"
   }
 }
