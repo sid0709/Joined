@@ -8,18 +8,18 @@ Let a job hunter hand off the work of finding and applying to jobs, stay in cont
 
 ## Pages
 
-| Page | Must do |
-|---|---|
-| **Dashboard** | This week: applications sent, interviews confirmed, pending approvals, pending submits (AI), questions waiting for the client. Progress bar per active assignment ("47 / 80 applied"). |
-| **Jobs** | Live feed from the job pool filtered by the client's preferences, with fit score, route badge (AI / Human), tags (Already applied, Assigned, Closing soon, Hidden job). Bulk selection. |
-| **Assignments** | List of assignments with status, provider, deadline, counts. Detail view per assignment. |
-| **Tracker** | Kanban of all applications: Queued → In progress → Awaiting you → Submitted → Interview → Offer / Rejected / No response. |
-| **Submit queue** | AI-prepared applications waiting for the client's submit click (see [22-ai-agent.md](22-ai-agent.md#submit-handoff)). |
-| **Interviews** | Detected interviews to confirm, upcoming interviews, prep notes. |
-| **Providers** | Browse/select human bidders (profiles, levels, published interview rate, reviews) and the AI agent tiers. |
-| **Messages** | Threads with bidders; screening questions routed to the client. |
-| **Billing** | Plan, per-interview charges, escrow balance, invoices, payment method. |
-| **Settings / Rules** | Target roles, locations, salary floor, do-not-apply companies, default resume, approval mode, weekly target, connected calendar/email (required for per-interview plans). |
+| Page                 | Must do                                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**        | This week: applications sent, interviews confirmed, pending approvals, pending submits (AI), questions waiting for the client. Progress bar per active assignment ("47 / 80 applied").  |
+| **Jobs**             | Live feed from the job pool filtered by the client's preferences, with fit score, route badge (AI / Human), tags (Already applied, Assigned, Closing soon, Hidden job). Bulk selection. |
+| **Assignments**      | List of assignments with status, provider, deadline, counts. Detail view per assignment.                                                                                                |
+| **Tracker**          | Kanban of all applications: Queued → In progress → Awaiting you → Submitted → Interview → Offer / Rejected / No response.                                                               |
+| **Submit queue**     | AI-prepared applications waiting for the client's submit click (see [22-ai-agent.md](22-ai-agent.md#submit-handoff)).                                                                   |
+| **Interviews**       | Detected interviews to confirm, upcoming interviews, prep notes.                                                                                                                        |
+| **Providers**        | Browse/select human bidders (profiles, levels, published interview rate, reviews) and the AI agent tiers.                                                                               |
+| **Messages**         | Threads with bidders; screening questions routed to the client.                                                                                                                         |
+| **Billing**          | Plan, per-interview charges, escrow balance, invoices, payment method.                                                                                                                  |
+| **Settings / Rules** | Target roles, locations, salary floor, do-not-apply companies, default resume, approval mode, weekly target, connected calendar/email (required for per-interview plans).               |
 
 ## Onboarding (client activation)
 
@@ -35,13 +35,13 @@ Let a job hunter hand off the work of finding and applying to jobs, stay in cont
 
 Three methods (all produce an `assignment` with `assignment_items → applications`):
 
-| Method | UX | Default? |
-|---|---|---|
-| **Rules-based** | Client sets rules + weekly target (e.g. 80/week, fit ≥ 70). System fills the assignment continuously from the feed. | **Yes** |
-| **Top-N** | Client types N; the top N by fit (after hard filters) are pre-selected; client unchecks any; clicks *Assign*. | |
-| **Shortlist** | Client adds jobs to a queue while browsing ("62 / 80"); sends as a batch or daily. | |
+| Method          | UX                                                                                                                  | Default? |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Rules-based** | Client sets rules + weekly target (e.g. 80/week, fit ≥ 70). System fills the assignment continuously from the feed. | **Yes**  |
+| **Top-N**       | Client types N; the top N by fit (after hard filters) are pre-selected; client unchecks any; clicks _Assign_.       |          |
+| **Shortlist**   | Client adds jobs to a queue while browsing ("62 / 80"); sends as a batch or daily.                                  |          |
 
-### Assignment panel (on *Assign*)
+### Assignment panel (on _Assign_)
 
 - Provider: AI agent / specific bidder / **Auto** (router decides per job: bulk → agent, complex → human bidder)
 - Deadline
@@ -59,21 +59,21 @@ Three methods (all produce an `assignment` with `assignment_items → applicatio
 
 ## Approvals and questions
 
-- `approve_each`: each prepared application appears in *Awaiting you* with job, fit reasons, resume version, answers, and cover letter if any. Approve / Edit / Skip.
+- `approve_each`: each prepared application appears in _Awaiting you_ with job, fit reasons, resume version, answers, and cover letter if any. Approve / Edit / Skip.
 - Screening questions the provider cannot answer from the profile (salary expectation, availability, legal attestations, custom questions) are routed to the client (`needs_client_input`). Answers can be saved as reusable defaults.
 - The provider **must not** guess answers to legal or eligibility questions.
 
 ## Tracker statuses (client-facing mapping)
 
-| Internal status | Client sees |
-|---|---|
-| queued | Queued |
-| preparing | In progress |
-| awaiting_client_approval, needs_client_input, awaiting_client_submit | Awaiting you |
-| submitted, qa_passed | Submitted |
-| qa_failed | Needs fix (provider re-does) |
-| interviewing | Interview |
-| offer / rejected_by_company / no_response / expired / skipped / failed | Final states |
+| Internal status                                                        | Client sees                  |
+| ---------------------------------------------------------------------- | ---------------------------- |
+| queued                                                                 | Queued                       |
+| preparing                                                              | In progress                  |
+| awaiting_client_approval, needs_client_input, awaiting_client_submit   | Awaiting you                 |
+| submitted, qa_passed                                                   | Submitted                    |
+| qa_failed                                                              | Needs fix (provider re-does) |
+| interviewing                                                           | Interview                    |
+| offer / rejected_by_company / no_response / expired / skipped / failed | Final states                 |
 
 ## Replacements
 

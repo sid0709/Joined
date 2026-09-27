@@ -19,10 +19,17 @@ export function ProfileStrength({ steps }: { steps: StrengthStep[] }) {
             <Heading level={2} type="display-3">
               {`${percent}%`}
             </Heading>
-            <Text color="secondary">{percent >= STRONG_THRESHOLD ? "Strong" : "Getting there"}</Text>
+            <Text color="secondary">
+              {percent >= STRONG_THRESHOLD ? "Strong" : "Getting there"}
+            </Text>
           </HStack>
         </Stack>
-        <ProgressBar label="Profile strength" isLabelHidden value={percent} variant={percent >= STRONG_THRESHOLD ? "success" : "accent"} />
+        <ProgressBar
+          label="Profile strength"
+          isLabelHidden
+          value={percent}
+          variant={percent >= STRONG_THRESHOLD ? "success" : "accent"}
+        />
         <Text type="supporting" color="secondary" display="block">
           Complete profiles get up to 3× more recruiter views.
         </Text>

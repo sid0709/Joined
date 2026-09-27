@@ -46,7 +46,7 @@ Envelope (all events):
   "occurred_at": "2026-09-26T18:00:00Z",
   "producer": "tracking",
   "trace_id": "…",
-  "data": { }
+  "data": {}
 }
 ```
 
@@ -56,23 +56,23 @@ Envelope (all events):
 
 ### Event catalog (core)
 
-| Event | Producer | Key data |
-|---|---|---|
-| `user.verified` | identity | user_id, tier |
-| `delegation.signed` / `.revoked` | identity | client_user_id, actor |
-| `job.published` / `.expired` / `.merged` | jobs | job_id, source, company_id |
-| `scout.submission.approved` | jobs | submission_id, job_id, scout_user_id |
-| `company.claimed` | jobs | company_id |
-| `fit.computed` | matching | client_user_id, job_id, score |
-| `route.decided` | matching | job_id, route |
-| `assignment.created` | marketplace | assignment_id, engagement_id, count |
-| `application.submitted` | marketplace | application_id, actor_type, job_id, client_user_id |
-| `application.qa_passed` / `.qa_failed` | marketplace | application_id, reasons |
-| `agent.application.prepared` | agent | application_id, payload_id |
-| `company.feedback.not_relevant` | jobs | application_id, actor |
-| `interview.detected` / `.confirmed` / `.settled` / `.voided` | tracking | interview_id, application_id, job_id, round, source |
-| `charge.succeeded` / `payout.released` | payments | amounts, references |
-| `report.upheld` / `fraud.flagged` | trust | subject, reason |
+| Event                                                        | Producer    | Key data                                            |
+| ------------------------------------------------------------ | ----------- | --------------------------------------------------- |
+| `user.verified`                                              | identity    | user_id, tier                                       |
+| `delegation.signed` / `.revoked`                             | identity    | client_user_id, actor                               |
+| `job.published` / `.expired` / `.merged`                     | jobs        | job_id, source, company_id                          |
+| `scout.submission.approved`                                  | jobs        | submission_id, job_id, scout_user_id                |
+| `company.claimed`                                            | jobs        | company_id                                          |
+| `fit.computed`                                               | matching    | client_user_id, job_id, score                       |
+| `route.decided`                                              | matching    | job_id, route                                       |
+| `assignment.created`                                         | marketplace | assignment_id, engagement_id, count                 |
+| `application.submitted`                                      | marketplace | application_id, actor_type, job_id, client_user_id  |
+| `application.qa_passed` / `.qa_failed`                       | marketplace | application_id, reasons                             |
+| `agent.application.prepared`                                 | agent       | application_id, payload_id                          |
+| `company.feedback.not_relevant`                              | jobs        | application_id, actor                               |
+| `interview.detected` / `.confirmed` / `.settled` / `.voided` | tracking    | interview_id, application_id, job_id, round, source |
+| `charge.succeeded` / `payout.released`                       | payments    | amounts, references                                 |
+| `report.upheld` / `fraud.flagged`                            | trust       | subject, reason                                     |
 
 ## Observability
 

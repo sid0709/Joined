@@ -8,13 +8,13 @@ Reliably know when a candidate had an interview, because **every price and payou
 
 ## Signal sources
 
-| Source | How | Strength | Required? |
-|---|---|---|---|
-| **On-platform scheduling** | Company schedules in-product (direct jobs) | Strongest | Standard for direct jobs |
-| **Calendar connection** | Google Calendar / Microsoft Graph, read-only events scope, push notifications | Strong; also proves the event happened | Default for Connect clients |
-| **Email forwarding** | Client auto-forwards job-related mail to a private address `u-<token>@in.<domain>` | Strong; catches phone screens | Alternative/backup |
-| **Platform apply email** | Applications use `<name>.<token>@apply.<domain>`, which forwards to the client | Strongest for off-platform | Optional |
-| **Manual + evidence** | Client or bidder reports with screenshot | Weak | Fallback |
+| Source                     | How                                                                                | Strength                               | Required?                   |
+| -------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------- | --------------------------- |
+| **On-platform scheduling** | Company schedules in-product (direct jobs)                                         | Strongest                              | Standard for direct jobs    |
+| **Calendar connection**    | Google Calendar / Microsoft Graph, read-only events scope, push notifications      | Strong; also proves the event happened | Default for Connect clients |
+| **Email forwarding**       | Client auto-forwards job-related mail to a private address `u-<token>@in.<domain>` | Strong; catches phone screens          | Alternative/backup          |
+| **Platform apply email**   | Applications use `<name>.<token>@apply.<domain>`, which forwards to the client     | Strongest for off-platform             | Optional                    |
+| **Manual + evidence**      | Client or bidder reports with screenshot                                           | Weak                                   | Fallback                    |
 
 Connect plans with per-interview pricing **require** calendar or email forwarding.
 
@@ -31,31 +31,34 @@ flowchart LR
 ```
 
 ### Normalization
+
 Extract: organizer email/domain, attendee domains, title, description text, start/end, conferencing link, cancellation status, provider event ID. For email: sender, subject, body, ICS attachments, scheduling links (Calendly, GoodTime, Gem, Greenhouse/Ashby/Lever scheduling).
 
 ### Matching
+
 Candidate's open applications (last 120 days) → match by:
+
 - organizer/sender domain ∈ company domains, or ATS scheduling domain + company name in text,
 - company or job title mentioned in title/body,
 - time proximity (event after application submit).
 
 ### Confidence score (0–100)
 
-| Signal | Points |
-|---|---|
-| External organizer from company domain | +40 |
-| Known ATS/scheduler sender + company name present | +35 |
-| "interview", "screen", "chat with", round keywords in title | +15 |
-| Video link present | +5 |
-| Event created by the client themself (not external organizer) | −30 |
-| Matches exactly one open application | +10 |
-| Duplicate of an existing interview event (same job, overlapping time) | merge |
+| Signal                                                                | Points |
+| --------------------------------------------------------------------- | ------ |
+| External organizer from company domain                                | +40    |
+| Known ATS/scheduler sender + company name present                     | +35    |
+| "interview", "screen", "chat with", round keywords in title           | +15    |
+| Video link present                                                    | +5     |
+| Event created by the client themself (not external organizer)         | −30    |
+| Matches exactly one open application                                  | +10    |
+| Duplicate of an existing interview event (same job, overlapping time) | merge  |
 
 Round number: incremented per `(candidate, job)` in chronological order; client can correct.
 
 ## Confirmation
 
-- After `scheduled_end`, if not cancelled, the client gets a one-tap prompt: *Did this interview happen?* Yes / No (cancelled) / No-show / Not an interview.
+- After `scheduled_end`, if not cancelled, the client gets a one-tap prompt: _Did this interview happen?_ Yes / No (cancelled) / No-show / Not an interview.
 - **Auto-confirm** if the client doesn't answer within 72 h and confidence ≥ 90 with an external organizer; client can still dispute during the hold.
 - On confirm: `interview.confirmed` → billing; status `held` until `hold_until` (default 7 days bidder, 14 days scout).
 - On-platform interviews confirm automatically from attendance.

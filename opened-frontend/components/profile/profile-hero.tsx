@@ -1,5 +1,23 @@
-import { Avatar, Badge, Button, Card, Divider, HStack, Heading, Glyph, Grid, Stack, Text } from "@openseat/design-system";
-import { NOTICE_OPTIONS, WORKPLACE_OPTIONS, formatSalary, optionLabel, type Profile } from "@/lib/profile";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  Divider,
+  HStack,
+  Heading,
+  Glyph,
+  Grid,
+  Stack,
+  Text,
+} from "@openseat/design-system";
+import {
+  NOTICE_OPTIONS,
+  WORKPLACE_OPTIONS,
+  formatSalary,
+  optionLabel,
+  type Profile,
+} from "@/lib/profile";
 
 const AVATAR_SIZE = 96;
 const FACT_MIN_WIDTH = 180;
@@ -56,8 +74,14 @@ export function ProfileHero({ profile }: { profile: Profile }) {
         <Grid columns={{ minWidth: FACT_MIN_WIDTH, max: FACT_MAX_COLUMNS }} gap={5}>
           <Fact label="Target roles" value={profile.targetRoles.join(", ")} />
           <Fact label="Workplace" value={optionLabel(WORKPLACE_OPTIONS, profile.workplace)} />
-          <Fact label="Salary floor" value={`${formatSalary(profile.salaryFloor, profile.currency)} / yr`} />
-          <Fact label="Available to start" value={optionLabel(NOTICE_OPTIONS, profile.noticePeriod)} />
+          <Fact
+            label="Salary floor"
+            value={`${formatSalary(profile.salaryFloor, profile.currency)} / yr`}
+          />
+          <Fact
+            label="Available to start"
+            value={optionLabel(NOTICE_OPTIONS, profile.noticePeriod)}
+          />
         </Grid>
       </Stack>
     </Card>

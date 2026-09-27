@@ -4,17 +4,17 @@
 
 ## Legal surfaces ⚖️
 
-| Area | Requirement |
-|---|---|
-| Terms of service (per mode) | Job hunter, company, scout, client, bidder terms; placement fee clause; no-fabrication and no-proxy clauses |
-| Delegation agreement | Client authorizes bidder/agent actions; scope and prohibitions ([10](10-identity-and-accounts.md)) |
-| Job data | Aggregate only from permitted sources; store summaries + official links; honor takedown requests |
-| Automation | No bypass of CAPTCHAs/bot protection; respect site terms; candidate performs final submit |
-| Reports and scores | Objective reasons, appeal, no public negative scores; review for consumer-reporting (e.g. FCRA in the US), defamation, and GDPR profiling rules |
-| AI in hiring | Label AI-prepared applications; monitor for bias in fit scoring; review NYC Local Law 144, EU AI Act (employment = high-risk), Colorado/Illinois rules as applicable |
-| Payments | Stripe Connect handles KYC for payouts; 1099/tax forms for US payees; sales tax/VAT on subscriptions |
-| Worker classification | If bidders are paid piece rate in a managed model, review contractor vs employee classification per jurisdiction |
-| Minors | Age gating for client/bidder modes |
+| Area                        | Requirement                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Terms of service (per mode) | Job hunter, company, scout, client, bidder terms; placement fee clause; no-fabrication and no-proxy clauses                                                          |
+| Delegation agreement        | Client authorizes bidder/agent actions; scope and prohibitions ([10](10-identity-and-accounts.md))                                                                   |
+| Job data                    | Aggregate only from permitted sources; store summaries + official links; honor takedown requests                                                                     |
+| Automation                  | No bypass of CAPTCHAs/bot protection; respect site terms; candidate performs final submit                                                                            |
+| Reports and scores          | Objective reasons, appeal, no public negative scores; review for consumer-reporting (e.g. FCRA in the US), defamation, and GDPR profiling rules                      |
+| AI in hiring                | Label AI-prepared applications; monitor for bias in fit scoring; review NYC Local Law 144, EU AI Act (employment = high-risk), Colorado/Illinois rules as applicable |
+| Payments                    | Stripe Connect handles KYC for payouts; 1099/tax forms for US payees; sales tax/VAT on subscriptions                                                                 |
+| Worker classification       | If bidders are paid piece rate in a managed model, review contractor vs employee classification per jurisdiction                                                     |
+| Minors                      | Age gating for client/bidder modes                                                                                                                                   |
 
 ## Privacy
 
@@ -23,15 +23,15 @@
 - **User rights:** export (JSON + files) and deletion from Settings; deletion within 30 days, except records required for legal/financial retention (ledger, tax, fraud).
 - **Retention:**
 
-| Data | Retention |
-|---|---|
-| Resumes, profile | Until deleted by user; 24 months after last activity then prompt/delete |
-| Application records | 36 months |
-| Calendar/email matched items | 24 months; unmatched never stored (hash only) |
-| ID verification | Vendor reference + status; raw images per vendor policy, not stored by us |
-| Ledger, invoices | 7 years |
-| Audit log | 7 years |
-| Messages | 24 months after context closes |
+| Data                         | Retention                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| Resumes, profile             | Until deleted by user; 24 months after last activity then prompt/delete   |
+| Application records          | 36 months                                                                 |
+| Calendar/email matched items | 24 months; unmatched never stored (hash only)                             |
+| ID verification              | Vendor reference + status; raw images per vendor policy, not stored by us |
+| Ledger, invoices             | 7 years                                                                   |
+| Audit log                    | 7 years                                                                   |
+| Messages                     | 24 months after context closes                                            |
 
 - **Processors:** keep a sub-processor list (hosting, IDV, Stripe, email, LLM provider). LLM provider must not train on our data (zero-retention/enterprise terms).
 - **Cross-border:** EU users → SCCs; data residency option later.

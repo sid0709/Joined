@@ -8,14 +8,14 @@ Prepare high volumes of well-matched applications for **bulk ATS forms** (Greenh
 
 ## Validated Phase 1 benchmark
 
-| Metric | Value |
-|---|---|
-| Throughput | ~150 applications per run, ~1 hour |
-| Compute cost | ~$0.50 per day (per client at 150/day) |
-| Outcome | ~5 interviews/week (~0.5% interview rate on bulk jobs) |
-| Cost per interview | ~$0.70 |
-| Submit | Clicked by the job hunter |
-| Known weakness | Fails on complex/custom forms → routed to humans |
+| Metric             | Value                                                  |
+| ------------------ | ------------------------------------------------------ |
+| Throughput         | ~150 applications per run, ~1 hour                     |
+| Compute cost       | ~$0.50 per day (per client at 150/day)                 |
+| Outcome            | ~5 interviews/week (~0.5% interview rate on bulk jobs) |
+| Cost per interview | ~$0.70                                                 |
+| Submit             | Clicked by the job hunter                              |
+| Known weakness     | Fails on complex/custom forms → routed to humans       |
 
 ## Architecture
 
@@ -34,25 +34,26 @@ flowchart TB
 
 ### Components
 
-| Component | Responsibility |
-|---|---|
-| **Orchestrator** | Pulls eligible `applications` with `route = agent`, enforces quotas and per-company caps, schedules runs, tracks `agent_runs`, retries. |
-| **ATS adapters** | One module per ATS (`greenhouse`, `ashby`, `lever`, …). Knows field mapping, file upload fields, standard questions, confirmation signals. Versioned; tested nightly against fixture pages. |
-| **Form reader** | Loads the official apply page in an isolated headless browser (read-only; never submits), extracts the form schema (fields, types, required, options) and computes `form_signature_hash`. |
-| **Answer resolver** | Maps each field to: profile data, saved client answers, tailored content, or `needs_client_input`. Legal/eligibility questions are **never** auto-answered unless the client saved an explicit answer. |
-| **Tailoring service** | Optional short cover letter / "why this role" answers and resume emphasis. Must pass the fabrication guard. |
+| Component             | Responsibility                                                                                                                                                                                                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Orchestrator**      | Pulls eligible `applications` with `route = agent`, enforces quotas and per-company caps, schedules runs, tracks `agent_runs`, retries.                                                                                                                    |
+| **ATS adapters**      | One module per ATS (`greenhouse`, `ashby`, `lever`, …). Knows field mapping, file upload fields, standard questions, confirmation signals. Versioned; tested nightly against fixture pages.                                                                |
+| **Form reader**       | Loads the official apply page in an isolated headless browser (read-only; never submits), extracts the form schema (fields, types, required, options) and computes `form_signature_hash`.                                                                  |
+| **Answer resolver**   | Maps each field to: profile data, saved client answers, tailored content, or `needs_client_input`. Legal/eligibility questions are **never** auto-answered unless the client saved an explicit answer.                                                     |
+| **Tailoring service** | Optional short cover letter / "why this role" answers and resume emphasis. Must pass the fabrication guard.                                                                                                                                                |
 | **Fabrication guard** | Extracts claims (employers, titles, dates, degrees, certifications, skills with years) from generated text and checks each exists in the client's approved resume/profile. Any unsupported claim → remove or flag; flagged payloads require client review. |
-| **Payload store** | Saves `agent_prepared_payloads` (field → value, attachments) with 72 h expiry. |
-| **Submit handoff** | Client-side browser extension opens the official page in the client's own browser, autofills from the payload, attaches the resume, and **the client clicks submit**. Extension captures confirmation. |
-| **Learning loop** | Records success/failure per `form_signature_hash`; router moves signatures below 90% success to human. |
+| **Payload store**     | Saves `agent_prepared_payloads` (field → value, attachments) with 72 h expiry.                                                                                                                                                                             |
+| **Submit handoff**    | Client-side browser extension opens the official page in the client's own browser, autofills from the payload, attaches the resume, and **the client clicks submit**. Extension captures confirmation.                                                     |
+| **Learning loop**     | Records success/failure per `form_signature_hash`; router moves signatures below 90% success to human.                                                                                                                                                     |
 
 ## Submit handoff
 
 Why client-side: the application is submitted from the candidate's own browser, session and network, with the candidate's explicit action, which matches consent principles and avoids automated submission from our infrastructure.
 
 Flow:
+
 1. Client opens **Submit queue** in `connect-web` (or extension popup) → sees N ready applications with job, fit, answers.
-2. Client clicks *Start*: extension opens the first job's official URL in a tab and autofills.
+2. Client clicks _Start_: extension opens the first job's official URL in a tab and autofills.
 3. Client reviews and clicks the site's own **Submit** button.
 4. Extension detects the confirmation page/state (adapter-specific), screenshots it, reads the uploaded file name/hash, posts evidence to `POST /v1/extension/applications/{id}/submitted`, and opens the next one.
 5. Target: ≤ 20 seconds of client time per application. 150 applications ≈ under 1 hour of clicking (matches Phase 1).
@@ -72,10 +73,10 @@ Fallbacks: if autofill fails on a field, the extension highlights it and shows t
 
 ## Tiers (client-facing)
 
-| Tier | What the agent does | Notes |
-|---|---|---|
-| AI Basic | Bulk jobs only, rules-based, up to plan cap | Client clicks submit |
-| AI + Human | Agent for bulk, human bidder for complex, human reviews agent output samples | Blended |
+| Tier       | What the agent does                                                          | Notes                |
+| ---------- | ---------------------------------------------------------------------------- | -------------------- |
+| AI Basic   | Bulk jobs only, rules-based, up to plan cap                                  | Client clicks submit |
+| AI + Human | Agent for bulk, human bidder for complex, human reviews agent output samples | Blended              |
 
 ## Quotas and scaling
 

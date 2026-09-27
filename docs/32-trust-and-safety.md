@@ -10,18 +10,18 @@ Keep fake jobs, fake candidates, proxy interviews, spam applications, and payout
 
 ## Threats and controls
 
-| Threat | Controls |
-|---|---|
-| Fake/scam job posts | Company verification, scout auto checks, scam-text classifier (payment requests, off-platform chat apps, crypto, too-good salary), domain age, two-way reports |
-| Fake candidates / stolen identity | Tier 2 ID + liveness before interviews; face-duplicate check |
-| Proxy / deepfake interviews | Face check at join for on-platform interviews; company "identity mismatch" report with evidence |
-| Application spam | Fit thresholds, daily and per-company caps, quotas tied to interview rate and "not relevant" feedback, company per-job policy |
-| Fabricated resumes | Fabrication guard (agent), rules + QA sampling (humans), client approval of tailored versions |
-| Fake interviews (to earn) | Company-side evidence, confidence scoring, holds, disputes, link analysis |
-| Hidden interviews (to avoid fees) | Required tracking on per-interview plans, hidden-interview heuristics ([30-interview-tracking.md](30-interview-tracking.md)) |
-| Collusion (scout ↔ bidder ↔ client) | Link graph over devices, IPs, payout accounts, payment methods, phones; blocked pairings; earnings voided |
-| Account sharing/selling (bidders) | Periodic selfie re-verification, device changes trigger step-up |
-| Bots/scraping | Risk scoring, rate limits, headless detection, CAPTCHA on high risk |
+| Threat                              | Controls                                                                                                                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fake/scam job posts                 | Company verification, scout auto checks, scam-text classifier (payment requests, off-platform chat apps, crypto, too-good salary), domain age, two-way reports |
+| Fake candidates / stolen identity   | Tier 2 ID + liveness before interviews; face-duplicate check                                                                                                   |
+| Proxy / deepfake interviews         | Face check at join for on-platform interviews; company "identity mismatch" report with evidence                                                                |
+| Application spam                    | Fit thresholds, daily and per-company caps, quotas tied to interview rate and "not relevant" feedback, company per-job policy                                  |
+| Fabricated resumes                  | Fabrication guard (agent), rules + QA sampling (humans), client approval of tailored versions                                                                  |
+| Fake interviews (to earn)           | Company-side evidence, confidence scoring, holds, disputes, link analysis                                                                                      |
+| Hidden interviews (to avoid fees)   | Required tracking on per-interview plans, hidden-interview heuristics ([30-interview-tracking.md](30-interview-tracking.md))                                   |
+| Collusion (scout ↔ bidder ↔ client) | Link graph over devices, IPs, payout accounts, payment methods, phones; blocked pairings; earnings voided                                                      |
+| Account sharing/selling (bidders)   | Periodic selfie re-verification, device changes trigger step-up                                                                                                |
+| Bots/scraping                       | Risk scoring, rate limits, headless detection, CAPTCHA on high risk                                                                                            |
 
 ## Reports (two-way)
 
@@ -35,6 +35,7 @@ Keep fake jobs, fake candidates, proxy interviews, spam applications, and payout
 ## Link analysis
 
 `link_edges` connect accounts sharing: device fingerprint, IP /24 within 7 days, payout account, payment method, phone. Rules:
+
 - A scout never earns on interviews where the client or bidder is linked.
 - A bidder cannot work for a linked client.
 - Clusters with ≥ 3 accounts and money flowing inside the cluster → fraud case.
@@ -42,6 +43,7 @@ Keep fake jobs, fake candidates, proxy interviews, spam applications, and payout
 ## Rule engine
 
 Declarative rules evaluated on events; output: `fraud_flags` with score and evidence. Examples:
+
 - `R-IV-01` interview confirmed < 2 h after application submit → review.
 - `R-IV-02` client confirms > 10 interviews/week with < 50 applications → review.
 - `R-SC-01` scout submission approval rate < 60% in 7 days → demote + review.

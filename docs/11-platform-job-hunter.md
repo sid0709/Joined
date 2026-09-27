@@ -12,15 +12,15 @@ A free, verified job search experience with jobs other boards don't have, a clea
 Job Search | My Applications | Interviews | Messages | My Resumes | Profile | Settings
 ```
 
-| Page | Must do |
-|---|---|
-| **Job Search** | Full-text + faceted search (title, location, remote, salary, seniority, employment type, posted date, visa sponsorship, source: "hidden jobs only"). Match score per job when a profile exists. Tabs: *All*, *Recommended*, *Saved*. Job detail drawer with summary, requirements, salary, company card, official apply link, "Apply" and "Save". |
-| **My Applications** | Every application (self and assisted) with status: Saved → Applied → Viewed → Interview → Offer / Rejected / No response. Filters and a simple stats header (applications, interviews, interview rate). |
-| **Interviews** | Upcoming and past interviews from calendar/email/on-platform; prep notes; confirm/correct detected interviews. |
-| **Messages** | Threads with companies (on-platform scheduling), bidders (if a client), and system. |
-| **My Resumes** | Upload (PDF/DOCX), parse, multiple labeled versions, set default. Owner approval required for any version created by a bidder/agent. |
-| **Profile** | Headline, target roles, locations, remote preference, salary floor, work authorization, verification badge, public visibility settings. |
-| **Settings** | Account, notifications, connected calendar/email, privacy (data export/delete), billing (if client). |
+| Page                | Must do                                                                                                                                                                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Job Search**      | Full-text + faceted search (title, location, remote, salary, seniority, employment type, posted date, visa sponsorship, source: "hidden jobs only"). Match score per job when a profile exists. Tabs: _All_, _Recommended_, _Saved_. Job detail drawer with summary, requirements, salary, company card, official apply link, "Apply" and "Save". |
+| **My Applications** | Every application (self and assisted) with status: Saved → Applied → Viewed → Interview → Offer / Rejected / No response. Filters and a simple stats header (applications, interviews, interview rate).                                                                                                                                           |
+| **Interviews**      | Upcoming and past interviews from calendar/email/on-platform; prep notes; confirm/correct detected interviews.                                                                                                                                                                                                                                    |
+| **Messages**        | Threads with companies (on-platform scheduling), bidders (if a client), and system.                                                                                                                                                                                                                                                               |
+| **My Resumes**      | Upload (PDF/DOCX), parse, multiple labeled versions, set default. Owner approval required for any version created by a bidder/agent.                                                                                                                                                                                                              |
+| **Profile**         | Headline, target roles, locations, remote preference, salary floor, work authorization, verification badge, public visibility settings.                                                                                                                                                                                                           |
+| **Settings**        | Account, notifications, connected calendar/email, privacy (data export/delete), billing (if client).                                                                                                                                                                                                                                              |
 
 **Later:** Analytics page (application funnel over time), browser extension to track applications made on other sites.
 

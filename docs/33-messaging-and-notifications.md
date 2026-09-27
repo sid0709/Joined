@@ -12,19 +12,19 @@
 
 ## Notifications
 
-| Type | Default channels | Timing |
-|---|---|---|
-| Client: question waiting | push, email | immediate |
-| Client: AI submits waiting | push | after 12 h |
-| Client: interview detected — confirm | push, email | after event end + 1 h |
-| Client: weekly summary | email | Monday |
-| Company: new applicants | email digest | daily |
-| Company: interview tomorrow | email | 24 h before |
-| Company: spend cap 80% / 100% | email | on threshold |
-| Bidder: new work / QA failed | push | immediate |
-| Scout: submission decision | in-app, email | immediate |
-| Everyone: payout sent | email | on payout |
-| Everyone: report about you | email | immediate |
+| Type                                 | Default channels | Timing                |
+| ------------------------------------ | ---------------- | --------------------- |
+| Client: question waiting             | push, email      | immediate             |
+| Client: AI submits waiting           | push             | after 12 h            |
+| Client: interview detected — confirm | push, email      | after event end + 1 h |
+| Client: weekly summary               | email            | Monday                |
+| Company: new applicants              | email digest     | daily                 |
+| Company: interview tomorrow          | email            | 24 h before           |
+| Company: spend cap 80% / 100%        | email            | on threshold          |
+| Bidder: new work / QA failed         | push             | immediate             |
+| Scout: submission decision           | in-app, email    | immediate             |
+| Everyone: payout sent                | email            | on payout             |
+| Everyone: report about you           | email            | immediate             |
 
 - Users control channels per type (except security and legal notices).
 - Quiet hours respected per user time zone for push.

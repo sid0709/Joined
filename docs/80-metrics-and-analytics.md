@@ -6,23 +6,23 @@
 
 ## KPI tree
 
-| Area | Metric | Definition | Target (initial) |
-|---|---|---|---|
-| Outcome | Interview rate | confirmed interview events ÷ submitted applications | Human ≥ 1.0%, Agent ≥ 0.5% (Phase 1 baseline) |
-| Outcome | Interviews per client per week | confirmed interviews ÷ active clients | ≥ 5 |
-| Client | 3-month retention | clients active at day 90 ÷ clients started | ≥ 50% |
-| Client | Tracking connected | clients with calendar or email forwarding | ≥ 95% on per-interview plans |
-| Quality | Not-relevant rate | "not relevant" ÷ assisted applications on direct jobs | ≤ 3% |
-| Quality | QA pass rate | qa_passed ÷ submitted | ≥ 97% |
-| Quality | Fabrication flags | flagged payloads ÷ prepared | trending down |
-| Agent | Prep success rate | prepared ÷ attempted, by adapter | ≥ 90% |
-| Agent | Client submit latency | prepared → submitted median | ≤ 24 h |
-| Cost | Cost per interview | (labor + compute + IDV + payment fees + QA) ÷ confirmed interviews | ≤ $5 |
-| Supply | Scouted jobs with ≥ 1 interview | within 30 days of approval | ≥ 10% |
-| Company | Claim rate | claimed ÷ auto-generated pages contacted | measure |
-| Company | Paid interviews per company per month | | measure |
-| Trust | Upheld fraud rate | upheld fraud cases ÷ active accounts | trending down |
-| Tracking | Detection precision / recall | vs. audited sample | ≥ 95% / ≥ 85% |
+| Area     | Metric                                | Definition                                                         | Target (initial)                              |
+| -------- | ------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| Outcome  | Interview rate                        | confirmed interview events ÷ submitted applications                | Human ≥ 1.0%, Agent ≥ 0.5% (Phase 1 baseline) |
+| Outcome  | Interviews per client per week        | confirmed interviews ÷ active clients                              | ≥ 5                                           |
+| Client   | 3-month retention                     | clients active at day 90 ÷ clients started                         | ≥ 50%                                         |
+| Client   | Tracking connected                    | clients with calendar or email forwarding                          | ≥ 95% on per-interview plans                  |
+| Quality  | Not-relevant rate                     | "not relevant" ÷ assisted applications on direct jobs              | ≤ 3%                                          |
+| Quality  | QA pass rate                          | qa_passed ÷ submitted                                              | ≥ 97%                                         |
+| Quality  | Fabrication flags                     | flagged payloads ÷ prepared                                        | trending down                                 |
+| Agent    | Prep success rate                     | prepared ÷ attempted, by adapter                                   | ≥ 90%                                         |
+| Agent    | Client submit latency                 | prepared → submitted median                                        | ≤ 24 h                                        |
+| Cost     | Cost per interview                    | (labor + compute + IDV + payment fees + QA) ÷ confirmed interviews | ≤ $5                                          |
+| Supply   | Scouted jobs with ≥ 1 interview       | within 30 days of approval                                         | ≥ 10%                                         |
+| Company  | Claim rate                            | claimed ÷ auto-generated pages contacted                           | measure                                       |
+| Company  | Paid interviews per company per month |                                                                    | measure                                       |
+| Trust    | Upheld fraud rate                     | upheld fraud cases ÷ active accounts                               | trending down                                 |
+| Tracking | Detection precision / recall          | vs. audited sample                                                 | ≥ 95% / ≥ 85%                                 |
 
 ## Event tracking
 

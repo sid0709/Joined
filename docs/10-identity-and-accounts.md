@@ -13,7 +13,7 @@ One account per real person, usable across both services, with identity assuranc
 - Verification tiers and ID checks
 - Device, network, and bot risk scoring
 - Delegation agreements (client ↔ bidder/agent)
-- Company accounts and membership (company verification lives here; company *data* lives in `jobs`)
+- Company accounts and membership (company verification lives here; company _data_ lives in `jobs`)
 
 ## Sign-up and sign-in
 
@@ -24,26 +24,26 @@ One account per real person, usable across both services, with identity assuranc
 
 ## Modes
 
-| Mode | Activation requirement |
-|---|---|
-| job_hunter | Default on sign-up |
-| company | Create or join a company (see company verification) |
-| scout | Accept scout terms; verified email + phone |
-| client | Tier 2 verification + payment method + signed delegation terms |
-| bidder | Tier 3 verification + skills test + tax info + bidder terms |
-| admin | Staff SSO only, hardware key MFA |
+| Mode       | Activation requirement                                         |
+| ---------- | -------------------------------------------------------------- |
+| job_hunter | Default on sign-up                                             |
+| company    | Create or join a company (see company verification)            |
+| scout      | Accept scout terms; verified email + phone                     |
+| client     | Tier 2 verification + payment method + signed delegation terms |
+| bidder     | Tier 3 verification + skills test + tax info + bidder terms    |
+| admin      | Staff SSO only, hardware key MFA                               |
 
 - Mode switch is a header control. The current mode is stored in `users.last_active_mode` and determines navigation.
 - A user can be both bidder and job hunter, but **a bidder can never be assigned to themselves as client**, and anti-collusion rules apply (see [32-trust-and-safety.md](32-trust-and-safety.md)).
 
 ## Verification tiers
 
-| Tier | Checks | Unlocks |
-|---|---|---|
-| 0 | Email verified | Browse, save jobs |
-| 1 | + phone verified (no VoIP/disposable), device fingerprint | Apply yourself, scout submissions (probation) |
-| 2 | + government ID + liveness selfie | "Verified" badge, being interviewed through on-platform scheduling, becoming a client, scout payouts |
-| 3 | + face-duplicate check (one person, one bidder account) + skills test + tax form | Bidder mode |
+| Tier | Checks                                                                           | Unlocks                                                                                              |
+| ---- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 0    | Email verified                                                                   | Browse, save jobs                                                                                    |
+| 1    | + phone verified (no VoIP/disposable), device fingerprint                        | Apply yourself, scout submissions (probation)                                                        |
+| 2    | + government ID + liveness selfie                                                | "Verified" badge, being interviewed through on-platform scheduling, becoming a client, scout payouts |
+| 3    | + face-duplicate check (one person, one bidder account) + skills test + tax form | Bidder mode                                                                                          |
 
 - Company verification is separate: **work email on company domain** (or DNS TXT), domain age > 90 days, business registry lookup where available, payment method before first paid interview. Small companies without a domain: poster ID (tier 2) + manual review.
 - Verification is done by an external vendor. Store `vendor_ref`, status, and timestamps. **Do not store raw ID images** unless legally required; if required, encrypt and set retention.
@@ -53,22 +53,23 @@ One account per real person, usable across both services, with identity assuranc
 
 Score 0–100, recomputed on sign-in, sensitive actions, and daily.
 
-| Signal | Example weight |
-|---|---|
-| VPN / hosting ASN / Tor | +15 / +20 / +40 |
-| Headless browser or automation fingerprint | +40 |
-| Device shared with other accounts | +10 per account (cap 40) |
-| Disposable email / VoIP phone | +25 |
-| Velocity (sign-ups, applications, submissions) above baseline | +10–30 |
-| Upheld reports | +20 each |
-| Tier 2+ verified | −20 |
-| Account age > 90 days with clean history | −10 |
+| Signal                                                        | Example weight           |
+| ------------------------------------------------------------- | ------------------------ |
+| VPN / hosting ASN / Tor                                       | +15 / +20 / +40          |
+| Headless browser or automation fingerprint                    | +40                      |
+| Device shared with other accounts                             | +10 per account (cap 40) |
+| Disposable email / VoIP phone                                 | +25                      |
+| Velocity (sign-ups, applications, submissions) above baseline | +10–30                   |
+| Upheld reports                                                | +20 each                 |
+| Tier 2+ verified                                              | −20                      |
+| Account age > 90 days with clean history                      | −10                      |
 
 Actions by score: **< 30** normal; **30–59** step-up (OTP, CAPTCHA on sensitive actions); **60–79** require re-verification, limit quotas; **≥ 80** restrict and open a moderation case. **Never hard-block solely for VPN use.**
 
 ## Delegation agreements
 
 Before any bidder or the agent acts for a client, the client signs a delegation agreement recording:
+
 - who may act (specific bidder or "platform AI agent"),
 - allowed actions (search, prepare, submit with/without approval, answer standard questions),
 - forbidden actions (fabrication, attending interviews, accepting offers, sharing credentials),

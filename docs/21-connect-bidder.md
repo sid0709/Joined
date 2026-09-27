@@ -10,28 +10,28 @@ Give verified human bidders an efficient workspace for **complex** applications 
 
 The system MUST support both, selectable per bidder (`bidder_profiles.compensation_model`). Which one is primary is an open business decision ([99-open-questions.md](99-open-questions.md)).
 
-| Model | Payment | Who picks the bidder | Phase 1 |
-|---|---|---|---|
-| **Managed workforce** (`piece_rate`) | Fixed amount per bid (Phase 1: **$0.05/bid**), paid by the platform | Platform assigns work from a shared queue | ✅ Used in Phase 1 |
-| **Marketplace** (`marketplace`) | Bidder sets packages (base + per-interview); platform takes a fee by level | Client chooses from profiles | Planned |
+| Model                                | Payment                                                                    | Who picks the bidder                      | Phase 1            |
+| ------------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------- | ------------------ |
+| **Managed workforce** (`piece_rate`) | Fixed amount per bid (Phase 1: **$0.05/bid**), paid by the platform        | Platform assigns work from a shared queue | ✅ Used in Phase 1 |
+| **Marketplace** (`marketplace`)      | Bidder sets packages (base + per-interview); platform takes a fee by level | Client chooses from profiles              | Planned            |
 
 ## Pages
 
-| Page | Must do |
-|---|---|
-| **Onboarding** | Tier 3 verification, skills test (sample applications graded), tax info, terms, training module on rules (no fabrication, no guessing legal questions). |
-| **Work queue** | Applications assigned to the bidder, sorted by deadline then job closing date. Filters by client, route, status. Claim-next button (managed model). |
+| Page                            | Must do                                                                                                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Onboarding**                  | Tier 3 verification, skills test (sample applications graded), tax info, terms, training module on rules (no fabrication, no guessing legal questions).                      |
+| **Work queue**                  | Applications assigned to the bidder, sorted by deadline then job closing date. Filters by client, route, status. Claim-next button (managed model).                          |
 | **Workspace** (per application) | Left: client rules, profile, resume versions, do-not-apply list, notes, saved answers. Right: job summary, official link, form checklist, bid log controls, evidence upload. |
-| **Clients** (marketplace) | Active clients, engagement terms, messages. |
-| **Performance** | Apps/day, interviews, interview rate, QA pass rate, "not relevant" rate, level progress. |
-| **Earnings** | Pending, held, released, paid; per-bid and per-interview breakdown; payout settings. |
-| **Profile** (marketplace) | Specialties, regions, languages, packages, sample (anonymized) work. |
+| **Clients** (marketplace)       | Active clients, engagement terms, messages.                                                                                                                                  |
+| **Performance**                 | Apps/day, interviews, interview rate, QA pass rate, "not relevant" rate, level progress.                                                                                     |
+| **Earnings**                    | Pending, held, released, paid; per-bid and per-interview breakdown; payout settings.                                                                                         |
+| **Profile** (marketplace)       | Specialties, regions, languages, packages, sample (anonymized) work.                                                                                                         |
 
 ## Workflow per application
 
 1. **Claim** from queue (lock 30 min; auto-release if idle).
 2. **Open** official link (logged).
-3. **Fill** the form using the client's data. Use saved answers; unknown required answers → *Ask client* (status `needs_client_input`).
+3. **Fill** the form using the client's data. Use saved answers; unknown required answers → _Ask client_ (status `needs_client_input`).
 4. **Upload** the assigned resume version (download from workspace; file carries a hidden watermark/hash).
 5. **Submit** (if approval mode allows) or send for approval.
 6. **Capture evidence**: confirmation page screenshot and/or confirmation email reference.
@@ -47,12 +47,12 @@ The system MUST support both, selectable per bidder (`bidder_profiles.compensati
 
 ## Levels, quotas and fees
 
-| Level | Reach it by | Daily quota (per bidder) | Marketplace fee |
-|---|---|---|---|
-| New | Pass onboarding | 40 | 20% |
-| Rising | 10+ confirmed interviews, QA pass ≥ 95% | 70 | 17% |
-| Top | Interview rate top 30%, retention ≥ 60% | 120 | 13% |
-| Elite | Interview rate top 5%, not-relevant rate < 2% | 200 | 10% |
+| Level  | Reach it by                                   | Daily quota (per bidder) | Marketplace fee |
+| ------ | --------------------------------------------- | ------------------------ | --------------- |
+| New    | Pass onboarding                               | 40                       | 20%             |
+| Rising | 10+ confirmed interviews, QA pass ≥ 95%       | 70                       | 17%             |
+| Top    | Interview rate top 30%, retention ≥ 60%       | 120                      | 13%             |
+| Elite  | Interview rate top 5%, not-relevant rate < 2% | 200                      | 10%             |
 
 Phase 1 benchmark (validated): a human bidder handled **~70 applications/day** and produced **~5 interviews/week** (~1% interview rate on complex jobs).
 

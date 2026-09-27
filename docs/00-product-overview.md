@@ -6,10 +6,10 @@ A hiring platform built around one outcome: **a confirmed interview that the com
 
 ## The two services
 
-| Service | Code name | Modes | What it does | Who pays |
-|---|---|---|---|---|
-| **Job Platform** (Service 1) | `platform` | Job Hunter, Company, Scout | Free job site. Companies post free. Scouts add hidden jobs. Job hunters search and apply. | Companies pay **per interview** on jobs they post directly. |
-| **Connect** (Service 2) | `connect` | Client, Bidder (human), AI Agent | Job hunters (clients) hire human bidders or the AI agent to find, prepare and submit applications, then track every step. | Clients pay a plan and/or **per interview**. |
+| Service                      | Code name  | Modes                            | What it does                                                                                                              | Who pays                                                    |
+| ---------------------------- | ---------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Job Platform** (Service 1) | `platform` | Job Hunter, Company, Scout       | Free job site. Companies post free. Scouts add hidden jobs. Job hunters search and apply.                                 | Companies pay **per interview** on jobs they post directly. |
+| **Connect** (Service 2)      | `connect`  | Client, Bidder (human), AI Agent | Job hunters (clients) hire human bidders or the AI agent to find, prepare and submit applications, then track every step. | Clients pay a plan and/or **per interview**.                |
 
 Both services share one **account system**, one **job pool**, one **interview tracking** system, one **wallet**, and one **trust layer**.
 
@@ -19,15 +19,15 @@ Both services share one **account system**, one **job pool**, one **interview tr
 
 One user account can hold several modes and switch between them in the header.
 
-| Mode | Service | Description |
-|---|---|---|
-| Job Hunter | platform | Searches and applies to jobs for free. Can upgrade to Client. |
-| Company | platform | Posts jobs for free, reviews applicants, schedules interviews, pays per interview. |
-| Scout | platform | Submits jobs not listed on LinkedIn/Indeed. Earns when those jobs produce interviews, hires, and paying companies. |
-| Client | connect | A job hunter who hires help. Assigns jobs, approves applications, confirms interviews, pays. |
-| Bidder | connect | A verified human who applies to jobs for clients. Handles complex application forms. |
-| AI Agent | connect | A platform-operated, clearly labeled agent that prepares bulk applications (Greenhouse/Ashby-style ATS). The **job hunter clicks submit**. |
-| Admin | internal | Staff: moderation, fraud, disputes, payouts, configuration. |
+| Mode       | Service  | Description                                                                                                                                |
+| ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Job Hunter | platform | Searches and applies to jobs for free. Can upgrade to Client.                                                                              |
+| Company    | platform | Posts jobs for free, reviews applicants, schedules interviews, pays per interview.                                                         |
+| Scout      | platform | Submits jobs not listed on LinkedIn/Indeed. Earns when those jobs produce interviews, hires, and paying companies.                         |
+| Client     | connect  | A job hunter who hires help. Assigns jobs, approves applications, confirms interviews, pays.                                               |
+| Bidder     | connect  | A verified human who applies to jobs for clients. Handles complex application forms.                                                       |
+| AI Agent   | connect  | A platform-operated, clearly labeled agent that prepares bulk applications (Greenhouse/Ashby-style ATS). The **job hunter clicks submit**. |
+| Admin      | internal | Staff: moderation, fraud, disputes, payouts, configuration.                                                                                |
 
 ## Core loop
 

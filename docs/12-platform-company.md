@@ -8,16 +8,16 @@ Let companies post jobs for free, receive verified and pre-filtered candidates (
 
 ## Pages
 
-| Page | Must do |
-|---|---|
-| **Company Home** | Open jobs, new applicants, upcoming interviews, spend this month vs cap. |
-| **Jobs** | Create/edit/pause/close jobs. Per-job assisted-application policy (accept / cap per day / direct only). |
-| **Applicants** | Per job: list with fit score, verified badge, "assisted" label (bidder or AI-prepared), resume, answers. Actions: shortlist, reject, **schedule interview**, mark **not relevant** (assisted only), report. |
-| **Interviews** | Calendar of scheduled interviews, round numbers, attendance, face-check status, no-show marking. |
-| **Company Page** | Public profile (logo, about, locations, open jobs). Claim flow for auto-generated pages. |
-| **Team** | Invite recruiters (roles: owner, admin, recruiter, viewer). |
-| **Billing** | Plan (Free/Growth/Enterprise), monthly spend cap, invoices, payment method, interview credits. |
-| **Settings** | Domains, ATS integration (later), notification preferences. |
+| Page             | Must do                                                                                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Company Home** | Open jobs, new applicants, upcoming interviews, spend this month vs cap.                                                                                                                                    |
+| **Jobs**         | Create/edit/pause/close jobs. Per-job assisted-application policy (accept / cap per day / direct only).                                                                                                     |
+| **Applicants**   | Per job: list with fit score, verified badge, "assisted" label (bidder or AI-prepared), resume, answers. Actions: shortlist, reject, **schedule interview**, mark **not relevant** (assisted only), report. |
+| **Interviews**   | Calendar of scheduled interviews, round numbers, attendance, face-check status, no-show marking.                                                                                                            |
+| **Company Page** | Public profile (logo, about, locations, open jobs). Claim flow for auto-generated pages.                                                                                                                    |
+| **Team**         | Invite recruiters (roles: owner, admin, recruiter, viewer).                                                                                                                                                 |
+| **Billing**      | Plan (Free/Growth/Enterprise), monthly spend cap, invoices, payment method, interview credits.                                                                                                              |
+| **Settings**     | Domains, ATS integration (later), notification preferences.                                                                                                                                                 |
 
 ## Business rules
 
@@ -39,7 +39,7 @@ Claim flow: work email on a company domain → email code, or DNS TXT record →
 
 ## Interview scheduling (on-platform)
 
-1. Recruiter clicks *Schedule* → selects interview type/round, duration, interviewers, proposes slots or shares a scheduling link.
+1. Recruiter clicks _Schedule_ → selects interview type/round, duration, interviewers, proposes slots or shares a scheduling link.
 2. Candidate picks a slot (sync with candidate's connected calendar).
 3. Video room created (built-in or Zoom/Meet/Teams link). For built-in rooms, **face check** against the candidate's verified ID when joining.
 4. After the slot: attendance recorded automatically (built-in) or by recruiter (external link). Status → confirmed/no_show.

@@ -16,41 +16,47 @@ Move money correctly for four payer/payee types (clients, companies, bidders, sc
 
 ## Accounts
 
-| Account | Owner | Purpose |
-|---|---|---|
-| `client:wallet` | client | Prepaid balance / plan credits |
-| `client:escrow` | client (held by platform) | Funds reserved for an engagement |
-| `company:receivable` | company | Interview fees owed (invoiced monthly or charged per event) |
-| `bidder:payable_held` → `bidder:payable` | bidder | Earnings in hold, then releasable |
-| `scout:payable_held` → `scout:payable` | scout | Rewards in hold, then releasable |
-| `platform:revenue:*` | platform | By stream: client_interview, company_interview, plan, take_rate |
-| `platform:cost:*` | platform | piece_rate, scout_rewards, idv, agent_compute (cost tracking) |
-| `stripe:clearing` | platform | Cash in/out through Stripe |
+| Account                                  | Owner                     | Purpose                                                         |
+| ---------------------------------------- | ------------------------- | --------------------------------------------------------------- |
+| `client:wallet`                          | client                    | Prepaid balance / plan credits                                  |
+| `client:escrow`                          | client (held by platform) | Funds reserved for an engagement                                |
+| `company:receivable`                     | company                   | Interview fees owed (invoiced monthly or charged per event)     |
+| `bidder:payable_held` → `bidder:payable` | bidder                    | Earnings in hold, then releasable                               |
+| `scout:payable_held` → `scout:payable`   | scout                     | Rewards in hold, then releasable                                |
+| `platform:revenue:*`                     | platform                  | By stream: client_interview, company_interview, plan, take_rate |
+| `platform:cost:*`                        | platform                  | piece_rate, scout_rewards, idv, agent_compute (cost tracking)   |
+| `stripe:clearing`                        | platform                  | Cash in/out through Stripe                                      |
 
 ## Flows
 
 ### 1. Client plan subscription
+
 Stripe Billing subscription → on `invoice.paid`: debit `stripe:clearing`, credit `platform:revenue:plan` (or `client:wallet` for credit-based plans).
 
 ### 2. Client per-interview fee (on `interview.confirmed`)
+
 - Charge `client_interview` price (price book; proposed **$4**, see [50-pricing-and-revenue.md](50-pricing-and-revenue.md)).
 - If wallet/escrow balance covers it: debit `client:wallet`, credit `platform:revenue:client_interview`.
 - Else charge card on file (off-session) → via `stripe:clearing`.
 - On dispute voided → reversing transaction and refund.
 
 ### 3. Company per-interview fee (direct jobs, on `interview.confirmed` with attendance)
+
 - Price by seniority/round (price book; proposed **$30** flat to start, cap 3 rounds per candidate per job).
 - Skip if within free-interview allowance (new claims: first 10).
 - Accrue to `company:receivable`; monthly invoice (Free/Growth) or per-event charge (config). Respect monthly spend cap.
 
 ### 4. Bidder earnings
+
 - **Piece rate (managed):** on `application.qa_passed` → debit `platform:cost:piece_rate`, credit `bidder:payable_held` (Phase 1: $0.05/bid). Release weekly.
 - **Marketplace:** base fee from client escrow released weekly for delivered qualified applications; per-interview fee on `interview.confirmed` → `bidder:payable_held`, released on `interview.settled`. Platform fee by level is credited to `platform:revenue:take_rate`.
 
 ### 5. Scout rewards
+
 On `interview.settled` for a scouted job → debit `platform:cost:scout_rewards`, credit `scout:payable_held`; release after scout hold (14 days). Conversion rewards computed monthly from the company's paid interviews.
 
 ### 6. Payouts
+
 - Weekly batch: for each payee with `payable ≥ $25` and verified payout account (Stripe Connect Express) and tax info → create transfer, move `payable → stripe:clearing`.
 - Payout blocked if: account restricted, open fraud flag, or risk ≥ 60.
 
@@ -72,12 +78,12 @@ sequenceDiagram
 
 ## Refunds and reversals
 
-| Case | Action |
-|---|---|
-| Interview voided after dispute | Reverse client and company fees; reverse held bidder/scout amounts |
-| No-show confirmed | No company fee; client fee per policy (default: no charge) |
+| Case                                 | Action                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
+| Interview voided after dispute       | Reverse client and company fees; reverse held bidder/scout amounts               |
+| No-show confirmed                    | No company fee; client fee per policy (default: no charge)                       |
 | Payout already made and later voided | Negative balance on payee; recovered from future earnings; repeated → trust case |
-| Chargeback | Freeze client account; reverse; trust case |
+| Chargeback                           | Freeze client account; reverse; trust case                                       |
 
 ## Pro guarantee
 
