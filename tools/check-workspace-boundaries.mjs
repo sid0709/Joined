@@ -3,7 +3,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const workspaces = ["openseat-frontend", "openseat-theme", "packages/design-system"];
+const workspaces = [
+  "openseat-frontend",
+  "openseat-theme",
+  "opened-frontend",
+  "packages/design-system",
+];
 const ignoredDirectories = new Set([".next", ".turbo", "coverage", "dist", "node_modules"]);
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]);
 const specifierPattern = /\b(?:from\s*|import\s*\(|import\s*|require\s*\()\s*["']([^"']+)["']/g;

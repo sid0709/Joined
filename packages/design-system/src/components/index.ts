@@ -40,6 +40,8 @@ export { ResponsiveFrame, FRAME_PRESETS } from "./ResponsiveFrame";
 export type { ResponsiveFrameProps, FramePreset } from "./ResponsiveFrame";
 export { Tile } from "./Tile";
 export type { TileProps } from "./Tile";
+export { Sticky } from "./Sticky";
+export type { StickyProps } from "./Sticky";
 export { TIERS, VIEWPORT_TIERS, CONTAINER_TIERS, tierFor } from "./breakpoints";
 export type { Tier, TierOrBase, ResponsiveTo } from "./breakpoints";
 

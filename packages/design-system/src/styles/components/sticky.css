@@ -1,0 +1,20 @@
+/* Sticky — a panel that stays in view while its column scrolls. With fill,
+   it takes the visible height of its scroll container (measured in JS) minus
+   the offset above and below, and its content scrolls inside. */
+
+.os-sticky {
+  position: sticky;
+  top: var(--os-sticky-offset, 0px);
+  align-self: flex-start;
+  min-width: 0;
+}
+
+.os-sticky-fill {
+  display: flex;
+  flex-direction: column;
+  height: calc(var(--os-sticky-scrollport, 100dvh) - 2 * var(--os-sticky-offset, 0px));
+}
+.os-sticky-fill > * {
+  flex: 1;
+  min-height: 0;
+}

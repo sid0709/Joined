@@ -5,6 +5,21 @@ import tseslint from "typescript-eslint";
 const sourceFiles = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
 const typedSourceFiles = ["**/*.{ts,tsx,mts,cts}"];
 
+/**
+ * One node_modules at the root means an app could import a package it never declared and still
+ * work locally. Every import must be listed in the importing workspace's own package.json.
+ */
+export const dependencyRules = {
+  files: sourceFiles,
+  plugins: { import: importPlugin },
+  rules: {
+    "import/no-extraneous-dependencies": [
+      "error",
+      { devDependencies: true, peerDependencies: true },
+    ],
+  },
+};
+
 export default [
   ...tseslint.config({
     files: typedSourceFiles,
@@ -49,6 +64,7 @@ export default [
       "react-hooks/rules-of-hooks": "error",
     },
   },
+  dependencyRules,
   {
     files: ["packages/design-system/src/theme/openseat.d.ts"],
     rules: { "@typescript-eslint/triple-slash-reference": "off" },

@@ -159,6 +159,13 @@ export const CATALOG: CatalogGroup[] = [
         description: "Contained scrolling on one or both axes, for lists, rails, and wide tables.",
         importName: "ScrollableArea",
       },
+      {
+        slug: "sticky",
+        title: "Sticky",
+        description:
+          "Keeps a detail pane or summary in view while its column scrolls — or fills the view and scrolls inside.",
+        importName: "Sticky",
+      },
     ],
   },
   {

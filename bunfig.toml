@@ -1,3 +1,8 @@
+[install]
+# One node_modules for the whole monorepo, at the root. Every library has exactly one
+# version (see the "catalog" in the root package.json); no workspace gets its own copy.
+linker = "hoisted"
+
 [test]
 coverageThreshold = 0.8
 coverageSkipTestFiles = true

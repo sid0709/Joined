@@ -3,7 +3,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const workspaces = ["openseat-frontend", "openseat-theme", "packages/design-system"];
+const workspaces = [
+  "openseat-frontend",
+  "openseat-theme",
+  "opened-frontend",
+  "packages/design-system",
+  // Repo-level tests (e.g. the dependency rule) live outside any workspace.
+  "tests",
+];
 const ignoredDirectories = new Set([".next", ".turbo", "coverage", "dist", "node_modules"]);
 const testFilePattern = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const forbiddenTestPattern =
