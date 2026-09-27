@@ -109,3 +109,21 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: printf '%s\n' "$PR_TITLE" | bunx commitlint
+
+  # Single stable check for branch protection to require. Add every new job's id above to
+  # `needs:` here — branch protection then never has to change when CI gains or renames jobs.
+  ci-passed:
+    name: All CI passed
+    if: always()
+    needs: [lint, format, typecheck, dependencies, test, build, commit-conventions]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any required job did not succeed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required CI jobs did not pass:"
+            echo '${{ toJSON(needs) }}'
+            exit 1
+          fi
+          echo "All required CI jobs passed."
