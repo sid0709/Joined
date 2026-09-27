@@ -1,5 +1,5 @@
 import { Card, Layout, LayoutContent, LayoutHeader, Stack } from "@openseat/design-system";
-import { JOBS, companyBySlug, matchFor, scoreFor, similarJobs, type Job } from "@/lib/jobs";
+import { companyBySlug, matchFor, scoreFor, similarJobs, type Job } from "@/lib/jobs";
 import { CompanyCard } from "./company-card";
 import { JobDetailHeader, type JobDetailHeaderProps } from "./job-detail-header";
 import { JobMatchCard } from "./job-match-card";
@@ -8,10 +8,10 @@ import { SimilarJobs } from "./similar-jobs";
 
 const SIMILAR_LIMIT = 3;
 
-type BodyProps = { job: Job; onSelect?: (job: Job) => void };
+type BodyProps = { job: Job; jobs: Job[]; onSelect?: (job: Job) => void };
 
 /** Fit, the job, the company, and where to look next — everything under the header. */
-export function JobDetailBody({ job, onSelect }: BodyProps) {
+export function JobDetailBody({ job, jobs, onSelect }: BodyProps) {
   const company = companyBySlug(job.companySlug);
   return (
     <Stack gap={6}>
@@ -19,7 +19,7 @@ export function JobDetailBody({ job, onSelect }: BodyProps) {
       <JobOverview job={job} />
       {company ? <CompanyCard company={company} /> : null}
       <SimilarJobs
-        jobs={similarJobs(job, JOBS, SIMILAR_LIMIT)}
+        jobs={similarJobs(job, jobs, SIMILAR_LIMIT)}
         scoreOf={scoreFor}
         onSelect={onSelect}
       />
@@ -27,13 +27,13 @@ export function JobDetailBody({ job, onSelect }: BodyProps) {
   );
 }
 
-type PaneProps = JobDetailHeaderProps & { onSelect?: (job: Job) => void };
+type PaneProps = JobDetailHeaderProps & { jobs: Job[]; onSelect?: (job: Job) => void };
 
 /**
  * The split-view detail: the header and actions stay put while the rest
  * scrolls. Give it a height (Sticky fill) so it never runs past the fold.
  */
-export function JobDetailPane({ onSelect, ...header }: PaneProps) {
+export function JobDetailPane({ jobs, onSelect, ...header }: PaneProps) {
   return (
     <Card padding={0} elevation="low">
       <Layout
@@ -45,7 +45,7 @@ export function JobDetailPane({ onSelect, ...header }: PaneProps) {
         }
         content={
           <LayoutContent isScrollable padding={5} label={`${header.job.title} details`}>
-            <JobDetailBody job={header.job} onSelect={onSelect} />
+            <JobDetailBody job={header.job} jobs={jobs} onSelect={onSelect} />
           </LayoutContent>
         }
       />

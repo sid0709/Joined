@@ -54,6 +54,48 @@ type tempListing struct {
 	} `bson:"metadata"`
 }
 
+const maxSearchCatalog = 2000
+
+type catalogJob struct {
+	SearchJob
+	ApplyLink string `json:"applyLink,omitempty"`
+}
+
+type SearchCatalog struct {
+	Jobs  []catalogJob `json:"jobs"`
+	Total int64        `json:"total"`
+}
+
+func CatalogJob(record SearchRecord) catalogJob {
+	return catalogJob{SearchJob: record.Job, ApplyLink: record.ApplyLink}
+}
+
+func (s *Store) ListCatalog(ctx context.Context, now time.Time) (SearchCatalog, error) {
+	coll := s.structured()
+	total, err := coll.CountDocuments(ctx, bson.D{})
+	if err != nil {
+		return SearchCatalog{}, err
+	}
+	opts := options.Find().
+		SetLimit(maxSearchCatalog).
+		SetSort(bson.D{{Key: "analyzedAt", Value: -1}, {Key: "_id", Value: -1}})
+	cursor, err := coll.Find(ctx, bson.D{}, opts)
+	if err != nil {
+		return SearchCatalog{}, err
+	}
+	defer cursor.Close(ctx)
+
+	var docs []storedSearchJob
+	if err := cursor.All(ctx, &docs); err != nil {
+		return SearchCatalog{}, err
+	}
+	jobs := make([]catalogJob, 0, len(docs))
+	for _, doc := range docs {
+		jobs = append(jobs, CatalogJob(doc.view(now)))
+	}
+	return SearchCatalog{Jobs: jobs, Total: total}, nil
+}
+
 func (s *Store) ListSearch(ctx context.Context, query ListQuery, now time.Time) (SearchList, error) {
 	coll := s.structured()
 	filter := searchFilter(query.Q)

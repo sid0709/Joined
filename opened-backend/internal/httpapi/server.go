@@ -41,6 +41,8 @@ func New(store *jobs.Store, reader jobs.ModelReader, origins []string) http.Hand
 	mux.HandleFunc("GET /v1/jobs", server.listSearchJobs)
 	mux.HandleFunc("POST /v1/jobs/analyze", server.analyzeJob)
 	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
+	mux.HandleFunc("GET /v1/search/jobs", server.listSearchCatalog)
+	mux.HandleFunc("GET /v1/search/jobs/{id}", server.getSearchCatalogJob)
 	return server.withCORS(mux)
 }
 
@@ -96,6 +98,36 @@ func (s *Server) getTempJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]json.RawMessage{"job": job})
+}
+
+func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	catalog, err := s.store.ListCatalog(ctx, time.Now())
+	if err != nil {
+		slog.Error("list search catalog", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load jobs")
+		return
+	}
+	writeJSON(w, http.StatusOK, catalog)
+}
+
+func (s *Server) getSearchCatalogJob(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	record, err := s.store.GetSearch(ctx, r.PathValue("id"), time.Now())
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "job not found")
+		return
+	}
+	if err != nil {
+		slog.Error("get search catalog job", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load job")
+		return
+	}
+	writeJSON(w, http.StatusOK, jobs.CatalogJob(record))
 }
 
 func (s *Server) listSearchJobs(w http.ResponseWriter, r *http.Request) {
