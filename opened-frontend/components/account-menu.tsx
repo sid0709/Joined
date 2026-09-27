@@ -16,7 +16,6 @@ import { INTERVIEWS, isUpcoming } from "@/lib/interviews";
 import { PROFILE } from "@/lib/profile";
 import {
   APPLICATIONS_PAGE,
-  COMPANY_LINKS,
   INTERVIEWS_PAGE,
   PROFILE_PAGE,
   RESUMES_PAGE,
@@ -28,17 +27,6 @@ import {
 const MENU_WIDTH = 300;
 const TRIGGER_AVATAR = 24;
 const HEADER_AVATAR = 32;
-
-const COMPANY_ICONS: Record<string, (typeof icons)["file"]> = {
-  [ROUTES.company]: icons.home,
-  [ROUTES.companyJobs]: icons.folder,
-  [ROUTES.companyApplicants]: icons.users,
-  [ROUTES.companyInterviews]: icons.calendar,
-  [ROUTES.companyAbout]: icons.seat,
-  [ROUTES.companyTeam]: icons.users,
-  [ROUTES.companyBilling]: icons.file,
-  [ROUTES.companySettings]: icons.settings,
-};
 
 const count = (value: number) =>
   value > 0 ? <Badge label={String(value)} variant="neutral" /> : undefined;
@@ -68,8 +56,9 @@ export function AccountMenu({ hiring }: { hiring: boolean }) {
     onClick: () => go(ROUTES.profile),
   };
 
+  // Company pages have their own nav; in hiring mode this menu stays personal.
   const workspace: DropdownMenuOption[] = hiring
-    ? COMPANY_LINKS.map((page) => link(page, COMPANY_ICONS[page.href]))
+    ? [link(PROFILE_PAGE, icons.user), link(SETTINGS_PAGE, icons.settings)]
     : [
         link(APPLICATIONS_PAGE, icons.list, count(applicationStats(APPLICATIONS).active)),
         link(INTERVIEWS_PAGE, icons.calendar, count(INTERVIEWS.filter(isUpcoming).length)),

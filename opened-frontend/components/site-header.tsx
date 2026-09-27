@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Badge,
-  Button,
-  Icon,
-  TopNav,
-  TopNavHeading,
-  TopNavItem,
-  icons,
-} from "@openseat/design-system";
+import { Badge, Icon, TopNav, TopNavHeading, TopNavItem, icons } from "@openseat/design-system";
 import { AccountMenu } from "@/components/account-menu";
 import { useWorkspaceMode } from "@/components/providers";
 import { UNREAD_MESSAGES } from "@/lib/account";
@@ -30,15 +22,6 @@ export function SiteHeader() {
       }
       endContent={
         <>
-          {hiring ? (
-            <Button
-              label="Post a job"
-              variant="primary"
-              size="sm"
-              href={ROUTES.companyJobNew}
-              icon={<Icon icon={icons.plus} />}
-            />
-          ) : null}
           <TopNavItem
             label="Messages"
             isIconOnly

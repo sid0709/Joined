@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button, RadioList, RadioListItem, Stack, Switch, useToast } from "@openseat/design-system";
 import { AUDIENCES, type ProfileAudience } from "@/lib/settings";
-import { SaveFooter } from "./save-footer";
-import { SettingsGroup, SettingsRow } from "./settings-group";
+import { SaveFooter } from "@/components/save-footer";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 export function PrivacySettings() {
   const toast = useToast();

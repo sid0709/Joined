@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button, List, ListItem, Stack, TextInput, useToast } from "@openseat/design-system";
 import { DELETE_CONFIRMATION, PAUSE_DAYS } from "@/lib/settings";
-import { SaveFooter } from "./save-footer";
-import { SettingsGroup, SettingsRow } from "./settings-group";
+import { SaveFooter } from "@/components/save-footer";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 const CONSEQUENCES = [
   "Your profile, resumes, and saved jobs are deleted.",

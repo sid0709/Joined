@@ -9,7 +9,7 @@ export type Stat = {
   accessory?: ReactNode;
 };
 
-const STAT_MIN_WIDTH = 200;
+const STAT_MIN_WIDTH = 150;
 const STAT_MAX_COLUMNS = 4;
 
 /** One headline number with a quiet label and hint. */

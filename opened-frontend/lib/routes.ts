@@ -105,17 +105,6 @@ export const COMPANY_SETTINGS_PAGE: PageLink = {
   description: "Domains, notifications, and hiring defaults.",
 };
 
-export const COMPANY_LINKS: PageLink[] = [
-  COMPANY_HOME_PAGE,
-  COMPANY_JOBS_PAGE,
-  COMPANY_APPLICANTS_PAGE,
-  COMPANY_INTERVIEWS_PAGE,
-  COMPANY_ABOUT_PAGE,
-  COMPANY_TEAM_PAGE,
-  COMPANY_BILLING_PAGE,
-  COMPANY_SETTINGS_PAGE,
-];
-
 /** Pages that belong to both modes, so opening them keeps the current mode. */
 export const SHARED_PREFIXES = [ROUTES.messages] as const;
 

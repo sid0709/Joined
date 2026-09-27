@@ -17,8 +17,8 @@ import {
 } from "@openseat/design-system";
 import { PROFILE } from "@/lib/profile";
 import { LANGUAGES, SESSIONS, TIME_ZONES, WEEK_STARTS } from "@/lib/settings";
-import { SaveFooter } from "./save-footer";
-import { SettingsGroup, SettingsRow } from "./settings-group";
+import { SaveFooter } from "@/components/save-footer";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 const AVATAR_SIZE = 60;
 const DEFAULT_TIME_ZONE = "America/Chicago";

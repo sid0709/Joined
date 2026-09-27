@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Card, Heading, List, ListItem, Stack, Text } from "@openseat/design-system";
-import { COMPANIES, companyBySlug, formatPay, jobsForCompany } from "@/lib/jobs";
-import { ROUTES } from "@/lib/routes";
+import { CompanyProfileView } from "@/components/company/public/company-profile-view";
+import { PageContainer } from "@/components/page-container";
+import { WORKSPACE } from "@/lib/company";
+import { COMPANIES, companyBySlug, jobsForCompany } from "@/lib/jobs";
 
 export function generateStaticParams() {
   return COMPANIES.map((company) => ({ slug: company.slug }));
@@ -22,29 +23,12 @@ export default async function CompanyPublicPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const company = companyBySlug(slug);
   if (!company) notFound();
-  const jobs = jobsForCompany(company.slug);
+  // Only the signed-in workspace has page extras (tagline, perks) until companies can edit theirs.
+  const profile = slug === WORKSPACE.slug ? WORKSPACE : company;
 
   return (
-    <Stack gap={5} maxWidth={760}>
-      <Stack gap={1}>
-        <Heading level={1}>{company.name}</Heading>
-        <Text color="secondary" display="block">
-          {company.locations}
-        </Text>
-        <Text display="block">{company.about}</Text>
-      </Stack>
-      <Card padding={2}>
-        <List hasDividers header={<Heading level={2}>Open jobs</Heading>}>
-          {jobs.map((job) => (
-            <ListItem
-              key={job.id}
-              label={job.title}
-              description={`${job.location} · ${formatPay(job.pay)}`}
-              href={ROUTES.job(job.id)}
-            />
-          ))}
-        </List>
-      </Card>
-    </Stack>
+    <PageContainer>
+      <CompanyProfileView company={profile} jobs={jobsForCompany(company.slug)} />
+    </PageContainer>
   );
 }

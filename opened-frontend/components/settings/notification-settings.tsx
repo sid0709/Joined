@@ -18,8 +18,8 @@ import {
   type NotificationChannel,
   type NotificationEvent,
 } from "@/lib/settings";
-import { SaveFooter } from "./save-footer";
-import { SettingsGroup, SettingsRow } from "./settings-group";
+import { SaveFooter } from "@/components/save-footer";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 type Matrix = Record<string, Record<NotificationChannel, boolean>>;
 

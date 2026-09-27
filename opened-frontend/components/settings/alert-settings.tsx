@@ -18,8 +18,8 @@ import {
   MATCH_STEP,
   estimateWeeklyMatches,
 } from "@/lib/settings";
-import { SaveFooter } from "./save-footer";
-import { SettingsGroup, SettingsRow } from "./settings-group";
+import { SaveFooter } from "@/components/save-footer";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 const DEFAULT_SOURCES = ["direct", "scouted"];
 
