@@ -17,7 +17,7 @@ import {
   useMediaQuery,
   useToast,
 } from "@openseat/design-system";
-import { CONTENT_PADDING } from "@/components/site-shell";
+import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import {
   COMPANIES,
   JOBS,

@@ -1,6 +1,5 @@
 import { Badge, Button, Card, Glyph, HStack, Heading, Stack, Text } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { PostJobButton } from "@/components/post-job-button";
 import { WORKSPACE } from "@/lib/company";
 import { ROUTES } from "@/lib/routes";
 
@@ -35,7 +34,6 @@ export function WorkspaceHero({ greeting }: { greeting: string }) {
             href={ROUTES.companyPublic(WORKSPACE.slug)}
             icon={<Glyph name="eye" />}
           />
-          <PostJobButton />
         </HStack>
       </HStack>
     </Card>

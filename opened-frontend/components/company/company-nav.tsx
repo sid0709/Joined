@@ -19,7 +19,7 @@ import {
   type GlyphName,
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { APPLICANTS, COMPANY_JOBS, WORKSPACE } from "@/lib/company";
+import { APPLICANTS, COMPANY_JOBS, COMPANY_UNREAD_MESSAGES, WORKSPACE } from "@/lib/company";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_APPLICANTS_PAGE,
@@ -27,6 +27,7 @@ import {
   COMPANY_HOME_PAGE,
   COMPANY_INTERVIEWS_PAGE,
   COMPANY_JOBS_PAGE,
+  COMPANY_MESSAGES_PAGE,
   COMPANY_SETTINGS_PAGE,
   COMPANY_TEAM_PAGE,
   ROUTES,
@@ -47,6 +48,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
       { ...COMPANY_JOBS_PAGE, icon: "folder", count: OPEN_JOBS },
       { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: NEW_APPLICANTS },
       { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
+      { ...COMPANY_MESSAGES_PAGE, icon: "mail", count: COMPANY_UNREAD_MESSAGES },
     ],
   },
   {

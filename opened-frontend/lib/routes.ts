@@ -19,6 +19,7 @@ export const ROUTES = {
   companyTeam: "/company/team",
   companyBilling: "/company/billing",
   companySettings: "/company/settings",
+  companyMessages: "/company/messages",
 } as const;
 
 export type PageLink = {
@@ -99,20 +100,17 @@ export const COMPANY_BILLING_PAGE: PageLink = {
   description: "You pay per interview, up to a monthly cap.",
 };
 
+export const COMPANY_MESSAGES_PAGE: PageLink = {
+  href: ROUTES.companyMessages,
+  label: "Messages",
+  description: "Threads with candidates.",
+};
+
 export const COMPANY_SETTINGS_PAGE: PageLink = {
   href: ROUTES.companySettings,
   label: "Settings",
   description: "Domains, notifications, and hiring defaults.",
 };
 
-/** Pages that belong to both modes, so opening them keeps the current mode. */
-export const SHARED_PREFIXES = [ROUTES.messages] as const;
-
+/** Candidate ("hunter") or employer ("company") — each has its own shell, nav, and account menu. */
 export type WorkspaceMode = "hunter" | "company";
-
-export function modeFromPath(pathname: string): WorkspaceMode | null {
-  if (pathname === ROUTES.company || pathname.startsWith(`${ROUTES.company}/`)) return "company";
-  if (SHARED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)))
-    return null;
-  return "hunter";
-}

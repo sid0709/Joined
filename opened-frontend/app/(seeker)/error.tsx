@@ -2,7 +2,12 @@
 
 import { Button, EmptyState } from "@openseat/design-system";
 
-export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function Error({
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
     <EmptyState
       title="This page didn’t load"

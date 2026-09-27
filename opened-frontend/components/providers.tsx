@@ -1,37 +1,19 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { OpenSeatProvider } from "@openseat/design-system/theme";
-import { modeFromPath, type WorkspaceMode } from "@/lib/routes";
+import { ModePicker } from "@/components/onboarding/mode-picker";
 
-const WorkspaceModeContext = createContext<{
-  mode: WorkspaceMode;
-  setMode: (mode: WorkspaceMode) => void;
-}>({
-  mode: "hunter",
-  setMode: () => {},
-});
-
-export function useWorkspaceMode() {
-  return useContext(WorkspaceModeContext);
-}
-
+/**
+ * Theme and link wiring for every page. Mode isn't tracked here: each route group
+ * — (seeker) and company — renders its own shell, so the URL already says which mode you're in.
+ */
 export function Providers({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const pathMode = modeFromPath(pathname);
-  const [mode, setMode] = useState<WorkspaceMode>(pathMode ?? "hunter");
-
-  useEffect(() => {
-    if (pathMode) setMode(pathMode);
-  }, [pathMode]);
-
-  const value = useMemo(() => ({ mode, setMode }), [mode]);
-
   return (
     <OpenSeatProvider mode="light" linkComponent={Link}>
-      <WorkspaceModeContext.Provider value={value}>{children}</WorkspaceModeContext.Provider>
+      <ModePicker />
+      {children}
     </OpenSeatProvider>
   );
 }
