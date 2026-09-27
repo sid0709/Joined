@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 )
 
@@ -22,17 +23,24 @@ const (
 
 type Server struct {
 	store   *jobs.Store
+	auth    *auth.Store
 	reader  jobs.ModelReader
 	origins map[string]struct{}
 }
 
-func New(store *jobs.Store, reader jobs.ModelReader, origins []string) http.Handler {
+func New(store *jobs.Store, accounts *auth.Store, reader jobs.ModelReader, origins []string) http.Handler {
 	allowed := make(map[string]struct{}, len(origins))
 	for _, origin := range origins {
 		allowed[origin] = struct{}{}
 	}
-	server := &Server{store: store, reader: reader, origins: allowed}
+	server := &Server{store: store, auth: accounts, reader: reader, origins: allowed}
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/auth/signup", server.signup)
+	mux.HandleFunc("POST /v1/auth/signin", server.signin)
+	mux.HandleFunc("POST /v1/auth/signout", server.signout)
+	mux.HandleFunc("GET /v1/auth/session", server.session)
+	mux.HandleFunc("POST /v1/auth/company", server.attachCompany)
+	mux.HandleFunc("GET /v1/auth/companies", server.searchCompanies)
 	mux.HandleFunc("GET /health", server.health)
 	mux.HandleFunc("GET /v1/settings", server.settings)
 	mux.HandleFunc("GET /v1/jobs/temp", server.listTempJobs)

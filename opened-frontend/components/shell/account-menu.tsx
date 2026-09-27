@@ -6,13 +6,12 @@ import {
   DropdownMenu,
   Icon,
   icons,
-  useToast,
   type DropdownMenuItemData,
   type DropdownMenuOption,
 } from "@openseat/design-system";
 import { useSwitchMode } from "@/components/onboarding/use-switch-mode";
-import { WORKSPACE } from "@/lib/company";
-import { PROFILE } from "@/lib/profile";
+import type { AuthSession } from "@/lib/auth/types";
+import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_BILLING_PAGE,
@@ -35,7 +34,6 @@ type IconType = (typeof icons)["file"];
 const MODE_MENU: Record<
   WorkspaceMode,
   {
-    role: string;
     identityHref: string;
     links: { page: PageLink; icon: IconType }[];
     switchTo: WorkspaceMode;
@@ -44,7 +42,6 @@ const MODE_MENU: Record<
   }
 > = {
   hunter: {
-    role: PROFILE.email,
     identityHref: ROUTES.profile,
     links: [
       { page: PROFILE_PAGE, icon: icons.user },
@@ -56,7 +53,6 @@ const MODE_MENU: Record<
     switchIcon: icons.users,
   },
   company: {
-    role: `Owner · ${WORKSPACE.name}`,
     identityHref: ROUTES.companySettings,
     links: [
       { page: COMPANY_ABOUT_PAGE, icon: icons.seat },
@@ -69,50 +65,103 @@ const MODE_MENU: Record<
   },
 };
 
-export function AccountMenu({ mode }: { mode: WorkspaceMode }) {
+function membershipLabel(session: AuthSession) {
+  if (!session.company) return session.user.email;
+  const title = session.company.role === "owner" ? "Owner" : "Member";
+  return `${title} · ${session.company.name}`;
+}
+
+export function AccountMenu({
+  mode,
+  session,
+}: {
+  mode: WorkspaceMode;
+  session: AuthSession | null;
+}) {
   const router = useRouter();
-  const toast = useToast();
   const switchMode = useSwitchMode();
   const menu = MODE_MENU[mode];
+  const name = session?.user.name ?? "Account";
 
-  const identity: DropdownMenuItemData = {
-    id: "identity",
-    label: PROFILE.name,
-    description: menu.role,
-    icon: <Avatar name={PROFILE.name} size={HEADER_AVATAR} tooltip={false} />,
-    onClick: () => router.push(menu.identityHref),
+  const openHiring = () => {
+    if (!session) {
+      router.push(`${ROUTES.signUp}?intent=hiring`);
+      return;
+    }
+    if (!session.company) {
+      router.push(ROUTES.hiringSetup);
+      return;
+    }
+    switchMode("company");
   };
 
-  const items: DropdownMenuOption[] = [
-    identity,
-    { type: "divider" },
-    ...menu.links.map(({ page, icon }) => ({
-      id: page.href,
-      label: page.label,
-      icon,
-      onClick: () => router.push(page.href),
-    })),
-    { type: "divider" },
-    {
-      id: "switch",
-      label: menu.switchLabel,
-      icon: menu.switchIcon,
-      onClick: () => switchMode(menu.switchTo),
-    },
-    {
-      id: "sign-out",
-      label: "Sign out",
-      icon: <Icon icon={icons.arrowRight} />,
-      onClick: () => toast({ body: "Signed out" }),
-    },
-  ];
+  const signOut = async () => {
+    await fetch("/api/auth/signout", { method: "POST" });
+    writeStoredWorkspaceMode("hunter");
+    router.push(ROUTES.search);
+    router.refresh();
+  };
+
+  const identity: DropdownMenuItemData | null = session
+    ? {
+        id: "identity",
+        label: session.user.name,
+        description: mode === "company" ? membershipLabel(session) : session.user.email,
+        icon: <Avatar name={session.user.name} size={HEADER_AVATAR} tooltip={false} />,
+        onClick: () => router.push(menu.identityHref),
+      }
+    : null;
+
+  const items: DropdownMenuOption[] = session
+    ? [
+        identity!,
+        { type: "divider" },
+        ...menu.links.map(({ page, icon }) => ({
+          id: page.href,
+          label: page.label,
+          icon,
+          onClick: () => router.push(page.href),
+        })),
+        { type: "divider" },
+        {
+          id: "switch",
+          label: menu.switchLabel,
+          icon: menu.switchIcon,
+          onClick: () => (menu.switchTo === "company" ? openHiring() : switchMode("hunter")),
+        },
+        {
+          id: "sign-out",
+          label: "Sign out",
+          icon: <Icon icon={icons.arrowRight} />,
+          onClick: () => void signOut(),
+        },
+      ]
+    : [
+        {
+          id: "sign-in",
+          label: "Sign in",
+          icon: icons.user,
+          onClick: () => router.push(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.search)}`),
+        },
+        {
+          id: "sign-up",
+          label: "Create account",
+          onClick: () => router.push(ROUTES.signUp),
+        },
+        {
+          id: "switch",
+          label: "Switch to hiring",
+          icon: icons.users,
+          onClick: openHiring,
+        },
+      ];
 
   return (
     <DropdownMenu
       button={{
-        label: PROFILE.name.split(" ")[0],
+        label: session ? name.split(" ")[0] : "Account",
         variant: "ghost",
-        icon: <Avatar name={PROFILE.name} size={TRIGGER_AVATAR} tooltip={false} />,
+        icon: <Avatar name={name} size={TRIGGER_AVATAR} tooltip={false} />,
       }}
       hasChevron
       alignment="end"

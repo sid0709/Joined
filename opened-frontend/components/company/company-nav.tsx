@@ -19,7 +19,8 @@ import {
   type GlyphName,
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { APPLICANTS, COMPANY_JOBS, COMPANY_UNREAD_MESSAGES, WORKSPACE } from "@/lib/company";
+import { APPLICANTS, COMPANY_JOBS, COMPANY_UNREAD_MESSAGES } from "@/lib/company";
+import type { AuthCompany } from "@/lib/auth/types";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_APPLICANTS_PAGE,
@@ -72,7 +73,7 @@ function activeHref(pathname: string) {
 }
 
 /** The company workspace switcher: who you’re hiring for, and where you can go. */
-export function CompanyNav() {
+export function CompanyNav({ company }: { company: AuthCompany }) {
   const pathname = usePathname();
   const active = activeHref(pathname) ?? ROUTES.company;
 
@@ -83,12 +84,14 @@ export function CompanyNav() {
           <SideNav
             header={
               <HStack gap={3} vAlign="center">
-                <CompanyLogo name={WORKSPACE.name} size={LOGO_SIZE} />
+                <CompanyLogo
+                  name={company.name}
+                  src={company.logo}
+                  companyId={company.id}
+                  size={LOGO_SIZE}
+                />
                 <Stack gap={0.5}>
-                  <HStack gap={1.5} vAlign="center">
-                    <Text weight="semibold">{WORKSPACE.name}</Text>
-                    {WORKSPACE.verified ? <Badge label="Verified" variant="blue" /> : null}
-                  </HStack>
+                  <Text weight="semibold">{company.name}</Text>
                   <Text type="supporting" color="secondary">
                     Hiring workspace
                   </Text>

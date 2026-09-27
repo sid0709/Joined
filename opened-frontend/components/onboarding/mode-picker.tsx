@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Card,
   Center,
@@ -15,7 +16,7 @@ import {
   Text,
   type GlyphName,
 } from "@openseat/design-system";
-import { BRAND, type WorkspaceMode } from "@/lib/routes";
+import { BRAND, ROUTES, type WorkspaceMode } from "@/lib/routes";
 import {
   getServerWorkspaceMode,
   readStoredWorkspaceMode,
@@ -65,7 +66,11 @@ const PATHS: Path[] = [
 ];
 
 /** A one-time fork on first visit (no mode cookie yet): candidate or employer decides which mode opens. */
+const AUTH_PATHS = [ROUTES.signIn, ROUTES.signUp, ROUTES.hiringSetup];
+
 export function ModePicker() {
+  const pathname = usePathname();
+  const router = useRouter();
   const switchMode = useSwitchMode();
   // "unresolved" (SSR / first client render) reads as already-chosen, so nobody sees a flash
   // of the picker before React can check localStorage; a genuine `null` opens it for real.
@@ -75,10 +80,17 @@ export function ModePicker() {
     getServerWorkspaceMode,
   );
   const [dismissed, setDismissed] = useState(false);
-  const isOpen = storedMode === null && !dismissed;
+  const onAuthPath = AUTH_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  const isOpen = storedMode === null && !dismissed && !onAuthPath;
 
   const choose = (path: Path) => {
     setDismissed(true);
+    if (path.mode === "company") {
+      router.push(`${ROUTES.signUp}?intent=hiring`);
+      return;
+    }
     switchMode(path.mode);
   };
 

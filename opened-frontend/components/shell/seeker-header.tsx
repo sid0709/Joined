@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Badge, Icon, TopNav, TopNavHeading, TopNavItem, icons } from "@openseat/design-system";
+import type { AuthSession } from "@/lib/auth/types";
 import { UNREAD_MESSAGES } from "@/lib/account";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
@@ -15,7 +16,7 @@ function isActive(pathname: string, href: string) {
 }
 
 /** The candidate header: the job-search journey up top, the account menu on the right. */
-export function SeekerHeader() {
+export function SeekerHeader({ session }: { session: AuthSession | null }) {
   const pathname = usePathname();
 
   return (
@@ -44,7 +45,7 @@ export function SeekerHeader() {
           >
             <Badge label={String(UNREAD_MESSAGES)} variant="info" />
           </TopNavItem>
-          <AccountMenu mode="hunter" />
+          <AccountMenu mode="hunter" session={session} />
         </>
       }
     />
