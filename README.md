@@ -49,4 +49,6 @@ See [Command.md → Dependencies](Command.md#2-dependencies-one-version-one-node
 - **Shared code goes in `packages/*`**, never copied between apps.
 - **Conventional Commits** — enforced by the `commit-msg` hook.
 
+Day-to-day rules (coding, running, checks, tests, commits, pull requests): [`guide.md`](guide.md).
+
 Details: [`CLAUDE.md`](.claude/CLAUDE.md), [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md), [`docs/CODING_STYLE.md`](docs/CODING_STYLE.md).
