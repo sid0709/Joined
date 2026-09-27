@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: [
+    "@openseat/design-system",
+    "@astryxdesign/core",
+    "@astryxdesign/theme-neutral",
+    "@stylexjs/stylex",
+  ],
 };
 
 export default nextConfig;

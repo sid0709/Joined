@@ -5,6 +5,7 @@
   "workspaces": [
     "openseat-frontend",
     "openseat-theme",
+    "opened-frontend",
     "packages/*"
   ]
 }
