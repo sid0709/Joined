@@ -12,16 +12,19 @@ import (
 )
 
 var (
-	ErrNotFound       = errors.New("job not found")
-	ErrInvalidID      = errors.New("invalid job id")
-	ErrCopyInProgress = errors.New("a copy is already running")
+	ErrNotFound          = errors.New("job not found")
+	ErrInvalidID         = errors.New("invalid job id")
+	ErrCopyInProgress    = errors.New("a copy is already running")
+	ErrAnalyzeInProgress = errors.New("an analysis is already running")
+	ErrNonePending       = errors.New("every temp job already has a search record")
 )
 
 type ListResult struct {
-	Jobs     []json.RawMessage `json:"jobs"`
-	Total    int64             `json:"total"`
-	Page     int64             `json:"page"`
-	PageSize int64             `json:"pageSize"`
+	Jobs        []json.RawMessage `json:"jobs"`
+	AnalyzedIDs []string          `json:"analyzedIds"`
+	Total       int64             `json:"total"`
+	Page        int64             `json:"page"`
+	PageSize    int64             `json:"pageSize"`
 }
 
 type CopyResult struct {
@@ -32,21 +35,24 @@ type CopyResult struct {
 }
 
 type Store struct {
-	client           *mongo.Client
-	sourceDB         string
-	sourceCollection string
-	destDB           string
-	destCollection   string
-	copyMu           sync.Mutex
+	client               *mongo.Client
+	sourceDB             string
+	sourceCollection     string
+	destDB               string
+	destCollection       string
+	structuredCollection string
+	copyMu               sync.Mutex
+	analyzeMu            sync.Mutex
 }
 
-func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection string) *Store {
+func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection string) *Store {
 	return &Store{
-		client:           client,
-		sourceDB:         sourceDB,
-		sourceCollection: sourceCollection,
-		destDB:           destDB,
-		destCollection:   destCollection,
+		client:               client,
+		sourceDB:             sourceDB,
+		sourceCollection:     sourceCollection,
+		destDB:               destDB,
+		destCollection:       destCollection,
+		structuredCollection: structuredCollection,
 	}
 }
 
@@ -79,19 +85,28 @@ func (s *Store) List(ctx context.Context, query ListQuery) (ListResult, error) {
 	}
 
 	jobs := make([]json.RawMessage, 0, len(docs))
+	ids := make([]bson.ObjectID, 0, len(docs))
 	for _, doc := range docs {
+		if id, ok := doc["_id"].(bson.ObjectID); ok {
+			ids = append(ids, id)
+		}
 		raw, err := documentJSON(doc)
 		if err != nil {
 			return ListResult{}, err
 		}
 		jobs = append(jobs, raw)
 	}
+	analyzedIDs, err := s.analyzedIDs(ctx, ids)
+	if err != nil {
+		return ListResult{}, err
+	}
 
 	return ListResult{
-		Jobs:     jobs,
-		Total:    total,
-		Page:     query.Page,
-		PageSize: query.PageSize,
+		Jobs:        jobs,
+		AnalyzedIDs: analyzedIDs,
+		Total:       total,
+		Page:        query.Page,
+		PageSize:    query.PageSize,
 	}, nil
 }
 

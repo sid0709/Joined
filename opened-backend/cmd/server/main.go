@@ -14,6 +14,7 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/database"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
 )
 
 const (
@@ -37,10 +38,11 @@ func main() {
 	}
 	defer client.Disconnect(context.Background())
 
-	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection)
+	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection, cfg.JobsCollection)
+	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.New(store, cfg.AdminOrigins),
+		Handler:           httpapi.New(store, reader, cfg.AdminOrigins),
 		ReadHeaderTimeout: readHeaderTimeout,
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,

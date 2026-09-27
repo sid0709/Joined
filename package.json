@@ -46,6 +46,8 @@
   "scripts": {
     "dev": "bun --filter '*' dev",
     "dev:opened": "bun --filter opened-frontend dev",
+    "dev:admin": "bun --cwd opened-admin dev",
+    "dev:admin-api": "go run -C opened-backend ./cmd/server",
     "dev:app": "bun --filter openseat-frontend dev",
     "dev:theme": "bun --filter openseat-theme dev",
     "build": "bun run --filter openseat-frontend build && bun run --filter openseat-theme build && bun run --filter opened-frontend build",
