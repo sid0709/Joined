@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+
 import { Button, IconButton } from "./Action";
 import { Glyph, icons } from "./Glyph";
-import { Icon } from "./Primitives";
 import { useControllable } from "./hooks";
+import { Icon } from "./Primitives";
 
 export type SortDirection = "asc" | "desc";
 
@@ -68,7 +69,17 @@ function compare(a: string | number, b: string | number) {
   return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
 }
 
-function Check({ checked, mixed, label, onChange }: { checked: boolean; mixed?: boolean; label: string; onChange: () => void }) {
+function Check({
+  checked,
+  mixed,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  mixed?: boolean;
+  label: string;
+  onChange: () => void;
+}) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = Boolean(mixed);
@@ -111,7 +122,11 @@ export function Table<T extends Record<string, unknown>>({
   caption,
 }: TableProps<T>) {
   const [sort, setSort] = useControllable<TableSort | null>(sortProp, defaultSort, onSortChange);
-  const [selected, setSelected] = useControllable(selectedProp, defaultSelectedKeys, onSelectionChange);
+  const [selected, setSelected] = useControllable(
+    selectedProp,
+    defaultSelectedKeys,
+    onSelectionChange,
+  );
   const [page, setPage] = useState(0);
   const sorted = useMemo(() => {
     const withKeys = rows.map((row, index) => ({ row, key: rowKey?.(row) ?? String(index) }));
@@ -180,7 +195,11 @@ export function Table<T extends Record<string, unknown>>({
               {columns.map((c) => {
                 const key = String(c.key);
                 const active = sort?.key === key;
-                const ariaSort = active ? (sort!.direction === "asc" ? "ascending" : "descending") : undefined;
+                const ariaSort = active
+                  ? sort.direction === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : undefined;
                 return (
                   <th
                     key={key}
@@ -190,9 +209,17 @@ export function Table<T extends Record<string, unknown>>({
                     style={c.width != null ? { width: c.width } : undefined}
                   >
                     {c.sortable ? (
-                      <button type="button" className={active ? "os-dt-sort os-dt-sort-on" : "os-dt-sort"} onClick={() => cycleSort(key)}>
+                      <button
+                        type="button"
+                        className={active ? "os-dt-sort os-dt-sort-on" : "os-dt-sort"}
+                        onClick={() => cycleSort(key)}
+                      >
                         <span>{c.header}</span>
-                        <Glyph name={active ? (sort!.direction === "asc" ? "arrowUp" : "arrowDown") : "sort"} />
+                        <Glyph
+                          name={
+                            active ? (sort.direction === "asc" ? "arrowUp" : "arrowDown") : "sort"
+                          }
+                        />
                       </button>
                     ) : (
                       c.header
@@ -251,7 +278,11 @@ export function Table<T extends Record<string, unknown>>({
                   >
                     {multiple && (
                       <td className="os-dt-select">
-                        <Check label={`Select row ${key}`} checked={isSelected} onChange={() => toggleRow(key)} />
+                        <Check
+                          label={`Select row ${key}`}
+                          checked={isSelected}
+                          onChange={() => toggleRow(key)}
+                        />
                       </td>
                     )}
                     {columns.map((c) => (

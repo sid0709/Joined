@@ -13,6 +13,7 @@ import {
   Tile,
   type TableColumn,
 } from "@openseat/design-system";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const ACTIVITY = Array.from({ length: 24 }, (_, i) => ({
@@ -22,12 +23,42 @@ const ACTIVITY = Array.from({ length: 24 }, (_, i) => ({
   when: `${i + 1}m ago`,
 }));
 
-const ROOMS = ["Brand refresh", "Landing page", "Motion system", "Pitch deck", "Icon set", "Onboarding", "Email kit", "Docs site", "Illustrations"];
+const ROOMS = [
+  "Brand refresh",
+  "Landing page",
+  "Motion system",
+  "Pitch deck",
+  "Icon set",
+  "Onboarding",
+  "Email kit",
+  "Docs site",
+  "Illustrations",
+];
 
-type Row = { id: string; room: string; q1: number; q2: number; q3: number; q4: number; total: number; owner: string; status: string };
+type Row = {
+  id: string;
+  room: string;
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  total: number;
+  owner: string;
+  status: string;
+};
 const WIDE: Row[] = ROOMS.map((room, i) => {
   const q = [3 + i, 5 + (i % 3), 2 + i, 6 + (i % 4)];
-  return { id: room, room, q1: q[0], q2: q[1], q3: q[2], q4: q[3], total: q.reduce((a, b) => a + b, 0), owner: ["Sam", "Jordan", "Alex"][i % 3], status: ["Open", "Review", "Draft"][i % 3] };
+  return {
+    id: room,
+    room,
+    q1: q[0],
+    q2: q[1],
+    q3: q[2],
+    q4: q[3],
+    total: q.reduce((a, b) => a + b, 0),
+    owner: ["Sam", "Jordan", "Alex"][i % 3],
+    status: ["Open", "Review", "Draft"][i % 3],
+  };
 });
 const WIDE_COLUMNS: TableColumn<Row>[] = [
   { key: "room", header: "Room", width: 180 },
@@ -43,7 +74,10 @@ const WIDE_COLUMNS: TableColumn<Row>[] = [
 export default function ScrollableAreaDemo() {
   return (
     <Examples>
-      <Preview label="Vertical" description="A fixed-height region scrolls on its own; the page doesn't.">
+      <Preview
+        label="Vertical"
+        description="A fixed-height region scrolls on its own; the page doesn't."
+      >
         <Card padding={0} width="100%">
           <ScrollableArea label="Activity" axis="block" height={220} padding={3}>
             <Stack gap={2}>
@@ -62,7 +96,10 @@ export default function ScrollableAreaDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Horizontal" description="A card rail that scrolls sideways — swipe on touch, shift-scroll on desktop.">
+      <Preview
+        label="Horizontal"
+        description="A card rail that scrolls sideways — swipe on touch, shift-scroll on desktop."
+      >
         <ScrollableArea label="Rooms" axis="inline" padding={1}>
           <HStack gap={3}>
             {ROOMS.map((name) => (
@@ -77,11 +114,19 @@ export default function ScrollableAreaDemo() {
         </ScrollableArea>
       </Preview>
 
-      <Preview label="Responsive wide table" description="On narrow frames the table scrolls sideways inside its region instead of breaking the page.">
+      <Preview
+        label="Responsive wide table"
+        description="On narrow frames the table scrolls sideways inside its region instead of breaking the page."
+      >
         <ResponsiveFrame defaultPreset="Phone">
           <ScrollableArea label="Quarterly bids" axis="inline">
             <Stack width={980}>
-              <Table columns={WIDE_COLUMNS} rows={WIDE} rowKey={(row) => row.id} density="compact" />
+              <Table
+                columns={WIDE_COLUMNS}
+                rows={WIDE}
+                rowKey={(row) => row.id}
+                density="compact"
+              />
             </Stack>
           </ScrollableArea>
         </ResponsiveFrame>
@@ -108,12 +153,21 @@ export default function ScrollableAreaDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Overscroll containment" description="contain stops a nested scroll from dragging the page once it hits the end.">
+      <Preview
+        label="Overscroll containment"
+        description="contain stops a nested scroll from dragging the page once it hits the end."
+      >
         <HStack gap={4} wrap="wrap">
           {(["allow", "contain"] as const).map((overscroll) => (
             <Stack key={overscroll} gap={1} width={260}>
               <Card padding={0}>
-                <ScrollableArea label={`overscroll ${overscroll}`} axis="block" overscroll={overscroll} height={140} padding={3}>
+                <ScrollableArea
+                  label={`overscroll ${overscroll}`}
+                  axis="block"
+                  overscroll={overscroll}
+                  height={140}
+                  padding={3}
+                >
                   <Stack gap={2}>
                     {Array.from({ length: 12 }, (_, i) => (
                       <Tile key={i} tone="neutral">
@@ -129,7 +183,10 @@ export default function ScrollableAreaDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Pattern — fixed header and footer" description="Only the middle scrolls; the title and actions stay in view.">
+      <Preview
+        label="Pattern — fixed header and footer"
+        description="Only the middle scrolls; the title and actions stay in view."
+      >
         <Card padding={0} width="100%">
           <Stack gap={0}>
             <Stack padding={3}>

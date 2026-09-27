@@ -1,7 +1,21 @@
 "use client";
 
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  HStack,
+  Icon,
+  Stack,
+  Text,
+  TextInput,
+  Tree,
+  icons,
+  type TreeNode,
+} from "@openseat/design-system";
 import { useMemo, useState } from "react";
-import { Avatar, Badge, Button, Card, HStack, Icon, Stack, Text, TextInput, Tree, icons, type TreeNode } from "@openseat/design-system";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const ROOMS: TreeNode[] = [
@@ -11,8 +25,18 @@ const ROOMS: TreeNode[] = [
     leading: <span className="os-tree-leading">R</span>,
     meta: "3",
     children: [
-      { id: "brand", label: "Brand refresh", description: "Fixed · $2,400", meta: <Badge label="Open" variant="success" /> },
-      { id: "landing", label: "Landing page", description: "Hourly · $65/hr", meta: <Badge label="Review" variant="warning" /> },
+      {
+        id: "brand",
+        label: "Brand refresh",
+        description: "Fixed · $2,400",
+        meta: <Badge label="Open" variant="success" />,
+      },
+      {
+        id: "landing",
+        label: "Landing page",
+        description: "Hourly · $65/hr",
+        meta: <Badge label="Review" variant="warning" />,
+      },
       { id: "archive", label: "Old pitch", description: "Closed", disabled: true },
     ],
   },
@@ -46,7 +70,11 @@ const FILES: TreeNode[] = [
       { id: "page", label: "page.tsx", meta: "2 KB" },
     ],
   },
-  { id: "styles", label: "styles", children: [{ id: "tokens", label: "tokens.css", meta: "9 KB" }] },
+  {
+    id: "styles",
+    label: "styles",
+    children: [{ id: "tokens", label: "tokens.css", meta: "9 KB" }],
+  },
   { id: "readme", label: "README.md", meta: "3 KB" },
 ];
 
@@ -86,8 +114,18 @@ const TEAM: TreeNode[] = [
         description: "Design lead",
         leading: <Avatar name="Alex Rivera" size="xsm" tooltip={false} />,
         children: [
-          { id: "morgan", label: "Morgan Lee", description: "Illustrator", leading: <Avatar name="Morgan Lee" size="xsm" tooltip={false} /> },
-          { id: "riley", label: "Riley Chen", description: "Engineer", leading: <Avatar name="Riley Chen" size="xsm" tooltip={false} /> },
+          {
+            id: "morgan",
+            label: "Morgan Lee",
+            description: "Illustrator",
+            leading: <Avatar name="Morgan Lee" size="xsm" tooltip={false} />,
+          },
+          {
+            id: "riley",
+            label: "Riley Chen",
+            description: "Engineer",
+            leading: <Avatar name="Riley Chen" size="xsm" tooltip={false} />,
+          },
         ],
       },
       {
@@ -95,7 +133,15 @@ const TEAM: TreeNode[] = [
         label: "Dana Kim",
         description: "Copy lead",
         leading: <Avatar name="Dana Kim" size="xsm" tooltip={false} />,
-        children: [{ id: "priya", label: "Priya Nair", description: "Strategist", leading: <Avatar name="Priya Nair" size="xsm" tooltip={false} />, meta: <Badge label="New" variant="purple" /> }],
+        children: [
+          {
+            id: "priya",
+            label: "Priya Nair",
+            description: "Strategist",
+            leading: <Avatar name="Priya Nair" size="xsm" tooltip={false} />,
+            meta: <Badge label="New" variant="purple" />,
+          },
+        ],
       },
     ],
   },
@@ -118,7 +164,9 @@ function filterNodes(nodes: TreeNode[], query: string): TreeNode[] {
 }
 
 function branchIds(nodes: TreeNode[]): string[] {
-  return nodes.flatMap((node) => (node.children?.length ? [node.id, ...branchIds(node.children)] : []));
+  return nodes.flatMap((node) =>
+    node.children?.length ? [node.id, ...branchIds(node.children)] : [],
+  );
 }
 
 export default function TreeListDemo() {
@@ -132,11 +180,23 @@ export default function TreeListDemo() {
   return (
     <Examples>
       <Preview label="Explorer — hover to reveal guides, click folders to open">
-        <Tree nodes={FILES} variant="explorer" defaultExpanded={["app", "components"]} label="Files" />
+        <Tree
+          nodes={FILES}
+          variant="explorer"
+          defaultExpanded={["app", "components"]}
+          label="Files"
+        />
       </Preview>
       <Preview label="Selection — arrow keys move, Right opens, Left closes">
         <Stack gap={3}>
-          <Tree nodes={ROOMS} variant="selection" defaultExpanded={OPEN} selectedId={selected} onSelect={setSelected} label="Rooms and people" />
+          <Tree
+            nodes={ROOMS}
+            variant="selection"
+            defaultExpanded={OPEN}
+            selectedId={selected}
+            onSelect={setSelected}
+            label="Rooms and people"
+          />
           <Caption>Selected: {selected}</Caption>
         </Stack>
       </Preview>
@@ -187,13 +247,28 @@ export default function TreeListDemo() {
         <Stack gap={3}>
           <HStack gap={2}>
             <Button label="Expand all" size="sm" onClick={() => setExpanded(allIds(TEAM))} />
-            <Button label="Collapse all" size="sm" variant="ghost" onClick={() => setExpanded([])} />
+            <Button
+              label="Collapse all"
+              size="sm"
+              variant="ghost"
+              onClick={() => setExpanded([])}
+            />
           </HStack>
           <HStack gap={4} wrap="wrap" vAlign="start">
             <Card width={340}>
-              <Tree nodes={TEAM} variant="selection" expanded={expanded} onExpandedChange={setExpanded} selectedId={person} onSelect={setPerson} label="Team" />
+              <Tree
+                nodes={TEAM}
+                variant="selection"
+                expanded={expanded}
+                onExpandedChange={setExpanded}
+                selectedId={person}
+                onSelect={setPerson}
+                label="Team"
+              />
             </Card>
-            <Caption>Selected: {person} · {expanded.length} open</Caption>
+            <Caption>
+              Selected: {person} · {expanded.length} open
+            </Caption>
           </HStack>
         </Stack>
       </Preview>

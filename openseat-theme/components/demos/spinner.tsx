@@ -1,7 +1,18 @@
 "use client";
 
+import {
+  Button,
+  Card,
+  EmptyState,
+  HStack,
+  Spinner,
+  Stack,
+  Text,
+  type SpinnerShade,
+  type SpinnerSize,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Button, Card, EmptyState, HStack, Spinner, Stack, Text, type SpinnerShade, type SpinnerSize } from "@openseat/design-system";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const SIZES: SpinnerSize[] = ["sm", "md", "lg", "xl"];
@@ -24,7 +35,11 @@ export default function SpinnerDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Sizes" description="sm for inline, md default, lg and xl for panels and pages.">
+      <Preview
+        align="start"
+        label="Sizes"
+        description="sm for inline, md default, lg and xl for panels and pages."
+      >
         <Row>
           {SIZES.map((size) => (
             <Stack key={size} gap={1} hAlign="center">
@@ -35,7 +50,11 @@ export default function SpinnerDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Shades" description="default uses the accent; subtle recedes; inherit follows the text color.">
+      <Preview
+        align="start"
+        label="Shades"
+        description="default uses the accent; subtle recedes; inherit follows the text color."
+      >
         <Row>
           {SHADES.map((shade) => (
             <Stack key={shade} gap={1} hAlign="center">
@@ -46,7 +65,11 @@ export default function SpinnerDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="On media" description="shade=&quot;onMedia&quot; stays visible on colored and image surfaces.">
+      <Preview
+        align="start"
+        label="On media"
+        description='shade="onMedia" stays visible on colored and image surfaces.'
+      >
         <HStack gap={3}>
           {(["blue", "purple", "teal"] as const).map((variant) => (
             <Card key={variant} variant={variant} width={120}>
@@ -58,39 +81,66 @@ export default function SpinnerDemo() {
         </HStack>
       </Preview>
 
-      <Preview align="start" label="With a label" description="label names the wait for everyone, not only screen readers.">
+      <Preview
+        align="start"
+        label="With a label"
+        description="label names the wait for everyone, not only screen readers."
+      >
         <Stack gap={3} hAlign="start">
           <Spinner label="Loading bids" />
           <Spinner size="lg" label="Checking availability…" />
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Inline" description="A small spinner beside the words it qualifies.">
+      <Preview
+        align="start"
+        label="Inline"
+        description="A small spinner beside the words it qualifies."
+      >
         <HStack gap={2} vAlign="center">
           <Spinner size="sm" />
           <Text color="secondary">Saving draft…</Text>
         </HStack>
       </Preview>
 
-      <Preview align="start" label="In buttons" description="Buttons own their spinner — use isLoading instead of placing one yourself.">
+      <Preview
+        align="start"
+        label="In buttons"
+        description="Buttons own their spinner — use isLoading instead of placing one yourself."
+      >
         <Row>
           <Button label="Saving" variant="primary" isLoading />
           <Button label="Syncing" isLoading />
         </Row>
       </Preview>
 
-      <Preview label="Loading a region" description="A centered spinner while results load, then the content.">
+      <Preview
+        label="Loading a region"
+        description="A centered spinner while results load, then the content."
+      >
         <Card minHeight={160}>
           <Stack gap={3}>
             <HStack>
-              <Button label="Search rooms" size="sm" variant="primary" onClick={search} isDisabled={searching} />
+              <Button
+                label="Search rooms"
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  void search();
+                }}
+                isDisabled={searching}
+              />
             </HStack>
             {searching ? (
               <Stack hAlign="center" gap={2}>
                 <Spinner size="lg" label="Searching rooms" />
               </Stack>
             ) : found === null ? (
-              <EmptyState isCompact title="Nothing searched yet" description="Run a search to see matching rooms." />
+              <EmptyState
+                isCompact
+                title="Nothing searched yet"
+                description="Run a search to see matching rooms."
+              />
             ) : (
               <Text>{found} rooms match “brand”.</Text>
             )}

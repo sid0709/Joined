@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Glyph } from "./Glyph";
+
+import type { ReactNode } from "react";
 
 /** Accent on the unread mark. The title always says what happened. */
 export type NotificationTone = "accent" | "success" | "warning" | "danger" | "neutral";
@@ -36,7 +37,11 @@ export interface NotificationListProps {
 }
 
 /** A feed of things that happened — unread marks, times, and optional actions. */
-export function NotificationList({ children, label = "Notifications", header }: NotificationListProps) {
+export function NotificationList({
+  children,
+  label = "Notifications",
+  header,
+}: NotificationListProps) {
   return (
     <section className="os-notes" aria-label={header ? undefined : label}>
       {header && <div className="os-notes-header">{header}</div>}
@@ -63,7 +68,10 @@ export function Notification({
 }: NotificationProps) {
   const body = (
     <>
-      <span className={["os-note-mark", unread && `os-note-tone-${tone}`].filter(Boolean).join(" ")} aria-hidden />
+      <span
+        className={["os-note-mark", unread && `os-note-tone-${tone}`].filter(Boolean).join(" ")}
+        aria-hidden
+      />
       <span className={start ? "os-note-start" : "os-note-start os-note-start-empty"}>{start}</span>
       <span className="os-note-body">
         <span className="os-note-title">{title}</span>
@@ -93,7 +101,12 @@ export function Notification({
       )}
       {action && <span className="os-note-action">{action}</span>}
       {onDismiss && (
-        <button type="button" className="os-note-dismiss" aria-label={dismissLabel} onClick={onDismiss}>
+        <button
+          type="button"
+          className="os-note-dismiss"
+          aria-label={dismissLabel}
+          onClick={onDismiss}
+        >
           <Glyph name="close" />
         </button>
       )}

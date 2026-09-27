@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Calendar,
   Icon,
@@ -13,6 +12,8 @@ import {
   type SegmentedControlSize,
   type TimelineItem,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, Preview } from "./shared";
 
 const SIZES: SegmentedControlSize[] = ["sm", "md", "lg"];
@@ -33,11 +34,19 @@ export default function SegmentedControlDemo() {
   const [billing, setBilling] = useState<keyof typeof BILLING>("monthly");
   const [layout, setLayout] = useState("rail");
   const [calendarView, setCalendarView] = useState("month");
-  const [sizes, setSizes] = useState<Record<SegmentedControlSize, string>>({ sm: "a", md: "a", lg: "a" });
+  const [sizes, setSizes] = useState<Record<SegmentedControlSize, string>>({
+    sm: "a",
+    md: "a",
+    lg: "a",
+  });
 
   return (
     <Examples>
-      <Preview align="start" label="Text" description="A closed set of mutually exclusive views — keep it to a handful.">
+      <Preview
+        align="start"
+        label="Text"
+        description="A closed set of mutually exclusive views — keep it to a handful."
+      >
         <Stack gap={2} hAlign="start">
           <SegmentedControl label="Date range" value={range} onChange={setRange}>
             <SegmentedControlItem value="day" label="Day" />
@@ -53,22 +62,51 @@ export default function SegmentedControlDemo() {
         <SegmentedControl label="View" value={view} onChange={setView}>
           <SegmentedControlItem value="list" label="List" icon={<Icon icon={icons.list} />} />
           <SegmentedControlItem value="grid" label="Grid" icon={<Icon icon={icons.grid} />} />
-          <SegmentedControlItem value="calendar" label="Calendar" icon={<Icon icon={icons.calendar} />} />
+          <SegmentedControlItem
+            value="calendar"
+            label="Calendar"
+            icon={<Icon icon={icons.calendar} />}
+          />
         </SegmentedControl>
       </Preview>
 
-      <Preview align="start" label="Icon only" description="Hidden labels still name each segment for screen readers.">
+      <Preview
+        align="start"
+        label="Icon only"
+        description="Hidden labels still name each segment for screen readers."
+      >
         <SegmentedControl label="Text alignment" value={align} onChange={setAlign}>
-          <SegmentedControlItem value="left" label="Align left" isLabelHidden icon={<Icon icon={icons.alignLeft} />} />
-          <SegmentedControlItem value="center" label="Align center" isLabelHidden icon={<Icon icon={icons.alignCenter} />} />
-          <SegmentedControlItem value="right" label="Align right" isLabelHidden icon={<Icon icon={icons.alignRight} />} />
+          <SegmentedControlItem
+            value="left"
+            label="Align left"
+            isLabelHidden
+            icon={<Icon icon={icons.alignLeft} />}
+          />
+          <SegmentedControlItem
+            value="center"
+            label="Align center"
+            isLabelHidden
+            icon={<Icon icon={icons.alignCenter} />}
+          />
+          <SegmentedControlItem
+            value="right"
+            label="Align right"
+            isLabelHidden
+            icon={<Icon icon={icons.alignRight} />}
+          />
         </SegmentedControl>
       </Preview>
 
       <Preview align="start" label="Sizes">
         <Stack gap={3} hAlign="start">
           {SIZES.map((size) => (
-            <SegmentedControl key={size} label={`${size} control`} size={size} value={sizes[size]} onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))}>
+            <SegmentedControl
+              key={size}
+              label={`${size} control`}
+              size={size}
+              value={sizes[size]}
+              onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))}
+            >
               <SegmentedControlItem value="a" label={`${size.toUpperCase()} one`} />
               <SegmentedControlItem value="b" label="Two" />
               <SegmentedControlItem value="c" label="Three" />
@@ -77,9 +115,18 @@ export default function SegmentedControlDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Fill layout" description="Segments stretch evenly across the container.">
+      <Preview
+        align="start"
+        label="Fill layout"
+        description="Segments stretch evenly across the container."
+      >
         <Stack gap={2} width={360}>
-          <SegmentedControl label="Billing period" layout="fill" value={billing} onChange={(v) => setBilling(v as keyof typeof BILLING)}>
+          <SegmentedControl
+            label="Billing period"
+            layout="fill"
+            value={billing}
+            onChange={(v) => setBilling(v as keyof typeof BILLING)}
+          >
             <SegmentedControlItem value="monthly" label="Monthly" />
             <SegmentedControlItem value="yearly" label="Yearly" />
           </SegmentedControl>
@@ -89,7 +136,13 @@ export default function SegmentedControlDemo() {
 
       <Preview align="start" label="Disabled">
         <Stack gap={3} hAlign="start">
-          <SegmentedControl label="Locked view" value="one" onChange={() => {}} isDisabled disabledMessage="Upgrade to switch views">
+          <SegmentedControl
+            label="Locked view"
+            value="one"
+            onChange={() => {}}
+            isDisabled
+            disabledMessage="Upgrade to switch views"
+          >
             <SegmentedControlItem value="one" label="Board" />
             <SegmentedControlItem value="two" label="Timeline" />
           </SegmentedControl>
@@ -113,7 +166,12 @@ export default function SegmentedControlDemo() {
 
       <Preview label="Pattern — calendar views">
         <Stack gap={3} hAlign="start">
-          <SegmentedControl label="Calendar view" size="sm" value={calendarView} onChange={setCalendarView}>
+          <SegmentedControl
+            label="Calendar view"
+            size="sm"
+            value={calendarView}
+            onChange={setCalendarView}
+          >
             <SegmentedControlItem value="month" label="Month" />
             <SegmentedControlItem value="agenda" label="Agenda" />
           </SegmentedControl>

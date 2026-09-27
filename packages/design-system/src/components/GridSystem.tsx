@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, type CSSProperties, type ElementType, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  type CSSProperties,
+  type ElementType,
+  type ReactNode,
+} from "react";
+
 import { TIERS, spacing, type ResponsiveTo, type SpacingStep, type Tier } from "./breakpoints";
 
 export const GRID_COLUMNS = 12;
@@ -45,7 +52,7 @@ const ColumnsContext = createContext(GRID_COLUMNS);
 
 function perTier<T>(value: Responsive<T> | undefined): Partial<Record<"base" | Tier, T>> {
   if (value == null) return {};
-  if (typeof value === "object") return value as Partial<Record<"base" | Tier, T>>;
+  if (typeof value === "object") return value;
   return { base: value };
 }
 
@@ -83,7 +90,16 @@ export function GridSystem({
 }
 
 /** One cell. `span`, then `sm` → `xl` override it as the grid widens. */
-export function GridColumn({ children, span, start, order, rowSpan, as: Tag = "div", className, ...tiers }: GridColumnProps) {
+export function GridColumn({
+  children,
+  span,
+  start,
+  order,
+  rowSpan,
+  as: Tag = "div",
+  className,
+  ...tiers
+}: GridColumnProps) {
   const columns = useContext(ColumnsContext);
   const vars: Record<string, string | number> = {};
 
@@ -94,15 +110,21 @@ export function GridColumn({ children, span, start, order, rowSpan, as: Tag = "d
     if (value === "hidden") vars[`--os-gs-display${suffix}`] = "none";
     else {
       vars[`--os-gs-display${suffix}`] = "block";
-      vars[`--os-gs-span${suffix}`] = value === "full" ? columns : Math.min(columns, Math.max(1, value as number));
+      vars[`--os-gs-span${suffix}`] =
+        value === "full" ? columns : Math.min(columns, Math.max(1, value));
     }
   }
-  for (const [tier, value] of Object.entries(perTier(start))) vars[`--os-gs-start${tier === "base" ? "" : `-${tier}`}`] = value!;
-  for (const [tier, value] of Object.entries(perTier(order))) vars[`--os-gs-order${tier === "base" ? "" : `-${tier}`}`] = value!;
+  for (const [tier, value] of Object.entries(perTier(start)))
+    vars[`--os-gs-start${tier === "base" ? "" : `-${tier}`}`] = value!;
+  for (const [tier, value] of Object.entries(perTier(order)))
+    vars[`--os-gs-order${tier === "base" ? "" : `-${tier}`}`] = value!;
   if (rowSpan) vars["--os-gs-rows"] = rowSpan;
 
   return (
-    <Tag className={["os-gs-col", className].filter(Boolean).join(" ")} style={vars as CSSProperties}>
+    <Tag
+      className={["os-gs-col", className].filter(Boolean).join(" ")}
+      style={vars as CSSProperties}
+    >
       {children}
     </Tag>
   );

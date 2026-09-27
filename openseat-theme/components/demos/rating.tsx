@@ -1,7 +1,20 @@
 "use client";
 
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  HStack,
+  Heading,
+  ProgressBar,
+  Rating,
+  Stack,
+  Text,
+  TextArea,
+} from "@openseat/design-system";
 import { useState } from "react";
-import { Avatar, Badge, Button, Card, HStack, Heading, ProgressBar, Rating, Stack, Text, TextArea } from "@openseat/design-system";
+
 import { Caption, Examples, PEOPLE, Preview } from "./shared";
 
 const CAPTIONS = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
@@ -24,7 +37,12 @@ const BIDDERS = [
 export default function RatingDemo() {
   const [score, setScore] = useState(4);
   const [ten, setTen] = useState(7);
-  const [criteria, setCriteria] = useState<Record<string, number>>({ Communication: 5, Quality: 4, "On time": 0, Value: 0 });
+  const [criteria, setCriteria] = useState<Record<string, number>>({
+    Communication: 5,
+    Quality: 4,
+    "On time": 0,
+    Value: 0,
+  });
   const [review, setReview] = useState("");
   const [sent, setSent] = useState(false);
   const rated = Object.values(criteria).filter(Boolean).length;
@@ -51,12 +69,21 @@ export default function RatingDemo() {
         <Rating value={ten} max={10} onChange={setTen} label="Confidence" />
       </Preview>
 
-      <Preview label="Review summary" description="An average, the star breakdown as bars, and the total.">
+      <Preview
+        label="Review summary"
+        description="An average, the star breakdown as bars, and the total."
+      >
         <Card maxWidth={440}>
           <HStack gap={6} vAlign="center" wrap="wrap">
             <Stack gap={1} hAlign="center">
               <Text type="display-2">{AVERAGE.toFixed(1)}</Text>
-              <Rating value={Math.round(AVERAGE)} readOnly size="sm" showValue={false} label="Average rating" />
+              <Rating
+                value={Math.round(AVERAGE)}
+                readOnly
+                size="sm"
+                showValue={false}
+                label="Average rating"
+              />
               <Caption>{TOTAL} reviews</Caption>
             </Stack>
             <Stack gap={1} width={220}>
@@ -68,7 +95,13 @@ export default function RatingDemo() {
                     </Text>
                   </Stack>
                   <Stack width="100%">
-                    <ProgressBar label={`${b.stars} stars`} isLabelHidden value={b.count} max={TOTAL} variant={b.stars >= 4 ? "success" : b.stars === 3 ? "warning" : "error"} />
+                    <ProgressBar
+                      label={`${b.stars} stars`}
+                      isLabelHidden
+                      value={b.count}
+                      max={TOTAL}
+                      variant={b.stars >= 4 ? "success" : b.stars === 3 ? "warning" : "error"}
+                    />
                   </Stack>
                   <Stack width={32}>
                     <Caption>{b.count}</Caption>
@@ -80,7 +113,10 @@ export default function RatingDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Compare bidders" description="Read-only ratings beside each bid, small and without the number.">
+      <Preview
+        label="Compare bidders"
+        description="Read-only ratings beside each bid, small and without the number."
+      >
         <Card maxWidth={480}>
           <Stack gap={3}>
             {BIDDERS.map((b) => (
@@ -90,7 +126,13 @@ export default function RatingDemo() {
                   <Stack gap={0}>
                     <Text weight="semibold">{b.name}</Text>
                     <HStack gap={1} vAlign="center">
-                      <Rating value={b.score} readOnly size="sm" showValue={false} label={`${b.name}’s rating`} />
+                      <Rating
+                        value={b.score}
+                        readOnly
+                        size="sm"
+                        showValue={false}
+                        label={`${b.name}’s rating`}
+                      />
                       <Caption>({b.reviews})</Caption>
                     </HStack>
                   </Stack>
@@ -105,14 +147,22 @@ export default function RatingDemo() {
         </Card>
       </Preview>
 
-      <Preview label="Leave a review" description="One rating per criterion, a note, and a submit that waits for every score.">
+      <Preview
+        label="Leave a review"
+        description="One rating per criterion, a note, and a submit that waits for every score."
+      >
         <Card maxWidth={440}>
           {sent ? (
             <Stack gap={2}>
               <Heading level={4}>Thanks for your review</Heading>
               <Text color="secondary">Alex Rivera will see it on their profile.</Text>
               <HStack>
-                <Button label="Edit review" size="sm" variant="ghost" onClick={() => setSent(false)} />
+                <Button
+                  label="Edit review"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSent(false)}
+                />
               </HStack>
             </Stack>
           ) : (
@@ -121,15 +171,32 @@ export default function RatingDemo() {
               {CRITERIA.map((c) => (
                 <HStack key={c} hAlign="between" vAlign="center">
                   <Text>{c}</Text>
-                  <Rating value={criteria[c]} onChange={(v) => setCriteria((all) => ({ ...all, [c]: v }))} label={c} showValue={false} caption={CAPTIONS[criteria[c]]} />
+                  <Rating
+                    value={criteria[c]}
+                    onChange={(v) => setCriteria((all) => ({ ...all, [c]: v }))}
+                    label={c}
+                    showValue={false}
+                    caption={CAPTIONS[criteria[c]]}
+                  />
                 </HStack>
               ))}
-              <TextArea label="Anything else?" isOptional rows={3} value={review} onChange={setReview} />
+              <TextArea
+                label="Anything else?"
+                isOptional
+                rows={3}
+                value={review}
+                onChange={setReview}
+              />
               <HStack hAlign="between" vAlign="center">
                 <Caption>
                   {rated} of {CRITERIA.length} rated
                 </Caption>
-                <Button label="Submit review" variant="primary" isDisabled={rated < CRITERIA.length} onClick={() => setSent(true)} />
+                <Button
+                  label="Submit review"
+                  variant="primary"
+                  isDisabled={rated < CRITERIA.length}
+                  onClick={() => setSent(true)}
+                />
               </HStack>
             </Stack>
           )}

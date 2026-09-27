@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -20,11 +19,22 @@ import {
   type CardVariant,
   type CarouselHandle,
 } from "@openseat/design-system";
+import { useRef, useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview, SAMPLE_IMAGES } from "./shared";
 
 const SLIDE_WIDTH = 220;
 const WIDE_SLIDE = 320;
-const TONES: CardVariant[] = ["blue", "teal", "green", "yellow", "orange", "pink", "purple", "cyan"];
+const TONES: CardVariant[] = [
+  "blue",
+  "teal",
+  "green",
+  "yellow",
+  "orange",
+  "pink",
+  "purple",
+  "cyan",
+];
 const SLIDES = TONES.map((tone, index) => ({ tone, title: `Slide ${index + 1}` }));
 
 const ROOMS = [
@@ -44,15 +54,47 @@ const QUOTES = [
 ];
 
 const STEPS = [
-  { icon: icons.edit, title: "Write the brief", body: "Describe the job, the budget, and the deadline." },
-  { icon: icons.user, title: "Invite people", body: "Only invitees see the room. Nobody sees each other." },
-  { icon: icons.lock, title: "Collect sealed bids", body: "Bids stay hidden until the room closes." },
-  { icon: icons.check, title: "Award in one click", body: "Compare side by side and pick the best fit." },
+  {
+    icon: icons.edit,
+    title: "Write the brief",
+    body: "Describe the job, the budget, and the deadline.",
+  },
+  {
+    icon: icons.user,
+    title: "Invite people",
+    body: "Only invitees see the room. Nobody sees each other.",
+  },
+  {
+    icon: icons.lock,
+    title: "Collect sealed bids",
+    body: "Bids stay hidden until the room closes.",
+  },
+  {
+    icon: icons.check,
+    title: "Award in one click",
+    body: "Compare side by side and pick the best fit.",
+  },
 ];
 
-const IMAGES = [SAMPLE_IMAGES.globe, SAMPLE_IMAGES.window, SAMPLE_IMAGES.file, SAMPLE_IMAGES.globe, SAMPLE_IMAGES.window, SAMPLE_IMAGES.file, SAMPLE_IMAGES.globe];
+const IMAGES = [
+  SAMPLE_IMAGES.globe,
+  SAMPLE_IMAGES.window,
+  SAMPLE_IMAGES.file,
+  SAMPLE_IMAGES.globe,
+  SAMPLE_IMAGES.window,
+  SAMPLE_IMAGES.file,
+  SAMPLE_IMAGES.globe,
+];
 
-function Slide({ tone, title, width = SLIDE_WIDTH }: { tone: CardVariant; title: string; width?: number }) {
+function Slide({
+  tone,
+  title,
+  width = SLIDE_WIDTH,
+}: {
+  tone: CardVariant;
+  title: string;
+  width?: number;
+}) {
   return (
     <Card variant={tone} width={width} minHeight={120}>
       <Stack gap={1}>
@@ -85,7 +127,10 @@ export default function CarouselDemo() {
         </Carousel>
       </Preview>
 
-      <Preview label="Gap and padding" description="gap spaces the slides; padding insets the track so the first slide isn’t flush.">
+      <Preview
+        label="Gap and padding"
+        description="gap spaces the slides; padding insets the track so the first slide isn’t flush."
+      >
         <Stack gap={4}>
           <Carousel aria-label="Tight" gap={1}>
             {SLIDES.map((slide) => (
@@ -100,7 +145,10 @@ export default function CarouselDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Edge fade, snap, and loop" description="Fade hints there is more; snap lands on a slide; loop wraps from the end back to the start.">
+      <Preview
+        label="Edge fade, snap, and loop"
+        description="Fade hints there is more; snap lands on a slide; loop wraps from the end back to the start."
+      >
         <Stack gap={4}>
           <Carousel aria-label="Faded" hasEdgeFade>
             {SLIDES.map((slide) => (
@@ -115,7 +163,10 @@ export default function CarouselDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Without buttons" description="hasButtons={false} for touch-first rails that scroll by swipe or trackpad.">
+      <Preview
+        label="Without buttons"
+        description="hasButtons={false} for touch-first rails that scroll by swipe or trackpad."
+      >
         <Carousel aria-label="Swipe only" hasButtons={false} hasEdgeFade>
           {SLIDES.map((slide) => (
             <Slide key={slide.title} {...slide} />
@@ -123,15 +174,29 @@ export default function CarouselDemo() {
         </Carousel>
       </Preview>
 
-      <Preview label="Recommended rooms" description="A rail of room cards — the most common product use.">
+      <Preview
+        label="Recommended rooms"
+        description="A rail of room cards — the most common product use."
+      >
         <Stack gap={2}>
           <HStack hAlign="between" vAlign="center">
             <Heading level={4}>Rooms you might like</Heading>
-            <Button label="See all" variant="ghost" size="sm" endContent={<Icon icon={icons.arrowRight} />} />
+            <Button
+              label="See all"
+              variant="ghost"
+              size="sm"
+              endContent={<Icon icon={icons.arrowRight} />}
+            />
           </HStack>
           <Carousel aria-label="Recommended rooms" gap={3} hasSnap>
             {ROOMS.map((room) => (
-              <JobCard key={room.title} title={room.title} meta={room.meta} width={SLIDE_WIDTH} href="#room">
+              <JobCard
+                key={room.title}
+                title={room.title}
+                meta={room.meta}
+                width={SLIDE_WIDTH}
+                href="#room"
+              >
                 <Badge label={room.tag} variant={room.variant} />
               </JobCard>
             ))}
@@ -158,17 +223,35 @@ export default function CarouselDemo() {
         </Carousel>
       </Preview>
 
-      <Preview label="Attachments" description="Small slides — a thumbnail strip for a bid’s files.">
+      <Preview
+        label="Attachments"
+        description="Small slides — a thumbnail strip for a bid’s files."
+      >
         <Carousel aria-label="Attachments" gap={2} hasEdgeFade>
           {IMAGES.map((src, index) => (
-            <Thumbnail key={index} src={src} label={`attachment-${index + 1}.svg`} alt={`Attachment ${index + 1}`} onClick={() => undefined} />
+            <Thumbnail
+              key={index}
+              src={src}
+              label={`attachment-${index + 1}.svg`}
+              alt={`Attachment ${index + 1}`}
+              onClick={() => undefined}
+            />
           ))}
         </Carousel>
       </Preview>
 
-      <Preview label="Guided steps" description="Drive the carousel from outside with handleRef — here, a four-step intro with its own controls.">
+      <Preview
+        label="Guided steps"
+        description="Drive the carousel from outside with handleRef — here, a four-step intro with its own controls."
+      >
         <Stack gap={3}>
-          <Carousel aria-label="How OpenSeat works" handleRef={handle} hasButtons={false} hasSnap gap={3}>
+          <Carousel
+            aria-label="How OpenSeat works"
+            handleRef={handle}
+            hasButtons={false}
+            hasSnap
+            gap={3}
+          >
             {STEPS.map((s, index) => (
               <Card key={s.title} width={WIDE_SLIDE} variant={index === step ? "blue" : "default"}>
                 <Stack gap={2}>
@@ -185,13 +268,29 @@ export default function CarouselDemo() {
             ))}
           </Carousel>
           <HStack gap={2} vAlign="center">
-            <IconButton label="Previous step" icon={<Icon icon={icons.chevronLeft} />} isDisabled={step === 0} onClick={() => go(step - 1)} />
+            <IconButton
+              label="Previous step"
+              icon={<Icon icon={icons.chevronLeft} />}
+              isDisabled={step === 0}
+              onClick={() => go(step - 1)}
+            />
             <HStack gap={1}>
               {STEPS.map((s, index) => (
-                <Button key={s.title} label={String(index + 1)} size="sm" variant={index === step ? "primary" : "ghost"} onClick={() => go(index)} />
+                <Button
+                  key={s.title}
+                  label={String(index + 1)}
+                  size="sm"
+                  variant={index === step ? "primary" : "ghost"}
+                  onClick={() => go(index)}
+                />
               ))}
             </HStack>
-            <IconButton label="Next step" icon={<Icon icon={icons.chevronRight} />} isDisabled={step === STEPS.length - 1} onClick={() => go(step + 1)} />
+            <IconButton
+              label="Next step"
+              icon={<Icon icon={icons.chevronRight} />}
+              isDisabled={step === STEPS.length - 1}
+              onClick={() => go(step + 1)}
+            />
           </HStack>
         </Stack>
       </Preview>

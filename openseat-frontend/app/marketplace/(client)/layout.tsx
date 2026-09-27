@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
 import { MarketplaceShell } from "@/src/shared/components/MarketplaceShell";
+
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Client Workspace",

@@ -1,4 +1,12 @@
-import { Card, Grid, Heading, MetadataList, MetadataListItem, Stack, Text } from "@openseat/design-system";
+import {
+  Card,
+  Grid,
+  Heading,
+  MetadataList,
+  MetadataListItem,
+  Stack,
+  Text,
+} from "@openseat/design-system";
 
 const TOKEN_GROUPS: { title: string; tokens: string[] }[] = [
   {
@@ -24,7 +32,14 @@ const TOKEN_GROUPS: { title: string; tokens: string[] }[] = [
   },
   {
     title: "Space",
-    tokens: ["--spacing-1", "--spacing-2", "--spacing-3", "--spacing-4", "--spacing-6", "--spacing-8"],
+    tokens: [
+      "--spacing-1",
+      "--spacing-2",
+      "--spacing-3",
+      "--spacing-4",
+      "--spacing-6",
+      "--spacing-8",
+    ],
   },
   {
     title: "Type",

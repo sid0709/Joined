@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+
 import { Button, IconButton } from "./Action";
 import { Kbd, Thumbnail } from "./Content";
 import { Badge, Banner, ProgressBar } from "./Feedback";
@@ -57,7 +58,11 @@ function isImage(file: File) {
 
 function describeLimits(accept?: string, maxSize?: number, maxFiles?: number) {
   const parts = [
-    accept && accept.split(",").map((t) => t.trim().replace(/^\./, "").replace("/*", "").toUpperCase()).join(", "),
+    accept &&
+      accept
+        .split(",")
+        .map((t) => t.trim().replace(/^\./, "").replace("/*", "").toUpperCase())
+        .join(", "),
     maxSize && `up to ${formatBytes(maxSize)}`,
     maxFiles && `${maxFiles} file${maxFiles === 1 ? "" : "s"} max`,
   ];
@@ -105,10 +110,15 @@ export function FileUploader({
       }
       patch(item.id, { status: "uploading", progress: 0, error: undefined });
       try {
-        await upload(item.file, (percent) => patch(item.id, { progress: Math.min(PERCENT, Math.max(0, percent)) }));
+        await upload(item.file, (percent) =>
+          patch(item.id, { progress: Math.min(PERCENT, Math.max(0, percent)) }),
+        );
         patch(item.id, { status: "done", progress: PERCENT });
       } catch (error) {
-        patch(item.id, { status: "error", error: error instanceof Error ? error.message : "Upload failed." });
+        patch(item.id, {
+          status: "error",
+          error: error instanceof Error ? error.message : "Upload failed.",
+        });
       }
     },
     [patch, upload],
@@ -121,8 +131,10 @@ export function FileUploader({
       const accepted: UploadItem[] = [];
       for (const file of isMultiple ? incoming : incoming.slice(0, 1)) {
         if (!matchesAccept(file, accept)) reasons.push(`${file.name} isn’t an accepted type.`);
-        else if (maxSize && file.size > maxSize) reasons.push(`${file.name} is over ${formatBytes(maxSize)}.`);
-        else if (accepted.length >= room) reasons.push(`${file.name} is over the ${maxFiles}-file limit.`);
+        else if (maxSize && file.size > maxSize)
+          reasons.push(`${file.name} is over ${formatBytes(maxSize)}.`);
+        else if (accepted.length >= room)
+          reasons.push(`${file.name} is over the ${maxFiles}-file limit.`);
         else
           accepted.push({
             id: `upload-${nextId.current++}`,
@@ -136,10 +148,13 @@ export function FileUploader({
       if (!accepted.length) return;
       setItems((all) => {
         const replaced = isMultiple ? all : [];
-        if (!isMultiple) all.forEach((item) => item.previewUrl && URL.revokeObjectURL(item.previewUrl));
+        if (!isMultiple)
+          all.forEach((item) => item.previewUrl && URL.revokeObjectURL(item.previewUrl));
         return [...replaced, ...accepted];
       });
-      accepted.forEach(run);
+      accepted.forEach((item) => {
+        void run(item);
+      });
     },
     [accept, isMultiple, maxFiles, maxSize, run],
   );
@@ -162,11 +177,17 @@ export function FileUploader({
     onChangeRef.current = onChange;
   }, [onChange]);
   useEffect(() => {
-    onChangeRef.current?.(itemsRef.current.filter((item) => item.status === "done").map((item) => item.file));
+    onChangeRef.current?.(
+      itemsRef.current.filter((item) => item.status === "done").map((item) => item.file),
+    );
   }, [doneKey]);
 
   // Revoke any previews left when the uploader unmounts.
-  useEffect(() => () => itemsRef.current.forEach((item) => item.previewUrl && URL.revokeObjectURL(item.previewUrl)), []);
+  useEffect(
+    () => () =>
+      itemsRef.current.forEach((item) => item.previewUrl && URL.revokeObjectURL(item.previewUrl)),
+    [],
+  );
 
   const { isDragging, dropProps } = useFileDrop({ onFiles: add, isDisabled, hasPaste });
   const full = maxFiles != null && items.length >= maxFiles;
@@ -208,11 +229,19 @@ export function FileUploader({
         </HStack>
       </Card>
     ) : (
-      <Card variant={isDragging ? "blue" : "muted"} padding={6} elevation={isDragging ? "low" : "none"}>
+      <Card
+        variant={isDragging ? "blue" : "muted"}
+        padding={6}
+        elevation={isDragging ? "low" : "none"}
+      >
         <Stack gap={2} hAlign="center">
           <Icon icon={icons.upload} size="lg" color={isDragging ? "accent" : "secondary"} />
           <Text weight="semibold" justify="center">
-            {isDragging ? "Drop to upload" : full ? "File limit reached" : "Drag and drop files here"}
+            {isDragging
+              ? "Drop to upload"
+              : full
+                ? "File limit reached"
+                : "Drag and drop files here"}
           </Text>
           {limits && (
             <Text type="supporting" color="secondary" justify="center">
@@ -220,7 +249,14 @@ export function FileUploader({
             </Text>
           )}
           <HStack gap={2} vAlign="center" wrap="wrap" hAlign="center">
-            <Button label="Browse files" variant="secondary" size="sm" icon={<Icon icon={icons.folderOpen} />} onClick={browse} isDisabled={isDisabled || full} />
+            <Button
+              label="Browse files"
+              variant="secondary"
+              size="sm"
+              icon={<Icon icon={icons.folderOpen} />}
+              onClick={browse}
+              isDisabled={isDisabled || full}
+            />
             {hasPaste && (
               <Text type="supporting" color="secondary">
                 or paste with <Kbd keys="mod+v" />
@@ -266,7 +302,11 @@ export function FileUploader({
                   isLoading={item.status === "uploading"}
                   onRemove={() => remove(item.id)}
                 />
-                <Text type="supporting" color={item.status === "error" ? "accent" : "secondary"} maxLines={1}>
+                <Text
+                  type="supporting"
+                  color={item.status === "error" ? "accent" : "secondary"}
+                  maxLines={1}
+                >
                   {item.status === "error" ? "Failed" : item.file.name}
                 </Text>
               </Stack>
@@ -283,11 +323,21 @@ export function FileUploader({
                       <Text weight="semibold" maxLines={1}>
                         {item.file.name}
                       </Text>
-                      {item.status === "done" && <Badge label="Uploaded" variant="success" icon={<Icon icon={icons.check} size="xsm" />} />}
+                      {item.status === "done" && (
+                        <Badge
+                          label="Uploaded"
+                          variant="success"
+                          icon={<Icon icon={icons.check} size="xsm" />}
+                        />
+                      )}
                       {item.status === "error" && <Badge label="Failed" variant="error" />}
                     </HStack>
                     {item.status === "uploading" ? (
-                      <ProgressBar label={`Uploading ${item.file.name}`} isLabelHidden value={item.progress} />
+                      <ProgressBar
+                        label={`Uploading ${item.file.name}`}
+                        isLabelHidden
+                        value={item.progress}
+                      />
                     ) : (
                       <Text type="supporting" color="secondary">
                         {item.status === "error" ? item.error : formatBytes(item.file.size)}
@@ -295,9 +345,23 @@ export function FileUploader({
                     )}
                   </Stack>
                   {item.status === "error" && (
-                    <IconButton label={`Retry ${item.file.name}`} variant="ghost" size="sm" icon={<Icon icon={icons.refresh} />} onClick={() => run(item)} />
+                    <IconButton
+                      label={`Retry ${item.file.name}`}
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon icon={icons.refresh} />}
+                      onClick={() => {
+                        void run(item);
+                      }}
+                    />
                   )}
-                  <IconButton label={`Remove ${item.file.name}`} variant="ghost" size="sm" icon={<Icon icon={icons.close} />} onClick={() => remove(item.id)} />
+                  <IconButton
+                    label={`Remove ${item.file.name}`}
+                    variant="ghost"
+                    size="sm"
+                    icon={<Icon icon={icons.close} />}
+                    onClick={() => remove(item.id)}
+                  />
                 </HStack>
               </Card>
             ))}

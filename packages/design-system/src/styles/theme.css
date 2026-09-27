@@ -67,7 +67,10 @@
   --font-mono: var(--font-mono);
 }
 
-html, body { height: 100%; }
+html,
+body {
+  height: 100%;
+}
 body {
   margin: 0;
   background: var(--canvas);

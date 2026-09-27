@@ -1,6 +1,18 @@
 "use client";
 
-import { AspectRatio, Grid, GridColumn, GridSystem, HStack, ResponsiveFrame, Stack, Text, Tile, type AspectRatioFit } from "@openseat/design-system";
+import {
+  AspectRatio,
+  Grid,
+  GridColumn,
+  GridSystem,
+  HStack,
+  ResponsiveFrame,
+  Stack,
+  Text,
+  Tile,
+  type AspectRatioFit,
+} from "@openseat/design-system";
+
 import { Examples, Preview } from "./shared";
 
 const RATIOS = [
@@ -11,12 +23,22 @@ const RATIOS = [
   { label: "21:9", ratio: 21 / 9 },
 ];
 const FITS: AspectRatioFit[] = ["cover", "contain", "center"];
-const ROOMS = ["Brand refresh", "Landing page", "Motion system", "Pitch deck", "Icon set", "Onboarding"];
+const ROOMS = [
+  "Brand refresh",
+  "Landing page",
+  "Motion system",
+  "Pitch deck",
+  "Icon set",
+  "Onboarding",
+];
 
 export default function AspectRatioDemo() {
   return (
     <Examples>
-      <Preview label="Common ratios" description="The box keeps its shape at any width — content fills it.">
+      <Preview
+        label="Common ratios"
+        description="The box keeps its shape at any width — content fills it."
+      >
         <Grid columns={{ minWidth: 140 }} gap={3}>
           {RATIOS.map(({ label, ratio }) => (
             <Stack key={label} gap={1}>
@@ -44,7 +66,10 @@ export default function AspectRatioDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Ellipse" description="shape ellipse crops to a circle at 1:1 — avatars and badges.">
+      <Preview
+        label="Ellipse"
+        description="shape ellipse crops to a circle at 1:1 — avatars and badges."
+      >
         <HStack gap={3} vAlign="center">
           {[48, 72, 96].map((size) => (
             <Stack key={size} width={size}>
@@ -61,7 +86,10 @@ export default function AspectRatioDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Fit" description="cover fills and crops, contain letterboxes, center keeps the child's own size.">
+      <Preview
+        label="Fit"
+        description="cover fills and crops, contain letterboxes, center keeps the child's own size."
+      >
         <HStack gap={3} wrap="wrap">
           {FITS.map((fit) => (
             <Stack key={fit} gap={1} width={180}>
@@ -78,7 +106,10 @@ export default function AspectRatioDemo() {
         </HStack>
       </Preview>
 
-      <Preview label="Responsive gallery" description="Thumbnails stay 4:3 while the grid goes 1 → 2 → 3 across.">
+      <Preview
+        label="Responsive gallery"
+        description="Thumbnails stay 4:3 while the grid goes 1 → 2 → 3 across."
+      >
         <ResponsiveFrame defaultPreset="Tablet">
           <GridSystem gap={3}>
             {ROOMS.map((name) => (
@@ -95,7 +126,10 @@ export default function AspectRatioDemo() {
         </ResponsiveFrame>
       </Preview>
 
-      <Preview label="Responsive hero" description="A wide banner that keeps 21:9 from phone to laptop.">
+      <Preview
+        label="Responsive hero"
+        description="A wide banner that keeps 21:9 from phone to laptop."
+      >
         <ResponsiveFrame defaultPreset="Fill">
           <AspectRatio ratio={21 / 9}>
             <Tile tone="strong">Post a sealed room in minutes</Tile>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+
 import { SegmentedControl, SegmentedControlItem } from "./Action";
-import { Text } from "./Primitives";
 import { tierFor } from "./breakpoints";
+import { Text } from "./Primitives";
 import { useElementWidth } from "./Responsive";
 
 export interface FramePreset {
@@ -36,7 +37,12 @@ export interface ResponsiveFrameProps {
  * everything inside measures this frame as its container, so GridSystem,
  * ResponsiveStack, Show/Hide, and Astryx Grid all reflow live.
  */
-export function ResponsiveFrame({ children, presets = FRAME_PRESETS, defaultPreset = "Fill", label = "Responsive preview" }: ResponsiveFrameProps) {
+export function ResponsiveFrame({
+  children,
+  presets = FRAME_PRESETS,
+  defaultPreset = "Fill",
+  label = "Responsive preview",
+}: ResponsiveFrameProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   /** What children actually get — presets size the content box, not the chrome. */
   const actual = useElementWidth(contentRef);
@@ -86,7 +92,9 @@ export function ResponsiveFrame({ children, presets = FRAME_PRESETS, defaultPres
       <div className="os-rframe-stage">
         <div
           className={width === "fill" ? "os-rframe-viewport os-rframe-fill" : "os-rframe-viewport"}
-          style={width === "fill" ? undefined : { width: `calc(${width}px + 2 * var(--os-rframe-pad))` }}
+          style={
+            width === "fill" ? undefined : { width: `calc(${width}px + 2 * var(--os-rframe-pad))` }
+          }
           role="group"
           aria-label={label}
         >

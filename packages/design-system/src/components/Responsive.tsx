@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { spacing, tierFor, type ResponsiveTo, type SpacingStep, type Tier, type TierOrBase } from "./breakpoints";
+
+import {
+  spacing,
+  tierFor,
+  type ResponsiveTo,
+  type SpacingStep,
+  type Tier,
+  type TierOrBase,
+} from "./breakpoints";
 
 /** Live content-box width of an element; 0 until measured. */
 export function useElementWidth(ref: RefObject<HTMLElement | null>) {

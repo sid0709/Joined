@@ -4,7 +4,13 @@
  * @openseat/design-system so apps never reach into Astryx directly.
  */
 export { Avatar, AvatarStatusDot } from "@astryxdesign/core/Avatar";
-export type { AvatarProps, AvatarSize, AvatarShape, AvatarStatusDotProps, AvatarStatusDotVariant } from "@astryxdesign/core/Avatar";
+export type {
+  AvatarProps,
+  AvatarSize,
+  AvatarShape,
+  AvatarStatusDotProps,
+  AvatarStatusDotVariant,
+} from "@astryxdesign/core/Avatar";
 
 export { AvatarGroup, AvatarGroupOverflow } from "@astryxdesign/core/AvatarGroup";
 export type { AvatarGroupProps, AvatarGroupOverflowProps } from "@astryxdesign/core/AvatarGroup";
@@ -34,7 +40,11 @@ export { Thumbnail } from "@astryxdesign/core/Thumbnail";
 export type { ThumbnailProps } from "@astryxdesign/core/Thumbnail";
 
 export { Timestamp } from "@astryxdesign/core/Timestamp";
-export type { TimestampProps, TimestampFormat, TimestampTooltipEntry } from "@astryxdesign/core/Timestamp";
+export type {
+  TimestampProps,
+  TimestampFormat,
+  TimestampTooltipEntry,
+} from "@astryxdesign/core/Timestamp";
 
 export { Token } from "@astryxdesign/core/Token";
 export type { TokenProps, TokenColor, TokenSize } from "@astryxdesign/core/Token";

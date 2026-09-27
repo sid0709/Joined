@@ -1,10 +1,21 @@
 export type BudgetType = "Hourly" | "Fixed-Price";
 export type ExperienceLevel = "Entry Level" | "Intermediate" | "Expert";
-export type ProposalStatus = "Pending" | "In Discussion" | "Shortlisted" | "Invited" | "Rejected" | "Approved" | "Archived";
+export type ProposalStatus =
+  "Pending" | "In Discussion" | "Shortlisted" | "Invited" | "Rejected" | "Approved" | "Archived";
 export type ProposalReviewAction = "shortlist" | "invite" | "reject" | "archive" | "restore";
-export type MilestoneStatus = "Proposed" | "Funded" | "In Progress" | "In Review" | "Changes Requested" | "Approved" | "Paid";
-export type WorkStatus = "Open" | "Reviewing" | "Awarded" | "In Progress" | "In Review" | "Completed" | "Disputed" | "Cancelled";
-export type EscrowStatus = "Not funded" | "Funded" | "Partially released" | "Released" | "Refunded" | "On hold";
+export type MilestoneStatus =
+  "Proposed" | "Funded" | "In Progress" | "In Review" | "Changes Requested" | "Approved" | "Paid";
+export type WorkStatus =
+  | "Open"
+  | "Reviewing"
+  | "Awarded"
+  | "In Progress"
+  | "In Review"
+  | "Completed"
+  | "Disputed"
+  | "Cancelled";
+export type EscrowStatus =
+  "Not funded" | "Funded" | "Partially released" | "Released" | "Refunded" | "On hold";
 
 export interface ProposalMilestone {
   id: string;

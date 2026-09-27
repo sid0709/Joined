@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { Inter } from "next/font/google";
-import type { ReactNode } from "react";
 import { OpenSeatProvider } from "@openseat/design-system/theme";
+import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
+
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -28,7 +30,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: "(function(){try{var t=localStorage.getItem('openseat-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
+            __html:
+              "(function(){try{var t=localStorage.getItem('openseat-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
           }}
         />
       </head>

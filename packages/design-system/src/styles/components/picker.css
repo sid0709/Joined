@@ -2,7 +2,11 @@
    Only canonical tokens (--color-*, --spacing-*, --radius-*, --font-size-*) so
    the kit renders the same under tokens.css or the generated theme. */
 
-.os-glyph { flex: none; display: inline-block; vertical-align: middle; }
+.os-glyph {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+}
 
 /* Typed segments — "09 : 30 AM", "09 / 24 / 2026" */
 .os-segments {
@@ -14,8 +18,12 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--font-size-base);
 }
-.os-control-sm .os-segments { font-size: var(--font-size-sm); }
-.os-control-lg .os-segments { font-size: var(--font-size-lg); }
+.os-control-sm .os-segments {
+  font-size: var(--font-size-sm);
+}
+.os-control-lg .os-segments {
+  font-size: var(--font-size-lg);
+}
 .os-segment {
   min-width: 2ch;
   padding: 1px 3px;
@@ -25,13 +33,27 @@
   outline: none;
   cursor: text;
   user-select: none;
-  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
-.os-segment:hover { background: var(--color-overlay-hover); }
-.os-segment:focus { background: var(--color-accent); color: var(--color-on-accent); }
-.os-segment-empty { color: var(--color-text-disabled); }
-.os-segment-divider { color: var(--color-text-disabled); user-select: none; }
-.os-segment + .os-segment { margin-left: var(--spacing-1); }
+.os-segment:hover {
+  background: var(--color-overlay-hover);
+}
+.os-segment:focus {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.os-segment-empty {
+  color: var(--color-text-disabled);
+}
+.os-segment-divider {
+  color: var(--color-text-disabled);
+  user-select: none;
+}
+.os-segment + .os-segment {
+  margin-left: var(--spacing-1);
+}
 
 /* Field shell + dropdown */
 .os-picker {
@@ -41,9 +63,16 @@
   width: 100%;
   max-width: var(--os-picker-width, 240px);
 }
-.os-picker-control { padding-right: var(--spacing-1); cursor: text; }
-.os-picker-control-open { border-color: var(--color-accent); }
-.os-picker-trigger { flex: none; }
+.os-picker-control {
+  padding-right: var(--spacing-1);
+  cursor: text;
+}
+.os-picker-control-open {
+  border-color: var(--color-accent);
+}
+.os-picker-trigger {
+  flex: none;
+}
 
 .os-picker-panel {
   position: fixed;
@@ -52,14 +81,23 @@
   padding: var(--spacing-3);
   background: var(--color-background-popover);
   border-radius: var(--radius-container);
-  box-shadow: 0 0 0 1px var(--color-border), var(--shadow-high, var(--elevation-3));
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    var(--shadow-high, var(--elevation-3));
   animation: os-pop-in var(--duration-fast) var(--ease-standard);
   transform-origin: top left;
 }
 @keyframes os-pop-in {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
 }
-.os-picker-body { display: flex; flex-direction: column; gap: var(--spacing-3); }
+.os-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
 .os-picker-footer {
   display: flex;
   align-items: center;
@@ -70,5 +108,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .os-picker-panel { animation: none; }
+  .os-picker-panel {
+    animation: none;
+  }
 }

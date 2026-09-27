@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import type { ControlSize } from "./size";
+
 import {
   HOURS_PER_HALF,
   MERIDIEMS,
@@ -16,6 +16,8 @@ import {
   type HourCycle,
   type MinuteStep,
 } from "./time";
+
+import type { ControlSize } from "./size";
 
 export interface TimeColumnsProps {
   value: string;
@@ -36,14 +38,24 @@ interface ColumnProps<T extends string | number> {
   disabled?: boolean;
 }
 
-function Column<T extends string | number>({ label, options, selected, render, onSelect, disabled }: ColumnProps<T>) {
+function Column<T extends string | number>({
+  label,
+  options,
+  selected,
+  render,
+  onSelect,
+  disabled,
+}: ColumnProps<T>) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const list = listRef.current;
     const on = list?.querySelector<HTMLElement>("[aria-selected='true']");
     if (!list || !on) return;
-    list.scrollTo({ top: on.offsetTop - list.clientHeight / 2 + on.clientHeight / 2, behavior: "smooth" });
+    list.scrollTo({
+      top: on.offsetTop - list.clientHeight / 2 + on.clientHeight / 2,
+      behavior: "smooth",
+    });
   }, [selected]);
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {

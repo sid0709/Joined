@@ -1,8 +1,9 @@
 "use client";
 
-import { Children, isValidElement } from "react";
-import type { ChangeEvent, ReactNode } from "react";
 import * as DesignSystem from "@openseat/design-system";
+import { Children, isValidElement } from "react";
+
+import type { ChangeEvent, ReactNode } from "react";
 
 export {
   EmptyState,
@@ -45,7 +46,11 @@ export type ButtonProps = Omit<DesignButtonProps, "label" | "children" | "isDisa
 
 export function Button({ label, children, disabled, ...props }: ButtonProps) {
   const accessibleLabel = label ?? (typeof children === "string" ? children : "Action");
-  return <DesignButton {...props} label={accessibleLabel} isDisabled={disabled}>{children}</DesignButton>;
+  return (
+    <DesignButton {...props} label={accessibleLabel} isDisabled={disabled}>
+      {children}
+    </DesignButton>
+  );
 }
 
 export function ButtonLink(props: ButtonProps & { href: string }) {
@@ -58,7 +63,19 @@ export type StackProps = Omit<DesignStackProps, "gap"> & { gap?: number };
 
 function spacingStepFromPixels(value: number | undefined): DesignStackProps["gap"] {
   if (value === undefined) return undefined;
-  const exact: Record<number, number> = { 0: 0, 2: 0.5, 4: 1, 6: 1.5, 8: 2, 12: 3, 16: 4, 20: 5, 24: 6, 32: 8, 40: 10 };
+  const exact: Record<number, number> = {
+    0: 0,
+    2: 0.5,
+    4: 1,
+    6: 1.5,
+    8: 2,
+    12: 3,
+    16: 4,
+    20: 5,
+    24: 6,
+    32: 8,
+    40: 10,
+  };
   return (exact[value] ?? Math.min(10, Math.max(0, value / 4))) as DesignStackProps["gap"];
 }
 
@@ -81,7 +98,10 @@ export function Avatar({ name, initials, ...props }: AvatarProps) {
   return <DesignSystem.Avatar {...props} name={name ?? initials} />;
 }
 
-export interface CardProps extends Omit<DesignSystem.CardProps, "children" | "elevation" | "variant"> {
+export interface CardProps extends Omit<
+  DesignSystem.CardProps,
+  "children" | "elevation" | "variant"
+> {
   children?: ReactNode;
   title?: string;
   meta?: string;
@@ -93,22 +113,47 @@ export interface CardProps extends Omit<DesignSystem.CardProps, "children" | "el
   elevation?: DesignSystem.CardProps["elevation"];
 }
 
-export function Card({ title, meta, footer, raised, selected, children, variant, elevation, ...props }: CardProps) {
+export function Card({
+  title,
+  meta,
+  footer,
+  raised,
+  selected,
+  children,
+  variant,
+  elevation,
+  ...props
+}: CardProps) {
   return (
-    <DesignCard {...props} variant={selected ? "blue" : variant} elevation={raised ? "low" : elevation}>
+    <DesignCard
+      {...props}
+      variant={selected ? "blue" : variant}
+      elevation={raised ? "low" : elevation}
+    >
       {(title || meta) && (
         <DesignStack gap={0.5}>
           {title && <DesignSystem.Heading level={4}>{title}</DesignSystem.Heading>}
-          {meta && <DesignSystem.Text type="supporting" color="secondary">{meta}</DesignSystem.Text>}
+          {meta && (
+            <DesignSystem.Text type="supporting" color="secondary">
+              {meta}
+            </DesignSystem.Text>
+          )}
         </DesignStack>
       )}
       {children}
-      {footer && <DesignSystem.Text type="supporting" color="secondary">{footer}</DesignSystem.Text>}
+      {footer && (
+        <DesignSystem.Text type="supporting" color="secondary">
+          {footer}
+        </DesignSystem.Text>
+      )}
     </DesignCard>
   );
 }
 
-export interface InputProps extends Omit<DesignSystem.TextInputProps, "onChange" | "isDisabled" | "description"> {
+export interface InputProps extends Omit<
+  DesignSystem.TextInputProps,
+  "onChange" | "isDisabled" | "description"
+> {
   disabled?: boolean;
   helper?: string;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -131,7 +176,24 @@ export interface TextAreaProps extends Omit<DesignSystem.TextAreaProps, "onChang
 }
 
 export function TextArea({ disabled, onChange, ...props }: TextAreaProps) {
-  return <DesignTextArea {...props} isDisabled={disabled} onChange={(value, event) => onChange?.(event)} />;
+  return (
+    <DesignTextArea
+      {...props}
+      isDisabled={disabled}
+      onChange={(value, event) => onChange?.(event)}
+    />
+  );
+}
+
+function getTextContent(node: ReactNode): string {
+  return Children.toArray(node)
+    .map((child) => {
+      if (typeof child === "string" || typeof child === "number") return String(child);
+      if (isValidElement<{ children?: ReactNode }>(child))
+        return getTextContent(child.props.children);
+      return "";
+    })
+    .join("");
 }
 
 export interface SelectProps {
@@ -144,14 +206,22 @@ export interface SelectProps {
   placeholder?: string;
 }
 
-export function Select({ label, value, onChange, children, disabled, className, placeholder }: SelectProps) {
+export function Select({
+  label,
+  value,
+  onChange,
+  children,
+  disabled,
+  className,
+  placeholder,
+}: SelectProps) {
   const options = Children.toArray(children)
     .filter(isValidElement)
     .map((child) => {
       const option = child.props as { value?: string; children?: ReactNode; disabled?: boolean };
       return {
         value: String(option.value ?? ""),
-        label: String(option.children ?? option.value ?? ""),
+        label: getTextContent(option.children) || option.value || "",
         disabled: option.disabled,
       } satisfies DesignSystem.SelectorOptionData;
     });
@@ -164,12 +234,17 @@ export function Select({ label, value, onChange, children, disabled, className, 
       placeholder={placeholder}
       isDisabled={disabled}
       className={className}
-      onChange={(nextValue) => onChange?.({ target: { value: nextValue } } as ChangeEvent<HTMLSelectElement>)}
+      onChange={(nextValue) =>
+        onChange?.({ target: { value: nextValue } } as ChangeEvent<HTMLSelectElement>)
+      }
     />
   );
 }
 
-export interface CheckboxProps extends Omit<DesignSystem.CheckboxInputProps, "value" | "onChange" | "isDisabled"> {
+export interface CheckboxProps extends Omit<
+  DesignSystem.CheckboxInputProps,
+  "value" | "onChange" | "isDisabled"
+> {
   checked?: boolean;
   disabled?: boolean;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -193,7 +268,12 @@ export interface BadgeProps extends Omit<DesignSystem.BadgeProps, "variant"> {
 
 export function Badge({ tone, variant, ...props }: BadgeProps) {
   const mappedVariant = tone === "primary" ? "info" : tone === "danger" ? "error" : tone;
-  return <DesignBadge {...props} variant={(mappedVariant ?? variant ?? "neutral") as DesignSystem.BadgeVariant} />;
+  return (
+    <DesignBadge
+      {...props}
+      variant={(mappedVariant ?? variant ?? "neutral") as DesignSystem.BadgeVariant}
+    />
+  );
 }
 
 export interface BannerProps extends Omit<DesignSystem.BannerProps, "status"> {
@@ -203,7 +283,13 @@ export interface BannerProps extends Omit<DesignSystem.BannerProps, "status"> {
 
 export function Banner({ tone, status, ...props }: BannerProps) {
   const mappedStatus = tone === "danger" ? "error" : tone;
-  return <DesignBanner {...props} status={(mappedStatus ?? status ?? "info") as DesignSystem.BannerStatus} collapsible={false} />;
+  return (
+    <DesignBanner
+      {...props}
+      status={(mappedStatus ?? status ?? "info") as DesignSystem.BannerStatus}
+      collapsible={false}
+    />
+  );
 }
 
 export interface AppShellProps extends Omit<DesignSystem.AppShellProps, "topNav"> {
@@ -224,18 +310,20 @@ export function AppShell({ nav, children, ...props }: AppShellProps) {
   return (
     <DesignAppShell
       {...props}
-      topNav={nav ? (
-        <DesignNav
-          brand={nav.brand}
-          items={nav.items}
-          cta={nav.cta}
-          onCtaClick={nav.onCtaClick}
-          userName={nav.userName ?? nav.initials}
-          userHref={nav.userHref}
-          showAvatar={nav.showAvatar}
-          trailing={nav.showThemeToggle ? <DesignThemeToggle /> : undefined}
-        />
-      ) : undefined}
+      topNav={
+        nav ? (
+          <DesignNav
+            brand={nav.brand}
+            items={nav.items}
+            cta={nav.cta}
+            onCtaClick={nav.onCtaClick}
+            userName={nav.userName ?? nav.initials}
+            userHref={nav.userHref}
+            showAvatar={nav.showAvatar}
+            trailing={nav.showThemeToggle ? <DesignThemeToggle /> : undefined}
+          />
+        ) : undefined
+      }
     >
       {children}
     </DesignAppShell>
@@ -251,10 +339,28 @@ export interface ModalProps {
   footer?: ReactNode;
 }
 
-export function Modal({ open, onClose, title = "Dialog", className, children, footer }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title = "Dialog",
+  className,
+  children,
+  footer,
+}: ModalProps) {
   return (
-    <DesignDialog isOpen={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }} className={className}>
-      <DesignDialogHeader title={title} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }} />
+    <DesignDialog
+      isOpen={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
+      }}
+      className={className}
+    >
+      <DesignDialogHeader
+        title={title}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) onClose();
+        }}
+      />
       {children}
       {footer}
     </DesignDialog>
@@ -294,5 +400,12 @@ export interface ChatComposerProps {
 }
 
 export function ChatComposer({ value, onChange, onSend, placeholder }: ChatComposerProps) {
-  return <DesignChatComposer value={value} onChange={onChange} onSubmit={() => onSend()} placeholder={placeholder} />;
+  return (
+    <DesignChatComposer
+      value={value}
+      onChange={onChange}
+      onSubmit={() => onSend()}
+      placeholder={placeholder}
+    />
+  );
 }

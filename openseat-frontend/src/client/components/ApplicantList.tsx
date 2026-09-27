@@ -10,10 +10,21 @@ interface ApplicantListProps {
 }
 
 function initialsFor(name: string) {
-  return name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-export function ApplicantList({ proposals, activeCandidateId, onSelect, compareIds, onToggleCompare }: ApplicantListProps) {
+export function ApplicantList({
+  proposals,
+  activeCandidateId,
+  onSelect,
+  compareIds,
+  onToggleCompare,
+}: ApplicantListProps) {
   return (
     <div className="marketplace-selection-list">
       <p className="caption text-ink-muted">Applicants</p>
@@ -22,17 +33,26 @@ export function ApplicantList({ proposals, activeCandidateId, onSelect, compareI
           key={proposal.id}
           className={`marketplace-selection-item ${activeCandidateId === proposal.id ? "marketplace-selection-item-active" : ""}`}
         >
-          <button type="button" className="marketplace-applicant-select" onClick={() => onSelect(proposal.id)}>
+          <button
+            type="button"
+            className="marketplace-applicant-select"
+            onClick={() => onSelect(proposal.id)}
+          >
             <span className="marketplace-applicant-name">
               <Avatar initials={initialsFor(proposal.candidateName)} size={32} />
               <span className="marketplace-applicant-copy">
                 <span className="body-strong marketplace-truncate">{proposal.candidateName}</span>
-                <span className="caption text-ink-muted marketplace-truncate">{proposal.candidateTitle}</span>
+                <span className="caption text-ink-muted marketplace-truncate">
+                  {proposal.candidateTitle}
+                </span>
               </span>
             </span>
             <span className="marketplace-applicant-row-footer">
               <span className="caption text-ink-muted">{proposal.candidateRate}</span>
-              <Badge label={proposal.status} tone={proposal.status === "Approved" ? "success" : "neutral"} />
+              <Badge
+                label={proposal.status}
+                tone={proposal.status === "Approved" ? "success" : "neutral"}
+              />
             </span>
           </button>
           <button

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   Badge,
@@ -18,6 +17,8 @@ import {
   TextInput,
   icons,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 
 const PLACEMENTS = ["above", "below", "start", "end"] as const;
@@ -32,17 +33,30 @@ export default function PopoverDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Placement" description="Opens on click and stays until dismissed — unlike a tooltip.">
+      <Preview
+        align="start"
+        label="Placement"
+        description="Opens on click and stays until dismissed — unlike a tooltip."
+      >
         <Row>
           {PLACEMENTS.map((placement) => (
-            <Popover key={placement} placement={placement} label={`Placed ${placement}`} content={<Text>Placed {placement}.</Text>}>
+            <Popover
+              key={placement}
+              placement={placement}
+              label={`Placed ${placement}`}
+              content={<Text>Placed {placement}.</Text>}
+            >
               <Button label={placement} />
             </Popover>
           ))}
         </Row>
       </Preview>
 
-      <Preview align="start" label="Filter panel" description="A small form in a popover — checkboxes and a clear action.">
+      <Preview
+        align="start"
+        label="Filter panel"
+        description="A small form in a popover — checkboxes and a clear action."
+      >
         <Row>
           <Popover
             width={240}
@@ -51,20 +65,37 @@ export default function PopoverDemo() {
               <Stack gap={2}>
                 <Text type="label">Status</Text>
                 {STATUSES.map((s) => (
-                  <CheckboxInput key={s} label={s} value={statuses.includes(s)} onChange={(on) => setStatuses((c) => (on ? [...c, s] : c.filter((x) => x !== s)))} />
+                  <CheckboxInput
+                    key={s}
+                    label={s}
+                    value={statuses.includes(s)}
+                    onChange={(on) =>
+                      setStatuses((c) => (on ? [...c, s] : c.filter((x) => x !== s)))
+                    }
+                  />
                 ))}
                 <Divider />
                 <Button label="Clear" size="sm" variant="ghost" onClick={() => setStatuses([])} />
               </Stack>
             }
           >
-            <Button label="Status" icon={<Icon icon={icons.filter} />} endContent={statuses.length ? <Badge label={statuses.length} variant="info" /> : undefined} />
+            <Button
+              label="Status"
+              icon={<Icon icon={icons.filter} />}
+              endContent={
+                statuses.length ? <Badge label={statuses.length} variant="info" /> : undefined
+              }
+            />
           </Popover>
           <Caption>{statuses.join(", ") || "All statuses"}</Caption>
         </Row>
       </Preview>
 
-      <Preview align="start" label="Controlled with a close button" description="isOpen and onOpenChange let a form close its own popover on save.">
+      <Preview
+        align="start"
+        label="Controlled with a close button"
+        description="isOpen and onOpenChange let a form close its own popover on save."
+      >
         <Row>
           <Popover
             isOpen={open}
@@ -74,7 +105,13 @@ export default function PopoverDemo() {
             label="Add a link"
             content={
               <Stack gap={3}>
-                <TextInput label="URL" value={link} onChange={setLink} placeholder="https://" hasAutoFocus />
+                <TextInput
+                  label="URL"
+                  value={link}
+                  onChange={setLink}
+                  placeholder="https://"
+                  hasAutoFocus
+                />
                 <HStack hAlign="end">
                   <Button
                     label="Save"
@@ -96,7 +133,11 @@ export default function PopoverDemo() {
         </Row>
       </Preview>
 
-      <Preview align="start" label="Profile menu" description="Rich content — identity, a setting, and links.">
+      <Preview
+        align="start"
+        label="Profile menu"
+        description="Rich content — identity, a setting, and links."
+      >
         <Popover
           width={260}
           placement="below"
@@ -130,21 +171,52 @@ export default function PopoverDemo() {
             </Stack>
           }
         >
-          <Button label="Jordan" variant="ghost" icon={<Avatar name={PEOPLE[0].name} size={20} tooltip={false} />} />
+          <Button
+            label="Jordan"
+            variant="ghost"
+            icon={<Avatar name={PEOPLE[0].name} size={20} tooltip={false} />}
+          />
         </Popover>
       </Preview>
 
-      <Preview align="start" label="Info popover" description="An icon button that explains a term on click — tappable on touch, unlike a tooltip.">
+      <Preview
+        align="start"
+        label="Info popover"
+        description="An icon button that explains a term on click — tappable on touch, unlike a tooltip."
+      >
         <HStack gap={1} vAlign="center">
           <Text>Sealed bidding</Text>
-          <Popover width={280} label="Sealed bidding" content={<Text>Nobody sees any bid until the room closes. Then every bid is revealed at once.</Text>}>
-            <IconButton label="What is sealed bidding?" variant="ghost" size="sm" icon={<Icon icon="info" />} />
+          <Popover
+            width={280}
+            label="Sealed bidding"
+            content={
+              <Text>
+                Nobody sees any bid until the room closes. Then every bid is revealed at once.
+              </Text>
+            }
+          >
+            <IconButton
+              label="What is sealed bidding?"
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon="info" />}
+            />
           </Popover>
         </HStack>
       </Preview>
 
-      <Preview align="start" label="Modal popover" description="isModal traps focus and blocks the page until closed.">
-        <Popover isModal hasCloseButton width={280} label="Required step" content={<Text>Finish this before you continue.</Text>}>
+      <Preview
+        align="start"
+        label="Modal popover"
+        description="isModal traps focus and blocks the page until closed."
+      >
+        <Popover
+          isModal
+          hasCloseButton
+          width={280}
+          label="Required step"
+          content={<Text>Finish this before you continue.</Text>}
+        >
           <Button label="Open modal popover" />
         </Popover>
       </Preview>

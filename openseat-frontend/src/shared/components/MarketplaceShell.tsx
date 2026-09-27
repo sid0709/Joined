@@ -1,10 +1,11 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AppShell, NavItem } from "@/src/shared/marketplace-ui";
+import { ReactNode, useEffect } from "react";
+
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
+import { AppShell, NavItem } from "@/src/shared/marketplace-ui";
 
 type MarketplaceRole = "Candidate" | "Client";
 
@@ -57,7 +58,9 @@ function RoleGuard({ role, children }: { role: MarketplaceRole; children: ReactN
     }
     if (currentUser.role !== role) {
       router.replace(
-        currentUser.role === "Candidate" ? "/marketplace/candidate/dashboard" : "/marketplace/client/dashboard"
+        currentUser.role === "Candidate"
+          ? "/marketplace/candidate/dashboard"
+          : "/marketplace/client/dashboard",
       );
     }
   }, [currentUser, isMounted, role, router]);
@@ -65,7 +68,13 @@ function RoleGuard({ role, children }: { role: MarketplaceRole; children: ReactN
   return <>{children}</>;
 }
 
-export function MarketplaceShell({ role, children }: { role: MarketplaceRole; children: ReactNode }) {
+export function MarketplaceShell({
+  role,
+  children,
+}: {
+  role: MarketplaceRole;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const { currentUser, logoutUser } = useMockAuth();
   const items: NavItem[] = NAV_ITEMS[role].map((item) => ({
@@ -82,7 +91,8 @@ export function MarketplaceShell({ role, children }: { role: MarketplaceRole; ch
           cta: "Log Out",
           onCtaClick: logoutUser,
           initials: initialsFor(currentUser?.fullName),
-          userHref: role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/profile",
+          userHref:
+            role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/profile",
           showAvatar: true,
           showThemeToggle: true,
         }}

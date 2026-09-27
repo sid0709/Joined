@@ -1,6 +1,7 @@
 "use client";
 
 import { Code, Heading, HStack, Link, Stack, Text, type CodeColor } from "@openseat/design-system";
+
 import { Examples, Preview } from "./shared";
 
 const COLORS: CodeColor[] = ["primary", "secondary", "inherit"];
@@ -13,13 +14,20 @@ const ENV = [
 export default function CodeDemo() {
   return (
     <Examples>
-      <Preview label="Inline" description="A filename, a prop, or a short snippet inside a sentence. For whole samples, use Code Block.">
+      <Preview
+        label="Inline"
+        description="A filename, a prop, or a short snippet inside a sentence. For whole samples, use Code Block."
+      >
         <Text display="block">
-          Import <Code>Button</Code> from <Code>@openseat/design-system</Code> and pass <Code>variant=&quot;primary&quot;</Code>.
+          Import <Code>Button</Code> from <Code>@openseat/design-system</Code> and pass{" "}
+          <Code>variant=&quot;primary&quot;</Code>.
         </Text>
       </Preview>
 
-      <Preview label="Colors" description="Mirrors the Text colors: primary (default), secondary, and inherit.">
+      <Preview
+        label="Colors"
+        description="Mirrors the Text colors: primary (default), secondary, and inherit."
+      >
         <Stack gap={2}>
           {COLORS.map((color) => (
             <Text key={color} color="secondary" display="block">
@@ -29,16 +37,21 @@ export default function CodeDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="Inherit size" description="size=&quot;inherit&quot; adopts the surrounding type size — for headings and large copy.">
+      <Preview
+        label="Inherit size"
+        description='size="inherit" adopts the surrounding type size — for headings and large copy.'
+      >
         <Stack gap={3}>
           <Heading level={3}>
             The <Code size="inherit">Room</Code> object
           </Heading>
           <Text type="large" display="block">
-            Every room has a <Code size="inherit">deadline</Code> and a list of <Code size="inherit">invitees</Code>.
+            Every room has a <Code size="inherit">deadline</Code> and a list of{" "}
+            <Code size="inherit">invitees</Code>.
           </Text>
           <Text type="supporting" color="secondary" display="block">
-            Supporting copy: <Code size="inherit">inherit</Code> next to the default <Code>size</Code>.
+            Supporting copy: <Code size="inherit">inherit</Code> next to the default{" "}
+            <Code>size</Code>.
           </Text>
         </Stack>
       </Preview>
@@ -57,16 +70,23 @@ export default function CodeDemo() {
         </Stack>
       </Preview>
 
-      <Preview label="In a link" description="Code inside a Link keeps the link color and underline.">
+      <Preview
+        label="In a link"
+        description="Code inside a Link keeps the link color and underline."
+      >
         <Text display="block">
-          See <Link href="#use-room">
+          See{" "}
+          <Link href="#use-room">
             <Code color="inherit">useRoom()</Code>
           </Link>{" "}
           for the hook reference.
         </Text>
       </Preview>
 
-      <Preview label="Key and description" description="A settings reference — code on the left, meaning on the right.">
+      <Preview
+        label="Key and description"
+        description="A settings reference — code on the left, meaning on the right."
+      >
         <Stack gap={2}>
           {ENV.map(([name, description]) => (
             <HStack key={name} gap={3} vAlign="center" wrap="wrap">

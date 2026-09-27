@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -17,6 +16,8 @@ import {
   type SearchableItem,
   type TypeaheadProps,
 } from "@openseat/design-system";
+import { useMemo, useState } from "react";
+
 import { Caption, Examples, PEOPLE, Preview } from "./shared";
 
 type Person = SearchableItem<{ role: string }>;
@@ -28,8 +29,24 @@ const FIELD_WIDTH = 360;
 const LATENCY_MS = 500;
 const MIN_QUERY = 2;
 
-const PEOPLE_ITEMS: Person[] = PEOPLE.map((p) => ({ id: p.name, label: p.name, auxiliaryData: { role: p.role } }));
-const CITIES: SearchableItem[] = ["Amsterdam", "Austin", "Berlin", "Lagos", "Lisbon", "London", "Mexico City", "Seoul", "Singapore", "Tokyo", "Toronto"].map((c) => ({ id: c, label: c }));
+const PEOPLE_ITEMS: Person[] = PEOPLE.map((p) => ({
+  id: p.name,
+  label: p.name,
+  auxiliaryData: { role: p.role },
+}));
+const CITIES: SearchableItem[] = [
+  "Amsterdam",
+  "Austin",
+  "Berlin",
+  "Lagos",
+  "Lisbon",
+  "London",
+  "Mexico City",
+  "Seoul",
+  "Singapore",
+  "Tokyo",
+  "Toronto",
+].map((c) => ({ id: c, label: c }));
 const ROOMS: Room[] = [
   { id: "brand", label: "Brand refresh", auxiliaryData: { budget: 2400, status: "Open" } },
   { id: "landing", label: "Landing page copy", auxiliaryData: { budget: 1800, status: "Review" } },
@@ -54,10 +71,17 @@ function remoteRooms(): SearchSource<Room> {
 
 export default function TypeaheadDemo() {
   const citySource = useMemo(() => createStaticSource(CITIES), []);
-  const peopleSource = useMemo(() => createStaticSource(PEOPLE_ITEMS, { keywords: (p) => [p.auxiliaryData?.role ?? ""] }), []);
+  const peopleSource = useMemo(
+    () => createStaticSource(PEOPLE_ITEMS, { keywords: (p) => [p.auxiliaryData?.role ?? ""] }),
+    [],
+  );
   const roomSource = useMemo(() => remoteRooms(), []);
 
-  const [sizes, setSizes] = useState<Record<Size, SearchableItem | null>>({ sm: null, md: CITIES[5], lg: null });
+  const [sizes, setSizes] = useState<Record<Size, SearchableItem | null>>({
+    sm: null,
+    md: CITIES[5],
+    lg: null,
+  });
   const [city, setCity] = useState<SearchableItem | null>(null);
   const [person, setPerson] = useState<Person | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -66,22 +90,51 @@ export default function TypeaheadDemo() {
 
   return (
     <Examples>
-      <Preview align="start" label="Sizes" description="Filter a list as you type and pick one result.">
+      <Preview
+        align="start"
+        label="Sizes"
+        description="Filter a list as you type and pick one result."
+      >
         <Stack gap={3} width={FIELD_WIDTH}>
           {SIZES.map((size) => (
-            <Typeahead key={size} size={size} label={`Size ${size}`} searchSource={citySource} value={sizes[size]} onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))} placeholder="City" />
+            <Typeahead
+              key={size}
+              size={size}
+              label={`Size ${size}`}
+              searchSource={citySource}
+              value={sizes[size]}
+              onChange={(v) => setSizes((c) => ({ ...c, [size]: v }))}
+              placeholder="City"
+            />
           ))}
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Show entries on focus" description="hasEntriesOnFocus lists options before typing; hasClear resets the pick.">
+      <Preview
+        align="start"
+        label="Show entries on focus"
+        description="hasEntriesOnFocus lists options before typing; hasClear resets the pick."
+      >
         <Stack gap={2} width={FIELD_WIDTH}>
-          <Typeahead label="Based in" searchSource={citySource} value={city} onChange={setCity} hasEntriesOnFocus hasClear startIcon={<Icon icon={icons.home} />} maxMenuItems={5} />
+          <Typeahead
+            label="Based in"
+            searchSource={citySource}
+            value={city}
+            onChange={setCity}
+            hasEntriesOnFocus
+            hasClear
+            startIcon={<Icon icon={icons.home} />}
+            maxMenuItems={5}
+          />
           <Caption>{city ? `Selected ${city.label}` : "Nothing selected"}</Caption>
         </Stack>
       </Preview>
 
-      <Preview align="start" label="People" description="renderItem adds avatars and roles; keywords match on role too.">
+      <Preview
+        align="start"
+        label="People"
+        description="renderItem adds avatars and roles; keywords match on role too."
+      >
         <Stack width={FIELD_WIDTH}>
           <Typeahead
             label="Assign to"
@@ -104,7 +157,11 @@ export default function TypeaheadDemo() {
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Async search" description="A remote source with latency, a minimum query length, and an empty message.">
+      <Preview
+        align="start"
+        label="Async search"
+        description="A remote source with latency, a minimum query length, and an empty message."
+      >
         <Stack gap={2} width={FIELD_WIDTH}>
           <Typeahead
             label="Find a room"
@@ -121,7 +178,12 @@ export default function TypeaheadDemo() {
             renderItem={(r) => (
               <HStack gap={2} vAlign="center" hAlign="between">
                 <Text>{r.label}</Text>
-                {r.auxiliaryData && <Badge label={r.auxiliaryData.status} variant={STATUS_VARIANT[r.auxiliaryData.status]} />}
+                {r.auxiliaryData && (
+                  <Badge
+                    label={r.auxiliaryData.status}
+                    variant={STATUS_VARIANT[r.auxiliaryData.status]}
+                  />
+                )}
               </HStack>
             )}
           />
@@ -133,8 +195,22 @@ export default function TypeaheadDemo() {
 
       <Preview align="start" label="Status and states">
         <Stack gap={3} width={FIELD_WIDTH}>
-          <Typeahead label="Billing city" isRequired searchSource={citySource} value={null} onChange={() => undefined} status={{ type: "error", message: "Choose a city from the list." }} />
-          <Typeahead label="Office" searchSource={citySource} value={CITIES[0]} onChange={() => undefined} isDisabled disabledMessage="Set by your admin." />
+          <Typeahead
+            label="Billing city"
+            isRequired
+            searchSource={citySource}
+            value={null}
+            onChange={() => undefined}
+            status={{ type: "error", message: "Choose a city from the list." }}
+          />
+          <Typeahead
+            label="Office"
+            searchSource={citySource}
+            value={CITIES[0]}
+            onChange={() => undefined}
+            isDisabled
+            disabledMessage="Set by your admin."
+          />
         </Stack>
       </Preview>
 
@@ -144,7 +220,10 @@ export default function TypeaheadDemo() {
             <Stack gap={1}>
               <HStack hAlign="between" vAlign="center">
                 <Heading level={4}>{room.label}</Heading>
-                <Badge label={room.auxiliaryData.status} variant={STATUS_VARIANT[room.auxiliaryData.status]} />
+                <Badge
+                  label={room.auxiliaryData.status}
+                  variant={STATUS_VARIANT[room.auxiliaryData.status]}
+                />
               </HStack>
               <Text color="secondary">Budget ${room.auxiliaryData.budget.toLocaleString()}</Text>
             </Stack>

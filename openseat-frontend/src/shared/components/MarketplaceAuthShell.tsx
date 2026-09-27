@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+
 import { ThemeToggle } from "@/src/shared/marketplace-ui";
 
 export function MarketplaceAuthShell({ children }: { children: ReactNode }) {

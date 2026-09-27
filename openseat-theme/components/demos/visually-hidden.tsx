@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Text, VisuallyHidden } from "@openseat/design-system";
+
 import { Examples, Preview, Row } from "./shared";
 
 export default function VisuallyHiddenDemo() {

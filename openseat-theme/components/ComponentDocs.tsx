@@ -1,23 +1,13 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
-import dynamic from "next/dynamic";
-import { CodeBlock, Spinner, Stack, Tab, TabList, Text } from "@openseat/design-system";
-import { DEMO_LOADERS } from "@/components/demos/load";
+import { CodeBlock, Stack, Tab, TabList, Text } from "@openseat/design-system";
+import { useState } from "react";
 
-const DEMOS = Object.fromEntries(
-  Object.entries(DEMO_LOADERS).map(([slug, loader]) => [
-    slug,
-    dynamic(loader, {
-      ssr: false,
-      loading: () => <Spinner label="Loading example" />,
-    }),
-  ])
-) as Record<string, ComponentType>;
+import { DEMO_COMPONENTS } from "@/components/demos/load";
 
 export function ComponentDocs({ slug, importName }: { slug: string; importName: string }) {
   const [tab, setTab] = useState("overview");
-  const Demo = DEMOS[slug];
+  const Demo = DEMO_COMPONENTS[slug];
 
   return (
     <Stack gap={5}>
@@ -25,8 +15,7 @@ export function ComponentDocs({ slug, importName }: { slug: string; importName: 
         <Tab value="overview" label="Overview" />
         <Tab value="usage" label="Usage" />
       </TabList>
-      {tab === "overview" &&
-        (Demo ? <Demo /> : <Text color="secondary">No demo yet.</Text>)}
+      {tab === "overview" && (Demo ? <Demo /> : <Text color="secondary">No demo yet.</Text>)}
       {tab === "usage" && (
         <CodeBlock
           language="tsx"

@@ -8,7 +8,11 @@ export function ToastSamples() {
   return (
     <>
       <Button label="Invite sent" onClick={() => toast({ body: "Invite sent to 2 bidders" })} />
-      <Button label="Send failed" variant="destructive" onClick={() => toast({ body: "Failed to send — try again", type: "error" })} />
+      <Button
+        label="Send failed"
+        variant="destructive"
+        onClick={() => toast({ body: "Failed to send — try again", type: "error" })}
+      />
     </>
   );
 }

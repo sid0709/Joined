@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Badge,
   DropdownMenu,
@@ -11,6 +10,8 @@ import {
   Text,
   icons,
 } from "@openseat/design-system";
+import { useState } from "react";
+
 import { Caption, Examples, Preview, Row } from "./shared";
 
 const SORTS = ["Newest", "Budget: high to low", "Budget: low to high", "Most bids"];
@@ -62,11 +63,42 @@ export default function DropdownMenuDemo() {
           button={{ label: "Room", icon: <Icon icon={icons.seat} /> }}
           menuWidth={280}
           items={[
-            { label: "Rename", description: "Change the room title", icon: icons.edit, endContent: <Text type="supporting" color="secondary">⌘R</Text>, onClick: run("Rename") },
-            { label: "Share", description: "Invite bidders by link", icon: icons.share, endContent: <Text type="supporting" color="secondary">⌘S</Text>, onClick: run("Share") },
-            { label: "Download brief", description: "PDF, 2.4 MB", icon: icons.download, onClick: run("Download") },
+            {
+              label: "Rename",
+              description: "Change the room title",
+              icon: icons.edit,
+              endContent: (
+                <Text type="supporting" color="secondary">
+                  ⌘R
+                </Text>
+              ),
+              onClick: run("Rename"),
+            },
+            {
+              label: "Share",
+              description: "Invite bidders by link",
+              icon: icons.share,
+              endContent: (
+                <Text type="supporting" color="secondary">
+                  ⌘S
+                </Text>
+              ),
+              onClick: run("Share"),
+            },
+            {
+              label: "Download brief",
+              description: "PDF, 2.4 MB",
+              icon: icons.download,
+              onClick: run("Download"),
+            },
             { type: "divider" },
-            { label: "Delete room", description: "Removes all bids", icon: icons.trash, variant: "destructive", onClick: run("Delete") },
+            {
+              label: "Delete room",
+              description: "Removes all bids",
+              icon: icons.trash,
+              variant: "destructive",
+              onClick: run("Delete"),
+            },
           ]}
         />
       </Preview>
@@ -95,9 +127,17 @@ export default function DropdownMenuDemo() {
         />
       </Preview>
 
-      <Preview align="start" label="Single choice" description="Show the current choice in the trigger and a check in the list.">
+      <Preview
+        align="start"
+        label="Single choice"
+        description="Show the current choice in the trigger and a check in the list."
+      >
         <DropdownMenu
-          button={{ label: `Sort: ${sort}`, variant: "secondary", icon: <Icon icon={icons.sort} /> }}
+          button={{
+            label: `Sort: ${sort}`,
+            variant: "secondary",
+            icon: <Icon icon={icons.sort} />,
+          }}
           items={SORTS.map((option) => ({
             label: option,
             endContent: option === sort ? <Icon icon={icons.check} color="accent" /> : undefined,
@@ -106,19 +146,30 @@ export default function DropdownMenuDemo() {
         />
       </Preview>
 
-      <Preview align="start" label="Multiple choice" description="Keep the menu open while toggling filters.">
+      <Preview
+        align="start"
+        label="Multiple choice"
+        description="Keep the menu open while toggling filters."
+      >
         <Stack gap={2} hAlign="start">
           <DropdownMenu
             button={{
               label: "Status",
               icon: <Icon icon={icons.filter} />,
-              endContent: statuses.length ? <Badge label={String(statuses.length)} variant="info" /> : undefined,
+              endContent: statuses.length ? (
+                <Badge label={String(statuses.length)} variant="info" />
+              ) : undefined,
             }}
             items={STATUSES.map((status) => ({
               label: status,
               hasCloseOnSelect: false,
               icon: statuses.includes(status) ? icons.check : undefined,
-              onClick: () => setStatuses((current) => (current.includes(status) ? current.filter((s) => s !== status) : [...current, status])),
+              onClick: () =>
+                setStatuses((current) =>
+                  current.includes(status)
+                    ? current.filter((s) => s !== status)
+                    : [...current, status],
+                ),
             }))}
           />
           <Caption>Showing: {statuses.length ? statuses.join(", ") : "nothing"}</Caption>
@@ -137,7 +188,11 @@ export default function DropdownMenuDemo() {
         </DropdownMenu>
       </Preview>
 
-      <Preview align="start" label="Disabled items" description="Keep actions visible but unavailable so people learn they exist.">
+      <Preview
+        align="start"
+        label="Disabled items"
+        description="Keep actions visible but unavailable so people learn they exist."
+      >
         <DropdownMenu
           button={{ label: "Manage team" }}
           items={[
@@ -150,14 +205,35 @@ export default function DropdownMenuDemo() {
         />
       </Preview>
 
-      <Preview align="start" label="Triggers" description="Any Button variant, icon-only, or no chevron.">
+      <Preview
+        align="start"
+        label="Triggers"
+        description="Any Button variant, icon-only, or no chevron."
+      >
         <Row>
-          <DropdownMenu button={{ label: "Primary", variant: "primary" }} items={[{ label: "One" }, { label: "Two" }]} />
-          <DropdownMenu button={{ label: "Secondary" }} items={[{ label: "One" }, { label: "Two" }]} />
-          <DropdownMenu button={{ label: "Ghost", variant: "ghost" }} items={[{ label: "One" }, { label: "Two" }]} />
-          <DropdownMenu button={{ label: "Small", size: "sm" }} items={[{ label: "One" }, { label: "Two" }]} />
           <DropdownMenu
-            button={{ label: "Notifications", isIconOnly: true, variant: "ghost", icon: <Icon icon={icons.bell} /> }}
+            button={{ label: "Primary", variant: "primary" }}
+            items={[{ label: "One" }, { label: "Two" }]}
+          />
+          <DropdownMenu
+            button={{ label: "Secondary" }}
+            items={[{ label: "One" }, { label: "Two" }]}
+          />
+          <DropdownMenu
+            button={{ label: "Ghost", variant: "ghost" }}
+            items={[{ label: "One" }, { label: "Two" }]}
+          />
+          <DropdownMenu
+            button={{ label: "Small", size: "sm" }}
+            items={[{ label: "One" }, { label: "Two" }]}
+          />
+          <DropdownMenu
+            button={{
+              label: "Notifications",
+              isIconOnly: true,
+              variant: "ghost",
+              icon: <Icon icon={icons.bell} />,
+            }}
             hasChevron={false}
             items={[{ label: "Mark all read" }, { label: "Settings" }]}
           />
@@ -171,15 +247,26 @@ export default function DropdownMenuDemo() {
               button={{ label: open ? "Close menu" : "Open menu" }}
               isMenuOpen={open}
               onOpenChange={setOpen}
-              items={[{ label: "Stays in sync with state" }, { label: "Close me", onClick: () => setOpen(false) }]}
+              items={[
+                { label: "Stays in sync with state" },
+                { label: "Close me", onClick: () => setOpen(false) },
+              ]}
             />
-            <DropdownMenu button={{ label: "Opens above", variant: "ghost" }} placement="above" items={[{ label: "One" }, { label: "Two" }]} />
+            <DropdownMenu
+              button={{ label: "Opens above", variant: "ghost" }}
+              placement="above"
+              items={[{ label: "One" }, { label: "Two" }]}
+            />
           </Row>
           <Caption>Menu is {open ? "open" : "closed"}.</Caption>
         </Stack>
       </Preview>
 
-      <Preview align="start" label="Bottom sheet" description="On touch layouts the same menu can rise from the bottom.">
+      <Preview
+        align="start"
+        label="Bottom sheet"
+        description="On touch layouts the same menu can rise from the bottom."
+      >
         <DropdownMenu
           button={{ label: "Share room", icon: <Icon icon={icons.share} /> }}
           presentation="bottom-sheet"
