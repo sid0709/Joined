@@ -1,18 +1,24 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { GridColumn, GridSystem } from "@openseat/design-system";
 import { CompanyNav } from "@/components/company/company-nav";
 import { PageContainer } from "@/components/page-container";
 import { AppFrame } from "@/components/shell/app-frame";
 import { EmployerHeader } from "@/components/shell/employer-header";
+import { loadSession } from "@/lib/auth/session";
+import { ROUTES } from "@/lib/routes";
 
-/** Employer mode: its own header, and the workspace nav on the left of every hiring page. */
-export default function CompanyLayout({ children }: { children: ReactNode }) {
+/** Employer mode: a signed-in person linked to a company, with the workspace nav on the left. */
+export default async function CompanyLayout({ children }: { children: ReactNode }) {
+  const session = await loadSession();
+  if (!session) redirect(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.company)}`);
+  if (!session.company) redirect(ROUTES.hiringSetup);
   return (
-    <AppFrame header={<EmployerHeader />}>
+    <AppFrame header={<EmployerHeader session={session} />}>
       <PageContainer>
         <GridSystem gap={6}>
           <GridColumn span="full" lg={3}>
-            <CompanyNav />
+            <CompanyNav company={session.company} />
           </GridColumn>
           <GridColumn span="full" lg={9}>
             {children}

@@ -2,6 +2,9 @@ export const BRAND = "Opened";
 
 export const ROUTES = {
   search: "/",
+  signIn: "/sign-in",
+  signUp: "/sign-up",
+  hiringSetup: "/hiring/setup",
   applications: "/applications",
   interviews: "/interviews",
   messages: "/messages",

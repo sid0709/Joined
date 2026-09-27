@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/config"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/database"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/httpapi"
@@ -39,10 +40,15 @@ func main() {
 	defer client.Disconnect(context.Background())
 
 	store := jobs.NewStore(client, cfg.SourceDB, cfg.SourceCollection, cfg.DestDB, cfg.DestCollection, cfg.JobsCollection, cfg.SourceCompanies, cfg.CompaniesCollection)
+	accounts := auth.NewStore(client, cfg.DestDB, cfg.CompaniesCollection)
+	if err := accounts.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("auth indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.New(store, reader, cfg.AdminOrigins),
+		Handler:           httpapi.New(store, accounts, reader, cfg.AdminOrigins),
 		ReadHeaderTimeout: readHeaderTimeout,
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,
