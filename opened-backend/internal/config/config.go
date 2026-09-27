@@ -1,0 +1,125 @@
+package config
+
+import (
+	"fmt"
+	"net/url"
+	"os"
+	"strings"
+)
+
+const (
+	defaultHTTPAddr         = "127.0.0.1:8080"
+	defaultAdminOrigins     = "http://127.0.0.1:3010,http://localhost:3010"
+	defaultSourceDB         = "AthensDB"
+	defaultSourceCollection = "jobs"
+	defaultDestDB           = "OpenedDB"
+	defaultDestCollection   = "temp_jobs"
+	envFileName             = ".env"
+)
+
+type Config struct {
+	MongoURI         string
+	HTTPAddr         string
+	AdminOrigins     []string
+	SourceDB         string
+	SourceCollection string
+	DestDB           string
+	DestCollection   string
+}
+
+func (c Config) SourceName() string {
+	return c.SourceDB + "." + c.SourceCollection
+}
+
+func (c Config) DestName() string {
+	return c.DestDB + "." + c.DestCollection
+}
+
+func Load() (Config, error) {
+	loadEnvFile(envFileName)
+
+	cfg := Config{
+		MongoURI:         strings.TrimSpace(os.Getenv("MONGO_URI")),
+		HTTPAddr:         envOr("HTTP_ADDR", defaultHTTPAddr),
+		AdminOrigins:     splitList(envOr("ADMIN_ORIGINS", defaultAdminOrigins)),
+		SourceDB:         envOr("SOURCE_DB", defaultSourceDB),
+		SourceCollection: envOr("SOURCE_COLLECTION", defaultSourceCollection),
+		DestDB:           envOr("DEST_DB", defaultDestDB),
+		DestCollection:   envOr("DEST_COLLECTION", defaultDestCollection),
+	}
+	if cfg.MongoURI == "" {
+		return Config{}, fmt.Errorf("MONGO_URI is required")
+	}
+	if len(cfg.AdminOrigins) == 0 {
+		return Config{}, fmt.Errorf("ADMIN_ORIGINS is required")
+	}
+	return cfg, nil
+}
+
+func Redact(err error, uri string) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	if uri != "" {
+		msg = strings.ReplaceAll(msg, uri, "mongodb://[redacted]")
+	}
+	parsed, parseErr := url.Parse(uri)
+	if parseErr == nil && parsed.User != nil {
+		if password, ok := parsed.User.Password(); ok && password != "" {
+			msg = strings.ReplaceAll(msg, password, "[redacted]")
+		}
+		if username := parsed.User.Username(); username != "" {
+			msg = strings.ReplaceAll(msg, username, "[redacted]")
+		}
+	}
+	return msg
+}
+
+func envOr(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func splitList(value string) []string {
+	parts := strings.Split(value, ",")
+	items := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			items = append(items, part)
+		}
+	}
+	return items
+}
+
+func loadEnvFile(path string) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	for _, line := range strings.Split(string(contents), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		line = strings.TrimPrefix(line, "export ")
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+		value = strings.Trim(value, `"'`)
+		if key == "" {
+			continue
+		}
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+		_ = os.Setenv(key, value)
+	}
+}
