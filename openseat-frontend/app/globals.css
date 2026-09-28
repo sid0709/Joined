@@ -713,6 +713,26 @@ body {
   background: var(--color-accent);
 }
 
+.marketplace-onboarding-grid {
+  align-items: stretch;
+}
+.marketplace-onboarding-notice {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+}
+.os-page-body.marketplace-onboarding-page {
+  width: 100%;
+  max-width: none;
+}
+.marketplace-onboarding-active-step {
+  min-height: clamp(24rem, 36vh, 32rem);
+}
+.marketplace-onboarding-actions {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: var(--border-width-hairline) solid var(--color-border);
+}
+
 .marketplace-workroom {
   width: 100%;
 }
@@ -1061,6 +1081,7 @@ body {
   .marketplace-applicant-facts,
   .marketplace-proposal-detail-grid,
   .marketplace-dashboard-grid,
+  .marketplace-onboarding-grid,
   .marketplace-trust-grid,
   .marketplace-workroom-grid,
   .marketplace-message-context-grid,

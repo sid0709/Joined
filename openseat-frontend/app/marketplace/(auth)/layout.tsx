@@ -1,6 +1,6 @@
-import { MarketplaceAuthShell } from "@/src/shared/components/MarketplaceAuthShell";
-
 import type { Metadata } from "next";
+
+import { MarketplaceAuthShell } from "@/src/shared/components/MarketplaceAuthShell";
 
 export const metadata: Metadata = {
   title: "Account",

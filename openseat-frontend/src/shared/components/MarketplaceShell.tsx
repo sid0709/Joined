@@ -11,6 +11,7 @@ type MarketplaceRole = "Candidate" | "Client";
 
 const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string }[]> = {
   Candidate: [
+    { label: "Onboarding", href: "/marketplace/candidate/onboarding" },
     { label: "My Bids", href: "/marketplace/candidate/bids" },
     { label: "Invitations", href: "/marketplace/candidate/invitations" },
     { label: "Performance", href: "/marketplace/candidate/performance" },
@@ -86,7 +87,7 @@ export function MarketplaceShell({
     <RoleGuard role={role}>
       <AppShell
         nav={{
-          brand: "OpenSeat Marketplace",
+          brand: role === "Candidate" ? "OpenSeat Bidder" : "OpenSeat Marketplace",
           items,
           cta: "Log Out",
           onCtaClick: logoutUser,
