@@ -8,7 +8,7 @@ const services = [
     color: "\x1b[36m",
     url: "http://localhost:3000",
     command: "bun",
-    args: ["--filter", "openseat-frontend", "dev"],
+    args: ["--filter", "connected-frontend", "dev"],
   },
   {
     name: "theme",

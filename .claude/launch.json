@@ -4,7 +4,7 @@
     {
       "name": "next-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "openseat-frontend", "dev"],
+      "runtimeArgs": ["run", "--cwd", "connected-frontend", "dev"],
       "port": 3000
     },
     {

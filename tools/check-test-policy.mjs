@@ -1,13 +1,10 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const workspaces = [
-  "openseat-frontend",
-  "openseat-theme",
-  "opened-frontend",
-  "packages/design-system",
+import { repoRoot, workspaces } from "./workspaces.mjs";
+
+const scannedDirectories = [
+  ...workspaces.map((workspace) => workspace.directory),
   // Repo-level tests (e.g. the dependency rule) live outside any workspace.
   "tests",
 ];
@@ -32,8 +29,8 @@ async function walk(directory) {
   return files;
 }
 
-for (const workspace of workspaces) {
-  for (const filename of await walk(path.join(repoRoot, workspace))) {
+for (const directory of scannedDirectories) {
+  for (const filename of await walk(path.join(repoRoot, directory))) {
     const lines = (await readFile(filename, "utf8")).split(/\r?\n/);
 
     lines.forEach((line, index) => {

@@ -2,7 +2,9 @@
 
 This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `packages/*` (e.g. `@openseat/design-system`). Apps consume shared packages; do not copy the same component, token, or helper into more than one workspace.
 
-Workspaces: `openseat-frontend`, `openseat-theme`, `packages/*`.
+Workspaces: `connected-frontend`, `openseat-theme`, `opened-frontend`, `packages/*`.
+
+Before pushing, run `bun run ci` — it runs exactly what GitHub CI runs (`tools/ci.mjs`).
 
 ## Package manager
 
@@ -49,7 +51,7 @@ If a constant is used in more than one workspace, put it in a shared package —
 - Colocate types with the code that owns them; share types from packages when more than one app needs them.
 - Change the source of truth (tokens, shared components, config) instead of patching call sites with one-off values.
 
-## Next.js apps (`openseat-frontend`, `openseat-theme`, any future Next.js workspace)
+## Next.js apps (`connected-frontend`, `openseat-theme`, `opened-frontend`, any future Next.js workspace)
 
 When the folder is a Next.js project, follow current App Router practice. Read that app's `node_modules/next/dist/docs/` before using APIs that may have changed.
 
