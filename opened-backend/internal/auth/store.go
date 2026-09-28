@@ -24,10 +24,44 @@ type Store struct {
 	client    *mongo.Client
 	db        string
 	companies string
+	data      UserData
 }
 
 func NewStore(client *mongo.Client, db, companies string) *Store {
 	return &Store{client: client, db: db, companies: companies}
+}
+
+func (s *Store) SetUserData(data UserData) {
+	s.data = data
+}
+
+func (s *Store) Account(ctx context.Context, userID string) (User, time.Time, error) {
+	var user storedUser
+	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "id", Value: userID}}).Decode(&user)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return User{}, time.Time{}, ErrNotFound
+	}
+	if err != nil {
+		return User{}, time.Time{}, err
+	}
+	return User{ID: user.ID, Name: user.Name, Email: user.Email}, user.CreatedAt, nil
+}
+
+func (s *Store) SetName(ctx context.Context, userID, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" || len([]rune(name)) > maxNameLength {
+		return ErrInvalidInput
+	}
+	result, err := s.collection(usersCollection).UpdateOne(ctx, bson.D{{Key: "id", Value: userID}}, bson.D{
+		{Key: "$set", Value: bson.D{{Key: "name", Value: name}}},
+	})
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *Store) EnsureIndexes(ctx context.Context) error {
@@ -164,6 +198,11 @@ func (s *Store) DeleteAccount(ctx context.Context, token string, now time.Time) 
 		return err
 	}
 	userID := session.User.ID
+	if s.data != nil {
+		if err := s.data.DeleteUser(ctx, userID); err != nil {
+			return err
+		}
+	}
 
 	var member storedMember
 	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)

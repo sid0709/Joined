@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
 import { Sticky } from "@openseat/design-system";
-import { MessageInbox } from "@/components/messages/message-inbox";
+import { CompanyMessages } from "@/components/messages/company-messages";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
-import { COMPANY_THREADS } from "@/lib/company";
-import { COMPANY_MESSAGES_PAGE } from "@/lib/routes";
+import { loadCompanyThreads } from "@/lib/me/pipeline";
 
 export const metadata: Metadata = { title: "Company messages" };
+export const dynamic = "force-dynamic";
 
-export default function CompanyMessagesPage() {
+export default async function CompanyMessagesPage() {
+  const threads = await loadCompanyThreads();
   return (
     <Sticky fill offset={CONTENT_PADDING}>
-      <MessageInbox
-        title={COMPANY_MESSAGES_PAGE.label}
-        threads={COMPANY_THREADS}
-        privacyNote="Only your hiring team and the candidate see these messages. Candidates never see your email."
-      />
+      <CompanyMessages threads={threads} />
     </Sticky>
   );
 }

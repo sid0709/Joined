@@ -9,7 +9,7 @@ import {
   GridSystem,
   Stack,
 } from "@openseat/design-system";
-import { INITIAL_SAVED_JOB_IDS } from "@/lib/account";
+import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 import {
   companyFromJob,
   matchFor,
@@ -31,13 +31,30 @@ const JOB_PAGE_MAX_WIDTH = 1200;
 const SIMILAR_LIMIT = 4;
 
 /** The standalone job page: shareable, with the match and company beside the role. */
-export function JobPageView({ job, jobs }: { job: Job; jobs: Job[] }) {
-  const [saved, setSaved] = useState(INITIAL_SAVED_JOB_IDS.includes(job.id));
-  const [applied, setApplied] = useState(false);
+export function JobPageView({
+  job,
+  jobs,
+  saved = false,
+  applied = false,
+  signedIn = false,
+}: {
+  job: Job;
+  jobs: Job[];
+  saved?: boolean;
+  applied?: boolean;
+  signedIn?: boolean;
+}) {
+  const [isSaved, setSaved] = useState(saved);
+  const [isApplied, setApplied] = useState(applied);
   const actions = useJobActions({
-    isSaved: () => saved,
-    toggleSave: () => setSaved((value) => !value),
+    isSaved: () => isSaved,
+    toggleSave: () => {
+      const next = !isSaved;
+      setSaved(next);
+      void (next ? saveJob(job.id) : unsaveJob(job.id));
+    },
     markApplied: () => setApplied(true),
+    signedIn,
   });
   const company = companyFromJob(job);
 
@@ -57,8 +74,8 @@ export function JobPageView({ job, jobs }: { job: Job; jobs: Job[] }) {
         <Card padding={6} elevation="low">
           <JobDetailHeader
             job={job}
-            saved={saved}
-            applied={applied}
+            saved={isSaved}
+            applied={isApplied}
             onApply={() => actions.apply(job)}
             onSave={() => actions.save(job)}
             onShare={() => actions.share(job)}

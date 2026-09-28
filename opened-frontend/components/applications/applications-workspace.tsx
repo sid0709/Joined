@@ -18,14 +18,21 @@ import {
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
 import {
-  APPLICATIONS,
   BOARD_COLUMNS,
   STAGE_BY_ID,
   STAGES,
   applicationStats,
+  savedBoardJobId,
   type Application,
   type ApplicationStage,
 } from "@/lib/applications";
+import {
+  createApplication,
+  fetchApplications,
+  removeApplication,
+  unsaveJob,
+  updateApplication,
+} from "@/lib/me/pipeline";
 import { AddApplicationDialog } from "./add-application-dialog";
 import { ApplicationCard } from "./application-card";
 import { ApplicationDrawer } from "./application-drawer";
@@ -46,33 +53,68 @@ function matches(application: Application, query: string) {
 }
 
 /** The application tracker: stats, a board or table, and a detail drawer. */
-export function ApplicationsWorkspace() {
+export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
   const toast = useToast();
-  const [items, setItems] = useState(APPLICATIONS);
+  const [items, setItems] = useState(initial);
   const [view, setView] = useState<View>("board");
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<StageFilter>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
+  const reload = async () => {
+    const next = await fetchApplications();
+    setItems(next.applications);
+  };
+
   const stats = applicationStats(items);
   const visible = useMemo(() => items.filter((item) => matches(item, query)), [items, query]);
   const listed = stage === "all" ? visible : visible.filter((item) => item.columnId === stage);
   const open = items.find((item) => item.id === openId) ?? null;
 
-  const moveTo = (id: string, to: ApplicationStage) => {
-    setItems((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, columnId: to, updated: new Date() } : item,
-      ),
-    );
-    toast({ body: `Moved to ${STAGE_BY_ID[to].title}` });
+  const persistStage = async (id: string, to: ApplicationStage) => {
+    try {
+      const jobId = savedBoardJobId(id);
+      if (jobId) {
+        if (to === "saved") return;
+        let next = await createApplication({ jobId, columnId: to });
+        if (next.columnId !== to) {
+          next = await updateApplication(next.id, { columnId: to });
+        }
+        setItems((current) => current.filter((item) => item.id !== id).concat(next));
+        toast({ body: `Moved to ${STAGE_BY_ID[to].title}` });
+        return;
+      }
+      const next = await updateApplication(id, { columnId: to });
+      setItems((current) => current.map((item) => (item.id === id ? next : item)));
+      toast({ body: `Moved to ${STAGE_BY_ID[to].title}` });
+    } catch (error) {
+      toast({
+        body: error instanceof Error ? error.message : "Could not move the application.",
+        type: "error",
+      });
+      await reload();
+    }
   };
 
-  const remove = (id: string) => {
-    setItems((current) => current.filter((item) => item.id !== id));
-    setOpenId(null);
-    toast({ body: "Removed from your tracker" });
+  const moveTo = (id: string, to: ApplicationStage) => {
+    void persistStage(id, to);
+  };
+
+  const remove = async (id: string) => {
+    try {
+      const jobId = savedBoardJobId(id);
+      if (jobId) await unsaveJob(jobId);
+      else await removeApplication(id);
+      setItems((current) => current.filter((item) => item.id !== id));
+      setOpenId(null);
+      toast({ body: "Removed from your tracker" });
+    } catch (error) {
+      toast({
+        body: error instanceof Error ? error.message : "Could not remove the application.",
+        type: "error",
+      });
+    }
   };
 
   return (
@@ -139,9 +181,7 @@ export function ApplicationsWorkspace() {
               ),
             ]);
             if (move.from.columnId !== move.to.columnId) {
-              toast({
-                body: `Moved to ${STAGE_BY_ID[move.to.columnId as ApplicationStage].title}`,
-              });
+              void persistStage(move.itemId, move.to.columnId as ApplicationStage);
             }
           }}
           getItemLabel={(item) => `${item.title} at ${item.company}`}
@@ -186,14 +226,28 @@ export function ApplicationsWorkspace() {
         application={open}
         onClose={() => setOpenId(null)}
         onStageChange={moveTo}
-        onRemove={remove}
+        onRemove={(id) => void remove(id)}
       />
       <AddApplicationDialog
         isOpen={isAdding}
         onOpenChange={setIsAdding}
-        onAdd={(application) => {
-          setItems((current) => [application, ...current]);
-          toast({ body: `Tracking ${application.title} at ${application.company}` });
+        onAdd={async (draft) => {
+          try {
+            const application = await createApplication({
+              title: draft.title,
+              company: draft.company,
+              location: draft.location,
+              columnId: draft.columnId,
+            });
+            setItems((current) => [application, ...current]);
+            toast({ body: `Tracking ${application.title} at ${application.company}` });
+          } catch (error) {
+            toast({
+              body: error instanceof Error ? error.message : "Could not track the application.",
+              type: "error",
+            });
+            throw error;
+          }
         }}
       />
     </Stack>

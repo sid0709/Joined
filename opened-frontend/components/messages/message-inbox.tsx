@@ -13,7 +13,7 @@ import {
   icons,
   useElementWidth,
 } from "@openseat/design-system";
-import type { MailThread } from "@/lib/messages";
+import type { MailMessage, MailThread } from "@/lib/messages";
 import { Conversation } from "./conversation";
 import { ConversationDetails } from "./conversation-details";
 import { ThreadList } from "./thread-list";
@@ -36,12 +36,16 @@ export function MessageInbox({
   title,
   threads,
   privacyNote,
+  sendMessage,
+  refreshThread,
 }: {
   title: string;
   threads: MailThread[];
   privacyNote: string;
+  sendMessage?: (id: string, text: string) => Promise<MailMessage>;
+  refreshThread?: (id: string) => Promise<MailThread>;
 }) {
-  const inbox = useInbox(threads);
+  const inbox = useInbox(threads, { sendMessage, refreshThread });
   const ref = useRef<HTMLDivElement>(null);
   const width = useElementWidth(ref);
   // Width is 0 until measured; assume the wide layout so desktop never flashes a single pane.

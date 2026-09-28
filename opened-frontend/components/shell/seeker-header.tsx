@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { TopNav, TopNavHeading, TopNavItem, useAppShellMobile } from "@openseat/design-system";
 import type { AuthSession } from "@/lib/auth/types";
-import { UNREAD_MESSAGES } from "@/lib/account";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
 import { ForEmployersNavItem, GuestActions } from "./guest-actions";
@@ -23,7 +22,13 @@ function isActive(pathname: string, href: string) {
  * The candidate header. Signed in: the job-search journey, the inbox, and the
  * account menu. Signed out: search only, with ways to sign in or sign up.
  */
-export function SeekerHeader({ session }: { session: AuthSession | null }) {
+export function SeekerHeader({
+  session,
+  unread = 0,
+}: {
+  session: AuthSession | null;
+  unread?: number;
+}) {
   const pathname = usePathname();
   const { isMobile } = useAppShellMobile();
   const nav = session ? MEMBER_NAV : GUEST_NAV;
@@ -48,7 +53,7 @@ export function SeekerHeader({ session }: { session: AuthSession | null }) {
       endContent={
         session ? (
           <>
-            <InboxNavItem href={ROUTES.messages} unread={UNREAD_MESSAGES} />
+            <InboxNavItem href={ROUTES.messages} unread={unread} />
             <AccountMenu mode="hunter" session={session} />
           </>
         ) : (

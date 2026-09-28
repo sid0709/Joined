@@ -1,39 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
-  HStack,
   Stack,
   Text,
   TextArea,
   TextInput,
-  Token,
+  Tokenizer,
+  createStaticSource,
   useToast,
+  type SearchableItem,
 } from "@openseat/design-system";
-import { ABOUT_MAX_LENGTH, HEADLINE_MAX_LENGTH, type Profile } from "@/lib/profile";
 import { SectionCard } from "@/components/section-card";
+import { saveProfile } from "@/lib/me/pipeline";
+import {
+  ABOUT_MAX_LENGTH,
+  HEADLINE_MAX_LENGTH,
+  SKILL_SUGGESTIONS,
+  normalizeProfile,
+  type Profile,
+} from "@/lib/profile";
 
 const ABOUT_ROWS = 5;
+const toItems = (labels: string[]): SearchableItem[] =>
+  labels.map((label) => ({ id: label, label }));
 
 /** The words recruiters read first: headline, summary, and skills. */
-export function ProfileAbout({ profile }: { profile: Profile }) {
+export function ProfileAbout({
+  profile,
+  onSaved,
+}: {
+  profile: Profile;
+  onSaved: (profile: Profile) => void;
+}) {
   const toast = useToast();
+  const skillSource = useMemo(() => createStaticSource(toItems(SKILL_SUGGESTIONS)), []);
   const [headline, setHeadline] = useState(profile.headline);
   const [about, setAbout] = useState(profile.about);
+  const [skills, setSkills] = useState(toItems(profile.skills));
+
+  const save = async () => {
+    const next = normalizeProfile(
+      await saveProfile({
+        headline,
+        about,
+        skills: skills.map((item) => item.label),
+      }),
+    );
+    onSaved(next);
+    toast({ body: "About saved" });
+  };
 
   return (
     <SectionCard
       title="About"
       description="Your headline shows on every application."
-      action={
-        <Button
-          label="Save"
-          variant="secondary"
-          size="sm"
-          onClick={() => toast({ body: "About saved" })}
-        />
-      }
+      action={<Button label="Save" variant="secondary" size="sm" clickAction={save} />}
     >
       <Stack gap={5}>
         <TextInput
@@ -53,11 +76,16 @@ export function ProfileAbout({ profile }: { profile: Profile }) {
           <Text type="label" display="block">
             Skills
           </Text>
-          <HStack gap={2} wrap="wrap">
-            {profile.skills.map((skill) => (
-              <Token key={skill} label={skill} />
-            ))}
-          </HStack>
+          <Tokenizer
+            label="Skills"
+            isLabelHidden
+            searchSource={skillSource}
+            value={skills}
+            onChange={setSkills}
+            hasEntriesOnFocus
+            hasCreate
+            placeholder="Add a skill"
+          />
         </Stack>
       </Stack>
     </SectionCard>

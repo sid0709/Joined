@@ -1,5 +1,5 @@
 import type { BadgeVariant, CalendarEvent, CalendarTone } from "@openseat/design-system";
-import { daysFromToday } from "@/lib/dates";
+import { parseDay } from "@/lib/me/dates";
 
 export type InterviewFormat = "video" | "phone" | "onsite";
 export type InterviewStatus = "scheduled" | "unconfirmed" | "completed" | "cancelled";
@@ -67,139 +67,18 @@ const DEFAULT_PREP = (id: string): PrepTask[] => [
   { id: `${id}-setup`, label: "Test camera, mic, and link", done: false },
 ];
 
-export const INTERVIEWS: Interview[] = [
-  {
-    id: "int-1",
-    applicationId: "app-1",
-    company: "Northwind",
-    role: "Product Designer",
-    round: "Round 1 · Hiring manager",
-    date: daysFromToday(3),
-    start: "10:00",
-    end: "10:45",
-    format: "video",
-    where: "meet.northwind.example/pd-round-1",
-    interviewers: [
-      { name: "Priya Shah", title: "Head of Design" },
-      { name: "Marcus Lee", title: "Senior Product Manager" },
-    ],
-    status: "scheduled",
-    source: "calendar",
-    prep: DEFAULT_PREP("int-1").map((task, index) => ({ ...task, done: index < 2 })),
-  },
-  {
-    id: "int-2",
-    applicationId: "app-2",
-    company: "Harbor",
-    role: "Frontend Engineer",
-    round: "Round 1 · Technical screen",
-    date: daysFromToday(5),
-    start: "14:30",
-    end: "15:30",
-    format: "video",
-    where: "Link in the email invite",
-    interviewers: [{ name: "Tomás Rivera", title: "Engineering Manager" }],
-    status: "unconfirmed",
-    source: "email",
-    prep: DEFAULT_PREP("int-2"),
-  },
-  {
-    id: "int-3",
-    applicationId: "app-6",
-    company: "Lumen Health",
-    role: "Engineering Manager",
-    round: "Offer call",
-    date: daysFromToday(1),
-    start: "16:00",
-    end: "16:30",
-    format: "phone",
-    where: "+1 (312) 555-0142",
-    interviewers: [{ name: "Grace Kim", title: "Recruiter" }],
-    status: "scheduled",
-    source: "manual",
-    prep: [
-      { id: "int-3-comp", label: "Decide on a counter for base salary", done: true },
-      { id: "int-3-start", label: "Confirm a start date", done: false },
-    ],
-  },
-  {
-    id: "int-4",
-    applicationId: "app-1",
-    company: "Northwind",
-    role: "Product Designer",
-    round: "Round 2 · Portfolio review",
-    date: daysFromToday(10),
-    start: "13:00",
-    end: "15:00",
-    format: "onsite",
-    where: "233 S Wacker Dr, Chicago",
-    interviewers: [
-      { name: "Priya Shah", title: "Head of Design" },
-      { name: "Elena Novak", title: "Staff Designer" },
-      { name: "Sam Patel", title: "Design Manager" },
-    ],
-    status: "scheduled",
-    source: "calendar",
-    prep: DEFAULT_PREP("int-4"),
-  },
-  {
-    id: "int-5",
-    applicationId: "app-1",
-    company: "Northwind",
-    role: "Product Designer",
-    round: "Recruiter screen",
-    date: daysFromToday(-3),
-    start: "11:00",
-    end: "11:30",
-    format: "phone",
-    where: "Phone",
-    interviewers: [{ name: "Jess Moore", title: "Recruiter" }],
-    status: "completed",
-    source: "calendar",
-    prep: [],
-    outcome: "advanced",
-    selfRating: 4,
-    notes: "Asked about salary range and start date. Good energy.",
-  },
-  {
-    id: "int-6",
-    applicationId: "app-6",
-    company: "Lumen Health",
-    role: "Engineering Manager",
-    round: "Final round",
-    date: daysFromToday(-9),
-    start: "09:30",
-    end: "12:00",
-    format: "onsite",
-    where: "Lumen Health, Chicago",
-    interviewers: [{ name: "Dev Raman", title: "VP Engineering" }],
-    status: "completed",
-    source: "manual",
-    prep: [],
-    outcome: "advanced",
-    selfRating: 5,
-    notes: "Strong systems conversation. They asked for references.",
-  },
-  {
-    id: "int-7",
-    applicationId: "app-8",
-    company: "Fieldnote",
-    role: "Content Designer",
-    round: "Round 2 · Writing exercise",
-    date: daysFromToday(-24),
-    start: "15:00",
-    end: "16:00",
-    format: "video",
-    where: "Video call",
-    interviewers: [{ name: "Ana Torres", title: "Content Lead" }],
-    status: "completed",
-    source: "calendar",
-    prep: [],
-    outcome: "rejected",
-    selfRating: 3,
-    notes: "Ran short on time for the second prompt.",
-  },
-];
+export function defaultPrep(id: string) {
+  return DEFAULT_PREP(id);
+}
+
+export function hydrateInterview(raw: Interview): Interview {
+  return {
+    ...raw,
+    date: parseDay(raw.date),
+    interviewers: raw.interviewers ?? [],
+    prep: raw.prep ?? [],
+  };
+}
 
 export const isUpcoming = (interview: Interview) =>
   interview.status === "scheduled" || interview.status === "unconfirmed";

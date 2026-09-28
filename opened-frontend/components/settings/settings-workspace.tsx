@@ -23,16 +23,26 @@ import { NotificationSettings } from "./notification-settings";
 import { PrivacySettings } from "./privacy-settings";
 
 /** A grouped nav on the left; the chosen section’s title and cards on the right. */
-export function SettingsWorkspace({ session }: { session: AuthSession | null }) {
+export function SettingsWorkspace({
+  session,
+  googleEmail,
+  calendarResult,
+}: {
+  session: AuthSession | null;
+  googleEmail?: string;
+  calendarResult?: string;
+}) {
   const panels: Record<SettingsSectionId, ReactNode> = {
-    account: <AccountSettings />,
+    account: <AccountSettings session={session} />,
     notifications: <NotificationSettings />,
     alerts: <AlertSettings />,
-    connections: <ConnectionSettings />,
+    connections: <ConnectionSettings googleEmail={googleEmail} calendarResult={calendarResult} />,
     privacy: <PrivacySettings />,
     danger: <DangerSettings session={session} />,
   };
-  const [section, setSection] = useState<SettingsSectionId>("account");
+  const [section, setSection] = useState<SettingsSectionId>(
+    calendarResult ? "connections" : "account",
+  );
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0];
 
   return (

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -36,6 +37,11 @@ var (
 	ErrNotFound     = errors.New("not found")
 	ErrHasCompany   = errors.New("this account is already linked to a company")
 )
+
+// UserData removes a person's records in other stores when their account is deleted.
+type UserData interface {
+	DeleteUser(ctx context.Context, userID string) error
+}
 
 type User struct {
 	ID    string `json:"id"`

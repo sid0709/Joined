@@ -28,7 +28,7 @@ import {
   type JobFilters,
   type PostedWithin,
 } from "@/lib/jobs";
-import { PROFILE } from "@/lib/profile";
+import { DEFAULT_CURRENCY } from "@/lib/profile";
 
 type Props = {
   jobs: Job[];
@@ -45,7 +45,7 @@ function Count({ value }: { value: number | undefined }) {
 }
 
 const payLabel = (value: number) =>
-  value === 0 ? "Any pay" : `${formatAmount(value, PROFILE.currency)}+ a year`;
+  value === 0 ? "Any pay" : `${formatAmount(value, DEFAULT_CURRENCY)}+ a year`;
 
 /** Every refinement, with live counts, for the All filters drawer. */
 export function JobFiltersPanel({ jobs, filters, onChange }: Props) {

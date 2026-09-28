@@ -7,7 +7,7 @@ import {
   ToggleButton,
 } from "@openseat/design-system";
 import { formatAmount, type JobFilters } from "@/lib/jobs";
-import { PROFILE } from "@/lib/profile";
+import { DEFAULT_CURRENCY } from "@/lib/profile";
 
 const QUICK_PAY_FLOOR = 150_000;
 const QUICK_POSTED = "7d";
@@ -77,7 +77,7 @@ export function JobFilterToolbar({ filters, refinementCount, onChange, onOpenFil
           onPressedChange={(on) => onChange({ posted: on ? QUICK_POSTED : "any" })}
         />
         <ToggleButton
-          label={`${formatAmount(QUICK_PAY_FLOOR, PROFILE.currency)}+`}
+          label={`${formatAmount(QUICK_PAY_FLOOR, DEFAULT_CURRENCY)}+`}
           isPressed={wellPaid}
           onPressedChange={(on) => onChange({ minPay: on ? QUICK_PAY_FLOOR : 0 })}
         />

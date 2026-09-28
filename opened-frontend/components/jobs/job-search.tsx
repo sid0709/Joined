@@ -21,7 +21,8 @@ import {
 import { WIDE_PAGE_MAX_WIDTH } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import { RECENT_SEARCHES, filterJobs, formatCount, type Job, type JobFilters } from "@/lib/jobs";
-import { PROFILE } from "@/lib/profile";
+import type { MatchProfile } from "@/lib/jobs/match";
+import { ROLE_SUGGESTIONS } from "@/lib/profile";
 import { ROUTES } from "@/lib/routes";
 import { JobActiveFilters } from "./job-active-filters";
 import { JobDetailHeader } from "./job-detail-header";
@@ -45,13 +46,28 @@ export function JobSearch({
   initialFilters,
   jobs,
   loadError,
+  savedIds = [],
+  appliedIds = [],
+  signedIn = false,
+  roleSuggestions = ROLE_SUGGESTIONS,
+  matchProfile,
 }: {
   initialFilters: JobFilters;
   jobs: Job[];
   loadError?: string | null;
+  savedIds?: string[];
+  appliedIds?: string[];
+  signedIn?: boolean;
+  roleSuggestions?: string[];
+  matchProfile?: MatchProfile;
 }) {
   const router = useRouter();
-  const search = useJobSearch(initialFilters, jobs);
+  const search = useJobSearch(initialFilters, jobs, {
+    savedIds,
+    appliedIds,
+    signedIn,
+    profile: matchProfile,
+  });
   const totals = {
     jobs: jobs.length,
     companies: new Set(jobs.map((job) => job.companyId).filter(Boolean)).size,
@@ -67,8 +83,9 @@ export function JobSearch({
 
   const actions = useJobActions({
     isSaved: (id) => search.savedIds.includes(id),
-    toggleSave: search.toggleSave,
+    toggleSave: (id) => void search.toggleSave(id),
     markApplied: search.markApplied,
+    signedIn,
     hide: search.hide,
     unhide: search.unhide,
   });
@@ -141,7 +158,7 @@ export function JobSearch({
           onChange={search.update}
           onSubmit={remember}
           recent={recent}
-          suggestions={PROFILE.targetRoles}
+          suggestions={roleSuggestions.length > 0 ? roleSuggestions : ROLE_SUGGESTIONS}
           totals={totals}
           alertOn={alertOn}
           onToggleAlert={toggleAlert}

@@ -12,7 +12,7 @@ import {
   Stack,
   TextInput,
 } from "@openseat/design-system";
-import { PROFILE } from "@/lib/profile";
+import type { AuthSession } from "@/lib/auth/types";
 import { LANGUAGES, TIME_ZONES, WEEK_STARTS } from "@/lib/settings";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
@@ -21,9 +21,9 @@ import { SignInSecurity } from "./sign-in-security";
 const AVATAR_SIZE = 60;
 const DEFAULT_TIME_ZONE = "America/Chicago";
 
-export function AccountSettings() {
-  const [name, setName] = useState(PROFILE.name);
-  const [email, setEmail] = useState(PROFILE.email);
+export function AccountSettings({ session }: { session: AuthSession | null }) {
+  const [name, setName] = useState(session?.user.name ?? "");
+  const email = session?.user.email ?? "";
   const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
   const [language, setLanguage] = useState(LANGUAGES[0].value);
   const [weekStart, setWeekStart] = useState(WEEK_STARTS[0].value);
@@ -59,7 +59,7 @@ export function AccountSettings() {
             </HStack>
           }
         >
-          <TextInput label="Email" isLabelHidden type="email" value={email} onChange={setEmail} />
+          <TextInput label="Email" isLabelHidden type="email" value={email} isReadOnly />
         </SettingsRow>
       </SettingsGroup>
 

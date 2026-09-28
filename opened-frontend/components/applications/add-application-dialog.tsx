@@ -3,14 +3,19 @@
 import { useState } from "react";
 import { FormLayout, Selector, TextInput } from "@openseat/design-system";
 import { FormDialog } from "@/components/form-dialog";
-import { STAGES, type Application, type ApplicationStage } from "@/lib/applications";
+import { STAGES, type ApplicationStage } from "@/lib/applications";
 
 const STAGE_OPTIONS = STAGES.filter((stage) => stage.id !== "closed").map((stage) => ({
   value: stage.id,
   label: stage.title,
 }));
-const DEFAULT_RESUME = "General";
-const UNKNOWN_MATCH = 0;
+
+export type ApplicationDraft = {
+  title: string;
+  company: string;
+  location: string;
+  columnId: ApplicationStage;
+};
 
 /** Track a job you applied to somewhere else. */
 export function AddApplicationDialog({
@@ -20,28 +25,19 @@ export function AddApplicationDialog({
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onAdd: (application: Application) => void;
+  onAdd: (draft: ApplicationDraft) => Promise<void> | void;
 }) {
   const [title, setTitle] = useState("");
   const [company, setCompany] = useState("");
   const [location, setLocation] = useState("");
   const [stage, setStage] = useState<ApplicationStage>("applied");
 
-  const submit = () => {
-    const now = new Date();
-    onAdd({
-      id: `app-${now.getTime()}`,
-      columnId: stage,
-      jobId: "",
+  const submit = async () => {
+    await onAdd({
       title: title.trim(),
       company: company.trim(),
-      location: location.trim() || "—",
-      salary: "—",
-      source: "scouted",
-      resume: DEFAULT_RESUME,
-      match: UNKNOWN_MATCH,
-      updated: now,
-      activity: [{ id: `evt-${now.getTime()}`, label: "Added to tracker", date: now }],
+      location: location.trim(),
+      columnId: stage,
     });
     setTitle("");
     setCompany("");

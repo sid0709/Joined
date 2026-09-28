@@ -75,7 +75,7 @@ export const CATALOG: CatalogGroup[] = [
       {
         slug: "toggle-button",
         title: "Toggle Button",
-        description: "A binary on/off control shaped like a Button.",
+        description: "A binary on/off control. Pressed: gray surface, filled icon.",
         importName: "ToggleButton",
       },
       {
