@@ -1,5 +1,5 @@
 {
-  "name": "@openseat/scout",
+  "name": "@openseat/job-schema",
   "version": "0.1.0",
   "private": true,
   "sideEffects": false,
@@ -10,10 +10,6 @@
     "lint": "eslint src --max-warnings=0",
     "lint:fix": "eslint src --fix --max-warnings=0",
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"
-  },
-  "dependencies": {
-    "@openseat/design-system": "workspace:*",
-    "@openseat/job-schema": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:"

@@ -12,6 +12,7 @@ import {
   Stack,
   Sticky,
 } from "@openseat/design-system";
+import { DEFAULT_CURRENCY } from "@openseat/job-schema";
 import {
   CHANNEL_LABEL,
   SUBMISSION_STATUS,
@@ -28,11 +29,13 @@ export function inputFrom(sub: Submission): SubmissionInput {
   return {
     url: sub.url,
     company_name: sub.company_name,
+    company_id: sub.company_id ?? "",
     title: sub.title,
     location_text: sub.location_text,
     workplace: sub.workplace,
     employment: sub.employment,
     seniority: sub.seniority,
+    pay: sub.pay ?? { min: 0, max: 0, currency: DEFAULT_CURRENCY, period: "year" },
     salary: sub.salary,
     summary: sub.summary,
     tags: sub.tags,

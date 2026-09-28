@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@openseat/design-system": "workspace:*",
+    "@openseat/job-schema": "workspace:*",
     "@astryxdesign/core": "catalog:",
     "@astryxdesign/theme-neutral": "catalog:",
     "@stylexjs/stylex": "catalog:",

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
 // Input limits for a submission. The summary is a short structured note in the
@@ -46,9 +48,9 @@ func InputLimits() Limits {
 		MaxTags:         maxTags,
 		MaxSkills:       maxSkills,
 		MaxBatch:        MaxBatchSize,
-		Workplaces:      []string{WorkplaceRemote, WorkplaceHybrid, WorkplaceOnsite},
-		Employments:     []string{EmploymentFullTime, EmploymentContract, EmploymentPartTime},
-		Seniorities:     []string{SeniorityEntry, SeniorityMid, SenioritySenior},
+		Workplaces:      jobschema.Workplaces(),
+		Employments:     jobschema.Employments(),
+		Seniorities:     jobschema.Seniorities(),
 	}
 }
 
@@ -63,10 +65,18 @@ func NormalizeInput(in SubmissionInput) (SubmissionInput, ParsedURL, error) {
 	}
 
 	in.CompanyName = clean(in.CompanyName)
+	in.CompanyID = strings.TrimSpace(in.CompanyID)
 	in.Title = clean(in.Title)
 	in.LocationText = clean(in.LocationText)
 	in.SalaryText = clean(in.SalaryText)
 	in.Summary = strings.TrimSpace(in.Summary)
+	in.Pay = canonicalPay(in.Pay, in.SalaryText)
+	if in.Pay.Max > 0 && in.Pay.Min > in.Pay.Max {
+		problems.add("pay", "the maximum must be at least the minimum")
+	}
+	if label := salaryLabel(in.Pay); label != "" {
+		in.SalaryText = label
+	}
 	in.ExternalRef = strings.TrimSpace(in.ExternalRef)
 
 	lengthRule(problems, "company_name", in.CompanyName, minNameChars, maxCompanyChars)
@@ -82,9 +92,9 @@ func NormalizeInput(in SubmissionInput) (SubmissionInput, ParsedURL, error) {
 	in.Skills = cleanSkills(problems, in.Skills)
 
 	hints := in.LocationText + " " + strings.Join(in.Tags, " ")
-	in.Workplace = pick(problems, "workplace", in.Workplace, InputLimits().Workplaces, workplaceFrom(hints))
-	in.Employment = pick(problems, "employment", in.Employment, InputLimits().Employments, employmentFrom(hints+" "+in.Title))
-	in.Seniority = pick(problems, "seniority", in.Seniority, InputLimits().Seniorities, seniorityFrom(in.Title))
+	in.Workplace = pick(problems, "workplace", in.Workplace, InputLimits().Workplaces, jobschema.WorkplaceFromHint(hints))
+	in.Employment = pick(problems, "employment", in.Employment, InputLimits().Employments, jobschema.EmploymentFromHint(hints+" "+in.Title))
+	in.Seniority = pickSeniority(problems, in.Seniority, jobschema.SeniorityFromHint(in.Title))
 
 	return in, parsed, problems.orNil()
 }
@@ -116,6 +126,17 @@ func pick(problems *ValidationError, field, value string, allowed []string, fall
 		}
 	}
 	problems.add(field, "must be one of "+strings.Join(allowed, ", "))
+	return fallback
+}
+
+func pickSeniority(problems *ValidationError, value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	if canonical, ok := jobschema.CanonicalSeniority(value); ok {
+		return canonical
+	}
+	problems.add("seniority", "must be one of "+strings.Join(jobschema.Seniorities(), ", "))
 	return fallback
 }
 
@@ -170,41 +191,3 @@ func cleanSkills(problems *ValidationError, skills []string) []string {
 	return out
 }
 
-func workplaceFrom(location string) string {
-	lower := strings.ToLower(location)
-	switch {
-	case strings.Contains(lower, "hybrid"):
-		return WorkplaceHybrid
-	case strings.Contains(lower, "remote"):
-		return WorkplaceRemote
-	default:
-		return WorkplaceOnsite
-	}
-}
-
-func employmentFrom(hints string) string {
-	lower := strings.ToLower(hints)
-	switch {
-	case strings.Contains(lower, "part-time"), strings.Contains(lower, "part time"):
-		return EmploymentPartTime
-	case strings.Contains(lower, "contract"), strings.Contains(lower, "freelance"):
-		return EmploymentContract
-	default:
-		return EmploymentFullTime
-	}
-}
-
-func seniorityFrom(title string) string {
-	lower := strings.ToLower(title)
-	switch {
-	case strings.Contains(lower, "senior"), strings.Contains(lower, "staff"), strings.Contains(lower, "principal"),
-		strings.Contains(lower, "lead"), strings.Contains(lower, "head of"), strings.Contains(lower, "director"),
-		strings.Contains(lower, "sr."), strings.Contains(lower, "manager"):
-		return SenioritySenior
-	case strings.Contains(lower, "junior"), strings.Contains(lower, "entry"), strings.Contains(lower, "intern"),
-		strings.Contains(lower, "graduate"), strings.Contains(lower, "associate"), strings.Contains(lower, "jr"):
-		return SeniorityEntry
-	default:
-		return SeniorityMid
-	}
-}

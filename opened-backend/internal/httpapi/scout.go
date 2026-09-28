@@ -36,6 +36,8 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/scout/me/verification", s.scoutRequestVerification)
 	mux.HandleFunc("PUT /v1/scout/me/tax", s.scoutSaveTax)
 	mux.HandleFunc("PUT /v1/scout/me/payout-method", s.scoutSavePayoutMethod)
+	mux.HandleFunc("GET /v1/scout/companies", s.scoutSearchCompanies)
+	mux.HandleFunc("POST /v1/scout/companies", s.scoutCreateCompany)
 	mux.HandleFunc("GET /v1/scout/stats", s.scoutStats)
 	mux.HandleFunc("POST /v1/scout/submissions", s.scoutSubmit)
 	mux.HandleFunc("POST /v1/scout/submissions/batch", s.scoutSubmitBatch)

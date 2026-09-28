@@ -24,7 +24,7 @@ import {
 import {
   EMPLOYMENT_LABEL,
   REWARD_TYPE,
-  SENIORITY_LABEL,
+  seniorityLabel,
   SUBMISSION_STATUS,
   WORKPLACE_LABEL,
   formatMoney,
@@ -288,14 +288,14 @@ export function SubmissionView({
               <MetadataList columns={2}>
                 <MetadataListItem label="Company">{sub.company_name}</MetadataListItem>
                 <MetadataListItem label="Source">{sourceLabel(sub.host, sub.ats)}</MetadataListItem>
-                <MetadataListItem label="Workplace">
+                <MetadataListItem label="Work mode">
                   {WORKPLACE_LABEL[sub.workplace]}
                 </MetadataListItem>
                 <MetadataListItem label="Employment">
                   {EMPLOYMENT_LABEL[sub.employment]}
                 </MetadataListItem>
                 <MetadataListItem label="Seniority">
-                  {SENIORITY_LABEL[sub.seniority]}
+                  {seniorityLabel(sub.seniority)}
                 </MetadataListItem>
                 <MetadataListItem label="Salary">{sub.salary || "Not listed"}</MetadataListItem>
                 {sub.external_ref ? (

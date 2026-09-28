@@ -1,7 +1,12 @@
 /**
  * The scout API contract (opened-backend/internal/scout). Field names are the
  * snake_case JSON the API sends; see docs/61-scout-api.md.
+ * Workplace, seniority, employment, and pay use @openseat/job-schema.
  */
+
+import type { Employment, Pay, PayPeriod, Seniority, Workplace } from "@openseat/job-schema";
+
+export type { Employment, Pay, PayPeriod, Seniority, Workplace };
 
 export type Money = { amount_cents: number; currency: string };
 
@@ -9,9 +14,6 @@ export type SubmissionStatus =
   "submitted" | "auto_checking" | "needs_review" | "approved" | "rejected" | "duplicate";
 export type CheckOutcome = "pass" | "fail" | "review" | "flag";
 export type ScoutLevel = "probation" | "trusted" | "expert";
-export type Workplace = "remote" | "hybrid" | "onsite";
-export type Employment = "full-time" | "contract" | "part-time";
-export type Seniority = "entry" | "mid" | "senior";
 export type Channel = "web" | "api";
 export type Verification = "none" | "pending" | "verified" | "rejected";
 export type EarningStatus = "held" | "released" | "processing" | "paid" | "clawed_back";
@@ -27,11 +29,13 @@ export type JobActivity = { applications: number; interviews: number };
 export type SubmissionInput = {
   url: string;
   company_name: string;
+  company_id?: string;
   title: string;
   location_text: string;
   workplace?: Workplace | "";
   employment?: Employment | "";
   seniority?: Seniority | "";
+  pay?: Pay;
   salary: string;
   summary: string;
   tags: string[];
@@ -52,11 +56,13 @@ export type Submission = {
   host: string;
   ats?: string;
   company_name: string;
+  company_id?: string;
   title: string;
   location_text: string;
   workplace: Workplace;
   employment: Employment;
   seniority: Seniority;
+  pay: Pay;
   salary: string;
   summary: string;
   tags: string[];

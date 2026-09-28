@@ -15,8 +15,8 @@ test("only submitted and checking are pending", () => {
 });
 
 test("options keeps the API order", () => {
-  expect(options(["senior", "entry"] as const, SENIORITY_LABEL)).toEqual([
-    { value: "senior", label: "Senior" },
-    { value: "entry", label: "Entry" },
+  expect(options(["Leader", "Junior"] as const, SENIORITY_LABEL)).toEqual([
+    { value: "Leader", label: "Lead" },
+    { value: "Junior", label: "Junior" },
   ]);
 });

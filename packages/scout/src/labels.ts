@@ -1,18 +1,24 @@
+import type { BadgeVariant, BannerStatus } from "@openseat/design-system";
+import {
+  EMPLOYMENT_LABEL,
+  SENIORITY_LABEL,
+  WORKPLACE_LABEL,
+  seniorityLabel,
+} from "@openseat/job-schema";
+
 import type {
   Channel,
   CheckOutcome,
   EarningStatus,
-  Employment,
   NotificationTone,
   PayoutStatus,
   RewardType,
   ScoutLevel,
-  Seniority,
   SubmissionStatus,
   Verification,
-  Workplace,
 } from "./types";
-import type { BadgeVariant, BannerStatus } from "@openseat/design-system";
+
+export { EMPLOYMENT_LABEL, SENIORITY_LABEL, WORKPLACE_LABEL, seniorityLabel };
 
 type Meta = { label: string; badge: BadgeVariant };
 
@@ -96,24 +102,6 @@ export const VERIFICATION: Record<Verification, Meta> = {
   pending: { label: "Verification pending", badge: "warning" },
   verified: { label: "Verified", badge: "success" },
   rejected: { label: "Verification declined", badge: "error" },
-};
-
-export const WORKPLACE_LABEL: Record<Workplace, string> = {
-  remote: "Remote",
-  hybrid: "Hybrid",
-  onsite: "On-site",
-};
-
-export const EMPLOYMENT_LABEL: Record<Employment, string> = {
-  "full-time": "Full-time",
-  contract: "Contract",
-  "part-time": "Part-time",
-};
-
-export const SENIORITY_LABEL: Record<Seniority, string> = {
-  entry: "Entry",
-  mid: "Mid-level",
-  senior: "Senior",
 };
 
 export const CHANNEL_LABEL: Record<Channel, string> = {

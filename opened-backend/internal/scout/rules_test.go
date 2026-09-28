@@ -123,7 +123,7 @@ func TestNormalizeInputDefaultsAndErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if in.CompanyName != "Plaid" || in.Title != "Staff Engineer" || in.Workplace != WorkplaceRemote || in.Seniority != SenioritySenior {
+	if in.CompanyName != "Plaid" || in.Title != "Staff Engineer" || in.Workplace != WorkplaceRemote || in.Seniority != SeniorityLeader {
 		t.Fatalf("input = %+v", in)
 	}
 	if len(in.Tags) != 2 || parsed.ATS != "Lever" {

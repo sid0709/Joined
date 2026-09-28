@@ -10,6 +10,7 @@ import {
   HStack,
   List,
   ListItem,
+  NumberInput,
   Selector,
   Stack,
   Sticky,
@@ -23,13 +24,16 @@ import {
 } from "@openseat/design-system";
 import {
   ApiError,
+  DEFAULT_CURRENCY,
   EMPLOYMENT_LABEL,
+  PAY_PERIOD_OPTIONS,
   SENIORITY_LABEL,
   WORKPLACE_LABEL,
   options,
   type Employment,
   type LevelRule,
   type Limits,
+  type PayPeriod,
   type Quota,
   type Seniority,
   type Submission,
@@ -40,21 +44,26 @@ import { SUGGESTED_TAGS } from "@/lib/config";
 import { formatCount, parseList, parseTags } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
 import { scoutSend } from "@/lib/scout/client";
+import { CompanyField, type CompanyChoice } from "./company-field";
 import { PrecheckCard } from "./precheck-card";
 import { usePrecheck } from "./use-precheck";
 
 /** Blank means "let the API infer it from the title, location, and tags". */
 const INFER = "";
+const PAY_YEAR_STEP = 5_000;
+const PAY_HOUR_STEP = 1;
 
 type Form = {
   url: string;
-  companyName: string;
+  company: CompanyChoice | null;
   title: string;
   locationText: string;
   workplace: Workplace | "";
   employment: Employment | "";
   seniority: Seniority | "";
-  salary: string;
+  payMin: number;
+  payMax: number;
+  payPeriod: PayPeriod;
   summary: string;
   tags: string;
   skills: string;
@@ -63,13 +72,15 @@ type Form = {
 
 const EMPTY: Form = {
   url: "",
-  companyName: "",
+  company: null,
   title: "",
   locationText: "",
   workplace: INFER,
   employment: INFER,
   seniority: INFER,
-  salary: "",
+  payMin: 0,
+  payMax: 0,
+  payPeriod: "year",
   summary: "",
   tags: "",
   skills: "",
@@ -109,11 +120,13 @@ export function SubmitJobForm({
   };
 
   const summaryLength = form.summary.trim().length;
+  const payInvalid = form.payMax > 0 && form.payMin > form.payMax;
   const blocked =
     precheck.phase === "done" &&
     (!precheck.result.official || Boolean(precheck.result.duplicate_of));
   const ready =
-    Boolean(form.url.trim() && form.companyName.trim() && form.title.trim()) &&
+    Boolean(form.url.trim() && form.company && form.title.trim()) &&
+    !payInvalid &&
     summaryLength >= limits.min_summary_chars &&
     summaryLength <= limits.max_summary_chars &&
     quota.remaining > 0;
@@ -126,13 +139,20 @@ export function SubmitJobForm({
         "POST",
         {
           url: form.url,
-          company_name: form.companyName,
+          company_name: form.company?.name ?? "",
+          company_id: form.company?.id ?? "",
           title: form.title,
           location_text: form.locationText,
           workplace: form.workplace,
           employment: form.employment,
           seniority: form.seniority,
-          salary: form.salary,
+          pay: {
+            min: form.payMin,
+            max: form.payMax,
+            currency: DEFAULT_CURRENCY,
+            period: form.payPeriod,
+          },
+          salary: "",
           summary: form.summary,
           tags: parseTags(form.tags),
           skills: parseList(form.skills),
@@ -202,11 +222,9 @@ export function SubmitJobForm({
             <SectionCard title="The role">
               <GridSystem gap={4}>
                 <GridColumn span="full" md={6}>
-                  <TextInput
-                    label="Company"
-                    value={form.companyName}
-                    onChange={set("companyName")}
-                    isRequired
+                  <CompanyField
+                    company={form.company}
+                    onCompany={set("company")}
                     status={status("company_name")}
                   />
                 </GridColumn>
@@ -229,19 +247,47 @@ export function SubmitJobForm({
                     status={status("location_text")}
                   />
                 </GridColumn>
-                <GridColumn span="full" md={6}>
-                  <TextInput
-                    label="Salary"
-                    value={form.salary}
-                    onChange={set("salary")}
-                    placeholder="$120k – $150k a year"
+                <GridColumn span="full" md={4}>
+                  <NumberInput
+                    label="Salary from"
+                    value={form.payMin}
+                    onChange={set("payMin")}
+                    min={0}
+                    step={form.payPeriod === "hour" ? PAY_HOUR_STEP : PAY_YEAR_STEP}
+                    isIntegerOnly
                     isOptional
-                    status={status("salary")}
+                    units={DEFAULT_CURRENCY}
+                    status={
+                      payInvalid
+                        ? { type: "error", message: "Must be at most the maximum." }
+                        : status("pay")
+                    }
+                  />
+                </GridColumn>
+                <GridColumn span="full" md={4}>
+                  <NumberInput
+                    label="Salary to"
+                    value={form.payMax}
+                    onChange={set("payMax")}
+                    min={0}
+                    step={form.payPeriod === "hour" ? PAY_HOUR_STEP : PAY_YEAR_STEP}
+                    isIntegerOnly
+                    isOptional
+                    units={DEFAULT_CURRENCY}
+                    status={status("pay")}
                   />
                 </GridColumn>
                 <GridColumn span="full" md={4}>
                   <Selector
-                    label="Workplace"
+                    label="Pay period"
+                    options={PAY_PERIOD_OPTIONS}
+                    value={form.payPeriod}
+                    onChange={(value) => set("payPeriod")(value as PayPeriod)}
+                  />
+                </GridColumn>
+                <GridColumn span="full" md={4}>
+                  <Selector
+                    label="Work mode"
                     options={withInfer(limits.workplaces, WORKPLACE_LABEL)}
                     value={form.workplace}
                     onChange={(value) => set("workplace")(value as Workplace | "")}
@@ -267,11 +313,11 @@ export function SubmitJobForm({
             </SectionCard>
 
             <SectionCard
-              title="In your words"
-              description="Job hunters see this summary. Never paste the posting."
+              title="Job description"
+              description="Job hunters read this on the listing. Write it in your own words."
             >
               <TextArea
-                label="Summary"
+                label="Job description"
                 value={form.summary}
                 onChange={set("summary")}
                 isRequired

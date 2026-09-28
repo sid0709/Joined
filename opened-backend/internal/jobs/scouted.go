@@ -11,6 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
 const (
@@ -26,15 +28,18 @@ type ScoutedListing struct {
 	SubmissionID string
 	ScoutUserID  string
 	ApplyLink    string
-	CompanyName  string
+	CompanyName string
+	// CompanyID is set when the scout picked or created a company page.
+	CompanyID string
 	// CompanyURL is the employer's own site, empty when the link is an ATS board.
-	CompanyURL  string
-	Title       string
-	Location    string
-	Workplace   string
-	Employment  string
-	Seniority   string
-	SalaryText  string
+	CompanyURL string
+	Title      string
+	Location   string
+	Workplace  string
+	Employment string
+	Seniority  string
+	Pay        Pay
+	SalaryText string
 	Summary     string
 	Skills      []string
 	Tags        []string
@@ -48,12 +53,6 @@ type PublishedJob struct {
 	CompanyID string
 }
 
-var scoutSeniority = map[string]string{
-	"entry":  seniorityJunior,
-	"mid":    seniorityMiddle,
-	"senior": senioritySenior,
-}
-
 // PublishScouted writes an approved scout job straight into the search pool.
 // It never goes through temp_jobs: that collection is rebuilt by Copy.
 func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now time.Time) (PublishedJob, error) {
@@ -65,9 +64,20 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 	if err != nil {
 		return PublishedJob{}, err
 	}
-	pay := Pay{Currency: "USD", Period: payYear}
-	if parsed, ok := ParsePayText(listing.SalaryText); ok {
+	pay := Pay{Currency: jobschema.CurrencyUSD, Period: payYear}
+	if listing.Pay.Min != 0 || listing.Pay.Max != 0 {
+		pay = normalizePay(extractedPay{
+			Min:      float64(listing.Pay.Min),
+			Max:      float64(listing.Pay.Max),
+			Currency: listing.Pay.Currency,
+			Period:   listing.Pay.Period,
+		}, "")
+	} else if parsed, ok := ParsePayText(listing.SalaryText); ok {
 		pay = parsed
+	}
+	seniority := seniorityMiddle
+	if canonical, ok := jobschema.CanonicalSeniority(listing.Seniority); ok {
+		seniority = canonical
 	}
 	doc := storedSearchJob{
 		ID:         bson.NewObjectID(),
@@ -86,7 +96,7 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 			Location:         fallback(listing.Location, "Location not listed"),
 			Workplace:        oneOf(listing.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceOnsite),
 			Pay:              pay,
-			Seniority:        fallback(scoutSeniority[listing.Seniority], seniorityMiddle),
+			Seniority:        seniority,
 			Employment:       oneOf(listing.Employment, []string{employmentFullTime, employmentContract, employmentPartTime}, employmentFullTime),
 			Source:           scoutedJobType,
 			Visa:             hasTag(listing.Tags, tagVisa),
@@ -141,6 +151,18 @@ func (s *Store) JobWithApplyLink(ctx context.Context, links []string) (string, e
 // resolveScoutCompany matches the scout's company by key or name, and creates
 // an unclaimed company page when the pool has never seen it (docs/14).
 func (s *Store) resolveScoutCompany(ctx context.Context, listing ScoutedListing, now time.Time) (string, error) {
+	if id := strings.TrimSpace(listing.CompanyID); id != "" {
+		var found struct {
+			ID string `bson:"id"`
+		}
+		err := s.companies().FindOne(ctx, bson.D{{Key: "id", Value: id}}, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}})).Decode(&found)
+		if err == nil && found.ID != "" {
+			return found.ID, nil
+		}
+		if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+			return "", err
+		}
+	}
 	key := companySlug(listing.CompanyName)
 	var found struct {
 		ID string `bson:"id"`

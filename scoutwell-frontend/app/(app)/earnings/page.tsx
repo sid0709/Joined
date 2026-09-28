@@ -13,7 +13,14 @@ import {
   SectionCard,
   StatGrid,
 } from "@openseat/design-system";
-import { SENIORITY_LABEL, formatMoney, formatRate, type Earning, type List } from "@openseat/scout";
+import {
+  SENIORITIES,
+  SENIORITY_LABEL,
+  formatMoney,
+  formatRate,
+  type Earning,
+  type List,
+} from "@openseat/scout";
 import { CursorPager } from "@/components/cursor-pager";
 import { EarningsTable } from "@/components/earnings/earnings-table";
 import { PAGE_LIMIT } from "@/lib/config";
@@ -88,7 +95,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Sea
                 {formatMoney(stats.level.approval_reward)}
                 {` · ${formatRate(rewards.major_board_approval_share)} if also on major boards`}
               </MetadataListItem>
-              {(["entry", "mid", "senior"] as const).map((level) => (
+              {SENIORITIES.map((level) => (
                 <MetadataListItem key={level} label={`${SENIORITY_LABEL[level]} role`}>
                   {formatMoney(rewards.interview_by_seniority[level])} per interview ·{" "}
                   {formatMoney(rewards.hire_by_seniority[level])} per hire

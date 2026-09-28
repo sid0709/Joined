@@ -30,15 +30,15 @@ import { useRouter } from "next/navigation";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { JobResultCard } from "@/components/jobs/job-result-card";
 import { POLICY_META, WORKSPACE, type AssistedPolicy } from "@/lib/company";
-import type { Job, Seniority, Workplace } from "@/lib/jobs";
+import {
+  SENIORITY_OPTIONS,
+  WORKPLACE_OPTIONS,
+  type Job,
+  type Seniority,
+  type Workplace,
+} from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 
-const WORKPLACES: { value: Workplace; label: string }[] = [
-  { value: "remote", label: "Remote" },
-  { value: "hybrid", label: "Hybrid" },
-  { value: "onsite", label: "On-site" },
-];
-const SENIORITY: Seniority[] = ["Junior", "Middle", "Senior", "Leader", "Manager"];
 const TEAMS = ["Design", "Data", "Engineering", "Operations"].map((value) => ({
   value,
   label: value,
@@ -155,7 +155,7 @@ export function JobPostEditor() {
               <Selector label="Team" options={TEAMS} value={draft.team} onChange={set("team")} />
               <Selector
                 label="Seniority"
-                options={SENIORITY.map((value) => ({ value, label: value }))}
+                options={SENIORITY_OPTIONS}
                 value={draft.seniority}
                 onChange={(value) => set("seniority")(value as Seniority)}
               />
@@ -173,7 +173,7 @@ export function JobPostEditor() {
                 onChange={(value) => set("workplace")(value as Workplace)}
                 layout="fill"
               >
-                {WORKPLACES.map((option) => (
+                {WORKPLACE_OPTIONS.map((option) => (
                   <SegmentedControlItem
                     key={option.value}
                     value={option.value}

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
 // Submission statuses, in pipeline order. See docs/13-platform-scout.md.
@@ -46,19 +48,23 @@ const (
 	ChannelAPI = "api"
 )
 
-// Workplace, employment, and seniority values match the Opened search record.
+// Workplace, employment, and seniority values match the Opened search record
+// (packages/job-schema). Older submissions may still say entry, mid, or senior;
+// CanonicalSeniority folds those onto Junior, Middle, and Senior.
 const (
-	WorkplaceRemote = "remote"
-	WorkplaceHybrid = "hybrid"
-	WorkplaceOnsite = "onsite"
+	WorkplaceRemote = jobschema.WorkplaceRemote
+	WorkplaceHybrid = jobschema.WorkplaceHybrid
+	WorkplaceOnsite = jobschema.WorkplaceOnsite
 
-	EmploymentFullTime = "full-time"
-	EmploymentContract = "contract"
-	EmploymentPartTime = "part-time"
+	EmploymentFullTime = jobschema.EmploymentFullTime
+	EmploymentContract = jobschema.EmploymentContract
+	EmploymentPartTime = jobschema.EmploymentPartTime
 
-	SeniorityEntry  = "entry"
-	SeniorityMid    = "mid"
-	SenioritySenior = "senior"
+	SeniorityJunior  = jobschema.SeniorityJunior
+	SeniorityMiddle  = jobschema.SeniorityMiddle
+	SenioritySenior  = jobschema.SenioritySenior
+	SeniorityLeader  = jobschema.SeniorityLeader
+	SeniorityManager = jobschema.SeniorityManager
 )
 
 // Scout identity verification states. Tier 2 (verified) unlocks payouts.
@@ -139,6 +145,14 @@ type Money struct {
 	Currency    string `json:"currency" bson:"currency"`
 }
 
+// Pay is the job-record salary range. Zero min and max means not listed.
+type Pay struct {
+	Min      int    `json:"min" bson:"min"`
+	Max      int    `json:"max" bson:"max"`
+	Currency string `json:"currency" bson:"currency"`
+	Period   string `json:"period" bson:"period"`
+}
+
 // Check is one automatic check result stored on a submission.
 type Check struct {
 	ID      string `json:"id" bson:"id"`
@@ -153,9 +167,11 @@ type SubmissionInput struct {
 	CompanyName   string   `json:"company_name"`
 	Title         string   `json:"title"`
 	LocationText  string   `json:"location_text"`
+	CompanyID     string   `json:"company_id"`
 	Workplace     string   `json:"workplace"`
 	Employment    string   `json:"employment"`
 	Seniority     string   `json:"seniority"`
+	Pay           Pay      `json:"pay"`
 	SalaryText    string   `json:"salary"`
 	Summary       string   `json:"summary"`
 	Tags          []string `json:"tags"`
@@ -178,11 +194,13 @@ type Submission struct {
 	Host            string        `json:"host" bson:"host"`
 	ATS             string        `json:"ats,omitempty" bson:"ats,omitempty"`
 	CompanyName     string        `json:"company_name" bson:"companyName"`
+	CompanyID       string        `json:"company_id,omitempty" bson:"companyId,omitempty"`
 	Title           string        `json:"title" bson:"title"`
 	LocationText    string        `json:"location_text" bson:"locationText"`
 	Workplace       string        `json:"workplace" bson:"workplace"`
 	Employment      string        `json:"employment" bson:"employment"`
 	Seniority       string        `json:"seniority" bson:"seniority"`
+	Pay             Pay           `json:"pay" bson:"pay"`
 	SalaryText      string        `json:"salary" bson:"salaryText"`
 	Summary         string        `json:"summary" bson:"summary"`
 	Tags            []string      `json:"tags" bson:"tags"`
@@ -328,6 +346,13 @@ func (s *Submission) fill() {
 	}
 	if s.Checks == nil {
 		s.Checks = []Check{}
+	}
+	if canonical, ok := jobschema.CanonicalSeniority(s.Seniority); ok {
+		s.Seniority = canonical
+	}
+	s.Pay = canonicalPay(s.Pay, s.SalaryText)
+	if s.Pay.Min != 0 || s.Pay.Max != 0 {
+		s.SalaryText = salaryLabel(s.Pay)
 	}
 }
 

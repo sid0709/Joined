@@ -11,8 +11,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /** GET from the scout API as the signed-in person. */
-export function scoutFetch<T>(path: string) {
-  return request<T>(path);
+export function scoutFetch<T>(path: string, signal?: AbortSignal) {
+  return request<T>(path, { signal });
 }
 
 /** Sends JSON to the scout API as the signed-in person. */
@@ -30,6 +30,11 @@ export function scoutSend<T>(
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+}
+
+/** POSTs multipart form data. The browser sets the multipart boundary. */
+export function scoutUpload<T>(path: string, body: FormData) {
+  return request<T>(path, { method: "POST", body });
 }
 
 /** POSTs to one of the auth routes, which set or clear the session cookie. */

@@ -3,6 +3,8 @@ package scout
 import (
 	"math"
 	"time"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
 // Reward amounts are assumptions from docs/50-pricing-and-revenue.md#scouts.
@@ -17,16 +19,21 @@ const (
 	ConversionShare = 0.1
 )
 
+// Leader and Manager used to be paid as senior, so they keep that rate.
 var interviewRewardCents = map[string]int64{
-	SeniorityEntry:  400,
-	SeniorityMid:    750,
-	SenioritySenior: 1500,
+	SeniorityJunior:  400,
+	SeniorityMiddle:  750,
+	SenioritySenior:  1500,
+	SeniorityLeader:  1500,
+	SeniorityManager: 1500,
 }
 
 var hireRewardCents = map[string]int64{
-	SeniorityEntry:  2500,
-	SeniorityMid:    5000,
-	SenioritySenior: 10000,
+	SeniorityJunior:  2500,
+	SeniorityMiddle:  5000,
+	SenioritySenior:  10000,
+	SeniorityLeader:  10000,
+	SeniorityManager: 10000,
 }
 
 // RewardTable is shown on the scout level and earnings pages.
@@ -164,10 +171,8 @@ func moneyMap(values map[string]int64) map[string]Money {
 }
 
 func normalizeSeniority(value string) string {
-	switch value {
-	case SeniorityEntry, SeniorityMid, SenioritySenior:
-		return value
-	default:
-		return SeniorityMid
+	if canonical, ok := jobschema.CanonicalSeniority(value); ok {
+		return canonical
 	}
+	return SeniorityMiddle
 }

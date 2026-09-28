@@ -7,7 +7,10 @@ import {
   EMPLOYMENTS,
   PAY_PERIODS,
   SEARCH_JOBS_PATH,
+  EMPLOYMENT_LABEL,
   SENIORITIES,
+  SENIORITY_LABEL,
+  WORKPLACE_LABEL,
   WORKPLACES,
   searchJobPatchFrom,
   type SearchJobPatch,
@@ -218,7 +221,7 @@ function SearchJobDetail({
                   >
                     {WORKPLACES.map((value) => (
                       <option key={value} value={value}>
-                        {value}
+                        {WORKPLACE_LABEL[value]}
                       </option>
                     ))}
                   </select>
@@ -234,7 +237,7 @@ function SearchJobDetail({
                   >
                     {SENIORITIES.map((value) => (
                       <option key={value} value={value}>
-                        {value}
+                        {SENIORITY_LABEL[value]}
                       </option>
                     ))}
                   </select>
@@ -250,7 +253,7 @@ function SearchJobDetail({
                   >
                     {EMPLOYMENTS.map((value) => (
                       <option key={value} value={value}>
-                        {value}
+                        {EMPLOYMENT_LABEL[value]}
                       </option>
                     ))}
                   </select>

@@ -6,25 +6,27 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
 const (
-	workplaceRemote = "remote"
-	workplaceHybrid = "hybrid"
-	workplaceOnsite = "onsite"
+	workplaceRemote = jobschema.WorkplaceRemote
+	workplaceHybrid = jobschema.WorkplaceHybrid
+	workplaceOnsite = jobschema.WorkplaceOnsite
 
-	seniorityJunior  = "Junior"
-	seniorityMiddle  = "Middle"
-	senioritySenior  = "Senior"
-	seniorityLeader  = "Leader"
-	seniorityManager = "Manager"
+	seniorityJunior  = jobschema.SeniorityJunior
+	seniorityMiddle  = jobschema.SeniorityMiddle
+	senioritySenior  = jobschema.SenioritySenior
+	seniorityLeader  = jobschema.SeniorityLeader
+	seniorityManager = jobschema.SeniorityManager
 
-	employmentFullTime = "full-time"
-	employmentContract = "contract"
-	employmentPartTime = "part-time"
+	employmentFullTime = jobschema.EmploymentFullTime
+	employmentContract = jobschema.EmploymentContract
+	employmentPartTime = jobschema.EmploymentPartTime
 
-	payYear = "year"
-	payHour = "hour"
+	payYear = jobschema.PayYear
+	payHour = jobschema.PayHour
 
 	aggregatedSource = "aggregated"
 
@@ -154,7 +156,7 @@ func normalizePay(pay extractedPay, salaryHint string) Pay {
 	}
 	currency := strings.ToUpper(strings.TrimSpace(pay.Currency))
 	if len(currency) != 3 {
-		currency = "USD"
+		currency = jobschema.CurrencyUSD
 	}
 	period := pay.Period
 	if period != payYear && period != payHour {
@@ -189,7 +191,7 @@ func payFromHint(text string) (extractedPay, bool) {
 	}
 	currency, ok := currencySymbols[symbol]
 	if !ok {
-		currency = "USD"
+		currency = jobschema.CurrencyUSD
 	}
 	return extractedPay{Min: min, Max: max, Currency: currency, Period: period}, true
 }
@@ -217,47 +219,17 @@ func parsePayNumber(raw string, thousands bool) float64 {
 }
 
 func workplaceFromHint(remote string) string {
-	text := strings.ToLower(remote)
-	switch {
-	case strings.Contains(text, "hybrid"):
-		return workplaceHybrid
-	case strings.Contains(text, "remote"):
-		return workplaceRemote
-	default:
-		return workplaceOnsite
-	}
+	return jobschema.WorkplaceFromHint(remote)
 }
 
 // seniorityFromHint maps a free-text title/level hint onto the five-tier scale.
-// "Staff" and "Principal" are individual-contributor titles above Senior, not
-// people-manager titles — they land on Leader, same as "Lead", never Senior.
-// "Manager", "Director", and "Head of" are people-management titles, one tier above that.
+// Staff and Principal land on Leader, same as Lead. Manager is the people-management tier.
 func seniorityFromHint(value string) string {
-	text := strings.ToLower(value)
-	switch {
-	case strings.Contains(text, "manager"), strings.Contains(text, "director"), strings.Contains(text, "head of"), strings.Contains(text, "vp "), strings.Contains(text, "chief"):
-		return seniorityManager
-	case strings.Contains(text, "lead"), strings.Contains(text, "staff"), strings.Contains(text, "principal"):
-		return seniorityLeader
-	case strings.Contains(text, "junior"), strings.Contains(text, "entry"), strings.Contains(text, "intern"):
-		return seniorityJunior
-	case strings.Contains(text, "mid"), strings.Contains(text, "middle"):
-		return seniorityMiddle
-	default:
-		return senioritySenior
-	}
+	return jobschema.SeniorityFromHint(value)
 }
 
 func employmentFromHint(value string) string {
-	text := strings.ToLower(value)
-	switch {
-	case strings.Contains(text, "part"):
-		return employmentPartTime
-	case strings.Contains(text, "contract"), strings.Contains(text, "temp"), strings.Contains(text, "intern"):
-		return employmentContract
-	default:
-		return employmentFullTime
-	}
+	return jobschema.EmploymentFromHint(value)
 }
 
 func oneOf(value string, allowed []string, fallback string) string {

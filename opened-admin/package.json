@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@openseat/design-system": "workspace:*",
+    "@openseat/job-schema": "workspace:*",
     "@openseat/scout": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",

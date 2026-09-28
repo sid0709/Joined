@@ -475,11 +475,13 @@ func (s *Store) applyEdits(ctx context.Context, sub Submission, edits Submission
 	}
 	_, err = s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{{Key: "$set", Value: bson.D{
 		{Key: "companyName", Value: normalized.CompanyName},
+		{Key: "companyId", Value: normalized.CompanyID},
 		{Key: "title", Value: normalized.Title},
 		{Key: "locationText", Value: normalized.LocationText},
 		{Key: "workplace", Value: normalized.Workplace},
 		{Key: "employment", Value: normalized.Employment},
 		{Key: "seniority", Value: normalized.Seniority},
+		{Key: "pay", Value: normalized.Pay},
 		{Key: "salaryText", Value: normalized.SalaryText},
 		{Key: "summary", Value: normalized.Summary},
 		{Key: "tags", Value: normalized.Tags},
