@@ -11,7 +11,7 @@ A **bun workspaces monorepo**:
 | Workspace                 | What it is                                         | Run it                                       |
 | ------------------------- | -------------------------------------------------- | -------------------------------------------- |
 | `opened-frontend`         | Opened job platform — candidate and employer modes | `bun run dev:opened` → http://localhost:3002 |
-| `openseat-frontend`       | OpenSeat web app                                   | `bun run dev:app` → http://localhost:3000    |
+| `connected-frontend`      | OpenSeat web app                                   | `bun run dev:app` → http://localhost:3000    |
 | `openseat-theme`          | Design-system showcase                             | `bun run dev:theme` → http://localhost:3001  |
 | `@openseat/design-system` | Shared UI package (`packages/design-system`)       | used by every app                            |
 

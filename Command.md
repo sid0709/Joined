@@ -13,7 +13,7 @@ Everything you need to set up, run, check, and audit this monorepo.
 | Workspace                 | Path                      | What it is                                                 | Dev port | Root dev script         |
 | ------------------------- | ------------------------- | ---------------------------------------------------------- | -------- | ----------------------- |
 | `opened-frontend`         | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js) | 3002     | `bun run dev:opened`    |
-| `openseat-frontend`       | `openseat-frontend/`      | OpenSeat web app (Next.js)                                 | 3000     | `bun run dev:app`       |
+| `connected-frontend`      | `connected-frontend/`     | OpenSeat web app (Next.js)                                 | 3000     | `bun run dev:app`       |
 | `openseat-theme`          | `openseat-theme/`         | Design-system showcase (Next.js)                           | 3001     | `bun run dev:theme`     |
 | `opened-admin`            | `opened-admin/`           | Opened admin UI (Next.js, not a bun workspace)             | 3010     | `bun run dev:admin`     |
 | `opened-backend`          | `opened-backend/`         | Opened API (Go)                                            | 8080     | `bun run dev:admin-api` |
@@ -38,7 +38,7 @@ Other folders: `docs/` (product and architecture specs), `tools/` (repo checks),
 - The root `package.json` holds the versions:
   ```jsonc
   "workspaces": {
-    "packages": ["openseat-frontend", "openseat-theme", "opened-frontend", "packages/*"],
+    "packages": ["connected-frontend", "openseat-theme", "opened-frontend", "packages/*"],
     "catalog": { "next": "16.3.6", "react": "19.3.0", "typescript": "5.9.3" /* … */ }
   }
   ```
@@ -247,21 +247,23 @@ bun run start:opened --port 3102
 
 ## 5. Checks
 
-Run the whole suite before pushing:
+Run exactly what CI runs before pushing:
 
 ```bash
-bun run lint
-bun run typecheck
-bun run format:check
-bun run test
-bun run check:deps
-bun run check:boundaries
-bun run build
+bun run ci
 ```
+
+It runs every CI job in order, keeps going when one fails, and ends with a pass/fail summary. Run only some jobs by naming them — `lint`, `format`, `typecheck`, `dependencies`, `test`, `build`, `commits`:
+
+```bash
+bun run ci lint test
+```
+
+`commits` runs commitlint on what your branch adds on top of `origin/main` (`git fetch` first; set `CI_BASE_REF` to compare against another ref). The individual checks it runs:
 
 | Command                     | What it checks                                                                                                                                                                              |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run lint`              | ESLint in every workspace, zero warnings allowed. Includes `import/no-extraneous-dependencies`.                                                                                             |
+| `bun run lint`              | ESLint in every workspace (`lint:workspaces`) and in `tools/` + `tests/` (`lint:repo`), zero warnings allowed.                                                                              |
 | `bun run lint:fix`          | Same, auto-fixing what it can.                                                                                                                                                              |
 | `bun run typecheck`         | `tsc --noEmit` in every workspace.                                                                                                                                                          |
 | `bun run format:check`      | Prettier. Fix with `bun run format`.                                                                                                                                                        |
@@ -286,7 +288,7 @@ bun test tests
 
 ### CI
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `main`, after `bun install --frozen-lockfile`:
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, after `bun install --frozen-lockfile`. Each job calls `bun run ci <job>`, so the steps are defined once in `tools/ci.mjs` and `bun run ci` locally runs the same thing. Workspace tasks go through `turbo run`, which picks up every workspace listed in the root `package.json` — adding or renaming a workspace needs no CI change.
 
 | Job                                       | Runs                                                                        |
 | ----------------------------------------- | --------------------------------------------------------------------------- |
@@ -432,6 +434,7 @@ git push -u origin feat/<short-name>
 | Add a library                                   | Add to root `catalog`, then `"<lib>": "catalog:"` in the workspace, then `bun install` |
 | Upgrade a library                               | Change it once in the root `catalog`, `bun install`, fix the code that breaks          |
 | Check one version / one node_modules            | `bun run check:deps` (also runs in `bun run test` and CI)                              |
+| Run every CI check locally                      | `bun run ci` (or `bun run ci lint test`)                                               |
 | Lint / type-check everything                    | `bun run lint` · `bun run typecheck`                                                   |
 | Format everything                               | `bun run format`                                                                       |
 | Run tests                                       | `bun run test`                                                                         |

@@ -7,8 +7,8 @@ repository root:
 bun install --frozen-lockfile
 ```
 
-The workspaces are `openseat-frontend`, `openseat-theme`, and
-`packages/design-system`. Read [Coding Style](CODING_STYLE.md) before changing
+The workspaces are `connected-frontend`, `openseat-theme`, `opened-frontend`,
+and `packages/design-system`. Read [Coding Style](CODING_STYLE.md) before changing
 shared code. Keep repository policy and owner settings aligned with the
 existing [CODEOWNERS](../.github/CODEOWNERS); ask the owner before proposing
 ownership or branch-protection changes.
@@ -37,16 +37,14 @@ file included in the Bun coverage report; add tests whenever a covered file's
 behavior changes. Coverage does not claim that unimported files have been
 tested, so workspaces should add tests alongside new behavior.
 
-Run the repository checks from the root before opening a pull request:
+Run the same checks as CI from the root before opening a pull request:
 
 ```sh
-bun run lint
-bun run check:boundaries
-bun run format:check
-bun run typecheck
-bun run test
-bun run build
+bun run ci
 ```
+
+Name jobs to run only those, e.g. `bun run ci lint test`. The job list lives in
+`tools/ci.mjs`, which the CI workflow also calls.
 
 Use `bun run format` to format the repository with Prettier. Pre-commit runs
 lint-staged; CI runs the complete checks for pull requests targeting `main`.

@@ -1,14 +1,10 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const workspaces = [
-  "openseat-frontend",
-  "openseat-theme",
-  "opened-frontend",
-  "packages/design-system",
-];
+import { repoRoot, workspaces } from "./workspaces.mjs";
+
+// Apps are deploy targets, never dependencies: nothing may import one by package name.
+const appPackageNames = workspaces.filter((workspace) => workspace.isApp).map((w) => w.name);
 const ignoredDirectories = new Set([".next", ".turbo", "coverage", "dist", "node_modules"]);
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]);
 const specifierPattern = /\b(?:from\s*|import\s*\(|import\s*|require\s*\()\s*["']([^"']+)["']/g;
@@ -29,7 +25,7 @@ async function walk(directory) {
   return files;
 }
 
-for (const workspace of workspaces) {
+for (const { directory: workspace } of workspaces) {
   const workspaceRoot = path.join(repoRoot, workspace);
 
   for (const filename of await walk(workspaceRoot)) {
@@ -56,10 +52,7 @@ for (const workspace of workspaces) {
         }
       } else if (
         specifier.startsWith("@openseat/design-system/src/") ||
-        specifier === "openseat-frontend" ||
-        specifier.startsWith("openseat-frontend/") ||
-        specifier === "openseat-theme" ||
-        specifier.startsWith("openseat-theme/")
+        appPackageNames.some((name) => specifier === name || specifier.startsWith(`${name}/`))
       ) {
         violations.push(
           `${location}: import through a workspace's public package entry point: ${specifier}`,
