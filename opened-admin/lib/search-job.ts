@@ -37,6 +37,8 @@ export type SearchRecord = {
   applyLink: string;
   analyzedAt: string;
   model: string;
+  createdBy?: string;
+  source?: string;
 };
 
 export type AnalyzeBatch = {

@@ -17,6 +17,8 @@ type SearchRecord struct {
 	ApplyLink  string    `json:"applyLink"`
 	AnalyzedAt time.Time `json:"analyzedAt"`
 	Model      string    `json:"model"`
+	CreatedBy  string    `json:"createdBy,omitempty"`
+	Source     string    `json:"source,omitempty"`
 }
 
 type SearchList struct {
@@ -34,6 +36,8 @@ type storedSearchJob struct {
 	ApplyLink  string        `bson:"applyLink"`
 	AnalyzedAt time.Time     `bson:"analyzedAt"`
 	Model      string        `bson:"model"`
+	CreatedBy  string        `bson:"createdBy,omitempty"`
+	Source     string        `bson:"source,omitempty"`
 	Job        SearchJob     `bson:"job"`
 }
 
@@ -45,6 +49,8 @@ type tempListing struct {
 	CompanyID   bson.ObjectID `bson:"companyId"`
 	ApplyLink   string        `bson:"applyLink"`
 	PostedAt    time.Time     `bson:"postedAt"`
+	CreatedBy   string        `bson:"createdBy"`
+	Source      string        `bson:"source"`
 	Metadata    struct {
 		Details struct {
 			Location  string `bson:"location"`
@@ -474,7 +480,121 @@ func (doc storedSearchJob) view(now time.Time) SearchRecord {
 		ApplyLink:  doc.ApplyLink,
 		AnalyzedAt: doc.AnalyzedAt,
 		Model:      doc.Model,
+		CreatedBy:  doc.CreatedBy,
+		Source:     doc.Source,
 	}
+}
+
+const provenanceBatch = 200
+
+type provenanceJob struct {
+	ID        bson.ObjectID `bson:"_id"`
+	TempJobID string        `bson:"tempJobId"`
+}
+
+// BackfillJobProvenance copies createdBy and source from each temp job onto the
+// analyzed job that came from it.
+func (s *Store) BackfillJobProvenance(ctx context.Context) (int64, error) {
+	cursor, err := s.structured().Find(ctx, bson.D{}, options.Find().SetProjection(bson.D{
+		{Key: "_id", Value: 1},
+		{Key: "tempJobId", Value: 1},
+	}))
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var updated int64
+	batch := make([]provenanceJob, 0, provenanceBatch)
+	flush := func() error {
+		n, err := s.writeProvenance(ctx, batch)
+		batch = batch[:0]
+		updated += n
+		return err
+	}
+	for cursor.Next(ctx) {
+		var row provenanceJob
+		if err := cursor.Decode(&row); err != nil {
+			return updated, err
+		}
+		if row.TempJobID == "" {
+			continue
+		}
+		batch = append(batch, row)
+		if len(batch) == provenanceBatch {
+			if err := flush(); err != nil {
+				return updated, err
+			}
+		}
+	}
+	if err := cursor.Err(); err != nil {
+		return updated, err
+	}
+	if err := flush(); err != nil {
+		return updated, err
+	}
+	return updated, nil
+}
+
+func (s *Store) writeProvenance(ctx context.Context, rows []provenanceJob) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	ids := make([]bson.ObjectID, 0, len(rows))
+	jobByTemp := make(map[string]bson.ObjectID, len(rows))
+	for _, row := range rows {
+		objectID, err := bson.ObjectIDFromHex(row.TempJobID)
+		if err != nil {
+			continue
+		}
+		ids = append(ids, objectID)
+		jobByTemp[objectID.Hex()] = row.ID
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	cursor, err := s.dest().Find(ctx, bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}}, options.Find().SetProjection(bson.D{
+		{Key: "createdBy", Value: 1},
+		{Key: "source", Value: 1},
+	}))
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	type tempProvenance struct {
+		ID        bson.ObjectID `bson:"_id"`
+		CreatedBy string        `bson:"createdBy"`
+		Source    string        `bson:"source"`
+	}
+	models := make([]mongo.WriteModel, 0, len(ids))
+	for cursor.Next(ctx) {
+		var temp tempProvenance
+		if err := cursor.Decode(&temp); err != nil {
+			return 0, err
+		}
+		jobID, ok := jobByTemp[temp.ID.Hex()]
+		if !ok {
+			continue
+		}
+		models = append(models, mongo.NewUpdateOneModel().
+			SetFilter(bson.D{{Key: "_id", Value: jobID}}).
+			SetUpdate(bson.D{{Key: "$set", Value: bson.D{
+				{Key: "createdBy", Value: strings.TrimSpace(temp.CreatedBy)},
+				{Key: "source", Value: strings.TrimSpace(temp.Source)},
+			}}}))
+	}
+	if err := cursor.Err(); err != nil {
+		return 0, err
+	}
+	if len(models) == 0 {
+		return 0, nil
+	}
+	result, err := s.structured().BulkWrite(ctx, models, options.BulkWrite().SetOrdered(false))
+	if err != nil {
+		return 0, err
+	}
+	return result.ModifiedCount, nil
 }
 
 func searchFilter(q string) bson.D {

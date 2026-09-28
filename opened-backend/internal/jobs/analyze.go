@@ -196,6 +196,8 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 		ApplyLink:  listing.ApplyLink,
 		AnalyzedAt: now.UTC(),
 		Model:      reader.Model(),
+		CreatedBy:  strings.TrimSpace(listing.CreatedBy),
+		Source:     strings.TrimSpace(listing.Source),
 		Job: buildSearchJob(
 			publicID,
 			companyID,

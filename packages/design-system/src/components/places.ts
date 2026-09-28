@@ -15,6 +15,7 @@ export type Address = {
   city: string;
   state: string;
   postalCode: string;
+  country: string;
 };
 
 export const LOCATION_SEPARATOR = " · ";
@@ -147,21 +148,24 @@ export function splitLocations(value: string) {
 export function formatAddress(address: Address) {
   const cityState = [address.city.trim(), address.state.trim()].filter(Boolean).join(", ");
   const place = [cityState, address.postalCode.trim()].filter(Boolean).join(" ");
-  return [address.line1.trim(), place].filter(Boolean).join(", ");
+  return [address.line1.trim(), place, address.country.trim()].filter(Boolean).join(", ");
 }
 
 export function parseAddress(value: string): Address {
   const trimmed = value.trim();
-  const match = trimmed.match(/^(.*?),\s*([^,]+),\s*([A-Z]{2})(?:\s+(\d{5}(?:-\d{4})?))?$/);
-  if (!match) return { line1: trimmed, city: "", state: "", postalCode: "" };
+  const match = trimmed.match(
+    /^(.*?),\s*([^,]+),\s*([A-Z]{2})(?:\s+(\d{5}(?:-\d{4})?))?(?:,\s*(.+))?$/,
+  );
+  if (!match) return { line1: trimmed, city: "", state: "", postalCode: "", country: "" };
   return {
     line1: match[1].trim(),
     city: match[2].trim(),
     state: match[3],
     postalCode: match[4] ?? "",
+    country: (match[5] ?? "").trim(),
   };
 }
 
 export function emptyAddress(): Address {
-  return { line1: "", city: "", state: "", postalCode: "" };
+  return { line1: "", city: "", state: "", postalCode: "", country: "" };
 }

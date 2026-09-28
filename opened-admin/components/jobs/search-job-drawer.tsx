@@ -164,6 +164,16 @@ function SearchJobDetail({
           ) : null}
           {draft && record ? (
             <div className="flex flex-col gap-6">
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="text-xs text-muted">Source</dt>
+                  <dd className="mt-0.5 break-words">{record.source || "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted">Created by</dt>
+                  <dd className="mt-0.5 break-words">{record.createdBy || "—"}</dd>
+                </div>
+              </dl>
               <div className="grid grid-cols-2 gap-3">
                 <label className={`${labelClass} col-span-2`}>
                   <span className={labelTextClass}>Title</span>

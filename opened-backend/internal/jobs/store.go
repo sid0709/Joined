@@ -165,6 +165,7 @@ var listProjection = bson.D{
 	{Key: "applyLink", Value: 1},
 	{Key: "source", Value: 1},
 	{Key: "sourceCatalog", Value: 1},
+	{Key: "createdBy", Value: 1},
 	{Key: "titleReviewLabel", Value: 1},
 	{Key: "aiSkillStatus", Value: 1},
 	{Key: "postedAt", Value: 1},
