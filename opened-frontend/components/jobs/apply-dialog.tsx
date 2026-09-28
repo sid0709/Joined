@@ -17,7 +17,7 @@ import {
   Switch,
   TextArea,
 } from "@openseat/design-system";
-import { companyBySlug, type Job } from "@/lib/jobs";
+import { companyBySlug, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { RESUMES } from "@/lib/resumes";
 import { CompanyLogo } from "./company-logo";
 
@@ -76,6 +76,7 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
                   name={job.company}
                   companyId={job.companyId}
                   src={job.companyLogo}
+                  hasFile={jobHasLogoFile(job)}
                   size={40}
                 />
               }

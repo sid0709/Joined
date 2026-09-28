@@ -20,6 +20,7 @@ export type Job = {
   companyId: string;
   companyUrl?: string;
   companyLogo?: string;
+  companyProfile?: PublicCompany;
   location: string;
   workplace: Workplace;
   pay: Pay;
@@ -28,6 +29,9 @@ export type Job = {
   /** Hours since the job went live — sample data stays "fresh" whenever it is viewed. */
   postedHoursAgo: number;
   source: JobSource;
+  /** Scrape or ATS origin from the temp listing, such as Greenhouse. */
+  listingSource?: string;
+  createdBy?: string;
   visa: boolean;
   applicants: number;
   team: string;

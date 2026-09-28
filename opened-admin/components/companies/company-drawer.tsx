@@ -389,8 +389,8 @@ function LogoField({
     !file && !cleared && (hasLogoFile || savedUrl)
       ? companyLogoSrc({ id: companyId, logo: savedUrl, hasLogoFile }, version)
       : undefined;
-  const typed = !file && url && (cleared || url !== savedUrl) ? url : undefined;
-  const preview = objectUrl ?? typed ?? stored;
+  const remote = !file && !cleared && url ? url : undefined;
+  const preview = objectUrl ?? remote ?? stored;
   const canRemove = Boolean(file || (hasLogoFile && !cleared));
 
   return (

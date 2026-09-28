@@ -66,9 +66,12 @@ const maxSearchCatalog = 2000
 
 type catalogJob struct {
 	SearchJob
-	ApplyLink   string `json:"applyLink,omitempty"`
-	CompanyURL  string `json:"companyUrl,omitempty"`
-	CompanyLogo string `json:"companyLogo,omitempty"`
+	ApplyLink      string         `json:"applyLink,omitempty"`
+	CompanyURL     string         `json:"companyUrl,omitempty"`
+	CompanyLogo    string         `json:"companyLogo,omitempty"`
+	CreatedBy      string         `json:"createdBy,omitempty"`
+	ListingSource  string         `json:"listingSource,omitempty"`
+	CompanyProfile *PublicCompany `json:"companyProfile,omitempty"`
 }
 
 type SearchCatalog struct {
@@ -77,7 +80,12 @@ type SearchCatalog struct {
 }
 
 func CatalogJob(record SearchRecord) catalogJob {
-	return catalogJob{SearchJob: record.Job, ApplyLink: record.ApplyLink}
+	return catalogJob{
+		SearchJob:     record.Job,
+		ApplyLink:     record.ApplyLink,
+		CreatedBy:     record.CreatedBy,
+		ListingSource: record.Source,
+	}
 }
 
 func (s *Store) ListCatalog(ctx context.Context, now time.Time) (SearchCatalog, error) {
@@ -131,9 +139,11 @@ func (s *Store) enrichCompanies(ctx context.Context, jobs []catalogJob) ([]catal
 	}
 	cursor, err := s.companies().Find(ctx, bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}}, options.Find().SetProjection(bson.D{
 		{Key: "id", Value: 1},
+		{Key: "companyName", Value: 1},
 		{Key: "companyUrl", Value: 1},
 		{Key: "companyLogo", Value: 1},
 		{Key: "overrides", Value: 1},
+		{Key: "logoFile.contentType", Value: 1},
 	}))
 	if err != nil {
 		return nil, err
@@ -156,8 +166,10 @@ func (s *Store) enrichCompanies(ctx context.Context, jobs []catalogJob) ([]catal
 		if !ok {
 			continue
 		}
-		jobs[i].CompanyURL = brief.displayURL()
-		jobs[i].CompanyLogo = brief.displayLogo()
+		profile := brief.publicCompany()
+		jobs[i].CompanyURL = profile.URL
+		jobs[i].CompanyLogo = profile.Logo
+		jobs[i].CompanyProfile = &profile
 	}
 	return jobs, nil
 }
