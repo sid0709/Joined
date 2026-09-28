@@ -3,15 +3,28 @@ import type { GlyphName } from "@openseat/design-system";
 
 const OFFICE_LIMIT = 3;
 const SKILLS_LIMIT = 6;
+const VALUE_ICONS: GlyphName[] = [
+  "heart",
+  "star",
+  "users",
+  "check",
+  "sparkle",
+  "home",
+  "pin",
+  "code",
+  "seat",
+  "chat",
+];
 
 export type CompanyValue = { icon: GlyphName; title: string; description: string };
 export type Leader = { name: string; title: string };
 export type BenefitCategory = { label: string; items: string[] };
 
 /**
- * The public company profile. Athens only stores id, name, url, and logo — everything
- * else here is left `undefined` (or empty) until the backend actually has it, so the
- * page can render a skeleton for it instead of inventing a fact.
+ * The public company profile. Fields an admin has saved come from the company record.
+ * Anything still unset stays `undefined` so the page can render a skeleton instead of
+ * inventing a fact. Offices and tech stack still come from this company's live jobs
+ * unless offices were saved on the company.
  */
 export type PresentedCompany = {
   id: string;
@@ -73,17 +86,65 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
   );
   const skills = [...new Set(companyJobs.flatMap((job) => job.skills))].slice(0, SKILLS_LIMIT);
 
+  const savedLocations = text(company.locations);
+  const values = company.values
+    ?.map((value) => ({
+      icon: valueIcon(value.icon),
+      title: value.title?.trim() ?? "",
+      description: value.description?.trim() ?? "",
+    }))
+    .filter((value) => value.title);
+  const leadership = company.leadership
+    ?.map((leader) => ({ name: leader.name?.trim() ?? "", title: leader.title?.trim() ?? "" }))
+    .filter((leader) => leader.name);
+  const benefitCategories = company.benefitCategories
+    ?.map((category) => ({
+      label: category.label?.trim() ?? "",
+      items: (category.items ?? []).map((item) => item.trim()).filter(Boolean),
+    }))
+    .filter((category) => category.label && category.items.length > 0);
+
   return {
     id: company.id,
     slug: company.id,
     name: company.name,
     logo: company.logo,
     url: company.url,
-    locations: offices.length > 0 ? offices.join(" · ") : undefined,
-    about: `${company.name} posts roles on its own site. Opened keeps the listing, the company page, and the application link together.`,
-    tagline: companyJobs.length > 0 ? `${company.name} is hiring.` : undefined,
+    locations: savedLocations ?? (offices.length > 0 ? offices.join(" · ") : undefined),
+    about:
+      text(company.about) ??
+      `${company.name} posts roles on its own site. Opened keeps the listing, the company page, and the application link together.`,
+    tagline:
+      text(company.tagline) ?? (companyJobs.length > 0 ? `${company.name} is hiring.` : undefined),
+    industry: text(company.industry),
+    size: text(company.size),
+    founded: company.founded || undefined,
+    replyDays: company.replyDays || undefined,
+    headquarters: text(company.headquarters),
+    companyType: text(company.companyType),
+    specialties: list(company.specialties),
+    mission: text(company.mission),
+    values: values && values.length > 0 ? values : undefined,
+    leadership: leadership && leadership.length > 0 ? leadership : undefined,
+    benefitCategories:
+      benefitCategories && benefitCategories.length > 0 ? benefitCategories : undefined,
+    perks: list(company.perks),
     techStack: skills.length > 0 ? skills : undefined,
   };
+}
+
+function text(value?: string) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function list(items?: string[]) {
+  const cleaned = items?.map((item) => item.trim()).filter(Boolean);
+  return cleaned && cleaned.length > 0 ? cleaned : undefined;
+}
+
+function valueIcon(icon: string): GlyphName {
+  return VALUE_ICONS.includes(icon as GlyphName) ? (icon as GlyphName) : "star";
 }
 
 export function websiteHref(url: string) {

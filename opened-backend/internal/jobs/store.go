@@ -17,6 +17,7 @@ var (
 	ErrCopyInProgress    = errors.New("a copy is already running")
 	ErrAnalyzeInProgress = errors.New("an analysis is already running")
 	ErrNonePending       = errors.New("every temp job already has a search record")
+	ErrInvalidInput      = errors.New("check the form and try again")
 )
 
 type ListResult struct {

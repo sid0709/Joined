@@ -50,9 +50,17 @@ export function CompanyFields({
 
   return (
     <Stack gap={4}>
-      <RadioList label="Hiring" value={path} onChange={(value) => choosePath(value as HiringPath)}>
-        <RadioListItem value="link" label="Link a company already on Opened" />
-        <RadioListItem value="create" label="Create a company page" />
+      <RadioList label="Company" value={path} onChange={(value) => choosePath(value as HiringPath)}>
+        <RadioListItem
+          value="link"
+          label="Link a company already on Opened"
+          description="Join a company page that already exists."
+        />
+        <RadioListItem
+          value="create"
+          label="Create a new company"
+          description="Required if you don’t link an existing company."
+        />
       </RadioList>
 
       {path === "link" ? (

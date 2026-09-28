@@ -19,6 +19,37 @@ func TestNormalizeSignupLowercasesEmail(t *testing.T) {
 	}
 }
 
+func TestNormalizeSignupEmployeeRequiresCompany(t *testing.T) {
+	_, err := normalizeSignup(Signup{
+		Name:     "Ada Lovelace",
+		Email:    "ada@example.com",
+		Password: "long-enough",
+		Mode:     modeEmployee,
+	})
+	if err != ErrInvalidInput {
+		t.Fatalf("employee without company = %v", err)
+	}
+	got, err := normalizeSignup(Signup{
+		Name:     "Ada Lovelace",
+		Email:    "ada@example.com",
+		Password: "long-enough",
+		Mode:     modeCandidate,
+		Company:  &CompanyChoice{Name: "Northwind"},
+	})
+	if err != nil || got.Company != nil || got.Mode != modeCandidate {
+		t.Fatalf("candidate = %+v %v", got, err)
+	}
+}
+
+func TestRemovesCompanyOnlyForCreator(t *testing.T) {
+	if !removesCompany("user-1", "user-1") {
+		t.Fatal("creator should remove the company")
+	}
+	if removesCompany("", "user-1") || removesCompany("user-2", "user-1") {
+		t.Fatal("linking or another owner should leave the company")
+	}
+}
+
 func TestNormalizeCompanyRequiresOnePath(t *testing.T) {
 	if _, err := normalizeCompany(CompanyChoice{}); err != ErrInvalidInput {
 		t.Fatalf("empty = %v", err)

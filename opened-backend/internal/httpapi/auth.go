@@ -24,6 +24,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		Mode     string `json:"mode"`
 		Company  *struct {
 			ID   string `json:"id"`
 			Name string `json:"name"`
@@ -33,7 +34,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 	if !decodeAuth(w, r, &body) {
 		return
 	}
-	input := auth.Signup{Name: body.Name, Email: body.Email, Password: body.Password}
+	input := auth.Signup{Name: body.Name, Email: body.Email, Password: body.Password, Mode: body.Mode}
 	if body.Company != nil {
 		input.Company = &auth.CompanyChoice{ID: body.Company.ID, Name: body.Company.Name, URL: body.Company.URL}
 	}
@@ -59,6 +60,20 @@ func (s *Server) signout(w http.ResponseWriter, r *http.Request) {
 	if err := s.auth.Signout(r.Context(), bearerToken(r)); err != nil {
 		slog.Error("sign out", "error", err)
 		writeError(w, http.StatusInternalServerError, "could not sign out")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	err := s.auth.DeleteAccount(r.Context(), bearerToken(r), time.Now())
+	if errors.Is(err, auth.ErrInvalidLogin) {
+		writeError(w, http.StatusUnauthorized, "sign in required")
+		return
+	}
+	if err != nil {
+		slog.Error("delete account", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not remove the account")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

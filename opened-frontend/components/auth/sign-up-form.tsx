@@ -22,9 +22,11 @@ import { CompanyFields, type HiringPath } from "./company-fields";
 const MIN_PASSWORD = 8;
 
 type AccountMode = "candidate" | "employee";
+type Step = "mode" | "account";
 
 export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boolean }) {
   const router = useRouter();
+  const [step, setStep] = useState<Step>(hiring ? "account" : "mode");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,14 +37,30 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
   const [pending, setPending] = useState(false);
   const onChoice = useCallback((choice: CompanyChoice | null) => setCompany(choice), []);
   const signInHref = `${ROUTES.signIn}?next=${encodeURIComponent(nextPath)}`;
+  const employee = mode === "employee";
+  const accountReady =
+    name.trim() !== "" &&
+    email.trim() !== "" &&
+    password.length >= MIN_PASSWORD &&
+    (!employee || company != null);
+
+  const chooseMode = (next: AccountMode) => {
+    setMode(next);
+    setError("");
+    if (next === "candidate") setCompany(null);
+  };
 
   const submit = async () => {
     if (password.length < MIN_PASSWORD) {
       setError("Use at least 8 characters.");
       return;
     }
-    if (mode === "employee" && !company) {
-      setError(path === "link" ? "Choose a company to link." : "Enter the company name.");
+    if (employee && !company) {
+      setError(
+        path === "link"
+          ? "Link a company, or create a new one. A company is required."
+          : "Enter the company name. Creating a company is required.",
+      );
       return;
     }
     setPending(true);
@@ -54,7 +72,8 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
         name,
         email,
         password,
-        ...(mode === "employee" && company ? { company } : {}),
+        mode,
+        ...(employee && company ? { company } : {}),
       }),
     });
     setPending(false);
@@ -63,7 +82,6 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
       setError(body?.error ?? "Could not create the account");
       return;
     }
-    const employee = mode === "employee";
     writeStoredWorkspaceMode(employee ? "company" : "hunter");
     router.push(employee ? ROUTES.company : nextPath);
     router.refresh();
@@ -72,37 +90,65 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
   return (
     <Card padding={6}>
       <Stack gap={5}>
-        <Stack gap={1}>
-          <Heading level={1}>Create your account</Heading>
-          <Text color="secondary">
-            This account is yours. Join as a candidate, or as an employee of a company.
-          </Text>
-        </Stack>
-        {error ? <Banner status="error" title={error} /> : null}
-        <TextInput label="Name" value={name} onChange={setName} />
-        <TextInput label="Email" type="email" value={email} onChange={setEmail} />
-        <TextInput label="Password" type="password" value={password} onChange={setPassword} />
-        <RadioList label="Join as" value={mode} onChange={(value) => setMode(value as AccountMode)}>
-          <RadioListItem
-            value="candidate"
-            label="Join as Candidate"
-            description="Search jobs and track your applications."
-          />
-          <RadioListItem
-            value="employee"
-            label="Join as Employee"
-            description="Link a company we already have, or create a company page."
-          />
-        </RadioList>
-        {mode === "employee" ? (
-          <CompanyFields path={path} onPath={setPath} onChoice={onChoice} />
-        ) : null}
-        <Button
-          label="Create account"
-          variant="primary"
-          clickAction={submit}
-          isDisabled={pending}
-        />
+        {step === "mode" ? (
+          <>
+            <Stack gap={1}>
+              <Heading level={1}>How will you join?</Heading>
+              <Text color="secondary">
+                Choose first. The account you create next depends on this.
+              </Text>
+            </Stack>
+            <RadioList
+              label="Join as"
+              value={mode}
+              onChange={(value) => chooseMode(value as AccountMode)}
+            >
+              <RadioListItem
+                value="candidate"
+                label="Join as Candidate"
+                description="Search jobs and track your applications. Name, email, and password only."
+              />
+              <RadioListItem
+                value="employee"
+                label="Join as Employee"
+                description="Link a company we already have, or create a new company page."
+              />
+            </RadioList>
+            <Button label="Continue" variant="primary" clickAction={() => setStep("account")} />
+          </>
+        ) : (
+          <>
+            <Stack gap={1}>
+              <Heading level={1}>
+                {employee ? "Create your employee account" : "Create your account"}
+              </Heading>
+              <Text color="secondary">
+                {employee
+                  ? "Link a company already on Opened, or create a new one. If you don’t link a company, creating one is required."
+                  : "Your candidate account is just a name, email, and password."}
+              </Text>
+            </Stack>
+            {error ? <Banner status="error" title={error} /> : null}
+            {employee ? <CompanyFields path={path} onPath={setPath} onChoice={onChoice} /> : null}
+            <TextInput label="Name" value={name} onChange={setName} />
+            <TextInput label="Email" type="email" value={email} onChange={setEmail} />
+            <TextInput label="Password" type="password" value={password} onChange={setPassword} />
+            <Button
+              label="Create account"
+              variant="primary"
+              clickAction={submit}
+              isDisabled={pending || !accountReady}
+            />
+            <Button
+              label="Back"
+              variant="ghost"
+              clickAction={() => {
+                setError("");
+                setStep("mode");
+              }}
+            />
+          </>
+        )}
         <Text color="secondary">
           Already have an account? <Link href={signInHref}>Sign in</Link>
         </Text>

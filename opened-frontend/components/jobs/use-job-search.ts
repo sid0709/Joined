@@ -16,7 +16,8 @@ import {
   type ListKey,
 } from "@/lib/jobs";
 
-export const PAGE_SIZE = 8;
+/** Results per page — enough to scan a full screen or two before paging. */
+export const PAGE_SIZE = 25;
 
 function toggle(ids: string[], id: string) {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];

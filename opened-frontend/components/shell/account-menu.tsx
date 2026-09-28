@@ -4,18 +4,15 @@ import { useRouter } from "next/navigation";
 import {
   Avatar,
   DropdownMenu,
-  Icon,
   icons,
-  type DropdownMenuItemData,
+  useAppShellMobile,
   type DropdownMenuOption,
 } from "@openseat/design-system";
-import { useSwitchMode } from "@/components/onboarding/use-switch-mode";
 import type { AuthSession } from "@/lib/auth/types";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import {
-  COMPANY_ABOUT_PAGE,
-  COMPANY_BILLING_PAGE,
-  COMPANY_TEAM_PAGE,
+  COMPANY_ACCOUNT_PAGE,
+  COMPANY_PROFILE_PAGE,
   PROFILE_PAGE,
   RESUMES_PAGE,
   ROUTES,
@@ -30,70 +27,43 @@ const HEADER_AVATAR = 32;
 
 type IconType = (typeof icons)["file"];
 
-/** Each mode's account menu: who you are there, that mode's own pages, and the way across. */
-const MODE_MENU: Record<
-  WorkspaceMode,
-  {
-    identityHref: string;
-    links: { page: PageLink; icon: IconType }[];
-    switchTo: WorkspaceMode;
-    switchLabel: string;
-    switchIcon: IconType;
-  }
-> = {
+/**
+ * Each account's menu is about the person, not the company: who you are and
+ * your own pages. Company pages (page, team, billing, settings) live in the
+ * workspace rail. Accounts are one kind or the other, so there is no mode switch.
+ */
+const MODE_MENU: Record<WorkspaceMode, { links: { page: PageLink; icon: IconType }[] }> = {
   hunter: {
-    identityHref: ROUTES.profile,
     links: [
       { page: PROFILE_PAGE, icon: icons.user },
       { page: RESUMES_PAGE, icon: icons.file },
       { page: SETTINGS_PAGE, icon: icons.settings },
     ],
-    switchTo: "company",
-    switchLabel: "Switch to hiring",
-    switchIcon: icons.users,
   },
   company: {
-    identityHref: ROUTES.companySettings,
     links: [
-      { page: COMPANY_ABOUT_PAGE, icon: icons.seat },
-      { page: COMPANY_TEAM_PAGE, icon: icons.users },
-      { page: COMPANY_BILLING_PAGE, icon: icons.file },
+      { page: COMPANY_PROFILE_PAGE, icon: icons.user },
+      { page: COMPANY_ACCOUNT_PAGE, icon: icons.settings },
     ],
-    switchTo: "hunter",
-    switchLabel: "Switch to job search",
-    switchIcon: icons.search,
   },
 };
 
-function membershipLabel(session: AuthSession) {
-  if (!session.company) return session.user.email;
-  const title = session.company.role === "owner" ? "Owner" : "Member";
-  return `${title} · ${session.company.name}`;
+const ROLE_LABEL: Record<NonNullable<AuthSession["company"]>["role"], string> = {
+  owner: "Owner",
+  member: "Member",
+};
+
+function identityLine(mode: WorkspaceMode, session: AuthSession) {
+  if (mode !== "company" || !session.company) return session.user.email;
+  return `${ROLE_LABEL[session.company.role]} · ${session.company.name}`;
 }
 
-export function AccountMenu({
-  mode,
-  session,
-}: {
-  mode: WorkspaceMode;
-  session: AuthSession | null;
-}) {
+/** The signed-in account menu. Signed-out visitors get GuestActions instead. */
+export function AccountMenu({ mode, session }: { mode: WorkspaceMode; session: AuthSession }) {
   const router = useRouter();
-  const switchMode = useSwitchMode();
+  const { isMobile } = useAppShellMobile();
   const menu = MODE_MENU[mode];
-  const name = session?.user.name ?? "Account";
-
-  const openHiring = () => {
-    if (!session) {
-      router.push(`${ROUTES.signUp}?intent=hiring`);
-      return;
-    }
-    if (!session.company) {
-      router.push(ROUTES.hiringSetup);
-      return;
-    }
-    switchMode("company");
-  };
+  const { name } = session.user;
 
   const signOut = async () => {
     await fetch("/api/auth/signout", { method: "POST" });
@@ -102,68 +72,40 @@ export function AccountMenu({
     router.refresh();
   };
 
-  const identity: DropdownMenuItemData | null = session
-    ? {
-        id: "identity",
-        label: session.user.name,
-        description: mode === "company" ? membershipLabel(session) : session.user.email,
-        icon: <Avatar name={session.user.name} size={HEADER_AVATAR} tooltip={false} />,
-        onClick: () => router.push(menu.identityHref),
-      }
-    : null;
-
-  const items: DropdownMenuOption[] = session
-    ? [
-        identity!,
-        { type: "divider" },
-        ...menu.links.map(({ page, icon }) => ({
-          id: page.href,
-          label: page.label,
-          icon,
-          onClick: () => router.push(page.href),
-        })),
-        { type: "divider" },
-        {
-          id: "switch",
-          label: menu.switchLabel,
-          icon: menu.switchIcon,
-          onClick: () => (menu.switchTo === "company" ? openHiring() : switchMode("hunter")),
-        },
-        {
-          id: "sign-out",
-          label: "Sign out",
-          icon: <Icon icon={icons.arrowRight} />,
-          onClick: () => void signOut(),
-        },
-      ]
-    : [
-        {
-          id: "sign-in",
-          label: "Sign in",
-          icon: icons.user,
-          onClick: () => router.push(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.search)}`),
-        },
-        {
-          id: "sign-up",
-          label: "Create account",
-          onClick: () => router.push(ROUTES.signUp),
-        },
-        {
-          id: "switch",
-          label: "Switch to hiring",
-          icon: icons.users,
-          onClick: openHiring,
-        },
-      ];
+  const items: DropdownMenuOption[] = [
+    {
+      id: "identity",
+      label: name,
+      description: identityLine(mode, session),
+      icon: <Avatar name={name} size={HEADER_AVATAR} tooltip={false} />,
+      onClick: () => router.push(menu.links[0].page.href),
+    },
+    { type: "divider" },
+    ...menu.links.map(({ page, icon }) => ({
+      id: page.href,
+      label: page.label,
+      icon,
+      onClick: () => router.push(page.href),
+    })),
+    { type: "divider" },
+    {
+      id: "sign-out",
+      label: "Sign out",
+      icon: icons.signOut,
+      onClick: () => void signOut(),
+    },
+  ];
 
   return (
     <DropdownMenu
       button={{
-        label: session ? name.split(" ")[0] : "Account",
+        label: name.split(" ")[0],
+        // Phones keep just the avatar so the bar has room for the menu toggle.
+        isIconOnly: isMobile,
         variant: "ghost",
         icon: <Avatar name={name} size={TRIGGER_AVATAR} tooltip={false} />,
       }}
-      hasChevron
+      hasChevron={!isMobile}
       alignment="end"
       menuWidth={MENU_WIDTH}
       items={items}

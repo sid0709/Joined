@@ -1,20 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Button, List, ListItem, Stack, TextInput, useToast } from "@openseat/design-system";
-import { DELETE_CONFIRMATION, PAUSE_DAYS } from "@/lib/settings";
-import { SaveFooter } from "@/components/save-footer";
+import { Button, Stack, useToast } from "@openseat/design-system";
+import type { AuthSession } from "@/lib/auth/types";
+import { PAUSE_DAYS } from "@/lib/settings";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
+import { RemoveAccount } from "./remove-account";
 
-const CONSEQUENCES = [
-  "Your profile, resumes, and saved jobs are deleted.",
-  "Companies keep applications you already sent.",
-  "Company memberships stay until an owner removes you.",
-];
-
-export function DangerSettings() {
+export function DangerSettings({ session }: { session: AuthSession | null }) {
   const toast = useToast();
-  const [confirmation, setConfirmation] = useState("");
+  const company = session?.company;
 
   return (
     <Stack gap={6}>
@@ -36,46 +30,11 @@ export function DangerSettings() {
         </SettingsRow>
       </SettingsGroup>
 
-      <SettingsGroup
-        title="Delete account"
-        description="This can’t be undone."
-        footer={
-          <SaveFooter
-            hint="We’ll email you to confirm before anything is removed."
-            message=""
-            action={
-              <Button
-                label="Delete account"
-                variant="destructive"
-                size="sm"
-                isDisabled={confirmation !== DELETE_CONFIRMATION}
-                onClick={() => {
-                  setConfirmation("");
-                  toast({ body: "Deletion requested. Check your email to finish.", type: "error" });
-                }}
-              />
-            }
-          />
-        }
-      >
-        <List listStyle="disc">
-          {CONSEQUENCES.map((item) => (
-            <ListItem key={item} label={item} />
-          ))}
-        </List>
-        <SettingsRow
-          label="Confirm"
-          description={`Type ${DELETE_CONFIRMATION} to enable the button.`}
-        >
-          <TextInput
-            label="Confirm deletion"
-            isLabelHidden
-            value={confirmation}
-            onChange={setConfirmation}
-            placeholder={DELETE_CONFIRMATION}
-          />
-        </SettingsRow>
-      </SettingsGroup>
+      <RemoveAccount
+        signedIn={session != null}
+        companyName={company?.name}
+        isCreator={company?.isCreator === true}
+      />
     </Stack>
   );
 }

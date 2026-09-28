@@ -400,6 +400,7 @@ export function TempJobsBrowser() {
         <JobDetailDrawer
           jobId={jobId}
           onClose={() => replaceListing(router, searchParams, { ...listing, job: null })}
+          onSaved={() => setReloadToken((token) => token + 1)}
         />
       ) : null}
     </section>

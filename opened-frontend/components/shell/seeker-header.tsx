@@ -1,23 +1,32 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Badge, Icon, TopNav, TopNavHeading, TopNavItem, icons } from "@openseat/design-system";
+import { TopNav, TopNavHeading, TopNavItem, useAppShellMobile } from "@openseat/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { UNREAD_MESSAGES } from "@/lib/account";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
+import { ForEmployersNavItem, GuestActions } from "./guest-actions";
+import { InboxNavItem } from "./inbox-nav-item";
 
 const FIND_JOBS: PageLink = { href: ROUTES.search, label: "Find jobs", description: "" };
-const NAV: PageLink[] = [FIND_JOBS, APPLICATIONS_PAGE, INTERVIEWS_PAGE];
+/** Anyone can search; the rest of the journey belongs to an account. */
+const GUEST_NAV: PageLink[] = [FIND_JOBS];
+const MEMBER_NAV: PageLink[] = [FIND_JOBS, APPLICATIONS_PAGE, INTERVIEWS_PAGE];
 
 function isActive(pathname: string, href: string) {
   if (href === ROUTES.search) return pathname === href || pathname.startsWith("/jobs/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** The candidate header: the job-search journey up top, the account menu on the right. */
+/**
+ * The candidate header. Signed in: the job-search journey, the inbox, and the
+ * account menu. Signed out: search only, with ways to sign in or sign up.
+ */
 export function SeekerHeader({ session }: { session: AuthSession | null }) {
   const pathname = usePathname();
+  const { isMobile } = useAppShellMobile();
+  const nav = session ? MEMBER_NAV : GUEST_NAV;
 
   return (
     <TopNav
@@ -25,7 +34,7 @@ export function SeekerHeader({ session }: { session: AuthSession | null }) {
       heading={<TopNavHeading heading={BRAND} headingHref={ROUTES.search} />}
       startContent={
         <>
-          {NAV.map((link) => (
+          {nav.map((link) => (
             <TopNavItem
               key={link.href}
               label={link.label}
@@ -33,20 +42,18 @@ export function SeekerHeader({ session }: { session: AuthSession | null }) {
               isSelected={isActive(pathname, link.href)}
             />
           ))}
+          {!session && isMobile ? <ForEmployersNavItem /> : null}
         </>
       }
       endContent={
-        <>
-          <TopNavItem
-            label="Messages"
-            isIconOnly
-            icon={<Icon icon={icons.mail} />}
-            href={ROUTES.messages}
-          >
-            <Badge label={String(UNREAD_MESSAGES)} variant="info" />
-          </TopNavItem>
-          <AccountMenu mode="hunter" session={session} />
-        </>
+        session ? (
+          <>
+            <InboxNavItem href={ROUTES.messages} unread={UNREAD_MESSAGES} />
+            <AccountMenu mode="hunter" session={session} />
+          </>
+        ) : (
+          <GuestActions isCompact={isMobile} />
+        )
       }
     />
   );

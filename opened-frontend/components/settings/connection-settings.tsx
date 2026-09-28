@@ -65,10 +65,22 @@ function ConnectionCard({
   );
 }
 
-export function ConnectionSettings() {
+const CANDIDATE_NOTICE = {
+  title: "We never send email or post for you",
+  description: "Connections are read-only and limited to companies you’ve applied to.",
+};
+
+/** Connected apps as cards. Candidates get job-search apps by default; the hiring workspace passes its own. */
+export function ConnectionSettings({
+  connections = CONNECTIONS,
+  notice = CANDIDATE_NOTICE,
+}: {
+  connections?: Connection[];
+  notice?: { title: string; description: string };
+}) {
   const toast = useToast();
   const [accounts, setAccounts] = useState<Record<string, string | undefined>>(() =>
-    Object.fromEntries(CONNECTIONS.map((connection) => [connection.id, connection.account])),
+    Object.fromEntries(connections.map((connection) => [connection.id, connection.account])),
   );
 
   const toggle = (connection: Connection) => {
@@ -82,13 +94,9 @@ export function ConnectionSettings() {
 
   return (
     <Stack gap={6}>
-      <Banner
-        status="info"
-        title="We never send email or post for you"
-        description="Connections are read-only and limited to companies you’ve applied to."
-      />
+      <Banner status="info" title={notice.title} description={notice.description} />
       <Grid columns={{ minWidth: CARD_MIN_WIDTH, max: GRID_MAX_COLUMNS }} gap={4}>
-        {CONNECTIONS.map((connection) => (
+        {connections.map((connection) => (
           <ConnectionCard
             key={connection.id}
             connection={connection}

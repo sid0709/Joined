@@ -13,6 +13,7 @@ import {
   Text,
   icons,
 } from "@openseat/design-system";
+import type { AuthSession } from "@/lib/auth/types";
 import { SETTINGS_NAV, SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings";
 import { AccountSettings } from "./account-settings";
 import { AlertSettings } from "./alert-settings";
@@ -21,17 +22,16 @@ import { DangerSettings } from "./danger-settings";
 import { NotificationSettings } from "./notification-settings";
 import { PrivacySettings } from "./privacy-settings";
 
-const PANELS: Record<SettingsSectionId, ReactNode> = {
-  account: <AccountSettings />,
-  notifications: <NotificationSettings />,
-  alerts: <AlertSettings />,
-  connections: <ConnectionSettings />,
-  privacy: <PrivacySettings />,
-  danger: <DangerSettings />,
-};
-
 /** A grouped nav on the left; the chosen section’s title and cards on the right. */
-export function SettingsWorkspace() {
+export function SettingsWorkspace({ session }: { session: AuthSession | null }) {
+  const panels: Record<SettingsSectionId, ReactNode> = {
+    account: <AccountSettings />,
+    notifications: <NotificationSettings />,
+    alerts: <AlertSettings />,
+    connections: <ConnectionSettings />,
+    privacy: <PrivacySettings />,
+    danger: <DangerSettings session={session} />,
+  };
   const [section, setSection] = useState<SettingsSectionId>("account");
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0];
 
@@ -62,7 +62,7 @@ export function SettingsWorkspace() {
               {current.description}
             </Text>
           </Stack>
-          {PANELS[section]}
+          {panels[section]}
         </Stack>
       </GridColumn>
     </GridSystem>

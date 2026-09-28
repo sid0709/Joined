@@ -1,7 +1,8 @@
-import { Button, Card, Glyph, HStack, Heading, Stack, Text } from "@openseat/design-system";
+import { Card, HStack, Heading, Stack, Text } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
 import { ROUTES } from "@/lib/routes";
+import { CandidateViewButton } from "@/components/company/candidate-view-button";
 
 const LOGO_SIZE = 64;
 
@@ -28,12 +29,7 @@ export function WorkspaceHero({ greeting, company }: { greeting: string; company
           </Stack>
         </HStack>
         <HStack gap={2} wrap="wrap">
-          <Button
-            label="View public page"
-            variant="secondary"
-            href={ROUTES.companyPublic(company.id)}
-            icon={<Glyph name="eye" />}
-          />
+          <CandidateViewButton label="View as candidate" href={ROUTES.companyPublic(company.id)} />
         </HStack>
       </HStack>
     </Card>

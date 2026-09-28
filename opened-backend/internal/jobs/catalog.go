@@ -127,6 +127,7 @@ func (s *Store) enrichCompanies(ctx context.Context, jobs []catalogJob) ([]catal
 		{Key: "id", Value: 1},
 		{Key: "companyUrl", Value: 1},
 		{Key: "companyLogo", Value: 1},
+		{Key: "overrides", Value: 1},
 	}))
 	if err != nil {
 		return nil, err
@@ -149,8 +150,8 @@ func (s *Store) enrichCompanies(ctx context.Context, jobs []catalogJob) ([]catal
 		if !ok {
 			continue
 		}
-		jobs[i].CompanyURL = brief.CompanyURL
-		jobs[i].CompanyLogo = brief.CompanyLogo
+		jobs[i].CompanyURL = brief.displayURL()
+		jobs[i].CompanyLogo = brief.displayLogo()
 	}
 	return jobs, nil
 }

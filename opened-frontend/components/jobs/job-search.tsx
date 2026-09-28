@@ -18,6 +18,7 @@ import {
   useMediaQuery,
   useToast,
 } from "@openseat/design-system";
+import { WIDE_PAGE_MAX_WIDTH } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import { RECENT_SEARCHES, filterJobs, formatCount, type Job, type JobFilters } from "@/lib/jobs";
 import { PROFILE } from "@/lib/profile";
@@ -33,7 +34,6 @@ import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
 import { useJobSearch } from "./use-job-search";
 
-export const SEARCH_MAX_WIDTH = 1360;
 const RECENT_LIMIT = 4;
 const WIDE_QUERY = `(min-width: ${VIEWPORT_TIERS.lg}px)`;
 
@@ -134,7 +134,7 @@ export function JobSearch({
 
   return (
     <Stack hAlign="center">
-      <Stack gap={5} width="100%" maxWidth={SEARCH_MAX_WIDTH}>
+      <Stack gap={5} width="100%" maxWidth={WIDE_PAGE_MAX_WIDTH}>
         <JobSearchBar
           q={filters.q}
           where={filters.where}
