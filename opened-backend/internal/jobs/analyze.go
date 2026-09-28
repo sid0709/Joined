@@ -11,6 +11,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type ModelReader interface {
@@ -54,6 +55,29 @@ func (s *Store) AnalyzeSelected(ctx context.Context, reader ModelReader, tempJob
 
 	return analyzeAll(ctx, ids, analyzeConcurrency, reader.Model(), func(ctx context.Context, id string) (SearchRecord, error) {
 		return s.analyzeOne(ctx, reader, id, now)
+	})
+}
+
+// AnalyzeScoutSelected turns selected temp_scout_jobs into search records.
+func (s *Store) AnalyzeScoutSelected(ctx context.Context, reader ModelReader, ids []string, now time.Time) (AnalyzeBatch, error) {
+	ids, err := normalizeSelection(ids)
+	if err != nil {
+		return AnalyzeBatch{}, err
+	}
+	if reader == nil {
+		return AnalyzeBatch{}, openai.ErrMissingAPIKey
+	}
+	if !s.analyzeMu.TryLock() {
+		return AnalyzeBatch{}, ErrAnalyzeInProgress
+	}
+	defer s.analyzeMu.Unlock()
+
+	return analyzeAll(ctx, ids, analyzeConcurrency, reader.Model(), func(ctx context.Context, id string) (SearchRecord, error) {
+		listing, err := s.listingFrom(ctx, s.scoutTemp(), id)
+		if err != nil {
+			return SearchRecord{}, err
+		}
+		return s.writeAnalysis(ctx, reader, listing, now)
 	})
 }
 
@@ -176,6 +200,10 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 	if err != nil {
 		return SearchRecord{}, err
 	}
+	return s.writeAnalysis(ctx, reader, listing, now)
+}
+
+func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (SearchRecord, error) {
 	payload, err := reader.JSON(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
 	if err != nil {
 		return SearchRecord{}, err
@@ -189,6 +217,9 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 	if err != nil {
 		return SearchRecord{}, err
 	}
+	if listing.CompanyPublicID != "" {
+		companyID = listing.CompanyPublicID
+	}
 	record := storedSearchJob{
 		ID:         listing.ID,
 		TempJobID:  listing.ID.Hex(),
@@ -198,6 +229,7 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 		Model:      reader.Model(),
 		CreatedBy:  strings.TrimSpace(listing.CreatedBy),
 		Source:     strings.TrimSpace(listing.Source),
+		SourceRef:  strings.TrimSpace(listing.SourceRef),
 		Job: buildSearchJob(
 			publicID,
 			companyID,
@@ -225,11 +257,20 @@ func (s *Store) listingForAnalysis(ctx context.Context, tempJobID string) (tempL
 	if tempJobID == "" {
 		return s.nextTempListing(ctx)
 	}
-	objectID, err := bson.ObjectIDFromHex(tempJobID)
+	return s.listingFrom(ctx, s.dest(), tempJobID)
+}
+
+func (s *Store) listingFrom(ctx context.Context, coll *mongo.Collection, idHex string) (tempListing, error) {
+	objectID, err := bson.ObjectIDFromHex(idHex)
 	if err != nil {
 		return tempListing{}, ErrInvalidID
 	}
-	return s.tempListing(ctx, objectID)
+	var listing tempListing
+	err = coll.FindOne(ctx, bson.D{{Key: "_id", Value: objectID}}).Decode(&listing)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return tempListing{}, ErrNotFound
+	}
+	return listing, err
 }
 
 func IsMissingAPIKey(err error) bool {

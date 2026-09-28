@@ -4,12 +4,12 @@
 
 ## Purpose
 
-One account per real person, usable across both services, with identity assurance that rises only when the person is about to earn, spend, or be interviewed.
+One account per real person, with one role, and identity assurance that rises only when the person is about to earn, spend, or be interviewed.
 
 ## Scope
 
 - Sign-up, sign-in, sessions
-- Modes and mode switching
+- One role per account: job hunter, recruiter, or scout
 - Verification tiers and ID checks
 - Device, network, and bot risk scoring
 - Delegation agreements (client ↔ bidder/agent)
@@ -22,19 +22,18 @@ One account per real person, usable across both services, with identity assuranc
 - Access token: JWT, 15 min. Refresh token: rotating, 30 days, bound to device.
 - Existing job-site accounts MUST migrate without re-registration: map old user IDs to new UUIDs; keep a `legacy_user_id` column.
 
-## Modes
+## Roles
 
-| Mode       | Activation requirement                                         |
-| ---------- | -------------------------------------------------------------- |
-| job_hunter | Default on sign-up                                             |
-| company    | Create or join a company (see company verification)            |
-| scout      | Accept scout terms; verified email + phone                     |
-| client     | Tier 2 verification + payment method + signed delegation terms |
-| bidder     | Tier 3 verification + skills test + tax info + bidder terms    |
-| admin      | Staff SSO only, hardware key MFA                               |
+An account is one person and one role. The role is chosen at signup and is not added to later. A job hunter who wants to recruit, or a recruiter who wants to scout, creates a separate account.
 
-- Mode switch is a header control. The current mode is stored in `users.last_active_mode` and determines navigation.
-- A user can be both bidder and job hunter, but **a bidder can never be assigned to themselves as client**, and anti-collusion rules apply (see [32-trust-and-safety.md](32-trust-and-safety.md)).
+| Role       | Chosen when                             | Extra record          |
+| ---------- | --------------------------------------- | --------------------- |
+| job_hunter | Sign-up as a candidate                  | `job_hunter_profiles` |
+| recruiter  | Sign-up that creates or joins a company | `company_members`     |
+| scout      | Sign-up on Scoutwell                    | `scout_profiles`      |
+| admin      | Staff SSO only, hardware key MFA        | staff record          |
+
+Client and bidder accounts, when those products exist, are their own roles too. A bidder is never the client on their own engagement, and anti-collusion rules apply (see [32-trust-and-safety.md](32-trust-and-safety.md)).
 
 ## Verification tiers
 

@@ -10,5 +10,6 @@ export async function POST(request: Request) {
     name: body.name,
     email: body.email,
     password: body.password,
+    mode: "scout",
   });
 }

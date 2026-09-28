@@ -299,7 +299,9 @@ export function SubmissionView({
                 <MetadataListItem label="Seniority">
                   {seniorityLabel(sub.seniority)}
                 </MetadataListItem>
-                <MetadataListItem label="Salary">{sub.salary || "Not listed"}</MetadataListItem>
+                <MetadataListItem label="Salary">
+                  {sub.equity ? "Equity" : sub.salary || "Not listed"}
+                </MetadataListItem>
                 {sub.external_ref ? (
                   <MetadataListItem label="Your reference">{sub.external_ref}</MetadataListItem>
                 ) : null}

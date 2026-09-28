@@ -69,6 +69,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("GET /health", server.health)
 	mux.HandleFunc("GET /v1/settings", server.admin(server.settings))
 	mux.HandleFunc("GET /v1/jobs/temp", server.admin(server.listTempJobs))
+	mux.HandleFunc("GET /v1/jobs/scout-temp", server.admin(server.listScoutTempJobs))
+	mux.HandleFunc("POST /v1/jobs/scout-temp/analyze", server.admin(server.analyzeScoutJobs))
 	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.admin(server.getTempJob))
 	mux.HandleFunc("PATCH /v1/jobs/temp/{id}", server.admin(server.updateTempJob))
 	mux.HandleFunc("POST /v1/jobs/temp/sync", server.admin(server.syncTempJobs))
@@ -148,6 +150,55 @@ func (s *Server) listTempJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) listScoutTempJobs(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	query := r.URL.Query()
+	parsed := jobs.ParseListQuery(query.Get("page"), query.Get("pageSize"), query.Get("q"))
+	parsed.HideAnalyzed = query.Get("hide") == "analyzed"
+	result, err := s.store.ListScoutTemp(ctx, parsed)
+	if err != nil {
+		slog.Error("list scout temp jobs", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not list scout jobs")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) analyzeScoutJobs(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		TempJobIDs []string `json:"tempJobIds"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAnalyzeBody))
+	if err := decoder.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid analyze request")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
+	defer cancel()
+	batch, err := s.store.AnalyzeScoutSelected(ctx, s.reader, body.TempJobIDs, time.Now())
+	if jobs.IsMissingAPIKey(err) {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		return
+	}
+	if errors.Is(err, jobs.ErrNoSelection) || errors.Is(err, jobs.ErrTooMany) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, jobs.ErrAnalyzeInProgress) {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	if err != nil {
+		slog.Error("analyze scout jobs", "error", err)
+		writeError(w, http.StatusBadGateway, "could not analyze the job descriptions")
+		return
+	}
+	writeJSON(w, http.StatusOK, batch)
 }
 
 func (s *Server) getTempJob(w http.ResponseWriter, r *http.Request) {

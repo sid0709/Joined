@@ -9,6 +9,7 @@ export const ROUTES = {
   payouts: "/scouting/payouts",
   jobs: "/jobs",
   tempJobs: "/jobs/temp",
+  scoutJobs: "/jobs/scout",
   companies: "/companies",
 } as const;
 
@@ -34,6 +35,7 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     links: [
       { href: ROUTES.jobs, label: "Jobs", icon: "folder" },
       { href: ROUTES.tempJobs, label: "Temp", icon: "archive" },
+      { href: ROUTES.scoutJobs, label: "Scout jobs", icon: "star" },
     ],
   },
   {

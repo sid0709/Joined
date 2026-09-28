@@ -66,7 +66,15 @@ func (s *Store) Ping(ctx context.Context) error {
 }
 
 func (s *Store) List(ctx context.Context, query ListQuery) (ListResult, error) {
-	coll := s.dest()
+	return s.listIn(ctx, s.dest(), query)
+}
+
+// ListScoutTemp lists submissions waiting in temp_scout_jobs.
+func (s *Store) ListScoutTemp(ctx context.Context, query ListQuery) (ListResult, error) {
+	return s.listIn(ctx, s.scoutTemp(), query)
+}
+
+func (s *Store) listIn(ctx context.Context, coll *mongo.Collection, query ListQuery) (ListResult, error) {
 	filter, err := s.tempFilter(ctx, query)
 	if err != nil {
 		return ListResult{}, err

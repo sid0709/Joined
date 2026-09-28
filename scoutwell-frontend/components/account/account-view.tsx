@@ -26,6 +26,7 @@ import {
 } from "@openseat/scout";
 import { formatDay } from "@/lib/dates";
 import { scoutSend } from "@/lib/scout/client";
+import { RemoveAccount } from "./remove-account";
 
 const AVATAR_SIZE = 48;
 
@@ -96,6 +97,7 @@ export function AccountView({ profile, levelLabel }: { profile: Profile; levelLa
           />
         </Stack>
       </SectionCard>
+      <RemoveAccount />
     </Stack>
   );
 }

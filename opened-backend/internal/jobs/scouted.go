@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -39,6 +40,7 @@ type ScoutedListing struct {
 	Employment  string
 	Seniority   string
 	Pay         Pay
+	Equity      bool
 	SalaryText  string
 	Summary     string
 	Skills      []string
@@ -53,6 +55,55 @@ type PublishedJob struct {
 	CompanyID string
 }
 
+const scoutTempCollection = "temp_scout_jobs"
+
+func (s *Store) scoutTemp() *mongo.Collection {
+	return s.client.Database(s.destDB).Collection(scoutTempCollection)
+}
+
+// StageScouted stores a scout submission for staff to analyze. Search does not
+// show it until that analysis writes a record into the jobs collection.
+func (s *Store) StageScouted(ctx context.Context, listing ScoutedListing, now time.Time) (string, error) {
+	id := bson.NewObjectID()
+	_, err := s.scoutTemp().InsertOne(ctx, bson.D{
+		{Key: "_id", Value: id},
+		{Key: "title", Value: listing.Title},
+		{Key: "companyName", Value: listing.CompanyName},
+		{Key: "description", Value: listing.Summary},
+		{Key: "applyLink", Value: listing.ApplyLink},
+		{Key: "postedAt", Value: listing.SubmittedAt.UTC()},
+		{Key: "createdAt", Value: now.UTC()},
+		{Key: "createdBy", Value: listing.ScoutUserID},
+		{Key: "source", Value: ScoutedSource},
+		{Key: "sourceRef", Value: listing.SubmissionID},
+		{Key: "companyPublicId", Value: listing.CompanyID},
+		{Key: "metadata", Value: bson.D{{Key: "details", Value: bson.D{
+			{Key: "location", Value: listing.Location},
+			{Key: "remote", Value: listing.Workplace},
+			{Key: "seniority", Value: listing.Seniority},
+			{Key: "time", Value: listing.Employment},
+			{Key: "salary", Value: salaryHint(listing)},
+		}}}},
+	})
+	if err != nil {
+		return "", err
+	}
+	return id.Hex(), nil
+}
+
+func salaryHint(listing ScoutedListing) string {
+	if text := strings.TrimSpace(listing.SalaryText); text != "" {
+		return text
+	}
+	if listing.Equity {
+		return "equity"
+	}
+	if listing.Pay.Min == 0 && listing.Pay.Max == 0 {
+		return ""
+	}
+	return strings.TrimSpace(strconv.Itoa(listing.Pay.Min) + "-" + strconv.Itoa(listing.Pay.Max) + " " + listing.Pay.Currency + " " + listing.Pay.Period)
+}
+
 // PublishScouted writes an approved scout job straight into the search pool.
 // It never goes through temp_jobs: that collection is rebuilt by Copy.
 func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now time.Time) (PublishedJob, error) {
@@ -65,15 +116,17 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 		return PublishedJob{}, err
 	}
 	pay := Pay{Currency: jobschema.CurrencyUSD, Period: payYear}
-	if listing.Pay.Min != 0 || listing.Pay.Max != 0 {
-		pay = normalizePay(extractedPay{
-			Min:      float64(listing.Pay.Min),
-			Max:      float64(listing.Pay.Max),
-			Currency: listing.Pay.Currency,
-			Period:   listing.Pay.Period,
-		}, "")
-	} else if parsed, ok := ParsePayText(listing.SalaryText); ok {
-		pay = parsed
+	if !listing.Equity {
+		if listing.Pay.Min != 0 || listing.Pay.Max != 0 {
+			pay = normalizePay(extractedPay{
+				Min:      float64(listing.Pay.Min),
+				Max:      float64(listing.Pay.Max),
+				Currency: listing.Pay.Currency,
+				Period:   listing.Pay.Period,
+			}, "")
+		} else if parsed, ok := ParsePayText(listing.SalaryText); ok {
+			pay = parsed
+		}
 	}
 	seniority := seniorityMiddle
 	if canonical, ok := jobschema.CanonicalSeniority(listing.Seniority); ok {
@@ -96,6 +149,7 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 			Location:         fallback(listing.Location, "Location not listed"),
 			Workplace:        oneOf(listing.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceOnsite),
 			Pay:              pay,
+			Equity:           listing.Equity,
 			Seniority:        seniority,
 			Employment:       oneOf(listing.Employment, []string{employmentFullTime, employmentContract, employmentPartTime}, employmentFullTime),
 			Source:           scoutedJobType,
@@ -111,6 +165,82 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 		return PublishedJob{}, err
 	}
 	return PublishedJob{ID: publicID, Ref: doc.ID.Hex(), CompanyID: companyID}, nil
+}
+
+// DeleteScoutedBy removes every search job this scout published and returns
+// their public ids so applications to those jobs can be removed too.
+func (s *Store) DeleteScoutedBy(ctx context.Context, userID string) ([]string, error) {
+	if _, err := s.scoutTemp().DeleteMany(ctx, bson.D{{Key: "createdBy", Value: userID}}); err != nil {
+		return nil, err
+	}
+	return s.deleteSearchJobs(ctx, bson.D{
+		{Key: "createdBy", Value: userID},
+		{Key: "source", Value: ScoutedSource},
+	})
+}
+
+// DeleteByCompany removes search jobs on a company page that is being deleted
+// with the person who created it.
+func (s *Store) DeleteByCompany(ctx context.Context, companyID string) ([]string, error) {
+	if companyID == "" {
+		return nil, nil
+	}
+	return s.deleteSearchJobs(ctx, bson.D{{Key: "job.companyId", Value: companyID}})
+}
+
+func (s *Store) deleteSearchJobs(ctx context.Context, filter bson.D) ([]string, error) {
+	cursor, err := s.structured().Find(ctx, filter, options.Find().SetProjection(bson.D{{Key: "job.id", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var ids []string
+	for cursor.Next(ctx) {
+		var doc struct {
+			Job struct {
+				ID string `bson:"id"`
+			} `bson:"job"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		if doc.Job.ID != "" {
+			ids = append(ids, doc.Job.ID)
+		}
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	if _, err := s.structured().DeleteMany(ctx, filter); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// CountCompanyJobs reports search jobs still attached to a company page.
+func (s *Store) CountCompanyJobs(ctx context.Context, companyID string) (int64, error) {
+	if companyID == "" {
+		return 0, nil
+	}
+	return s.structured().CountDocuments(ctx, bson.D{{Key: "job.companyId", Value: companyID}})
+}
+
+// DeleteUnclaimedScoutCompany removes a company page a scout created, once
+// nothing else still points at it. Catalog companies and recruiter-owned pages
+// are left alone.
+func (s *Store) DeleteUnclaimedScoutCompany(ctx context.Context, id string) error {
+	if id == "" {
+		return nil
+	}
+	_, err := s.companies().DeleteOne(ctx, bson.D{
+		{Key: "id", Value: id},
+		{Key: "source", Value: ScoutedSource},
+		{Key: "$or", Value: bson.A{
+			bson.D{{Key: "createdBy", Value: bson.D{{Key: "$exists", Value: false}}}},
+			bson.D{{Key: "createdBy", Value: ""}},
+		}},
+	})
+	return err
 }
 
 // UnpublishScouted removes a scouted job from the search pool.

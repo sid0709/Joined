@@ -117,6 +117,9 @@ func TestNormalizeInputDefaultsAndErrors(t *testing.T) {
 		CompanyName:  "  Plaid ",
 		Title:        "Staff  Engineer",
 		LocationText: "Remote (US)",
+		Workplace:    WorkplaceRemote,
+		Employment:   EmploymentFullTime,
+		Pay:          Pay{Min: 180000, Max: 220000},
 		Summary:      strings.Repeat("a", MinSummaryChars),
 		Tags:         []string{"Visa", "visa", " Remote "},
 	})
@@ -125,6 +128,9 @@ func TestNormalizeInputDefaultsAndErrors(t *testing.T) {
 	}
 	if in.CompanyName != "Plaid" || in.Title != "Staff Engineer" || in.Workplace != WorkplaceRemote || in.Seniority != SeniorityLeader {
 		t.Fatalf("input = %+v", in)
+	}
+	if in.Pay.Min != 180000 || in.Pay.Max != 220000 || in.Pay.Currency != "USD" || in.SalaryText == "" {
+		t.Fatalf("pay = %+v salary = %q", in.Pay, in.SalaryText)
 	}
 	if len(in.Tags) != 2 || parsed.ATS != "Lever" {
 		t.Fatalf("tags = %v ats = %q", in.Tags, parsed.ATS)
@@ -139,7 +145,7 @@ func TestNormalizeInputDefaultsAndErrors(t *testing.T) {
 	for _, f := range fields.Fields {
 		got[f.Field] = true
 	}
-	for _, want := range []string{"url", "company_name", "title", "summary", "workplace", "external_ref"} {
+	for _, want := range []string{"url", "company_name", "title", "location_text", "summary", "workplace", "employment", "pay", "external_ref"} {
 		if !got[want] {
 			t.Fatalf("missing %s in %+v", want, fields.Fields)
 		}
@@ -185,8 +191,8 @@ func TestAPIKeyShape(t *testing.T) {
 	}
 }
 
-func TestNormalizeInputReadsWorkplaceAndEmploymentFromTags(t *testing.T) {
-	in, _, err := NormalizeInput(SubmissionInput{
+func TestNormalizeInputRequiresRoleAndClearsEquityPay(t *testing.T) {
+	_, _, err := NormalizeInput(SubmissionInput{
 		URL:          "https://acme.com/jobs/1",
 		CompanyName:  "Acme",
 		Title:        "Designer",
@@ -194,8 +200,37 @@ func TestNormalizeInputReadsWorkplaceAndEmploymentFromTags(t *testing.T) {
 		Summary:      strings.Repeat("b", MinSummaryChars),
 		Tags:         []string{"hybrid", "contract"},
 	})
+	fields, ok := err.(*ValidationError)
+	if !ok {
+		t.Fatalf("err = %v", err)
+	}
+	got := map[string]bool{}
+	for _, f := range fields.Fields {
+		got[f.Field] = true
+	}
+	for _, want := range []string{"workplace", "employment", "pay"} {
+		if !got[want] {
+			t.Fatalf("missing %s in %+v", want, fields.Fields)
+		}
+	}
+
+	in, _, err := NormalizeInput(SubmissionInput{
+		URL:          "https://acme.com/jobs/1",
+		CompanyName:  "Acme",
+		Title:        "Designer",
+		LocationText: "Berlin",
+		Workplace:    WorkplaceHybrid,
+		Employment:   EmploymentContract,
+		Equity:       true,
+		Pay:          Pay{Min: 100, Max: 200},
+		SalaryText:   "$100 - $200 a year",
+		Summary:      strings.Repeat("b", MinSummaryChars),
+	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !in.Equity || in.Pay.Min != 0 || in.Pay.Max != 0 || in.SalaryText != "" {
+		t.Fatalf("input = %+v", in)
 	}
 	if in.Workplace != WorkplaceHybrid || in.Employment != EmploymentContract {
 		t.Fatalf("input = %+v", in)

@@ -482,6 +482,7 @@ func (s *Store) applyEdits(ctx context.Context, sub Submission, edits Submission
 		{Key: "employment", Value: normalized.Employment},
 		{Key: "seniority", Value: normalized.Seniority},
 		{Key: "pay", Value: normalized.Pay},
+		{Key: "equity", Value: normalized.Equity},
 		{Key: "salaryText", Value: normalized.SalaryText},
 		{Key: "summary", Value: normalized.Summary},
 		{Key: "tags", Value: normalized.Tags},

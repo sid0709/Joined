@@ -38,6 +38,7 @@ export function inputFrom(sub: Submission): SubmissionInput {
     employment: sub.employment,
     seniority: sub.seniority,
     pay: sub.pay ?? { min: 0, max: 0, currency: DEFAULT_CURRENCY, period: "year" },
+    equity: sub.equity,
     salary: sub.salary,
     summary: sub.summary,
     tags: sub.tags,

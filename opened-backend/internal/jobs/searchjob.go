@@ -46,6 +46,7 @@ type SearchJob struct {
 	Location         string   `json:"location" bson:"location"`
 	Workplace        string   `json:"workplace" bson:"workplace"`
 	Pay              Pay      `json:"pay" bson:"pay"`
+	Equity           bool     `json:"equity" bson:"equity"`
 	Seniority        string   `json:"seniority" bson:"seniority"`
 	Employment       string   `json:"employment" bson:"employment"`
 	PostedHoursAgo   int      `json:"postedHoursAgo" bson:"postedHoursAgo"`

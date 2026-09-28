@@ -1,7 +1,8 @@
-"use client";
+import { Avatar } from "@openseat/design-system";
 
-import { useEffect, useState } from "react";
+const SIZES = { sm: 36, lg: 64 } as const;
 
+/** A company's logo, or its initial when there is none or it fails to load. */
 export function CompanyMark({
   name,
   logo,
@@ -9,34 +10,15 @@ export function CompanyMark({
 }: {
   name?: string;
   logo?: string;
-  size?: "sm" | "lg";
+  size?: keyof typeof SIZES;
 }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    setFailed(false);
-  }, [logo]);
-  const label = name?.trim() || "Company";
-  const initial = label.charAt(0).toUpperCase() || "?";
-  const box = size === "lg" ? "size-16 text-lg" : "size-9 text-xs";
-
-  if (!logo || failed) {
-    return (
-      <span
-        className={`flex ${box} shrink-0 items-center justify-center rounded-md bg-paper font-semibold text-muted`}
-      >
-        {initial}
-      </span>
-    );
-  }
-
   return (
-    // Remote company logos come from arbitrary job metadata hosts.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logo}
-      alt=""
-      className={`${box} shrink-0 rounded-md bg-paper object-cover`}
-      onError={() => setFailed(true)}
+    <Avatar
+      name={name?.trim() || "Company"}
+      src={logo || undefined}
+      size={SIZES[size]}
+      shape="rounded"
+      tooltip={false}
     />
   );
 }

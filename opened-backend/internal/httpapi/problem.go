@@ -72,6 +72,8 @@ func scoutProblem(err error) problem {
 		p := newProblem(http.StatusConflict, "conflict", conflict.Detail)
 		p.ExistingID = conflict.ExistingID
 		return p
+	case errors.Is(err, scout.ErrNotScout), errors.Is(err, scout.ErrForbidden):
+		return newProblem(http.StatusForbidden, "forbidden", err.Error())
 	case errors.Is(err, scout.ErrTermsRequired):
 		return newProblem(http.StatusForbidden, "terms_required", err.Error())
 	case errors.Is(err, scout.ErrNotFound):

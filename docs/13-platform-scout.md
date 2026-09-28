@@ -8,12 +8,12 @@ Grow the job pool with high-quality jobs that are not on LinkedIn or Indeed. Sco
 
 ## Pages
 
-| Page               | Must do                                                                                                                                                                      |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Submit a job**   | Modal/form: official apply URL (required), company name, title, location, salary if known, short summary, tags. Live checks as they type (URL reachable, duplicate warning). |
-| **My submissions** | Status per submission (checking, needs review, approved, rejected, duplicate) with reasons; per-job stats (applications, interviews, hires).                                 |
-| **Earnings**       | Pending (held), released, paid; breakdown by reward type; payout settings.                                                                                                   |
-| **Level & limits** | Current level, daily submission limit, next-level requirements, quality metrics.                                                                                             |
+| Page               | Must do                                                                                                                                                                                                                    |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Submit a job**   | Modal/form: official apply URL, company name, title, location, salary (or equity), work mode, employment, short summary. Live checks as they type (URL reachable, duplicate warning). Skills and tags are added in review. |
+| **My submissions** | Status per submission (checking, needs review, approved, rejected, duplicate) with reasons; per-job stats (applications, interviews, hires).                                                                               |
+| **Earnings**       | Pending (held), released, paid; breakdown by reward type; payout settings.                                                                                                                                                 |
+| **Level & limits** | Current level, daily submission limit, next-level requirements, quality metrics.                                                                                                                                           |
 
 ## Submission pipeline
 
@@ -22,7 +22,7 @@ flowchart LR
   S[submitted] --> A[auto checks]
   A -->|fail hard| R[rejected]
   A -->|duplicate| D[duplicate]
-  A -->|trusted scout + pass| P[approved → job published]
+  A -->|trusted scout + pass| P[approved → temp_scout_jobs]
   A -->|probation or soft flags| Q[needs_review]
   Q -->|moderator| P
   Q -->|moderator| R
@@ -68,10 +68,21 @@ Rules:
 - A scout never earns on an interview where they are also the client, bidder, or linked to them (device/IP/payout account). See [32-trust-and-safety.md](32-trust-and-safety.md).
 - Rewards are clawed back if the job is later found to be fake or the interview voided.
 
+## Implementation (September 2026)
+
+Built as Scoutwell (`scoutwell-frontend`, port 3003) on `opened-backend/internal/scout`, with moderation in `opened-admin` → Scouting. The full protocol, including API keys for outsourcing partners, is in [61-scout-api.md](61-scout-api.md). Differences from the target below:
+
+- Status names match the target: `submitted`, `auto_checking`, `needs_review`, `approved`, `rejected`, `duplicate`; an approved job that closes keeps `approved` with `expired: true`.
+- "URL reachable" rejects only definite failures (404/410, unknown domain, private address). A timeout or a site that blocks bots (403/429/5xx) goes to review instead, so good jobs on protected career sites are not lost.
+- "Already on major boards" is the scout's own declaration plus links on the page; there is no external lookup yet.
+- Domain age is not checked yet.
+- Interview and hire rewards are recorded by staff on the submission until interview tracking emits `interview.settled` and `hire.confirmed`. Company conversion rewards are not paid yet.
+- Identity (tier 2) is a staff decision on the legal name and country the scout sends; there is no ID vendor yet. Tax ids and payout accounts are stored as the last four characters only.
+
 ## API
 
 ```
-POST   /v1/scout/submissions            {url, company_name, title, location_text, salary?, summary, tags[]}
+POST   /v1/scout/submissions            {url, company_name, title, location_text, workplace, employment, pay | equity, summary}
 GET    /v1/scout/submissions?status=&cursor=
 GET    /v1/scout/submissions/{id}
 POST   /v1/scout/submissions/precheck   {url} -> {reachable, official, duplicate_of?}

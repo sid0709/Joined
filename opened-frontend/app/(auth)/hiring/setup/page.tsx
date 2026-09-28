@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: "Set up hiring" };
 export default async function HiringSetupPage() {
   const session = await loadSession();
   if (!session) redirect(signInHref(ROUTES.hiringSetup));
+  if (session.user.role !== "employee") redirect(ROUTES.search);
   if (session.company) redirect(ROUTES.company);
   return <HiringSetupForm />;
 }

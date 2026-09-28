@@ -43,16 +43,18 @@ type storedSearchJob struct {
 }
 
 type tempListing struct {
-	ID          bson.ObjectID `bson:"_id"`
-	Title       string        `bson:"title"`
-	CompanyName string        `bson:"companyName"`
-	Description string        `bson:"description"`
-	CompanyID   bson.ObjectID `bson:"companyId"`
-	ApplyLink   string        `bson:"applyLink"`
-	PostedAt    time.Time     `bson:"postedAt"`
-	CreatedBy   string        `bson:"createdBy"`
-	Source      string        `bson:"source"`
-	Metadata    struct {
+	ID              bson.ObjectID `bson:"_id"`
+	Title           string        `bson:"title"`
+	CompanyName     string        `bson:"companyName"`
+	Description     string        `bson:"description"`
+	CompanyID       bson.ObjectID `bson:"companyId"`
+	ApplyLink       string        `bson:"applyLink"`
+	PostedAt        time.Time     `bson:"postedAt"`
+	CreatedBy       string        `bson:"createdBy"`
+	Source          string        `bson:"source"`
+	SourceRef       string        `bson:"sourceRef,omitempty"`
+	CompanyPublicID string        `bson:"companyPublicId,omitempty"`
+	Metadata        struct {
 		Details struct {
 			Location  string `bson:"location"`
 			Time      string `bson:"time"`

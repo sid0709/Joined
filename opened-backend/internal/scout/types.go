@@ -96,6 +96,7 @@ var (
 	ErrNotFound       = errors.New("not found")
 	ErrInvalidInput   = errors.New("check the form and try again")
 	ErrForbidden      = errors.New("not allowed")
+	ErrNotScout       = errors.New("this account is not a scout")
 	ErrTermsRequired  = errors.New("accept the scout terms before submitting jobs")
 	ErrQuotaExceeded  = errors.New("daily submission limit reached")
 	ErrConflict       = errors.New("conflict")
@@ -172,6 +173,7 @@ type SubmissionInput struct {
 	Employment    string   `json:"employment"`
 	Seniority     string   `json:"seniority"`
 	Pay           Pay      `json:"pay"`
+	Equity        bool     `json:"equity"`
 	SalaryText    string   `json:"salary"`
 	Summary       string   `json:"summary"`
 	Tags          []string `json:"tags"`
@@ -201,6 +203,7 @@ type Submission struct {
 	Employment      string        `json:"employment" bson:"employment"`
 	Seniority       string        `json:"seniority" bson:"seniority"`
 	Pay             Pay           `json:"pay" bson:"pay"`
+	Equity          bool          `json:"equity" bson:"equity"`
 	SalaryText      string        `json:"salary" bson:"salaryText"`
 	Summary         string        `json:"summary" bson:"summary"`
 	Tags            []string      `json:"tags" bson:"tags"`
@@ -349,6 +352,12 @@ func (s *Submission) fill() {
 	}
 	if canonical, ok := jobschema.CanonicalSeniority(s.Seniority); ok {
 		s.Seniority = canonical
+	}
+	if s.Equity {
+		s.Pay.Min = 0
+		s.Pay.Max = 0
+		s.SalaryText = ""
+		return
 	}
 	s.Pay = canonicalPay(s.Pay, s.SalaryText)
 	if s.Pay.Min != 0 || s.Pay.Max != 0 {

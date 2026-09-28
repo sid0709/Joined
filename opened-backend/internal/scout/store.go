@@ -50,6 +50,8 @@ type Accounts interface {
 type Publisher interface {
 	PublishScouted(ctx context.Context, listing jobs.ScoutedListing, now time.Time) (jobs.PublishedJob, error)
 	UnpublishScouted(ctx context.Context, ref string) error
+	// StageScouted stores a submission for staff to analyze. It does not enter search.
+	StageScouted(ctx context.Context, listing jobs.ScoutedListing, now time.Time) (string, error)
 	JobWithApplyLink(ctx context.Context, links []string) (string, error)
 }
 

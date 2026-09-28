@@ -26,13 +26,25 @@ func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) (auth.Se
 	return session, true
 }
 
+func (s *Server) requireCandidate(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
+	session, ok := s.requireSession(w, r)
+	if !ok {
+		return auth.Session{}, false
+	}
+	if session.User.Role != auth.RoleCandidate {
+		writeError(w, http.StatusForbidden, "job hunter account required")
+		return auth.Session{}, false
+	}
+	return session, true
+}
+
 func (s *Server) requireCompany(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
 	session, ok := s.requireSession(w, r)
 	if !ok {
 		return auth.Session{}, false
 	}
-	if session.Company == nil {
-		writeError(w, http.StatusForbidden, "company account required")
+	if session.User.Role != auth.RoleEmployee || session.Company == nil {
+		writeError(w, http.StatusForbidden, "recruiter account required")
 		return auth.Session{}, false
 	}
 	return session, true

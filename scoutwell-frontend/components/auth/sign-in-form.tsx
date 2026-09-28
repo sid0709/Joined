@@ -40,7 +40,7 @@ export function SignInForm({ nextPath }: { nextPath: string }) {
         <Stack gap={1}>
           <Heading level={1}>Welcome back</Heading>
           <Text color="secondary" display="block">
-            Sign in to {BRAND} with your OpenSeat account.
+            Sign in to {BRAND}. A scout account is only for submitting jobs.
           </Text>
         </Stack>
         {error ? <Banner status="error" title={error} /> : null}

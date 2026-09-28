@@ -24,7 +24,7 @@ func TestNormalizeSignupEmployeeRequiresCompany(t *testing.T) {
 		Name:     "Ada Lovelace",
 		Email:    "ada@example.com",
 		Password: "long-enough",
-		Mode:     modeEmployee,
+		Mode:     RoleEmployee,
 	})
 	if err != ErrInvalidInput {
 		t.Fatalf("employee without company = %v", err)
@@ -33,11 +33,45 @@ func TestNormalizeSignupEmployeeRequiresCompany(t *testing.T) {
 		Name:     "Ada Lovelace",
 		Email:    "ada@example.com",
 		Password: "long-enough",
-		Mode:     modeCandidate,
+		Mode:     RoleCandidate,
 		Company:  &CompanyChoice{Name: "Northwind"},
 	})
-	if err != nil || got.Company != nil || got.Mode != modeCandidate {
+	if err != nil || got.Company != nil || got.Mode != RoleCandidate {
 		t.Fatalf("candidate = %+v %v", got, err)
+	}
+}
+
+func TestNormalizeSignupScoutHasNoCompany(t *testing.T) {
+	_, err := normalizeSignup(Signup{
+		Name:     "Ada Lovelace",
+		Email:    "ada@example.com",
+		Password: "long-enough",
+		Mode:     RoleScout,
+		Company:  &CompanyChoice{Name: "Northwind"},
+	})
+	if err != ErrInvalidInput {
+		t.Fatalf("scout with company = %v", err)
+	}
+	got, err := normalizeSignup(Signup{
+		Name:     "Ada Lovelace",
+		Email:    "ada@example.com",
+		Password: "long-enough",
+		Mode:     RoleScout,
+	})
+	if err != nil || got.Mode != RoleScout || got.Company != nil {
+		t.Fatalf("scout = %+v %v", got, err)
+	}
+}
+
+func TestAllowsAudienceKeepsRolesApart(t *testing.T) {
+	if !AllowsAudience(AudienceOpened, RoleCandidate) || !AllowsAudience(AudienceOpened, RoleEmployee) {
+		t.Fatal("opened should accept hunters and recruiters")
+	}
+	if AllowsAudience(AudienceOpened, RoleScout) || AllowsAudience(RoleScout, RoleCandidate) || AllowsAudience(RoleScout, RoleEmployee) {
+		t.Fatal("a role should not sign in to the other app")
+	}
+	if !AllowsAudience(RoleScout, RoleScout) {
+		t.Fatal("a scout should sign in to scoutwell")
 	}
 }
 

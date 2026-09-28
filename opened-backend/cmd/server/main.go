@@ -57,7 +57,6 @@ func main() {
 		slog.Error("candidate indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
-	accounts.SetUserData(people)
 	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), 2*time.Minute)
 	updated, err := store.BackfillJobProvenance(backfillCtx)
 	cancelBackfill()
@@ -67,6 +66,7 @@ func main() {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
 	scouts := scout.NewStore(client, cfg.DestDB, accounts, store, people, scout.NewHTTPFetcher())
+	accounts.SetUserData(httpapi.NewAccountEraser(people, scouts, store))
 	if err := scouts.EnsureIndexes(context.Background()); err != nil {
 		slog.Error("scout indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)

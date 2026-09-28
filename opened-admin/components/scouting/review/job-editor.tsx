@@ -3,6 +3,7 @@
 import {
   Badge,
   Button,
+  CheckboxInput,
   GridColumn,
   GridSystem,
   HStack,
@@ -114,7 +115,9 @@ export function JobEditor({
           <MetadataListItem label="Seniority">
             {seniorityLabel(submission.seniority)}
           </MetadataListItem>
-          <MetadataListItem label="Salary">{submission.salary || "Not listed"}</MetadataListItem>
+          <MetadataListItem label="Salary">
+            {submission.equity ? "Equity" : submission.salary || "Not listed"}
+          </MetadataListItem>
         </MetadataList>
         <Link href={submission.url} target="_blank">
           {submission.url}
@@ -177,6 +180,9 @@ export function JobEditor({
               onChange={(next) => set("pay")(withPay(value.pay, { min: next }))}
               min={0}
               isIntegerOnly
+              isRequired={!value.equity}
+              isDisabled={value.equity}
+              disabledMessage="Turn off equity to enter a salary."
               units={DEFAULT_CURRENCY}
             />
           </GridColumn>
@@ -187,6 +193,9 @@ export function JobEditor({
               onChange={(next) => set("pay")(withPay(value.pay, { max: next }))}
               min={0}
               isIntegerOnly
+              isRequired={!value.equity}
+              isDisabled={value.equity}
+              disabledMessage="Turn off equity to enter a salary."
               units={DEFAULT_CURRENCY}
             />
           </GridColumn>
@@ -196,6 +205,23 @@ export function JobEditor({
               options={PAY_PERIOD_OPTIONS}
               value={value.pay?.period ?? "year"}
               onChange={(next) => set("pay")(withPay(value.pay, { period: next as PayPeriod }))}
+              isDisabled={value.equity}
+              disabledMessage="Turn off equity to enter a salary."
+            />
+          </GridColumn>
+          <GridColumn span="full">
+            <CheckboxInput
+              label="Equity"
+              description="Paid in equity. Salary from and salary to are cleared."
+              value={value.equity}
+              onChange={(checked) =>
+                onChange({
+                  ...value,
+                  equity: checked,
+                  pay: checked ? withPay(value.pay, { min: 0, max: 0 }) : value.pay,
+                  salary: checked ? "" : value.salary,
+                })
+              }
             />
           </GridColumn>
           <GridColumn span="full" md={4}>

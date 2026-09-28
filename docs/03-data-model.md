@@ -4,7 +4,6 @@ Logical model grouped by owning service. Column types are PostgreSQL. Every tabl
 
 ```mermaid
 erDiagram
-  USER ||--o{ USER_MODE : has
   USER ||--o| JOB_HUNTER_PROFILE : has
   USER ||--o| BIDDER_PROFILE : has
   USER ||--o{ COMPANY_MEMBER : belongs
@@ -26,24 +25,30 @@ erDiagram
 
 ### users
 
-| column            | type                                         | notes                          |
-| ----------------- | -------------------------------------------- | ------------------------------ |
-| id                | uuid pk                                      | UUIDv7                         |
-| email             | citext unique                                | verified flag separate         |
-| email_verified_at | timestamptz                                  |                                |
-| phone 🔒          | text                                         | E.164                          |
-| phone_verified_at | timestamptz                                  |                                |
-| display_name      | text                                         |                                |
-| time_zone         | text                                         | IANA                           |
-| locale            | text                                         |                                |
-| status            | enum `active, restricted, suspended, closed` |                                |
-| verification_tier | smallint                                     | 0–3, see identity doc          |
-| risk_score        | smallint                                     | 0–100, cached from risk engine |
-| last_active_mode  | enum                                         |                                |
+| column            | type                                         | notes                              |
+| ----------------- | -------------------------------------------- | ---------------------------------- |
+| id                | uuid pk                                      | UUIDv7                             |
+| email             | citext unique                                | verified flag separate             |
+| email_verified_at | timestamptz                                  |                                    |
+| phone 🔒          | text                                         | E.164                              |
+| phone_verified_at | timestamptz                                  |                                    |
+| display_name      | text                                         |                                    |
+| time_zone         | text                                         | IANA                               |
+| locale            | text                                         |                                    |
+| status            | enum `active, restricted, suspended, closed` |                                    |
+| verification_tier | smallint                                     | 0–3, see identity doc              |
+| risk_score        | smallint                                     | 0–100, cached from risk engine     |
+| role              | enum `job_hunter, recruiter, scout`          | One per account. Chosen at signup. |
 
-### user_modes
+### role data
 
-`user_id`, `mode enum(job_hunter, company, scout, client, bidder, admin)`, `status enum(active, pending, suspended)`, `activated_at`. PK `(user_id, mode)`.
+The login row stays in `users`. Each role keeps its own fields, and an account has only one of them:
+
+| Role       | Record                             | Holds                                                            |
+| ---------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Job hunter | `job_hunter_profiles`              | Headline, target roles, salary floor, skills, work authorization |
+| Recruiter  | `company_members` plus `companies` | The person (`user_id`, role) and the company page they belong to |
+| Scout      | `scout_profiles`                   | Level, terms, legal name, country, tax last four, payout method  |
 
 ### identity_verifications
 

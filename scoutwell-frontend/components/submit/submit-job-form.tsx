@@ -3,6 +3,7 @@
 import {
   Banner,
   Button,
+  CheckboxInput,
   GridColumn,
   GridSystem,
   HStack,
@@ -45,12 +46,11 @@ import { PrecheckCard } from "./precheck-card";
 import { usePrecheck } from "./use-precheck";
 
 import { FullText } from "@/components/full-text";
-import { SUGGESTED_TAGS } from "@/lib/config";
-import { formatCount, parseList, parseTags } from "@/lib/format";
+import { formatCount } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
 import { scoutSend } from "@/lib/scout/client";
 
-/** Blank means "let the API infer it from the title, location, and tags". */
+/** Blank seniority means the API infers it from the title. */
 const INFER = "";
 const PAY_YEAR_STEP = 5_000;
 const PAY_HOUR_STEP = 1;
@@ -66,9 +66,8 @@ type Form = {
   payMin: number;
   payMax: number;
   payPeriod: PayPeriod;
+  equity: boolean;
   summary: string;
-  tags: string;
-  skills: string;
   onMajorBoards: boolean;
 };
 
@@ -77,21 +76,16 @@ const EMPTY: Form = {
   company: null,
   title: "",
   locationText: "",
-  workplace: INFER,
-  employment: INFER,
+  workplace: "",
+  employment: "",
   seniority: INFER,
   payMin: 0,
   payMax: 0,
   payPeriod: "year",
+  equity: false,
   summary: "",
-  tags: "",
-  skills: "",
   onMajorBoards: false,
 };
-
-function withInfer<T extends string>(values: readonly T[], labels: Record<T, string>) {
-  return [{ value: INFER, label: "Detect automatically" }, ...options(values, labels)];
-}
 
 export function SubmitJobForm({
   quota,
@@ -122,16 +116,34 @@ export function SubmitJobForm({
   };
 
   const summaryLength = form.summary.trim().length;
-  const payInvalid = form.payMax > 0 && form.payMin > form.payMax;
+  const payInvalid = !form.equity && form.payMax > 0 && form.payMin > form.payMax;
+  const payReady = form.equity || (form.payMin > 0 && form.payMax > 0 && !payInvalid);
   const blocked =
     precheck.phase === "done" &&
     (!precheck.result.official || Boolean(precheck.result.duplicate_of));
   const ready =
-    Boolean(form.url.trim() && form.company && form.title.trim()) &&
-    !payInvalid &&
+    Boolean(
+      form.url.trim() &&
+      form.company &&
+      form.title.trim() &&
+      form.locationText.trim() &&
+      form.workplace &&
+      form.employment,
+    ) &&
+    payReady &&
     summaryLength >= limits.min_summary_chars &&
     summaryLength <= limits.max_summary_chars &&
     quota.remaining > 0;
+
+  const setEquity = (equity: boolean) => {
+    setForm((current) => ({
+      ...current,
+      equity,
+      payMin: equity ? 0 : current.payMin,
+      payMax: equity ? 0 : current.payMax,
+    }));
+    setIdempotencyKey(crypto.randomUUID());
+  };
 
   const submit = async () => {
     setError(null);
@@ -149,20 +161,21 @@ export function SubmitJobForm({
           employment: form.employment,
           seniority: form.seniority,
           pay: {
-            min: form.payMin,
-            max: form.payMax,
+            min: form.equity ? 0 : form.payMin,
+            max: form.equity ? 0 : form.payMax,
             currency: DEFAULT_CURRENCY,
             period: form.payPeriod,
           },
+          equity: form.equity,
           salary: "",
           summary: form.summary,
-          tags: parseTags(form.tags),
-          skills: parseList(form.skills),
+          tags: [],
+          skills: [],
           on_major_boards: form.onMajorBoards,
         },
         { "Idempotency-Key": idempotencyKey },
       );
-      toast({ body: "Submitted. Checks are running now." });
+      toast({ body: "Submitted. It waits in Scout jobs until staff analyze it." });
       router.push(ROUTES.submission(created.id));
       router.refresh();
     } catch (err) {
@@ -176,7 +189,7 @@ export function SubmitJobForm({
     <Stack gap={6}>
       <PageHeader
         title="Submit a job"
-        description="An official opening that is not already in the pool. You earn when people use it."
+        description="An official opening that is not already in the pool. Staff analyze it before it appears in search."
       />
       {quota.remaining === 0 ? (
         <Banner
@@ -245,7 +258,7 @@ export function SubmitJobForm({
                     value={form.locationText}
                     onChange={set("locationText")}
                     placeholder="Remote (US), Berlin, …"
-                    isOptional
+                    isRequired
                     status={status("location_text")}
                   />
                 </GridColumn>
@@ -257,7 +270,9 @@ export function SubmitJobForm({
                     min={0}
                     step={form.payPeriod === "hour" ? PAY_HOUR_STEP : PAY_YEAR_STEP}
                     isIntegerOnly
-                    isOptional
+                    isRequired={!form.equity}
+                    isDisabled={form.equity}
+                    disabledMessage="Turn off equity to enter a salary."
                     units={DEFAULT_CURRENCY}
                     status={
                       payInvalid
@@ -274,7 +289,9 @@ export function SubmitJobForm({
                     min={0}
                     step={form.payPeriod === "hour" ? PAY_HOUR_STEP : PAY_YEAR_STEP}
                     isIntegerOnly
-                    isOptional
+                    isRequired={!form.equity}
+                    isDisabled={form.equity}
+                    disabledMessage="Turn off equity to enter a salary."
                     units={DEFAULT_CURRENCY}
                     status={status("pay")}
                   />
@@ -285,22 +302,38 @@ export function SubmitJobForm({
                     options={PAY_PERIOD_OPTIONS}
                     value={form.payPeriod}
                     onChange={(value) => set("payPeriod")(value as PayPeriod)}
+                    isDisabled={form.equity}
+                    disabledMessage="Turn off equity to enter a salary."
+                  />
+                </GridColumn>
+                <GridColumn span="full">
+                  <CheckboxInput
+                    label="Equity"
+                    description="This role is paid in equity, so salary from and salary to stay blank."
+                    value={form.equity}
+                    onChange={setEquity}
                   />
                 </GridColumn>
                 <GridColumn span="full" md={4}>
                   <Selector
                     label="Work mode"
-                    options={withInfer(limits.workplaces, WORKPLACE_LABEL)}
+                    options={options(limits.workplaces, WORKPLACE_LABEL)}
                     value={form.workplace}
                     onChange={(value) => set("workplace")(value as Workplace | "")}
+                    isRequired
+                    placeholder="Select work mode"
+                    status={status("workplace")}
                   />
                 </GridColumn>
                 <GridColumn span="full" md={4}>
                   <Selector
                     label="Employment"
-                    options={withInfer(limits.employments, EMPLOYMENT_LABEL)}
+                    options={options(limits.employments, EMPLOYMENT_LABEL)}
                     value={form.employment}
                     onChange={(value) => set("employment")(value as Employment | "")}
+                    isRequired
+                    placeholder="Select employment"
+                    status={status("employment")}
                   />
                 </GridColumn>
                 <GridColumn span="full" md={4}>
@@ -322,7 +355,7 @@ export function SubmitJobForm({
 
             <SectionCard
               title="Job description"
-              description="Job hunters read this on the listing. Write it in your own words."
+              description="The posting text staff analyze into the public listing."
             >
               <TextArea
                 label="Job description"
@@ -330,32 +363,16 @@ export function SubmitJobForm({
                 onChange={set("summary")}
                 isRequired
                 description={`${summaryLength} / ${limits.max_summary_chars} characters · at least ${limits.min_summary_chars}. What the team does and who should apply.`}
-                status={status("summary")}
+                status={
+                  status("summary") ??
+                  (summaryLength > limits.max_summary_chars
+                    ? {
+                        type: "error",
+                        message: `Shorten this to ${limits.max_summary_chars} characters.`,
+                      }
+                    : undefined)
+                }
               />
-              <GridSystem gap={4}>
-                <GridColumn span="full" md={6}>
-                  <TextInput
-                    label="Tags"
-                    value={form.tags}
-                    onChange={set("tags")}
-                    isOptional
-                    placeholder={SUGGESTED_TAGS.slice(0, 3).join(", ")}
-                    description={`Comma-separated, up to ${limits.max_tags}. Use "visa" when it sponsors.`}
-                    status={status("tags")}
-                  />
-                </GridColumn>
-                <GridColumn span="full" md={6}>
-                  <TextInput
-                    label="Skills"
-                    value={form.skills}
-                    onChange={set("skills")}
-                    isOptional
-                    placeholder="Go, Kubernetes, SQL"
-                    description={`Comma-separated, up to ${limits.max_skills}.`}
-                    status={status("skills")}
-                  />
-                </GridColumn>
-              </GridSystem>
             </SectionCard>
 
             <HStack gap={3} vAlign="center" wrap="wrap">

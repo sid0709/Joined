@@ -10,8 +10,6 @@ export const PAGE_LIMIT = 20;
 /** Rows shown in the dashboard's recent lists. */
 export const RECENT_LIMIT = 5;
 
-export const SUGGESTED_TAGS = ["remote", "hybrid", "visa", "contract", "staff", "hidden"] as const;
-
 /** The Opened API, called from the server only. */
 export function openedApiUrl(): string {
   const url = process.env.OPENED_API_URL;

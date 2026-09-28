@@ -9,11 +9,12 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
-// Input limits for a submission. The summary is a short structured note in the
-// scout's words, never the copied description (docs/14 compliance rule).
+// Input limits for a submission. The description is the posting text staff
+// analyze into a search record. It matches the description length the job
+// analyzer reads (opened-backend/internal/jobs maxDescriptionRunes).
 const (
 	MinSummaryChars  = 40
-	MaxSummaryChars  = 420
+	MaxSummaryChars  = 12_000
 	minNameChars     = 2
 	maxCompanyChars  = 120
 	maxTitleChars    = 160
@@ -71,17 +72,25 @@ func NormalizeInput(in SubmissionInput) (SubmissionInput, ParsedURL, error) {
 	in.SalaryText = clean(in.SalaryText)
 	in.Summary = strings.TrimSpace(in.Summary)
 	in.Pay = canonicalPay(in.Pay, in.SalaryText)
-	if in.Pay.Max > 0 && in.Pay.Min > in.Pay.Max {
-		problems.add("pay", "the maximum must be at least the minimum")
-	}
-	if label := salaryLabel(in.Pay); label != "" {
-		in.SalaryText = label
+	if in.Equity {
+		in.Pay.Min = 0
+		in.Pay.Max = 0
+		in.SalaryText = ""
+	} else {
+		switch {
+		case in.Pay.Min <= 0 || in.Pay.Max <= 0:
+			problems.add("pay", "salary from and salary to are required")
+		case in.Pay.Min > in.Pay.Max:
+			problems.add("pay", "the maximum must be at least the minimum")
+		default:
+			in.SalaryText = salaryLabel(in.Pay)
+		}
 	}
 	in.ExternalRef = strings.TrimSpace(in.ExternalRef)
 
 	lengthRule(problems, "company_name", in.CompanyName, minNameChars, maxCompanyChars)
 	lengthRule(problems, "title", in.Title, minNameChars, maxTitleChars)
-	lengthRule(problems, "location_text", in.LocationText, 0, maxLocationChars)
+	lengthRule(problems, "location_text", in.LocationText, minNameChars, maxLocationChars)
 	lengthRule(problems, "salary", in.SalaryText, 0, maxSalaryChars)
 	lengthRule(problems, "summary", in.Summary, MinSummaryChars, MaxSummaryChars)
 	if in.ExternalRef != "" && (len(in.ExternalRef) > maxExternalRef || !externalRefPattern.MatchString(in.ExternalRef)) {
@@ -91,9 +100,8 @@ func NormalizeInput(in SubmissionInput) (SubmissionInput, ParsedURL, error) {
 	in.Tags = cleanTags(problems, in.Tags)
 	in.Skills = cleanSkills(problems, in.Skills)
 
-	hints := in.LocationText + " " + strings.Join(in.Tags, " ")
-	in.Workplace = pick(problems, "workplace", in.Workplace, InputLimits().Workplaces, jobschema.WorkplaceFromHint(hints))
-	in.Employment = pick(problems, "employment", in.Employment, InputLimits().Employments, jobschema.EmploymentFromHint(hints+" "+in.Title))
+	in.Workplace = requireOne(problems, "workplace", in.Workplace, InputLimits().Workplaces)
+	in.Employment = requireOne(problems, "employment", in.Employment, InputLimits().Employments)
 	in.Seniority = pickSeniority(problems, in.Seniority, jobschema.SeniorityFromHint(in.Title))
 
 	return in, parsed, problems.orNil()
@@ -115,10 +123,11 @@ func lengthRule(problems *ValidationError, field, value string, minChars, maxCha
 	}
 }
 
-func pick(problems *ValidationError, field, value string, allowed []string, fallback string) string {
+func requireOne(problems *ValidationError, field, value string, allowed []string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
 	if value == "" {
-		return fallback
+		problems.add(field, "required")
+		return ""
 	}
 	for _, option := range allowed {
 		if value == option {
@@ -126,7 +135,7 @@ func pick(problems *ValidationError, field, value string, allowed []string, fall
 		}
 	}
 	problems.add(field, "must be one of "+strings.Join(allowed, ", "))
-	return fallback
+	return ""
 }
 
 func pickSeniority(problems *ValidationError, value, fallback string) string {

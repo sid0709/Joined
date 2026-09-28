@@ -70,10 +70,10 @@ function curl(base: string) {
     "company_name": "Acme",
     "title": "Senior Platform Engineer",
     "location_text": "Remote (US)",
-    "salary": "$170k - $210k a year",
+    "workplace": "remote",
+    "employment": "full-time",
+    "pay": { "min": 170000, "max": 210000, "currency": "USD", "period": "year" },
     "summary": "Owns the deploy pipeline for 40 services; Go and Kubernetes; small team, on-call one week in six.",
-    "tags": ["remote", "visa"],
-    "skills": ["Go", "Kubernetes"],
     "external_ref": "feed-2026-09-28-0142"
   }'`;
 }
@@ -220,15 +220,35 @@ export function ApiDocs({ baseUrl, meta }: { baseUrl: string; meta: Meta }) {
             }
           />
           <ListItem
-            label="workplace, employment, seniority"
+            label="location_text · required"
             description={
-              <FullText>{`${limits.workplaces.join(" | ")}; ${limits.employments.join(" | ")}; ${limits.seniorities.join(" | ")}. Omit to infer.`}</FullText>
+              <FullText>Where the role is based, such as Remote (US) or Berlin.</FullText>
             }
           />
           <ListItem
-            label="pay, location_text, tags, skills"
+            label="workplace, employment · required"
             description={
-              <FullText>{`Optional. pay is { min, max, currency, period } with period year or hour. A salary string is still accepted. Up to ${limits.max_tags} tags and ${limits.max_skills} skills.`}</FullText>
+              <FullText>{`${limits.workplaces.join(" | ")}; ${limits.employments.join(" | ")}.`}</FullText>
+            }
+          />
+          <ListItem
+            label="seniority"
+            description={
+              <FullText>{`${limits.seniorities.join(" | ")}. Omit to infer it from the title.`}</FullText>
+            }
+          />
+          <ListItem
+            label="pay · required, unless equity"
+            description={
+              <FullText>
+                {`{ min, max, currency, period } with period year or hour. Both amounts are required and the maximum must be at least the minimum. A salary string is still accepted. Set equity to true to submit without a salary.`}
+              </FullText>
+            }
+          />
+          <ListItem
+            label="tags, skills"
+            description={
+              <FullText>{`Optional. Up to ${limits.max_tags} tags and ${limits.max_skills} skills. The Scoutwell form does not collect them. Tag visa marks sponsorship.`}</FullText>
             }
           />
           <ListItem

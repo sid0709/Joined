@@ -26,8 +26,14 @@ const (
 	roleOwner  = "owner"
 	roleMember = "member"
 
-	modeCandidate = "candidate"
-	modeEmployee  = "employee"
+	// An account is exactly one of these. The role is chosen at signup and
+	// never gains a second one: a job hunter, a recruiter, or a scout.
+	RoleCandidate = "candidate"
+	RoleEmployee  = "employee"
+	RoleScout     = "scout"
+
+	// AudienceOpened is sign-in from the job hunter and recruiter app.
+	AudienceOpened = "opened"
 )
 
 var (
@@ -36,17 +42,55 @@ var (
 	ErrInvalidInput = errors.New("check the form and try again")
 	ErrNotFound     = errors.New("not found")
 	ErrHasCompany   = errors.New("this account is already linked to a company")
+	ErrWrongRole    = errors.New("this email is registered as a different kind of account")
 )
 
+// RoleError is a sign-in or action from the wrong app for this account.
+type RoleError struct {
+	Role string
+}
+
+func (e *RoleError) Error() string {
+	switch e.Role {
+	case RoleCandidate:
+		return "This email is a job hunter account."
+	case RoleEmployee:
+		return "This email is a recruiter account."
+	case RoleScout:
+		return "This email is a scout account."
+	default:
+		return ErrWrongRole.Error()
+	}
+}
+
+func (e *RoleError) Unwrap() error { return ErrWrongRole }
+
+// AllowsAudience reports whether a sign-in from audience can use an account of role.
+func AllowsAudience(audience, role string) bool {
+	switch audience {
+	case "", "any":
+		return true
+	case AudienceOpened:
+		return role == RoleCandidate || role == RoleEmployee
+	case RoleScout:
+		return role == RoleScout
+	default:
+		return false
+	}
+}
+
 // UserData removes a person's records in other stores when their account is deleted.
+// ownedCompanyID is set when this person created the company page, so that page
+// and everything that exists only because of it are deleted too.
 type UserData interface {
-	DeleteUser(ctx context.Context, userID string) error
+	DeleteUser(ctx context.Context, userID, ownedCompanyID string) error
 }
 
 type User struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 type Company struct {
@@ -84,6 +128,7 @@ type storedUser struct {
 	Name         string    `bson:"name"`
 	Email        string    `bson:"email"`
 	PasswordHash string    `bson:"passwordHash"`
+	Role         string    `bson:"role,omitempty"`
 	CreatedAt    time.Time `bson:"createdAt"`
 }
 
@@ -111,11 +156,17 @@ func normalizeSignup(input Signup) (Signup, error) {
 		return Signup{}, ErrInvalidInput
 	}
 	switch input.Mode {
-	case "", modeCandidate, modeEmployee:
+	case "", RoleCandidate, RoleEmployee, RoleScout:
 	default:
 		return Signup{}, ErrInvalidInput
 	}
-	if input.Mode == modeCandidate {
+	if input.Mode == RoleScout {
+		if input.Company != nil {
+			return Signup{}, ErrInvalidInput
+		}
+		return input, nil
+	}
+	if input.Mode == RoleCandidate {
 		input.Company = nil
 	}
 	if input.Company != nil {
@@ -125,10 +176,13 @@ func normalizeSignup(input Signup) (Signup, error) {
 		}
 		input.Company = &choice
 		if input.Mode == "" {
-			input.Mode = modeEmployee
+			input.Mode = RoleEmployee
 		}
 	}
-	if input.Mode == modeEmployee && input.Company == nil {
+	if input.Mode == "" {
+		input.Mode = RoleCandidate
+	}
+	if input.Mode == RoleEmployee && input.Company == nil {
 		return Signup{}, ErrInvalidInput
 	}
 	return input, nil

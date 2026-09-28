@@ -8,12 +8,25 @@ Juniors own product work. Core/platform changes need owner review.
 
 A **bun workspaces monorepo**:
 
-| Workspace                 | What it is                                         | Run it                                       |
-| ------------------------- | -------------------------------------------------- | -------------------------------------------- |
-| `opened-frontend`         | Opened job platform — candidate and employer modes | `bun run dev:opened` → http://localhost:3002 |
-| `connected-frontend`      | OpenSeat web app                                   | `bun run dev:app` → http://localhost:3000    |
-| `openseat-theme`          | Design-system showcase                             | `bun run dev:theme` → http://localhost:3001  |
-| `@openseat/design-system` | Shared UI package (`packages/design-system`)       | used by every app                            |
+| Workspace                 | What it is                                               | Run it                                          |
+| ------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
+| `opened-frontend`         | Opened job platform — candidate and employer modes       | `bun run dev:opened` → http://localhost:3002    |
+| `connected-frontend`      | OpenSeat web app                                         | `bun run dev:app` → http://localhost:3000       |
+| `openseat-theme`          | Design-system showcase                                   | `bun run dev:theme` → http://localhost:3001     |
+| `scoutwell-frontend`      | Scoutwell — scouts submit jobs and earn on outcomes      | `bun run dev:scout` → http://localhost:3003     |
+| `opened-admin`            | Admin console — review queue, scouts, jobs               | `bun run dev:admin` → http://localhost:3010     |
+| `opened-backend`          | Opened API (Go) — jobs, accounts, scout pipeline         | `bun run dev:admin-api` → http://127.0.0.1:8080 |
+| `@openseat/design-system` | Shared UI package (`packages/design-system`)             | used by every app                               |
+| `@openseat/scout`         | Scout API contract (`packages/scout`)                    | Scoutwell and the admin console                 |
+| `@openseat/job-schema`    | Job enums shared with the Go API (`packages/job-schema`) | every job-related app                           |
+
+### Scout pipeline setup
+
+1. `opened-backend/.env`: set `ADMIN_API_TOKEN` (e.g. `openssl rand -hex 32`). Without it the staff endpoints are open.
+2. `opened-admin/.env.local`: `ADMIN_API_URL` and the same `ADMIN_API_TOKEN` (see `opened-admin/.env.example`).
+3. `scoutwell-frontend/.env.local`: `OPENED_API_URL` (see `scoutwell-frontend/.env.example`).
+
+Partners submit jobs over the same API with keys from Scoutwell → API access; see [docs/61-scout-api.md](docs/61-scout-api.md).
 
 Product and architecture specs live in [`docs/`](docs/README.md).
 

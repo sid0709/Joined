@@ -117,6 +117,7 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 		Employment:    normalized.Employment,
 		Seniority:     normalized.Seniority,
 		Pay:           normalized.Pay,
+		Equity:        normalized.Equity,
 		SalaryText:    normalized.SalaryText,
 		Summary:       normalized.Summary,
 		Tags:          normalized.Tags,
@@ -138,8 +139,42 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 		return Submission{}, err
 	}
 	sub.fill()
+	if s.publisher != nil {
+		tempID, stageErr := s.publisher.StageScouted(ctx, stagedListing(sub), now)
+		if stageErr != nil {
+			_, _ = s.collection(submissionsCollection).DeleteOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}})
+			return Submission{}, stageErr
+		}
+		if _, stageErr = s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{
+			{Key: "$set", Value: bson.D{{Key: "tempJobId", Value: tempID}}},
+		}); stageErr != nil {
+			return Submission{}, stageErr
+		}
+	}
 	s.enqueue(sub.ObjectID)
 	return sub, nil
+}
+
+func stagedListing(sub Submission) jobs.ScoutedListing {
+	return jobs.ScoutedListing{
+		SubmissionID: sub.ID,
+		ScoutUserID:  sub.ScoutUserID,
+		ApplyLink:    sub.URL,
+		CompanyName:  sub.CompanyName,
+		CompanyID:    sub.CompanyID,
+		Title:        sub.Title,
+		Location:     sub.LocationText,
+		Workplace:    sub.Workplace,
+		Employment:   sub.Employment,
+		Seniority:    sub.Seniority,
+		Pay:          jobs.Pay{Min: sub.Pay.Min, Max: sub.Pay.Max, Currency: sub.Pay.Currency, Period: sub.Pay.Period},
+		Equity:       sub.Equity,
+		SalaryText:   sub.SalaryText,
+		Summary:      sub.Summary,
+		Skills:       sub.Skills,
+		Tags:         sub.Tags,
+		SubmittedAt:  sub.SubmittedAt,
+	}
 }
 
 // insertSubmission leaves externalRef out when empty so the unique index only
@@ -464,6 +499,8 @@ func (sub Submission) input() SubmissionInput {
 		Workplace:     sub.Workplace,
 		Employment:    sub.Employment,
 		Seniority:     sub.Seniority,
+		Pay:           sub.Pay,
+		Equity:        sub.Equity,
 		SalaryText:    sub.SalaryText,
 		Summary:       sub.Summary,
 		Tags:          sub.Tags,
@@ -601,9 +638,9 @@ func duplicateTarget(checks []Check) string {
 	return ""
 }
 
-// approve publishes the job, pays the approval reward, and marks any other
-// pending submission of the same link as a duplicate: the first approved
-// submission owns the job.
+// approve records the decision and pays the approval reward. The posting stays
+// in temp_scout_jobs until staff analyze it into the search pool. The first
+// approved submission of a link owns it.
 func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note string) error {
 	s.publishMu.Lock()
 	defer s.publishMu.Unlock()
@@ -638,32 +675,8 @@ func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note stri
 		return s.recomputeLevel(ctx, sub.ScoutUserID)
 	}
 
-	published, err := s.publisher.PublishScouted(ctx, jobs.ScoutedListing{
-		SubmissionID: sub.ID,
-		ScoutUserID:  sub.ScoutUserID,
-		ApplyLink:    sub.URL,
-		CompanyName:  sub.CompanyName,
-		CompanyID:    sub.CompanyID,
-		CompanyURL:   companySite(parsed),
-		Title:        sub.Title,
-		Location:     sub.LocationText,
-		Workplace:    sub.Workplace,
-		Employment:   sub.Employment,
-		Seniority:    sub.Seniority,
-		Pay:          jobs.Pay{Min: sub.Pay.Min, Max: sub.Pay.Max, Currency: sub.Pay.Currency, Period: sub.Pay.Period},
-		SalaryText:   sub.SalaryText,
-		Summary:      sub.Summary,
-		Skills:       sub.Skills,
-		Tags:         sub.Tags,
-		SubmittedAt:  sub.SubmittedAt,
-	}, now)
-	if err != nil {
-		return err
-	}
 	set := bson.D{
 		{Key: "status", Value: StatusApproved},
-		{Key: "jobId", Value: published.ID},
-		{Key: "jobRef", Value: published.Ref},
 		{Key: "reviewedBy", Value: reviewer},
 		{Key: "reviewedAt", Value: now},
 		{Key: "updatedAt", Value: now},
@@ -676,12 +689,8 @@ func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note stri
 		{Key: "$unset", Value: bson.D{{Key: "rejectionCode", Value: ""}, {Key: "rejectionReason", Value: ""}, {Key: "duplicateOf", Value: ""}}},
 	})
 	if err != nil {
-		if unpublishErr := s.publisher.UnpublishScouted(ctx, published.Ref); unpublishErr != nil {
-			slog.Error("roll back scouted job", "job", published.ID, "error", unpublishErr)
-		}
 		return err
 	}
-	sub.JobID = published.ID
 	sub.Status = StatusApproved
 
 	profile, err := s.EnsureProfile(ctx, sub.ScoutUserID)
@@ -689,7 +698,7 @@ func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note stri
 		return err
 	}
 	if reward := ApprovalReward(profile.Level, sub.OnMajorBoards); reward.AmountCents > 0 {
-		if err := s.addEarning(ctx, sub, RewardApproval, reward, EarningHeld, "Job approved and published"); err != nil {
+		if err := s.addEarning(ctx, sub, RewardApproval, reward, EarningHeld, "Job approved"); err != nil {
 			return err
 		}
 	}

@@ -2,10 +2,9 @@ import type { WorkspaceMode } from "@/lib/routes";
 import type { AuthSession } from "./types";
 
 /**
- * Which app an account uses. An employee account is linked to a company and
- * lives in the hiring workspace; a candidate account uses job search. The two
- * never mix: employees don't see Find jobs or My applications, candidates don't
- * see the hiring tools.
+ * Which Opened workspace an account uses. A recruiter is linked to a company
+ * and lives in the hiring workspace. A job hunter uses job search. A scout
+ * account signs in on Scoutwell and is refused here.
  */
 export function workspaceOf(session: AuthSession | null): WorkspaceMode {
   return session?.company ? "company" : "hunter";

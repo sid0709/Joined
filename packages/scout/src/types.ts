@@ -36,6 +36,7 @@ export type SubmissionInput = {
   employment?: Employment | "";
   seniority?: Seniority | "";
   pay?: Pay;
+  equity: boolean;
   salary: string;
   summary: string;
   tags: string[];
@@ -63,6 +64,7 @@ export type Submission = {
   employment: Employment;
   seniority: Seniority;
   pay: Pay;
+  equity: boolean;
   salary: string;
   summary: string;
   tags: string[];

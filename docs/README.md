@@ -20,6 +20,7 @@ This folder is the source of truth for **what the product must do** and **how it
 | Job hunter pages                     | [11-platform-job-hunter.md](11-platform-job-hunter.md)                                   |
 | Company pages                        | [12-platform-company.md](12-platform-company.md)                                         |
 | Scout submissions                    | [13-platform-scout.md](13-platform-scout.md)                                             |
+| Scout API for partners               | [61-scout-api.md](61-scout-api.md)                                                       |
 | Job ingestion, search, matching      | [14-job-pool-and-matching.md](14-job-pool-and-matching.md)                               |
 | Client (hire a bidder) flows         | [20-connect-client.md](20-connect-client.md)                                             |
 | Human bidder workspace               | [21-connect-bidder.md](21-connect-bidder.md)                                             |

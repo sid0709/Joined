@@ -27,21 +27,18 @@ var (
 )
 
 // EnsureProfile returns the scout profile, creating a probation one the first
-// time an account uses Scoutwell.
+// time a scout account uses Scoutwell. A job hunter or recruiter account is refused.
 func (s *Store) EnsureProfile(ctx context.Context, userID string) (Profile, error) {
-	now := s.now().UTC()
-	// The account lookup does not depend on the profile, so it runs alongside.
-	type account struct {
-		user auth.User
-		err  error
+	user, _, err := s.accounts.Account(ctx, userID)
+	if err != nil {
+		return Profile{}, err
 	}
-	accountCh := make(chan account, 1)
-	go func() {
-		user, _, err := s.accounts.Account(ctx, userID)
-		accountCh <- account{user, err}
-	}()
+	if user.Role != auth.RoleScout {
+		return Profile{}, ErrNotScout
+	}
+	now := s.now().UTC()
 	var profile Profile
-	err := s.collection(profilesCollection).FindOneAndUpdate(ctx,
+	err = s.collection(profilesCollection).FindOneAndUpdate(ctx,
 		bson.D{{Key: "userId", Value: userID}},
 		bson.D{{Key: "$setOnInsert", Value: bson.D{
 			{Key: "userId", Value: userID},
@@ -55,14 +52,10 @@ func (s *Store) EnsureProfile(ctx context.Context, userID string) (Profile, erro
 		}}},
 		options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After),
 	).Decode(&profile)
-	found := <-accountCh
 	if err != nil {
 		return Profile{}, err
 	}
-	if found.err != nil {
-		return Profile{}, found.err
-	}
-	return withAccount(profile, found.user), nil
+	return withAccount(profile, user), nil
 }
 
 // Profile returns an existing profile without creating one.
