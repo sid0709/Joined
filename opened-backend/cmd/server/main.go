@@ -17,6 +17,7 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
 )
 
 const (
@@ -65,10 +66,27 @@ func main() {
 	} else {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
+	scouts := scout.NewStore(client, cfg.DestDB, accounts, store, people, scout.NewHTTPFetcher())
+	if err := scouts.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("scout indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
+	if resumed, err := scouts.ResumePending(context.Background()); err != nil {
+		slog.Error("resume scout checks", "error", config.Redact(err, cfg.MongoURI))
+	} else if resumed > 0 {
+		slog.Info("resume scout checks", "submissions", resumed)
+	}
+	if cfg.AdminAPIToken == "" {
+		slog.Warn("ADMIN_API_TOKEN is not set: staff endpoints accept unauthenticated requests")
+	}
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.New(store, accounts, people, reader, cfg.AdminOrigins, cfg.FrontendOrigin),
+		Addr: cfg.HTTPAddr,
+		Handler: httpapi.New(store, accounts, people, scouts, reader, httpapi.Options{
+			Origins:    cfg.AdminOrigins,
+			Frontend:   cfg.FrontendOrigin,
+			AdminToken: cfg.AdminAPIToken,
+		}),
 		ReadHeaderTimeout: readHeaderTimeout,
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,

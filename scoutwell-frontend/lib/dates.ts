@@ -1,17 +1,9 @@
+import { LOCALE } from "./config";
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const LOCALE = "en-US";
 
 export function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-export function daysFromToday(offset: number, now = new Date()) {
-  const today = startOfDay(now);
-  return new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset);
-}
-
-export function isoDaysFromToday(offset: number, now = new Date()) {
-  return daysFromToday(offset, now).toISOString();
 }
 
 export function daysBetween(from: Date, to: Date) {
@@ -24,10 +16,7 @@ export function addDays(iso: string, days: number) {
   return date.toISOString();
 }
 
-export function isSameLocalDay(iso: string, now = new Date()) {
-  return daysBetween(new Date(iso), now) === 0;
-}
-
+/** "Today", "Yesterday", "In 3 days", "5 days ago". */
 export function relativeDay(iso: string, now = new Date()) {
   const diff = daysBetween(now, new Date(iso));
   if (diff === 0) return "Today";
@@ -36,9 +25,30 @@ export function relativeDay(iso: string, now = new Date()) {
   return diff > 0 ? `In ${diff} days` : `${-diff} days ago`;
 }
 
-export function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(LOCALE, {
+/** "Sep 28" this year, "Sep 28, 2025" otherwise. */
+export function formatDay(iso: string, now = new Date()) {
+  const date = new Date(iso);
+  return date.toLocaleDateString(LOCALE, {
     month: "short",
     day: "numeric",
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
   });
+}
+
+/** "Sep 28, 3:04 PM". */
+export function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString(LOCALE, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** Time of day greeting for a header. */
+export function greeting(now = new Date()) {
+  const hour = now.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }

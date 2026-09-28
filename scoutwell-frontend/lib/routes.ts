@@ -12,10 +12,17 @@ export const ROUTES = {
   payouts: "/payouts",
   notifications: "/notifications",
   account: "/account",
+  developers: "/developers",
 } as const;
 
 export function signInHref(path: string) {
   return `${ROUTES.signIn}?next=${encodeURIComponent(path)}`;
+}
+
+/** Only same-site paths; anything else lands on the dashboard. */
+export function safeNextPath(value: string | null | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return ROUTES.dashboard;
+  return value;
 }
 
 export type PageLink = {
@@ -27,7 +34,7 @@ export type PageLink = {
 export const DASHBOARD_PAGE: PageLink = {
   href: ROUTES.dashboard,
   label: "Overview",
-  description: "How your jobs are performing today.",
+  description: "How your jobs are performing.",
 };
 
 export const SUBMIT_PAGE: PageLink = {
@@ -38,41 +45,42 @@ export const SUBMIT_PAGE: PageLink = {
 
 export const SUBMISSIONS_PAGE: PageLink = {
   href: ROUTES.submissions,
-  label: "My submissions",
-  description: "Status, applications, interviews, and hires per job.",
+  label: "Submissions",
+  description: "Status, checks, and outcomes for every job you sent.",
 };
 
 export const EARNINGS_PAGE: PageLink = {
   href: ROUTES.earnings,
   label: "Earnings",
-  description: "Held, released, and paid rewards.",
+  description: "Held, available, and paid rewards.",
 };
 
 export const LEVEL_PAGE: PageLink = {
   href: ROUTES.level,
   label: "Level & limits",
-  description: "Daily cap, quality metrics, and the next level.",
+  description: "Your daily limit, quality bars, and the next level.",
 };
 
 export const PAYOUTS_PAGE: PageLink = {
   href: ROUTES.payouts,
   label: "Payouts",
-  description: "Tax info, payout method, and transfers.",
+  description: "Verification, tax details, payout method, and transfers.",
 };
 
 export const NOTIFICATIONS_PAGE: PageLink = {
   href: ROUTES.notifications,
   label: "Notifications",
-  description: "Submission decisions, rewards, and level changes.",
+  description: "Decisions, rewards, and level changes.",
 };
 
 export const ACCOUNT_PAGE: PageLink = {
   href: ROUTES.account,
   label: "Account",
-  description: "Profile, verification, and demo data.",
+  description: "Your name and what we notify you about.",
 };
 
-export function safeNextPath(value: string | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return ROUTES.dashboard;
-  return value;
-}
+export const DEVELOPERS_PAGE: PageLink = {
+  href: ROUTES.developers,
+  label: "API access",
+  description: "Keys and docs for submitting jobs from your own systems.",
+};

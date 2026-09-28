@@ -1,37 +1,11 @@
-@import "tailwindcss";
+@import "@openseat/design-system/styles/openseat.css";
 
-:root {
-  --paper: #f3f0e8;
-  --surface: #fffcf6;
-  --ink: #1a1814;
-  --muted: #6f675e;
-  --line: #e3dcd0;
-  --sidebar: #171512;
-  --sidebar-muted: #a39b90;
-  --accent: #0c6b52;
-  --accent-soft: #e5f4ee;
-  --danger: #8f2d2d;
-  --danger-soft: #f8e8e8;
-}
-
-@theme inline {
-  --color-paper: var(--paper);
-  --color-surface: var(--surface);
-  --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-muted: var(--sidebar-muted);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-danger: var(--danger);
-  --color-danger-soft: var(--danger-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+html,
 body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-sans), sans-serif;
+  height: 100%;
+  font-family: var(--font-family-body);
+}
+
+html {
+  scrollbar-gutter: stable;
 }

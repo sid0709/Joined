@@ -41,6 +41,27 @@
         "typescript": "catalog:",
       },
     },
+    "opened-admin": {
+      "name": "opened-admin",
+      "version": "0.1.0",
+      "dependencies": {
+        "@openseat/design-system": "workspace:*",
+        "@openseat/scout": "workspace:*",
+        "next": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "eslint": "catalog:",
+        "eslint-config-next": "catalog:",
+        "tailwindcss": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "opened-frontend": {
       "name": "opened-frontend",
       "version": "0.1.0",
@@ -106,11 +127,22 @@
         "react-dom": ">=19",
       },
     },
+    "packages/scout": {
+      "name": "@openseat/scout",
+      "version": "0.1.0",
+      "dependencies": {
+        "@openseat/design-system": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
     "scoutwell-frontend": {
       "name": "scoutwell-frontend",
       "version": "0.1.0",
       "dependencies": {
         "@openseat/design-system": "workspace:*",
+        "@openseat/scout": "workspace:*",
         "next": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
@@ -520,6 +552,8 @@
     "@nuxtjs/color-mode": ["@nuxtjs/color-mode@4.0.1", "", { "dependencies": { "@nuxt/kit": "^4.4.6", "exsolve": "^1.0.8", "pathe": "^2.0.3", "pkg-types": "^2.3.1", "semver": "^7.8.1" } }, "sha512-eiA7hWXi5zNHaYKyJFCGF6i0wFZtuvR7KDXZ6jiSvwxjCpRFwphrw0MOSmNfArTSSsT1wpW+/2H92cejeVfUlg=="],
 
     "@openseat/design-system": ["@openseat/design-system@workspace:packages/design-system"],
+
+    "@openseat/scout": ["@openseat/scout@workspace:packages/scout"],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
@@ -1678,6 +1712,8 @@
     "onetime": ["onetime@6.0.0", "", { "dependencies": { "mimic-fn": "^4.0.0" } }, "sha512-1FlR+gjXK7X+AsAHso35MnyN5KqGwJRi/31ft6x0M194ht7S+rWAvd7PHss9xSKMzE0asv1pyIHaJYq+BbacAQ=="],
 
     "open": ["open@8.4.2", "", { "dependencies": { "define-lazy-prop": "^2.0.0", "is-docker": "^2.1.1", "is-wsl": "^2.2.0" } }, "sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ=="],
+
+    "opened-admin": ["opened-admin@workspace:opened-admin"],
 
     "opened-frontend": ["opened-frontend@workspace:opened-frontend"],
 

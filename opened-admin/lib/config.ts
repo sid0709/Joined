@@ -1,7 +1,7 @@
-export function adminApiUrl(): string {
-  const url = process.env.NEXT_PUBLIC_ADMIN_API_URL;
-  if (!url) {
-    throw new Error("NEXT_PUBLIC_ADMIN_API_URL is not set");
-  }
-  return url.replace(/\/$/, "");
-}
+export const BRAND = "Opened Admin";
+
+/** Browser calls go through this same-origin proxy, which adds the admin token. */
+export const API_PROXY = "/api/opened";
+
+/** How long list searches wait after typing stops. */
+export const SEARCH_DEBOUNCE_MS = 300;

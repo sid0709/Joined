@@ -390,3 +390,72 @@ func (s *Store) companyByID(ctx context.Context, id string) (Company, string, er
 func (s *Store) collection(name string) *mongo.Collection {
 	return s.client.Database(s.db).Collection(name)
 }
+
+const userSearchLimit = 200
+
+// Users returns accounts by id; missing ids are left out.
+func (s *Store) Users(ctx context.Context, ids []string) (map[string]User, error) {
+	users := make(map[string]User, len(ids))
+	if len(ids) == 0 {
+		return users, nil
+	}
+	cursor, err := s.collection(usersCollection).Find(ctx, bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}},
+		options.Find().SetProjection(bson.D{{Key: "id", Value: 1}, {Key: "name", Value: 1}, {Key: "email", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var doc storedUser
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		users[doc.ID] = User{ID: doc.ID, Name: doc.Name, Email: doc.Email}
+	}
+	return users, cursor.Err()
+}
+
+// SearchUserIDs finds account ids whose name or email contains query.
+func (s *Store) SearchUserIDs(ctx context.Context, query string) ([]string, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, nil
+	}
+	pattern := bson.D{{Key: "$regex", Value: regexp.QuoteMeta(query)}, {Key: "$options", Value: "i"}}
+	cursor, err := s.collection(usersCollection).Find(ctx, bson.D{{Key: "$or", Value: bson.A{
+		bson.D{{Key: "name", Value: pattern}},
+		bson.D{{Key: "email", Value: pattern}},
+	}}}, options.Find().SetLimit(userSearchLimit).SetProjection(bson.D{{Key: "id", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	ids := []string{}
+	for cursor.Next(ctx) {
+		var doc struct {
+			ID string `bson:"id"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		ids = append(ids, doc.ID)
+	}
+	return ids, cursor.Err()
+}
+
+// SessionUserID resolves a bearer token to its user id with one lookup, for
+// callers that do not need the user's name or company.
+func (s *Store) SessionUserID(ctx context.Context, token string, now time.Time) (string, error) {
+	if token == "" {
+		return "", ErrInvalidLogin
+	}
+	var record storedSession
+	err := s.collection(sessionsCollection).FindOne(ctx, bson.D{{Key: "tokenHash", Value: hashToken(token)}}).Decode(&record)
+	if errors.Is(err, mongo.ErrNoDocuments) || (err == nil && !record.ExpiresAt.After(now)) {
+		return "", ErrInvalidLogin
+	}
+	if err != nil {
+		return "", err
+	}
+	return record.UserID, nil
+}

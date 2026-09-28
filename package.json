@@ -7,6 +7,7 @@
       "connected-frontend",
       "openseat-theme",
       "opened-frontend",
+      "opened-admin",
       "scoutwell-frontend",
       "packages/*"
     ],
@@ -47,7 +48,7 @@
   "scripts": {
     "dev": "bun tools/dev-all.mjs",
     "dev:opened": "bun --filter opened-frontend dev",
-    "dev:admin": "bun --cwd opened-admin dev",
+    "dev:admin": "bun --filter opened-admin dev",
     "dev:admin-api": "go run -C opened-backend ./cmd/server",
     "dev:app": "bun --filter connected-frontend dev",
     "dev:theme": "bun --filter openseat-theme dev",
@@ -57,6 +58,7 @@
     "build:app": "bun --filter connected-frontend build",
     "build:theme": "bun --filter openseat-theme build",
     "build:scout": "bun --filter scoutwell-frontend build",
+    "build:admin": "bun --filter opened-admin build",
     "audit": "bun tools/unlighthouse.mjs --disable-dynamic-sampling",
     "audit:opened": "bun tools/unlighthouse.mjs --site http://localhost:3102 --disable-dynamic-sampling",
     "audit:opened:company": "bun tools/unlighthouse.mjs --site http://localhost:3102/company --disable-dynamic-sampling",
@@ -66,6 +68,7 @@
     "start:opened": "bun --filter opened-frontend start",
     "start:app": "bun --filter connected-frontend start",
     "start:theme": "bun --filter openseat-theme start",
+    "start:admin": "bun --filter opened-admin start",
     "lint": "bun run lint:workspaces && bun run lint:repo",
     "lint:workspaces": "turbo run lint",
     "lint:repo": "eslint eslint.config.mjs eslint.shared.mjs commitlint.config.mjs tools tests --max-warnings=0",

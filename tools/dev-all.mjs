@@ -36,7 +36,7 @@ const services = [
     color: "\x1b[33m",
     url: "http://localhost:3010",
     command: "bun",
-    args: ["--cwd", "opened-admin", "dev"],
+    args: ["--filter", "opened-admin", "dev"],
   },
   {
     name: "api",

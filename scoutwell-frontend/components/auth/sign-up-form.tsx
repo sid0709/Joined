@@ -12,48 +12,66 @@ import {
   Text,
   TextInput,
 } from "@openseat/design-system";
+import { ApiError } from "@openseat/scout";
 import { ROUTES } from "@/lib/routes";
-import { useScout } from "@/lib/scout-store";
+import { authSend } from "@/lib/scout/client";
 
+/** The API's password rule, echoed so people see it before they submit. */
 const MIN_PASSWORD = 8;
 
 export function SignUpForm() {
   const router = useRouter();
-  const scout = useScout();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const submit = () => {
-    const result = scout.signUp({ name, email, passwordText: password });
-    if (!result.ok) {
-      setError(result.error);
-      return;
+  const submit = async () => {
+    setError("");
+    try {
+      await authSend("signup", { name, email, password });
+      router.replace(ROUTES.onboarding);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not create the account.");
     }
-    router.push(ROUTES.onboarding);
   };
 
   return (
-    <Card padding={6}>
-      <Stack gap={5}>
+    <Card padding={8}>
+      <Stack gap={6}>
         <Stack gap={1}>
           <Heading level={1}>Become a scout</Heading>
           <Text color="secondary" display="block">
-            Submit official job links. You are paid when those jobs produce interviews, hires, and
-            paying companies — never for volume.
+            Find official openings the big boards miss. Earn when job hunters actually use them.
           </Text>
         </Stack>
         {error ? <Banner status="error" title={error} /> : null}
-        <TextInput label="Full name" value={name} onChange={setName} isRequired />
-        <TextInput label="Email" type="email" value={email} onChange={setEmail} isRequired />
-        <TextInput
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          description={`At least ${MIN_PASSWORD} characters. Stored only in this browser.`}
-        />
+        <Stack gap={4}>
+          <TextInput
+            label="Full name"
+            value={name}
+            onChange={setName}
+            autoComplete="name"
+            hasAutoFocus
+          />
+          <TextInput
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            autoComplete="email"
+          />
+          <TextInput
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            autoComplete="new-password"
+            description={`At least ${MIN_PASSWORD} characters.`}
+            onEnter={() => void submit()}
+          />
+        </Stack>
         <Button
           label="Create account"
           variant="primary"

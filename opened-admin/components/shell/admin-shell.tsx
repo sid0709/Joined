@@ -1,27 +1,56 @@
-import Link from "next/link";
-import { JobsNav } from "@/components/shell/jobs-nav";
+import type { ReactNode } from "react";
+import {
+  AppShell,
+  PageContainer,
+  ThemeToggle,
+  TopNav,
+  TopNavHeading,
+  Badge,
+} from "@openseat/design-system";
+import type { Overview } from "@openseat/scout";
+import { BRAND } from "@/lib/config";
+import { ROUTES } from "@/lib/nav";
+import { ConsoleNav, type NavCounts } from "./console-nav";
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+const CONTENT_PADDING = 6;
+
+function counts(overview: Overview | null): NavCounts {
+  if (!overview) return {};
+  return {
+    queue: overview.needs_review,
+    verifications: overview.pending_verifications,
+    payouts: overview.pending_payouts,
+  };
+}
+
+/** Top bar, staff navigation, and the centered content column. */
+export function AdminShell({
+  overview,
+  children,
+}: {
+  overview: Overview | null;
+  children: ReactNode;
+}) {
   return (
-    <div className="flex min-h-screen bg-paper">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-black/10 bg-sidebar px-4 py-6 md:flex">
-        <Link href="/jobs/temp" className="px-2">
-          <span className="block text-lg font-semibold tracking-tight text-surface">Opened</span>
-          <span className="block text-xs text-sidebar-muted">Admin</span>
-        </Link>
-        <div className="mt-8">
-          <JobsNav />
-        </div>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
-          <Link href="/jobs/temp" className="font-semibold tracking-tight">
-            Opened Admin
-          </Link>
-          <JobsNav horizontal />
-        </header>
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
-    </div>
+    <AppShell
+      variant="wash"
+      contentPadding={CONTENT_PADDING}
+      topNav={
+        <TopNav
+          label={BRAND}
+          heading={
+            <TopNavHeading
+              heading={BRAND}
+              headingHref={ROUTES.scouting}
+              headerEndContent={<Badge label="Staff" variant="neutral" />}
+            />
+          }
+          endContent={<ThemeToggle />}
+        />
+      }
+      sideNav={<ConsoleNav counts={counts(overview)} />}
+    >
+      <PageContainer width="wide">{children}</PageContainer>
+    </AppShell>
   );
 }

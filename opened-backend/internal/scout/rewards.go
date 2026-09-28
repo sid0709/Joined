@@ -1,0 +1,173 @@
+package scout
+
+import (
+	"math"
+	"time"
+)
+
+// Reward amounts are assumptions from docs/50-pricing-and-revenue.md#scouts.
+const (
+	// HoldDays applies to approval and hire rewards before they release.
+	HoldDays = 14
+	// MinPayoutCents is the smallest payout a scout can request.
+	MinPayoutCents = 2500
+	// MajorBoardApprovalShare scales the approval reward for jobs already on major boards.
+	MajorBoardApprovalShare = 0.5
+	// ConversionShare is the scout's share of a claimed company's interview fees.
+	ConversionShare = 0.1
+)
+
+var interviewRewardCents = map[string]int64{
+	SeniorityEntry:  400,
+	SeniorityMid:    750,
+	SenioritySenior: 1500,
+}
+
+var hireRewardCents = map[string]int64{
+	SeniorityEntry:  2500,
+	SeniorityMid:    5000,
+	SenioritySenior: 10000,
+}
+
+// RewardTable is shown on the scout level and earnings pages.
+type RewardTable struct {
+	HoldDays                int              `json:"hold_days"`
+	MinPayout               Money            `json:"min_payout"`
+	InterviewBySeniority    map[string]Money `json:"interview_by_seniority"`
+	HireBySeniority         map[string]Money `json:"hire_by_seniority"`
+	MajorBoardApprovalShare float64          `json:"major_board_approval_share"`
+	ConversionShare         float64          `json:"conversion_share"`
+}
+
+// Rewards returns the reward table.
+func Rewards() RewardTable {
+	return RewardTable{
+		HoldDays:                HoldDays,
+		MinPayout:               cents(MinPayoutCents),
+		InterviewBySeniority:    moneyMap(interviewRewardCents),
+		HireBySeniority:         moneyMap(hireRewardCents),
+		MajorBoardApprovalShare: MajorBoardApprovalShare,
+		ConversionShare:         ConversionShare,
+	}
+}
+
+// ApprovalReward is paid when a trusted+ scout's job is published.
+func ApprovalReward(level string, onMajorBoards bool) Money {
+	base := Rule(level).ApprovalReward.AmountCents
+	if base <= 0 {
+		return cents(0)
+	}
+	if onMajorBoards {
+		return cents(int64(math.Round(float64(base) * MajorBoardApprovalShare)))
+	}
+	return cents(base)
+}
+
+// InterviewReward is paid when an interview on the scout's job settles.
+func InterviewReward(level, seniority string) Money {
+	base := interviewRewardCents[normalizeSeniority(seniority)]
+	return cents(int64(math.Round(float64(base) * Rule(level).InterviewMultiplier)))
+}
+
+// HireReward is paid when a hire on the scout's job is confirmed.
+func HireReward(seniority string) Money {
+	return cents(hireRewardCents[normalizeSeniority(seniority)])
+}
+
+// HoldUntil is when a reward created at t releases.
+func HoldUntil(t time.Time) time.Time {
+	return t.Add(HoldDays * 24 * time.Hour)
+}
+
+// Balance sums a scout's earnings by status.
+type Balance struct {
+	Held       Money `json:"held"`
+	Released   Money `json:"released"`
+	Processing Money `json:"processing"`
+	Paid       Money `json:"paid"`
+	ClawedBack Money `json:"clawed_back"`
+	Lifetime   Money `json:"lifetime"`
+}
+
+// ComputeBalance sums earnings; released means available to pay out.
+func ComputeBalance(earnings []Earning) Balance {
+	var held, released, processing, paid, clawed int64
+	for _, e := range earnings {
+		switch e.Status {
+		case EarningHeld:
+			held += e.Amount.AmountCents
+		case EarningReleased:
+			released += e.Amount.AmountCents
+		case EarningProcessing:
+			processing += e.Amount.AmountCents
+		case EarningPaid:
+			paid += e.Amount.AmountCents
+		case EarningClawedBack:
+			clawed += e.Amount.AmountCents
+		}
+	}
+	return Balance{
+		Held:       cents(held),
+		Released:   cents(released),
+		Processing: cents(processing),
+		Paid:       cents(paid),
+		ClawedBack: cents(clawed),
+		Lifetime:   cents(held + released + processing + paid),
+	}
+}
+
+// PayoutReadiness lists what still blocks a payout request.
+type PayoutReadiness struct {
+	Ready    bool     `json:"ready"`
+	Blockers []string `json:"blockers"`
+}
+
+// CheckPayout applies the payout rules: verified identity, tax info, a payout
+// method, and at least the minimum released balance.
+func CheckPayout(p Profile, released int64) PayoutReadiness {
+	blockers := []string{}
+	if p.Verification != VerificationVerified {
+		blockers = append(blockers, "Verify your identity (tier 2)")
+	}
+	if p.TaxInfo == nil {
+		blockers = append(blockers, "Add tax information")
+	}
+	if p.PayoutMethod == nil {
+		blockers = append(blockers, "Add a payout method")
+	}
+	if released < MinPayoutCents {
+		blockers = append(blockers, "Reach the minimum released balance")
+	}
+	return PayoutReadiness{Ready: len(blockers) == 0, Blockers: blockers}
+}
+
+// Tier maps profile facts to the identity tiers in docs/10-identity-and-accounts.md.
+func Tier(p Profile) int {
+	switch {
+	case p.Verification == VerificationVerified:
+		return 2
+	case p.TermsAcceptedAt != nil:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func cents(amount int64) Money { return Money{AmountCents: amount, Currency: Currency} }
+
+func moneyMap(values map[string]int64) map[string]Money {
+	out := make(map[string]Money, len(values))
+	for key, value := range values {
+		out[key] = cents(value)
+	}
+	return out
+}
+
+func normalizeSeniority(value string) string {
+	switch value {
+	case SeniorityEntry, SeniorityMid, SenioritySenior:
+		return value
+	default:
+		return SeniorityMid
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
 )
 
 const (
@@ -24,20 +25,39 @@ const (
 )
 
 type Server struct {
-	store    *jobs.Store
-	auth     *auth.Store
-	people   *candidate.Store
-	reader   jobs.ModelReader
-	origins  map[string]struct{}
-	frontend string
+	store      *jobs.Store
+	auth       *auth.Store
+	people     *candidate.Store
+	scouts     *scout.Store
+	reader     jobs.ModelReader
+	origins    map[string]struct{}
+	frontend   string
+	adminToken string
 }
 
-func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reader jobs.ModelReader, origins []string, frontend string) http.Handler {
-	allowed := make(map[string]struct{}, len(origins))
-	for _, origin := range origins {
+// Options are the HTTP server's settings.
+type Options struct {
+	Origins  []string
+	Frontend string
+	// AdminToken, when set, is required as a bearer token on staff endpoints.
+	AdminToken string
+}
+
+func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scouts *scout.Store, reader jobs.ModelReader, opts Options) http.Handler {
+	allowed := make(map[string]struct{}, len(opts.Origins))
+	for _, origin := range opts.Origins {
 		allowed[origin] = struct{}{}
 	}
-	server := &Server{store: store, auth: accounts, people: people, reader: reader, origins: allowed, frontend: frontend}
+	server := &Server{
+		store:      store,
+		auth:       accounts,
+		people:     people,
+		scouts:     scouts,
+		reader:     reader,
+		origins:    allowed,
+		frontend:   opts.Frontend,
+		adminToken: opts.AdminToken,
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/auth/signup", server.signup)
 	mux.HandleFunc("POST /v1/auth/signin", server.signin)
@@ -47,20 +67,20 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reade
 	mux.HandleFunc("POST /v1/auth/company", server.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", server.searchCompanies)
 	mux.HandleFunc("GET /health", server.health)
-	mux.HandleFunc("GET /v1/settings", server.settings)
-	mux.HandleFunc("GET /v1/jobs/temp", server.listTempJobs)
-	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.getTempJob)
-	mux.HandleFunc("PATCH /v1/jobs/temp/{id}", server.updateTempJob)
-	mux.HandleFunc("POST /v1/jobs/temp/sync", server.syncTempJobs)
-	mux.HandleFunc("GET /v1/companies", server.listCompanies)
-	mux.HandleFunc("GET /v1/companies/{id}", server.getAdminCompany)
-	mux.HandleFunc("PATCH /v1/companies/{id}", server.updateCompany)
-	mux.HandleFunc("POST /v1/companies/{id}/logo", server.uploadCompanyLogo)
-	mux.HandleFunc("DELETE /v1/companies/{id}/logo", server.deleteCompanyLogo)
-	mux.HandleFunc("GET /v1/jobs", server.listSearchJobs)
-	mux.HandleFunc("POST /v1/jobs/analyze", server.analyzeJob)
-	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
-	mux.HandleFunc("PATCH /v1/jobs/{id}", server.updateSearchJob)
+	mux.HandleFunc("GET /v1/settings", server.admin(server.settings))
+	mux.HandleFunc("GET /v1/jobs/temp", server.admin(server.listTempJobs))
+	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.admin(server.getTempJob))
+	mux.HandleFunc("PATCH /v1/jobs/temp/{id}", server.admin(server.updateTempJob))
+	mux.HandleFunc("POST /v1/jobs/temp/sync", server.admin(server.syncTempJobs))
+	mux.HandleFunc("GET /v1/companies", server.admin(server.listCompanies))
+	mux.HandleFunc("GET /v1/companies/{id}", server.admin(server.getAdminCompany))
+	mux.HandleFunc("PATCH /v1/companies/{id}", server.admin(server.updateCompany))
+	mux.HandleFunc("POST /v1/companies/{id}/logo", server.admin(server.uploadCompanyLogo))
+	mux.HandleFunc("DELETE /v1/companies/{id}/logo", server.admin(server.deleteCompanyLogo))
+	mux.HandleFunc("GET /v1/jobs", server.admin(server.listSearchJobs))
+	mux.HandleFunc("POST /v1/jobs/analyze", server.admin(server.analyzeJob))
+	mux.HandleFunc("GET /v1/jobs/{id}", server.admin(server.getSearchJob))
+	mux.HandleFunc("PATCH /v1/jobs/{id}", server.admin(server.updateSearchJob))
 	mux.HandleFunc("GET /v1/search/jobs", server.listSearchCatalog)
 	mux.HandleFunc("GET /v1/search/jobs/{id}", server.getSearchCatalogJob)
 	mux.HandleFunc("GET /v1/search/companies/{id}/logo", server.getCompanyLogo)
@@ -90,6 +110,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reade
 	mux.HandleFunc("GET /v1/company/threads/{id}", server.getCompanyThread)
 	mux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
 	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
+	server.registerScout(mux)
+	server.registerScoutAdmin(mux)
 	return server.withCORS(mux)
 }
 
@@ -477,7 +499,8 @@ func (s *Server) withCORS(next http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, Idempotency-Key, X-Admin-Actor")
+				w.Header().Set("Access-Control-Expose-Headers", "RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After, Location, Idempotent-Replayed")
 			}
 		}
 		if r.Method == http.MethodOptions {

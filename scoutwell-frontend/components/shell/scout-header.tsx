@@ -9,34 +9,39 @@ import {
   TopNavHeading,
   TopNavItem,
 } from "@openseat/design-system";
+import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
-import { useScout } from "@/lib/scout-store";
-import { ownedBy } from "@/lib/stats";
 import { AccountMenu } from "./account-menu";
 
-export function ScoutHeader() {
+/** The product bar. Signed out it sells; signed in it puts Submit and notifications in reach. */
+export function ScoutHeader({
+  user = null,
+  levelLabel = "",
+  unread = 0,
+}: {
+  user?: SessionUser | null;
+  levelLabel?: string;
+  unread?: number;
+}) {
   const pathname = usePathname();
-  const { user, state } = useScout();
-  const unread = user
-    ? ownedBy(state.notifications, user.id).filter((item) => item.unread).length
-    : 0;
+  const heading = (
+    <TopNavHeading
+      heading={BRAND}
+      headingHref={user ? ROUTES.dashboard : ROUTES.home}
+      headerEndContent={<Badge label="Scouts" variant="blue" />}
+    />
+  );
 
   if (!user) {
     return (
       <TopNav
         label={BRAND}
-        heading={
-          <TopNavHeading
-            heading={BRAND}
-            headingHref={ROUTES.home}
-            headerEndContent={<Badge label="Scouts" variant="blue" />}
-          />
-        }
+        heading={heading}
         endContent={
           <>
             <ThemeToggle />
-            <Button label="Sign in" variant="secondary" size="sm" href={ROUTES.signIn} />
+            <Button label="Sign in" variant="ghost" size="sm" href={ROUTES.signIn} />
             <Button label="Become a scout" variant="primary" size="sm" href={ROUTES.signUp} />
           </>
         }
@@ -47,24 +52,18 @@ export function ScoutHeader() {
   return (
     <TopNav
       label={BRAND}
-      heading={
-        <TopNavHeading
-          heading={BRAND}
-          headingHref={ROUTES.dashboard}
-          headerEndContent={<Badge label="Scouts" variant="blue" />}
-        />
-      }
+      heading={heading}
       endContent={
         <>
           <Button label="Submit a job" variant="primary" size="sm" href={ROUTES.submit} />
           <TopNavItem
-            label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+            label="Notifications"
             href={ROUTES.notifications}
             isSelected={pathname === ROUTES.notifications}
           />
-          {unread > 0 ? <Badge label={String(unread)} variant="info" /> : null}
+          {unread > 0 ? <Badge label={`${unread} new`} variant="info" /> : null}
           <ThemeToggle />
-          <AccountMenu />
+          <AccountMenu user={user} levelLabel={levelLabel} />
         </>
       }
     />

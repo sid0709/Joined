@@ -1,4 +1,4 @@
-import { adminApiUrl } from "@/lib/config";
+import { API_PROXY } from "@/lib/config";
 
 export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
@@ -133,7 +133,7 @@ export function companyLogoSrc(
   const logo = company.logo?.trim();
   if (!logo && !company.hasLogoFile) return undefined;
   if (logo && !isLinkedInLogoHost(logo)) return logo;
-  const base = `${adminApiUrl()}/v1/search/companies/${encodeURIComponent(company.id)}/logo`;
+  const base = `${API_PROXY}/v1/search/companies/${encodeURIComponent(company.id)}/logo`;
   return `${base}?v=${version}`;
 }
 

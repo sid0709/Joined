@@ -194,6 +194,16 @@ func payFromHint(text string) (extractedPay, bool) {
 	return extractedPay{Min: min, Max: max, Currency: currency, Period: period}, true
 }
 
+// ParsePayText reads a pay range from loose text ("$120K - $150K a year").
+// ok is false when no range is found.
+func ParsePayText(text string) (Pay, bool) {
+	hinted, ok := payFromHint(text)
+	if !ok {
+		return Pay{}, false
+	}
+	return normalizePay(hinted, ""), true
+}
+
 func parsePayNumber(raw string, thousands bool) float64 {
 	cleaned := strings.ReplaceAll(raw, ",", "")
 	value, err := strconv.ParseFloat(cleaned, 64)

@@ -38,6 +38,7 @@ type storedSearchJob struct {
 	Model      string        `bson:"model"`
 	CreatedBy  string        `bson:"createdBy,omitempty"`
 	Source     string        `bson:"source,omitempty"`
+	SourceRef  string        `bson:"sourceRef,omitempty"`
 	Job        SearchJob     `bson:"job"`
 }
 
@@ -376,7 +377,8 @@ func (s *Store) pendingCount(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	structured, err := s.structured().CountDocuments(ctx, bson.D{})
+	// Scouted jobs are published without a temp job, so only count analyzed temp jobs.
+	structured, err := s.structured().CountDocuments(ctx, bson.D{{Key: "tempJobId", Value: bson.D{{Key: "$gt", Value: ""}}}})
 	if err != nil {
 		return 0, err
 	}

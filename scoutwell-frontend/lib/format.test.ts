@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { clampPercent, formatCount, parseTags, percent } from "./format";
+import { formatCount, parseList, parseTags, progressTo, sourceLabel } from "./format";
 
 describe("format", () => {
   it("picks singular or plural labels", () => {
@@ -8,13 +8,22 @@ describe("format", () => {
     expect(formatCount(3, "job")).toBe("3 jobs");
   });
 
-  it("computes percents safely", () => {
-    expect(percent(1, 4)).toBe(25);
-    expect(percent(1, 0)).toBe(0);
-    expect(clampPercent(140)).toBe(100);
+  it("clamps progress toward a goal", () => {
+    expect(progressTo(15, 30)).toBe(50);
+    expect(progressTo(45, 30)).toBe(100);
+    expect(progressTo(3, 0)).toBe(100);
   });
 
   it("dedupes comma-separated tags", () => {
     expect(parseTags(" Remote, visa, remote ")).toEqual(["remote", "visa"]);
+  });
+
+  it("dedupes skills but keeps their spelling", () => {
+    expect(parseList("Go, Kubernetes , go,")).toEqual(["Go", "Kubernetes"]);
+  });
+
+  it("names the ATS when known", () => {
+    expect(sourceLabel("jobs.lever.co", "Lever")).toBe("Lever · jobs.lever.co");
+    expect(sourceLabel("acme.com")).toBe("acme.com");
   });
 });
