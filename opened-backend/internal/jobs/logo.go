@@ -24,28 +24,49 @@ const (
 
 var logoClient = &http.Client{Timeout: logoFetchTimeout}
 
-// OpenCompanyLogo serves a company mark. Stored logos are usually on LinkedIn,
-// which refuses hotlinking (and refuses this server too), so a failed fetch
-// falls back to the icon for the company website.
+// OpenCompanyLogo serves a company mark. The current logo URL wins when it is
+// not a LinkedIn file (those refuse hotlinking). A stored upload is used for
+// LinkedIn URLs and when no URL is set. A failed fetch falls back to the site icon.
 func (s *Store) OpenCompanyLogo(ctx context.Context, id string) (io.ReadCloser, string, error) {
 	doc, err := s.storedCompanyByID(ctx, id)
 	if err != nil {
 		return nil, "", err
 	}
-	if doc.LogoFile.ContentType != "" && len(doc.LogoFile.Data) > 0 {
+	company := doc.publicCompany()
+	logo, logoErr := safeLogoURL(company.Logo)
+	linkedin := logoErr == nil && linkedInLogoHost(logo.Hostname())
+	if hasLogoFile(doc.LogoFile) && (logoErr != nil || linkedin) {
 		return io.NopCloser(bytes.NewReader(doc.LogoFile.Data)), doc.LogoFile.ContentType, nil
 	}
-	company := doc.publicCompany()
-	if logo, err := safeLogoURL(company.Logo); err == nil {
-		body, contentType, fetchErr := fetchImage(ctx, logo, logoReferer)
+	if logoErr == nil {
+		body, contentType, fetchErr := fetchImage(ctx, logo, logoFetchReferer(logo.Hostname()))
 		if fetchErr == nil {
 			return body, contentType, nil
 		}
 	}
 	if icon, err := faviconURL(company.URL); err == nil {
-		return fetchImage(ctx, icon, "")
+		body, contentType, fetchErr := fetchImage(ctx, icon, "")
+		if fetchErr == nil {
+			return body, contentType, nil
+		}
 	}
 	return nil, "", ErrNotFound
+}
+
+func hasLogoFile(file logoFile) bool {
+	return file.ContentType != "" && len(file.Data) > 0
+}
+
+func linkedInLogoHost(host string) bool {
+	host = strings.ToLower(host)
+	return host == "linkedin.com" || strings.HasSuffix(host, ".linkedin.com") || host == "licdn.com" || strings.HasSuffix(host, ".licdn.com")
+}
+
+func logoFetchReferer(host string) string {
+	if linkedInLogoHost(host) {
+		return logoReferer
+	}
+	return ""
 }
 
 func fetchImage(ctx context.Context, target *url.URL, referer string) (io.ReadCloser, string, error) {

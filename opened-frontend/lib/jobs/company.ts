@@ -58,12 +58,23 @@ export type PresentedCompany = {
 export function companyFromJob(job: Job): PublicCompany | null {
   const id = job.companyId?.trim();
   if (!id) return null;
+  if (job.companyProfile) {
+    return {
+      ...job.companyProfile,
+      id,
+      name: job.companyProfile.name?.trim() || job.company,
+    };
+  }
   return {
     id,
     name: job.company,
     url: job.companyUrl?.trim() || undefined,
     logo: job.companyLogo?.trim() || undefined,
   };
+}
+
+export function jobHasLogoFile(job: Job) {
+  return Boolean(job.companyProfile?.hasLogoFile);
 }
 
 export function openRolesFor(companyId: string, jobs: Job[]) {

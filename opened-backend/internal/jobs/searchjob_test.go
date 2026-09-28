@@ -77,6 +77,20 @@ func TestNormalizePayFallsBackToSalaryHint(t *testing.T) {
 	}
 }
 
+func TestCatalogJobCopiesListingProvenance(t *testing.T) {
+	got := CatalogJob(SearchRecord{
+		Job:       SearchJob{ID: "job-1", Source: aggregatedSource},
+		Source:    "Greenhouse",
+		CreatedBy: "li-job-scraper",
+	})
+	if got.Source != aggregatedSource {
+		t.Fatalf("seeker source = %q", got.Source)
+	}
+	if got.ListingSource != "Greenhouse" || got.CreatedBy != "li-job-scraper" {
+		t.Fatalf("listing = %+v", got)
+	}
+}
+
 func TestSeniorityFromHintNeverPutsStaffOrPrincipalAtSenior(t *testing.T) {
 	cases := map[string]string{
 		"Staff Software Engineer":  seniorityLeader,

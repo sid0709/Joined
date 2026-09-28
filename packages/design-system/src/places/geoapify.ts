@@ -4,7 +4,7 @@ const PLACES_LIMIT = 8;
 /** Wait until a few characters are typed before calling Geoapify. */
 export const PLACES_MIN_TEXT = 3;
 
-export type PlaceKind = "city" | "address";
+export type PlaceKind = "city" | "address" | "country";
 
 export type PlaceResult = {
   id: string;
@@ -44,7 +44,7 @@ export async function placesResponse(
     );
   }
   const url = new URL(request.url);
-  const kind: PlaceKind = url.searchParams.get("kind") === "city" ? "city" : "address";
+  const kind = placeKind(url.searchParams.get("kind"));
   const text = url.searchParams.get("text")?.trim() ?? "";
   try {
     const results = await searchPlaces(key, kind, text);
@@ -68,7 +68,7 @@ export async function searchPlaces(
   upstream.searchParams.set("format", "json");
   upstream.searchParams.set("limit", String(PLACES_LIMIT));
   upstream.searchParams.set("apiKey", apiKey);
-  if (kind === "city") upstream.searchParams.set("type", "city");
+  if (kind === "city" || kind === "country") upstream.searchParams.set("type", kind);
 
   const response = await fetch(upstream, { cache: "no-store" });
   if (!response.ok) {
@@ -80,22 +80,30 @@ export async function searchPlaces(
     .filter((hit) => hit.label.length > 0);
 }
 
+function placeKind(value: string | null): PlaceKind {
+  if (value === "city" || value === "country") return value;
+  return "address";
+}
+
 function toPlace(hit: GeoResult, kind: PlaceKind): PlaceResult {
   const city = hit.city?.trim() ?? "";
   const state = (hit.state_code || hit.state || "").trim();
   const street = [hit.housenumber, hit.street].filter(Boolean).join(" ").trim();
   const line1 = street || hit.address_line1?.trim() || "";
+  const country = hit.country?.trim() || "";
   const label =
     kind === "city"
       ? [city, state].filter(Boolean).join(", ")
-      : hit.formatted?.trim() || [line1, city, state].filter(Boolean).join(", ");
+      : kind === "country"
+        ? country || hit.formatted?.trim() || ""
+        : hit.formatted?.trim() || [line1, city, state].filter(Boolean).join(", ");
   return {
     id: hit.place_id || `${hit.lat ?? ""},${hit.lon ?? ""},${label}`,
     label,
-    line1: kind === "city" ? "" : line1,
-    city,
-    state,
-    postalCode: hit.postcode?.trim() ?? "",
-    country: hit.country?.trim() ?? "",
+    line1: kind === "city" || kind === "country" ? "" : line1,
+    city: kind === "country" ? "" : city,
+    state: kind === "country" ? "" : state,
+    postalCode: kind === "country" ? "" : (hit.postcode?.trim() ?? ""),
+    country: country || (kind === "country" ? label : ""),
   };
 }

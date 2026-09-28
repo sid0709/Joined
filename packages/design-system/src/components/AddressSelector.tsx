@@ -27,6 +27,7 @@ export function AddressSelector({
   isDisabled?: boolean;
 }) {
   const source = useMemo(() => placeSearch("address"), []);
+  const countries = useMemo(() => placeSearch("country"), []);
   const formatted = formatAddress(value);
   const set =
     <K extends keyof Address>(key: K) =>
@@ -76,11 +77,20 @@ export function AddressSelector({
         placeholder="ZIP code"
         isDisabled={isDisabled}
       />
-      <TextInput
+      <Typeahead
         label={`${label} country`}
-        value={value.country}
-        onChange={set("country")}
-        placeholder="Country"
+        searchSource={countries}
+        value={placeItem(value.country)}
+        onChange={(hit) =>
+          onChange({
+            ...value,
+            country: hit?.auxiliaryData?.country || hit?.label || "",
+          })
+        }
+        placeholder="Search countries"
+        minQueryLength={PLACES_MIN_QUERY}
+        debounceMs={PLACES_DEBOUNCE_MS}
+        emptySearchResultsText="No countries match."
         isDisabled={isDisabled}
       />
     </Stack>

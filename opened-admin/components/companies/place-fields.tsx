@@ -34,7 +34,7 @@ function stateAbbreviation(value: string) {
   return byName?.abbreviation ?? trimmed.toUpperCase();
 }
 
-function usePlaceSearch(kind: "city" | "address", query: string) {
+function usePlaceSearch(kind: "city" | "address" | "country", query: string) {
   const [results, setResults] = useState<PlaceHit[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "empty" | "error">("idle");
 
@@ -85,7 +85,7 @@ function PlaceSuggest({
   onSelect,
   selectOnFocus = false,
 }: {
-  kind: "city" | "address";
+  kind: "city" | "address" | "country";
   label: string;
   placeholder: string;
   value: string;
@@ -99,7 +99,12 @@ function PlaceSuggest({
   const [active, setActive] = useState(0);
   const [box, setBox] = useState<{ top: number; left: number; width: number } | null>(null);
   const { results, status } = usePlaceSearch(kind, open ? value : "");
-  const emptyText = kind === "city" ? "No cities match." : "No addresses match.";
+  const emptyText =
+    kind === "city"
+      ? "No cities match."
+      : kind === "country"
+        ? "No countries match."
+        : "No addresses match.";
 
   useEffect(() => {
     setActive(0);
@@ -228,10 +233,10 @@ export function AddressField({
     address.state,
   );
 
-  function update(next: Address) {
+  function update(next: Address, syncQuery = true) {
     setAddress(next);
     const formatted = formatAddress(next);
-    setQuery(formatted);
+    if (syncQuery) setQuery(formatted);
     onChange(formatted);
   }
 
@@ -303,15 +308,15 @@ export function AddressField({
             onChange={(event) => update({ ...address, postalCode: event.target.value })}
           />
         </label>
-        <label className={labelClass}>
-          <span className={labelTextClass}>Country</span>
-          <input
-            className={inputClass}
-            value={address.country}
-            placeholder="Country"
-            onChange={(event) => update({ ...address, country: event.target.value })}
-          />
-        </label>
+        <PlaceSuggest
+          kind="country"
+          label="Country"
+          placeholder="Search countries"
+          value={address.country}
+          onChange={(country) => update({ ...address, country }, false)}
+          onSelect={(hit) => update({ ...address, country: hit.country || hit.label })}
+          selectOnFocus
+        />
       </div>
     </div>
   );

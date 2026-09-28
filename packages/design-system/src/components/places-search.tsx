@@ -19,7 +19,7 @@ export type PlaceHit = Address & {
 type PlaceItem = SearchableItem<Address>;
 
 /** Geoapify autocomplete, proxied by the app so the API key stays on the server. */
-export function placeSearch(kind: "city" | "address"): SearchSource<PlaceItem> {
+export function placeSearch(kind: "city" | "address" | "country"): SearchSource<PlaceItem> {
   let controller: AbortController | null = null;
   return {
     bootstrap: () => [],

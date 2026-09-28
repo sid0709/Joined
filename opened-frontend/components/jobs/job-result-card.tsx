@@ -1,5 +1,5 @@
 import { Glyph, HStack, Stack, SelectableCard, Text, ToggleButton } from "@openseat/design-system";
-import { formatCount, formatPay, formatPosted, type Job } from "@/lib/jobs";
+import { formatCount, formatPay, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";
 import { MatchBadge } from "./match-badge";
@@ -33,7 +33,13 @@ export function JobResultCard({
       data-job-id={job.id}
     >
       <HStack gap={3} vAlign="start">
-        <CompanyLogo name={job.company} companyId={job.companyId} src={job.companyLogo} size={48} />
+        <CompanyLogo
+          name={job.company}
+          companyId={job.companyId}
+          src={job.companyLogo}
+          hasFile={jobHasLogoFile(job)}
+          size={48}
+        />
         <Stack gap={2} width="100%">
           <HStack hAlign="between" vAlign="start" gap={2}>
             <Stack gap={0.5}>

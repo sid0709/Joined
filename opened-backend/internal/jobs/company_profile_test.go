@@ -101,6 +101,15 @@ func TestPublicCompanyFoldsLegacyPerks(t *testing.T) {
 	}
 }
 
+func TestLinkedInLogoHost(t *testing.T) {
+	if !linkedInLogoHost("media.licdn.com") || !linkedInLogoHost("static.licdn.com") {
+		t.Fatal("expected LinkedIn CDN hosts")
+	}
+	if linkedInLogoHost("encrypted-tbn0.gstatic.com") || linkedInLogoHost("blacksmith.agency") {
+		t.Fatal("expected non-LinkedIn hosts to fetch as the logo URL")
+	}
+}
+
 func TestLogoContentType(t *testing.T) {
 	png := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
 	if LogoContentType(png) != "image/png" {
