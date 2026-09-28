@@ -1,9 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { SegmentedControl, SegmentedControlItem } from "@openseat/design-system";
-import { ROUTES } from "@/lib/routes";
+import { useRouter } from "next/navigation";
+
 import { SUBMISSION_FILTERS } from "./filters";
+
+import { ROUTES } from "@/lib/routes";
 
 export function StatusFilter({ value }: { value: string }) {
   const router = useRouter();

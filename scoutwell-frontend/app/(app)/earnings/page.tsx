@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import {
   Button,
   GridColumn,
@@ -21,6 +19,10 @@ import {
   type Earning,
   type List,
 } from "@openseat/scout";
+import { redirect } from "next/navigation";
+
+import type { Metadata } from "next";
+
 import { CursorPager } from "@/components/cursor-pager";
 import { EarningsTable } from "@/components/earnings/earnings-table";
 import { PAGE_LIMIT } from "@/lib/config";

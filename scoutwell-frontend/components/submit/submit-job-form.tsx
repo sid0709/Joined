@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Banner,
   Button,
@@ -39,14 +37,18 @@ import {
   type Submission,
   type Workplace,
 } from "@openseat/scout";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { CompanyField, type CompanyChoice } from "./company-field";
+import { PrecheckCard } from "./precheck-card";
+import { usePrecheck } from "./use-precheck";
+
 import { FullText } from "@/components/full-text";
 import { SUGGESTED_TAGS } from "@/lib/config";
 import { formatCount, parseList, parseTags } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
 import { scoutSend } from "@/lib/scout/client";
-import { CompanyField, type CompanyChoice } from "./company-field";
-import { PrecheckCard } from "./precheck-card";
-import { usePrecheck } from "./use-precheck";
 
 /** Blank means "let the API infer it from the title, location, and tags". */
 const INFER = "";

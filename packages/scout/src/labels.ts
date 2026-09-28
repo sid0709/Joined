@@ -1,4 +1,3 @@
-import type { BadgeVariant, BannerStatus } from "@openseat/design-system";
 import {
   EMPLOYMENT_LABEL,
   SENIORITY_LABEL,
@@ -17,6 +16,7 @@ import type {
   SubmissionStatus,
   Verification,
 } from "./types";
+import type { BadgeVariant, BannerStatus } from "@openseat/design-system";
 
 export { EMPLOYMENT_LABEL, SENIORITY_LABEL, WORKPLACE_LABEL, seniorityLabel };
 

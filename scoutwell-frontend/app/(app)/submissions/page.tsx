@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Button, Stack, PageHeader } from "@openseat/design-system";
+import { redirect } from "next/navigation";
+
 import type { List, Submission } from "@openseat/scout";
+import type { Metadata } from "next";
+
 import { CursorPager } from "@/components/cursor-pager";
 import { SUBMISSION_FILTERS } from "@/components/submissions/filters";
 import { StatusFilter } from "@/components/submissions/status-filter";

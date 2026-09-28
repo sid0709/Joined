@@ -8,6 +8,6 @@ export {
 
 export * from "./labels";
 export { formatMoney, formatRate, sumMoney } from "./money";
-export * from "./types";
 export { ApiError, parseProblem, problemMessage } from "./problem";
 export type { Problem } from "./problem";
+export * from "./types";

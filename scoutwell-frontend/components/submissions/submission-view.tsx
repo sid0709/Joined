@@ -33,6 +33,9 @@ import {
   type Earning,
   type Submission,
 } from "@openseat/scout";
+
+import { RefreshWhilePending } from "./refresh-while-pending";
+
 import {
   CheckOutcomeBadge,
   EarningStatusBadge,
@@ -41,7 +44,6 @@ import {
 import { formatDateTime, formatDay } from "@/lib/dates";
 import { sourceLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/routes";
-import { RefreshWhilePending } from "./refresh-while-pending";
 
 type StepState = { active: number; status?: "success" | "warning" | "error" };
 

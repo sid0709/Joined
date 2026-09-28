@@ -30,8 +30,8 @@ Idempotency-Key: 7f0c2a6e-…
 function money(meta: Meta) {
   const { rewards } = meta;
   return {
-    interviews: `${formatMoney(rewards.interview_by_seniority.entry)}–${formatMoney(rewards.interview_by_seniority.senior)}`,
-    hires: `${formatMoney(rewards.hire_by_seniority.entry)}–${formatMoney(rewards.hire_by_seniority.senior)}`,
+    interviews: `${formatMoney(rewards.interview_by_seniority.Junior)}–${formatMoney(rewards.interview_by_seniority.Senior)}`,
+    hires: `${formatMoney(rewards.hire_by_seniority.Junior)}–${formatMoney(rewards.hire_by_seniority.Senior)}`,
   };
 }
 
@@ -48,7 +48,7 @@ export function LandingPage({ meta, signedIn }: { meta: Meta; signedIn: boolean 
     {
       id: "submit",
       title: "Submit the official link",
-      description: "Company, title, and a short summary in your own words.",
+      description: "Company, title, and a job description in your own words.",
       status: "done" as const,
     },
     {

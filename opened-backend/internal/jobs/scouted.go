@@ -28,18 +28,18 @@ type ScoutedListing struct {
 	SubmissionID string
 	ScoutUserID  string
 	ApplyLink    string
-	CompanyName string
+	CompanyName  string
 	// CompanyID is set when the scout picked or created a company page.
 	CompanyID string
 	// CompanyURL is the employer's own site, empty when the link is an ATS board.
-	CompanyURL string
-	Title      string
-	Location   string
-	Workplace  string
-	Employment string
-	Seniority  string
-	Pay        Pay
-	SalaryText string
+	CompanyURL  string
+	Title       string
+	Location    string
+	Workplace   string
+	Employment  string
+	Seniority   string
+	Pay         Pay
+	SalaryText  string
 	Summary     string
 	Skills      []string
 	Tags        []string

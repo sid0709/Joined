@@ -190,4 +190,3 @@ func cleanSkills(problems *ValidationError, skills []string) []string {
 	}
 	return out
 }
-

@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import enums from "../enums.json";
+
 import {
   DEFAULT_CURRENCY,
   EMPLOYMENTS,

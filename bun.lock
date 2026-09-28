@@ -46,6 +46,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@openseat/design-system": "workspace:*",
+        "@openseat/job-schema": "workspace:*",
         "@openseat/scout": "workspace:*",
         "next": "catalog:",
         "react": "catalog:",
@@ -69,6 +70,7 @@
         "@astryxdesign/core": "catalog:",
         "@astryxdesign/theme-neutral": "catalog:",
         "@openseat/design-system": "workspace:*",
+        "@openseat/job-schema": "workspace:*",
         "@stylexjs/stylex": "catalog:",
         "next": "catalog:",
         "react": "catalog:",
@@ -127,11 +129,19 @@
         "react-dom": ">=19",
       },
     },
+    "packages/job-schema": {
+      "name": "@openseat/job-schema",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
     "packages/scout": {
       "name": "@openseat/scout",
       "version": "0.1.0",
       "dependencies": {
         "@openseat/design-system": "workspace:*",
+        "@openseat/job-schema": "workspace:*",
       },
       "devDependencies": {
         "typescript": "catalog:",
@@ -552,6 +562,8 @@
     "@nuxtjs/color-mode": ["@nuxtjs/color-mode@4.0.1", "", { "dependencies": { "@nuxt/kit": "^4.4.6", "exsolve": "^1.0.8", "pathe": "^2.0.3", "pkg-types": "^2.3.1", "semver": "^7.8.1" } }, "sha512-eiA7hWXi5zNHaYKyJFCGF6i0wFZtuvR7KDXZ6jiSvwxjCpRFwphrw0MOSmNfArTSSsT1wpW+/2H92cejeVfUlg=="],
 
     "@openseat/design-system": ["@openseat/design-system@workspace:packages/design-system"],
+
+    "@openseat/job-schema": ["@openseat/job-schema@workspace:packages/job-schema"],
 
     "@openseat/scout": ["@openseat/scout@workspace:packages/scout"],
 

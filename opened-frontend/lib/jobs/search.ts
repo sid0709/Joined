@@ -1,6 +1,7 @@
 import { EMPLOYMENTS, SENIORITIES, WORKPLACES } from "@openseat/job-schema";
 
 import { WORKPLACE_LABEL, annualPay } from "./format";
+
 import type { Employment, Job, JobSource, Seniority, Workplace } from "./types";
 
 export { EMPLOYMENTS, SENIORITIES, WORKPLACES };

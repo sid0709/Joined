@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
   Banner,
   Button,
@@ -22,6 +21,8 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import { ApiError } from "@openseat/scout";
+import { useMemo, useState } from "react";
+
 import { scoutFetch, scoutUpload } from "@/lib/scout/client";
 
 const SEARCH_DELAY_MS = 250;

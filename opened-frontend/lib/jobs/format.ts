@@ -1,5 +1,3 @@
-import type { Job, JobSource, Pay } from "./types";
-
 export {
   EMPLOYMENT_LABEL,
   EMPLOYMENT_OPTIONS,
@@ -8,6 +6,8 @@ export {
   WORKPLACE_LABEL,
   WORKPLACE_OPTIONS,
 } from "@openseat/job-schema";
+
+import type { Job, JobSource, Pay } from "./types";
 
 const LOCALE = "en-US";
 const HOURS_PER_DAY = 24;

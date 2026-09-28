@@ -9,8 +9,8 @@ import {
   Link,
   MetadataList,
   MetadataListItem,
-  SectionCard,
   NumberInput,
+  SectionCard,
   Selector,
   Stack,
   Switch,
@@ -22,8 +22,8 @@ import { DEFAULT_CURRENCY, PAY_PERIOD_OPTIONS } from "@openseat/job-schema";
 import {
   EMPLOYMENT_LABEL,
   SENIORITY_LABEL,
-  seniorityLabel,
   WORKPLACE_LABEL,
+  seniorityLabel,
   type Employment,
   type Pay,
   type PayPeriod,
@@ -32,6 +32,7 @@ import {
   type SubmissionInput,
   type Workplace,
 } from "@openseat/scout";
+
 import { ROUTES } from "@/lib/nav";
 
 function choices<T extends string>(labels: Record<T, string>) {

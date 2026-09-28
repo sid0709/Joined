@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
 import {
   Badge,
   Button,
@@ -20,9 +19,12 @@ import {
   type Submission,
   type SubmissionInput,
 } from "@openseat/scout";
-import { ROUTES } from "@/lib/nav";
+import { useState, type ReactNode } from "react";
+
 import { DecisionPanel } from "./decision-panel";
 import { JobEditor } from "./job-editor";
+
+import { ROUTES } from "@/lib/nav";
 
 /** The editable job fields, seeded from what the scout sent. */
 export function inputFrom(sub: Submission): SubmissionInput {

@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
   Button,
   CheckboxInput,
@@ -27,8 +26,10 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import { useRouter } from "next/navigation";
-import { SettingsGroup, SettingsRow } from "@/components/settings-group";
+import { useMemo, useState } from "react";
+
 import { JobResultCard } from "@/components/jobs/job-result-card";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { POLICY_META, WORKSPACE, type AssistedPolicy } from "@/lib/company";
 import {
   SENIORITY_OPTIONS,
