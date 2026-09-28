@@ -40,7 +40,7 @@ export async function forwardScout(request: Request, apiPath: string): Promise<R
   const response = await fetch(dest, {
     method: request.method,
     headers,
-    body: hasBody ? await request.text() : undefined,
+    body: hasBody ? await request.arrayBuffer() : undefined,
     cache: "no-store",
   });
   const out = new Headers();

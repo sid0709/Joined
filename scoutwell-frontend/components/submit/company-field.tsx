@@ -160,15 +160,18 @@ function CreateCompanyForm({
   const [website, setWebsite] = useState("");
   const [logo, setLogo] = useState<File | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const field = (name: string) => {
     const message = error?.field(name);
     return message ? { type: "error" as const, message } : undefined;
   };
+  const logoMessage = error?.field("logo");
 
   const create = async () => {
     setSaving(true);
     setError(null);
+    setFailure(null);
     const body = new FormData();
     body.set("legal_name", legalName.trim());
     body.set("url", website.trim());
@@ -177,7 +180,8 @@ function CreateCompanyForm({
       const created = await scoutUpload<CompanyHit>("/companies", body);
       onCreated({ id: created.id, name: created.name, url: created.url });
     } catch (err) {
-      setError(err instanceof ApiError ? err : null);
+      if (err instanceof ApiError) setError(err);
+      else setFailure("Could not create the company. Try again.");
     } finally {
       setSaving(false);
     }
@@ -223,7 +227,9 @@ function CreateCompanyForm({
                 variant="compact"
                 onChange={(files) => setLogo(files[0] ?? null)}
               />
-              {error && !error.field("legal_name") && !error.field("url") ? (
+              {logoMessage ? <Banner status="error" title={logoMessage} /> : null}
+              {failure ? <Banner status="error" title={failure} /> : null}
+              {error && !error.field("legal_name") && !error.field("url") && !logoMessage ? (
                 <Banner status="error" title={error.message} />
               ) : null}
             </FormLayout>
@@ -274,7 +280,7 @@ function companySearch(): SearchSource<CompanyItem> {
         const exact = items.some((item) => item.label.toLowerCase() === trimmed.toLowerCase());
         return exact ? items : [...items, create];
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") throw error;
+        if (error instanceof Error && error.name === "AbortError") throw error;
         return [create];
       }
     },

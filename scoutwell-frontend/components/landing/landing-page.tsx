@@ -14,6 +14,7 @@ import {
   SectionCard,
 } from "@openseat/design-system";
 import { LEVEL_BADGE, formatMoney, formatRate, type Meta } from "@openseat/scout";
+
 import { ROUTES } from "@/lib/routes";
 
 const HERO_WIDTH = 760;

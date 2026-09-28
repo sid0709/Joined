@@ -25,8 +25,8 @@ import {
   DEFAULT_CURRENCY,
   EMPLOYMENT_LABEL,
   PAY_PERIOD_OPTIONS,
-  SENIORITY_LABEL,
   WORKPLACE_LABEL,
+  seniorityLabel,
   options,
   type Employment,
   type LevelRule,
@@ -306,7 +306,13 @@ export function SubmitJobForm({
                 <GridColumn span="full" md={4}>
                   <Selector
                     label="Seniority"
-                    options={withInfer(limits.seniorities, SENIORITY_LABEL)}
+                    options={[
+                      { value: INFER, label: "Detect automatically" },
+                      ...limits.seniorities.map((value) => ({
+                        value,
+                        label: seniorityLabel(value),
+                      })),
+                    ]}
                     value={form.seniority}
                     onChange={(value) => set("seniority")(value as Seniority | "")}
                   />

@@ -10,6 +10,7 @@ import {
   SectionCard,
 } from "@openseat/design-system";
 import { SUBMISSION_STATUS, type Meta, type SubmissionStatus } from "@openseat/scout";
+
 import { FullText } from "@/components/full-text";
 
 const METHOD_BADGE: Record<string, BadgeVariant> = { GET: "blue", POST: "green", DELETE: "red" };
@@ -225,9 +226,17 @@ export function ApiDocs({ baseUrl, meta }: { baseUrl: string; meta: Meta }) {
             }
           />
           <ListItem
-            label="location_text, salary, tags, skills"
+            label="pay, location_text, tags, skills"
             description={
-              <FullText>{`Optional. Up to ${limits.max_tags} tags and ${limits.max_skills} skills. Salary like "$120k - $150k a year".`}</FullText>
+              <FullText>{`Optional. pay is { min, max, currency, period } with period year or hour. A salary string is still accepted. Up to ${limits.max_tags} tags and ${limits.max_skills} skills.`}</FullText>
+            }
+          />
+          <ListItem
+            label="company_id"
+            description={
+              <FullText>
+                Optional. Id from GET /v1/scout/companies. company_name is still required.
+              </FullText>
             }
           />
           <ListItem
