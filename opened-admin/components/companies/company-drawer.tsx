@@ -1,11 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  US_CITIES,
+  US_STATES,
+  formatAddress,
+  joinLocations,
+  parseAddress,
+  splitLocations,
+  type Address,
+} from "@openseat/design-system/places";
 import { adminFetch } from "@/lib/api";
+import { CompanyMark } from "@/components/jobs/company-mark";
 import {
   COMPANIES_PATH,
   COMPANY_SIZES,
+  COMPANY_TYPES,
+  INDUSTRIES,
+  LOGO_ACCEPT,
   VALUE_ICONS,
+  companyLogoSrc,
   companyWriteFrom,
   type AdminCompany,
   type BenefitCategory,
@@ -13,6 +27,9 @@ import {
   type CompanyValue,
   type CompanyWrite,
 } from "@/lib/company";
+
+const TAGLINE_MAX = 140;
+const TAGLINE_SEPARATOR = " · ";
 
 const inputClass =
   "h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm outline-none focus:border-ink";
@@ -51,6 +68,8 @@ function CompanyDetail({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [resetToken, setResetToken] = useState(0);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoCleared, setLogoCleared] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -83,17 +102,31 @@ function CompanyDetail({
     };
 
   async function save() {
-    if (!draft) return;
+    if (!draft || !company) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await adminFetch<AdminCompany>(`${COMPANIES_PATH}/${companyId}`, {
+      let updated = await adminFetch<AdminCompany>(`${COMPANIES_PATH}/${companyId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draft),
       });
+      if (logoFile) {
+        const body = new FormData();
+        body.append("logo", logoFile);
+        updated = await adminFetch<AdminCompany>(`${COMPANIES_PATH}/${companyId}/logo`, {
+          method: "POST",
+          body,
+        });
+      } else if (logoCleared && company.hasLogoFile) {
+        updated = await adminFetch<AdminCompany>(`${COMPANIES_PATH}/${companyId}/logo`, {
+          method: "DELETE",
+        });
+      }
       setCompany(updated);
       setDraft(companyWriteFrom(updated));
+      setLogoFile(null);
+      setLogoCleared(false);
       setResetToken((token) => token + 1);
       setSaved(true);
       onSaved();
@@ -176,35 +209,63 @@ function CompanyDetail({
                     onChange={(event) => set("url")(event.target.value)}
                   />
                 </Field>
-                <Field label="Logo URL">
-                  <input
-                    className={inputClass}
-                    value={draft.logo}
-                    placeholder="https://"
-                    onChange={(event) => set("logo")(event.target.value)}
+                <div className="col-span-2">
+                  <LogoField
+                    companyId={companyId}
+                    name={draft.name}
+                    url={draft.logo}
+                    savedUrl={company.logo}
+                    hasLogoFile={company.hasLogoFile}
+                    cleared={logoCleared}
+                    file={logoFile}
+                    version={resetToken}
+                    onUrl={set("logo")}
+                    onFile={(file) => {
+                      setLogoFile(file);
+                      setLogoCleared(false);
+                      setSaved(false);
+                    }}
+                    onClear={() => {
+                      setLogoFile(null);
+                      setLogoCleared(true);
+                      setSaved(false);
+                    }}
                   />
-                </Field>
-                <Field label="Tagline" className="col-span-2">
-                  <input
-                    className={inputClass}
+                </div>
+                <div className="col-span-2">
+                  <TaglineField
+                    key={`tagline-${resetToken}`}
                     value={draft.tagline}
-                    onChange={(event) => set("tagline")(event.target.value)}
+                    onChange={set("tagline")}
                   />
-                </Field>
+                </div>
                 <Field label="Industry">
-                  <input
+                  <select
                     className={inputClass}
                     value={draft.industry}
                     onChange={(event) => set("industry")(event.target.value)}
-                  />
+                  >
+                    <option value="">Not set</option>
+                    {optionsWithCurrent(INDUSTRIES, draft.industry).map((industry) => (
+                      <option key={industry} value={industry}>
+                        {industry}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
                 <Field label="Company type">
-                  <input
+                  <select
                     className={inputClass}
                     value={draft.companyType}
-                    placeholder="Private, public, nonprofit"
                     onChange={(event) => set("companyType")(event.target.value)}
-                  />
+                  >
+                    <option value="">Not set</option>
+                    {optionsWithCurrent(COMPANY_TYPES, draft.companyType).map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
                 <Field label="Size">
                   <select
@@ -220,21 +281,20 @@ function CompanyDetail({
                     ))}
                   </select>
                 </Field>
-                <Field label="Headquarters">
-                  <input
-                    className={inputClass}
+                <div className="col-span-2">
+                  <AddressField
+                    key={`hq-${resetToken}`}
                     value={draft.headquarters}
-                    onChange={(event) => set("headquarters")(event.target.value)}
+                    onChange={set("headquarters")}
                   />
-                </Field>
-                <Field label="Offices" className="col-span-2">
-                  <input
-                    className={inputClass}
+                </div>
+                <div className="col-span-2">
+                  <OfficesField
+                    key={`offices-${resetToken}`}
                     value={draft.locations}
-                    placeholder="Chicago · New York"
-                    onChange={(event) => set("locations")(event.target.value)}
+                    onChange={set("locations")}
                   />
-                </Field>
+                </div>
                 <Field label="Founded">
                   <input
                     type="number"
@@ -282,14 +342,6 @@ function CompanyDetail({
                 onChange={set("specialties")}
                 placeholder="One specialty per line"
               />
-              <ListField
-                key={`perks-${resetToken}`}
-                label="Perks"
-                value={draft.perks}
-                onChange={set("perks")}
-                placeholder="One perk per line"
-              />
-
               <ValuesField values={draft.values} onChange={set("values")} />
               <LeadersField leaders={draft.leadership} onChange={set("leadership")} />
               <BenefitsField
@@ -301,6 +353,266 @@ function CompanyDetail({
           ) : null}
         </div>
       </aside>
+    </div>
+  );
+}
+
+function LogoField({
+  companyId,
+  name,
+  url,
+  savedUrl,
+  hasLogoFile,
+  cleared,
+  file,
+  version,
+  onUrl,
+  onFile,
+  onClear,
+}: {
+  companyId: string;
+  name: string;
+  url: string;
+  savedUrl: string;
+  hasLogoFile?: boolean;
+  cleared: boolean;
+  file: File | null;
+  version: number;
+  onUrl: (value: string) => void;
+  onFile: (file: File | null) => void;
+  onClear: () => void;
+}) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) {
+      setObjectUrl(null);
+      return;
+    }
+    const next = URL.createObjectURL(file);
+    setObjectUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [file]);
+
+  const stored =
+    !file && !cleared && (hasLogoFile || savedUrl)
+      ? companyLogoSrc({ id: companyId, logo: savedUrl, hasLogoFile }, version)
+      : undefined;
+  const typed = !file && url && (cleared || url !== savedUrl) ? url : undefined;
+  const preview = objectUrl ?? typed ?? stored;
+  const canRemove = Boolean(file || (hasLogoFile && !cleared));
+
+  return (
+    <div className="flex flex-col gap-3">
+      <span className={labelTextClass}>Logo</span>
+      <div className="flex items-center gap-4">
+        <CompanyMark key={preview ?? "empty"} name={name} logo={preview} size="lg" />
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-ink">
+            <input
+              key={version}
+              type="file"
+              accept={LOGO_ACCEPT}
+              className="text-sm"
+              onChange={(event) => onFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          {canRemove ? (
+            <button
+              type="button"
+              className="text-left text-sm text-muted hover:text-ink"
+              onClick={onClear}
+            >
+              Remove uploaded logo
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <Field label="Logo URL">
+        <input
+          className={inputClass}
+          value={url}
+          placeholder="https://"
+          onChange={(event) => onUrl(event.target.value)}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function optionsWithCurrent(options: readonly string[], current: string) {
+  if (!current || options.includes(current)) return options;
+  return [current, ...options];
+}
+
+function TaglineField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const chips = value
+    ? value
+        .split(TAGLINE_SEPARATOR)
+        .map((chip) => chip.trim())
+        .filter(Boolean)
+    : [];
+  const [draft, setDraft] = useState("");
+
+  function commit(raw: string) {
+    const next = raw.trim();
+    if (!next || chips.includes(next)) {
+      setDraft("");
+      return;
+    }
+    const joined = [...chips, next].join(TAGLINE_SEPARATOR);
+    if (joined.length > TAGLINE_MAX) return;
+    onChange(joined);
+    setDraft("");
+  }
+
+  return (
+    <label className={labelClass}>
+      <span className={labelTextClass}>Tagline</span>
+      <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1.5 focus-within:border-ink">
+        {chips.map((chip) => (
+          <span
+            key={chip}
+            className="inline-flex items-center gap-1 rounded-md bg-paper px-2 py-0.5 text-sm"
+          >
+            {chip}
+            <button
+              type="button"
+              className="text-muted hover:text-ink"
+              aria-label={`Remove ${chip}`}
+              onClick={() =>
+                onChange(chips.filter((item) => item !== chip).join(TAGLINE_SEPARATOR))
+              }
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          className="h-7 min-w-32 flex-1 bg-transparent text-sm outline-none"
+          value={draft}
+          placeholder={chips.length ? "Add another, then Enter" : "Type a phrase and press Enter"}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commit(draft);
+            } else if (event.key === "Backspace" && !draft && chips.length) {
+              onChange(chips.slice(0, -1).join(TAGLINE_SEPARATOR));
+            }
+          }}
+        />
+      </div>
+      <span className="text-xs text-muted">
+        Type a phrase and press Enter to create a chip. {value.length}/{TAGLINE_MAX}
+      </span>
+    </label>
+  );
+}
+
+function AddressField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [address, setAddress] = useState<Address>(() => parseAddress(value));
+  const cities = optionsWithCurrent(
+    US_CITIES.map((city) => city.name),
+    address.city,
+  );
+
+  function update(patch: Partial<Address>) {
+    const next = { ...address, ...patch };
+    setAddress(next);
+    onChange(formatAddress(next));
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Field label="Headquarters">
+        <input
+          className={inputClass}
+          value={address.line1}
+          placeholder="Street address"
+          onChange={(event) => update({ line1: event.target.value })}
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="City">
+          <select
+            className={inputClass}
+            value={address.city}
+            onChange={(event) => update({ city: event.target.value })}
+          >
+            <option value="">Select a city</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="State">
+          <select
+            className={inputClass}
+            value={address.state}
+            onChange={(event) => update({ state: event.target.value })}
+          >
+            <option value="">Select a state</option>
+            {US_STATES.map((state) => (
+              <option key={state.abbreviation} value={state.abbreviation}>
+                {state.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <Field label="Postal code">
+        <input
+          className={inputClass}
+          value={address.postalCode}
+          placeholder="ZIP code"
+          onChange={(event) => update({ postalCode: event.target.value })}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function OfficesField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const selected = splitLocations(value);
+  const remaining = US_CITIES.map((city) => city.name).filter((city) => !selected.includes(city));
+
+  return (
+    <div className={labelClass}>
+      <span className={labelTextClass}>Offices</span>
+      {selected.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((city) => (
+            <button
+              key={city}
+              type="button"
+              className="rounded-md bg-paper px-2 py-0.5 text-sm text-ink hover:text-danger"
+              aria-label={`Remove ${city}`}
+              onClick={() => onChange(joinLocations(selected.filter((item) => item !== city)))}
+            >
+              {city} ×
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <select
+        className={inputClass}
+        value=""
+        onChange={(event) => {
+          const city = event.target.value;
+          if (!city || selected.includes(city)) return;
+          onChange(joinLocations([...selected, city]));
+        }}
+      >
+        <option value="">Add a city</option>
+        {remaining.map((city) => (
+          <option key={city} value={city}>
+            {city}
+          </option>
+        ))}
+      </select>
+      <span className="text-xs text-muted">Select every city with an office.</span>
     </div>
   );
 }
@@ -494,7 +806,7 @@ function BenefitsField({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Benefits</h3>
+        <h3 className="text-sm font-medium">Benefits & Perks</h3>
         <button
           type="button"
           className="text-sm text-muted hover:text-ink"

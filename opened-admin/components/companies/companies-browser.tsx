@@ -5,7 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CompanyDrawer } from "@/components/companies/company-drawer";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { adminFetch } from "@/lib/api";
-import { COMPANIES_PAGE_SIZE, COMPANIES_PATH, type CompanyList } from "@/lib/company";
+import {
+  COMPANIES_PAGE_SIZE,
+  COMPANIES_PATH,
+  companyLogoSrc,
+  type CompanyList,
+} from "@/lib/company";
 import { formatCount, pageWindow } from "@/lib/format";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/jobs";
 
@@ -128,7 +133,14 @@ export function CompaniesBrowser() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <CompanyMark name={company.name} logo={company.logo} />
+                        <CompanyMark
+                          name={company.name}
+                          logo={
+                            company.logo || company.hasLogoFile
+                              ? companyLogoSrc(company, reloadToken)
+                              : undefined
+                          }
+                        />
                         <span className="font-medium">{company.name || "Untitled"}</span>
                       </div>
                     </td>

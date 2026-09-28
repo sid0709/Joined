@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     status: 200,
     headers: {
       "Content-Type": response.headers.get("content-type") ?? "image/jpeg",
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "private, max-age=60",
     },
   });
 }

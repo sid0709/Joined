@@ -1,15 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function CompanyMark({ name, logo }: { name?: string; logo?: string }) {
+export function CompanyMark({
+  name,
+  logo,
+  size = "sm",
+}: {
+  name?: string;
+  logo?: string;
+  size?: "sm" | "lg";
+}) {
   const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [logo]);
   const label = name?.trim() || "Company";
   const initial = label.charAt(0).toUpperCase() || "?";
+  const box = size === "lg" ? "size-16 text-lg" : "size-9 text-xs";
 
   if (!logo || failed) {
     return (
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-paper text-xs font-semibold text-muted">
+      <span
+        className={`flex ${box} shrink-0 items-center justify-center rounded-md bg-paper font-semibold text-muted`}
+      >
         {initial}
       </span>
     );
@@ -21,7 +35,7 @@ export function CompanyMark({ name, logo }: { name?: string; logo?: string }) {
     <img
       src={logo}
       alt=""
-      className="size-9 shrink-0 rounded-md bg-paper object-cover"
+      className={`${box} shrink-0 rounded-md bg-paper object-cover`}
       onError={() => setFailed(true)}
     />
   );

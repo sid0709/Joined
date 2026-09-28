@@ -61,7 +61,7 @@ export type PublicCompany = {
   values?: { icon: string; title: string; description: string }[];
   leadership?: { name: string; title: string }[];
   benefitCategories?: { label: string; items: string[] }[];
-  perks?: string[];
+  hasLogoFile?: boolean;
 };
 
 export type CompanyProfile = {

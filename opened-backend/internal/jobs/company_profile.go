@@ -19,11 +19,10 @@ const (
 	maxLeaderName    = 80
 	maxBenefitLabel  = 60
 	maxSpecialties   = 12
-	maxPerks         = 12
 	maxValues        = 6
 	maxLeaders       = 8
 	maxBenefitGroups = 6
-	maxBenefitItems  = 8
+	maxBenefitItems  = 12
 	minFoundedYear   = 1800
 	maxFoundedYear   = 2100
 	maxReplyDays     = 365
@@ -83,7 +82,8 @@ type companyProfile struct {
 	Values            []companyValue    `json:"values,omitempty" bson:"values,omitempty"`
 	Leadership        []companyLeader   `json:"leadership,omitempty" bson:"leadership,omitempty"`
 	BenefitCategories []benefitCategory `json:"benefitCategories,omitempty" bson:"benefitCategories,omitempty"`
-	Perks             []string          `json:"perks,omitempty" bson:"perks,omitempty"`
+	// Perks is legacy. Reads fold it into benefit categories; saves omit it.
+	Perks []string `json:"-" bson:"perks,omitempty"`
 }
 
 // companyOverrides is what an admin saved on top of the copied source company.
@@ -114,7 +114,6 @@ type CompanyWrite struct {
 	Values            []companyValue    `json:"values"`
 	Leadership        []companyLeader   `json:"leadership"`
 	BenefitCategories []benefitCategory `json:"benefitCategories"`
-	Perks             []string          `json:"perks"`
 }
 
 type AdminCompany struct {
@@ -123,12 +122,13 @@ type AdminCompany struct {
 }
 
 type CompanySummary struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	URL      string `json:"url,omitempty"`
-	Logo     string `json:"logo,omitempty"`
-	Industry string `json:"industry,omitempty"`
-	JobCount int64  `json:"jobCount"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	URL         string `json:"url,omitempty"`
+	Logo        string `json:"logo,omitempty"`
+	Industry    string `json:"industry,omitempty"`
+	JobCount    int64  `json:"jobCount"`
+	HasLogoFile bool   `json:"hasLogoFile,omitempty"`
 }
 
 type CompanyList struct {
@@ -179,9 +179,13 @@ func (doc storedCompany) publicCompany() PublicCompany {
 		Mission:           profile.Mission,
 		Values:            nilValues(profile.Values),
 		Leadership:        nilLeaders(profile.Leadership),
-		BenefitCategories: nilBenefits(profile.BenefitCategories),
-		Perks:             nilIfEmpty(profile.Perks),
+		BenefitCategories: nilBenefits(foldPerks(profile.BenefitCategories, profile.Perks)),
+		HasLogoFile:       doc.hasLogoFile(),
 	}
+}
+
+func (doc storedCompany) hasLogoFile() bool {
+	return doc.LogoFile.ContentType != ""
 }
 
 func (doc storedCompany) adminCompany() AdminCompany {
@@ -190,12 +194,13 @@ func (doc storedCompany) adminCompany() AdminCompany {
 
 func (doc storedCompany) summary() CompanySummary {
 	return CompanySummary{
-		ID:       doc.ID,
-		Name:     doc.displayName(),
-		URL:      doc.displayURL(),
-		Logo:     doc.displayLogo(),
-		Industry: doc.Overrides.Profile.Industry,
-		JobCount: doc.JobCount,
+		ID:          doc.ID,
+		Name:        doc.displayName(),
+		URL:         doc.displayURL(),
+		Logo:        doc.displayLogo(),
+		Industry:    doc.Overrides.Profile.Industry,
+		JobCount:    doc.JobCount,
+		HasLogoFile: doc.hasLogoFile(),
 	}
 }
 
@@ -241,7 +246,6 @@ func overridesFrom(input CompanyWrite) (companyOverrides, error) {
 			Values:            cleanValues(input.Values),
 			Leadership:        cleanLeaders(input.Leadership),
 			BenefitCategories: cleanBenefits(input.BenefitCategories),
-			Perks:             cleanList(clipItems(input.Perks, maxListItem), maxPerks),
 		},
 	}, nil
 }
@@ -350,6 +354,45 @@ func nilLeaders(leaders []companyLeader) []companyLeader {
 		return nil
 	}
 	return leaders
+}
+
+// foldPerks keeps a removed perks list visible under Benefits & Perks until the next save.
+func foldPerks(groups []benefitCategory, perks []string) []benefitCategory {
+	extras := cleanList(clipItems(perks, maxListItem), maxBenefitItems)
+	if len(extras) == 0 {
+		return groups
+	}
+	seen := make(map[string]struct{}, len(extras))
+	for _, group := range groups {
+		for _, item := range group.Items {
+			seen[strings.ToLower(item)] = struct{}{}
+		}
+	}
+	fresh := make([]string, 0, len(extras))
+	for _, perk := range extras {
+		key := strings.ToLower(perk)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		fresh = append(fresh, perk)
+	}
+	if len(fresh) == 0 {
+		return groups
+	}
+	out := append([]benefitCategory{}, groups...)
+	for i, group := range out {
+		if strings.EqualFold(group.Label, "Perks") || strings.EqualFold(group.Label, "Benefits & Perks") {
+			out[i].Items = append(append([]string{}, group.Items...), fresh...)
+			return out
+		}
+	}
+	if len(out) >= maxBenefitGroups {
+		last := len(out) - 1
+		out[last].Items = append(append([]string{}, out[last].Items...), fresh...)
+		return out
+	}
+	return append(out, benefitCategory{Label: "Perks", Items: fresh})
 }
 
 func nilBenefits(groups []benefitCategory) []benefitCategory {

@@ -31,7 +31,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** The job itself: key facts, the pitch, the work, the bar, and the perks. */
+/** The job itself: key facts, the pitch, the work, the bar, and the benefits. */
 export function JobOverview({ job }: { job: Job }) {
   return (
     <Stack gap={6}>

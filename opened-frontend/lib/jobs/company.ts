@@ -48,7 +48,9 @@ export type PresentedCompany = {
   values?: CompanyValue[];
   leadership?: Leader[];
   benefitCategories?: BenefitCategory[];
-  perks?: string[];
+  /** Flat list of benefit and perk items, for cards. */
+  benefits?: string[];
+  hasLogoFile?: boolean;
   /** Job skills, deduped — real, derived from this company's live postings. */
   techStack?: string[];
 };
@@ -69,13 +71,12 @@ export function openRolesFor(companyId: string, jobs: Job[]) {
 }
 
 /** Same-origin logo URL. Third-party hosts block the browser from loading their files directly. */
-export function companyLogoSrc(companyId?: string, logo?: string) {
+export function companyLogoSrc(companyId?: string, logo?: string, hasFile = false) {
   const raw = logo?.trim();
-  if (!raw) return undefined;
-  if (raw.startsWith("/")) return raw;
+  if (raw?.startsWith("/")) return raw;
   const id = companyId?.trim();
-  if (!id) return undefined;
-  return `/companies/${encodeURIComponent(id)}/logo`;
+  if (id && (raw || hasFile)) return `/companies/${encodeURIComponent(id)}/logo`;
+  return undefined;
 }
 
 export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCompany {
@@ -103,6 +104,7 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
       items: (category.items ?? []).map((item) => item.trim()).filter(Boolean),
     }))
     .filter((category) => category.label && category.items.length > 0);
+  const benefits = benefitCategories?.flatMap((category) => category.items);
 
   return {
     id: company.id,
@@ -128,7 +130,8 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
     leadership: leadership && leadership.length > 0 ? leadership : undefined,
     benefitCategories:
       benefitCategories && benefitCategories.length > 0 ? benefitCategories : undefined,
-    perks: list(company.perks),
+    benefits: benefits && benefits.length > 0 ? benefits : undefined,
+    hasLogoFile: company.hasLogoFile || undefined,
     techStack: skills.length > 0 ? skills : undefined,
   };
 }

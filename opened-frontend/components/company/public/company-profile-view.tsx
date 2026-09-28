@@ -127,6 +127,7 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
                 name={profile.name}
                 companyId={profile.id}
                 src={profile.logo}
+                hasFile={profile.hasLogoFile}
                 size={LOGO_SIZE}
               />
               <Stack gap={2}>
@@ -354,19 +355,7 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
               )}
             </SectionCard>
 
-            <SectionCard title="Perks">
-              {profile.perks && profile.perks.length > 0 ? (
-                <HStack gap={2} wrap="wrap">
-                  {profile.perks.map((perk) => (
-                    <Token key={perk} label={perk} size="sm" />
-                  ))}
-                </HStack>
-              ) : (
-                <SkeletonTokens />
-              )}
-            </SectionCard>
-
-            <SectionCard title="Benefits">
+            <SectionCard title="Benefits & Perks">
               {hasBenefits ? (
                 <Stack gap={4}>
                   {profile.benefitCategories?.map((category, index) => (

@@ -6,17 +6,19 @@ export function CompanyLogo({
   name,
   src,
   companyId,
+  hasFile = false,
   size = 48,
 }: {
   name: string;
   src?: string;
   companyId?: string;
+  hasFile?: boolean;
   size?: AvatarSize;
 }) {
   return (
     <Avatar
       name={name}
-      src={companyLogoSrc(companyId, src)}
+      src={companyLogoSrc(companyId, src, hasFile)}
       size={size}
       shape="rounded"
       tooltip={false}
