@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Stack } from "./Primitives";
+
 import { Tokenizer, Typeahead, type SearchableItem } from "./DataInput";
-import type { Address } from "./places";
 import {
   PLACES_DEBOUNCE_MS,
   PLACES_MIN_QUERY,
@@ -11,6 +10,9 @@ import {
   placeItem,
   placeSearch,
 } from "./places-search";
+import { Stack } from "./Primitives";
+
+import type { Address } from "./places";
 
 type Common = {
   label: string;
