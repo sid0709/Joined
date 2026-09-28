@@ -52,6 +52,8 @@ func New(store *jobs.Store, accounts *auth.Store, reader jobs.ModelReader, origi
 	mux.HandleFunc("GET /v1/companies", server.listCompanies)
 	mux.HandleFunc("GET /v1/companies/{id}", server.getAdminCompany)
 	mux.HandleFunc("PATCH /v1/companies/{id}", server.updateCompany)
+	mux.HandleFunc("POST /v1/companies/{id}/logo", server.uploadCompanyLogo)
+	mux.HandleFunc("DELETE /v1/companies/{id}/logo", server.deleteCompanyLogo)
 	mux.HandleFunc("GET /v1/jobs", server.listSearchJobs)
 	mux.HandleFunc("POST /v1/jobs/analyze", server.analyzeJob)
 	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
@@ -208,6 +210,64 @@ func (s *Server) updateCompany(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, company)
 }
 
+func (s *Server) uploadCompanyLogo(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, jobs.MaxLogoBytes+64<<10)
+	if err := r.ParseMultipartForm(jobs.MaxLogoBytes); err != nil {
+		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
+		return
+	}
+	file, _, err := r.FormFile("logo")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "choose a logo image")
+		return
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, jobs.MaxLogoBytes+1))
+	if err != nil || len(data) > jobs.MaxLogoBytes {
+		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
+		return
+	}
+	contentType := jobs.LogoContentType(data)
+	if contentType == "" {
+		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+	company, err := s.store.SaveCompanyLogo(ctx, r.PathValue("id"), contentType, data)
+	if errors.Is(err, jobs.ErrInvalidInput) {
+		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
+		return
+	}
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "company not found")
+		return
+	}
+	if err != nil {
+		slog.Error("upload company logo", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not save logo")
+		return
+	}
+	writeJSON(w, http.StatusOK, company)
+}
+
+func (s *Server) deleteCompanyLogo(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+	company, err := s.store.ClearCompanyLogo(ctx, r.PathValue("id"))
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "company not found")
+		return
+	}
+	if err != nil {
+		slog.Error("delete company logo", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not remove logo")
+		return
+	}
+	writeJSON(w, http.StatusOK, company)
+}
+
 func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 	defer cancel()
@@ -255,7 +315,7 @@ func (s *Server) getCompanyLogo(w http.ResponseWriter, r *http.Request) {
 	defer body.Close()
 
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Cache-Control", "private, max-age=60")
 	if _, err := io.Copy(w, body); err != nil {
 		slog.Error("write company logo", "error", err)
 	}

@@ -1,5 +1,45 @@
+import { adminApiUrl } from "@/lib/config";
+
 export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
+export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
+
+export const INDUSTRIES = [
+  "Accounting",
+  "Advertising",
+  "Agriculture",
+  "Architecture",
+  "Construction",
+  "Consulting",
+  "Education",
+  "Energy",
+  "Entertainment",
+  "Finance",
+  "Food",
+  "Government",
+  "Healthcare",
+  "Hospitality",
+  "Insurance",
+  "Legal",
+  "Manufacturing",
+  "Media",
+  "Nonprofit",
+  "Real estate",
+  "Retail",
+  "Software",
+  "Telecommunications",
+  "Transportation",
+] as const;
+
+export const COMPANY_TYPES = [
+  "Private",
+  "Public",
+  "Nonprofit",
+  "Government",
+  "Educational",
+  "Partnership",
+  "Cooperative",
+] as const;
 
 export const COMPANY_SIZES = [
   "1–10",
@@ -63,7 +103,7 @@ export type AdminCompany = {
   values: CompanyValue[];
   leadership: CompanyLeader[];
   benefitCategories: BenefitCategory[];
-  perks: string[];
+  hasLogoFile?: boolean;
 };
 
 export type CompanySummary = {
@@ -73,6 +113,7 @@ export type CompanySummary = {
   logo?: string;
   industry?: string;
   jobCount: number;
+  hasLogoFile?: boolean;
 };
 
 export type CompanyList = {
@@ -82,7 +123,17 @@ export type CompanyList = {
   pageSize: number;
 };
 
-export type CompanyWrite = Omit<AdminCompany, "id" | "jobCount">;
+export type CompanyWrite = Omit<AdminCompany, "id" | "jobCount" | "hasLogoFile">;
+
+/** Same-origin API logo. Uploaded files and remote URLs both load through it. */
+export function companyLogoSrc(
+  company: { id: string; logo?: string; hasLogoFile?: boolean },
+  version = 0,
+) {
+  if (!company.logo && !company.hasLogoFile) return undefined;
+  const base = `${adminApiUrl()}/v1/search/companies/${encodeURIComponent(company.id)}/logo`;
+  return `${base}?v=${version}`;
+}
 
 export function companyWriteFrom(company: AdminCompany): CompanyWrite {
   return {
@@ -103,6 +154,5 @@ export function companyWriteFrom(company: AdminCompany): CompanyWrite {
     values: company.values ?? [],
     leadership: company.leadership ?? [],
     benefitCategories: company.benefitCategories ?? [],
-    perks: company.perks ?? [],
   };
 }

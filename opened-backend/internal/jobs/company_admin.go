@@ -28,6 +28,7 @@ func (s *Store) ListCompanies(ctx context.Context, query ListQuery) (CompanyList
 			{Key: "companyLogo", Value: 1},
 			{Key: "jobCount", Value: 1},
 			{Key: "overrides", Value: 1},
+			{Key: "logoFile.contentType", Value: 1},
 		})
 	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
@@ -71,13 +72,19 @@ func (s *Store) UpdateCompany(ctx context.Context, id string, input CompanyWrite
 		return AdminCompany{}, err
 	}
 	previous := doc.displayName()
-	_, err = s.companies().UpdateOne(ctx, bson.D{{Key: "id", Value: doc.ID}}, bson.D{
-		{Key: "$set", Value: bson.D{{Key: "overrides", Value: overrides}}},
-	})
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "overrides", Value: overrides}}}}
+	logoChanged := strings.TrimSpace(input.Logo) != doc.displayLogo()
+	if logoChanged {
+		update = append(update, bson.E{Key: "$unset", Value: bson.D{{Key: "logoFile", Value: ""}}})
+	}
+	_, err = s.companies().UpdateOne(ctx, bson.D{{Key: "id", Value: doc.ID}}, update)
 	if err != nil {
 		return AdminCompany{}, err
 	}
 	doc.Overrides = overrides
+	if logoChanged {
+		doc.LogoFile = logoFile{}
+	}
 	if name := doc.displayName(); name != "" && name != previous {
 		_, err = s.structured().UpdateMany(ctx, bson.D{{Key: "job.companyId", Value: doc.ID}}, bson.D{
 			{Key: "$set", Value: bson.D{{Key: "job.company", Value: name}}},

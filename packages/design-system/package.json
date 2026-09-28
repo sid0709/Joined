@@ -7,6 +7,7 @@
   ],
   "exports": {
     ".": "./src/components/index.ts",
+    "./places": "./src/components/places.ts",
     "./styles.css": "./src/styles/theme.css",
     "./styles/astryx.css": "./src/styles/astryx.css",
     "./styles/components.css": "./src/styles/components.css",

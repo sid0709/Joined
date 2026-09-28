@@ -389,9 +389,27 @@ export const CATALOG: CatalogGroup[] = [
         importName: "TimeInput",
       },
       {
+        slug: "address-selector",
+        title: "Address Selector",
+        description: "Geoapify suggestions fill the street, city, state, and ZIP.",
+        importName: "AddressSelector",
+      },
+      {
+        slug: "city-selector",
+        title: "City Selector",
+        description: "Geoapify city search — one city, or several as chips.",
+        importName: "CitySelector",
+      },
+      {
+        slug: "state-selector",
+        title: "State Selector",
+        description: "A searchable list of US states. The value is the abbreviation.",
+        importName: "StateSelector",
+      },
+      {
         slug: "tokenizer",
         title: "Tokenizer",
-        description: "Pick many from a search — people, tags, limits, overflow, and invites.",
+        description: "Pick many from a search, or type and press Enter to create a chip.",
         importName: "Tokenizer",
       },
       {

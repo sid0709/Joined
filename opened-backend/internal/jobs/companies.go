@@ -40,7 +40,12 @@ type PublicCompany struct {
 	Values            []companyValue    `json:"values,omitempty"`
 	Leadership        []companyLeader   `json:"leadership,omitempty"`
 	BenefitCategories []benefitCategory `json:"benefitCategories,omitempty"`
-	Perks             []string          `json:"perks,omitempty"`
+	HasLogoFile       bool              `json:"hasLogoFile,omitempty"`
+}
+
+type logoFile struct {
+	ContentType string `bson:"contentType,omitempty"`
+	Data        []byte `bson:"data,omitempty"`
 }
 
 type CompanyPage struct {
@@ -58,6 +63,7 @@ type storedCompany struct {
 	JobCount    int64            `bson:"jobCount"`
 	JobIDs      []string         `bson:"jobIds"`
 	Overrides   companyOverrides `bson:"overrides,omitempty"`
+	LogoFile    logoFile         `bson:"logoFile,omitempty"`
 }
 
 type athensCompany struct {

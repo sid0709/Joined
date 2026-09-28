@@ -1,6 +1,7 @@
 package jobs
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,10 +9,13 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const (
-	maxLogoBytes     = 2 << 20
+	// MaxLogoBytes is the largest logo an admin can upload.
+	MaxLogoBytes     = 2 << 20
 	logoFetchTimeout = 8 * time.Second
 	logoUserAgent    = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 	logoReferer      = "https://www.linkedin.com/"
@@ -24,10 +28,14 @@ var logoClient = &http.Client{Timeout: logoFetchTimeout}
 // which refuses hotlinking (and refuses this server too), so a failed fetch
 // falls back to the icon for the company website.
 func (s *Store) OpenCompanyLogo(ctx context.Context, id string) (io.ReadCloser, string, error) {
-	company, err := s.publicCompany(ctx, id)
+	doc, err := s.storedCompanyByID(ctx, id)
 	if err != nil {
 		return nil, "", err
 	}
+	if doc.LogoFile.ContentType != "" && len(doc.LogoFile.Data) > 0 {
+		return io.NopCloser(bytes.NewReader(doc.LogoFile.Data)), doc.LogoFile.ContentType, nil
+	}
+	company := doc.publicCompany()
 	if logo, err := safeLogoURL(company.Logo); err == nil {
 		body, contentType, fetchErr := fetchImage(ctx, logo, logoReferer)
 		if fetchErr == nil {
@@ -70,7 +78,62 @@ func fetchImage(ctx context.Context, target *url.URL, referer string) (io.ReadCl
 	return struct {
 		io.Reader
 		io.Closer
-	}{Reader: io.LimitReader(response.Body, maxLogoBytes), Closer: response.Body}, contentType, nil
+	}{Reader: io.LimitReader(response.Body, MaxLogoBytes), Closer: response.Body}, contentType, nil
+}
+
+var allowedLogoTypes = map[string]struct{}{
+	"image/png":  {},
+	"image/jpeg": {},
+	"image/gif":  {},
+	"image/webp": {},
+}
+
+// LogoContentType reports a supported image type, or "" when the bytes are not one.
+func LogoContentType(data []byte) string {
+	detected := http.DetectContentType(data)
+	if _, ok := allowedLogoTypes[detected]; ok {
+		return detected
+	}
+	if len(data) >= 12 && string(data[0:4]) == "RIFF" && string(data[8:12]) == "WEBP" {
+		return "image/webp"
+	}
+	return ""
+}
+
+// SaveCompanyLogo stores an uploaded mark beside the company, not inside overrides.
+func (s *Store) SaveCompanyLogo(ctx context.Context, id, contentType string, data []byte) (AdminCompany, error) {
+	if _, ok := allowedLogoTypes[contentType]; !ok || len(data) == 0 || len(data) > MaxLogoBytes {
+		return AdminCompany{}, ErrInvalidInput
+	}
+	doc, err := s.storedCompanyByID(ctx, id)
+	if err != nil {
+		return AdminCompany{}, err
+	}
+	file := logoFile{ContentType: contentType, Data: data}
+	_, err = s.companies().UpdateOne(ctx, bson.D{{Key: "id", Value: doc.ID}}, bson.D{
+		{Key: "$set", Value: bson.D{{Key: "logoFile", Value: file}}},
+	})
+	if err != nil {
+		return AdminCompany{}, err
+	}
+	doc.LogoFile = logoFile{ContentType: contentType}
+	return doc.adminCompany(), nil
+}
+
+// ClearCompanyLogo removes an uploaded mark. A logo URL on the company is left as-is.
+func (s *Store) ClearCompanyLogo(ctx context.Context, id string) (AdminCompany, error) {
+	doc, err := s.storedCompanyByID(ctx, id)
+	if err != nil {
+		return AdminCompany{}, err
+	}
+	_, err = s.companies().UpdateOne(ctx, bson.D{{Key: "id", Value: doc.ID}}, bson.D{
+		{Key: "$unset", Value: bson.D{{Key: "logoFile", Value: ""}}},
+	})
+	if err != nil {
+		return AdminCompany{}, err
+	}
+	doc.LogoFile = logoFile{}
+	return doc.adminCompany(), nil
 }
 
 func faviconURL(website string) (*url.URL, error) {

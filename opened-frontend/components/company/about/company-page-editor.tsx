@@ -25,11 +25,11 @@ import { WORKSPACE, type Workspace } from "@/lib/company";
 const TAGLINE_MAX = 90;
 const ABOUT_MAX = 400;
 const ABOUT_ROWS = 4;
-const MAX_PERKS = 6;
+const MAX_BENEFITS = 6;
 const SIZES = ["1–10", "11–50", "51–200", "201–500", "501–1,000", "1,001–5,000", "5,000+"].map(
   (value) => ({ value, label: `${value} people` }),
 );
-const PERK_SUGGESTIONS = [
+const BENEFIT_SUGGESTIONS = [
   "Hybrid, 2 days in office",
   "Remote-first",
   "Learning budget $2,000/yr",
@@ -45,7 +45,7 @@ const toItems = (labels: string[]): SearchableItem[] =>
 /** Edit the public company page on the left; see the card candidates get on the right. */
 export function CompanyPageEditor() {
   const [draft, setDraft] = useState<Workspace>(WORKSPACE);
-  const perkSource = useMemo(() => createStaticSource(toItems(PERK_SUGGESTIONS)), []);
+  const benefitSource = useMemo(() => createStaticSource(toItems(BENEFIT_SUGGESTIONS)), []);
   const set =
     <K extends keyof Workspace>(key: K) =>
     (value: Workspace[K]) =>
@@ -145,20 +145,20 @@ export function CompanyPageEditor() {
           </SettingsGroup>
 
           <SettingsGroup
-            title="Perks"
-            description={`Up to ${MAX_PERKS}. Specific beats generic.`}
+            title="Benefits & Perks"
+            description={`Up to ${MAX_BENEFITS}. Specific beats generic.`}
             footer={footer}
           >
             <Tokenizer
-              label="Perks"
+              label="Benefits & Perks"
               isLabelHidden
-              searchSource={perkSource}
-              value={toItems(draft.perks)}
-              onChange={(items) => set("perks")(items.map((item) => item.label))}
-              maxEntries={MAX_PERKS}
+              searchSource={benefitSource}
+              value={toItems(draft.benefits)}
+              onChange={(items) => set("benefits")(items.map((item) => item.label))}
+              maxEntries={MAX_BENEFITS}
               hasCreate
               hasEntriesOnFocus
-              placeholder="Add a perk"
+              placeholder="Add a benefit or perk"
             />
           </SettingsGroup>
         </Stack>

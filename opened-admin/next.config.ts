@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {/* config options here */};
+const nextConfig: NextConfig = {
+  transpilePackages: ["@openseat/design-system"],
+};
 
 export default nextConfig;

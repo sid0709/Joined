@@ -59,7 +59,6 @@ func TestOverridesFromCleansProfile(t *testing.T) {
 		},
 		Leadership:        []companyLeader{{Name: "Ada", Title: "CEO"}},
 		BenefitCategories: []benefitCategory{{Label: "Health", Items: []string{"Medical"}}},
-		Perks:             []string{"Remote-first"},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -73,8 +72,42 @@ func TestOverridesFromCleansProfile(t *testing.T) {
 	if len(got.Profile.Values) != 1 || got.Profile.Values[0].Icon != "star" || got.Profile.Values[0].Title != "Craft" {
 		t.Fatalf("values = %+v", got.Profile.Values)
 	}
-	if len(got.Profile.Leadership) != 1 || len(got.Profile.BenefitCategories) != 1 || len(got.Profile.Perks) != 1 {
+	if len(got.Profile.Leadership) != 1 || len(got.Profile.BenefitCategories) != 1 {
 		t.Fatalf("groups = %+v", got.Profile)
+	}
+	if len(got.Profile.Perks) != 0 {
+		t.Fatalf("perks = %+v", got.Profile.Perks)
+	}
+}
+
+func TestPublicCompanyFoldsLegacyPerks(t *testing.T) {
+	doc := storedCompany{
+		ID: "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30",
+		Overrides: companyOverrides{
+			Profile: companyProfile{
+				BenefitCategories: []benefitCategory{{Label: "Health", Items: []string{"Medical"}}},
+				Perks:             []string{"Remote-first", "Medical"},
+			},
+		},
+		LogoFile: logoFile{ContentType: "image/png"},
+	}
+	got := doc.publicCompany()
+	if !got.HasLogoFile || len(got.BenefitCategories) != 2 {
+		t.Fatalf("folded = %+v", got)
+	}
+	perks := got.BenefitCategories[1]
+	if perks.Label != "Perks" || len(perks.Items) != 1 || perks.Items[0] != "Remote-first" {
+		t.Fatalf("perks category = %+v", perks)
+	}
+}
+
+func TestLogoContentType(t *testing.T) {
+	png := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
+	if LogoContentType(png) != "image/png" {
+		t.Fatalf("png = %q", LogoContentType(png))
+	}
+	if LogoContentType([]byte("not an image")) != "" {
+		t.Fatal("expected plain text to be rejected")
 	}
 }
 

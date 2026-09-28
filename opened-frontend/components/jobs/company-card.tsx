@@ -25,10 +25,11 @@ const ABOUT_LINES = 4;
 /** Extras a company can add on its page; job pages work without them. */
 export type CompanyCardExtras = {
   tagline?: string;
-  perks?: string[];
+  benefits?: string[];
   verified?: boolean;
   logo?: string;
   id?: string;
+  hasLogoFile?: boolean;
 };
 
 /** The identity and stats a card can show. Any fact not yet on file renders a skeleton. */
@@ -83,6 +84,7 @@ export function CompanyCard({
             name={company.name}
             companyId={companyId}
             src={company.logo}
+            hasFile={company.hasLogoFile}
             size={LOGO_SIZE}
           />
           <Stack gap={0.5}>
@@ -127,10 +129,10 @@ export function CompanyCard({
           />
         </Grid>
 
-        {company.perks && company.perks.length > 0 ? (
+        {company.benefits && company.benefits.length > 0 ? (
           <HStack gap={2} wrap="wrap">
-            {company.perks.map((perk) => (
-              <Token key={perk} label={perk} size="sm" />
+            {company.benefits.map((benefit) => (
+              <Token key={benefit} label={benefit} size="sm" />
             ))}
           </HStack>
         ) : null}
