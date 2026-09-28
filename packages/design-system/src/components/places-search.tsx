@@ -1,8 +1,9 @@
 "use client";
 
-import type { SearchableItem, SearchSource } from "./DataInput";
 import { Link } from "./Action";
 import { Text } from "./Primitives";
+
+import type { SearchableItem, SearchSource } from "./DataInput";
 import type { Address } from "./places";
 
 /** Wait until a few characters are typed, then ask Geoapify once. */

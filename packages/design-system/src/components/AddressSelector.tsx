@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Stack } from "./Primitives";
-import { TextInput, Typeahead } from "./DataInput";
+
 import { CitySelector } from "./CitySelector";
-import { StateSelector } from "./StateSelector";
+import { TextInput, Typeahead } from "./DataInput";
 import { emptyAddress, formatAddress, type Address } from "./places";
 import {
   PLACES_DEBOUNCE_MS,
@@ -13,6 +12,8 @@ import {
   placeItem,
   placeSearch,
 } from "./places-search";
+import { Stack } from "./Primitives";
+import { StateSelector } from "./StateSelector";
 
 /** Suggest real addresses as someone types, then keep street, city, state, and ZIP. */
 export function AddressSelector({
