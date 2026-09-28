@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Stack } from "@openseat/design-system";
 import { CompanySettings } from "@/components/company/settings/company-settings";
 import { PageHeader } from "@/components/page-header";
-import { COMPANY_SETTINGS_PAGE } from "@/lib/routes";
+import { loadSession } from "@/lib/auth/session";
+import { COMPANY_SETTINGS_PAGE, ROUTES, signInHref } from "@/lib/routes";
 
 export const metadata: Metadata = { title: "Company settings" };
 
-export default function CompanySettingsPage() {
+export default async function CompanySettingsPage() {
+  const session = await loadSession();
+  if (!session) redirect(signInHref(ROUTES.companySettings));
   return (
     <Stack gap={6}>
       <PageHeader
         title={COMPANY_SETTINGS_PAGE.label}
         description={COMPANY_SETTINGS_PAGE.description}
       />
-      <CompanySettings />
+      <CompanySettings session={session} />
     </Stack>
   );
 }

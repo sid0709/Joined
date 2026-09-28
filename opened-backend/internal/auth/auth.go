@@ -24,6 +24,9 @@ const (
 
 	roleOwner  = "owner"
 	roleMember = "member"
+
+	modeCandidate = "candidate"
+	modeEmployee  = "employee"
 )
 
 var (
@@ -41,11 +44,12 @@ type User struct {
 }
 
 type Company struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	URL  string `json:"url,omitempty"`
-	Logo string `json:"logo,omitempty"`
-	Role string `json:"role"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	URL       string `json:"url,omitempty"`
+	Logo      string `json:"logo,omitempty"`
+	Role      string `json:"role"`
+	IsCreator bool   `json:"isCreator,omitempty"`
 }
 
 type Session struct {
@@ -57,6 +61,7 @@ type Signup struct {
 	Name     string
 	Email    string
 	Password string
+	Mode     string
 	Company  *CompanyChoice
 }
 
@@ -99,12 +104,26 @@ func normalizeSignup(input Signup) (Signup, error) {
 	if len(input.Password) < minPasswordLength || len(input.Password) > maxPasswordLength {
 		return Signup{}, ErrInvalidInput
 	}
+	switch input.Mode {
+	case "", modeCandidate, modeEmployee:
+	default:
+		return Signup{}, ErrInvalidInput
+	}
+	if input.Mode == modeCandidate {
+		input.Company = nil
+	}
 	if input.Company != nil {
 		choice, err := normalizeCompany(*input.Company)
 		if err != nil {
 			return Signup{}, err
 		}
 		input.Company = &choice
+		if input.Mode == "" {
+			input.Mode = modeEmployee
+		}
+	}
+	if input.Mode == modeEmployee && input.Company == nil {
+		return Signup{}, ErrInvalidInput
 	}
 	return input, nil
 }
@@ -199,6 +218,12 @@ func isPublicID(value string) bool {
 		}
 	}
 	return value[14] == '4'
+}
+
+// removesCompany is true when this person created the company page, so deleting
+// their account also deletes that page.
+func removesCompany(createdBy, userID string) bool {
+	return createdBy != "" && createdBy == userID
 }
 
 func companyKey(name string) string {

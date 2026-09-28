@@ -64,7 +64,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       {
         id: "danger",
         label: "Delete account",
-        description: "Close your job-hunter account for good.",
+        description: "Remove your account. A company you created is removed with it.",
         icon: "trash",
       },
     ],

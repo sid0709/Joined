@@ -65,17 +65,23 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
 
 const LINKS = GROUPS.flatMap((group) => group.links);
 
-/** The deepest link that contains the path — /company/jobs/new still lights up Jobs. */
+/**
+ * The deepest link that contains the path — /company/jobs/new still lights up Jobs.
+ * Overview only matches itself, so your own pages (My profile, Account settings)
+ * light up nothing instead of pretending to be the company overview.
+ */
 function activeHref(pathname: string) {
   return LINKS.filter(
-    (link) => pathname === link.href || pathname.startsWith(`${link.href}/`),
+    (link) =>
+      pathname === link.href ||
+      (link.href !== ROUTES.company && pathname.startsWith(`${link.href}/`)),
   ).sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
 /** The company workspace switcher: who you’re hiring for, and where you can go. */
 export function CompanyNav({ company }: { company: AuthCompany }) {
   const pathname = usePathname();
-  const active = activeHref(pathname) ?? ROUTES.company;
+  const active = activeHref(pathname);
 
   return (
     <>
@@ -121,7 +127,7 @@ export function CompanyNav({ company }: { company: AuthCompany }) {
         </Sticky>
       </Show>
       <Hide from="lg">
-        <TabList value={active} onChange={() => {}} overflow="scroll" hasDivider>
+        <TabList value={active ?? ""} onChange={() => {}} overflow="scroll" hasDivider>
           {LINKS.map((link) => (
             <Tab key={link.href} value={link.href} label={link.label} href={link.href} />
           ))}

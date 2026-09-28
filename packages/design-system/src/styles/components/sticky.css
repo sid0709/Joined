@@ -9,7 +9,10 @@
   min-width: 0;
 }
 
+/* Fill has an explicit height, so stretching only widens it: it spans its
+   column in a vertical stack instead of shrinking to its content. */
 .os-sticky-fill {
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   height: calc(var(--os-sticky-scrollport, 100dvh) - 2 * var(--os-sticky-offset, 0px));

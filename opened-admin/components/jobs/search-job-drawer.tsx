@@ -24,14 +24,26 @@ const labelTextClass = "text-xs font-medium text-muted";
 export function SearchJobDrawer({
   tempJobId,
   onClose,
+  onSaved,
 }: {
   tempJobId: string;
   onClose: () => void;
+  onSaved?: () => void;
 }) {
-  return <SearchJobDetail key={tempJobId} tempJobId={tempJobId} onClose={onClose} />;
+  return (
+    <SearchJobDetail key={tempJobId} tempJobId={tempJobId} onClose={onClose} onSaved={onSaved} />
+  );
 }
 
-function SearchJobDetail({ tempJobId, onClose }: { tempJobId: string; onClose: () => void }) {
+function SearchJobDetail({
+  tempJobId,
+  onClose,
+  onSaved,
+}: {
+  tempJobId: string;
+  onClose: () => void;
+  onSaved?: () => void;
+}) {
   const [record, setRecord] = useState<SearchRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<SearchJobPatch | null>(null);
@@ -92,6 +104,7 @@ function SearchJobDetail({ tempJobId, onClose }: { tempJobId: string; onClose: (
       setDraft(searchJobPatchFrom(updated));
       setResetToken((token) => token + 1);
       setSaved(true);
+      onSaved?.();
     } catch (cause) {
       setSaveError(cause instanceof Error ? cause.message : "Could not save job");
     } finally {

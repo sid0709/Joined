@@ -6,12 +6,12 @@ import { PageContainer } from "@/components/page-container";
 import { AppFrame } from "@/components/shell/app-frame";
 import { EmployerHeader } from "@/components/shell/employer-header";
 import { loadSession } from "@/lib/auth/session";
-import { ROUTES } from "@/lib/routes";
+import { ROUTES, signInHref } from "@/lib/routes";
 
 /** Employer mode: a signed-in person linked to a company, with the workspace nav on the left. */
 export default async function CompanyLayout({ children }: { children: ReactNode }) {
   const session = await loadSession();
-  if (!session) redirect(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.company)}`);
+  if (!session) redirect(signInHref(ROUTES.company));
   if (!session.company) redirect(ROUTES.hiringSetup);
   return (
     <AppFrame header={<EmployerHeader session={session} />}>

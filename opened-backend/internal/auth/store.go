@@ -58,7 +58,7 @@ func (s *Store) Signup(ctx context.Context, input Signup, now time.Time) (string
 		return "", Session{}, err
 	}
 	if input.Company != nil && input.Company.ID != "" {
-		if _, err := s.companyByID(ctx, input.Company.ID); err != nil {
+		if _, _, err := s.companyByID(ctx, input.Company.ID); err != nil {
 			return "", Session{}, err
 		}
 	}
@@ -148,7 +148,7 @@ func (s *Store) AttachCompany(ctx context.Context, token string, choice CompanyC
 		return Session{}, err
 	}
 	if choice.ID != "" {
-		if _, err := s.companyByID(ctx, choice.ID); err != nil {
+		if _, _, err := s.companyByID(ctx, choice.ID); err != nil {
 			return Session{}, err
 		}
 	}
@@ -156,6 +156,50 @@ func (s *Store) AttachCompany(ctx context.Context, token string, choice CompanyC
 		return Session{}, err
 	}
 	return s.view(ctx, session.User.ID)
+}
+
+func (s *Store) DeleteAccount(ctx context.Context, token string, now time.Time) error {
+	session, err := s.Session(ctx, token, now)
+	if err != nil {
+		return err
+	}
+	userID := session.User.ID
+
+	var member storedMember
+	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
+	}
+	if err == nil {
+		if err := s.removeMembership(ctx, userID, member.CompanyID); err != nil {
+			return err
+		}
+	}
+
+	if _, err := s.collection(sessionsCollection).DeleteMany(ctx, bson.D{{Key: "userId", Value: userID}}); err != nil {
+		return err
+	}
+	_, err = s.collection(usersCollection).DeleteOne(ctx, bson.D{{Key: "id", Value: userID}})
+	return err
+}
+
+func (s *Store) removeMembership(ctx context.Context, userID, companyID string) error {
+	_, createdBy, err := s.companyByID(ctx, companyID)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	if removesCompany(createdBy, userID) {
+		if _, err := s.collection(s.companies).DeleteOne(ctx, bson.D{
+			{Key: "id", Value: companyID},
+			{Key: "createdBy", Value: userID},
+		}); err != nil {
+			return err
+		}
+		_, err = s.collection(membersCollection).DeleteMany(ctx, bson.D{{Key: "companyId", Value: companyID}})
+		return err
+	}
+	_, err = s.collection(membersCollection).DeleteOne(ctx, bson.D{{Key: "userId", Value: userID}})
+	return err
 }
 
 func (s *Store) SearchCompanies(ctx context.Context, query string) ([]Company, error) {
@@ -276,30 +320,32 @@ func (s *Store) view(ctx context.Context, userID string) (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
-	company, err := s.companyByID(ctx, member.CompanyID)
+	company, createdBy, err := s.companyByID(ctx, member.CompanyID)
 	if err != nil {
 		return session, nil
 	}
 	company.Role = member.Role
+	company.IsCreator = removesCompany(createdBy, userID)
 	session.Company = &company
 	return session, nil
 }
 
-func (s *Store) companyByID(ctx context.Context, id string) (Company, error) {
+func (s *Store) companyByID(ctx context.Context, id string) (Company, string, error) {
 	var doc struct {
-		ID   string `bson:"id"`
-		Name string `bson:"companyName"`
-		URL  string `bson:"companyUrl"`
-		Logo string `bson:"companyLogo"`
+		ID        string `bson:"id"`
+		Name      string `bson:"companyName"`
+		URL       string `bson:"companyUrl"`
+		Logo      string `bson:"companyLogo"`
+		CreatedBy string `bson:"createdBy"`
 	}
 	err := s.collection(s.companies).FindOne(ctx, bson.D{{Key: "id", Value: id}}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) || doc.ID == "" {
-		return Company{}, ErrNotFound
+		return Company{}, "", ErrNotFound
 	}
 	if err != nil {
-		return Company{}, err
+		return Company{}, "", err
 	}
-	return Company{ID: doc.ID, Name: doc.Name, URL: doc.URL, Logo: doc.Logo}, nil
+	return Company{ID: doc.ID, Name: doc.Name, URL: doc.URL, Logo: doc.Logo}, doc.CreatedBy, nil
 }
 
 func (s *Store) collection(name string) *mongo.Collection {

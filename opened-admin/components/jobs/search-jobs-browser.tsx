@@ -20,8 +20,9 @@ export function SearchJobsBrowser() {
   const page = positiveInt(searchParams.get("page"), 1);
   const query = searchParams.get("q") ?? "";
   const jobId = searchParams.get("job");
+  const [reloadToken, setReloadToken] = useState(0);
 
-  const requestKey = `${page}\n${query}`;
+  const requestKey = `${page}\n${query}\n${reloadToken}`;
   const [snapshot, setSnapshot] = useState<{
     key: string;
     result: SearchJobList | null;
@@ -60,7 +61,7 @@ export function SearchJobsBrowser() {
         });
       });
     return () => controller.abort();
-  }, [page, query, requestKey]);
+  }, [page, query, reloadToken, requestKey]);
 
   const total = result?.total ?? 0;
   const pageSize = result?.pageSize ?? SEARCH_JOBS_PAGE_SIZE;
@@ -74,7 +75,7 @@ export function SearchJobsBrowser() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
           <p className="mt-1 max-w-xl text-sm leading-6 text-muted">
-            Search records created from analyzed temp jobs.
+            Public jobs. Open a row to fill in anything analysis missed. Saves show on Opened.
           </p>
         </div>
       </header>
@@ -213,6 +214,7 @@ export function SearchJobsBrowser() {
         <SearchJobDrawer
           tempJobId={jobId}
           onClose={() => replaceListing(router, searchParams, { q: query, page, job: null })}
+          onSaved={() => setReloadToken((token) => token + 1)}
         />
       ) : null}
     </section>

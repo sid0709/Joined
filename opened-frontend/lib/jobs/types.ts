@@ -40,12 +40,28 @@ export type Job = {
   applyLink?: string;
 };
 
-/** A company the seeker can open: name, logo, and website. */
+/** A company the seeker can open. Profile fields are present once an admin has saved them. */
 export type PublicCompany = {
   id: string;
   name: string;
   url?: string;
   logo?: string;
+  tagline?: string;
+  about?: string;
+  industry?: string;
+  size?: string;
+  founded?: number;
+  replyDays?: number;
+  headquarters?: string;
+  companyType?: string;
+  /** Offices as one line. When unset, the page uses locations from live jobs. */
+  locations?: string;
+  specialties?: string[];
+  mission?: string;
+  values?: { icon: string; title: string; description: string }[];
+  leadership?: { name: string; title: string }[];
+  benefitCategories?: { label: string; items: string[] }[];
+  perks?: string[];
 };
 
 export type CompanyProfile = {

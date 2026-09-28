@@ -10,6 +10,8 @@ export type AuthCompany = {
   url?: string;
   logo?: string;
   role: "owner" | "member";
+  /** True when this person created the company page. */
+  isCreator?: boolean;
 };
 
 export type AuthSession = {

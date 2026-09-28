@@ -16,7 +16,7 @@ import {
   Text,
   type GlyphName,
 } from "@openseat/design-system";
-import { BRAND, ROUTES, type WorkspaceMode } from "@/lib/routes";
+import { BRAND, HIRING_SIGN_UP_HREF, ROUTES, type WorkspaceMode } from "@/lib/routes";
 import {
   getServerWorkspaceMode,
   readStoredWorkspaceMode,
@@ -97,7 +97,7 @@ export function ModePicker() {
   const choose = (path: Path) => {
     setDismissed(true);
     if (path.mode === "company") {
-      router.push(`${ROUTES.signUp}?intent=hiring`);
+      router.push(HIRING_SIGN_UP_HREF);
       return;
     }
     switchMode(path.mode);
@@ -121,7 +121,8 @@ export function ModePicker() {
               How will you use {BRAND}?
             </Heading>
             <Text color="secondary" justify="center" display="block">
-              Pick one to get started. You can switch anytime from your account menu.
+              Pick one to get started. Candidates search and apply; employees get a hiring
+              workspace.
             </Text>
           </Stack>
 

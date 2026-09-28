@@ -22,10 +22,25 @@ type CompanyCopyResult struct {
 }
 
 type PublicCompany struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	URL  string `json:"url,omitempty"`
-	Logo string `json:"logo,omitempty"`
+	ID                string            `json:"id"`
+	Name              string            `json:"name"`
+	URL               string            `json:"url,omitempty"`
+	Logo              string            `json:"logo,omitempty"`
+	Tagline           string            `json:"tagline,omitempty"`
+	About             string            `json:"about,omitempty"`
+	Industry          string            `json:"industry,omitempty"`
+	Size              string            `json:"size,omitempty"`
+	Founded           int               `json:"founded,omitempty"`
+	ReplyDays         int               `json:"replyDays,omitempty"`
+	Headquarters      string            `json:"headquarters,omitempty"`
+	CompanyType       string            `json:"companyType,omitempty"`
+	Locations         string            `json:"locations,omitempty"`
+	Specialties       []string          `json:"specialties,omitempty"`
+	Mission           string            `json:"mission,omitempty"`
+	Values            []companyValue    `json:"values,omitempty"`
+	Leadership        []companyLeader   `json:"leadership,omitempty"`
+	BenefitCategories []benefitCategory `json:"benefitCategories,omitempty"`
+	Perks             []string          `json:"perks,omitempty"`
 }
 
 type CompanyPage struct {
@@ -34,14 +49,15 @@ type CompanyPage struct {
 }
 
 type storedCompany struct {
-	ID          string   `bson:"id"`
-	SourceID    string   `bson:"sourceId"`
-	CompanyName string   `bson:"companyName"`
-	CompanyURL  string   `bson:"companyUrl"`
-	CompanyKey  string   `bson:"companyKey"`
-	CompanyLogo string   `bson:"companyLogo"`
-	JobCount    int64    `bson:"jobCount"`
-	JobIDs      []string `bson:"jobIds"`
+	ID          string           `bson:"id"`
+	SourceID    string           `bson:"sourceId"`
+	CompanyName string           `bson:"companyName"`
+	CompanyURL  string           `bson:"companyUrl"`
+	CompanyKey  string           `bson:"companyKey"`
+	CompanyLogo string           `bson:"companyLogo"`
+	JobCount    int64            `bson:"jobCount"`
+	JobIDs      []string         `bson:"jobIds"`
+	Overrides   companyOverrides `bson:"overrides,omitempty"`
 }
 
 type athensCompany struct {
@@ -115,9 +131,19 @@ func (s *Store) CopyCompanies(ctx context.Context) (CompanyCopyResult, error) {
 			JobCount:    source.JobCount,
 			JobIDs:      hexIDs(source.JobIDs),
 		}
-		batch = append(batch, mongo.NewReplaceOneModel().
+		// Source fields only. Admin edits live on `overrides` and must survive a resync.
+		batch = append(batch, mongo.NewUpdateOneModel().
 			SetFilter(bson.D{{Key: "sourceId", Value: sourceID}}).
-			SetReplacement(doc).
+			SetUpdate(bson.D{{Key: "$set", Value: bson.D{
+				{Key: "id", Value: doc.ID},
+				{Key: "sourceId", Value: doc.SourceID},
+				{Key: "companyName", Value: doc.CompanyName},
+				{Key: "companyUrl", Value: doc.CompanyURL},
+				{Key: "companyKey", Value: doc.CompanyKey},
+				{Key: "companyLogo", Value: doc.CompanyLogo},
+				{Key: "jobCount", Value: doc.JobCount},
+				{Key: "jobIds", Value: doc.JobIDs},
+			}}}).
 			SetUpsert(true))
 		copied++
 		if len(batch) == companyCopyBatch {
@@ -382,12 +408,7 @@ func (s *Store) publicCompany(ctx context.Context, id string) (PublicCompany, er
 }
 
 func (doc storedCompany) public() PublicCompany {
-	return PublicCompany{
-		ID:   doc.ID,
-		Name: doc.CompanyName,
-		URL:  doc.CompanyURL,
-		Logo: doc.CompanyLogo,
-	}
+	return doc.publicCompany()
 }
 
 func (s *Store) sourceCompaniesColl() *mongo.Collection {

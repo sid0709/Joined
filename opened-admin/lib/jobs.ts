@@ -64,3 +64,34 @@ export type CopyResult = {
   destination: string;
   indexes: number;
 };
+
+/** Fields an admin can correct on a scraped listing. Saved onto the temp job and, when analyzed, the public job. */
+export type TempJobPatch = {
+  title: string;
+  companyName: string;
+  companyLink: string;
+  applyLink: string;
+  description: string;
+  location: string;
+  remote: string;
+  seniority: string;
+  time: string;
+  salary: string;
+  companyLogo: string;
+};
+
+export function tempJobPatchFrom(job: TempJob): TempJobPatch {
+  return {
+    title: job.title ?? "",
+    companyName: job.companyName ?? "",
+    companyLink: job.companyLink ?? "",
+    applyLink: job.applyLink ?? "",
+    description: job.description ?? "",
+    location: job.metadata?.details?.location ?? "",
+    remote: job.metadata?.details?.remote ?? "",
+    seniority: job.metadata?.details?.seniority ?? "",
+    time: job.metadata?.details?.time ?? "",
+    salary: job.metadata?.details?.salary ?? "",
+    companyLogo: job.metadata?.companyLogo ?? "",
+  };
+}

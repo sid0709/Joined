@@ -19,6 +19,7 @@ const (
 	analyzeTimeout = 15 * time.Minute
 	pingTimeout    = 3 * time.Second
 	maxAnalyzeBody = 16 << 10
+	maxWriteBody   = 128 << 10
 )
 
 type Server struct {
@@ -38,6 +39,7 @@ func New(store *jobs.Store, accounts *auth.Store, reader jobs.ModelReader, origi
 	mux.HandleFunc("POST /v1/auth/signup", server.signup)
 	mux.HandleFunc("POST /v1/auth/signin", server.signin)
 	mux.HandleFunc("POST /v1/auth/signout", server.signout)
+	mux.HandleFunc("DELETE /v1/auth/account", server.deleteAccount)
 	mux.HandleFunc("GET /v1/auth/session", server.session)
 	mux.HandleFunc("POST /v1/auth/company", server.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", server.searchCompanies)
@@ -45,7 +47,11 @@ func New(store *jobs.Store, accounts *auth.Store, reader jobs.ModelReader, origi
 	mux.HandleFunc("GET /v1/settings", server.settings)
 	mux.HandleFunc("GET /v1/jobs/temp", server.listTempJobs)
 	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.getTempJob)
+	mux.HandleFunc("PATCH /v1/jobs/temp/{id}", server.updateTempJob)
 	mux.HandleFunc("POST /v1/jobs/temp/sync", server.syncTempJobs)
+	mux.HandleFunc("GET /v1/companies", server.listCompanies)
+	mux.HandleFunc("GET /v1/companies/{id}", server.getAdminCompany)
+	mux.HandleFunc("PATCH /v1/companies/{id}", server.updateCompany)
 	mux.HandleFunc("GET /v1/jobs", server.listSearchJobs)
 	mux.HandleFunc("POST /v1/jobs/analyze", server.analyzeJob)
 	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
@@ -111,6 +117,95 @@ func (s *Server) getTempJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]json.RawMessage{"job": job})
+}
+
+func (s *Server) updateTempJob(w http.ResponseWriter, r *http.Request) {
+	var patch jobs.TempJobPatch
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxWriteBody))
+	if err := decoder.Decode(&patch); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid job")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+	job, err := s.store.UpdateTempJob(ctx, r.PathValue("id"), patch, time.Now())
+	if errors.Is(err, jobs.ErrInvalidID) {
+		writeError(w, http.StatusBadRequest, "invalid job id")
+		return
+	}
+	if errors.Is(err, jobs.ErrInvalidInput) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "job not found")
+		return
+	}
+	if err != nil {
+		slog.Error("update temp job", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not save job")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]json.RawMessage{"job": job})
+}
+
+func (s *Server) listCompanies(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	query := r.URL.Query()
+	result, err := s.store.ListCompanies(ctx, jobs.ParseListQuery(query.Get("page"), query.Get("pageSize"), query.Get("q")))
+	if err != nil {
+		slog.Error("list companies", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load companies")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) getAdminCompany(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	company, err := s.store.GetAdminCompany(ctx, r.PathValue("id"))
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "company not found")
+		return
+	}
+	if err != nil {
+		slog.Error("get company", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not load company")
+		return
+	}
+	writeJSON(w, http.StatusOK, company)
+}
+
+func (s *Server) updateCompany(w http.ResponseWriter, r *http.Request) {
+	var input jobs.CompanyWrite
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxWriteBody))
+	if err := decoder.Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid company")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+	company, err := s.store.UpdateCompany(ctx, r.PathValue("id"), input)
+	if errors.Is(err, jobs.ErrInvalidInput) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, jobs.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "company not found")
+		return
+	}
+	if err != nil {
+		slog.Error("update company", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not save company")
+		return
+	}
+	writeJSON(w, http.StatusOK, company)
 }
 
 func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +311,7 @@ func (s *Server) getSearchJob(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) updateSearchJob(w http.ResponseWriter, r *http.Request) {
 	var patch jobs.SearchJobPatch
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAnalyzeBody))
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxWriteBody))
 	if err := decoder.Decode(&patch); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid job")
 		return
@@ -293,7 +388,7 @@ func (s *Server) withCORS(next http.Handler) http.Handler {
 			if _, ok := s.origins[origin]; ok {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept")
 			}
 		}

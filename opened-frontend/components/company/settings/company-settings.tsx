@@ -20,6 +20,8 @@ import {
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { POLICY_META, TEAM, WORKSPACE, type AssistedPolicy } from "@/lib/company";
+import type { AuthSession } from "@/lib/auth/types";
+import { RemoveAccount } from "@/components/settings/remove-account";
 
 const POLICIES = Object.keys(POLICY_META) as AssistedPolicy[];
 const DEFAULT_DAILY_CAP = 5;
@@ -38,7 +40,7 @@ const TRANSFER_OPTIONS = TEAM.filter((member) => !member.isYou && !member.isPend
 );
 
 /** Company-wide defaults: domains, assisted policy, alerts, and ownership. */
-export function CompanySettings() {
+export function CompanySettings({ session }: { session: AuthSession }) {
   const toast = useToast();
   const [domains, setDomains] = useState([{ name: WORKSPACE.website, verified: true }]);
   const [newDomain, setNewDomain] = useState("");
@@ -214,6 +216,12 @@ export function CompanySettings() {
           />
         </SettingsRow>
       </SettingsGroup>
+
+      <RemoveAccount
+        signedIn
+        companyName={session.company?.name}
+        isCreator={session.company?.isCreator === true}
+      />
     </Stack>
   );
 }
