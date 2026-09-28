@@ -10,8 +10,8 @@ const (
 	maxAbout         = 2000
 	maxIndustry      = 80
 	maxCompanyType   = 80
-	maxHeadquarters  = 120
-	maxLocations     = 200
+	maxHeadquarters  = 240
+	maxLocations     = 480
 	maxMission       = 800
 	maxListItem      = 80
 	maxValueTitle    = 60
