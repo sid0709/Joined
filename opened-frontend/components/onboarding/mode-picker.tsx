@@ -68,6 +68,14 @@ const PATHS: Path[] = [
 /** A one-time fork on first visit (no mode cookie yet): candidate or employer decides which mode opens. */
 const AUTH_PATHS = [ROUTES.signIn, ROUTES.signUp, ROUTES.hiringSetup];
 
+/**
+ * Public, shareable pages — a job or company link can land here straight from a
+ * search engine or a shared URL, so the mode fork must not block them the way it
+ * blocks the app shell. Anyone can read these, signed in or not, like LinkedIn's
+ * public job and company pages.
+ */
+const PUBLIC_PATH_PREFIXES = ["/jobs/", "/companies/"];
+
 export function ModePicker() {
   const pathname = usePathname();
   const router = useRouter();
@@ -83,7 +91,8 @@ export function ModePicker() {
   const onAuthPath = AUTH_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
-  const isOpen = storedMode === null && !dismissed && !onAuthPath;
+  const onPublicPath = PUBLIC_PATH_PREFIXES.some((path) => pathname.startsWith(path));
+  const isOpen = storedMode === null && !dismissed && !onAuthPath && !onPublicPath;
 
   const choose = (path: Path) => {
     setDismissed(true);

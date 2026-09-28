@@ -66,7 +66,10 @@ func (s *Store) Ping(ctx context.Context) error {
 
 func (s *Store) List(ctx context.Context, query ListQuery) (ListResult, error) {
 	coll := s.dest()
-	filter := listFilter(query.Q)
+	filter, err := s.tempFilter(ctx, query)
+	if err != nil {
+		return ListResult{}, err
+	}
 	total, err := coll.CountDocuments(ctx, filter)
 	if err != nil {
 		return ListResult{}, err
@@ -129,6 +132,21 @@ func (s *Store) Get(ctx context.Context, idHex string) (json.RawMessage, error) 
 		return nil, err
 	}
 	return documentJSON(doc)
+}
+
+func (s *Store) tempFilter(ctx context.Context, query ListQuery) (bson.D, error) {
+	filter := listFilter(query.Q)
+	if !query.HideAnalyzed {
+		return filter, nil
+	}
+	ids, err := s.analyzedObjectIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return filter, nil
+	}
+	return append(filter, bson.E{Key: "_id", Value: bson.D{{Key: "$nin", Value: ids}}}), nil
 }
 
 func (s *Store) source() *mongo.Collection {

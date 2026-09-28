@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
@@ -17,11 +18,14 @@ type ModelReader interface {
 	JSON(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, error)
 }
 
-const maxAnalyzeIDs = 25
+const (
+	maxAnalyzeIDs      = 100
+	analyzeConcurrency = 32
+)
 
 var (
 	ErrNoSelection = errors.New("select at least one temp job")
-	ErrTooMany     = errors.New("select at most 25 temp jobs")
+	ErrTooMany     = errors.New("select at most 100 temp jobs")
 )
 
 type AnalyzeFailure struct {
@@ -48,23 +52,100 @@ func (s *Store) AnalyzeSelected(ctx context.Context, reader ModelReader, tempJob
 	}
 	defer s.analyzeMu.Unlock()
 
+	return analyzeAll(ctx, ids, analyzeConcurrency, reader.Model(), func(ctx context.Context, id string) (SearchRecord, error) {
+		return s.analyzeOne(ctx, reader, id, now)
+	})
+}
+
+// analyzeAll runs every selected job at once, up to limit in flight.
+// Results stay in selection order. A missing API key stops the batch.
+func analyzeAll(
+	ctx context.Context,
+	ids []string,
+	limit int,
+	model string,
+	analyze func(context.Context, string) (SearchRecord, error),
+) (AnalyzeBatch, error) {
+	if limit < 1 {
+		limit = 1
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	slots := make([]analyzeSlot, len(ids))
+	sem := make(chan struct{}, limit)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var fatal error
+
+	for i, id := range ids {
+		wg.Add(1)
+		go func(i int, id string) {
+			defer wg.Done()
+			select {
+			case <-ctx.Done():
+				slots[i] = analyzeSlot{failed: true, fail: AnalyzeFailure{TempJobID: id, Error: ctx.Err().Error()}}
+				return
+			case sem <- struct{}{}:
+			}
+			defer func() { <-sem }()
+
+			mu.Lock()
+			stopped := fatal != nil
+			mu.Unlock()
+			if stopped {
+				return
+			}
+
+			record, err := analyze(ctx, id)
+			if err == nil {
+				slots[i] = analyzeSlot{ok: true, record: record}
+				return
+			}
+			if IsMissingAPIKey(err) {
+				mu.Lock()
+				if fatal == nil {
+					fatal = err
+				}
+				mu.Unlock()
+				cancel()
+				return
+			}
+			mu.Lock()
+			stopped = fatal != nil
+			mu.Unlock()
+			if stopped && (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
+				return
+			}
+			slots[i] = analyzeSlot{failed: true, fail: AnalyzeFailure{TempJobID: id, Error: err.Error()}}
+		}(i, id)
+	}
+	wg.Wait()
+	if fatal != nil {
+		return AnalyzeBatch{}, fatal
+	}
+
 	batch := AnalyzeBatch{
-		Model:    reader.Model(),
+		Model:    model,
 		Analyzed: []SearchRecord{},
 		Failed:   []AnalyzeFailure{},
 	}
-	for _, id := range ids {
-		record, err := s.analyzeOne(ctx, reader, id, now)
-		if err != nil {
-			if IsMissingAPIKey(err) {
-				return AnalyzeBatch{}, err
-			}
-			batch.Failed = append(batch.Failed, AnalyzeFailure{TempJobID: id, Error: err.Error()})
-			continue
+	for _, slot := range slots {
+		switch {
+		case slot.ok:
+			batch.Analyzed = append(batch.Analyzed, slot.record)
+		case slot.failed:
+			batch.Failed = append(batch.Failed, slot.fail)
 		}
-		batch.Analyzed = append(batch.Analyzed, record)
 	}
 	return batch, nil
+}
+
+type analyzeSlot struct {
+	record SearchRecord
+	fail   AnalyzeFailure
+	ok     bool
+	failed bool
 }
 
 func normalizeSelection(ids []string) ([]string, error) {
@@ -127,6 +208,7 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 				Remote:     listing.Metadata.Details.Remote,
 				Seniority:  listing.Metadata.Details.Seniority,
 				Employment: listing.Metadata.Details.Time,
+				Salary:     listing.Metadata.Details.Salary,
 			},
 			extracted,
 		),

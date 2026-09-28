@@ -1,6 +1,7 @@
 export type Workplace = "remote" | "hybrid" | "onsite";
 export type JobSource = "direct" | "aggregated" | "scouted";
-export type Seniority = "Junior" | "Mid" | "Senior" | "Lead";
+/** Staff and Principal are senior IC titles, one tier above Senior — Leader, never Senior. */
+export type Seniority = "Junior" | "Middle" | "Senior" | "Leader" | "Manager";
 export type Employment = "full-time" | "contract" | "part-time";
 export type PayPeriod = "year" | "hour";
 

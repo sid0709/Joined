@@ -15,9 +15,10 @@ const (
 )
 
 type ListQuery struct {
-	Q        string
-	Page     int64
-	PageSize int64
+	Q            string
+	Page         int64
+	PageSize     int64
+	HideAnalyzed bool
 }
 
 func ParseListQuery(pageRaw, sizeRaw, qRaw string) ListQuery {
