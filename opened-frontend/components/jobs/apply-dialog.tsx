@@ -18,14 +18,13 @@ import {
   TextArea,
 } from "@openseat/design-system";
 import { companyBySlug, jobHasLogoFile, type Job } from "@/lib/jobs";
+import { createApplication } from "@/lib/me/pipeline";
 import { RESUMES } from "@/lib/resumes";
 import { CompanyLogo } from "./company-logo";
 
 const DIALOG_WIDTH = 560;
 const NOTE_MAX_LENGTH = 500;
 const NOTE_ROWS = 4;
-/** How long the demo submission pretends to send. */
-const SUBMIT_DELAY_MS = 900;
 
 /** Only resumes the parser could read can go out with an application. */
 const READY_RESUMES = RESUMES.filter((resume) => resume.parse === "parsed");
@@ -52,7 +51,12 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
 
   const submit = async () => {
     if (!job) return;
-    await new Promise((resolve) => setTimeout(resolve, SUBMIT_DELAY_MS));
+    const resume = READY_RESUMES.find((item) => item.id === resumeId);
+    await createApplication({
+      jobId: job.id,
+      resume: resume?.label,
+      note,
+    });
     onSubmitted(job);
     close();
   };

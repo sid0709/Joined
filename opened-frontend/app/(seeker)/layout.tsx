@@ -4,6 +4,7 @@ import { EmployerHeader } from "@/components/shell/employer-header";
 import { SeekerHeader } from "@/components/shell/seeker-header";
 import { isEmployee } from "@/lib/auth/account-type";
 import { loadSession } from "@/lib/auth/session";
+import { loadCompanyUnread, loadUnread } from "@/lib/me/pipeline";
 
 /**
  * Candidate mode, plus the public job and company pages anyone can open. An
@@ -11,10 +12,15 @@ import { loadSession } from "@/lib/auth/session";
  */
 export default async function SeekerLayout({ children }: { children: ReactNode }) {
   const session = await loadSession();
+  const unread = session
+    ? isEmployee(session)
+      ? await loadCompanyUnread()
+      : await loadUnread()
+    : 0;
   const header = isEmployee(session) ? (
-    <EmployerHeader session={session} />
+    <EmployerHeader session={session} unread={unread} />
   ) : (
-    <SeekerHeader session={session} />
+    <SeekerHeader session={session} unread={unread} />
   );
   return <AppFrame header={header}>{children}</AppFrame>;
 }

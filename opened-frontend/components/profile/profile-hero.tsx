@@ -55,11 +55,23 @@ export function ProfileHero({ profile }: { profile: Profile }) {
               <HStack gap={3} vAlign="center" wrap="wrap">
                 <Badge label={profile.status.label} variant={profile.status.variant} />
                 <Text type="supporting" color="secondary">
-                  {profile.location}
+                  {profile.location || "Location not set"}
                 </Text>
+                {profile.memberSince ? (
+                  <Text type="supporting" color="secondary">
+                    {profile.memberSince}
+                  </Text>
+                ) : null}
+              </HStack>
+              <HStack gap={3} vAlign="center" wrap="wrap">
                 <Text type="supporting" color="secondary">
-                  {profile.memberSince}
+                  {profile.email}
                 </Text>
+                {profile.phone ? (
+                  <Text type="supporting" color="secondary">
+                    {profile.phone}
+                  </Text>
+                ) : null}
               </HStack>
             </Stack>
           </HStack>

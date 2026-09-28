@@ -179,6 +179,22 @@ button.os-star {
   color: var(--color-text-primary);
 }
 
+/* Pressed toggles keep the button ink. The surface turns the same gray as a
+   secondary button, and the glyph fills so on reads as a solid mark. */
+.astryx-toggle-button[data-is-pressed="true"] {
+  background-color: var(--color-neutral);
+}
+.astryx-toggle-button[data-is-pressed="true"] .os-glyph {
+  fill: currentColor;
+}
+
+@media (forced-colors: active) {
+  .astryx-toggle-button[data-is-pressed="true"] {
+    background-color: Highlight;
+    color: HighlightText;
+  }
+}
+
 .os-swatch-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { JobSearch } from "@/components/jobs/job-search";
+import { loadSession } from "@/lib/auth/session";
 import { loadSearchCatalog } from "@/lib/jobs/catalog";
 import { parseFilters, type Job } from "@/lib/jobs";
+import { loadAppliedJobIds, loadProfile, loadSavedJobIds } from "@/lib/me/pipeline";
 
 export const metadata: Metadata = {
   title: "Find jobs",
@@ -24,5 +26,20 @@ export default async function HomePage({
   } catch (cause) {
     loadError = cause instanceof Error ? cause.message : "Could not load jobs";
   }
-  return <JobSearch initialFilters={filters} jobs={jobs} loadError={loadError} />;
+  const session = await loadSession();
+  const [savedIds, appliedIds, profile] = session
+    ? await Promise.all([loadSavedJobIds(), loadAppliedJobIds(), loadProfile()])
+    : [[], [], null];
+  return (
+    <JobSearch
+      initialFilters={filters}
+      jobs={jobs}
+      loadError={loadError}
+      savedIds={savedIds}
+      appliedIds={appliedIds}
+      signedIn={Boolean(session)}
+      roleSuggestions={profile?.targetRoles}
+      matchProfile={profile ?? undefined}
+    />
+  );
 }

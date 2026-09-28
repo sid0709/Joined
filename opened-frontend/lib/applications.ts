@@ -1,5 +1,5 @@
 import type { BadgeVariant, KanbanColumn } from "@openseat/design-system";
-import { daysFromToday } from "@/lib/dates";
+import { parseJSONDate } from "@/lib/me/dates";
 
 export type ApplicationStage = "saved" | "applied" | "screening" | "interview" | "offer" | "closed";
 export type ApplicationSource = "direct" | "scouted";
@@ -81,144 +81,22 @@ export const SOURCE_LABEL: Record<ApplicationSource, string> = {
   scouted: "Company site",
 };
 
-export const APPLICATIONS: Application[] = [
-  {
-    id: "app-1",
-    columnId: "interview",
-    jobId: "product-designer-northwind",
-    title: "Product Designer",
-    company: "Northwind",
-    location: "Chicago · Hybrid",
-    salary: "$135k – $160k",
-    source: "direct",
-    resume: "General",
-    match: 91,
-    updated: daysFromToday(0),
-    nextStep: "Round 1 video interview",
-    activity: [
-      { id: "a1-4", label: "Interview scheduled", date: daysFromToday(0) },
-      { id: "a1-3", label: "Recruiter screen passed", date: daysFromToday(-3) },
-      { id: "a1-2", label: "Application viewed", date: daysFromToday(-6) },
-      { id: "a1-1", label: "Applied with General resume", date: daysFromToday(-8) },
-    ],
-  },
-  {
-    id: "app-2",
-    columnId: "screening",
-    jobId: "frontend-engineer-harbor",
-    title: "Frontend Engineer",
-    company: "Harbor",
-    location: "Remote",
-    salary: "$150k – $175k",
-    source: "direct",
-    resume: "General",
-    match: 84,
-    updated: daysFromToday(-1),
-    nextStep: "Confirm interview invite",
-    activity: [
-      { id: "a2-3", label: "Invite detected in email", date: daysFromToday(-1) },
-      { id: "a2-2", label: "Application viewed", date: daysFromToday(-4) },
-      { id: "a2-1", label: "Applied with General resume", date: daysFromToday(-7) },
-    ],
-  },
-  {
-    id: "app-3",
-    columnId: "applied",
-    jobId: "data-analyst-northwind",
-    title: "Data Analyst",
-    company: "Northwind",
-    location: "New York · Hybrid",
-    salary: "$110k – $130k",
-    source: "direct",
-    resume: "General",
-    match: 72,
-    updated: daysFromToday(-5),
-    activity: [{ id: "a3-1", label: "Applied with General resume", date: daysFromToday(-5) }],
-  },
-  {
-    id: "app-4",
-    columnId: "saved",
-    jobId: "support-lead-harbor",
-    title: "Support Lead",
-    company: "Harbor",
-    location: "Remote",
-    salary: "$95k – $115k",
-    source: "direct",
-    resume: "General",
-    match: 68,
-    updated: daysFromToday(-6),
-    nextStep: "Apply before the posting closes",
-    activity: [{ id: "a4-1", label: "Saved", date: daysFromToday(-6) }],
-  },
-  {
-    id: "app-5",
-    columnId: "saved",
-    jobId: "brand-designer-fieldnote",
-    title: "Brand Designer",
-    company: "Fieldnote",
-    location: "Austin · On-site",
-    salary: "$105k – $125k",
-    source: "scouted",
-    resume: "Design-focused",
-    match: 77,
-    updated: daysFromToday(-2),
-    activity: [{ id: "a5-1", label: "Saved", date: daysFromToday(-2) }],
-  },
-  {
-    id: "app-6",
-    columnId: "offer",
-    jobId: "engineering-manager-lumen",
-    title: "Engineering Manager",
-    company: "Lumen Health",
-    location: "Chicago · Hybrid",
-    salary: "$165k – $185k",
-    source: "direct",
-    resume: "Design-focused",
-    match: 88,
-    updated: daysFromToday(-1),
-    nextStep: "Reply to the offer by Friday",
-    activity: [
-      { id: "a6-4", label: "Offer received", date: daysFromToday(-1) },
-      { id: "a6-3", label: "Final round completed", date: daysFromToday(-9) },
-      { id: "a6-2", label: "Round 1 completed", date: daysFromToday(-16) },
-      { id: "a6-1", label: "Applied with Design-focused resume", date: daysFromToday(-24) },
-    ],
-  },
-  {
-    id: "app-7",
-    columnId: "closed",
-    jobId: "recruiter-lumen",
-    title: "Technical Recruiter",
-    company: "Lumen Health",
-    location: "Remote",
-    salary: "$90k – $110k",
-    source: "scouted",
-    resume: "General",
-    match: 61,
-    updated: daysFromToday(-14),
-    closedReason: "No response",
-    activity: [{ id: "a7-1", label: "Marked applied on company site", date: daysFromToday(-30) }],
-  },
-  {
-    id: "app-8",
-    columnId: "closed",
-    jobId: "content-designer-fieldnote",
-    title: "Content Designer",
-    company: "Fieldnote",
-    location: "Remote",
-    salary: "$115k – $135k",
-    source: "direct",
-    resume: "Design-focused",
-    match: 79,
-    updated: daysFromToday(-22),
-    closedReason: "Rejected",
-    activity: [
-      { id: "a8-3", label: "Rejected after round 2", date: daysFromToday(-22) },
-      { id: "a8-2", label: "Round 2 completed", date: daysFromToday(-24) },
-      { id: "a8-1", label: "Applied with Design-focused resume", date: daysFromToday(-35) },
-    ],
-  },
-];
+export const SAVED_BOARD_PREFIX = "saved:";
+
+export function savedBoardJobId(id: string) {
+  return id.startsWith(SAVED_BOARD_PREFIX) ? id.slice(SAVED_BOARD_PREFIX.length) : null;
+}
+
+export function hydrateApplication(raw: Application): Application {
+  return {
+    ...raw,
+    activity: (raw.activity ?? []).map((event) => ({
+      ...event,
+      date: parseJSONDate(event.date),
+    })),
+    updated: parseJSONDate(raw.updated),
+  };
+}
 
 export function applicationStats(items: Application[]) {
   const sent = items.filter((item) => item.columnId !== "saved");

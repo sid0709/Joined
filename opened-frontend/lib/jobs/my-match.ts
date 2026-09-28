@@ -1,16 +1,20 @@
-import { PROFILE } from "@/lib/profile";
-import { JOBS } from "./data";
-import { matchJob, type JobMatch } from "./match";
+import { emptyProfile } from "@/lib/profile";
+import { matchJob, type MatchProfile } from "./match";
 import type { Job } from "./types";
 
-/** Every job scored once against the signed-in profile. */
-const MATCHES: Map<string, JobMatch> = new Map(JOBS.map((job) => [job.id, matchJob(job, PROFILE)]));
+const EMPTY_PROFILE: MatchProfile = {
+  targetRoles: emptyProfile().targetRoles,
+  locations: emptyProfile().locations,
+  salaryFloor: emptyProfile().salaryFloor,
+  skills: emptyProfile().skills,
+  authorization: emptyProfile().authorization,
+};
 
-/** The signed-in hunter’s match for a job. */
-export function matchFor(job: Job) {
-  return MATCHES.get(job.id) ?? matchJob(job, PROFILE);
+/** The hunter’s match for a job, using the signed-in profile when one is passed. */
+export function matchFor(job: Job, profile: MatchProfile = EMPTY_PROFILE) {
+  return matchJob(job, profile);
 }
 
-export function scoreFor(job: Job) {
-  return matchFor(job).score;
+export function scoreFor(job: Job, profile: MatchProfile = EMPTY_PROFILE) {
+  return matchFor(job, profile).score;
 }

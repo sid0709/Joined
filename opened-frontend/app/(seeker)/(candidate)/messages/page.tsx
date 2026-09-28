@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Sticky } from "@openseat/design-system";
-import { MessageInbox } from "@/components/messages/message-inbox";
+import { CandidateMessages } from "@/components/messages/candidate-messages";
 import { PageContainer } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
-import { THREADS } from "@/lib/account";
+import { loadThreads } from "@/lib/me/pipeline";
 import { MESSAGES_PAGE } from "@/lib/routes";
 
 export const metadata: Metadata = {
@@ -11,15 +11,14 @@ export const metadata: Metadata = {
   description: MESSAGES_PAGE.description,
 };
 
-export default function MessagesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MessagesPage() {
+  const threads = await loadThreads();
   return (
     <PageContainer width="wide">
       <Sticky fill offset={CONTENT_PADDING}>
-        <MessageInbox
-          title={MESSAGES_PAGE.label}
-          threads={THREADS}
-          privacyNote="Only you and the company see these messages. Your email and phone stay private until you share them."
-        />
+        <CandidateMessages threads={threads} />
       </Sticky>
     </PageContainer>
   );

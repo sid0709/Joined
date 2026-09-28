@@ -19,7 +19,7 @@ import {
   type GlyphName,
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { APPLICANTS, COMPANY_JOBS, COMPANY_UNREAD_MESSAGES } from "@/lib/company";
+import { APPLICANTS, COMPANY_JOBS } from "@/lib/company";
 import type { AuthCompany } from "@/lib/auth/types";
 import {
   COMPANY_ABOUT_PAGE,
@@ -49,7 +49,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
       { ...COMPANY_JOBS_PAGE, icon: "folder", count: OPEN_JOBS },
       { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: NEW_APPLICANTS },
       { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
-      { ...COMPANY_MESSAGES_PAGE, icon: "mail", count: COMPANY_UNREAD_MESSAGES },
+      { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
     ],
   },
   {
@@ -79,9 +79,15 @@ function activeHref(pathname: string) {
 }
 
 /** The company workspace switcher: who you’re hiring for, and where you can go. */
-export function CompanyNav({ company }: { company: AuthCompany }) {
+export function CompanyNav({ company, unread = 0 }: { company: AuthCompany; unread?: number }) {
   const pathname = usePathname();
   const active = activeHref(pathname);
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    links: group.links.map((link) =>
+      link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
+    ),
+  }));
 
   return (
     <>
@@ -105,7 +111,7 @@ export function CompanyNav({ company }: { company: AuthCompany }) {
               </HStack>
             }
           >
-            {GROUPS.map((group) => (
+            {groups.map((group) => (
               <SideNavSection key={group.title} title={group.title}>
                 {group.links.map((link) => (
                   <SideNavItem

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JobPageView } from "@/components/jobs/job-page-view";
+import { loadSession } from "@/lib/auth/session";
 import { loadCompany, loadSearchJob } from "@/lib/jobs/catalog";
+import { loadAppliedJobIds, loadSavedJobIds } from "@/lib/me/pipeline";
 
 export const dynamic = "force-dynamic";
 
@@ -30,5 +32,13 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     }
   }
 
-  return <JobPageView job={job} jobs={jobs} />;
+  return (
+    <JobPageView
+      job={job}
+      jobs={jobs}
+      saved={(await loadSavedJobIds()).includes(job.id)}
+      applied={(await loadAppliedJobIds()).includes(job.id)}
+      signedIn={Boolean(await loadSession())}
+    />
+  );
 }

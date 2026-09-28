@@ -27,11 +27,21 @@ export type VisibilitySetting = {
   description: string;
 };
 
+export type HomeAddress = {
+  line: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: string;
+};
+
 export type Profile = {
   name: string;
   email: string;
+  phone: string;
   headline: string;
   location: string;
+  homeAddress: HomeAddress;
   about: string;
   memberSince: string;
   status: { label: string; variant: BadgeVariant };
@@ -43,6 +53,7 @@ export type Profile = {
   authorization: string;
   noticePeriod: string;
   skills: string[];
+  experience: ExperienceItem[];
   visibility: Record<VisibilityKey, boolean>;
 };
 
@@ -83,73 +94,19 @@ export const LOCATION_SUGGESTIONS = [
   "Remote (US)",
 ];
 
+export const SKILL_SUGGESTIONS = [
+  "Product strategy",
+  "Design systems",
+  "Prototyping",
+  "User research",
+  "Figma",
+  "Accessibility",
+];
+
 export const HEADLINE_MAX_LENGTH = 120;
 export const ABOUT_MAX_LENGTH = 600;
 export const SALARY_STEP = 5_000;
-
-export const PROFILE: Profile = {
-  name: "Jordan Avery",
-  email: "jordan.avery@example.com",
-  headline: "Product designer focused on hiring tools",
-  location: "Chicago, IL",
-  about:
-    "Eight years designing products that help people find work. I lead end-to-end design for search, applications, and recruiter workflows, and I care about systems that stay simple as they scale.",
-  memberSince: "Member since 2024",
-  status: { label: "Open to work", variant: "success" },
-  targetRoles: ["Product designer", "Content designer"],
-  locations: ["Chicago", "Remote (US)"],
-  workplace: "hybrid",
-  salaryFloor: 140_000,
-  currency: "USD",
-  authorization: "us-citizen",
-  noticePeriod: "2w",
-  skills: [
-    "Product strategy",
-    "Design systems",
-    "Prototyping",
-    "User research",
-    "Figma",
-    "Accessibility",
-  ],
-  visibility: { openToWork: true, recruiterSearch: true, hideFromEmployer: true },
-};
-
-export const EXPERIENCE: ExperienceItem[] = [
-  {
-    id: "exp-1",
-    role: "Senior Product Designer",
-    company: "Fieldnote",
-    period: "2022 — Present",
-    summary:
-      "Leads design for candidate search and the recruiter inbox. Shipped a unified design system across web and mobile.",
-    current: true,
-  },
-  {
-    id: "exp-2",
-    role: "Product Designer",
-    company: "Harbor",
-    period: "2019 — 2022",
-    summary:
-      "Owned the application flow end to end. Cut drop-off on mobile applications by a third.",
-  },
-  {
-    id: "exp-3",
-    role: "UX Designer",
-    company: "Lumen Health",
-    period: "2017 — 2019",
-    summary: "Designed patient scheduling and intake tools used across 40 clinics.",
-  },
-];
-
-export const STRENGTH_STEPS: StrengthStep[] = [
-  { id: "headline", label: "Add a headline", done: true },
-  { id: "roles", label: "Choose target roles", done: true },
-  { id: "resume", label: "Upload a default resume", done: true },
-  { id: "experience", label: "Add work experience", done: true },
-  { id: "verify", label: "Verify your identity", done: true },
-  { id: "portfolio", label: "Link a portfolio", done: false },
-  { id: "references", label: "Add two references", done: false },
-];
+export const DEFAULT_CURRENCY = "USD";
 
 export const VISIBILITY_SETTINGS: VisibilitySetting[] = [
   {
@@ -165,9 +122,71 @@ export const VISIBILITY_SETTINGS: VisibilitySetting[] = [
   {
     key: "hideFromEmployer",
     label: "Hide from current employer",
-    description: "Fieldnote can’t see your profile or activity.",
+    description: "Your current employer can’t see your profile or activity.",
   },
 ];
+
+export function emptyAddress(): HomeAddress {
+  return { line: "", city: "", region: "", postalCode: "", country: "" };
+}
+
+export function emptyProfile(): Profile {
+  return {
+    name: "",
+    email: "",
+    phone: "",
+    headline: "",
+    location: "",
+    homeAddress: emptyAddress(),
+    about: "",
+    memberSince: "",
+    status: { label: "Open to work", variant: "success" },
+    targetRoles: [],
+    locations: [],
+    workplace: "hybrid",
+    salaryFloor: 0,
+    currency: DEFAULT_CURRENCY,
+    authorization: "",
+    noticePeriod: "",
+    skills: [],
+    experience: [],
+    visibility: { openToWork: true, recruiterSearch: true, hideFromEmployer: false },
+  };
+}
+
+export function normalizeProfile(value: Partial<Profile> | null | undefined): Profile {
+  const base = emptyProfile();
+  if (!value) return base;
+  return {
+    ...base,
+    ...value,
+    homeAddress: { ...base.homeAddress, ...value.homeAddress },
+    targetRoles: value.targetRoles ?? [],
+    locations: value.locations ?? [],
+    skills: value.skills ?? [],
+    experience: value.experience ?? [],
+    visibility: { ...base.visibility, ...value.visibility },
+    workplace: value.workplace || "hybrid",
+    currency: value.currency || DEFAULT_CURRENCY,
+  };
+}
+
+export function strengthSteps(profile: Profile, hasResume: boolean): StrengthStep[] {
+  const address = profile.homeAddress;
+  return [
+    { id: "headline", label: "Add a headline", done: Boolean(profile.headline.trim()) },
+    { id: "roles", label: "Choose target roles", done: profile.targetRoles.length > 0 },
+    { id: "resume", label: "Upload a default resume", done: hasResume },
+    { id: "experience", label: "Add work experience", done: profile.experience.length > 0 },
+    { id: "phone", label: "Add a phone number", done: Boolean(profile.phone.trim()) },
+    {
+      id: "address",
+      label: "Add a home address",
+      done: Boolean(address.line.trim() && address.city.trim()),
+    },
+    { id: "location", label: "Set your location", done: Boolean(profile.location.trim()) },
+  ];
+}
 
 export function formatSalary(amount: number, currency: string) {
   return new Intl.NumberFormat("en-US", {
@@ -182,5 +201,13 @@ export function optionLabel(options: Option[], value: string) {
 }
 
 export function strengthPercent(steps: StrengthStep[]) {
+  if (steps.length === 0) return 0;
   return Math.round((steps.filter((step) => step.done).length / steps.length) * 100);
+}
+
+export function formatAddress(address: HomeAddress) {
+  return [address.line, address.city, address.region, address.postalCode, address.country]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(", ");
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/config"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/database"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/httpapi"
@@ -45,6 +46,17 @@ func main() {
 		slog.Error("auth indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
+	google := &candidate.Google{
+		ClientID:     cfg.GoogleClientID,
+		ClientSecret: cfg.GoogleClientSecret,
+		RedirectURL:  cfg.GoogleRedirectURL,
+	}
+	people := candidate.NewStore(client, cfg.DestDB, httpapi.NewJobsCatalog(store), accounts, google)
+	if err := people.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("candidate indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
+	accounts.SetUserData(people)
 	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), 2*time.Minute)
 	updated, err := store.BackfillJobProvenance(backfillCtx)
 	cancelBackfill()
@@ -56,7 +68,7 @@ func main() {
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.New(store, accounts, reader, cfg.AdminOrigins),
+		Handler:           httpapi.New(store, accounts, people, reader, cfg.AdminOrigins, cfg.FrontendOrigin),
 		ReadHeaderTimeout: readHeaderTimeout,
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,

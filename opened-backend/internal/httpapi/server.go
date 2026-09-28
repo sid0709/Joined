@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 )
 
@@ -23,18 +24,20 @@ const (
 )
 
 type Server struct {
-	store   *jobs.Store
-	auth    *auth.Store
-	reader  jobs.ModelReader
-	origins map[string]struct{}
+	store    *jobs.Store
+	auth     *auth.Store
+	people   *candidate.Store
+	reader   jobs.ModelReader
+	origins  map[string]struct{}
+	frontend string
 }
 
-func New(store *jobs.Store, accounts *auth.Store, reader jobs.ModelReader, origins []string) http.Handler {
+func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reader jobs.ModelReader, origins []string, frontend string) http.Handler {
 	allowed := make(map[string]struct{}, len(origins))
 	for _, origin := range origins {
 		allowed[origin] = struct{}{}
 	}
-	server := &Server{store: store, auth: accounts, reader: reader, origins: allowed}
+	server := &Server{store: store, auth: accounts, people: people, reader: reader, origins: allowed, frontend: frontend}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/auth/signup", server.signup)
 	mux.HandleFunc("POST /v1/auth/signin", server.signin)
@@ -62,6 +65,31 @@ func New(store *jobs.Store, accounts *auth.Store, reader jobs.ModelReader, origi
 	mux.HandleFunc("GET /v1/search/jobs/{id}", server.getSearchCatalogJob)
 	mux.HandleFunc("GET /v1/search/companies/{id}/logo", server.getCompanyLogo)
 	mux.HandleFunc("GET /v1/search/companies/{id}", server.getSearchCompany)
+	mux.HandleFunc("GET /v1/me/profile", server.getProfile)
+	mux.HandleFunc("PATCH /v1/me/profile", server.patchProfile)
+	mux.HandleFunc("GET /v1/me/saved-jobs", server.getSavedJobs)
+	mux.HandleFunc("PUT /v1/me/saved-jobs/{jobId}", server.putSavedJob)
+	mux.HandleFunc("DELETE /v1/me/saved-jobs/{jobId}", server.deleteSavedJob)
+	mux.HandleFunc("GET /v1/me/applications", server.getApplications)
+	mux.HandleFunc("POST /v1/me/applications", server.postApplication)
+	mux.HandleFunc("PATCH /v1/me/applications/{id}", server.patchApplication)
+	mux.HandleFunc("DELETE /v1/me/applications/{id}", server.deleteApplication)
+	mux.HandleFunc("GET /v1/me/interviews", server.getInterviews)
+	mux.HandleFunc("POST /v1/me/interviews", server.postInterview)
+	mux.HandleFunc("PATCH /v1/me/interviews/{id}", server.patchInterview)
+	mux.HandleFunc("GET /v1/me/calendar", server.getCalendar)
+	mux.HandleFunc("GET /v1/me/calendar/google/start", server.startGoogleCalendar)
+	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
+	mux.HandleFunc("DELETE /v1/me/calendar/google", server.disconnectGoogleCalendar)
+	mux.HandleFunc("POST /v1/me/calendar/google/sync", server.syncGoogleCalendar)
+	mux.HandleFunc("GET /v1/me/threads", server.getMyThreads)
+	mux.HandleFunc("GET /v1/me/threads/{id}", server.getMyThread)
+	mux.HandleFunc("POST /v1/me/threads/{id}/messages", server.postMyMessage)
+	mux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
+	mux.HandleFunc("GET /v1/company/threads", server.getCompanyThreads)
+	mux.HandleFunc("GET /v1/company/threads/{id}", server.getCompanyThread)
+	mux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
+	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
 	return server.withCORS(mux)
 }
 
@@ -448,8 +476,8 @@ func (s *Server) withCORS(next http.Handler) http.Handler {
 			if _, ok := s.origins[origin]; ok {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
 			}
 		}
 		if r.Method == http.MethodOptions {

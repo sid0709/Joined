@@ -19,6 +19,7 @@ const (
 	defaultCompaniesCollection = "companies"
 	defaultOpenAIModel         = "gpt-4o-mini"
 	defaultOpenAIBaseURL       = "https://api.openai.com/v1"
+	defaultFrontendOrigin      = "http://127.0.0.1:3002"
 	envFileName                = ".env"
 )
 
@@ -36,6 +37,10 @@ type Config struct {
 	OpenAIAPIKey        string
 	OpenAIModel         string
 	OpenAIBaseURL       string
+	FrontendOrigin      string
+	GoogleClientID      string
+	GoogleClientSecret  string
+	GoogleRedirectURL   string
 }
 
 func (c Config) SourceName() string {
@@ -63,6 +68,10 @@ func Load() (Config, error) {
 		OpenAIAPIKey:        strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
 		OpenAIModel:         envOr("OPENAI_MODEL", defaultOpenAIModel),
 		OpenAIBaseURL:       envOr("OPENAI_BASE_URL", defaultOpenAIBaseURL),
+		FrontendOrigin:      strings.TrimRight(envOr("FRONTEND_ORIGIN", defaultFrontendOrigin), "/"),
+		GoogleClientID:      strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
+		GoogleClientSecret:  strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
+		GoogleRedirectURL:   strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URL")),
 	}
 	if cfg.MongoURI == "" {
 		return Config{}, fmt.Errorf("MONGO_URI is required")
