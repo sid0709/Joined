@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  US_CITIES,
-  US_STATES,
-  formatAddress,
-  joinLocations,
-  parseAddress,
-  splitLocations,
-  type Address,
-} from "@openseat/design-system/places";
 import { adminFetch } from "@/lib/api";
 import { CompanyMark } from "@/components/jobs/company-mark";
+import { AddressField, OfficesField } from "@/components/companies/place-fields";
 import {
   COMPANIES_PATH,
   COMPANY_SIZES,
@@ -506,114 +498,6 @@ function TaglineField({ value, onChange }: { value: string; onChange: (value: st
         Type a phrase and press Enter to create a chip. {value.length}/{TAGLINE_MAX}
       </span>
     </label>
-  );
-}
-
-function AddressField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const [address, setAddress] = useState<Address>(() => parseAddress(value));
-  const cities = optionsWithCurrent(
-    US_CITIES.map((city) => city.name),
-    address.city,
-  );
-
-  function update(patch: Partial<Address>) {
-    const next = { ...address, ...patch };
-    setAddress(next);
-    onChange(formatAddress(next));
-  }
-
-  return (
-    <div className="flex flex-col gap-3">
-      <Field label="Headquarters">
-        <input
-          className={inputClass}
-          value={address.line1}
-          placeholder="Street address"
-          onChange={(event) => update({ line1: event.target.value })}
-        />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="City">
-          <select
-            className={inputClass}
-            value={address.city}
-            onChange={(event) => update({ city: event.target.value })}
-          >
-            <option value="">Select a city</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="State">
-          <select
-            className={inputClass}
-            value={address.state}
-            onChange={(event) => update({ state: event.target.value })}
-          >
-            <option value="">Select a state</option>
-            {US_STATES.map((state) => (
-              <option key={state.abbreviation} value={state.abbreviation}>
-                {state.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-      <Field label="Postal code">
-        <input
-          className={inputClass}
-          value={address.postalCode}
-          placeholder="ZIP code"
-          onChange={(event) => update({ postalCode: event.target.value })}
-        />
-      </Field>
-    </div>
-  );
-}
-
-function OfficesField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const selected = splitLocations(value);
-  const remaining = US_CITIES.map((city) => city.name).filter((city) => !selected.includes(city));
-
-  return (
-    <div className={labelClass}>
-      <span className={labelTextClass}>Offices</span>
-      {selected.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {selected.map((city) => (
-            <button
-              key={city}
-              type="button"
-              className="rounded-md bg-paper px-2 py-0.5 text-sm text-ink hover:text-danger"
-              aria-label={`Remove ${city}`}
-              onClick={() => onChange(joinLocations(selected.filter((item) => item !== city)))}
-            >
-              {city} ×
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <select
-        className={inputClass}
-        value=""
-        onChange={(event) => {
-          const city = event.target.value;
-          if (!city || selected.includes(city)) return;
-          onChange(joinLocations([...selected, city]));
-        }}
-      >
-        <option value="">Add a city</option>
-        {remaining.map((city) => (
-          <option key={city} value={city}>
-            {city}
-          </option>
-        ))}
-      </select>
-      <span className="text-xs text-muted">Select every city with an office.</span>
-    </div>
   );
 }
 
