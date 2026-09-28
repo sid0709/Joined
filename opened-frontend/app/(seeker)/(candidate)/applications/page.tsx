@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ApplicationsWorkspace } from "@/components/applications/applications-workspace";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
-import { loadApplications } from "@/lib/me/pipeline";
+import { loadApplications } from "@/lib/me/load";
 import { APPLICATIONS_PAGE } from "@/lib/routes";
 
 export const metadata: Metadata = { title: APPLICATIONS_PAGE.label };

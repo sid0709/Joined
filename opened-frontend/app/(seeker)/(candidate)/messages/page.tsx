@@ -3,7 +3,7 @@ import { Sticky } from "@openseat/design-system";
 import { CandidateMessages } from "@/components/messages/candidate-messages";
 import { PageContainer } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
-import { loadThreads } from "@/lib/me/pipeline";
+import { loadThreads } from "@/lib/me/load";
 import { MESSAGES_PAGE } from "@/lib/routes";
 
 export const metadata: Metadata = {

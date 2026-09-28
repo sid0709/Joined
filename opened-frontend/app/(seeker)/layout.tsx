@@ -4,7 +4,7 @@ import { EmployerHeader } from "@/components/shell/employer-header";
 import { SeekerHeader } from "@/components/shell/seeker-header";
 import { isEmployee } from "@/lib/auth/account-type";
 import { loadSession } from "@/lib/auth/session";
-import { loadCompanyUnread, loadUnread } from "@/lib/me/pipeline";
+import { loadCompanyUnread, loadUnread } from "@/lib/me/load";
 
 /**
  * Candidate mode, plus the public job and company pages anyone can open. An

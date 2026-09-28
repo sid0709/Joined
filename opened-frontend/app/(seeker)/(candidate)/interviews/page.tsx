@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { InterviewsWorkspace } from "@/components/interviews/interviews-workspace";
 import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
-import { loadApplications, loadInterviews } from "@/lib/me/pipeline";
+import { loadApplications, loadInterviews } from "@/lib/me/load";
 import { INTERVIEWS_PAGE } from "@/lib/routes";
 
 export const metadata: Metadata = { title: INTERVIEWS_PAGE.label };

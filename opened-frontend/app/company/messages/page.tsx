@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Sticky } from "@openseat/design-system";
 import { CompanyMessages } from "@/components/messages/company-messages";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
-import { loadCompanyThreads } from "@/lib/me/pipeline";
+import { loadCompanyThreads } from "@/lib/me/load";
 
 export const metadata: Metadata = { title: "Company messages" };
 export const dynamic = "force-dynamic";

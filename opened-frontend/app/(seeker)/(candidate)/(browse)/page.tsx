@@ -3,7 +3,7 @@ import { JobSearch } from "@/components/jobs/job-search";
 import { loadSession } from "@/lib/auth/session";
 import { loadSearchCatalog } from "@/lib/jobs/catalog";
 import { parseFilters, type Job } from "@/lib/jobs";
-import { loadAppliedJobIds, loadProfile, loadSavedJobIds } from "@/lib/me/pipeline";
+import { loadAppliedJobIds, loadProfile, loadSavedJobIds } from "@/lib/me/load";
 
 export const metadata: Metadata = {
   title: "Find jobs",

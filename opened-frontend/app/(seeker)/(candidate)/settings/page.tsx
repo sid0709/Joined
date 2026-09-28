@@ -3,7 +3,7 @@ import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { SettingsWorkspace } from "@/components/settings/settings-workspace";
 import { loadSession } from "@/lib/auth/session";
-import { loadCalendar } from "@/lib/me/pipeline";
+import { loadCalendar } from "@/lib/me/load";
 import { SETTINGS_PAGE } from "@/lib/routes";
 
 export const metadata: Metadata = { title: SETTINGS_PAGE.label };
