@@ -5,7 +5,7 @@ import { CompanyNav } from "@/components/company/company-nav";
 import { PageContainer } from "@/components/page-container";
 import { AppFrame } from "@/components/shell/app-frame";
 import { EmployerHeader } from "@/components/shell/employer-header";
-import { loadCompanyUnread } from "@/lib/me/pipeline";
+import { loadCompanyUnread } from "@/lib/me/load";
 import { loadSession } from "@/lib/auth/session";
 import { ROUTES, signInHref } from "@/lib/routes";
 

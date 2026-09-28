@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { JobPageView } from "@/components/jobs/job-page-view";
 import { loadSession } from "@/lib/auth/session";
 import { loadCompany, loadSearchJob } from "@/lib/jobs/catalog";
-import { loadAppliedJobIds, loadSavedJobIds } from "@/lib/me/pipeline";
+import { loadAppliedJobIds, loadSavedJobIds } from "@/lib/me/load";
 
 export const dynamic = "force-dynamic";
 
