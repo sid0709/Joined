@@ -125,14 +125,31 @@ export type CompanyList = {
 
 export type CompanyWrite = Omit<AdminCompany, "id" | "jobCount" | "hasLogoFile">;
 
-/** Same-origin API logo. Uploaded files and remote URLs both load through it. */
+/** Same-origin API logo for uploads and LinkedIn files that refuse hotlinking. */
 export function companyLogoSrc(
   company: { id: string; logo?: string; hasLogoFile?: boolean },
   version = 0,
 ) {
-  if (!company.logo && !company.hasLogoFile) return undefined;
+  const logo = company.logo?.trim();
+  if (!logo && !company.hasLogoFile) return undefined;
+  if (logo && !isLinkedInLogoHost(logo)) return logo;
   const base = `${adminApiUrl()}/v1/search/companies/${encodeURIComponent(company.id)}/logo`;
   return `${base}?v=${version}`;
+}
+
+function isLinkedInLogoHost(logo: string) {
+  let host = "";
+  try {
+    host = new URL(logo).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return (
+    host === "linkedin.com" ||
+    host.endsWith(".linkedin.com") ||
+    host === "licdn.com" ||
+    host.endsWith(".licdn.com")
+  );
 }
 
 export function companyWriteFrom(company: AdminCompany): CompanyWrite {
