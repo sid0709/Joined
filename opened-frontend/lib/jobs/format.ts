@@ -32,9 +32,10 @@ export const EMPLOYMENT_LABEL: Record<Employment, string> = {
 
 export const SENIORITY_LABEL: Record<Seniority, string> = {
   Junior: "Junior",
-  Mid: "Mid-level",
+  Middle: "Middle",
   Senior: "Senior",
-  Lead: "Lead",
+  Leader: "Leader",
+  Manager: "Manager",
 };
 
 function currencySymbol(currency: string) {

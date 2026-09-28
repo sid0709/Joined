@@ -16,5 +16,5 @@ export default async function SignUpPage({
   const session = await loadSession();
   if (session && hiring) redirect(session.company ? ROUTES.company : ROUTES.hiringSetup);
   if (session) redirect(safeNextPath(params.next));
-  return <SignUpForm nextPath={safeNextPath(params.next)} />;
+  return <SignUpForm nextPath={safeNextPath(params.next)} hiring={hiring} />;
 }

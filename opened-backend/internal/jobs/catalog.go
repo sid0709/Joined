@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -216,6 +217,92 @@ func (s *Store) GetSearch(ctx context.Context, id string, now time.Time) (Search
 	return doc.view(now), nil
 }
 
+// SearchJobPatch is what an admin can edit on an analyzed job. Every field is
+// applied as given — the caller (the admin UI) sends the full edited record,
+// not a sparse diff, since every field is either an enum with a safe default
+// or a value the admin has already seen populated in the edit form.
+type SearchJobPatch struct {
+	Title            string   `json:"title"`
+	Company          string   `json:"company"`
+	Location         string   `json:"location"`
+	Workplace        string   `json:"workplace"`
+	Pay              Pay      `json:"pay"`
+	Seniority        string   `json:"seniority"`
+	Employment       string   `json:"employment"`
+	Visa             bool     `json:"visa"`
+	Team             string   `json:"team"`
+	Skills           []string `json:"skills"`
+	Summary          string   `json:"summary"`
+	Responsibilities []string `json:"responsibilities"`
+	Requirements     []string `json:"requirements"`
+	Benefits         []string `json:"benefits"`
+	ApplyLink        string   `json:"applyLink"`
+}
+
+// UpdateSearchJob applies an admin's manual edit on top of the stored record.
+// Identity fields (id, company id, source, posted/analyzed timestamps, model)
+// are untouched — only what the edit form exposes can change.
+func (s *Store) UpdateSearchJob(ctx context.Context, id string, patch SearchJobPatch, now time.Time) (SearchRecord, error) {
+	coll := s.structured()
+	filter, err := searchIDFilter(id)
+	if err != nil {
+		return SearchRecord{}, err
+	}
+	var doc storedSearchJob
+	if err := coll.FindOne(ctx, filter).Decode(&doc); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return SearchRecord{}, ErrNotFound
+		}
+		return SearchRecord{}, err
+	}
+
+	job := doc.Job
+	job.Title = fallback(strings.TrimSpace(patch.Title), job.Title)
+	job.Company = fallback(strings.TrimSpace(patch.Company), job.Company)
+	job.Location = fallback(strings.TrimSpace(patch.Location), "Location not listed")
+	job.Workplace = oneOf(patch.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, job.Workplace)
+	job.Pay = sanitizePay(patch.Pay)
+	job.Seniority = oneOf(patch.Seniority, []string{seniorityJunior, seniorityMiddle, senioritySenior, seniorityLeader, seniorityManager}, job.Seniority)
+	job.Employment = oneOf(patch.Employment, []string{employmentFullTime, employmentContract, employmentPartTime}, job.Employment)
+	job.Visa = patch.Visa
+	job.Team = strings.TrimSpace(patch.Team)
+	job.Skills = cleanList(patch.Skills, maxSkills)
+	job.Summary = truncate(strings.TrimSpace(patch.Summary), maxSummaryRunes)
+	job.Responsibilities = cleanList(patch.Responsibilities, maxBullets)
+	job.Requirements = cleanList(patch.Requirements, maxBullets)
+	job.Benefits = cleanList(patch.Benefits, maxBullets)
+	doc.Job = job
+	if link := strings.TrimSpace(patch.ApplyLink); link != "" {
+		doc.ApplyLink = link
+	}
+
+	if err := s.saveSearchJob(ctx, doc); err != nil {
+		return SearchRecord{}, err
+	}
+	return doc.view(now), nil
+}
+
+func searchIDFilter(id string) (bson.D, error) {
+	if objectID, err := bson.ObjectIDFromHex(id); err == nil {
+		return bson.D{{Key: "_id", Value: objectID}}, nil
+	}
+	if id == "" {
+		return nil, ErrNotFound
+	}
+	return bson.D{{Key: "job.id", Value: id}}, nil
+}
+
+// sanitizePay clamps a manually-edited pay range the same way an extracted one is:
+// no negatives, min<=max, a real 3-letter currency, and a valid period.
+func sanitizePay(pay Pay) Pay {
+	return normalizePay(extractedPay{
+		Min:      float64(pay.Min),
+		Max:      float64(pay.Max),
+		Currency: pay.Currency,
+		Period:   pay.Period,
+	}, "")
+}
+
 func (s *Store) nextTempListing(ctx context.Context) (tempListing, error) {
 	cursor, err := s.dest().Aggregate(ctx, mongo.Pipeline{
 		bson.D{{Key: "$lookup", Value: bson.D{
@@ -285,10 +372,19 @@ func (s *Store) analyzedIDs(ctx context.Context, ids []bson.ObjectID) ([]string,
 	if len(ids) == 0 {
 		return []string{}, nil
 	}
+	hexes := make([]string, len(ids))
+	onPage := make(map[string]struct{}, len(ids))
+	for i, id := range ids {
+		hexes[i] = id.Hex()
+		onPage[hexes[i]] = struct{}{}
+	}
 	cursor, err := s.structured().Find(
 		ctx,
-		bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}},
-		options.Find().SetProjection(bson.D{{Key: "_id", Value: 1}}),
+		bson.D{{Key: "$or", Value: bson.A{
+			bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}},
+			bson.D{{Key: "tempJobId", Value: bson.D{{Key: "$in", Value: hexes}}}},
+		}}},
+		options.Find().SetProjection(bson.D{{Key: "_id", Value: 1}, {Key: "tempJobId", Value: 1}}),
 	)
 	if err != nil {
 		return nil, err
@@ -296,16 +392,68 @@ func (s *Store) analyzedIDs(ctx context.Context, ids []bson.ObjectID) ([]string,
 	defer cursor.Close(ctx)
 
 	found := make([]string, 0, len(ids))
+	seen := make(map[string]struct{}, len(ids))
 	for cursor.Next(ctx) {
 		var doc struct {
-			ID bson.ObjectID `bson:"_id"`
+			ID        bson.ObjectID `bson:"_id"`
+			TempJobID string        `bson:"tempJobId"`
 		}
 		if err := cursor.Decode(&doc); err != nil {
 			return nil, err
 		}
-		found = append(found, doc.ID.Hex())
+		match := doc.ID.Hex()
+		if _, ok := onPage[match]; !ok {
+			match = doc.TempJobID
+		}
+		if _, ok := onPage[match]; !ok {
+			continue
+		}
+		if _, ok := seen[match]; ok {
+			continue
+		}
+		seen[match] = struct{}{}
+		found = append(found, match)
 	}
 	return found, cursor.Err()
+}
+
+func (s *Store) analyzedObjectIDs(ctx context.Context) ([]bson.ObjectID, error) {
+	cursor, err := s.structured().Find(
+		ctx,
+		bson.D{},
+		options.Find().SetProjection(bson.D{{Key: "_id", Value: 1}, {Key: "tempJobId", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	ids := []bson.ObjectID{}
+	seen := map[bson.ObjectID]struct{}{}
+	for cursor.Next(ctx) {
+		var doc struct {
+			ID        bson.ObjectID `bson:"_id"`
+			TempJobID string        `bson:"tempJobId"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		add := func(id bson.ObjectID) {
+			if id.IsZero() {
+				return
+			}
+			if _, ok := seen[id]; ok {
+				return
+			}
+			seen[id] = struct{}{}
+			ids = append(ids, id)
+		}
+		add(doc.ID)
+		if parsed, err := bson.ObjectIDFromHex(doc.TempJobID); err == nil {
+			add(parsed)
+		}
+	}
+	return ids, cursor.Err()
 }
 
 func (s *Store) structured() *mongo.Collection {

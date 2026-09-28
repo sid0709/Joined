@@ -21,6 +21,7 @@ export type CompanyOption = {
   id: string;
   name: string;
   url?: string;
+  logo?: string;
 };
 
 export type CompanyChoice = { id: string } | { name: string; url: string };

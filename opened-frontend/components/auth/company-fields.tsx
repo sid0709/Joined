@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  HStack,
   Icon,
   RadioList,
   RadioListItem,
@@ -14,13 +15,14 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import type { CompanyChoice, CompanyOption } from "@/lib/auth/types";
+import { CompanyLogo } from "@/components/jobs/company-logo";
 
 const SEARCH_DELAY_MS = 250;
 const MIN_QUERY = 2;
 
 export type HiringPath = "link" | "create";
 
-type CompanyItem = SearchableItem<{ url?: string }>;
+type CompanyItem = SearchableItem<{ url?: string; logo?: string }>;
 
 /** Join a company already in Opened, or start a new company page. */
 export function CompanyFields({
@@ -68,14 +70,22 @@ export function CompanyFields({
           emptySearchResultsText="No companies match."
           startIcon={<Icon icon={icons.search} />}
           renderItem={(company) => (
-            <Stack gap={0}>
-              <Text>{company.label}</Text>
-              {company.auxiliaryData?.url ? (
-                <Text type="supporting" color="secondary">
-                  {company.auxiliaryData.url}
-                </Text>
-              ) : null}
-            </Stack>
+            <HStack gap={2} vAlign="center">
+              <CompanyLogo
+                name={company.label}
+                companyId={company.id}
+                src={company.auxiliaryData?.logo}
+                size={32}
+              />
+              <Stack gap={0}>
+                <Text>{company.label}</Text>
+                {company.auxiliaryData?.url ? (
+                  <Text type="supporting" color="secondary">
+                    {company.auxiliaryData.url}
+                  </Text>
+                ) : null}
+              </Stack>
+            </HStack>
           )}
         />
       ) : (
@@ -124,7 +134,7 @@ function companySearch(): SearchSource<CompanyItem> {
         return (body.companies ?? []).map((company) => ({
           id: company.id,
           label: company.name,
-          auxiliaryData: { url: company.url },
+          auxiliaryData: { url: company.url, logo: company.logo },
         }));
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") throw error;

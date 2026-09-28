@@ -7,12 +7,13 @@ import {
   HStack,
   Heading,
   Section,
+  Skeleton,
   Stack,
   Text,
   Token,
   type GlyphName,
 } from "@openseat/design-system";
-import { formatCount, jobsForCompany, type CompanyProfile } from "@/lib/jobs";
+import { formatCount, jobsForCompany } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";
 
@@ -30,7 +31,20 @@ export type CompanyCardExtras = {
   id?: string;
 };
 
-function Fact({ icon, label, value }: { icon: GlyphName; label: string; value: string }) {
+/** The identity and stats a card can show. Any fact not yet on file renders a skeleton. */
+export type CompanyCardData = {
+  slug: string;
+  name: string;
+  about: string;
+  industry?: string;
+  size?: string;
+  founded?: number;
+  /** Median days from application to first reply. */
+  replyDays?: number;
+  locations?: string;
+} & CompanyCardExtras;
+
+function Fact({ icon, label, value }: { icon: GlyphName; label: string; value?: string }) {
   return (
     <Card variant="muted" padding={3}>
       <Stack gap={1}>
@@ -42,7 +56,7 @@ function Fact({ icon, label, value }: { icon: GlyphName; label: string; value: s
             {label}
           </Text>
         </HStack>
-        <Text weight="semibold">{value}</Text>
+        {value ? <Text weight="semibold">{value}</Text> : <Skeleton width={40} height={16} />}
       </Stack>
     </Card>
   );
@@ -54,7 +68,7 @@ export function CompanyCard({
   openRoles,
   hasActions = true,
 }: {
-  company: CompanyProfile & CompanyCardExtras;
+  company: CompanyCardData;
   openRoles?: number;
   hasActions?: boolean;
 }) {
@@ -78,9 +92,13 @@ export function CompanyCard({
                 <Badge label="Verified" variant="blue" icon={<Glyph name="check" />} />
               ) : null}
             </HStack>
-            <Text type="supporting" color="secondary">
-              {company.industry} · {company.locations}
-            </Text>
+            {company.industry || company.locations ? (
+              <Text type="supporting" color="secondary">
+                {[company.industry, company.locations].filter(Boolean).join(" · ")}
+              </Text>
+            ) : (
+              <Skeleton width={160} height={14} />
+            )}
           </Stack>
         </HStack>
       </Section>
@@ -97,11 +115,15 @@ export function CompanyCard({
 
         <Grid columns={{ minWidth: FACT_MIN_WIDTH, max: FACT_COLUMNS }} gap={2}>
           <Fact icon="users" label="Size" value={company.size} />
-          <Fact icon="calendar" label="Founded" value={String(company.founded)} />
+          <Fact
+            icon="calendar"
+            label="Founded"
+            value={company.founded ? String(company.founded) : undefined}
+          />
           <Fact
             icon="clock"
             label="Replies in"
-            value={`~${formatCount(company.replyDays, "day")}`}
+            value={company.replyDays ? `~${formatCount(company.replyDays, "day")}` : undefined}
           />
         </Grid>
 

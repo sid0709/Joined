@@ -7,11 +7,16 @@ import (
 const extractSystemPrompt = `You turn a job description into a structured record for Opened job search.
 Use only facts in the listing and description. Do not invent salary, visa sponsorship, benefits, or a team.
 Write a short original summary in one or two sentences. Do not paste the description.
-If salary is absent, set pay min and max to 0 and currency to USD.
+Read the whole description for salary, workplace, and location clues, not just a labeled hint field —
+a range mentioned in passing ("$120K-$150K"), remote/hybrid/onsite language, or a named city still counts.
+Only set pay min and max to 0 when the description truly gives no usable number, even loosely, anywhere.
 If visa sponsorship is not explicitly offered, set visa to false.
 skills are concrete tools or domains, at most 12.
 responsibilities, requirements, and benefits are short phrases, at most 6 each.
-team is the hiring team or department, or an empty string.`
+team is the hiring team or department, or an empty string.
+seniority is a five-tier scale: Junior, Middle, Senior, Leader, Manager.
+"Staff" and "Principal" are senior individual-contributor titles one tier above Senior — always Leader, never Senior.
+"Manager", "Director", "Head of", and similar people-management titles are Manager, one tier above Leader.`
 
 const extractionSchema = `{
   "type": "object",
@@ -30,7 +35,7 @@ const extractionSchema = `{
       },
       "required": ["min", "max", "currency", "period"]
     },
-    "seniority": {"type": "string", "enum": ["Junior", "Mid", "Senior", "Lead"]},
+    "seniority": {"type": "string", "enum": ["Junior", "Middle", "Senior", "Leader", "Manager"]},
     "employment": {"type": "string", "enum": ["full-time", "contract", "part-time"]},
     "visa": {"type": "boolean"},
     "team": {"type": "string"},

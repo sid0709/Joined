@@ -1,6 +1,8 @@
 package jobs
 
 import (
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -11,10 +13,11 @@ const (
 	workplaceHybrid = "hybrid"
 	workplaceOnsite = "onsite"
 
-	seniorityJunior = "Junior"
-	seniorityMid    = "Mid"
-	senioritySenior = "Senior"
-	seniorityLead   = "Lead"
+	seniorityJunior  = "Junior"
+	seniorityMiddle  = "Middle"
+	senioritySenior  = "Senior"
+	seniorityLeader  = "Leader"
+	seniorityManager = "Manager"
 
 	employmentFullTime = "full-time"
 	employmentContract = "contract"
@@ -90,6 +93,10 @@ type listingHints struct {
 	Remote     string
 	Seniority  string
 	Employment string
+	// Salary is the raw, unstructured pay text scraped alongside the listing
+	// (e.g. "$120K - $150K a year"). Used only when the LLM extraction found
+	// nothing in the description itself.
+	Salary string
 }
 
 func buildSearchJob(id, companyID, title, company string, posted time.Time, now time.Time, hints listingHints, extracted Extraction) SearchJob {
@@ -100,8 +107,8 @@ func buildSearchJob(id, companyID, title, company string, posted time.Time, now 
 		Company:          fallback(strings.TrimSpace(company), "Unknown company"),
 		Location:         fallback(strings.TrimSpace(extracted.Location), strings.TrimSpace(hints.Location), "Location not listed"),
 		Workplace:        oneOf(extracted.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceFromHint(hints.Remote)),
-		Pay:              normalizePay(extracted.Pay),
-		Seniority:        oneOf(extracted.Seniority, []string{seniorityJunior, seniorityMid, senioritySenior, seniorityLead}, seniorityFromHint(hints.Seniority)),
+		Pay:              normalizePay(extracted.Pay, hints.Salary),
+		Seniority:        oneOf(extracted.Seniority, []string{seniorityJunior, seniorityMiddle, senioritySenior, seniorityLeader, seniorityManager}, seniorityFromHint(hints.Seniority)),
 		Employment:       oneOf(extracted.Employment, []string{employmentFullTime, employmentContract, employmentPartTime}, employmentFromHint(hints.Employment)),
 		PostedHoursAgo:   hoursSince(posted, now),
 		Source:           aggregatedSource,
@@ -124,7 +131,16 @@ func hoursSince(posted, now time.Time) int {
 	return int(now.Sub(posted).Hours())
 }
 
-func normalizePay(pay extractedPay) Pay {
+// normalizePay prefers the LLM's read of the full description. When that came back
+// empty (the description didn't mention pay, or the model missed it), it falls back
+// to parsing whatever raw salary text was scraped alongside the listing — so a job
+// isn't marked "not listed" just because the description itself was silent on it.
+func normalizePay(pay extractedPay, salaryHint string) Pay {
+	if pay.Min == 0 && pay.Max == 0 {
+		if hinted, ok := payFromHint(salaryHint); ok {
+			pay = hinted
+		}
+	}
 	minValue := int(pay.Min)
 	maxValue := int(pay.Max)
 	if minValue < 0 {
@@ -147,6 +163,49 @@ func normalizePay(pay extractedPay) Pay {
 	return Pay{Min: minValue, Max: maxValue, Currency: currency, Period: period}
 }
 
+var payHintPattern = regexp.MustCompile(
+	`(?i)([$€£])?\s*(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*(?:-|to|–|—)\s*([$€£])?\s*(\d[\d,]*(?:\.\d+)?)\s*(k)?\s*(/\s*(?:hr|hour)|per\s*hour|/\s*(?:yr|year))?`,
+)
+
+var currencySymbols = map[string]string{"$": "USD", "€": "EUR", "£": "GBP"}
+
+// payFromHint recovers a min/max range from loose scraped text such as
+// "$120K - $150K a year" or "$45 - $60 / hr". Returns ok=false when nothing
+// resembling a range is found, leaving the job's pay at zero ("not listed").
+func payFromHint(text string) (extractedPay, bool) {
+	match := payHintPattern.FindStringSubmatch(text)
+	if match == nil {
+		return extractedPay{}, false
+	}
+	symbol := fallback(match[1], match[4])
+	min := parsePayNumber(match[2], match[3] != "")
+	max := parsePayNumber(match[5], match[6] != "")
+	if min == 0 && max == 0 {
+		return extractedPay{}, false
+	}
+	period := payYear
+	if strings.Contains(strings.ToLower(match[7]), "hr") || strings.Contains(strings.ToLower(match[7]), "hour") {
+		period = payHour
+	}
+	currency, ok := currencySymbols[symbol]
+	if !ok {
+		currency = "USD"
+	}
+	return extractedPay{Min: min, Max: max, Currency: currency, Period: period}, true
+}
+
+func parsePayNumber(raw string, thousands bool) float64 {
+	cleaned := strings.ReplaceAll(raw, ",", "")
+	value, err := strconv.ParseFloat(cleaned, 64)
+	if err != nil {
+		return 0
+	}
+	if thousands {
+		value *= 1000
+	}
+	return value
+}
+
 func workplaceFromHint(remote string) string {
 	text := strings.ToLower(remote)
 	switch {
@@ -159,15 +218,21 @@ func workplaceFromHint(remote string) string {
 	}
 }
 
+// seniorityFromHint maps a free-text title/level hint onto the five-tier scale.
+// "Staff" and "Principal" are individual-contributor titles above Senior, not
+// people-manager titles — they land on Leader, same as "Lead", never Senior.
+// "Manager", "Director", and "Head of" are people-management titles, one tier above that.
 func seniorityFromHint(value string) string {
 	text := strings.ToLower(value)
 	switch {
+	case strings.Contains(text, "manager"), strings.Contains(text, "director"), strings.Contains(text, "head of"), strings.Contains(text, "vp "), strings.Contains(text, "chief"):
+		return seniorityManager
+	case strings.Contains(text, "lead"), strings.Contains(text, "staff"), strings.Contains(text, "principal"):
+		return seniorityLeader
 	case strings.Contains(text, "junior"), strings.Contains(text, "entry"), strings.Contains(text, "intern"):
 		return seniorityJunior
-	case strings.Contains(text, "lead"), strings.Contains(text, "staff"), strings.Contains(text, "principal"), strings.Contains(text, "director"):
-		return seniorityLead
-	case strings.Contains(text, "mid"):
-		return seniorityMid
+	case strings.Contains(text, "mid"), strings.Contains(text, "middle"):
+		return seniorityMiddle
 	default:
 		return senioritySenior
 	}

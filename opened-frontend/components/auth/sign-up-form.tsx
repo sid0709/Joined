@@ -8,6 +8,8 @@ import {
   Card,
   Heading,
   Link,
+  RadioList,
+  RadioListItem,
   Stack,
   Text,
   TextInput,
@@ -19,11 +21,14 @@ import { CompanyFields, type HiringPath } from "./company-fields";
 
 const MIN_PASSWORD = 8;
 
-export function SignUpForm({ nextPath }: { nextPath: string }) {
+type AccountMode = "candidate" | "employee";
+
+export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<AccountMode>(hiring ? "employee" : "candidate");
   const [path, setPath] = useState<HiringPath>("link");
   const [company, setCompany] = useState<CompanyChoice | null>(null);
   const [error, setError] = useState("");
@@ -36,7 +41,7 @@ export function SignUpForm({ nextPath }: { nextPath: string }) {
       setError("Use at least 8 characters.");
       return;
     }
-    if (!company) {
+    if (mode === "employee" && !company) {
       setError(path === "link" ? "Choose a company to link." : "Enter the company name.");
       return;
     }
@@ -49,7 +54,7 @@ export function SignUpForm({ nextPath }: { nextPath: string }) {
         name,
         email,
         password,
-        company,
+        ...(mode === "employee" && company ? { company } : {}),
       }),
     });
     setPending(false);
@@ -58,8 +63,9 @@ export function SignUpForm({ nextPath }: { nextPath: string }) {
       setError(body?.error ?? "Could not create the account");
       return;
     }
-    writeStoredWorkspaceMode("company");
-    router.push(ROUTES.company);
+    const employee = mode === "employee";
+    writeStoredWorkspaceMode(employee ? "company" : "hunter");
+    router.push(employee ? ROUTES.company : nextPath);
     router.refresh();
   };
 
@@ -69,14 +75,28 @@ export function SignUpForm({ nextPath }: { nextPath: string }) {
         <Stack gap={1}>
           <Heading level={1}>Create your account</Heading>
           <Text color="secondary">
-            This account is yours. Link a company we already have, or create one.
+            This account is yours. Join as a candidate, or as an employee of a company.
           </Text>
         </Stack>
         {error ? <Banner status="error" title={error} /> : null}
         <TextInput label="Name" value={name} onChange={setName} />
         <TextInput label="Email" type="email" value={email} onChange={setEmail} />
         <TextInput label="Password" type="password" value={password} onChange={setPassword} />
-        <CompanyFields path={path} onPath={setPath} onChoice={onChoice} />
+        <RadioList label="Join as" value={mode} onChange={(value) => setMode(value as AccountMode)}>
+          <RadioListItem
+            value="candidate"
+            label="Join as Candidate"
+            description="Search jobs and track your applications."
+          />
+          <RadioListItem
+            value="employee"
+            label="Join as Employee"
+            description="Link a company we already have, or create a company page."
+          />
+        </RadioList>
+        {mode === "employee" ? (
+          <CompanyFields path={path} onPath={setPath} onChoice={onChoice} />
+        ) : null}
         <Button
           label="Create account"
           variant="primary"

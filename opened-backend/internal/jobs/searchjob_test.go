@@ -42,7 +42,7 @@ func TestBuildSearchJobUsesFrontendEnums(t *testing.T) {
 }
 
 func TestNormalizePaySwapsInvertedRange(t *testing.T) {
-	pay := normalizePay(extractedPay{Min: 80, Max: 40, Currency: "dollars", Period: "hour"})
+	pay := normalizePay(extractedPay{Min: 80, Max: 40, Currency: "dollars", Period: "hour"}, "")
 	if pay.Min != 40 || pay.Max != 80 || pay.Currency != "USD" || pay.Period != "hour" {
 		t.Fatalf("pay = %+v", pay)
 	}
@@ -51,5 +51,46 @@ func TestNormalizePaySwapsInvertedRange(t *testing.T) {
 func TestExtractionSchemaIsJSON(t *testing.T) {
 	if !json.Valid([]byte(extractionSchema)) {
 		t.Fatal("extraction schema is not valid JSON")
+	}
+}
+
+func TestNormalizePayFallsBackToSalaryHint(t *testing.T) {
+	pay := normalizePay(extractedPay{}, "$120K - $150K a year")
+	if pay.Min != 120000 || pay.Max != 150000 || pay.Currency != "USD" || pay.Period != "year" {
+		t.Fatalf("pay = %+v", pay)
+	}
+
+	hourly := normalizePay(extractedPay{}, "$45 - $60 / hr")
+	if hourly.Min != 45 || hourly.Max != 60 || hourly.Period != "hour" {
+		t.Fatalf("hourly pay = %+v", hourly)
+	}
+
+	// The LLM's own read of the description still wins over the raw hint.
+	extracted := normalizePay(extractedPay{Min: 90000, Max: 100000, Currency: "USD", Period: "year"}, "$1 - $2 an hour")
+	if extracted.Min != 90000 || extracted.Max != 100000 {
+		t.Fatalf("extracted pay overridden by hint: %+v", extracted)
+	}
+
+	none := normalizePay(extractedPay{}, "Competitive salary")
+	if none.Min != 0 || none.Max != 0 {
+		t.Fatalf("expected no pay parsed, got %+v", none)
+	}
+}
+
+func TestSeniorityFromHintNeverPutsStaffOrPrincipalAtSenior(t *testing.T) {
+	cases := map[string]string{
+		"Staff Software Engineer":  seniorityLeader,
+		"Principal Engineer":       seniorityLeader,
+		"Lead Engineer":            seniorityLeader,
+		"Engineering Manager":      seniorityManager,
+		"Director of Engineering":  seniorityManager,
+		"Senior Software Engineer": senioritySenior,
+		"Mid-level Engineer":       seniorityMiddle,
+		"Junior Engineer":          seniorityJunior,
+	}
+	for input, want := range cases {
+		if got := seniorityFromHint(input); got != want {
+			t.Errorf("seniorityFromHint(%q) = %q, want %q", input, got, want)
+		}
 	}
 }

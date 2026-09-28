@@ -9,6 +9,7 @@ import {
   ADMIN_SETTINGS_PATH,
   MAX_ANALYZE_SELECTION,
   SEARCH_DEBOUNCE_MS,
+  TEMP_JOB_PAGE_SIZES,
   TEMP_JOBS_PAGE_SIZE,
   TEMP_JOBS_PATH,
   type CopyResult,
@@ -23,11 +24,13 @@ export function TempJobsBrowser() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get("page"), 1);
+  const pageSize = pageSizeOption(searchParams.get("size"));
   const query = searchParams.get("q") ?? "";
+  const hideAnalyzed = searchParams.get("hide") === "analyzed";
   const jobId = searchParams.get("job");
 
   const [reloadToken, setReloadToken] = useState(0);
-  const requestKey = `${page}\n${query}\n${reloadToken}`;
+  const requestKey = `${page}\n${pageSize}\n${query}\n${hideAnalyzed}\n${reloadToken}`;
   const [snapshot, setSnapshot] = useState<{
     key: string;
     result: TempJobList | null;
@@ -53,7 +56,13 @@ export function TempJobsBrowser() {
   const onSearch = useCallback(
     (value: string) => {
       const current = new URLSearchParams(window.location.search);
-      replaceListing(router, current, { q: value, page: 1, job: current.get("job") });
+      replaceListing(router, current, {
+        q: value,
+        page: 1,
+        size: pageSizeOption(current.get("size")),
+        hide: current.get("hide") === "analyzed",
+        job: current.get("job"),
+      });
     },
     [router],
   );
@@ -72,9 +81,10 @@ export function TempJobsBrowser() {
     const controller = new AbortController();
     const params = new URLSearchParams({
       page: String(page),
-      pageSize: String(TEMP_JOBS_PAGE_SIZE),
+      pageSize: String(pageSize),
       q: query,
     });
+    if (hideAnalyzed) params.set("hide", "analyzed");
     adminFetch<TempJobList>(`${TEMP_JOBS_PATH}?${params}`, { signal: controller.signal })
       .then((body) => {
         if (controller.signal.aborted) return;
@@ -89,13 +99,14 @@ export function TempJobsBrowser() {
         });
       });
     return () => controller.abort();
-  }, [page, query, reloadToken, requestKey]);
+  }, [hideAnalyzed, page, pageSize, query, reloadToken, requestKey]);
 
   const total = result?.total ?? 0;
-  const pageSize = result?.pageSize ?? TEMP_JOBS_PAGE_SIZE;
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
+  const shownPageSize = result?.pageSize ?? pageSize;
+  const pageCount = Math.max(1, Math.ceil(total / shownPageSize));
+  const start = total === 0 ? 0 : (page - 1) * shownPageSize + 1;
+  const end = Math.min(page * shownPageSize, total);
+  const listing = { q: query, page, size: pageSize, hide: hideAnalyzed, job: jobId };
 
   const pageIds = result?.jobs.map((job) => job._id) ?? [];
   const analyzed = new Set(result?.analyzedIds ?? []);
@@ -166,7 +177,7 @@ export function TempJobsBrowser() {
       setConfirming(false);
       setSelected(new Set());
       setReloadToken((value) => value + 1);
-      replaceListing(router, searchParams, { q: query, page: 1, job: null });
+      replaceListing(router, searchParams, { ...listing, page: 1, job: null });
     } catch (cause) {
       setSyncError(cause instanceof Error ? cause.message : "Could not copy jobs");
     } finally {
@@ -263,16 +274,62 @@ export function TempJobsBrowser() {
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <SearchField key={query} query={query} onSearch={onSearch} />
-        <p className="text-sm text-muted">
-          {loading && !result
-            ? "Loading jobs"
-            : `${formatCount(start)}–${formatCount(end)} of ${formatCount(total)}`}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={hideAnalyzed}
+              onChange={(event) =>
+                replaceListing(router, searchParams, {
+                  ...listing,
+                  page: 1,
+                  hide: event.target.checked,
+                })
+              }
+              className="size-4 accent-ink"
+            />
+            Hide analyzed
+          </label>
+          <label>
+            <span className="sr-only">Jobs per page</span>
+            <select
+              value={pageSize}
+              onChange={(event) =>
+                replaceListing(router, searchParams, {
+                  ...listing,
+                  page: 1,
+                  size: pageSizeOption(event.target.value),
+                })
+              }
+              className="h-10 rounded-lg border border-line bg-surface px-3 text-sm outline-none focus:border-ink"
+            >
+              {TEMP_JOB_PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size} per page
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="text-sm text-muted">
+            {loading && !result
+              ? "Loading jobs"
+              : `${formatCount(start)}–${formatCount(end)} of ${formatCount(total)}`}
+          </p>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
+        {result && total > shownPageSize ? (
+          <div className="border-b border-line">
+            <Pager
+              page={page}
+              pageCount={pageCount}
+              onPage={(next) => replaceListing(router, searchParams, { ...listing, page: next })}
+            />
+          </div>
+        ) : null}
         {loadError ? (
           <p className="px-4 py-10 text-sm text-danger">{loadError}</p>
         ) : (
@@ -313,7 +370,7 @@ export function TempJobsBrowser() {
                     analyzed={analyzed.has(job._id)}
                     onToggle={() => toggle(job._id)}
                     onSelect={() =>
-                      replaceListing(router, searchParams, { q: query, page, job: job._id })
+                      replaceListing(router, searchParams, { ...listing, job: job._id })
                     }
                   />
                 ))}
@@ -328,43 +385,13 @@ export function TempJobsBrowser() {
             ) : null}
           </div>
         )}
-        {result && total > pageSize ? (
-          <div className="flex items-center justify-between border-t border-line px-4 py-3">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() =>
-                replaceListing(router, searchParams, { q: query, page: page - 1, job: jobId })
-              }
-              className="h-8 rounded-md px-2 text-sm text-ink disabled:text-muted"
-            >
-              Previous
-            </button>
-            <div className="flex gap-1">
-              {pageWindow(page, pageCount).map((number) => (
-                <button
-                  key={number}
-                  type="button"
-                  aria-current={number === page ? "page" : undefined}
-                  onClick={() =>
-                    replaceListing(router, searchParams, { q: query, page: number, job: jobId })
-                  }
-                  className={`h-8 min-w-8 rounded-md px-2 text-sm ${number === page ? "bg-ink text-surface" : "text-ink hover:bg-paper"}`}
-                >
-                  {number}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              disabled={page >= pageCount}
-              onClick={() =>
-                replaceListing(router, searchParams, { q: query, page: page + 1, job: jobId })
-              }
-              className="h-8 rounded-md px-2 text-sm text-ink disabled:text-muted"
-            >
-              Next
-            </button>
+        {result && total > shownPageSize ? (
+          <div className="border-t border-line">
+            <Pager
+              page={page}
+              pageCount={pageCount}
+              onPage={(next) => replaceListing(router, searchParams, { ...listing, page: next })}
+            />
           </div>
         ) : null}
       </div>
@@ -372,7 +399,7 @@ export function TempJobsBrowser() {
       {jobId ? (
         <JobDetailDrawer
           jobId={jobId}
-          onClose={() => replaceListing(router, searchParams, { q: query, page, job: null })}
+          onClose={() => replaceListing(router, searchParams, { ...listing, job: null })}
         />
       ) : null}
     </section>
@@ -448,9 +475,7 @@ function JobRow({
       </td>
       <td className="px-4 py-3">
         <p className="line-clamp-2 font-medium">{job.title || "Untitled"}</p>
-        <p className="mt-0.5 text-xs text-muted">
-          {[source, analyzed ? "Analyzed" : ""].filter(Boolean).join(" · ")}
-        </p>
+        {source ? <p className="mt-0.5 text-xs text-muted">{source}</p> : null}
       </td>
       <td className="max-w-56 px-4 py-3 text-muted">
         <p className="line-clamp-2">{jobLocation(job) || "—"}</p>
@@ -461,7 +486,11 @@ function JobRow({
         ) : null}
       </td>
       <td className="px-4 py-3">
-        <ReviewLabel label={job.titleReviewLabel} />
+        <div className="flex flex-wrap gap-1">
+          <ReviewLabel label={job.titleReviewLabel} />
+          {analyzed ? <StatusPill label="Analyzed" /> : null}
+          {!job.titleReviewLabel && !analyzed ? <span className="text-muted">—</span> : null}
+        </div>
       </td>
       <td className="px-4 py-3 text-muted">{formatDate(job.postedAt)}</td>
     </tr>
@@ -469,7 +498,7 @@ function JobRow({
 }
 
 function ReviewLabel({ label }: { label?: string }) {
-  if (!label) return <span className="text-muted">—</span>;
+  if (!label) return null;
   const approved = label === "APPROVED";
   return (
     <span
@@ -477,6 +506,58 @@ function ReviewLabel({ label }: { label?: string }) {
     >
       {label}
     </span>
+  );
+}
+
+function StatusPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex rounded-full bg-ink px-2 py-0.5 text-xs font-medium text-surface">
+      {label}
+    </span>
+  );
+}
+
+function Pager({
+  page,
+  pageCount,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  onPage: (page: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <button
+        type="button"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+        className="h-8 rounded-md px-2 text-sm text-ink disabled:text-muted"
+      >
+        Previous
+      </button>
+      <div className="flex gap-1">
+        {pageWindow(page, pageCount).map((number) => (
+          <button
+            key={number}
+            type="button"
+            aria-current={number === page ? "page" : undefined}
+            onClick={() => onPage(number)}
+            className={`h-8 min-w-8 rounded-md px-2 text-sm ${number === page ? "bg-ink text-surface" : "text-ink hover:bg-paper"}`}
+          >
+            {number}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        disabled={page >= pageCount}
+        onClick={() => onPage(page + 1)}
+        className="h-8 rounded-md px-2 text-sm text-ink disabled:text-muted"
+      >
+        Next
+      </button>
+    </div>
   );
 }
 
@@ -508,16 +589,26 @@ function positiveInt(value: string | null, fallback: number) {
   return parsed;
 }
 
+function pageSizeOption(value: string | null) {
+  const parsed = Number(value);
+  if (TEMP_JOB_PAGE_SIZES.some((size) => size === parsed)) return parsed;
+  return TEMP_JOBS_PAGE_SIZE;
+}
+
 function replaceListing(
   router: ReturnType<typeof useRouter>,
   current: URLSearchParams,
-  next: { q: string; page: number; job: string | null },
+  next: { q: string; page: number; size: number; hide: boolean; job: string | null },
 ) {
   const params = new URLSearchParams(current.toString());
   if (next.q) params.set("q", next.q);
   else params.delete("q");
   if (next.page > 1) params.set("page", String(next.page));
   else params.delete("page");
+  if (next.size !== TEMP_JOBS_PAGE_SIZE) params.set("size", String(next.size));
+  else params.delete("size");
+  if (next.hide) params.set("hide", "analyzed");
+  else params.delete("hide");
   if (next.job) params.set("job", next.job);
   else params.delete("job");
   const search = params.toString();

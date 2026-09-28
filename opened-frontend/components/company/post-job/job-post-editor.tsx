@@ -38,7 +38,7 @@ const WORKPLACES: { value: Workplace; label: string }[] = [
   { value: "hybrid", label: "Hybrid" },
   { value: "onsite", label: "On-site" },
 ];
-const SENIORITY: Seniority[] = ["Junior", "Mid", "Senior", "Lead"];
+const SENIORITY: Seniority[] = ["Junior", "Middle", "Senior", "Leader", "Manager"];
 const TEAMS = ["Design", "Data", "Engineering", "Operations"].map((value) => ({
   value,
   label: value,
@@ -79,7 +79,7 @@ type Draft = {
 const EMPTY: Draft = {
   title: "",
   team: TEAMS[0].value,
-  seniority: "Mid",
+  seniority: "Middle",
   location: "",
   workplace: "hybrid",
   payMin: DEFAULT_PAY.min,
