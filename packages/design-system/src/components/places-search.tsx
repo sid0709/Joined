@@ -43,6 +43,7 @@ export function placeSearch(kind: "city" | "address"): SearchSource<PlaceItem> {
             city: hit.city,
             state: hit.state,
             postalCode: hit.postalCode,
+            country: hit.country,
           },
         }));
       } catch (error) {

@@ -144,6 +144,11 @@ export function SearchJobsBrowser() {
                       <p className="mt-0.5 text-xs text-muted">
                         {record.job.skills.slice(0, 4).join(" · ")}
                       </p>
+                      {record.source || record.createdBy ? (
+                        <p className="mt-0.5 text-xs text-muted">
+                          {[record.source, record.createdBy].filter(Boolean).join(" · ")}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-muted">{record.job.workplace}</td>
                     <td className="px-4 py-3 text-muted">{record.job.seniority}</td>

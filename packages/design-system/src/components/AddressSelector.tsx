@@ -76,6 +76,13 @@ export function AddressSelector({
         placeholder="ZIP code"
         isDisabled={isDisabled}
       />
+      <TextInput
+        label={`${label} country`}
+        value={value.country}
+        onChange={set("country")}
+        placeholder="Country"
+        isDisabled={isDisabled}
+      />
     </Stack>
   );
 }

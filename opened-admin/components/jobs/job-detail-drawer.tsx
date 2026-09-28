@@ -249,6 +249,7 @@ function JobDetail({
                   label="Source"
                   value={[job.sourceCatalog, job.source].filter(Boolean).join(" · ")}
                 />
+                <Fact label="Created by" value={job.createdBy} />
                 <Fact label="Posted" value={formatDate(job.postedAt)} />
                 <Fact label="Updated" value={formatDate(job.updatedAt)} />
               </dl>

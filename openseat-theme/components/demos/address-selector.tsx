@@ -12,6 +12,7 @@ const CHICAGO: Address = {
   city: "Chicago",
   state: "IL",
   postalCode: "60606",
+  country: "United States",
 };
 
 export default function AddressSelectorDemo() {

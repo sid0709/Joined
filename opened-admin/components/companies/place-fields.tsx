@@ -250,6 +250,7 @@ export function AddressField({
             city: hit.city,
             state: stateAbbreviation(hit.state),
             postalCode: hit.postalCode,
+            country: hit.country,
           })
         }
       />
@@ -292,15 +293,26 @@ export function AddressField({
           </select>
         </label>
       </div>
-      <label className={labelClass}>
-        <span className={labelTextClass}>Postal code</span>
-        <input
-          className={inputClass}
-          value={address.postalCode}
-          placeholder="ZIP code"
-          onChange={(event) => update({ ...address, postalCode: event.target.value })}
-        />
-      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className={labelClass}>
+          <span className={labelTextClass}>Postal code</span>
+          <input
+            className={inputClass}
+            value={address.postalCode}
+            placeholder="ZIP code"
+            onChange={(event) => update({ ...address, postalCode: event.target.value })}
+          />
+        </label>
+        <label className={labelClass}>
+          <span className={labelTextClass}>Country</span>
+          <input
+            className={inputClass}
+            value={address.country}
+            placeholder="Country"
+            onChange={(event) => update({ ...address, country: event.target.value })}
+          />
+        </label>
+      </div>
     </div>
   );
 }

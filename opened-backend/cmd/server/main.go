@@ -45,6 +45,14 @@ func main() {
 		slog.Error("auth indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
+	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), 2*time.Minute)
+	updated, err := store.BackfillJobProvenance(backfillCtx)
+	cancelBackfill()
+	if err != nil {
+		slog.Error("backfill job provenance", "error", config.Redact(err, cfg.MongoURI))
+	} else {
+		slog.Info("backfill job provenance", "updated", updated)
+	}
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -13,6 +13,7 @@ export type PlaceResult = {
   city: string;
   state: string;
   postalCode: string;
+  country: string;
 };
 
 type GeoResult = {
@@ -23,6 +24,7 @@ type GeoResult = {
   state?: string;
   state_code?: string;
   postcode?: string;
+  country?: string;
   housenumber?: string;
   street?: string;
   lat?: number;
@@ -94,5 +96,6 @@ function toPlace(hit: GeoResult, kind: PlaceKind): PlaceResult {
     city,
     state,
     postalCode: hit.postcode?.trim() ?? "",
+    country: hit.country?.trim() ?? "",
   };
 }
