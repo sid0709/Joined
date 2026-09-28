@@ -25,6 +25,13 @@ const services = [
     args: ["--filter", "opened-frontend", "dev"],
   },
   {
+    name: "scout",
+    color: "\x1b[36m",
+    url: "http://localhost:3003",
+    command: "bun",
+    args: ["--filter", "scoutwell-frontend", "dev"],
+  },
+  {
     name: "admin",
     color: "\x1b[33m",
     url: "http://localhost:3010",

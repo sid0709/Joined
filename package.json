@@ -7,6 +7,7 @@
       "connected-frontend",
       "openseat-theme",
       "opened-frontend",
+      "scoutwell-frontend",
       "packages/*"
     ],
     "catalog": {
@@ -50,10 +51,12 @@
     "dev:admin-api": "go run -C opened-backend ./cmd/server",
     "dev:app": "bun --filter connected-frontend dev",
     "dev:theme": "bun --filter openseat-theme dev",
+    "dev:scout": "bun --filter scoutwell-frontend dev",
     "build": "turbo run build",
     "build:opened": "bun --filter opened-frontend build",
     "build:app": "bun --filter connected-frontend build",
     "build:theme": "bun --filter openseat-theme build",
+    "build:scout": "bun --filter scoutwell-frontend build",
     "audit": "bun tools/unlighthouse.mjs --disable-dynamic-sampling",
     "audit:opened": "bun tools/unlighthouse.mjs --site http://localhost:3102 --disable-dynamic-sampling",
     "audit:opened:company": "bun tools/unlighthouse.mjs --site http://localhost:3102/company --disable-dynamic-sampling",
