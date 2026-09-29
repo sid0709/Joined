@@ -41,6 +41,10 @@ export type Applicant = {
   interviewerIds?: string[];
   /** Offer / hire record when Einstein returns it (Layer E). */
   offer?: import("@/lib/offer-hire").OfferRecord;
+  /** ISO when columnId last changed — Einstein Layer G time-in-stage. */
+  stageEnteredAt?: string;
+  /** Prior stage visits for time-in-stage (Einstein). */
+  stageHistory?: { stage: string; enteredAt: string }[];
 };
 
 export const APPLICANT_STAGES: { id: ApplicantStage; title: string; badge: BadgeVariant }[] = [

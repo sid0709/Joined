@@ -1,52 +1,36 @@
 /**
- * Layer G — Company funnel analytics (scaffold) shapes.
+ * Layer G — Company funnel analytics.
  *
- * v1 UI aggregates overview / applicants / interviews / jobs client-side via
- * aggregateCompanyAnalytics(). Einstein SHOULD later expose server metrics so
- * we stop shipping every row to the browser.
+ * Live Einstein source of truth:
+ *   GET /v1/company/analytics?jobId=&from=&to=&preset=
+ *   response: CompanyAnalyticsSnapshot with source:"einstein"
  *
- * Einstein contract (persist + return these fields; UI scaffolds against them):
+ * Filters (inclusive YYYY-MM-DD in America/Chicago, matching BE):
+ *   jobId?: string   // omit / "" = all jobs the actor may analyze
+ *   from?: string    // inclusive start day
+ *   to?: string      // inclusive end day
+ *   preset?: 7d|30d|90d|all  // BE fills from/to when dates omitted
  *
- * GET /v1/company/analytics?jobId=&from=&to=
- *   response: CompanyAnalyticsSnapshot
- *   Filters:
- *     jobId?: string          // omit / "" = all jobs the actor can see
- *     from?: string           // YYYY-MM-DD inclusive (company timezone)
- *     to?: string             // YYYY-MM-DD inclusive
- *   Soft RBAC: require analytics.view (owner/admin/recruiter/HM/finance).
- *   Einstein MUST enforce server-side; frontend gate is UX only.
+ * RBAC: analytics.view (403 otherwise). Job-scoped grants honored server-side;
+ * jobs without analytics.view are excluded from the snapshot. Soft FE gate is UX
+ * only — always handle 403 honestly.
  *
- * Suggested server aggregates (TODO when warehouse is cheap):
- *   funnel.stages[]           // views → applied → … → hired with count + rate
- *   sourceMix.buckets[]       // direct / assisted (bidder|agent) / referral
- *   timeInStage.stages[]      // median + p90 days sitting in each stage
- *   attendance.held / attended / rate
- *   viewsToApplicants.views / applicants / rate
+ * Time-in-stage: BE prefers Applicant.stageEnteredAt / stageHistory and sets
+ * isProxy when falling back to appliedOn. Honor isProxy from the snapshot.
  *
- * Applicant fields Einstein should add for accurate time-in-stage:
- *   Applicant.stageEnteredAt?: string   // ISO when columnId last changed
- *   Applicant.stageHistory?: { stage: string; enteredAt: string }[]
- * Without those, v1 approximates "days in current stage" from appliedOn.
+ * aggregateCompanyAnalytics() is deprecated client fallback — do not call from UI.
  *
- * Job fields already used:
- *   CompanyJob.views
- * Applicant fields already used:
- *   assisted, referralSource?, appliedOn, columnId, jobId
- * Interview fields already used:
- *   status (attended | no-show | …), date, jobId
- *
- * Out of scope: SSO, Integrations, admin warehouse BI, inventing heavy ETL,
- * Scoutwell. RBAC: lib/rbac.ts (analytics.view).
+ * Out of scope: Layer H cases, SSO, Integrations, admin warehouse BI, Scoutwell.
+ * RBAC: lib/rbac.ts (analytics.view).
  */
 
 import type { Applicant, ApplicantStage, AssistedBy } from "@/lib/company/applicants";
 import { APPLICANT_STAGES, ASSISTED_LABEL } from "@/lib/company/applicants";
 import type { CompanyInterview } from "@/lib/company/interviews";
 import type { CompanyJob } from "@/lib/company/jobs";
-import { daysBetween, formatISODate, startOfDay } from "@/lib/dates";
+import { daysBetween, startOfDay } from "@/lib/dates";
 
 const PERCENT = 100;
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Funnel step ids used in the UI and in the Einstein snapshot. */
 export const FUNNEL_STAGE_IDS = [
@@ -180,16 +164,39 @@ function average(values: number[]): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
-/** Resolve preset → inclusive from/to ISO dates (local). */
+/** Company analytics calendar — matches employer.DefaultHiringTimeZone. */
+export const ANALYTICS_TIME_ZONE = "America/Chicago";
+
+/** Calendar YYYY-MM-DD in America/Chicago. */
+export function analyticsDayInChicago(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: ANALYTICS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+/** Shift a YYYY-MM-DD by whole calendar days (UTC noon anchor avoids DST skew). */
+function shiftAnalyticsDay(ymd: string, deltaDays: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const utc = new Date(Date.UTC(year!, month! - 1, day! + deltaDays, 12));
+  const y = utc.getUTCFullYear();
+  const m = String(utc.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(utc.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Resolve preset → inclusive from/to YYYY-MM-DD in America/Chicago. */
 export function resolveAnalyticsRange(
   preset: AnalyticsDatePreset,
   now = new Date(),
 ): Pick<AnalyticsFilters, "from" | "to"> {
   const meta = ANALYTICS_DATE_PRESETS.find((item) => item.value === preset);
   if (!meta || meta.days == null) return { from: null, to: null };
-  const end = startOfDay(now);
-  const start = new Date(end.getTime() - (meta.days - 1) * MS_PER_DAY);
-  return { from: formatISODate(start), to: formatISODate(end) };
+  const to = analyticsDayInChicago(now);
+  const from = shiftAnalyticsDay(to, -(meta.days - 1));
+  return { from, to };
 }
 
 export function defaultAnalyticsFilters(): AnalyticsFilters {
@@ -239,8 +246,8 @@ const SOURCE_LABEL: Record<SourceBucketId, string> = {
 };
 
 /**
- * Client-side v1 aggregate from overview/applicants/interviews payloads.
- * Replace call sites with GET /company/analytics when Einstein ships it.
+ * @deprecated Client-side fallback. UI uses GET /v1/company/analytics (Einstein).
+ * Prefer stageEnteredAt when present so local math matches BE isProxy rules.
  */
 export function aggregateCompanyAnalytics(input: AnalyticsInput): CompanyAnalyticsSnapshot {
   const now = input.now ?? new Date();
@@ -309,20 +316,27 @@ export function aggregateCompanyAnalytics(input: AnalyticsInput): CompanyAnalyti
   const assistedCount = sourceCounts.bidder + sourceCounts.agent;
   const assistedShare = rate(assistedCount, sourceTotal);
 
-  // Time-in-stage: v1 proxy = days since appliedOn for people currently in stage.
-  // TODO(einstein): prefer stageEnteredAt / stageHistory when present.
+  // Prefer stageEnteredAt when present; otherwise proxy from appliedOn (matches BE).
   const timeInStage: TimeInStageMetric[] = APPLICANT_STAGES.filter(
     (stage) => stage.id !== "rejected",
   ).map((stage) => {
     const sitting = applicants.filter((person) => person.columnId === stage.id);
-    const days = sitting.map((person) => Math.max(0, daysBetween(person.appliedOn, now)));
+    let proxyCount = 0;
+    const days = sitting.map((person) => {
+      const entered = person.stageEnteredAt ? new Date(person.stageEnteredAt) : null;
+      if (entered && !Number.isNaN(entered.getTime())) {
+        return Math.max(0, daysBetween(entered, now));
+      }
+      proxyCount += 1;
+      return Math.max(0, daysBetween(person.appliedOn, now));
+    });
     return {
       stage: stage.id,
       label: stage.title,
       count: sitting.length,
       avgDays: average(days),
       medianDays: median(days),
-      isProxy: true,
+      isProxy: sitting.length === 0 ? false : proxyCount > 0,
     };
   });
 

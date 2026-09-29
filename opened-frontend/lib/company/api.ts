@@ -47,6 +47,7 @@ import {
   type AuditListResponse,
   type JobAccessAssignment,
 } from "@/lib/rbac";
+import type { AnalyticsFilters, CompanyAnalyticsSnapshot } from "@/lib/analytics";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
 import {
@@ -71,6 +72,8 @@ type ApiApplicant = Omit<Applicant, "appliedOn" | "columnId" | "assisted" | "ski
   columnId: ApplicantColumnId;
   assisted: AssistedBy;
   skills?: string[];
+  stageEnteredAt?: string;
+  stageHistory?: { stage: string; enteredAt: string }[];
 };
 
 type ApiInterview = Omit<
@@ -155,6 +158,14 @@ function hydrateJob(job: ApiJob): CompanyJob {
 }
 
 function hydrateApplicant(person: ApiApplicant): Applicant {
+  const history = Array.isArray(person.stageHistory)
+    ? person.stageHistory
+        .map((visit) => ({
+          stage: String(visit.stage || "").trim(),
+          enteredAt: String(visit.enteredAt || "").trim(),
+        }))
+        .filter((visit) => visit.stage && visit.enteredAt)
+    : undefined;
   return {
     ...person,
     appliedOn: new Date(person.appliedOn),
@@ -170,6 +181,8 @@ function hydrateApplicant(person: ApiApplicant): Applicant {
       ? person.interviewerIds.map(String).filter(Boolean)
       : undefined,
     offer: hydrateOfferRecord(person.offer),
+    stageEnteredAt: person.stageEnteredAt?.trim() || undefined,
+    stageHistory: history && history.length > 0 ? history : undefined,
   };
 }
 
@@ -739,4 +752,15 @@ export function saveJobAccess(jobId: string, assignments: JobAccessAssignment[])
     "PUT",
     { assignments },
   ).then((body) => hydrateJobAccess(jobId, body));
+}
+
+/** Company funnel analytics — GET /v1/company/analytics (analytics.view). Propagates 403. */
+export function fetchCompanyAnalytics(filters: AnalyticsFilters) {
+  const query = new URLSearchParams();
+  if (filters.jobId) query.set("jobId", filters.jobId);
+  if (filters.from) query.set("from", filters.from);
+  if (filters.to) query.set("to", filters.to);
+  if (filters.preset) query.set("preset", filters.preset);
+  const suffix = query.size ? `?${query}` : "";
+  return companyGet<CompanyAnalyticsSnapshot>(`/analytics${suffix}`);
 }

@@ -18,7 +18,7 @@
  * Roles: owner (creator), admin, recruiter, hiring_manager, interviewer, finance;
  *   legacy viewer → interviewer perms via effectiveTeamRole().
  * Billing: finance can purchase; admin cannot (billing.view only).
- * Analytics (G): analytics.view reserved — no server aggregate auth yet.
+ * Analytics (G): GET /v1/company/analytics requires analytics.view (403 otherwise).
  */
 
 /** Company hiring roles — owner is creator-only; never inviteable. */

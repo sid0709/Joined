@@ -22,7 +22,6 @@ import { SectionCard } from "@/components/section-card";
 import { StatGrid } from "@/components/stat-card";
 import {
   ANALYTICS_DATE_PRESETS,
-  aggregateCompanyAnalytics,
   assistedMixHint,
   defaultAnalyticsFilters,
   formatPercent,
@@ -35,9 +34,10 @@ import {
   type TimeInStageMetric,
 } from "@/lib/analytics";
 import { sessionHiringRole } from "@/lib/company/access";
-import { fetchOverview } from "@/lib/company/api";
+import { fetchCompanyAnalytics, fetchJobs } from "@/lib/company/api";
 import type { CompanyJob } from "@/lib/company/jobs";
 import type { AuthCompany } from "@/lib/auth/types";
+import { isForbiddenError } from "@/lib/me/client";
 import { canPermission, denialReason } from "@/lib/rbac";
 
 const BAR_HEIGHT = 10;
@@ -201,48 +201,69 @@ function sourceColumns(): TableColumn<SourceBucket>[] {
   ];
 }
 
-/** Company funnel analytics — client aggregate of jobs / applicants / interviews. */
+/** Company funnel analytics — live GET /v1/company/analytics (Einstein). */
 export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
   const toast = useToast();
+  const actorRole = sessionHiringRole(company);
+  const canView = canPermission(actorRole, "analytics.view");
+
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
-  const [applicants, setApplicants] = useState<
-    Awaited<ReturnType<typeof fetchOverview>>["applicants"]
-  >([]);
-  const [interviews, setInterviews] = useState<
-    Awaited<ReturnType<typeof fetchOverview>>["interviews"]
-  >([]);
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultAnalyticsFilters);
+  const [snapshot, setSnapshot] = useState<CompanyAnalyticsSnapshot | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const actorRole = sessionHiringRole(company);
+  const [forbidden, setForbidden] = useState(false);
+  const [forbiddenMessage, setForbiddenMessage] = useState("");
 
   useEffect(() => {
+    if (!canView) return;
     let active = true;
-    fetchOverview()
-      .then((overview) => {
+    fetchJobs()
+      .then((list) => {
         if (!active) return;
-        setJobs(overview.jobs);
-        setApplicants(overview.applicants);
-        setInterviews(overview.interviews);
+        setJobs(list);
+      })
+      .catch((error: Error) => {
+        if (!active) return;
+        toast({ body: error.message, type: "error" });
+      });
+    return () => {
+      active = false;
+    };
+  }, [canView, toast]);
+
+  useEffect(() => {
+    if (!canView) {
+      setLoaded(true);
+      return;
+    }
+    let active = true;
+    setLoaded(false);
+    setFailed(false);
+    setForbidden(false);
+    setForbiddenMessage("");
+    fetchCompanyAnalytics(filters)
+      .then((body) => {
+        if (!active) return;
+        setSnapshot(body);
         setLoaded(true);
       })
       .catch((error: Error) => {
         if (!active) return;
+        setSnapshot(null);
+        setLoaded(true);
+        if (isForbiddenError(error)) {
+          setForbidden(true);
+          setForbiddenMessage(error.message || denialReason(actorRole, "analytics.view"));
+          return;
+        }
         setFailed(true);
         toast({ body: error.message, type: "error" });
       });
     return () => {
       active = false;
     };
-  }, [toast]);
-
-  const canView = canPermission(actorRole, "analytics.view");
-  // Layer G: analytics.view reserved; no dedicated analytics server auth yet.
-
-  const snapshot: CompanyAnalyticsSnapshot | null = useMemo(() => {
-    if (!loaded) return null;
-    return aggregateCompanyAnalytics({ jobs, applicants, interviews, filters });
-  }, [loaded, jobs, applicants, interviews, filters]);
+  }, [actorRole, canView, filters, toast]);
 
   const jobOptions = useMemo(
     () => [
@@ -257,6 +278,26 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
     setFilters((prev) => ({ ...prev, preset, from: range.from, to: range.to }));
   };
 
+  if (!canView) {
+    return (
+      <Stack gap={4}>
+        <Text type="supporting" color="secondary">
+          {denialReason(actorRole, "analytics.view")}
+        </Text>
+      </Stack>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <Stack gap={4}>
+        <Text type="supporting" color="secondary">
+          {forbiddenMessage || denialReason(actorRole, "analytics.view")}
+        </Text>
+      </Stack>
+    );
+  }
+
   if (failed) {
     return (
       <EmptyState
@@ -266,15 +307,11 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
     );
   }
 
-  if (!loaded || !snapshot) return null;
-
-  if (!canView) {
+  if (!loaded || !snapshot) {
     return (
-      <Stack gap={4}>
-        <Text type="supporting" color="secondary">
-          {denialReason(actorRole, "analytics.view")}
-        </Text>
-      </Stack>
+      <Text type="supporting" color="secondary">
+        Loading analytics…
+      </Text>
     );
   }
 
@@ -299,7 +336,9 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
             <SegmentedControlItem key={item.value} value={item.value} label={item.label} />
           ))}
         </SegmentedControl>
-        {snapshot.source === "client_v1" ? (
+        {snapshot.source === "einstein" ? (
+          <Badge label="Live" variant="success" />
+        ) : snapshot.source === "client_v1" ? (
           <Badge label="Client aggregate" variant="neutral" />
         ) : null}
       </HStack>
@@ -356,7 +395,7 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
 
             <SectionCard
               title="Time in stage"
-              description="Days applicants have sat in their current stage. Proxy uses applied date until Einstein returns stageEnteredAt."
+              description="Days applicants have sat in their current stage. Proxy marks rows still based on applied date when stageEnteredAt is missing."
             >
               <Table
                 caption="Time in stage"
