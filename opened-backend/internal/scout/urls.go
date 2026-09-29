@@ -272,8 +272,13 @@ func CompanyMatches(company string, p ParsedURL) bool {
 	return false
 }
 
-// DedupeKey groups the same role at the same company and place, so a second
-// link to one job is caught even when the URLs differ.
-func DedupeKey(company, title, location string) string {
-	return Slug(company) + "|" + Slug(title) + "|" + Slug(location)
+// DedupeKey groups the same role at the same company, so a second link to one
+// job is caught even when the URLs differ. Company is the page id when the
+// scout picked one, otherwise a slug of the name.
+func DedupeKey(companyID, company, title string) string {
+	key := strings.TrimSpace(companyID)
+	if key == "" {
+		key = Slug(company)
+	}
+	return key + "|" + Slug(title)
 }

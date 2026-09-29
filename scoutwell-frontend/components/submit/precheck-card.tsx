@@ -7,6 +7,7 @@ import {
   type BadgeVariant,
   SectionCard,
 } from "@openseat/design-system";
+
 import type { PrecheckState } from "./use-precheck";
 
 type Row = { label: string; value: string; badge: BadgeVariant };
@@ -34,10 +35,7 @@ function rows(state: PrecheckState): Row[] {
       : result.still_open
         ? { label: "Still open", value: "Yes", badge: "success" }
         : { label: "Still open", value: "Looks closed", badge: "error" };
-  const duplicate: Row = result.duplicate_of
-    ? { label: "In the pool", value: "Already there", badge: "error" }
-    : { label: "In the pool", value: "New", badge: "success" };
-  return [official, reachable, open, duplicate];
+  return [official, reachable, open];
 }
 
 /** The live answer for the link being typed: what the automatic checks will likely say. */

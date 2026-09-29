@@ -96,17 +96,34 @@ func (s *Store) StageScouted(ctx context.Context, listing ScoutedListing, now ti
 	return id.Hex(), nil
 }
 
-// AnalyzeScouted turns a scout submission into a search record. Scout-entered
-// salary, location, and similar facts stay; the model writes the listing copy.
-func (s *Store) AnalyzeScouted(ctx context.Context, reader ModelReader, listing ScoutedListing, tempJobID string, now time.Time) (SearchRecord, error) {
+// AnalyzeScouted screens for duplicates, then turns a scout submission into a
+// search record. Scout-entered salary, location, and similar facts stay; the
+// model writes the listing copy. continueExtract skips screening.
+func (s *Store) AnalyzeScouted(ctx context.Context, reader ModelReader, listing ScoutedListing, tempJobID string, now time.Time, continueExtract bool) (AnalyzeScoutedResult, error) {
 	if reader == nil {
-		return SearchRecord{}, openai.ErrMissingAPIKey
+		return AnalyzeScoutedResult{}, openai.ErrMissingAPIKey
+	}
+	var screened AnalyzeScoutedResult
+	if !continueExtract {
+		var err error
+		screened, err = s.screenScouted(ctx, reader, listing)
+		if err != nil {
+			return AnalyzeScoutedResult{}, err
+		}
+		if screened.Duplicate != nil {
+			return screened, nil
+		}
 	}
 	id, err := bson.ObjectIDFromHex(tempJobID)
 	if err != nil {
 		id = bson.NewObjectID()
 	}
-	return s.writeAnalysis(ctx, reader, listingFromScouted(listing, id), now)
+	record, err := s.writeAnalysis(ctx, reader, listingFromScouted(listing, id), now)
+	if err != nil {
+		return AnalyzeScoutedResult{}, err
+	}
+	screened.Record = &record
+	return screened, nil
 }
 
 func listingFromScouted(listing ScoutedListing, id bson.ObjectID) tempListing {
@@ -294,31 +311,6 @@ func (s *Store) UnpublishScouted(ctx context.Context, ref string) error {
 	}
 	_, err = s.structured().DeleteOne(ctx, bson.D{{Key: "_id", Value: id}, {Key: "source", Value: ScoutedSource}})
 	return err
-}
-
-// JobWithApplyLink returns the public id of a live job whose apply link is one
-// of links, or "" when none is.
-func (s *Store) JobWithApplyLink(ctx context.Context, links []string) (string, error) {
-	if len(links) == 0 {
-		return "", nil
-	}
-	var doc struct {
-		Job struct {
-			ID string `bson:"id"`
-		} `bson:"job"`
-	}
-	err := s.structured().FindOne(
-		ctx,
-		bson.D{{Key: "applyLink", Value: bson.D{{Key: "$in", Value: links}}}},
-		options.FindOne().SetProjection(bson.D{{Key: "job.id", Value: 1}}),
-	).Decode(&doc)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return doc.Job.ID, nil
 }
 
 // resolveScoutCompany matches the scout's company by key or name, and creates

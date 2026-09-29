@@ -18,7 +18,6 @@ const (
 	CheckCompanyMatch = "company_match"
 	CheckStillOpen    = "still_open"
 	CheckDuplicate    = "duplicate"
-	CheckMajorBoards  = "major_boards"
 	CheckScam         = "scam"
 	CheckContent      = "content"
 	CheckLevel        = "level_policy"
@@ -53,14 +52,13 @@ type Decision struct {
 	RejectionReason string
 	Checks          []Check
 	HiddenJob       bool
-	OnMajorBoards   bool
 	FinalURL        string
 	SpotCheck       bool
 }
 
 // Evaluate runs every automatic check from docs/13-platform-scout.md and
-// routes the submission: hard failures reject, duplicates are marked, soft
-// flags and probation scouts go to a moderator, everything else is approved.
+// routes the submission: hard failures reject, possible duplicates go to a
+// moderator, probation scouts go to a moderator, everything else is approved.
 func Evaluate(f Facts) Decision {
 	checks := []Check{}
 	add := func(id, label, outcome, detail string) {
@@ -110,22 +108,14 @@ func Evaluate(f Facts) Decision {
 		add(CheckStillOpen, "Still open", OutcomeReview, "No apply option found; the page may render with JavaScript")
 	}
 
-	// Duplicate.
+	// Duplicate. Matches are shown to a moderator; they never auto-reject.
 	switch {
 	case f.Duplicate != "":
-		add(CheckDuplicate, "Duplicate", OutcomeFail, "Same link as "+f.Duplicate)
+		add(CheckDuplicate, "Duplicate", OutcomeReview, "Same link as "+f.Duplicate)
 	case f.SimilarTo != "":
-		add(CheckDuplicate, "Duplicate", OutcomeReview, "Same company, title, and location as "+f.SimilarTo)
+		add(CheckDuplicate, "Duplicate", OutcomeReview, "Same company and title as "+f.SimilarTo)
 	default:
-		add(CheckDuplicate, "Duplicate", OutcomePass, "No active job or submission with this link")
-	}
-
-	// Already on major boards.
-	onBoards := f.Input.OnMajorBoards || pageLinksMajorBoard(f.Page.Text)
-	if onBoards {
-		add(CheckMajorBoards, "Already on major boards", OutcomeFlag, "Also listed on LinkedIn or Indeed: allowed, no hidden-job badge, lower approval reward")
-	} else {
-		add(CheckMajorBoards, "Already on major boards", OutcomePass, "Not declared or linked from a major board")
+		add(CheckDuplicate, "Duplicate", OutcomePass, "No active job or submission with this link or role")
 	}
 
 	// Scam heuristics.
@@ -147,10 +137,9 @@ func Evaluate(f Facts) Decision {
 
 	rule := Rule(f.Level)
 	decision := Decision{
-		Checks:        checks,
-		OnMajorBoards: onBoards,
-		HiddenJob:     !onBoards,
-		SpotCheck:     f.SpotCheck,
+		Checks:    checks,
+		HiddenJob: true,
+		SpotCheck: f.SpotCheck,
 	}
 	if f.Final != nil {
 		decision.FinalURL = f.Page.FinalURL
@@ -166,12 +155,6 @@ func Evaluate(f Facts) Decision {
 	switch {
 	case failed(checks, CheckOfficial):
 		return reject(ReasonNotOfficial, "not an official source")
-	case failed(checks, CheckDuplicate):
-		decision.Status = StatusDuplicate
-		decision.RejectionCode = ReasonDuplicate
-		decision.RejectionReason = "first valid submission owns this job"
-		decision.HiddenJob = false
-		return decision
 	case failed(checks, CheckScam):
 		return reject(ReasonScam, detail(checks, CheckScam))
 	case failed(checks, CheckReachable):
@@ -247,11 +230,6 @@ func scamCheck(f Facts) result {
 		return result{OutcomeReview, fmt.Sprintf("Posting mentions %q", phrase)}
 	}
 	return result{OutcomePass, "No payment requests, off-platform chat, or bait pay"}
-}
-
-func pageLinksMajorBoard(text string) bool {
-	lower := strings.ToLower(text)
-	return strings.Contains(lower, "linkedin.com/jobs") || strings.Contains(lower, "indeed.com/viewjob")
 }
 
 func companyTarget(p ParsedURL) string {

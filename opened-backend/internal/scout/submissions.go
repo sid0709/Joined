@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
@@ -97,37 +96,51 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 			return Submission{}, err
 		}
 	}
+	matches, err := s.FindMatches(ctx, MatchQuery{
+		URL:         normalized.URL,
+		CompanyID:   normalized.CompanyID,
+		CompanyName: normalized.CompanyName,
+		Title:       normalized.Title,
+	}, bson.ObjectID{})
+	if err != nil {
+		return Submission{}, err
+	}
+	if len(matches) > 0 && !normalized.NotDuplicateClaim {
+		return Submission{}, &ValidationError{Fields: []FieldError{{Field: "not_duplicate_claim", Detail: "confirm this is not the same job"}}}
+	}
 
 	now := s.now().UTC()
 	sub := Submission{
-		ObjectID:      bson.NewObjectID(),
-		ScoutUserID:   actor.UserID,
-		Channel:       actor.channel(),
-		APIKeyID:      actor.APIKeyID,
-		ExternalRef:   normalized.ExternalRef,
-		URL:           parsed.Raw,
-		CanonicalURL:  parsed.Canonical,
-		Host:          parsed.Host,
-		ATS:           parsed.ATS,
-		CompanyName:   normalized.CompanyName,
-		CompanyID:     normalized.CompanyID,
-		Title:         normalized.Title,
-		LocationText:  normalized.LocationText,
-		Workplace:     normalized.Workplace,
-		Employment:    normalized.Employment,
-		Seniority:     normalized.Seniority,
-		Pay:           normalized.Pay,
-		Equity:        normalized.Equity,
-		SalaryText:    normalized.SalaryText,
-		Summary:       normalized.Summary,
-		Tags:          normalized.Tags,
-		Skills:        normalized.Skills,
-		OnMajorBoards: normalized.OnMajorBoards,
-		DedupeKey:     DedupeKey(normalized.CompanyName, normalized.Title, normalized.LocationText),
-		Status:        StatusSubmitted,
-		Checks:        []Check{},
-		SubmittedAt:   now,
-		UpdatedAt:     now,
+		ObjectID:       bson.NewObjectID(),
+		ScoutUserID:    actor.UserID,
+		Channel:        actor.channel(),
+		APIKeyID:       actor.APIKeyID,
+		ExternalRef:    normalized.ExternalRef,
+		URL:            parsed.Raw,
+		CanonicalURL:   parsed.Canonical,
+		Host:           parsed.Host,
+		ATS:            parsed.ATS,
+		CompanyName:    normalized.CompanyName,
+		CompanyID:      normalized.CompanyID,
+		Title:          normalized.Title,
+		LocationText:   normalized.LocationText,
+		Workplace:      normalized.Workplace,
+		Employment:     normalized.Employment,
+		Seniority:      normalized.Seniority,
+		Pay:            normalized.Pay,
+		Equity:         normalized.Equity,
+		SalaryText:     normalized.SalaryText,
+		Summary:        normalized.Summary,
+		Tags:           normalized.Tags,
+		Skills:         normalized.Skills,
+		DedupeKey:      DedupeKey(normalized.CompanyID, normalized.CompanyName, normalized.Title),
+		DuplicateClaim: normalized.NotDuplicateClaim,
+		Matches:        matches,
+		HiddenJob:      true,
+		Status:         StatusSubmitted,
+		Checks:         []Check{},
+		SubmittedAt:    now,
+		UpdatedAt:      now,
 	}
 	if _, err := s.insertSubmission(ctx, sub); err != nil {
 		if mongo.IsDuplicateKeyError(err) {
@@ -388,7 +401,6 @@ type Precheck struct {
 	Status       int    `json:"http_status,omitempty"`
 	Official     bool   `json:"official"`
 	StillOpen    *bool  `json:"still_open"`
-	DuplicateOf  string `json:"duplicate_of,omitempty"`
 	Reason       string `json:"reason"`
 }
 
@@ -417,16 +429,9 @@ func (s *Store) Precheck(ctx context.Context, rawURL string) (Precheck, error) {
 		open := ClosedMarker(page.Text) == ""
 		out.StillOpen = &open
 	}
-	duplicate, _, err := s.findDuplicates(ctx, bson.ObjectID{}, parsed, &effective, "")
-	if err != nil {
-		return Precheck{}, err
-	}
-	out.DuplicateOf = duplicate
 	switch {
 	case !out.Official:
 		out.Reason = "not an official source: redirects to " + effective.Host
-	case duplicate != "":
-		out.Reason = "already in the pool (" + duplicate + ")"
 	case page.Err != nil:
 		out.Reason = "could not reach the page; a moderator will check it"
 	case !out.Reachable:
@@ -480,10 +485,16 @@ func (s *Store) process(ctx context.Context, id bson.ObjectID) error {
 			}
 		}
 	}
-	facts.Duplicate, facts.SimilarTo, err = s.findDuplicates(ctx, sub.ObjectID, parsed, facts.Final, sub.DedupeKey)
+	matches, err := s.FindMatches(ctx, MatchQuery{
+		URL:         sub.URL,
+		CompanyID:   sub.CompanyID,
+		CompanyName: sub.CompanyName,
+		Title:       sub.Title,
+	}, sub.ObjectID)
 	if err != nil {
 		return err
 	}
+	facts.Duplicate, facts.SimilarTo = factsFromMatches(matches)
 	if rate := Rule(profile.Level).SpotCheckRate; rate > 0 {
 		facts.SpotCheck = s.roll() < rate
 	}
@@ -492,94 +503,22 @@ func (s *Store) process(ctx context.Context, id bson.ObjectID) error {
 
 func (sub Submission) input() SubmissionInput {
 	return SubmissionInput{
-		URL:           sub.URL,
-		CompanyName:   sub.CompanyName,
-		Title:         sub.Title,
-		LocationText:  sub.LocationText,
-		Workplace:     sub.Workplace,
-		Employment:    sub.Employment,
-		Seniority:     sub.Seniority,
-		Pay:           sub.Pay,
-		Equity:        sub.Equity,
-		SalaryText:    sub.SalaryText,
-		Summary:       sub.Summary,
-		Tags:          sub.Tags,
-		Skills:        sub.Skills,
-		OnMajorBoards: sub.OnMajorBoards,
-		ExternalRef:   sub.ExternalRef,
+		URL:          sub.URL,
+		CompanyName:  sub.CompanyName,
+		CompanyID:    sub.CompanyID,
+		Title:        sub.Title,
+		LocationText: sub.LocationText,
+		Workplace:    sub.Workplace,
+		Employment:   sub.Employment,
+		Seniority:    sub.Seniority,
+		Pay:          sub.Pay,
+		Equity:       sub.Equity,
+		SalaryText:   sub.SalaryText,
+		Summary:      sub.Summary,
+		Tags:         sub.Tags,
+		Skills:       sub.Skills,
+		ExternalRef:  sub.ExternalRef,
 	}
-}
-
-// findDuplicates returns a hard duplicate (an approved submission or a live
-// job with the same link) and a soft one (a pending submission with the same
-// link, or the same company, title, and location) that needs a moderator.
-func (s *Store) findDuplicates(ctx context.Context, self bson.ObjectID, parsed ParsedURL, final *ParsedURL, dedupeKey string) (string, string, error) {
-	canonicals := []string{parsed.Canonical}
-	links := URLVariants(parsed)
-	if final != nil {
-		canonicals = append(canonicals, final.Canonical)
-		links = append(links, URLVariants(*final)...)
-	}
-	notSelf := bson.D{{Key: "$ne", Value: self}}
-
-	var approved Submission
-	err := s.collection(submissionsCollection).FindOne(ctx, bson.D{
-		{Key: "_id", Value: notSelf},
-		{Key: "canonicalUrl", Value: bson.D{{Key: "$in", Value: canonicals}}},
-		{Key: "status", Value: StatusApproved},
-		{Key: "expired", Value: false},
-	}).Decode(&approved)
-	if err == nil {
-		return "submission " + approved.ObjectID.Hex(), "", nil
-	}
-	if !errors.Is(err, mongo.ErrNoDocuments) {
-		return "", "", err
-	}
-	if s.publisher != nil {
-		jobID, err := s.publisher.JobWithApplyLink(ctx, links)
-		if err != nil {
-			return "", "", err
-		}
-		if jobID != "" {
-			return "job " + jobID, "", nil
-		}
-	}
-
-	similar := bson.A{
-		bson.D{
-			{Key: "canonicalUrl", Value: bson.D{{Key: "$in", Value: canonicals}}},
-			{Key: "status", Value: bson.D{{Key: "$in", Value: bson.A{StatusSubmitted, StatusAutoChecking, StatusNeedsReview}}}},
-			{Key: "_id", Value: bson.D{{Key: "$lt", Value: orLatest(self)}}},
-		},
-	}
-	if dedupeKey != "" {
-		similar = append(similar, bson.D{
-			{Key: "dedupeKey", Value: dedupeKey},
-			{Key: "status", Value: bson.D{{Key: "$in", Value: bson.A{StatusNeedsReview, StatusApproved}}}},
-			{Key: "expired", Value: false},
-		})
-	}
-	var pending Submission
-	err = s.collection(submissionsCollection).FindOne(ctx, bson.D{
-		{Key: "_id", Value: notSelf},
-		{Key: "$or", Value: similar},
-	}).Decode(&pending)
-	if err == nil {
-		return "", "submission " + pending.ObjectID.Hex(), nil
-	}
-	if !errors.Is(err, mongo.ErrNoDocuments) {
-		return "", "", err
-	}
-	return "", "", nil
-}
-
-// orLatest lets a zero id (a precheck, not yet stored) compare as newer than
-// every stored submission.
-func orLatest(id bson.ObjectID) bson.ObjectID {
-	if id.IsZero() {
-		return bson.NewObjectIDFromTimestamp(time.Now().Add(time.Hour))
-	}
-	return id
 }
 
 // finish stores an automatic decision and runs its side effects.
@@ -588,7 +527,6 @@ func (s *Store) finish(ctx context.Context, sub Submission, decision Decision) e
 	set := bson.D{
 		{Key: "checks", Value: decision.Checks},
 		{Key: "hiddenJob", Value: decision.HiddenJob},
-		{Key: "onMajorBoards", Value: decision.OnMajorBoards},
 		{Key: "spotCheck", Value: decision.SpotCheck},
 		{Key: "checkedAt", Value: now},
 		{Key: "updatedAt", Value: now},
@@ -603,16 +541,12 @@ func (s *Store) finish(ctx context.Context, sub Submission, decision Decision) e
 			bson.E{Key: "rejectionCode", Value: decision.RejectionCode},
 			bson.E{Key: "rejectionReason", Value: decision.RejectionReason},
 		)
-		if decision.Status == StatusDuplicate {
-			set = append(set, bson.E{Key: "duplicateOf", Value: duplicateTarget(decision.Checks)})
-		}
 	}
 	if _, err := s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
 		return err
 	}
 	sub.Checks = decision.Checks
 	sub.HiddenJob = decision.HiddenJob
-	sub.OnMajorBoards = decision.OnMajorBoards
 
 	switch decision.Status {
 	case StatusApproved:
@@ -620,61 +554,19 @@ func (s *Store) finish(ctx context.Context, sub Submission, decision Decision) e
 	case StatusRejected:
 		s.notifyDecision(ctx, sub, StatusRejected, decision.RejectionReason)
 		return s.recomputeLevel(ctx, sub.ScoutUserID)
-	case StatusDuplicate:
-		s.notifyDecision(ctx, sub, StatusDuplicate, "")
-		return s.recomputeLevel(ctx, sub.ScoutUserID)
 	default:
 		s.notifyDecision(ctx, sub, StatusNeedsReview, "")
 	}
 	return nil
 }
 
-func duplicateTarget(checks []Check) string {
-	for _, check := range checks {
-		if check.ID == CheckDuplicate {
-			return strings.TrimPrefix(check.Detail, "Same link as ")
-		}
-	}
-	return ""
-}
-
 // approve records the decision and pays the approval reward. The posting stays
-// in temp_scout_jobs until staff analyze it into the search pool. The first
-// approved submission of a link owns it.
+// in temp_scout_jobs until staff analyze it into the search pool.
 func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note string) error {
 	s.publishMu.Lock()
 	defer s.publishMu.Unlock()
 
-	parsed, err := ParseJobURL(sub.URL)
-	if err != nil {
-		return err
-	}
-	var final *ParsedURL
-	if sub.FinalURL != "" {
-		if f, err := ParseJobURL(sub.FinalURL); err == nil {
-			final = &f
-		}
-	}
-	duplicate, _, err := s.findDuplicates(ctx, sub.ObjectID, parsed, final, "")
-	if err != nil {
-		return err
-	}
 	now := s.now().UTC()
-	if duplicate != "" {
-		_, err := s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{{Key: "$set", Value: bson.D{
-			{Key: "status", Value: StatusDuplicate},
-			{Key: "rejectionCode", Value: ReasonDuplicate},
-			{Key: "rejectionReason", Value: "first valid submission owns this job"},
-			{Key: "duplicateOf", Value: duplicate},
-			{Key: "updatedAt", Value: now},
-		}}})
-		if err != nil {
-			return err
-		}
-		s.notifyDecision(ctx, sub, StatusDuplicate, "")
-		return s.recomputeLevel(ctx, sub.ScoutUserID)
-	}
-
 	set := bson.D{
 		{Key: "status", Value: StatusApproved},
 		{Key: "reviewedBy", Value: reviewer},
@@ -684,7 +576,7 @@ func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note stri
 	if note != "" {
 		set = append(set, bson.E{Key: "reviewNote", Value: note})
 	}
-	_, err = s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{
+	_, err := s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{
 		{Key: "$set", Value: set},
 		{Key: "$unset", Value: bson.D{{Key: "rejectionCode", Value: ""}, {Key: "rejectionReason", Value: ""}, {Key: "duplicateOf", Value: ""}}},
 	})
@@ -697,51 +589,13 @@ func (s *Store) approve(ctx context.Context, sub Submission, reviewer, note stri
 	if err != nil {
 		return err
 	}
-	if reward := ApprovalReward(profile.Level, sub.OnMajorBoards); reward.AmountCents > 0 {
+	if reward := ApprovalReward(profile.Level); reward.AmountCents > 0 {
 		if err := s.addEarning(ctx, sub, RewardApproval, reward, EarningHeld, "Job approved"); err != nil {
 			return err
 		}
 	}
 	s.notifyDecision(ctx, sub, StatusApproved, "")
-	if err := s.claimDuplicates(ctx, sub); err != nil {
-		return err
-	}
 	return s.recomputeLevel(ctx, sub.ScoutUserID)
-}
-
-// claimDuplicates marks other pending submissions of the same link as duplicates.
-func (s *Store) claimDuplicates(ctx context.Context, owner Submission) error {
-	cursor, err := s.collection(submissionsCollection).Find(ctx, bson.D{
-		{Key: "_id", Value: bson.D{{Key: "$ne", Value: owner.ObjectID}}},
-		{Key: "canonicalUrl", Value: owner.CanonicalURL},
-		{Key: "status", Value: StatusNeedsReview},
-	})
-	if err != nil {
-		return err
-	}
-	var others []Submission
-	if err := cursor.All(ctx, &others); err != nil {
-		return err
-	}
-	now := s.now().UTC()
-	for _, other := range others {
-		other.fill()
-		_, err := s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: other.ObjectID}, {Key: "status", Value: StatusNeedsReview}}, bson.D{{Key: "$set", Value: bson.D{
-			{Key: "status", Value: StatusDuplicate},
-			{Key: "rejectionCode", Value: ReasonDuplicate},
-			{Key: "rejectionReason", Value: "first valid submission owns this job"},
-			{Key: "duplicateOf", Value: "submission " + owner.ID},
-			{Key: "updatedAt", Value: now},
-		}}})
-		if err != nil {
-			return err
-		}
-		s.notifyDecision(ctx, other, StatusDuplicate, "")
-		if err := s.recomputeLevel(ctx, other.ScoutUserID); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // companySite is the employer's own origin, or "" for an ATS-hosted link.

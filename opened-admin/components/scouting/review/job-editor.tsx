@@ -14,7 +14,6 @@ import {
   SectionCard,
   Selector,
   Stack,
-  Switch,
   Text,
   TextArea,
   TextInput,
@@ -94,7 +93,9 @@ export function JobEditor({
       <SectionCard
         title="Job details"
         description={
-          submission.job_id ? "On Jobs after analyze. Edit the live listing there." : "Details as submitted."
+          submission.job_id
+            ? "On Jobs after analyze. Edit the live listing there."
+            : "Details as submitted."
         }
         action={
           <HStack gap={2}>
@@ -285,12 +286,6 @@ export function JobEditor({
             />
           </GridColumn>
         </GridSystem>
-        <Switch
-          label="Also on LinkedIn or Indeed"
-          description="No hidden-job badge and a smaller approval credit."
-          value={value.on_major_boards}
-          onChange={set("on_major_boards")}
-        />
       </Stack>
     </SectionCard>
   );

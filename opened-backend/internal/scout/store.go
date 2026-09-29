@@ -53,6 +53,9 @@ type Publisher interface {
 	// StageScouted stores a submission for staff to analyze. It does not enter search.
 	StageScouted(ctx context.Context, listing jobs.ScoutedListing, now time.Time) (string, error)
 	JobWithApplyLink(ctx context.Context, links []string) (string, error)
+	JobsWithApplyLink(ctx context.Context, links []string) ([]jobs.JobBrief, error)
+	JobsMatchingCompanyTitle(ctx context.Context, companyID, companyName, title string) ([]jobs.JobBrief, error)
+	JobBriefsByID(ctx context.Context, ids []string) ([]jobs.JobBrief, error)
 }
 
 // Usage reports candidate activity on published jobs.

@@ -488,9 +488,8 @@ func (s *Store) applyEdits(ctx context.Context, sub Submission, edits Submission
 		{Key: "summary", Value: normalized.Summary},
 		{Key: "tags", Value: normalized.Tags},
 		{Key: "skills", Value: normalized.Skills},
-		{Key: "onMajorBoards", Value: normalized.OnMajorBoards},
-		{Key: "hiddenJob", Value: !normalized.OnMajorBoards},
-		{Key: "dedupeKey", Value: DedupeKey(normalized.CompanyName, normalized.Title, normalized.LocationText)},
+		{Key: "hiddenJob", Value: true},
+		{Key: "dedupeKey", Value: DedupeKey(normalized.CompanyID, normalized.CompanyName, normalized.Title)},
 		{Key: "updatedAt", Value: s.now().UTC()},
 	}}})
 	if err != nil {
@@ -499,25 +498,30 @@ func (s *Store) applyEdits(ctx context.Context, sub Submission, edits Submission
 	return s.submission(ctx, sub.ID)
 }
 
-// Analyze runs the job extractor on a submission and stores the search record.
-func (s *Store) Analyze(ctx context.Context, id, actor string, edits *SubmissionInput, now time.Time, run func(jobs.ScoutedListing, string) (jobs.SearchRecord, error)) (Submission, jobs.SearchRecord, error) {
+// Analyze runs duplicate screening, then the job extractor unless a likely
+// duplicate was found. continueExtract skips screening.
+func (s *Store) Analyze(ctx context.Context, id, actor string, edits *SubmissionInput, now time.Time, run func(jobs.ScoutedListing, string) (jobs.AnalyzeScoutedResult, error)) (Submission, jobs.AnalyzeScoutedResult, error) {
 	sub, err := s.submission(ctx, id)
 	if err != nil {
-		return Submission{}, jobs.SearchRecord{}, err
+		return Submission{}, jobs.AnalyzeScoutedResult{}, err
 	}
 	if edits != nil {
 		sub, err = s.applyEdits(ctx, sub, *edits)
 		if err != nil {
-			return Submission{}, jobs.SearchRecord{}, err
+			return Submission{}, jobs.AnalyzeScoutedResult{}, err
 		}
 	}
 	if run == nil {
-		return Submission{}, jobs.SearchRecord{}, errors.New("analyze is not configured")
+		return Submission{}, jobs.AnalyzeScoutedResult{}, errors.New("analyze is not configured")
 	}
-	record, err := run(stagedListing(sub), sub.TempJobID)
+	result, err := run(stagedListing(sub), sub.TempJobID)
 	if err != nil {
-		return Submission{}, jobs.SearchRecord{}, err
+		return Submission{}, jobs.AnalyzeScoutedResult{}, err
 	}
+	if result.Record == nil {
+		return sub, result, nil
+	}
+	record := result.Record
 	set := bson.D{
 		{Key: "jobId", Value: record.Job.ID},
 		{Key: "jobRef", Value: record.TempJobID},
@@ -527,14 +531,72 @@ func (s *Store) Analyze(ctx context.Context, id, actor string, edits *Submission
 		set = append(set, bson.E{Key: "tempJobId", Value: record.TempJobID})
 	}
 	if _, err := s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
-		return Submission{}, jobs.SearchRecord{}, err
+		return Submission{}, jobs.AnalyzeScoutedResult{}, err
 	}
 	s.audit(ctx, "submission.analyze", "scout_submission", sub.ID, actor, record.Model)
 	sub, err = s.submission(ctx, id)
 	if err != nil {
-		return Submission{}, jobs.SearchRecord{}, err
+		return Submission{}, jobs.AnalyzeScoutedResult{}, err
 	}
-	return sub, record, nil
+	return sub, result, nil
+}
+
+// MatchCompare is an AI same-position check for one company+title match.
+type MatchCompare struct {
+	Match        Match  `json:"match"`
+	SamePosition bool   `json:"same_position"`
+	Reason       string `json:"reason"`
+}
+
+// CompareMatches asks the model whether company+title matches are the same opening.
+func (s *Store) CompareMatches(ctx context.Context, id string, reader jobs.ModelReader) ([]MatchCompare, error) {
+	sub, err := s.submission(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	out := []MatchCompare{}
+	jobIDs := []string{}
+	for _, m := range sub.Matches {
+		if m.Kind == MatchKindCompanyTitle && m.JobID != "" {
+			jobIDs = append(jobIDs, m.JobID)
+		}
+	}
+	briefs := map[string]jobs.JobBrief{}
+	if s.publisher != nil && len(jobIDs) > 0 {
+		found, err := s.publisher.JobBriefsByID(ctx, jobIDs)
+		if err != nil {
+			return nil, err
+		}
+		for _, brief := range found {
+			briefs[brief.ID] = brief
+		}
+	}
+	for _, m := range sub.Matches {
+		if m.Kind != MatchKindCompanyTitle {
+			continue
+		}
+		existDesc := ""
+		if brief, ok := briefs[m.JobID]; ok {
+			existDesc = jobs.ListingCopy(brief.Summary, brief.Responsibilities, brief.Requirements)
+		} else if m.SubmissionID != "" {
+			other, lookupErr := s.submission(ctx, m.SubmissionID)
+			if lookupErr == nil {
+				existDesc = other.Summary
+				if m.Title == "" {
+					m.Title = other.Title
+				}
+				if m.Company == "" {
+					m.Company = other.CompanyName
+				}
+			}
+		}
+		same, reason, err := jobs.CompareSamePosition(ctx, reader, sub.Title, sub.CompanyName, sub.Summary, m.JobID, m.Title, m.Company, existDesc)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, MatchCompare{Match: m, SamePosition: same, Reason: reason})
+	}
+	return out, nil
 }
 
 // revoke takes a published job back out of the pool and claws back every
