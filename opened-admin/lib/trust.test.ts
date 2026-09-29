@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import {
+  DEFAULT_REJECT_DISPOSITION,
   directJobsPath,
   jobReviewBody,
   jobTakedownBody,
@@ -50,7 +51,8 @@ test("decision bodies match the locked contract", () => {
     reason: "Scam copy",
     rejectDisposition: "draft",
   });
-  expect(jobReviewBody("reject", "", "removed")).toEqual({
+  expect(DEFAULT_REJECT_DISPOSITION).toBe("removed");
+  expect(jobReviewBody("reject", "", DEFAULT_REJECT_DISPOSITION)).toEqual({
     decision: "reject",
     rejectDisposition: "removed",
   });
@@ -106,10 +108,78 @@ test("verification list and company detail read camelCase only", () => {
     },
     audit: [{ at: "2026-09-01T00:00:00Z", actor: "admin", action: "reject", reason: "Mismatch" }],
   });
+  expect(detail?.name).toBe("Acme");
+  expect(detail?.url).toBe("https://acme.test");
   expect(detail?.domains[0]?.verified).toBe(true);
   expect(detail?.members[0]?.userId).toBe("u1");
+  expect(detail?.members[0]?.name).toBe("");
   expect(detail?.pendingClaim?.method).toBe("domain_email");
   expect(detail?.audit[0]?.reason).toBe("Mismatch");
+
+  const staff = readCompanyVerification({
+    id: "co_123",
+    companyName: "Northwind",
+    name: "Legacy",
+    companyUrl: "https://northwind.example",
+    url: "https://legacy.example",
+    domains: ["northwind.example", "  ", { domain: "jobs.northwind.example", verified: true }],
+    members: [
+      {
+        userId: "user_123",
+        name: "Ada Lovelace",
+        email: "ada@northwind.example",
+        role: "owner",
+        hiringRole: "owner",
+      },
+    ],
+    claimMethod: "manual",
+    claimed: true,
+    verificationStatus: "pending",
+    pendingClaim: {
+      id: "674c1f0e5b2a4e18d0a1c001",
+      claimMethod: "manual",
+      method: "dns_txt",
+      requestedBy: "user_123",
+      domains: ["northwind.example"],
+      status: "pending",
+      createdAt: "2026-09-29T17:00:00Z",
+      slaAt: "2026-10-01T17:00:00Z",
+    },
+    verifiedAt: "2026-09-29T18:00:00Z",
+    suspendedAt: "2026-09-29T19:00:00Z",
+    audit: [
+      {
+        action: "company.verify.approve",
+        subjectType: "company",
+        subjectId: "co_123",
+        actor: "roosebelt",
+        note: "Work email is on the company domain",
+        reason: "Legacy reason",
+        at: "2026-09-29T18:00:00Z",
+      },
+    ],
+  });
+  expect(staff?.name).toBe("Northwind");
+  expect(staff?.url).toBe("https://northwind.example");
+  expect(staff?.domains).toEqual([
+    { domain: "northwind.example", verified: false },
+    { domain: "jobs.northwind.example", verified: true },
+  ]);
+  expect(staff?.members[0]).toEqual({
+    userId: "user_123",
+    name: "Ada Lovelace",
+    email: "ada@northwind.example",
+    role: "owner",
+    createdAt: "",
+  });
+  expect(staff?.claimMethod).toBe("manual");
+  expect(staff?.pendingClaim?.method).toBe("manual");
+  expect(staff?.audit[0]).toEqual({
+    at: "2026-09-29T18:00:00Z",
+    actor: "roosebelt",
+    action: "company.verify.approve",
+    reason: "Work email is on the company domain",
+  });
 });
 
 test("direct job list reads jobs and review answers unwrap job", () => {

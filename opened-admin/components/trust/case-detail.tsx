@@ -66,7 +66,9 @@ export function CompanyCaseDetail({ id }: { id: string }) {
     {
       key: "email",
       header: "Member",
-      render: (member) => <Text>{member.email || member.userId}</Text>,
+      render: (member) => (
+        <Text>{[member.name, member.email].filter(Boolean).join(" · ") || member.userId}</Text>
+      ),
     },
     {
       key: "role",

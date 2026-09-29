@@ -30,6 +30,9 @@ export type VerificationDecision = "approve" | "reject" | "suspend";
 export type JobReviewDecision = "approve" | "reject";
 export type RejectDisposition = "removed" | "draft";
 
+/** Server stores removed when the field is omitted. Reject posts still send it. */
+export const DEFAULT_REJECT_DISPOSITION: RejectDisposition = "removed";
+
 export type VerifyCompanyBody = {
   decision: VerificationDecision;
   reason: string;
@@ -58,6 +61,7 @@ export type CompanyDomain = { domain: string; verified: boolean };
 
 export type CompanyMember = {
   userId: string;
+  name: string;
   email: string;
   role: string;
   createdAt: string;
@@ -245,8 +249,8 @@ export function readCompanyVerification(body: unknown): CompanyVerification | nu
   if (!id) return null;
   return {
     id,
-    name: text(row.name),
-    url: text(row.url),
+    name: preferText(row.companyName, row.name),
+    url: preferText(row.companyUrl, row.url),
     logo: text(row.logo),
     primaryDomain: text(row.primaryDomain),
     domains: readDomains(row.domains),
@@ -315,6 +319,10 @@ function readAdminDirectJob(value: unknown): AdminDirectJob | null {
 function readDomains(value: unknown): CompanyDomain[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
+    if (typeof item === "string") {
+      const domain = item.trim();
+      return domain ? [{ domain, verified: false }] : [];
+    }
     const row = asRecord(item);
     const domain = text(row?.domain);
     if (!domain) return [];
@@ -331,6 +339,7 @@ function readMembers(value: unknown): CompanyMember[] {
     return [
       {
         userId,
+        name: text(row?.name),
         email: text(row?.email),
         role: text(row?.role),
         createdAt: text(row?.createdAt),
@@ -345,7 +354,7 @@ function readPendingClaim(value: unknown): PendingClaim | null {
   if (!id) return null;
   return {
     id,
-    method: text(row?.method),
+    method: preferText(row?.claimMethod, row?.method),
     requestedBy: text(row?.requestedBy),
     createdAt: text(row?.createdAt),
   };
@@ -361,7 +370,7 @@ function readAudit(value: unknown): VerificationAudit[] {
         at: text(row.at),
         actor: text(row.actor),
         action: text(row.action),
-        reason: text(row.reason),
+        reason: preferText(row.note, row.reason),
       },
     ];
   });
@@ -389,4 +398,12 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function text(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
+}
+
+function preferText(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = text(value);
+    if (parsed) return parsed;
+  }
+  return "";
 }

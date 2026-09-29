@@ -18,6 +18,7 @@ import { adminSend } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import {
+  DEFAULT_REJECT_DISPOSITION,
   JOB_REJECT_DISPOSITIONS,
   jobReviewBody,
   jobReviewPath,
@@ -32,7 +33,7 @@ export function DirectJobDetail({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const toast = useToast();
   const [reviewed, setReviewed] = useState<AdminDirectJob | null>(null);
-  const [disposition, setDisposition] = useState("");
+  const [disposition, setDisposition] = useState(DEFAULT_REJECT_DISPOSITION);
   const [pending, setPending] = useState(false);
   const [decisionError, setDecisionError] = useState("");
   const job = reviewed ?? jobFromQuery(id, searchParams);
