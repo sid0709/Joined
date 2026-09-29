@@ -27,10 +27,42 @@
  * POST /v1/company/applicants/:id/offer/esign
  *   body: { documentTitle?: string }
  *   response: OfferEsign  // first-party only; mint a signed URL on OpenSeat
+ *   permission: offers.send
+ *
+ * POST /v1/company/applicants/:id/offer/esign/mark
+ *   body: EsignMarkInput  // { status: "signed" | "declined" }
+ *   response: OfferEsign
+ *   permission: offers.send
+ *   Employer mark-signed / mark-declined. Requires an existing sign link (not status "none").
+ *   Sets signedAt when status is signed. Decline leaves a previous signedAt in place.
+ *   Does not change offer.status (accepted / declined stay on PATCH offer).
+ *
+ * GET /v1/me/applications/:id/offer/esign
+ *   response: OfferEsign  // { status: "none" } when no link has been minted
+ *   Candidate session only. 404 when the application is not theirs.
+ *
+ * POST /v1/me/applications/:id/offer/esign
+ *   body: EsignMarkInput
+ *   response: OfferEsign
+ *   Candidate countersign or decline. Same rules as employer mark. Applicant only.
  *
  * POST /v1/company/applicants/:id/hire-packet
  *   body: HirePacketInput
  *   response: HirePacket  // light onboarding handoff stub, not full HRIS
+ *   permission: offers.hire
+ *
+ * PATCH /v1/company/applicants/:id/hire-packet
+ *   body: HirePacketStatusPatch  // { status: "ready" | "sent", ownerNote?, handoffTarget? }
+ *   response: HirePacket
+ *   permission: offers.hire
+ *   ready and sent may move either way. A missing packet is created with the default checklist.
+ *   Omit ownerNote / handoffTarget to keep stored values. Send "" to clear.
+ *
+ * PATCH /v1/company/applicants/:id/hire-packet/items/:itemId
+ *   body: HirePacketItemPatch  // { status: "todo" | "done" | "skipped" }
+ *   response: HirePacket  // full packet so the checklist can be hydrated
+ *   permission: offers.hire
+ *   "todo" is undone. 400 if no packet yet. 404 if itemId is not on the checklist.
  *
  * Out of scope here: DocuSign, SSO, Scoutwell, admin. Analytics: lib/analytics.ts. RBAC: lib/rbac.ts.
  */
@@ -147,6 +179,23 @@ export type HirePacketInput = {
   handoffTarget?: string;
   /** When true, reset checklist to the default hire stubs. */
   resetChecklist?: boolean;
+};
+
+/** POST employer .../offer/esign/mark and candidate .../offer/esign. */
+export type EsignMarkInput = {
+  status: "signed" | "declined";
+};
+
+/** PATCH /v1/company/applicants/:id/hire-packet */
+export type HirePacketStatusPatch = {
+  status: "ready" | "sent";
+  ownerNote?: string;
+  handoffTarget?: string;
+};
+
+/** PATCH /v1/company/applicants/:id/hire-packet/items/:itemId. "todo" is undone. */
+export type HirePacketItemPatch = {
+  status: HirePacketItemStatus;
 };
 
 export const OFFER_STATUSES: OfferStatus[] = [

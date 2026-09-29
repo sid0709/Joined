@@ -90,12 +90,33 @@ type EsignInput struct {
 	DocumentTitle string `json:"documentTitle"`
 }
 
+// EsignMarkInput is the candidate and employer e-sign response.
+// Employer: POST /v1/company/applicants/:id/offer/esign/mark (offers.send).
+// Candidate: POST /v1/me/applications/:id/offer/esign (the applicant only).
+type EsignMarkInput struct {
+	Status string `json:"status"`
+}
+
 // HirePacketInput is POST /v1/company/applicants/:id/hire-packet.
 type HirePacketInput struct {
 	StartDate      string `json:"startDate"`
 	OwnerNote      string `json:"ownerNote"`
 	HandoffTarget  string `json:"handoffTarget"`
 	ResetChecklist *bool  `json:"resetChecklist"`
+}
+
+// HirePacketStatusInput is PATCH /v1/company/applicants/:id/hire-packet.
+// Status is ready or sent. Omitted notes stay as stored; a present string replaces them.
+type HirePacketStatusInput struct {
+	Status        string  `json:"status"`
+	OwnerNote     *string `json:"ownerNote"`
+	HandoffTarget *string `json:"handoffTarget"`
+}
+
+// HirePacketItemInput is PATCH /v1/company/applicants/:id/hire-packet/items/:itemId.
+// Status is todo (undone), done, or skipped.
+type HirePacketItemInput struct {
+	Status string `json:"status"`
 }
 
 type offerPatchWire struct {
@@ -491,6 +512,44 @@ func mintOfferEsign(current *candidate.OfferRecord, applicantID, origin, title s
 	return next, esign, nil
 }
 
+// markOfferEsign records signed or declined on an existing first-party sign link.
+// Offer status is left alone. Decline keeps a previous signedAt.
+func markOfferEsign(current *candidate.OfferRecord, status string, now time.Time) (*candidate.OfferRecord, candidate.OfferEsign, error) {
+	status = strings.TrimSpace(status)
+	if status != candidate.OfferEsignSigned && status != candidate.OfferEsignDeclined {
+		return nil, candidate.OfferEsign{}, offerInput("E-sign status must be signed or declined.")
+	}
+	if current == nil || current.Esign == nil || current.Esign.Status == "" || current.Esign.Status == candidate.OfferEsignNone {
+		if status == candidate.OfferEsignDeclined {
+			return nil, candidate.OfferEsign{}, offerInput("Create a sign link before marking declined.")
+		}
+		return nil, candidate.OfferEsign{}, offerInput("Create a sign link before marking signed.")
+	}
+	next := cloneOffer(current)
+	if next.Status == "" {
+		next.Status = candidate.OfferDraft
+	}
+	esign := *next.Esign
+	esign.Status = status
+	if status == candidate.OfferEsignSigned {
+		signed := now.UTC()
+		esign.SignedAt = &signed
+	}
+	next.Esign = &esign
+	return next, esign, nil
+}
+
+// esignView is the stored link, or status none when the offer has no e-sign yet.
+func esignView(current *candidate.OfferRecord) candidate.OfferEsign {
+	if current == nil || current.Esign == nil || current.Esign.Status == "" {
+		return candidate.OfferEsign{Status: candidate.OfferEsignNone}
+	}
+	esign := *current.Esign
+	esign.SentAt = cloneTime(current.Esign.SentAt)
+	esign.SignedAt = cloneTime(current.Esign.SignedAt)
+	return esign
+}
+
 func offerSignURL(origin, applicantID string) string {
 	origin = strings.TrimRight(strings.TrimSpace(origin), "/")
 	if origin == "" {
@@ -544,6 +603,89 @@ func upsertHirePacket(current *candidate.OfferRecord, input HirePacketInput, now
 	}
 	if target := clip(input.HandoffTarget, maxHandoffTarget); target != "" {
 		packet.HandoffTarget = target
+	}
+	if packet.Checklist == nil {
+		packet.Checklist = []candidate.HirePacketItem{}
+	}
+	next.HirePacket = &packet
+	return next, packet, nil
+}
+
+// setHirePacketStatus moves a packet to ready or sent.
+// A missing packet gets the default checklist, matching markHirePacketStatus.
+func setHirePacketStatus(current *candidate.OfferRecord, input HirePacketStatusInput, now time.Time) (*candidate.OfferRecord, candidate.HirePacket, error) {
+	status := strings.TrimSpace(input.Status)
+	if status != candidate.HirePacketReady && status != candidate.HirePacketSent {
+		return nil, candidate.HirePacket{}, offerInput("Hire packet status must be ready or sent.")
+	}
+	next := cloneOffer(current)
+	if next == nil {
+		next = emptyOffer()
+	}
+	packet, err := packetForStatus(next.HirePacket, status, now)
+	if err != nil {
+		return nil, candidate.HirePacket{}, err
+	}
+	if input.OwnerNote != nil {
+		packet.OwnerNote = clip(*input.OwnerNote, maxCompNotes)
+	}
+	if input.HandoffTarget != nil {
+		packet.HandoffTarget = clip(*input.HandoffTarget, maxHandoffTarget)
+	}
+	next.HirePacket = &packet
+	return next, packet, nil
+}
+
+func packetForStatus(current *candidate.HirePacket, status string, now time.Time) (candidate.HirePacket, error) {
+	if current != nil && current.Status != "" && current.Status != candidate.HirePacketNone {
+		packet := *current
+		packet.Checklist = append([]candidate.HirePacketItem(nil), current.Checklist...)
+		if len(packet.Checklist) == 0 {
+			checklist, err := defaultHireChecklist()
+			if err != nil {
+				return candidate.HirePacket{}, err
+			}
+			packet.Checklist = checklist
+		}
+		packet.Status = status
+		if packet.GeneratedAt.IsZero() {
+			packet.GeneratedAt = now.UTC()
+		}
+		return packet, nil
+	}
+	checklist, err := defaultHireChecklist()
+	if err != nil {
+		return candidate.HirePacket{}, err
+	}
+	return candidate.HirePacket{Status: status, Checklist: checklist, GeneratedAt: now.UTC()}, nil
+}
+
+// patchHirePacketItem sets one checklist row to todo, done, or skipped.
+func patchHirePacketItem(current *candidate.OfferRecord, itemID string, input HirePacketItemInput) (*candidate.OfferRecord, candidate.HirePacket, error) {
+	status := strings.TrimSpace(input.Status)
+	if status != candidate.HireItemTodo && status != candidate.HireItemDone && status != candidate.HireItemSkipped {
+		return nil, candidate.HirePacket{}, offerInput("Checklist item status must be todo, done, or skipped.")
+	}
+	if current == nil || current.HirePacket == nil || current.HirePacket.Status == "" || current.HirePacket.Status == candidate.HirePacketNone {
+		return nil, candidate.HirePacket{}, offerInput("Generate a hire packet before updating the checklist.")
+	}
+	itemID = strings.TrimSpace(itemID)
+	if itemID == "" {
+		return nil, candidate.HirePacket{}, ErrNotFound
+	}
+	next := cloneOffer(current)
+	packet := *next.HirePacket
+	packet.Checklist = append([]candidate.HirePacketItem(nil), next.HirePacket.Checklist...)
+	found := false
+	for i := range packet.Checklist {
+		if packet.Checklist[i].ID == itemID {
+			packet.Checklist[i].Status = status
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, candidate.HirePacket{}, ErrNotFound
 	}
 	if packet.Checklist == nil {
 		packet.Checklist = []candidate.HirePacketItem{}

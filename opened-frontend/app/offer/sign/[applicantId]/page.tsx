@@ -13,8 +13,10 @@ export const metadata: Metadata = {
 /**
  * Public first-party offer e-sign landing.
  * Einstein mints `{FRONTEND_ORIGIN}/offer/sign/{applicantId}` via POST
- * /v1/company/applicants/:id/offer/esign. Candidate sign UX is still FE-later —
- * employers can mint and share the link; signing on this page is not live yet.
+ * /v1/company/applicants/:id/offer/esign.
+ * Candidate countersign is POST /v1/me/applications/:id/offer/esign
+ * `{ status: "signed" | "declined" }` (applicant session only). See lib/me/offer-esign.ts.
+ * Signing controls on this page are still FE-later.
  */
 export default async function PublicOfferSignPage({
   params,

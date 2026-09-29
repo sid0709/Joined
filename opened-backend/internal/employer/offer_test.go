@@ -255,6 +255,192 @@ func TestMintEsignAndHirePacket(t *testing.T) {
 	}
 }
 
+func TestMarkEsignSignedAndDeclined(t *testing.T) {
+	now := time.Date(2026, 9, 29, 18, 0, 0, 0, time.UTC)
+	sent := now.Add(-time.Hour)
+	current := &candidate.OfferRecord{
+		Status:      candidate.OfferSent,
+		RespondedAt: nil,
+		Esign: &candidate.OfferEsign{
+			Status:        candidate.OfferEsignPending,
+			DocumentTitle: "Executive letter",
+			SignURL:       "https://openseat.app/offer/sign/app-1",
+			SentAt:        &sent,
+		},
+	}
+	signed, esign, err := markOfferEsign(current, " signed ", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if esign.Status != candidate.OfferEsignSigned || esign.SignedAt == nil || !esign.SignedAt.Equal(now) {
+		t.Fatalf("signed = %+v", esign)
+	}
+	if esign.DocumentTitle != "Executive letter" || esign.SignURL == "" || esign.SentAt == nil || !esign.SentAt.Equal(sent) {
+		t.Fatalf("kept link = %+v", esign)
+	}
+	if signed.Status != candidate.OfferSent || signed.RespondedAt != nil {
+		t.Fatalf("offer status changed: %+v", signed)
+	}
+	if current.Esign.Status != candidate.OfferEsignPending || current.Esign.SignedAt != nil {
+		t.Fatalf("mutated source: %+v", current.Esign)
+	}
+	body, err := json.Marshal(esign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := string(body)
+	for _, key := range []string{`"status":"signed"`, `"signedAt"`, `"signUrl"`, `"documentTitle"`, `"sentAt"`} {
+		if !strings.Contains(encoded, key) {
+			t.Fatalf("missing %s in %s", key, encoded)
+		}
+	}
+
+	later := now.Add(2 * time.Hour)
+	declined, esign, err := markOfferEsign(signed, candidate.OfferEsignDeclined, later)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if esign.Status != candidate.OfferEsignDeclined || esign.SignedAt == nil || !esign.SignedAt.Equal(now) {
+		t.Fatalf("decline cleared signedAt: %+v", esign)
+	}
+	if declined.Status != candidate.OfferSent {
+		t.Fatalf("offer = %s", declined.Status)
+	}
+	again, esign, err := markOfferEsign(declined, candidate.OfferEsignSigned, later)
+	if err != nil || esign.SignedAt == nil || !esign.SignedAt.Equal(later) || again.Esign.Status != candidate.OfferEsignSigned {
+		t.Fatalf("resign = %+v err %v", esign, err)
+	}
+
+	if _, _, err := markOfferEsign(current, "accepted", now); !errors.Is(err, ErrInvalidInput) || err.Error() != "E-sign status must be signed or declined." {
+		t.Fatalf("bad status = %v", err)
+	}
+	if _, _, err := markOfferEsign(nil, candidate.OfferEsignSigned, now); !errors.Is(err, ErrInvalidInput) || err.Error() != "Create a sign link before marking signed." {
+		t.Fatalf("missing = %v", err)
+	}
+	none := &candidate.OfferRecord{Status: candidate.OfferDraft, Esign: &candidate.OfferEsign{Status: candidate.OfferEsignNone}}
+	if _, _, err := markOfferEsign(none, candidate.OfferEsignDeclined, now); !errors.Is(err, ErrInvalidInput) || err.Error() != "Create a sign link before marking declined." {
+		t.Fatalf("none = %v", err)
+	}
+	if view := esignView(nil); view.Status != candidate.OfferEsignNone {
+		t.Fatalf("view = %+v", view)
+	}
+	if view := esignView(signed); view.Status != candidate.OfferEsignSigned || view.SignedAt == nil {
+		t.Fatalf("signed view = %+v", view)
+	}
+}
+
+func TestHirePacketReadySentAndChecklist(t *testing.T) {
+	now := time.Date(2026, 9, 29, 18, 0, 0, 0, time.UTC)
+	ready, packet, err := setHirePacketStatus(&candidate.OfferRecord{Status: candidate.OfferAccepted}, HirePacketStatusInput{Status: " ready "}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if packet.Status != candidate.HirePacketReady || len(packet.Checklist) != len(defaultHireLabels) || packet.GeneratedAt.IsZero() {
+		t.Fatalf("ready = %+v", packet)
+	}
+	if ready.Status != candidate.OfferAccepted {
+		t.Fatalf("offer status = %s", ready.Status)
+	}
+	itemID := packet.Checklist[0].ID
+	note := "  welcome  "
+	target := "people-ops@example.com"
+	sent, packet, err := setHirePacketStatus(ready, HirePacketStatusInput{Status: candidate.HirePacketSent, OwnerNote: &note, HandoffTarget: &target}, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if packet.Status != candidate.HirePacketSent || packet.Checklist[0].ID != itemID || packet.OwnerNote != "welcome" || packet.HandoffTarget != target {
+		t.Fatalf("sent = %+v", packet)
+	}
+	if sent.HirePacket == nil || sent.Status != candidate.OfferAccepted {
+		t.Fatalf("stored = %+v", sent)
+	}
+	back, packet, err := setHirePacketStatus(sent, HirePacketStatusInput{Status: candidate.HirePacketReady}, now.Add(2*time.Minute))
+	if err != nil || packet.Status != candidate.HirePacketReady || packet.OwnerNote != "welcome" || packet.Checklist[0].ID != itemID {
+		t.Fatalf("back to ready = %+v err %v", packet, err)
+	}
+	blank := ""
+	cleared, packet, err := setHirePacketStatus(back, HirePacketStatusInput{Status: candidate.HirePacketSent, OwnerNote: &blank}, now)
+	if err != nil || packet.OwnerNote != "" || packet.HandoffTarget != target {
+		t.Fatalf("clear note = %+v err %v", packet, err)
+	}
+	if _, _, err := setHirePacketStatus(ready, HirePacketStatusInput{Status: candidate.HirePacketDraft}, now); !errors.Is(err, ErrInvalidInput) || err.Error() != "Hire packet status must be ready or sent." {
+		t.Fatalf("draft status = %v", err)
+	}
+	if _, _, err := setHirePacketStatus(ready, HirePacketStatusInput{Status: "none"}, now); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("none status = %v", err)
+	}
+
+	done, packet, err := patchHirePacketItem(cleared, itemID, HirePacketItemInput{Status: candidate.HireItemDone})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if packet.Status != candidate.HirePacketSent || packet.Checklist[0].Status != candidate.HireItemDone || packet.Checklist[1].Status != candidate.HireItemTodo {
+		t.Fatalf("done = %+v", packet.Checklist)
+	}
+	if cleared.HirePacket.Checklist[0].Status != candidate.HireItemTodo {
+		t.Fatal("source checklist mutated")
+	}
+	undone, packet, err := patchHirePacketItem(done, itemID, HirePacketItemInput{Status: " todo "})
+	if err != nil || packet.Checklist[0].Status != candidate.HireItemTodo || undone.HirePacket.Status != candidate.HirePacketSent {
+		t.Fatalf("undone = %+v err %v", packet, err)
+	}
+	skipped, packet, err := patchHirePacketItem(undone, itemID, HirePacketItemInput{Status: candidate.HireItemSkipped})
+	if err != nil || packet.Checklist[0].Status != candidate.HireItemSkipped {
+		t.Fatalf("skipped = %+v err %v", packet, err)
+	}
+	body, err := json.Marshal(packet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded := string(body)
+	for _, key := range []string{`"status":"sent"`, `"checklist"`, `"id"`, itemID, `"skipped"`} {
+		if !strings.Contains(encoded, key) {
+			t.Fatalf("missing %s in %s", key, encoded)
+		}
+	}
+	if _, _, err := patchHirePacketItem(skipped, "hire-missing", HirePacketItemInput{Status: candidate.HireItemDone}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing item = %v", err)
+	}
+	if _, _, err := patchHirePacketItem(skipped, itemID, HirePacketItemInput{Status: "later"}); !errors.Is(err, ErrInvalidInput) || err.Error() != "Checklist item status must be todo, done, or skipped." {
+		t.Fatalf("bad item = %v", err)
+	}
+	if _, _, err := patchHirePacketItem(nil, itemID, HirePacketItemInput{Status: candidate.HireItemDone}); !errors.Is(err, ErrInvalidInput) || err.Error() != "Generate a hire packet before updating the checklist." {
+		t.Fatalf("no packet = %v", err)
+	}
+	draftOnly := &candidate.OfferRecord{Status: candidate.OfferDraft, HirePacket: &candidate.HirePacket{Status: candidate.HirePacketDraft, Checklist: []candidate.HirePacketItem{{ID: "hire-1", Label: "Welcome", Status: candidate.HireItemTodo}}}}
+	toggled, packet, err := patchHirePacketItem(draftOnly, "hire-1", HirePacketItemInput{Status: candidate.HireItemDone})
+	if err != nil || packet.Status != candidate.HirePacketDraft || toggled.HirePacket.Checklist[0].Status != candidate.HireItemDone {
+		t.Fatalf("draft toggle = %+v err %v", packet, err)
+	}
+}
+
+func TestEsignAndHirePacketRoleGates(t *testing.T) {
+	denied := []struct{ role, perm string }{
+		{RoleInterviewer, PermOffersSend},
+		{RoleInterviewer, PermOffersHire},
+		{RoleHiringManager, PermOffersSend},
+		{RoleHiringManager, PermOffersHire},
+		{RoleFinance, PermOffersSend},
+		{RoleFinance, PermOffersHire},
+		{RoleViewer, PermOffersSend},
+		{RoleViewer, PermOffersHire},
+	}
+	for _, tc := range denied {
+		err := AuthorizeCompany(tc.role, tc.perm)
+		if !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), tc.perm) {
+			t.Fatalf("%s %s = %v", tc.role, tc.perm, err)
+		}
+	}
+	for _, role := range []string{RoleOwner, RoleAdmin, RoleRecruiter} {
+		if err := AuthorizeCompany(role, PermOffersSend); err != nil {
+			t.Fatalf("%s send: %v", role, err)
+		}
+		if err := AuthorizeCompany(role, PermOffersHire); err != nil {
+			t.Fatalf("%s hire: %v", role, err)
+		}
+	}
+}
+
 func TestNormalizeOfferTemplates(t *testing.T) {
 	longName := strings.Repeat("n", 140)
 	items := []candidate.OfferTemplate{{

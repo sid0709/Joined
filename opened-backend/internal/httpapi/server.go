@@ -103,6 +103,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("GET /v1/me/applications", server.getApplications)
 	mux.HandleFunc("POST /v1/me/applications", server.postApplication)
 	mux.HandleFunc("PATCH /v1/me/applications/{id}", server.patchApplication)
+	mux.HandleFunc("GET /v1/me/applications/{id}/offer/esign", server.getMyOfferEsign)
+	mux.HandleFunc("POST /v1/me/applications/{id}/offer/esign", server.postMyOfferEsign)
 	mux.HandleFunc("DELETE /v1/me/applications/{id}", server.deleteApplication)
 	mux.HandleFunc("GET /v1/me/interviews", server.getInterviews)
 	mux.HandleFunc("POST /v1/me/interviews", server.postInterview)

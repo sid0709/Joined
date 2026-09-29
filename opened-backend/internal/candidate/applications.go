@@ -187,6 +187,15 @@ func (s *Store) listApplications(ctx context.Context, userID string) ([]Applicat
 	return items, nil
 }
 
+// ApplicationForUser loads one application owned by this candidate.
+// A different user's id is not found.
+func (s *Store) ApplicationForUser(ctx context.Context, userID, id string) (Application, error) {
+	if strings.TrimSpace(userID) == "" || strings.TrimSpace(id) == "" {
+		return Application{}, ErrNotFound
+	}
+	return s.applicationByID(ctx, userID, id)
+}
+
 func (s *Store) applicationByID(ctx context.Context, userID, id string) (Application, error) {
 	var app Application
 	err := s.collection(applicationsCollection).FindOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "userId", Value: userID}}).Decode(&app)

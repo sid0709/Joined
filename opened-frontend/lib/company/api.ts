@@ -38,8 +38,11 @@ import {
   hydrateHirePacket,
   hydrateOfferApproval,
   hydrateOfferEsign,
+  type EsignMarkInput,
   type HirePacket,
   type HirePacketInput,
+  type HirePacketItemPatch,
+  type HirePacketStatusPatch,
   type OfferApproval,
   type OfferEsign,
   type OfferPatch,
@@ -533,12 +536,51 @@ export function createOfferEsign(applicantId: string, body?: { documentTitle?: s
   });
 }
 
+/** POST /v1/company/applicants/:id/offer/esign/mark — employer mark signed or declined. */
+export function markOfferEsign(applicantId: string, body: EsignMarkInput) {
+  return companySend<OfferEsign>(
+    `/applicants/${encodeURIComponent(applicantId)}/offer/esign/mark`,
+    "POST",
+    body,
+  ).then((raw) => {
+    const esign = hydrateOfferEsign(raw);
+    if (!esign) throw new CompanyRequestError("Invalid e-sign response", 500);
+    return esign;
+  });
+}
+
 /** POST /v1/company/applicants/:id/hire-packet — draft onboarding checklist. */
 export function createHirePacket(applicantId: string, body?: HirePacketInput) {
   return companySend<HirePacket>(
     `/applicants/${encodeURIComponent(applicantId)}/hire-packet`,
     "POST",
     body ?? {},
+  ).then((raw) => {
+    const packet = hydrateHirePacket(raw);
+    if (!packet) throw new CompanyRequestError("Invalid hire packet response", 500);
+    return packet;
+  });
+}
+
+/** PATCH /v1/company/applicants/:id/hire-packet — ready or sent. */
+export function patchHirePacketStatus(applicantId: string, body: HirePacketStatusPatch) {
+  return companySend<HirePacket>(
+    `/applicants/${encodeURIComponent(applicantId)}/hire-packet`,
+    "PATCH",
+    body,
+  ).then((raw) => {
+    const packet = hydrateHirePacket(raw);
+    if (!packet) throw new CompanyRequestError("Invalid hire packet response", 500);
+    return packet;
+  });
+}
+
+/** PATCH /v1/company/applicants/:id/hire-packet/items/:itemId — todo, done, or skipped. */
+export function patchHirePacketItem(applicantId: string, itemId: string, body: HirePacketItemPatch) {
+  return companySend<HirePacket>(
+    `/applicants/${encodeURIComponent(applicantId)}/hire-packet/items/${encodeURIComponent(itemId)}`,
+    "PATCH",
+    body,
   ).then((raw) => {
     const packet = hydrateHirePacket(raw);
     if (!packet) throw new CompanyRequestError("Invalid hire packet response", 500);

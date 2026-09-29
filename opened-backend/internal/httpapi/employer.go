@@ -33,7 +33,10 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/approvals", s.postOfferApproval)
 	mux.HandleFunc("PATCH /v1/company/applicants/{id}/offer/approvals/{approvalId}", s.patchOfferApproval)
 	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/esign", s.postOfferEsign)
+	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/esign/mark", s.postOfferEsignMark)
 	mux.HandleFunc("POST /v1/company/applicants/{id}/hire-packet", s.postHirePacket)
+	mux.HandleFunc("PATCH /v1/company/applicants/{id}/hire-packet", s.patchHirePacket)
+	mux.HandleFunc("PATCH /v1/company/applicants/{id}/hire-packet/items/{itemId}", s.patchHirePacketItem)
 	mux.HandleFunc("GET /v1/company/applicants/{id}/scorecards", s.getApplicantScorecards)
 	mux.HandleFunc("POST /v1/company/applicants/{id}/scorecards", s.postApplicantScorecard)
 	mux.HandleFunc("GET /v1/company/interviews", s.getCompanyInterviews)
@@ -397,6 +400,25 @@ func (s *Server) postOfferEsign(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, item)
 }
 
+func (s *Server) postOfferEsignMark(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersSend); !writeEmployer(w, err) {
+		return
+	}
+	var input employer.EsignMarkInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.MarkOfferEsign(r.Context(), session.Company.ID, r.PathValue("id"), input, actor, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
 func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
 	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
@@ -414,6 +436,44 @@ func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) patchHirePacket(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersHire); !writeEmployer(w, err) {
+		return
+	}
+	var input employer.HirePacketStatusInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.SetHirePacketStatus(r.Context(), session.Company.ID, r.PathValue("id"), input, actor, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (s *Server) patchHirePacketItem(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersHire); !writeEmployer(w, err) {
+		return
+	}
+	var input employer.HirePacketItemInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.PatchHirePacketItem(r.Context(), session.Company.ID, r.PathValue("id"), r.PathValue("itemId"), input, actor, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) {

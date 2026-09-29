@@ -302,7 +302,7 @@ export function OfferPanel({
   };
 
   const setPacketStatus = (packetStatus: "ready" | "sent") => {
-    // ready/sent is FE-local on top of hire-packet POST — no item PATCH from Einstein yet.
+    // ready/sent stays local until this handler calls patchHirePacketStatus (offers.hire).
     if (!canHire) {
       setActionError(denialReason(actorRole, "offers.hire"));
       return;
@@ -336,7 +336,8 @@ export function OfferPanel({
   };
 
   const markEsignSigned = () => {
-    // Candidate sign-page UX is still FE-later; employer can mark signed locally (no countersign BE).
+    // Candidate countersign is POST /v1/me/applications/:id/offer/esign.
+    // Employer mark stays local until this handler calls markOfferEsign (offers.send).
     if (!canSendOffer) {
       setActionError(denialReason(actorRole, "offers.send"));
       return;
@@ -396,7 +397,7 @@ export function OfferPanel({
   };
 
   const toggleChecklistItem = (id: string) => {
-    // Checklist toggles are FE-local until Einstein hire-packet item PATCH lands.
+    // Checklist toggles stay local until this handler calls patchHirePacketItem (offers.hire).
     if (!canHire) {
       setActionError(denialReason(actorRole, "offers.hire"));
       return;
@@ -677,8 +678,8 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">E-sign (first-party)</Text>
         <Text type="supporting" color="secondary">
-          OpenSeat-hosted sign link only. DocuSign is out of scope. Mark signed / declined is
-          employer-local until candidate countersign lands.
+          OpenSeat-hosted sign link only. DocuSign is out of scope. Mark signed / declined on
+          this screen is still local.
         </Text>
         {draft.offer.esign && draft.offer.esign.status !== "none" ? (
           <Badge label={draft.offer.esign.status} variant="info" />
@@ -717,8 +718,8 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">Hire packet / onboarding handoff</Text>
         <Text type="supporting" color="secondary">
-          Light checklist stub — not full HRIS onboarding. Ready / sent / checklist toggles stay
-          local until Einstein hire-packet item PATCH lands; Generate still posts a draft.
+          Light checklist stub — not full HRIS onboarding. Ready / sent / checklist toggles on
+          this screen are still local. Generate posts a draft.
         </Text>
         <HStack gap={2} wrap="wrap">
           <Button

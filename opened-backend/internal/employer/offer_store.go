@@ -3,9 +3,10 @@ package employer
 import (
 	"context"
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
-	"time"
 )
 
 func employerPeopleErr(err error) error {
@@ -134,6 +135,125 @@ func (s *Store) CreateHirePacket(ctx context.Context, companyID, applicantID str
 		SubjectID:   applicantID,
 		Summary:     "Marked hired",
 		After:       map[string]any{"hirePacket": packet.Status},
+	}, now); err != nil {
+		return candidate.HirePacket{}, err
+	}
+	return packet, nil
+}
+
+// MarkOfferEsign records an employer mark-signed or mark-declined on the minted link.
+func (s *Store) MarkOfferEsign(ctx context.Context, companyID, applicantID string, input EsignMarkInput, actor Actor, now time.Time) (candidate.OfferEsign, error) {
+	app, err := s.loadCompanyApplicant(ctx, companyID, applicantID)
+	if err != nil {
+		return candidate.OfferEsign{}, err
+	}
+	return s.saveMarkedEsign(ctx, companyID, applicantID, app.Offer, input.Status, actor, esignMarkSummary(false, input.Status), now)
+}
+
+// CandidateOfferEsign returns the applicant's first-party sign link.
+// Another user's application is not found.
+func (s *Store) CandidateOfferEsign(ctx context.Context, userID, applicantID string) (candidate.OfferEsign, error) {
+	app, err := s.people.ApplicationForUser(ctx, userID, applicantID)
+	if err != nil {
+		return candidate.OfferEsign{}, employerPeopleErr(err)
+	}
+	return esignView(app.Offer), nil
+}
+
+// CandidateMarkOfferEsign records the applicant's sign or decline.
+func (s *Store) CandidateMarkOfferEsign(ctx context.Context, userID, applicantID, actorName string, input EsignMarkInput, now time.Time) (candidate.OfferEsign, error) {
+	app, err := s.people.ApplicationForUser(ctx, userID, applicantID)
+	if err != nil {
+		return candidate.OfferEsign{}, employerPeopleErr(err)
+	}
+	actor := Actor{ID: userID, Name: actorName}
+	return s.saveMarkedEsign(ctx, app.CompanyID, applicantID, app.Offer, input.Status, actor, esignMarkSummary(true, input.Status), now)
+}
+
+func (s *Store) saveMarkedEsign(ctx context.Context, companyID, applicantID string, current *candidate.OfferRecord, status string, actor Actor, summary string, now time.Time) (candidate.OfferEsign, error) {
+	next, esign, err := markOfferEsign(current, status, now)
+	if err != nil {
+		return candidate.OfferEsign{}, err
+	}
+	if err := s.saveApplicantOffer(ctx, companyID, applicantID, next, now); err != nil {
+		return candidate.OfferEsign{}, err
+	}
+	if err := s.writeAudit(ctx, companyID, actor, AuditEvent{
+		Action:      AuditOfferUpdated,
+		SubjectType: subjectOffer,
+		SubjectID:   applicantID,
+		Summary:     summary,
+		After:       map[string]any{"esign": esign.Status},
+	}, now); err != nil {
+		return candidate.OfferEsign{}, err
+	}
+	return esign, nil
+}
+
+func esignMarkSummary(candidateActor bool, status string) string {
+	status = strings.TrimSpace(status)
+	switch {
+	case candidateActor && status == candidate.OfferEsignSigned:
+		return "Candidate signed offer"
+	case candidateActor && status == candidate.OfferEsignDeclined:
+		return "Candidate declined e-sign"
+	case status == candidate.OfferEsignSigned:
+		return "Marked e-sign signed"
+	case status == candidate.OfferEsignDeclined:
+		return "Marked e-sign declined"
+	default:
+		return "Updated e-sign"
+	}
+}
+
+// SetHirePacketStatus stores ready or sent on the onboarding checklist.
+func (s *Store) SetHirePacketStatus(ctx context.Context, companyID, applicantID string, input HirePacketStatusInput, actor Actor, now time.Time) (candidate.HirePacket, error) {
+	app, err := s.loadCompanyApplicant(ctx, companyID, applicantID)
+	if err != nil {
+		return candidate.HirePacket{}, err
+	}
+	next, packet, err := setHirePacketStatus(app.Offer, input, now)
+	if err != nil {
+		return candidate.HirePacket{}, err
+	}
+	if err := s.saveApplicantOffer(ctx, companyID, applicantID, next, now); err != nil {
+		return candidate.HirePacket{}, err
+	}
+	summary := "Hire packet marked ready"
+	if packet.Status == candidate.HirePacketSent {
+		summary = "Hire packet marked sent"
+	}
+	if err := s.writeAudit(ctx, companyID, actor, AuditEvent{
+		Action:      AuditHireMarked,
+		SubjectType: subjectOffer,
+		SubjectID:   applicantID,
+		Summary:     summary,
+		After:       map[string]any{"hirePacket": packet.Status},
+	}, now); err != nil {
+		return candidate.HirePacket{}, err
+	}
+	return packet, nil
+}
+
+// PatchHirePacketItem sets one checklist row to todo, done, or skipped.
+func (s *Store) PatchHirePacketItem(ctx context.Context, companyID, applicantID, itemID string, input HirePacketItemInput, actor Actor, now time.Time) (candidate.HirePacket, error) {
+	app, err := s.loadCompanyApplicant(ctx, companyID, applicantID)
+	if err != nil {
+		return candidate.HirePacket{}, err
+	}
+	next, packet, err := patchHirePacketItem(app.Offer, itemID, input)
+	if err != nil {
+		return candidate.HirePacket{}, err
+	}
+	if err := s.saveApplicantOffer(ctx, companyID, applicantID, next, now); err != nil {
+		return candidate.HirePacket{}, err
+	}
+	if err := s.writeAudit(ctx, companyID, actor, AuditEvent{
+		Action:      AuditHireMarked,
+		SubjectType: subjectOffer,
+		SubjectID:   applicantID,
+		Summary:     "Updated hire packet checklist",
+		After:       map[string]any{"itemId": strings.TrimSpace(itemID), "status": strings.TrimSpace(input.Status)},
 	}, now); err != nil {
 		return candidate.HirePacket{}, err
 	}
