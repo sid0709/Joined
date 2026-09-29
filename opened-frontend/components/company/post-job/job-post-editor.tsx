@@ -11,6 +11,8 @@ import {
   LocationSelector,
   NumberInput,
   ProgressBar,
+  RadioList,
+  RadioListItem,
   SegmentedControl,
   SegmentedControlItem,
   Selector,
@@ -25,14 +27,21 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { JobAiPaste, type ParsedJob } from "@/components/company/post-job/job-ai-paste";
 import { JobTeamField, JobTeamList } from "@/components/company/post-job/job-team-field";
 import { JobResultCard } from "@/components/jobs/job-result-card";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { createJob, fetchJob, fetchJobTeams, updateJob } from "@/lib/company/api";
-import type { CompanyJob } from "@/lib/company";
+import { createJob, fetchJob, fetchJobTeams, fetchSettings, updateJob } from "@/lib/company/api";
+import {
+  ASSISTED_POLICIES,
+  DEFAULT_DAILY_CAP,
+  MAX_DAILY_CAP,
+  POLICY_META,
+  type AssistedPolicy,
+  type CompanyJob,
+} from "@/lib/company";
 import type { AuthCompany } from "@/lib/auth/types";
 import {
   CURRENCY_OPTIONS,
@@ -78,6 +87,8 @@ type Draft = {
   responsibilities: SearchableItem[];
   requirements: SearchableItem[];
   description: string;
+  policy: AssistedPolicy;
+  dailyCap: number;
 };
 
 const EMPTY: Draft = {
@@ -95,6 +106,8 @@ const EMPTY: Draft = {
   responsibilities: [],
   requirements: [],
   description: "",
+  policy: "accept",
+  dailyCap: DEFAULT_DAILY_CAP,
 };
 
 function toItems(labels: string[]): SearchableItem[] {
@@ -117,6 +130,8 @@ function jobToDraft(job: CompanyJob): Draft {
     responsibilities: toItems(job.responsibilities),
     requirements: toItems(job.requirements),
     description: job.description,
+    policy: job.policy,
+    dailyCap: job.dailyCap && job.dailyCap > 0 ? job.dailyCap : DEFAULT_DAILY_CAP,
   };
 }
 
@@ -189,6 +204,7 @@ export function JobPostEditor({
   const [teams, setTeams] = useState<string[]>([]);
   const [status, setStatus] = useState<CompanyJob["status"]>("draft");
   const [saving, setSaving] = useState(false);
+  const assistedTouched = useRef(false);
   const skillSource = useMemo(
     () => createStaticSource(SKILL_SUGGESTIONS.map((label) => ({ id: label, label }))),
     [],
@@ -212,6 +228,17 @@ export function JobPostEditor({
           if (!active) return;
           setDraft(jobToDraft(job));
           setStatus(job.status);
+        })
+        .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    } else {
+      fetchSettings()
+        .then((settings) => {
+          if (!active || assistedTouched.current) return;
+          setDraft((current) => ({
+            ...current,
+            policy: settings.policy,
+            dailyCap: settings.dailyCap > 0 ? settings.dailyCap : current.dailyCap,
+          }));
         })
         .catch((error: Error) => toast({ body: error.message, type: "error" }));
     }
@@ -245,7 +272,8 @@ export function JobPostEditor({
     responsibilities: draft.responsibilities.map((item) => item.label),
     requirements: draft.requirements.map((item) => item.label),
     description: draft.description,
-    policy: "accept",
+    policy: draft.policy,
+    dailyCap: draft.dailyCap,
     status: nextStatus,
   });
 
@@ -429,6 +457,44 @@ export function JobPostEditor({
               hasEntriesOnFocus
               placeholder="Add a skill"
             />
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="Assisted applications"
+            description="Starts from your company defaults. This job can use something else."
+          >
+            <RadioList
+              label="Assisted applications"
+              value={draft.policy}
+              onChange={(value) => {
+                assistedTouched.current = true;
+                set("policy")(value as AssistedPolicy);
+              }}
+            >
+              {ASSISTED_POLICIES.map((value) => (
+                <RadioListItem
+                  key={value}
+                  value={value}
+                  label={POLICY_META[value].label}
+                  description={POLICY_META[value].description}
+                />
+              ))}
+            </RadioList>
+            <SettingsRow label="Daily cap" description="Assisted applications accepted per day.">
+              <NumberInput
+                label="Daily cap"
+                isLabelHidden
+                value={draft.dailyCap}
+                onChange={(value) => {
+                  assistedTouched.current = true;
+                  set("dailyCap")(value ?? DEFAULT_DAILY_CAP);
+                }}
+                min={1}
+                max={MAX_DAILY_CAP}
+                isIntegerOnly
+                isDisabled={draft.policy !== "cap"}
+              />
+            </SettingsRow>
           </SettingsGroup>
         </Stack>
       </GridColumn>

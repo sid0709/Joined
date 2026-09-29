@@ -1,6 +1,7 @@
 package employer
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -34,6 +35,44 @@ func TestNormalizeJobStoresCurrencyAndLists(t *testing.T) {
 	}
 	if len(got.Responsibilities) != 1 || got.Description != "Full posting." {
 		t.Fatalf("copy = %+v", got)
+	}
+}
+
+func TestNormalizeJobStoresAssistedPolicy(t *testing.T) {
+	capped, err := normalizeJob(JobInput{
+		Title:    "Engineer",
+		Policy:   policyCap,
+		DailyCap: 8,
+		Status:   statusDraft,
+	}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if capped.Policy != policyCap || capped.DailyCap != 8 {
+		t.Fatalf("capped = %+v", capped)
+	}
+
+	direct, err := normalizeJob(JobInput{
+		Title:    "Engineer",
+		Policy:   policyDirect,
+		DailyCap: 8,
+		Status:   statusDraft,
+	}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if direct.Policy != policyDirect || direct.DailyCap != 8 {
+		t.Fatalf("direct = %+v", direct)
+	}
+
+	_, err = normalizeJob(JobInput{
+		Title:    "Engineer",
+		Policy:   policyCap,
+		DailyCap: 0,
+		Status:   statusDraft,
+	}, time.Now())
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("err = %v", err)
 	}
 }
 
