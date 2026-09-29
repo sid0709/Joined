@@ -26,6 +26,7 @@ import { fetchTeam } from "@/lib/company/api";
 import { ROLE_META, canPermission, currentMemberRole, type TeamRole } from "@/lib/rbac";
 import {
   COMPANY_ABOUT_PAGE,
+  COMPANY_ANALYTICS_PAGE,
   COMPANY_APPLICANTS_PAGE,
   COMPANY_BILLING_PAGE,
   COMPANY_HOME_PAGE,
@@ -48,22 +49,22 @@ function groups(
   showTeam: boolean,
   showBilling: boolean,
   showSettings: boolean,
+  showAnalytics: boolean,
 ): { title: string; links: NavLink[] }[] {
   const company: NavLink[] = [{ ...COMPANY_ABOUT_PAGE, icon: "seat" }];
   if (showTeam) company.push({ ...COMPANY_TEAM_PAGE, icon: "users" });
   if (showBilling) company.push({ ...COMPANY_BILLING_PAGE, icon: "file" });
   if (showSettings) company.push({ ...COMPANY_SETTINGS_PAGE, icon: "settings" });
+  const hiring: NavLink[] = [
+    { ...COMPANY_HOME_PAGE, icon: "home" },
+    { ...COMPANY_JOBS_PAGE, icon: "folder", count: openJobs || undefined },
+    { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: newApplicants || undefined },
+    { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
+    { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
+  ];
+  if (showAnalytics) hiring.push({ ...COMPANY_ANALYTICS_PAGE, icon: "grid" });
   return [
-    {
-      title: "Hiring",
-      links: [
-        { ...COMPANY_HOME_PAGE, icon: "home" },
-        { ...COMPANY_JOBS_PAGE, icon: "folder", count: openJobs || undefined },
-        { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: newApplicants || undefined },
-        { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
-        { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
-      ],
-    },
+    { title: "Hiring", links: hiring },
     { title: "Company", links: company },
   ];
 }
@@ -120,19 +121,30 @@ export function CompanyNav({
     canPermission(hiringRole, "audit.view");
   const showBilling = manageCompany || canPermission(hiringRole, "billing.view");
   const showSettings = manageCompany || canPermission(hiringRole, "team.manage_roles");
+  const showAnalytics = manageCompany || canPermission(hiringRole, "analytics.view");
 
-  const links = groups(openJobs, newApplicants, showTeam, showBilling, showSettings).flatMap(
-    (group) => group.links,
-  );
+  const links = groups(
+    openJobs,
+    newApplicants,
+    showTeam,
+    showBilling,
+    showSettings,
+    showAnalytics,
+  ).flatMap((group) => group.links);
   const active = activeHref(pathname, links);
-  const sections = groups(openJobs, newApplicants, showTeam, showBilling, showSettings).map(
-    (group) => ({
-      ...group,
-      links: group.links.map((link) =>
-        link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
-      ),
-    }),
-  );
+  const sections = groups(
+    openJobs,
+    newApplicants,
+    showTeam,
+    showBilling,
+    showSettings,
+    showAnalytics,
+  ).map((group) => ({
+    ...group,
+    links: group.links.map((link) =>
+      link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
+    ),
+  }));
 
   return (
     <>

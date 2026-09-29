@@ -22,6 +22,7 @@ export const ROUTES = {
   companyAbout: "/company/about",
   companyTeam: "/company/team",
   companyBilling: "/company/billing",
+  companyAnalytics: "/company/analytics",
   companySettings: "/company/settings",
   companyProfile: "/company/profile",
   companyAccount: "/company/account",
@@ -100,6 +101,12 @@ export const COMPANY_INTERVIEWS_PAGE: PageLink = {
   href: ROUTES.companyInterviews,
   label: "Interviews",
   description: "Scheduled rounds, attendance, and face check.",
+};
+
+export const COMPANY_ANALYTICS_PAGE: PageLink = {
+  href: ROUTES.companyAnalytics,
+  label: "Analytics",
+  description: "Funnel conversion, source mix, time-in-stage, and attendance.",
 };
 
 export const COMPANY_ABOUT_PAGE: PageLink = {

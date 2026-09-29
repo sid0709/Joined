@@ -46,7 +46,8 @@
  * Until Einstein accepts them, POST/PATCH may 400 — UI still offers them and
  * soft-fails with a toast; do not invent a parallel backend enum here.
  *
- * Out of scope: SSO, analytics (G), Scoutwell, DocuSign, staff admin.
+ * Analytics (G): see lib/analytics.ts — soft-gated by analytics.view.
+ * Out of scope: SSO, Scoutwell, DocuSign, staff admin warehouse BI.
  */
 
 /** Company hiring roles — owner is creator-only; never inviteable. */
@@ -91,7 +92,8 @@ export type Permission =
   | "billing.purchase"
   | "team.invite"
   | "team.manage_roles"
-  | "audit.view";
+  | "audit.view"
+  | "analytics.view";
 
 /** Matrix domains shown in Team settings. */
 export const PERMISSION_DOMAINS = [
@@ -101,6 +103,7 @@ export const PERMISSION_DOMAINS = [
   "offers",
   "billing",
   "team",
+  "analytics",
 ] as const;
 
 export type PermissionDomain = (typeof PERMISSION_DOMAINS)[number];
@@ -209,6 +212,12 @@ export const PERMISSION_META: PermissionMeta[] = [
     label: "View audit trail",
     description: "Who changed roles, stages, offers.",
   },
+  {
+    id: "analytics.view",
+    domain: "analytics",
+    label: "View analytics",
+    description: "Funnel, source mix, time-in-stage, attendance.",
+  },
 ];
 
 const ALL: Permission[] = PERMISSION_META.map((item) => item.id);
@@ -227,6 +236,7 @@ const ROLE_PERMISSIONS: Record<TeamRole, readonly Permission[]> = {
     "offers.draft",
     "offers.send",
     "offers.hire",
+    "analytics.view",
   ],
   hiring_manager: [
     "jobs.view",
@@ -237,9 +247,17 @@ const ROLE_PERMISSIONS: Record<TeamRole, readonly Permission[]> = {
     "interviews.score",
     "offers.draft",
     "offers.approve",
+    "analytics.view",
   ],
   interviewer: ["jobs.view", "applicants.view", "interviews.score"],
-  finance: ["jobs.view", "billing.view", "billing.purchase", "offers.approve", "audit.view"],
+  finance: [
+    "jobs.view",
+    "billing.view",
+    "billing.purchase",
+    "offers.approve",
+    "audit.view",
+    "analytics.view",
+  ],
   /** Legacy — same as interviewer until Einstein migrates rows. */
   viewer: ["jobs.view", "applicants.view"],
 };
