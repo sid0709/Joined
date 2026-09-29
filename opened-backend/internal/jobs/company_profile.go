@@ -87,7 +87,7 @@ type companyOverrides struct {
 	Profile companyProfile `bson:"profile,omitempty"`
 }
 
-// CompanyWrite is the admin edit form. Every field is sent, including blanks.
+// CompanyWrite is the company page edit form. Every field is sent, including blanks.
 type CompanyWrite struct {
 	Name              string            `json:"name"`
 	URL               string            `json:"url"`

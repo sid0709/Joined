@@ -66,27 +66,6 @@ export type CompanySettings = {
   spendAlert: boolean;
 };
 
-export type CompanyPage = {
-  id: string;
-  name: string;
-  url?: string;
-  logo?: string;
-  tagline?: string;
-  about?: string;
-  industry?: string;
-  size?: string;
-  founded?: number;
-  replyDays?: number;
-  headquarters?: string;
-  companyType?: string;
-  locations?: string;
-  specialties?: string[];
-  mission?: string;
-  values?: { icon: string; title: string; description: string }[];
-  leadership?: { name: string; title: string }[];
-  benefitCategories?: { label: string; items: string[] }[];
-};
-
 type TeamResponse = { members: TeamMember[]; emailDomain: string };
 
 function hydrateJob(job: ApiJob): CompanyJob {
@@ -242,44 +221,18 @@ export function fetchCompanyPage() {
   return companyGet<CompanyPage>("/page");
 }
 
-export function saveCompanyPage(input: CompanyPage) {
+export function saveCompanyPage(input: CompanyPageWrite) {
   return companySend<CompanyPage>("/page", "PUT", input);
 }
 
-export function pageToWorkspace(page: CompanyPage): Workspace {
-  const benefits = (page.benefitCategories ?? []).flatMap((group) => group.items ?? []);
-  return {
-    id: page.id,
-    slug: page.id,
-    name: page.name,
-    locations: page.locations ?? "",
-    about: page.about ?? "",
-    industry: page.industry ?? "",
-    size: page.size ?? "",
-    founded: page.founded ?? 0,
-    replyDays: page.replyDays ?? 0,
-    tagline: page.tagline ?? "",
-    website: page.url ?? "",
-    verified: false,
-    benefits,
-  };
+export function uploadCompanyLogo(file: File) {
+  const body = new FormData();
+  body.append("logo", file);
+  return companySendForm<CompanyPage>("/page/logo", "POST", body);
 }
 
-export function workspaceToPage(draft: Workspace, current: CompanyPage | null): CompanyPage {
-  return {
-    ...(current ?? { id: draft.id, name: draft.name }),
-    id: draft.id,
-    name: draft.name,
-    url: draft.website,
-    tagline: draft.tagline,
-    about: draft.about,
-    industry: draft.industry,
-    size: draft.size,
-    founded: draft.founded,
-    replyDays: draft.replyDays,
-    locations: draft.locations,
-    benefitCategories: draft.benefits.length ? [{ label: "Perks", items: draft.benefits }] : [],
-  };
+export function deleteCompanyLogo() {
+  return companySend<CompanyPage>("/page/logo", "DELETE");
 }
 
 export function fetchHiringProfile() {
