@@ -1,4 +1,5 @@
 import type { Employment, PayPeriod, Seniority, Workplace } from "@openseat/job-schema";
+import type { ScreeningQuestion } from "@/lib/intake";
 
 export type { Employment, PayPeriod, Seniority, Workplace };
 
@@ -42,6 +43,8 @@ export type Job = {
   description?: string;
   /** Official listing. Apply and copy link use this for aggregated jobs. */
   applyLink?: string;
+  /** Screening / knockout questions for direct apply. */
+  screeningQuestions?: ScreeningQuestion[];
 };
 
 /** A company the seeker can open. Profile fields are present once an admin has saved them. */

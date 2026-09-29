@@ -28,6 +28,7 @@ const COLUMN_WIDTH = 240;
 const PERCENT = 100;
 const SEARCH_WIDTH = 240;
 const ALL_JOBS = "all";
+const ALL_TAGS = "all";
 
 /** The hiring pipeline: filter, drag candidates between stages, open one to decide. */
 export function ApplicantsWorkspace() {
@@ -38,6 +39,7 @@ export function ApplicantsWorkspace() {
   const [query, setQuery] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState(ALL_TAGS);
 
   useEffect(() => {
     let active = true;
@@ -59,12 +61,20 @@ export function ApplicantsWorkspace() {
   }, [toast]);
 
   const needle = query.trim().toLowerCase();
+  const tagOptions = [
+    { value: ALL_TAGS, label: "All pools" },
+    ...[...new Set(people.flatMap((person) => person.tags ?? []))]
+      .sort((a, b) => a.localeCompare(b))
+      .map((tag) => ({ value: tag, label: tag })),
+  ];
+
   const visible = people.filter(
     (person) =>
       (jobId === ALL_JOBS || person.jobId === jobId) &&
+      (tagFilter === ALL_TAGS || (person.tags ?? []).includes(tagFilter)) &&
       (!verifiedOnly || person.verified) &&
       (!needle ||
-        `${person.name} ${person.headline} ${person.skills.join(" ")}`
+        `${person.name} ${person.headline} ${person.skills.join(" ")} ${(person.tags ?? []).join(" ")}`
           .toLowerCase()
           .includes(needle)),
   );
@@ -73,7 +83,7 @@ export function ApplicantsWorkspace() {
   );
 
   const replace = (next: Applicant, message?: string) => {
-    moveApplicant(next.id, next.columnId, next.notes, next.rating)
+    moveApplicant(next.id, next.columnId, next.notes, next.rating, next.tags)
       .then((saved) => {
         setPeople((current) => current.map((person) => (person.id === saved.id ? saved : person)));
         if (message) {
@@ -141,6 +151,13 @@ export function ApplicantsWorkspace() {
           value={jobId}
           onChange={setJobId}
         />
+        <Selector
+          label="Pool"
+          isLabelHidden
+          options={tagOptions}
+          value={tagFilter}
+          onChange={setTagFilter}
+        />
         <TextInput
           label="Search candidates"
           isLabelHidden
@@ -190,6 +207,7 @@ export function ApplicantsWorkspace() {
 
       <ApplicantDrawer
         applicant={people.find((person) => person.id === openId) ?? null}
+        allApplicants={people}
         onClose={() => setOpenId(null)}
         onChange={replace}
         onSchedule={schedule}

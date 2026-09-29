@@ -95,6 +95,9 @@ export function CompanyJobDrawer({
               ? `Up to ${job.dailyCap} a day`
               : POLICY_META[job.policy].description}
           </MetadataListItem>
+          <MetadataListItem label="Screening questions">
+            {(job.screeningQuestions ?? []).length || "None"}
+          </MetadataListItem>
         </MetadataList>
 
         <Divider />

@@ -30,6 +30,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { JobAiPaste, type ParsedJob } from "@/components/company/post-job/job-ai-paste";
+import { ScreeningQuestionsEditor } from "@/components/company/post-job/screening-questions-editor";
 import { JobTeamField, JobTeamList } from "@/components/company/post-job/job-team-field";
 import { JobResultCard } from "@/components/jobs/job-result-card";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
@@ -42,6 +43,7 @@ import {
   type AssistedPolicy,
   type CompanyJob,
 } from "@/lib/company";
+import { hydrateScreeningQuestions, type ScreeningQuestion } from "@/lib/intake";
 import type { AuthCompany } from "@/lib/auth/types";
 import {
   CURRENCY_OPTIONS,
@@ -89,6 +91,7 @@ type Draft = {
   description: string;
   policy: AssistedPolicy;
   dailyCap: number;
+  screeningQuestions: ScreeningQuestion[];
 };
 
 const EMPTY: Draft = {
@@ -108,6 +111,7 @@ const EMPTY: Draft = {
   description: "",
   policy: "accept",
   dailyCap: DEFAULT_DAILY_CAP,
+  screeningQuestions: [],
 };
 
 function toItems(labels: string[]): SearchableItem[] {
@@ -132,6 +136,7 @@ function jobToDraft(job: CompanyJob): Draft {
     description: job.description,
     policy: job.policy,
     dailyCap: job.dailyCap && job.dailyCap > 0 ? job.dailyCap : DEFAULT_DAILY_CAP,
+    screeningQuestions: hydrateScreeningQuestions(job.screeningQuestions),
   };
 }
 
@@ -272,6 +277,12 @@ export function JobPostEditor({
     responsibilities: draft.responsibilities.map((item) => item.label),
     requirements: draft.requirements.map((item) => item.label),
     description: draft.description,
+    screeningQuestions: draft.screeningQuestions
+      .map((item) => ({
+        ...item,
+        prompt: item.prompt.trim(),
+      }))
+      .filter((item) => item.prompt.length > 0),
     policy: draft.policy,
     dailyCap: draft.dailyCap,
     status: nextStatus,
@@ -495,6 +506,16 @@ export function JobPostEditor({
                 isDisabled={draft.policy !== "cap"}
               />
             </SettingsRow>
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="Screening questions"
+            description="Asked on apply. Knockout answers flag the candidate in the applicants drawer."
+          >
+            <ScreeningQuestionsEditor
+              value={draft.screeningQuestions}
+              onChange={set("screeningQuestions")}
+            />
           </SettingsGroup>
         </Stack>
       </GridColumn>

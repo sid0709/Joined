@@ -33,6 +33,8 @@ export type CompanyJob = {
   responsibilities: string[];
   requirements: string[];
   description: string;
+  /** Knockout / screening questions shown on apply. */
+  screeningQuestions?: import("@/lib/intake").ScreeningQuestion[];
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {

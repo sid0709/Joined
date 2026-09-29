@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -19,11 +19,16 @@ import {
   TextArea,
   TextInput,
   Token,
+  Tokenizer,
+  createStaticSource,
 } from "@openseat/design-system";
 import {
   APPLICANT_STAGES,
   ASSISTED_LABEL,
+  REFERRAL_OPTIONS,
   STRONG_FIT,
+  TAG_SUGGESTIONS,
+  findDuplicateApplicants,
   type Applicant,
   type ApplicantStage,
 } from "@/lib/company";
@@ -33,15 +38,20 @@ import { formatCount } from "@/lib/jobs";
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
 const STAGE_OPTIONS = APPLICANT_STAGES.map((stage) => ({ value: stage.id, label: stage.title }));
+const REFERRAL_LABEL = Object.fromEntries(
+  REFERRAL_OPTIONS.map((option) => [option.value, option.label]),
+);
 
-/** A candidate’s profile, the team’s read on them, and the next move. */
+/** A candidate’s profile, intake answers, tags, the team’s read, and the next move. */
 export function ApplicantDrawer({
   applicant,
+  allApplicants,
   onClose,
   onChange,
   onSchedule,
 }: {
   applicant: Applicant | null;
+  allApplicants: Applicant[];
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
   onSchedule: (
@@ -54,10 +64,23 @@ export function ApplicantDrawer({
   const [start, setStart] = useState("10:00");
   const [end, setEnd] = useState("10:45");
   const [round, setRound] = useState("Round 1");
+  const tagSource = useMemo(
+    () => createStaticSource(TAG_SUGGESTIONS.map((label) => ({ id: label, label }))),
+    [],
+  );
+
   if (!applicant) return null;
+
   const move = (stage: ApplicantStage, message: string) =>
-    onChange({ ...applicant, columnId: stage, notes: notes[applicant.id] }, message);
+    onChange(
+      { ...applicant, columnId: stage, notes: notes[applicant.id] ?? applicant.notes },
+      message,
+    );
   const slotReady = /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}$/.test(start);
+  const duplicates = findDuplicateApplicants(applicant, allApplicants);
+  const answers = applicant.screeningAnswers ?? [];
+  const knockedOut = answers.some((answer) => answer.knockedOut);
+  const tags = (applicant.tags ?? []).map((label) => ({ id: label, label }));
 
   return (
     <Drawer
@@ -109,7 +132,19 @@ export function ApplicantDrawer({
             label={ASSISTED_LABEL[applicant.assisted]}
             variant={applicant.assisted === "direct" ? "neutral" : "purple"}
           />
+          {knockedOut ? <Badge label="Knockout answer" variant="error" /> : null}
+          {applicant.consentAt ? <Badge label="Consent captured" variant="success" /> : null}
         </HStack>
+
+        {duplicates.length > 0 ? (
+          <Banner
+            status="warning"
+            title="Possible duplicate"
+            description={`Same name also applied to ${duplicates
+              .map((item) => item.jobTitle)
+              .join(", ")}. Confirm it is not the same person before advancing.`}
+          />
+        ) : null}
 
         <Stack gap={2}>
           <HStack hAlign="between" vAlign="end">
@@ -136,7 +171,34 @@ export function ApplicantDrawer({
             {formatShortDate(applicant.appliedOn)}
           </MetadataListItem>
           <MetadataListItem label="Resume">{applicant.resume}</MetadataListItem>
+          <MetadataListItem label="Referral">
+            {applicant.referralSource
+              ? (REFERRAL_LABEL[applicant.referralSource] ?? applicant.referralSource)
+              : "—"}
+          </MetadataListItem>
+          <MetadataListItem label="Consent">
+            {applicant.consentAt ? formatShortDate(new Date(applicant.consentAt)) : "—"}
+          </MetadataListItem>
         </MetadataList>
+
+        {answers.length > 0 ? (
+          <Stack gap={3}>
+            <Heading level={3}>Screening answers</Heading>
+            <Stack gap={2}>
+              {answers.map((answer) => (
+                <Stack key={answer.questionId} gap={1}>
+                  <Text type="supporting" color="secondary">
+                    {answer.prompt || answer.questionId}
+                  </Text>
+                  <HStack gap={2} vAlign="center" wrap="wrap">
+                    <Text weight="medium">{answer.value || "—"}</Text>
+                    {answer.knockedOut ? <Badge label="Knockout" variant="error" /> : null}
+                  </HStack>
+                </Stack>
+              ))}
+            </Stack>
+          </Stack>
+        ) : null}
 
         <Stack gap={2}>
           <Text type="label">Skills</Text>
@@ -145,6 +207,19 @@ export function ApplicantDrawer({
               <Token key={skill} label={skill} size="sm" />
             ))}
           </HStack>
+        </Stack>
+
+        <Stack gap={2}>
+          <Tokenizer
+            label="Pools / tags"
+            description="Employer-side pools for this candidate."
+            searchSource={tagSource}
+            value={tags}
+            onChange={(next) => onChange({ ...applicant, tags: next.map((item) => item.label) })}
+            hasCreate
+            hasEntriesOnFocus
+            placeholder="Add a tag"
+          />
         </Stack>
 
         <Banner
@@ -181,7 +256,7 @@ export function ApplicantDrawer({
           />
           <TextArea
             label="Notes for the team"
-            value={notes[applicant.id] ?? ""}
+            value={notes[applicant.id] ?? applicant.notes ?? ""}
             onChange={(value) => setNotes((current) => ({ ...current, [applicant.id]: value }))}
             rows={NOTE_ROWS}
             placeholder="Strengths, concerns, what to probe in the interview…"

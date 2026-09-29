@@ -6,6 +6,7 @@ import type { Applicant, ApplicantStage, AssistedBy } from "./applicants";
 import type { BillingAccount, BillableEvent, Purchase } from "./billing";
 import type { CompanyInterview, CompanyInterviewStatus, FaceCheck } from "./interviews";
 import type { AssistedPolicy, CompanyJob, CompanyJobStatus, PipelineCounts } from "./jobs";
+import { hydrateScreeningAnswers, hydrateScreeningQuestions, hydrateTags } from "@/lib/intake";
 import type { TeamMember, TeamRole } from "./team";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
@@ -85,6 +86,7 @@ function hydrateJob(job: ApiJob): CompanyJob {
     visa: job.visa ?? false,
     seniority: job.seniority ?? "Middle",
     jobId: job.jobId || (job.status === "open" ? job.id : undefined),
+    screeningQuestions: hydrateScreeningQuestions(job.screeningQuestions),
   };
 }
 
@@ -94,6 +96,12 @@ function hydrateApplicant(person: ApiApplicant): Applicant {
     appliedOn: new Date(person.appliedOn),
     skills: person.skills ?? [],
     jobTitle: person.jobTitle || "—",
+    screeningAnswers: hydrateScreeningAnswers(person.screeningAnswers),
+    tags: hydrateTags(person.tags),
+    referralSource: person.referralSource || undefined,
+    consentAt: person.consentAt || undefined,
+    consentVersion: person.consentVersion || undefined,
+    userId: person.userId || undefined,
   };
 }
 
@@ -212,11 +220,13 @@ export function moveApplicant(
   columnId: ApplicantStage,
   notes?: string,
   rating?: number,
+  tags?: string[],
 ) {
   return companySend<ApiApplicant>(`/applicants/${id}`, "PATCH", {
     columnId,
     notes: notes ?? "",
     rating,
+    tags: tags ?? undefined,
   }).then(hydrateApplicant);
 }
 

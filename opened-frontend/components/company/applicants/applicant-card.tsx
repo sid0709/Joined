@@ -45,6 +45,9 @@ export function ApplicantCard({ applicant, onOpen }: { applicant: Applicant; onO
             <Badge label="Unverified" variant="warning" />
           )}
           {applicant.assisted !== "direct" ? <Badge label="Assisted" variant="purple" /> : null}
+          {(applicant.tags ?? []).slice(0, 2).map((tag) => (
+            <Badge key={tag} label={tag} variant="neutral" />
+          ))}
         </HStack>
 
         <HStack hAlign="between" vAlign="center">
