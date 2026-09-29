@@ -144,5 +144,9 @@ export type { State, City, Address } from "./places";
 
 export { TreeList, PageBody, PageHero, Preview, PreviewGrid } from "./Data";
 
+// Page composites every app shares: content column, title row, section card, stats.
+export { PageContainer, PageHeader, SectionCard, StatCard, StatGrid, PAGE_WIDTHS } from "./Page";
+export type { PageWidth, Stat } from "./Page";
+
 export { ThemeToggle } from "./ThemeToggle";
 export type { ThemeName } from "./ThemeToggle";

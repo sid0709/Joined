@@ -65,45 +65,51 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 
 func (s *Store) DeleteUser(ctx context.Context, userID string) error {
 	filter := bson.D{{Key: "userId", Value: userID}}
-	for _, name := range []string{profilesCollection, savedJobsCollection, applicationsCollection, interviewsCollection, calendarCollection} {
+	for _, name := range []string{profilesCollection, savedJobsCollection, applicationsCollection, interviewsCollection, calendarCollection, oauthStatesCollection} {
 		if _, err := s.collection(name).DeleteMany(ctx, filter); err != nil {
 			return err
 		}
 	}
-	if _, err := s.collection(oauthStatesCollection).DeleteMany(ctx, filter); err != nil {
+	if _, err := s.collection(messagesCollection).DeleteMany(ctx, bson.D{{Key: "authorId", Value: userID}}); err != nil {
 		return err
 	}
-	threads, err := s.collection(threadsCollection).Find(ctx, bson.D{{Key: "candidateUserId", Value: userID}})
-	if err != nil {
+	if err := s.deleteThreads(ctx, bson.D{{Key: "candidateUserId", Value: userID}}); err != nil {
 		return err
 	}
-	defer threads.Close(ctx)
-	var ids []string
-	for threads.Next(ctx) {
-		var doc storedThread
-		if err := threads.Decode(&doc); err != nil {
-			return err
-		}
-		ids = append(ids, doc.ID)
+	_, err := s.collection(threadReadsCollection).DeleteMany(ctx, filter)
+	return err
+}
+
+// DeleteJobs removes applications, interviews, saved jobs, and conversations
+// for jobs that are being deleted with their owner.
+func (s *Store) DeleteJobs(ctx context.Context, jobIDs []string) error {
+	jobIDs = compactIDs(jobIDs)
+	if len(jobIDs) == 0 {
+		return nil
 	}
-	if err := threads.Err(); err != nil {
+	in := bson.D{{Key: "$in", Value: jobIDs}}
+	if err := s.deleteApplications(ctx, bson.D{{Key: "jobId", Value: in}}); err != nil {
 		return err
 	}
-	if len(ids) > 0 {
-		if _, err := s.collection(messagesCollection).DeleteMany(ctx, bson.D{{Key: "threadId", Value: bson.D{{Key: "$in", Value: ids}}}}); err != nil {
-			return err
-		}
-		if _, err := s.collection(threadReadsCollection).DeleteMany(ctx, bson.D{{Key: "threadId", Value: bson.D{{Key: "$in", Value: ids}}}}); err != nil {
-			return err
-		}
-	}
-	if _, err := s.collection(threadsCollection).DeleteMany(ctx, bson.D{{Key: "candidateUserId", Value: userID}}); err != nil {
+	if _, err := s.collection(savedJobsCollection).DeleteMany(ctx, bson.D{{Key: "jobId", Value: in}}); err != nil {
 		return err
 	}
-	if _, err := s.collection(threadReadsCollection).DeleteMany(ctx, bson.D{{Key: "userId", Value: userID}}); err != nil {
+	return s.deleteThreads(ctx, bson.D{{Key: "jobId", Value: in}})
+}
+
+// DeleteCompany removes activity that exists only on a company page being deleted.
+func (s *Store) DeleteCompany(ctx context.Context, companyID string) error {
+	if companyID == "" {
+		return nil
+	}
+	filter := bson.D{{Key: "companyId", Value: companyID}}
+	if err := s.deleteApplications(ctx, filter); err != nil {
 		return err
 	}
-	return nil
+	if _, err := s.collection(savedJobsCollection).DeleteMany(ctx, filter); err != nil {
+		return err
+	}
+	return s.deleteThreads(ctx, filter)
 }
 
 func (s *Store) collection(name string) *mongo.Collection {

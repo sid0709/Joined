@@ -1,3 +1,27 @@
+import {
+  EMPLOYMENT_LABEL,
+  EMPLOYMENTS,
+  PAY_PERIODS,
+  SENIORITIES,
+  SENIORITY_LABEL,
+  WORKPLACES,
+  WORKPLACE_LABEL,
+  type Employment,
+  type PayPeriod,
+  type Seniority,
+  type Workplace,
+} from "@openseat/job-schema";
+
+export {
+  EMPLOYMENT_LABEL,
+  EMPLOYMENTS,
+  PAY_PERIODS,
+  SENIORITIES,
+  SENIORITY_LABEL,
+  WORKPLACES,
+  WORKPLACE_LABEL,
+};
+
 export const SEARCH_JOBS_PATH = "/v1/jobs";
 export const SEARCH_JOBS_PAGE_SIZE = 25;
 
@@ -5,7 +29,7 @@ export type SearchPay = {
   min: number;
   max: number;
   currency: string;
-  period: "year" | "hour";
+  period: PayPeriod;
 };
 
 /** Matches opened-frontend/lib/jobs/types.ts Job. */
@@ -15,10 +39,10 @@ export type SearchJob = {
   company: string;
   companyId: string;
   location: string;
-  workplace: "remote" | "hybrid" | "onsite";
+  workplace: Workplace;
   pay: SearchPay;
-  seniority: "Junior" | "Middle" | "Senior" | "Leader" | "Manager";
-  employment: "full-time" | "contract" | "part-time";
+  seniority: Seniority;
+  employment: Employment;
   postedHoursAgo: number;
   source: "direct" | "aggregated" | "scouted";
   visa: boolean;
@@ -54,18 +78,6 @@ export type SearchJobList = {
   pageSize: number;
   pending: number;
 };
-
-export const WORKPLACES: SearchJob["workplace"][] = ["remote", "hybrid", "onsite"];
-/** Staff and Principal are senior IC titles, one tier above Senior — Leader, never Senior. */
-export const SENIORITIES: SearchJob["seniority"][] = [
-  "Junior",
-  "Middle",
-  "Senior",
-  "Leader",
-  "Manager",
-];
-export const EMPLOYMENTS: SearchJob["employment"][] = ["full-time", "contract", "part-time"];
-export const PAY_PERIODS: SearchPay["period"][] = ["year", "hour"];
 
 /** Every field an admin can edit on an analyzed job, sent as the full record on save. */
 export type SearchJobPatch = {

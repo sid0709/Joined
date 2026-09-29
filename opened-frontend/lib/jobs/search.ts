@@ -1,9 +1,10 @@
+import { EMPLOYMENTS, SENIORITIES, WORKPLACES } from "@openseat/job-schema";
+
 import { WORKPLACE_LABEL, annualPay } from "./format";
+
 import type { Employment, Job, JobSource, Seniority, Workplace } from "./types";
 
-export const WORKPLACES: Workplace[] = ["remote", "hybrid", "onsite"];
-export const SENIORITIES: Seniority[] = ["Junior", "Middle", "Senior", "Leader", "Manager"];
-export const EMPLOYMENTS: Employment[] = ["full-time", "contract", "part-time"];
+export { EMPLOYMENTS, SENIORITIES, WORKPLACES };
 export const SOURCES: JobSource[] = ["direct", "aggregated", "scouted"];
 
 export const POSTED_WITHIN = [

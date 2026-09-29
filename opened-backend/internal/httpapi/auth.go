@@ -47,12 +47,13 @@ func (s *Server) signin(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		Audience string `json:"audience"`
 	}
 	if !decodeAuth(w, r, &body) {
 		return
 	}
 	s.writeAuth(w, func() (string, auth.Session, error) {
-		return s.auth.Signin(r.Context(), body.Email, body.Password, time.Now())
+		return s.auth.Signin(r.Context(), body.Email, body.Password, body.Audience, time.Now())
 	})
 }
 
@@ -143,6 +144,8 @@ func writeAuthResult(w http.ResponseWriter, token string, session auth.Session, 
 		writeError(w, http.StatusNotFound, "company not found")
 	case errors.Is(err, auth.ErrHasCompany):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, auth.ErrWrongRole):
+		writeError(w, http.StatusForbidden, err.Error())
 	default:
 		slog.Error("auth", "error", err)
 		writeError(w, http.StatusInternalServerError, "could not complete sign in")

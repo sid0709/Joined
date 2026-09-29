@@ -1,0 +1,89 @@
+/**
+ * Job enums shared by Opened, Scoutwell, and admin.
+ *
+ * enums.json is the file the Go backend checks in
+ * opened-backend/internal/jobschema. Edit both together; the tests fail when
+ * they drift. Go cannot embed a file outside its module, so the JSON is the
+ * cross-language copy and this module is what TypeScript imports.
+ *
+ * Seniority values match the search record. "Leader" is the lead tier — staff,
+ * principal, and lead titles — shown to people as "Lead".
+ */
+
+export const WORKPLACES = ["remote", "hybrid", "onsite"] as const;
+export type Workplace = (typeof WORKPLACES)[number];
+
+export const SENIORITIES = ["Junior", "Middle", "Senior", "Leader", "Manager"] as const;
+export type Seniority = (typeof SENIORITIES)[number];
+
+export const EMPLOYMENTS = ["full-time", "contract", "part-time"] as const;
+export type Employment = (typeof EMPLOYMENTS)[number];
+
+export const PAY_PERIODS = ["year", "hour"] as const;
+export type PayPeriod = (typeof PAY_PERIODS)[number];
+
+export const DEFAULT_CURRENCY = "USD";
+
+export const WORKPLACE_LABEL: Record<Workplace, string> = {
+  remote: "Remote",
+  hybrid: "Hybrid",
+  onsite: "On-site",
+};
+
+export const SENIORITY_LABEL: Record<Seniority, string> = {
+  Junior: "Junior",
+  Middle: "Middle",
+  Senior: "Senior",
+  Leader: "Lead",
+  Manager: "Manager",
+};
+
+export const EMPLOYMENT_LABEL: Record<Employment, string> = {
+  "full-time": "Full-time",
+  contract: "Contract",
+  "part-time": "Part-time",
+};
+
+export const PAY_PERIOD_LABEL: Record<PayPeriod, string> = {
+  year: "Per year",
+  hour: "Per hour",
+};
+
+/** Older scout values, and any casing, fold onto the job-record seniority. */
+export const SENIORITY_ALIASES = {
+  entry: "Junior",
+  junior: "Junior",
+  mid: "Middle",
+  middle: "Middle",
+  senior: "Senior",
+  lead: "Leader",
+  leader: "Leader",
+  manager: "Manager",
+} as const satisfies Record<string, Seniority>;
+
+export type Pay = {
+  min: number;
+  max: number;
+  currency: string;
+  period: PayPeriod;
+};
+
+function options<T extends string>(values: readonly T[], labels: Record<T, string>) {
+  return values.map((value) => ({ value, label: labels[value] }));
+}
+
+export const WORKPLACE_OPTIONS = options(WORKPLACES, WORKPLACE_LABEL);
+export const SENIORITY_OPTIONS = options(SENIORITIES, SENIORITY_LABEL);
+export const EMPLOYMENT_OPTIONS = options(EMPLOYMENTS, EMPLOYMENT_LABEL);
+export const PAY_PERIOD_OPTIONS = options(PAY_PERIODS, PAY_PERIOD_LABEL);
+
+export function canonicalSeniority(value: string): Seniority | null {
+  const key = value.trim().toLowerCase();
+  if (key in SENIORITY_ALIASES) return SENIORITY_ALIASES[key as keyof typeof SENIORITY_ALIASES];
+  return null;
+}
+
+export function seniorityLabel(value: string) {
+  const canonical = canonicalSeniority(value);
+  return canonical ? SENIORITY_LABEL[canonical] : value;
+}

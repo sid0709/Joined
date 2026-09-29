@@ -24,6 +24,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "opened-admin", "dev"],
       "port": 3010
+    },
+    {
+      "name": "scoutwell-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "scoutwell-frontend", "dev"],
+      "port": 3003
     }
   ]
 }
