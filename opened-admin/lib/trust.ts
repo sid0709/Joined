@@ -1,7 +1,7 @@
 /**
  * Staff trust clients for company mode. Shapes are Einstein's locked admin
  * contract (camelCase). Calls go through the admin proxy, which sends
- * Authorization and X-Admin-Actor. There is no /v1/admin/cases queue.
+ * Authorization and X-Admin-Actor. Reports and disputes live in cases.ts.
  */
 
 export const ADMIN_COMPANIES_PATH = "/v1/admin/companies";
@@ -121,6 +121,7 @@ export type ReadList<T> = {
 export type TrustNavCounts = {
   companyVerification?: number;
   directReview?: number;
+  cases?: number;
 };
 
 const CLAIM_METHODS: Record<string, string> = {

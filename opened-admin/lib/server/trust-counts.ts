@@ -1,4 +1,4 @@
-import { adminGet } from "./api";
+import { casesPath, readCaseList } from "../cases";
 import {
   VERIFICATION_PENDING_COUNT_PATH,
   directJobsPath,
@@ -6,14 +6,16 @@ import {
   readPendingCount,
   type TrustNavCounts,
 } from "../trust";
+import { adminGet } from "./api";
 
 /** Pending totals for the shell badges. A missing endpoint leaves the badge off. */
 export async function trustNavCounts(): Promise<TrustNavCounts> {
-  const [companyVerification, directReview] = await Promise.all([
+  const [companyVerification, directReview, cases] = await Promise.all([
     companyPending(),
     directPending(),
+    openCases(),
   ]);
-  return { companyVerification, directReview };
+  return { companyVerification, directReview, cases };
 }
 
 async function companyPending() {
@@ -23,6 +25,22 @@ async function companyPending() {
   } catch {
     return undefined;
   }
+}
+
+/** Open reports plus open disputes. A missing cases route leaves the badge off. */
+async function openCases() {
+  const totals = await Promise.all(
+    (["reports", "disputes"] as const).map(async (queue) => {
+      try {
+        const list = readCaseList(await adminGet<unknown>(casesPath(queue, "open", 1, 1)));
+        return list.recognized ? list.total : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  if (totals.every((total) => total === null)) return undefined;
+  return totals.reduce<number>((sum, total) => sum + (total ?? 0), 0);
 }
 
 async function directPending() {

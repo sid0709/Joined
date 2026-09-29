@@ -15,13 +15,15 @@ export const ROUTES = {
   companies: "/companies",
   companyVerification: "/trust/company-verification",
   companyCase: (id: string) => `/trust/company-verification/${id}`,
+  cases: "/trust/cases",
+  moderationCase: (id: string) => `/trust/cases/${id}`,
 } as const;
 
 export type NavLink = {
   href: string;
   label: string;
   icon: GlyphName;
-  badge?: "queue" | "payouts" | "verifications" | "companyVerification" | "directReview";
+  badge?: "queue" | "payouts" | "verifications" | "companyVerification" | "directReview" | "cases";
 };
 
 export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
@@ -52,6 +54,7 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
         icon: "check",
         badge: "companyVerification",
       },
+      { href: ROUTES.cases, label: "Cases", icon: "bell", badge: "cases" },
     ],
   },
   {

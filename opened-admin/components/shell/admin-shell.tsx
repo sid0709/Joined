@@ -26,6 +26,7 @@ function counts(overview: Overview | null, trust: TrustNavCounts): NavCounts {
       : {}),
     companyVerification: trust.companyVerification,
     directReview: trust.directReview,
+    cases: trust.cases,
   };
 }
 
