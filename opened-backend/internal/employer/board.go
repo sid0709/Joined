@@ -536,7 +536,16 @@ func viewApplicant(app candidate.Application, user auth.User, profile candidate.
 		ConsentAt:        app.ConsentAt,
 		ConsentVersion:   app.ConsentVersion,
 		Offer:            presentOffer(app.Offer),
+		StageEnteredAt:   app.StageEnteredAt,
+		StageHistory:     stageHistoryOrNil(app.StageHistory),
 	}
+}
+
+func stageHistoryOrNil(items []candidate.StageVisit) []candidate.StageVisit {
+	if len(items) == 0 {
+		return nil
+	}
+	return append([]candidate.StageVisit(nil), items...)
 }
 
 func answersOrEmpty(items []candidate.ScreeningAnswer) []candidate.ScreeningAnswer {

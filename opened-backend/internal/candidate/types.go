@@ -150,6 +150,17 @@ type Application struct {
 	InterviewerIDs   []string           `json:"-" bson:"interviewerIds,omitempty"`
 	// Offer is employer-only. Candidate payloads keep json:"-".
 	Offer *OfferRecord `json:"-" bson:"offer,omitempty"`
+	// StageEnteredAt is when the company column last changed.
+	// StageHistory is each company column and when it was entered.
+	// Candidate JSON hides both; the hiring board returns them.
+	StageEnteredAt time.Time    `json:"-" bson:"stageEnteredAt,omitempty"`
+	StageHistory   []StageVisit `json:"-" bson:"stageHistory,omitempty"`
+}
+
+// StageVisit is one company-board column and the time it was entered.
+type StageVisit struct {
+	Stage     string    `json:"stage" bson:"stage"`
+	EnteredAt time.Time `json:"enteredAt" bson:"enteredAt"`
 }
 
 // ScreeningAnswer is one reply on an application.

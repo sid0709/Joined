@@ -16,6 +16,7 @@ const parseJobTimeout = 90 * time.Second
 
 func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/company/overview", s.getCompanyOverview)
+	mux.HandleFunc("GET /v1/company/analytics", s.getCompanyAnalytics)
 	mux.HandleFunc("GET /v1/company/counts", s.getCompanyCounts)
 	mux.HandleFunc("GET /v1/company/jobs", s.getCompanyJobs)
 	mux.HandleFunc("POST /v1/company/jobs", s.postCompanyJob)

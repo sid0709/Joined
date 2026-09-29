@@ -19,28 +19,7 @@ const (
 )
 
 func companyStage(columnID, stored, closedReason string) string {
-	switch stored {
-	case stageNew, stageScreening, stageInterview, stageOffer, stageHired, stageRejected:
-		return stored
-	}
-	if slugSafe(stored) {
-		return stored
-	}
-	switch columnID {
-	case candidate.StageScreening:
-		return stageScreening
-	case candidate.StageInterview:
-		return stageInterview
-	case candidate.StageOffer:
-		return stageOffer
-	case candidate.StageClosed:
-		if closedReason == reasonHired {
-			return stageHired
-		}
-		return stageRejected
-	default:
-		return stageNew
-	}
+	return candidate.CompanyBoardStage(columnID, stored, closedReason)
 }
 
 const (

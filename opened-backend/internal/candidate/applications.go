@@ -122,6 +122,7 @@ func (s *Store) PatchApplication(ctx context.Context, userID, id string, patch A
 	if err != nil {
 		return Application{}, err
 	}
+	prevStage := CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
 	if patch.ColumnID != nil {
 		stage := *patch.ColumnID
 		if _, ok := applicationStages[stage]; !ok {
@@ -144,6 +145,7 @@ func (s *Store) PatchApplication(ctx context.Context, userID, id string, patch A
 	if patch.NextStep != nil {
 		app.NextStep = clip(*patch.NextStep, 120)
 	}
+	recordStageEntry(&app, prevStage, CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	app.Updated = now.UTC()
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "userId", Value: userID}}, app)
 	if err != nil {
@@ -214,6 +216,7 @@ func (s *Store) setApplicationStage(ctx context.Context, userID, id, stage, even
 	if err != nil {
 		return err
 	}
+	prevStage := CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
 	if app.ColumnID == StageOffer || app.ColumnID == StageClosed {
 		if stage == StageInterview {
 			return nil
@@ -230,6 +233,7 @@ func (s *Store) setApplicationStage(ctx context.Context, userID, id, stage, even
 	if stage != StageClosed {
 		app.ClosedReason = ""
 	}
+	recordStageEntry(&app, prevStage, CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}}, app)
 	return err
 }
@@ -291,6 +295,7 @@ func buildApplication(userID string, input ApplyInput, questions []jobs.Screenin
 	app.ReferralSource = referral
 	app.ConsentVersion = version
 	app.ConsentAt = consent
+	recordStageEntry(&app, "", CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	return normalizeApplication(app), nil
 }
 

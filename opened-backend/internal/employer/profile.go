@@ -11,6 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
+// DefaultHiringTimeZone is the company calendar when a profile has none.
+const DefaultHiringTimeZone = "America/Chicago"
+
 type HiringProfile struct {
 	Name                  string   `json:"name"`
 	Title                 string   `json:"title"`
@@ -79,7 +82,7 @@ func (s *Store) SaveHiringProfile(ctx context.Context, user auth.User, input Hir
 		IsVisibleToCandidates: input.IsVisibleToCandidates,
 	}
 	if doc.TimeZone == "" {
-		doc.TimeZone = "America/Chicago"
+		doc.TimeZone = DefaultHiringTimeZone
 	}
 	_, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: user.ID}}, bson.D{
 		{Key: "$set", Value: doc},
@@ -113,7 +116,7 @@ func profileFrom(doc storedHiringProfile, name string) HiringProfile {
 	}
 	zone := doc.TimeZone
 	if zone == "" {
-		zone = "America/Chicago"
+		zone = DefaultHiringTimeZone
 	}
 	return HiringProfile{
 		Name: name, Title: doc.Title, About: doc.About, MeetingLink: doc.MeetingLink,

@@ -53,6 +53,7 @@ func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, co
 	if err != nil {
 		return Application{}, err
 	}
+	prevStage := CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
 	columnChanged := columnID != "" && app.ColumnID != columnID
 	stageChanged := companyStage != "" && app.CompanyStage != companyStage
 	if columnChanged {
@@ -89,6 +90,7 @@ func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, co
 	if writeOffer {
 		app.Offer = offer
 	}
+	recordStageEntry(&app, prevStage, CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	app.Updated = now.UTC()
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "companyId", Value: companyID}}, app)
 	if err != nil {
@@ -260,6 +262,7 @@ func (s *Store) interviewRound(ctx context.Context, companyID, applicationID, ro
 }
 
 func (s *Store) forceStage(ctx context.Context, app Application, companyStage, event string, now time.Time) error {
+	prevStage := CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
 	column := StageInterview
 	if companyStage == "interview" {
 		column = StageInterview
@@ -269,6 +272,7 @@ func (s *Store) forceStage(ctx context.Context, app Application, companyStage, e
 		app.Activity = prependEvent(app.Activity, event, now)
 	}
 	app.CompanyStage = companyStage
+	recordStageEntry(&app, prevStage, CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	app.Updated = now.UTC()
 	_, err := s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}}, app)
 	return err

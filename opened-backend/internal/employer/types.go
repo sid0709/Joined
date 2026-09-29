@@ -72,6 +72,8 @@ type Applicant struct {
 	ConsentAt        time.Time                   `json:"consentAt,omitempty"`
 	ConsentVersion   string                      `json:"consentVersion,omitempty"`
 	Offer            *candidate.OfferRecord      `json:"offer,omitempty"`
+	StageEnteredAt   time.Time                   `json:"stageEnteredAt,omitempty"`
+	StageHistory     []candidate.StageVisit      `json:"stageHistory,omitempty"`
 }
 
 type Interview struct {
