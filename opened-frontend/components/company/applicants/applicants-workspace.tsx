@@ -16,6 +16,7 @@ import { StatGrid } from "@/components/stat-card";
 import { canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
 import {
   fetchApplicants,
+  fetchHiringProfile,
   fetchJobs,
   fetchTeam,
   moveApplicant,
@@ -25,15 +26,17 @@ import {
   APPLICANT_COLUMNS,
   APPLICANT_STAGE_BY_ID,
   DEFAULT_FEEDBACK_GATE,
+  EMPTY_HIRING_PROFILE,
   STRONG_FIT,
   type Applicant,
   type ApplicantStage,
   type CompanyJob,
+  type HiringProfile,
   type ScorecardSubmission,
   type TeamMember,
 } from "@/lib/company";
 import { ApplicantCard } from "./applicant-card";
-import { ApplicantDrawer } from "./applicant-drawer";
+import { ApplicantDrawer, type ApplicantScheduleRequest } from "./applicant-drawer";
 
 const COLUMN_WIDTH = 240;
 const PERCENT = 100;
@@ -53,6 +56,7 @@ export function ApplicantsWorkspace() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState(ALL_TAGS);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [hiringProfile, setHiringProfile] = useState<HiringProfile | null>(null);
   const [scorecards, setScorecards] = useState<ScorecardSubmission[]>([]);
 
   useEffect(() => {
@@ -76,6 +80,13 @@ export function ApplicantsWorkspace() {
       })
       .catch(() => {
         /* Interviewer assign degrades without team; applicants still load. */
+      });
+    fetchHiringProfile()
+      .then((profile) => {
+        if (active) setHiringProfile(profile ?? EMPTY_HIRING_PROFILE);
+      })
+      .catch(() => {
+        if (active) setHiringProfile(EMPTY_HIRING_PROFILE);
       });
     return () => {
       active = false;
@@ -131,27 +142,39 @@ export function ApplicantsWorkspace() {
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
 
-  const schedule = (
-    person: Applicant,
-    slot: { date: string; start: string; end: string; round: string },
-  ) => {
+  const schedule = (person: Applicant, slot: ApplicantScheduleRequest) => {
+    const meetingUrl = hiringProfile?.meetingLink?.trim() || undefined;
+    const primary =
+      slot.mode === "propose" && slot.proposedSlots[0]
+        ? slot.proposedSlots[0]
+        : { date: slot.date, start: slot.start, end: slot.end };
     scheduleInterview({
       applicationId: person.id,
       round: slot.round,
-      date: slot.date,
-      start: slot.start,
-      end: slot.end,
+      date: primary.date,
+      start: primary.start,
+      end: primary.end,
       format: "video",
+      interviewers: slot.interviewerNames,
+      where: meetingUrl,
+      meetingUrl,
+      mode: slot.mode,
+      proposedSlots: slot.mode === "propose" ? slot.proposedSlots : undefined,
+      selfSchedule: slot.mode === "self_schedule",
     })
       .then(() => {
         setPeople((current) =>
           current.map((item) =>
-            item.id === person.id ? { ...item, columnId: "interview" } : item,
+            item.id === person.id
+              ? { ...item, columnId: "interview", interviewerIds: slot.interviewerIds }
+              : item,
           ),
         );
-        toast({
-          body: `Scheduled ${person.name}. The interview price was taken from your balance.`,
-        });
+        const body =
+          slot.mode === "propose"
+            ? `Offered times to ${person.name}. Einstein should mark the round awaiting until they pick.`
+            : `Scheduled ${person.name}. The interview price was taken from your balance.`;
+        toast({ body });
         setOpenId(null);
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
@@ -263,6 +286,7 @@ export function ApplicantsWorkspace() {
         applicant={openApplicant}
         allApplicants={people}
         teamMembers={teamMembers}
+        hiringProfile={hiringProfile}
         scorecardTemplate={scorecardTemplate}
         interviewGuide={interviewGuide}
         feedbackGate={feedbackGate}

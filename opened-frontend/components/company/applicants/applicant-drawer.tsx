@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -17,7 +17,6 @@ import {
   Stack,
   Text,
   TextArea,
-  TextInput,
   Token,
   Tokenizer,
   createStaticSource,
@@ -31,6 +30,7 @@ import {
   findDuplicateApplicants,
   type Applicant,
   type ApplicantStage,
+  type HiringProfile,
   type InterviewGuide,
   type ScorecardSubmission,
   type ScorecardTemplate,
@@ -38,11 +38,17 @@ import {
 } from "@/lib/company";
 import { FeedbackGateBanner, canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
 import { InterviewGuideView } from "@/components/company/pipeline/interview-guide-shell";
-import { InterviewerAssign } from "@/components/company/pipeline/interviewer-assign";
 import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
+import {
+  SchedulePanel,
+  emptyScheduleDraft,
+  scheduleDraftReady,
+  type ScheduleDraft,
+} from "@/components/company/interviews/schedule-panel";
 import { formatShortDate } from "@/lib/dates";
 import { formatCount } from "@/lib/jobs";
 import { DEFAULT_FEEDBACK_GATE, type FeedbackGateConfig } from "@/lib/pipeline-eval";
+import type { ScheduleMode, ProposedSlot } from "@/lib/schedule-join";
 
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
@@ -51,11 +57,23 @@ const REFERRAL_LABEL = Object.fromEntries(
   REFERRAL_OPTIONS.map((option) => [option.value, option.label]),
 );
 
+export type ApplicantScheduleRequest = {
+  date: string;
+  start: string;
+  end: string;
+  round: string;
+  mode: ScheduleMode;
+  proposedSlots: ProposedSlot[];
+  interviewerIds: string[];
+  interviewerNames: string[];
+};
+
 /** A candidate’s profile, intake answers, tags, the team’s read, and the next move. */
 export function ApplicantDrawer({
   applicant,
   allApplicants,
   teamMembers,
+  hiringProfile,
   scorecardTemplate,
   interviewGuide,
   feedbackGate,
@@ -68,6 +86,7 @@ export function ApplicantDrawer({
   applicant: Applicant | null;
   allApplicants: Applicant[];
   teamMembers: TeamMember[];
+  hiringProfile: HiringProfile | null;
   scorecardTemplate: ScorecardTemplate | null;
   interviewGuide: InterviewGuide | null;
   feedbackGate: FeedbackGateConfig;
@@ -75,22 +94,24 @@ export function ApplicantDrawer({
   onScorecard: (submission: ScorecardSubmission) => void;
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
-  onSchedule: (
-    applicant: Applicant,
-    slot: { date: string; start: string; end: string; round: string },
-  ) => void;
+  onSchedule: (applicant: Applicant, slot: ApplicantScheduleRequest) => void;
 }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const [date, setDate] = useState("");
-  const [start, setStart] = useState("10:00");
-  const [end, setEnd] = useState("10:45");
-  const [round, setRound] = useState("Round 1");
+  const [draft, setDraft] = useState<ScheduleDraft>(emptyScheduleDraft());
   const tagSource = useMemo(
     () => createStaticSource(TAG_SUGGESTIONS.map((label) => ({ id: label, label }))),
     [],
   );
-
   const [gateError, setGateError] = useState<ReturnType<typeof canAdvanceStage> | null>(null);
+
+  useEffect(() => {
+    if (!applicant) return;
+    setDraft({
+      ...emptyScheduleDraft(),
+      interviewerIds: applicant.interviewerIds ?? [],
+    });
+    setGateError(null);
+  }, [applicant?.id]);
 
   if (!applicant) return null;
 
@@ -113,11 +134,27 @@ export function ApplicantDrawer({
     onChange({ ...applicant, columnId: stage, notes: nextNotes }, message);
   };
   const move = (stage: ApplicantStage, message: string) => tryMove(stage, message);
-  const slotReady = /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}$/.test(start);
+  const slotReady = scheduleDraftReady(draft);
   const duplicates = findDuplicateApplicants(applicant, allApplicants);
   const answers = applicant.screeningAnswers ?? [];
   const knockedOut = answers.some((answer) => answer.knockedOut);
   const tags = (applicant.tags ?? []).map((label) => ({ id: label, label }));
+
+  const submitSchedule = () => {
+    const names = draft.interviewerIds
+      .map((id) => teamMembers.find((member) => member.id === id)?.name)
+      .filter((name): name is string => Boolean(name));
+    onSchedule(applicant, {
+      date: draft.date,
+      start: draft.start,
+      end: draft.end,
+      round: draft.round,
+      mode: draft.mode,
+      proposedSlots: draft.proposedSlots,
+      interviewerIds: draft.interviewerIds,
+      interviewerNames: names,
+    });
+  };
 
   return (
     <Drawer
@@ -149,10 +186,16 @@ export function ApplicantDrawer({
               onClick={() => move("screening", `${applicant.name} shortlisted`)}
             />
             <Button
-              label="Schedule interview"
+              label={
+                draft.mode === "propose"
+                  ? "Offer times"
+                  : draft.mode === "self_schedule"
+                    ? "Send self-schedule"
+                    : "Schedule interview"
+              }
               variant="primary"
               isDisabled={!slotReady}
-              onClick={() => onSchedule(applicant, { date, start, end, round })}
+              onClick={submitSchedule}
             />
           </HStack>
         </HStack>
@@ -265,27 +308,17 @@ export function ApplicantDrawer({
           description="Email and phone unlock once an interview is scheduled here."
         />
 
-        <Stack gap={3}>
-          <Heading level={3}>Schedule</Heading>
-          <Text type="supporting" color="secondary">
-            The interview price is taken from your balance now and returned if they don’t attend.
-          </Text>
-          <TextInput label="Date" value={date} onChange={setDate} placeholder="YYYY-MM-DD" />
-          <HStack gap={3}>
-            <TextInput label="Start" value={start} onChange={setStart} placeholder="10:00" />
-            <TextInput label="End" value={end} onChange={setEnd} placeholder="10:45" />
-          </HStack>
-          <TextInput label="Round" value={round} onChange={setRound} />
-        </Stack>
-
-        <Stack gap={3}>
-          <Heading level={3}>Interviewers</Heading>
-          <InterviewerAssign
-            members={teamMembers}
-            value={applicant.interviewerIds ?? []}
-            onChange={(interviewerIds) => onChange({ ...applicant, interviewerIds })}
-          />
-        </Stack>
+        <SchedulePanel
+          hiringProfile={hiringProfile}
+          teamMembers={teamMembers}
+          interviewerIds={draft.interviewerIds}
+          onInterviewersChange={(interviewerIds) => {
+            setDraft((current) => ({ ...current, interviewerIds }));
+            onChange({ ...applicant, interviewerIds });
+          }}
+          draft={draft}
+          onDraftChange={setDraft}
+        />
 
         <Stack gap={3}>
           <Heading level={3}>Interview guide</Heading>

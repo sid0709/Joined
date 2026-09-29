@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Avatar,
   AvatarGroup,
@@ -7,42 +8,86 @@ import {
   Banner,
   Button,
   Drawer,
+  Heading,
   HStack,
   MetadataList,
   MetadataListItem,
   Stack,
   Text,
+  TextArea,
+  useToast,
 } from "@openseat/design-system";
+import { SelfScheduleShare } from "@/components/company/interviews/self-schedule-share";
+import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
 import { FACE_CHECK_META, INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";
+import type { ScorecardSubmission, ScorecardTemplate } from "@/lib/pipeline-eval";
 import { formatDay, formatTime } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
+import { openJoinUrl, resolveJoinUrl, slotLabel, type ProposedSlot } from "@/lib/schedule-join";
 
 const AVATAR_SIZE = 48;
 const PANEL_SIZE = 32;
+const NOTE_ROWS = 3;
 const FORMAT_LABEL: Record<CompanyInterview["format"], string> = {
   video: "Video room",
   onsite: "On-site",
   phone: "Phone",
 };
 
-/** One round: logistics, panel, and the attendance call that drives billing. */
+/** One round: logistics, panel, join, attendance, and post-interview feedback. */
 export function CompanyInterviewDrawer({
   interview,
   priceCents,
   currency,
+  meetingLink,
+  scorecardTemplate,
+  scorecards,
+  onScorecard,
   onClose,
   onChange,
 }: {
   interview: CompanyInterview | null;
   priceCents: number;
   currency: string;
+  meetingLink?: string | null;
+  scorecardTemplate?: ScorecardTemplate | null;
+  scorecards?: ScorecardSubmission[];
+  onScorecard?: (submission: ScorecardSubmission) => void;
   onClose: () => void;
   onChange: (next: CompanyInterview, message: string) => void;
 }) {
+  const toast = useToast();
+  const [feedbackPrompt, setFeedbackPrompt] = useState(false);
+  const [quickNotes, setQuickNotes] = useState("");
+
   if (!interview) return null;
   const status = INTERVIEW_STATUS_META[interview.status];
   const face = FACE_CHECK_META[interview.faceCheck];
   const isPast = interview.status === "attended" || interview.status === "no-show";
+  const isAwaiting = interview.status === "awaiting";
+  const joinUrl = resolveJoinUrl(interview, meetingLink);
+  const applicantScorecards = (scorecards ?? []).filter(
+    (item) => item.applicantId === interview.applicantId,
+  );
+
+  const markAttended = () => {
+    onChange(
+      { ...interview, status: "attended", faceCheck: "passed" },
+      `Attended — ${formatCents(interview.chargedCents || priceCents, currency)} stays on this round`,
+    );
+    setFeedbackPrompt(true);
+  };
+
+  const join = () => {
+    if (!joinUrl) {
+      toast({
+        body: "No meeting link yet. Add one on your hiring profile or wait for Einstein to return meetingUrl.",
+        type: "error",
+      });
+      return;
+    }
+    openJoinUrl(joinUrl);
+  };
 
   return (
     <Drawer
@@ -52,9 +97,42 @@ export function CompanyInterviewDrawer({
       subtitle={`${interview.jobTitle} · ${interview.round}`}
       headerStart={<Avatar name={interview.candidate} size={AVATAR_SIZE} tooltip={false} />}
       footer={
-        isPast ? (
-          <HStack hAlign="end">
-            <Button label="Done" variant="primary" onClick={onClose} />
+        isPast || feedbackPrompt ? (
+          <HStack gap={2} hAlign="between" wrap="wrap">
+            {feedbackPrompt ? (
+              <Text type="supporting" color="secondary">
+                Leave a quick score before you go.
+              </Text>
+            ) : (
+              <span />
+            )}
+            <Button
+              label="Done"
+              variant="primary"
+              onClick={() => {
+                setFeedbackPrompt(false);
+                onClose();
+              }}
+            />
+          </HStack>
+        ) : isAwaiting ? (
+          <HStack gap={2} hAlign="end" wrap="wrap">
+            <Button label="Close" variant="ghost" onClick={onClose} />
+            <Button
+              label="Copy self-schedule"
+              variant="secondary"
+              onClick={() => {
+                const url =
+                  interview.selfScheduleUrl ||
+                  (typeof window !== "undefined"
+                    ? `${window.location.origin}/schedule/${interview.id}`
+                    : "");
+                void navigator.clipboard.writeText(url).then(
+                  () => toast({ body: "Self-schedule link copied." }),
+                  () => toast({ body: "Could not copy link.", type: "error" }),
+                );
+              }}
+            />
           </HStack>
         ) : (
           <HStack gap={2} hAlign="between" wrap="wrap">
@@ -70,18 +148,14 @@ export function CompanyInterviewDrawer({
             />
             <HStack gap={2}>
               {interview.format === "video" ? (
-                <Button label="Join room" variant="secondary" />
+                <Button
+                  label="Join room"
+                  variant="secondary"
+                  isDisabled={!joinUrl}
+                  onClick={join}
+                />
               ) : null}
-              <Button
-                label="Mark attended"
-                variant="primary"
-                onClick={() =>
-                  onChange(
-                    { ...interview, status: "attended", faceCheck: "passed" },
-                    `Attended — ${formatCents(interview.chargedCents || priceCents, currency)} stays on this round`,
-                  )
-                }
-              />
+              <Button label="Mark attended" variant="primary" onClick={markAttended} />
             </HStack>
           </HStack>
         )
@@ -90,14 +164,39 @@ export function CompanyInterviewDrawer({
       <Stack gap={6}>
         <HStack gap={2} wrap="wrap">
           <Badge label={status.label} variant={status.badge} />
-          <Badge label={face.label} variant={face.badge} />
+          {!isAwaiting ? <Badge label={face.label} variant={face.badge} /> : null}
         </HStack>
+
+        {isAwaiting ? (
+          <Banner
+            status="warning"
+            title="Waiting on the candidate to pick a time"
+            description="Offer times from your availability or share a self-schedule link. Needs Attention surfaces these until a slot is locked."
+          />
+        ) : null}
 
         <MetadataList>
           <MetadataListItem label="When">
-            {formatDay(interview.date)}, {formatTime(interview.start)} – {formatTime(interview.end)}
+            {isAwaiting
+              ? "Slot not locked yet"
+              : `${formatDay(interview.date)}, ${formatTime(interview.start)} – ${formatTime(interview.end)}`}
           </MetadataListItem>
           <MetadataListItem label="Format">{FORMAT_LABEL[interview.format]}</MetadataListItem>
+          {interview.format === "video" ? (
+            <MetadataListItem label="Join">
+              {joinUrl ? (
+                <Text weight="medium" color="accent">
+                  {joinUrl}
+                </Text>
+              ) : (
+                <Text type="supporting" color="secondary">
+                  No Meet/Zoom link on this round yet
+                </Text>
+              )}
+            </MetadataListItem>
+          ) : interview.where ? (
+            <MetadataListItem label="Where">{interview.where}</MetadataListItem>
+          ) : null}
           <MetadataListItem label="Panel">
             <HStack gap={2} vAlign="center">
               <AvatarGroup size={PANEL_SIZE}>
@@ -106,23 +205,73 @@ export function CompanyInterviewDrawer({
                 ))}
               </AvatarGroup>
               <Text type="supporting" color="secondary">
-                {interview.interviewers.join(", ")}
+                {interview.interviewers.join(", ") || "—"}
               </Text>
             </HStack>
           </MetadataListItem>
         </MetadataList>
 
-        <Banner
-          status={interview.status === "no-show" ? "warning" : "info"}
-          title={
-            interview.status === "attended"
-              ? `Held ${formatCents(interview.chargedCents || priceCents, currency)} from your balance`
-              : interview.status === "no-show"
-                ? "Returned to your balance"
-                : `${formatCents(priceCents, currency)} held from your balance`
-          }
-          description="A no-show returns the price. The hold stays once they attend."
-        />
+        {isAwaiting ? (
+          <Stack gap={4}>
+            <Heading level={3}>Offered times</Heading>
+            {(interview.proposedSlots ?? []).length > 0 ? (
+              <Stack gap={2}>
+                {(interview.proposedSlots as ProposedSlot[]).map((slot) => (
+                  <Text key={slotLabel(slot)} weight="medium">
+                    {slotLabel(slot)}
+                  </Text>
+                ))}
+              </Stack>
+            ) : (
+              <Text type="supporting" color="secondary">
+                No proposedSlots on this interview yet. Einstein should return them when mode is
+                propose.
+              </Text>
+            )}
+            <SelfScheduleShare
+              interviewId={interview.id}
+              url={interview.selfScheduleUrl}
+              candidate={interview.candidate}
+            />
+          </Stack>
+        ) : null}
+
+        {!isAwaiting ? (
+          <Banner
+            status={interview.status === "no-show" ? "warning" : "info"}
+            title={
+              interview.status === "attended"
+                ? `Held ${formatCents(interview.chargedCents || priceCents, currency)} from your balance`
+                : interview.status === "no-show"
+                  ? "Returned to your balance"
+                  : `${formatCents(priceCents, currency)} held from your balance`
+            }
+            description="A no-show returns the price. The hold stays once they attend."
+          />
+        ) : null}
+
+        {(feedbackPrompt || interview.status === "attended") && scorecardTemplate && onScorecard ? (
+          <Stack gap={3}>
+            <Banner
+              status="info"
+              title="How did it go?"
+              description="Submit a scorecard while the round is fresh. Required when this job’s feedback gate asks for one."
+            />
+            <ScorecardSubmitShell
+              template={scorecardTemplate}
+              applicantId={interview.applicantId}
+              existing={applicantScorecards}
+              onSubmit={onScorecard}
+            />
+            <TextArea
+              label="Quick notes"
+              value={quickNotes}
+              onChange={setQuickNotes}
+              rows={NOTE_ROWS}
+              placeholder="Strengths, concerns, next step…"
+            />
+          </Stack>
+        ) : null}
       </Stack>
     </Drawer>
   );

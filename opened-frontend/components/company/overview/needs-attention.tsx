@@ -47,16 +47,22 @@ function tasks(
       action: "Review",
       href: ROUTES.companyApplicants,
     });
-  awaiting.forEach((interview) =>
+  awaiting.forEach((interview) => {
+    const offered = interview.proposedSlots?.length ?? 0;
+    const detail = interview.selfScheduleUrl
+      ? `${interview.round} · self-schedule ready`
+      : offered > 0
+        ? `${interview.round} · ${offered} time${offered === 1 ? "" : "s"} offered`
+        : `${interview.round} · offer times or share a self-schedule link`;
     list.push({
       id: interview.id,
       icon: "calendar",
       title: `${interview.candidate} is waiting for a slot`,
-      detail: interview.round,
+      detail,
       action: "Offer times",
       href: ROUTES.companyInterviews,
-    }),
-  );
+    });
+  });
   paused.forEach((job) =>
     list.push({
       id: job.id,
@@ -121,7 +127,7 @@ export function NeedsAttention({
         <EmptyState
           isCompact
           title="You’re caught up"
-          description="New applicants and low balance show up here."
+          description="New applicants, awaiting slots, and low balance show up here."
         />
       ) : (
         <Stack gap={4}>

@@ -2,19 +2,27 @@
 
 import { useEffect, useState } from "react";
 import {
+  Banner,
+  Button,
   Calendar,
   Card,
   EmptyState,
   GridColumn,
   GridSystem,
   Heading,
+  HStack,
   Stack,
   Text,
   useToast,
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
-import { fetchBilling, fetchInterviews, setAttendance } from "@/lib/company/api";
-import { toCompanyCalendarEvent, type CompanyInterview } from "@/lib/company";
+import {
+  fetchBilling,
+  fetchHiringProfile,
+  fetchInterviews,
+  setAttendance,
+} from "@/lib/company/api";
+import { toCompanyCalendarEvent, type CompanyInterview, type HiringProfile } from "@/lib/company";
 import type { BillingAccount } from "@/lib/company";
 import { daysBetween, formatDay, isSameDay, startOfDay } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
@@ -30,6 +38,7 @@ export function CompanyInterviewsWorkspace() {
   const toast = useToast();
   const [items, setItems] = useState<CompanyInterview[]>([]);
   const [billing, setBilling] = useState<BillingAccount | null>(null);
+  const [hiringProfile, setHiringProfile] = useState<HiringProfile | null>(null);
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -42,6 +51,13 @@ export function CompanyInterviewsWorkspace() {
         setBilling(nextBilling);
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    fetchHiringProfile()
+      .then((profile) => {
+        if (active) setHiringProfile(profile);
+      })
+      .catch(() => {
+        /* Join falls back without meeting link. */
+      });
     return () => {
       active = false;
     };
@@ -54,8 +70,11 @@ export function CompanyInterviewsWorkspace() {
   });
   const held = items.filter((item) => item.status === "attended" || item.status === "no-show");
   const attended = held.filter((item) => item.status === "attended").length;
+  const awaiting = items
+    .filter((item) => item.status === "awaiting")
+    .sort((a, b) => a.candidate.localeCompare(b.candidate));
   const onDay = items
-    .filter((item) => isSameDay(item.date, day))
+    .filter((item) => isSameDay(item.date, day) && item.status !== "awaiting")
     .sort((a, b) => a.start.localeCompare(b.start));
 
   const replace = (next: CompanyInterview, message: string) => {
@@ -63,7 +82,12 @@ export function CompanyInterviewsWorkspace() {
     setAttendance(next.id, status)
       .then((saved) => {
         setItems((current) => current.map((item) => (item.id === saved.id ? saved : item)));
-        setOpenId(null);
+        // Keep drawer open after attend so feedback prompt can show.
+        if (status === "attended") {
+          setOpenId(saved.id);
+        } else {
+          setOpenId(null);
+        }
         toast({ body: message });
         return fetchBilling();
       })
@@ -83,7 +107,7 @@ export function CompanyInterviewsWorkspace() {
           {
             label: "This week",
             value: String(thisWeek.length),
-            hint: `${thisWeek.filter((item) => item.status === "awaiting").length} awaiting a slot`,
+            hint: `${awaiting.length} awaiting a slot`,
           },
           {
             label: "Attendance",
@@ -103,6 +127,38 @@ export function CompanyInterviewsWorkspace() {
         ]}
       />
 
+      {awaiting.length > 0 ? (
+        <Card padding={5}>
+          <Stack gap={4}>
+            <Stack gap={1}>
+              <Heading level={2}>Awaiting a slot</Heading>
+              <Text type="supporting" color="secondary">
+                Candidates waiting to pick a time. Share self-schedule or offer times from the
+                drawer.
+              </Text>
+            </Stack>
+            <Banner
+              status="warning"
+              title={`${awaiting.length} round${awaiting.length === 1 ? "" : "s"} need a locked time`}
+              description="These also show under Needs attention on Home."
+            />
+            <Stack gap={3}>
+              {awaiting.map((item) => (
+                <HStack key={item.id} hAlign="between" vAlign="center" gap={3} wrap="wrap">
+                  <CompanyInterviewRow interview={item} onOpen={() => setOpenId(item.id)} />
+                  <Button
+                    label="Open"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setOpenId(item.id)}
+                  />
+                </HStack>
+              ))}
+            </Stack>
+          </Stack>
+        </Card>
+      ) : null}
+
       <GridSystem gap={6} align="start">
         <GridColumn span="full" lg={8}>
           <Calendar
@@ -110,7 +166,7 @@ export function CompanyInterviewsWorkspace() {
             onChange={(date) => setDay(startOfDay(date))}
             views={["week", "month", "agenda"]}
             defaultView="week"
-            events={items.map(toCompanyCalendarEvent)}
+            events={items.filter((item) => item.status !== "awaiting").map(toCompanyCalendarEvent)}
             eventDisplay="chips"
             hours={CALENDAR_HOURS}
           />
@@ -149,6 +205,7 @@ export function CompanyInterviewsWorkspace() {
         onClose={() => setOpenId(null)}
         priceCents={price}
         currency={currency}
+        meetingLink={hiringProfile?.meetingLink}
         onChange={replace}
       />
     </Stack>
