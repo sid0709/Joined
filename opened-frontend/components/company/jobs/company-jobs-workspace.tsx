@@ -103,12 +103,14 @@ export function CompanyJobsWorkspace({ actorRole = null }: { actorRole?: TeamRol
   ) => {
     const next = NEXT_STATUS[action];
     if (!next) return;
-    if (!canEditJobs) {
+    // Einstein PATCH /jobs/:id requires jobs.publish for close and reopen (status open/closed).
+    if (next === "open" || next === "closed") {
+      if (!canPublishJobs) {
+        toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
+        return;
+      }
+    } else if (!canEditJobs) {
       toast({ body: denialReason(actorRole, "jobs.edit"), type: "error" });
-      return;
-    }
-    if (next === "open" && !canPublishJobs) {
-      toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
       return;
     }
     setJobStatus(job.id, next, options)
@@ -245,8 +247,8 @@ export function CompanyJobsWorkspace({ actorRole = null }: { actorRole?: TeamRol
           if (!closing) return;
           setClosingBusy(true);
           const job = closing;
-          if (!canEditJobs) {
-            toast({ body: denialReason(actorRole, "jobs.edit"), type: "error" });
+          if (!canPublishJobs) {
+            toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
             setClosingBusy(false);
             return;
           }

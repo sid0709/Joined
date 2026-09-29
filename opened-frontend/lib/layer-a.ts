@@ -1,42 +1,37 @@
 /**
  * Layer A — Company jobs polish (templates, close/archive, org catalog, careers).
  *
- * Einstein contract (persist + return these fields; UI scaffolds against them):
+ * Einstein contract (wired):
  *
  * GET/PUT /v1/company/job-templates
  *   body/response: { templates: JobTemplate[] }
- *   Soft-fails local until landed; frontend keeps a local cache for reuse.
+ *   Cap 12, name ≤ 80. jobs.view / jobs.edit. Create-job can seed from templates.
  *
  * GET/PUT /v1/company/departments
- *   body/response: { departments: string[]; rename?: { from: string; to: string } }
- *   Until landed, frontend falls back to GET/PUT /v1/company/job-teams (same shape
- *   with `teams`). CompanyJob.team remains the persisted department label.
+ *   body/response: { departments: string[]; teams: string[]; rename?: { from; to } }
+ *   Same catalog as job-teams. Rename updates CompanyJob.team (department label).
  *
  * GET/PUT /v1/company/office-locations
- *   body/response: { locations: string[]; rename?: { from: string; to: string } }
- *   Catalog of office / hiring cities. Job.location stays a free-text string;
- *   the catalog only seeds the picker.
+ *   body/response: { locations: string[]; rename?: { from; to } }
+ *   Catalog only; Job.location stays free text.
  *
  * GET/PUT /v1/company/jobs  (and GET single)
- *   CompanyJob.department?: string   // optional alias; prefer same value as team
+ *   CompanyJob.department?: string   // alias of team
  *   CompanyJob.closedAt?: string     // ISO when status became "closed"
- *   CompanyJob.closeReason?: string  // short note shown in console + auto-reply
- *   CompanyJob.notifyOnClose?: boolean // whether candidates were told (echo)
+ *   CompanyJob.closeReason?: string
+ *   CompanyJob.notifyOnClose?: boolean // stored only; no candidate message yet
  *
  * PATCH /v1/company/jobs/:id
- *   Existing: { status }
- *   Also accept (scaffold):
- *     body.closeReason?: string
- *     body.notifyOnClose?: boolean   // default true when status → closed
- *   status "open" on a closed job = reopen (clear closedAt / closeReason).
+ *   { status, closeReason?, notifyOnClose? }
+ *   notifyOnClose defaults true on close. status "open" on closed = reopen
+ *   (clears close fields). Close/reopen needs jobs.publish.
  *
  * Public careers (light):
- *   GET /v1/search/companies/:id already returns open jobs.
- *   Optional later: ?department=&location= filters. Do NOT invent a branded
- *   multi-page careers portal — company public page open-roles is enough.
+ *   GET /v1/search/companies/:id?department=&location=
+ *   Do NOT invent a branded multi-page careers portal.
  *
- * Out of scope: SSO, Integrations, Scoutwell, admin, heavy ATS sync.
- * Related: assisted policy lives on CompanyJob.policy (done). Intake: lib/intake.ts.
+ * Out of scope: notifyOnClose candidate messaging; D polish; SSO; admin.
+ * Related: assisted policy on CompanyJob.policy. Intake: lib/intake.ts.
  */
 
 import type { Seniority, Workplace } from "@/lib/jobs";
@@ -190,4 +185,13 @@ export function uniqueJobLocations<T extends { location?: string }>(jobs: T[]): 
   return [...new Set(jobs.map((job) => (job.location ?? "").trim()).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b),
   );
+}
+
+/** Distinct team/department labels for public careers filters. */
+export function uniqueJobDepartments<T extends { team?: string; department?: string }>(
+  jobs: T[],
+): string[] {
+  return [
+    ...new Set(jobs.map((job) => (job.department ?? job.team ?? "").trim()).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b));
 }

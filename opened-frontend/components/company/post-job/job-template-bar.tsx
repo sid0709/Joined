@@ -11,6 +11,7 @@ import {
   useToast,
 } from "@openseat/design-system";
 import { fetchJobTemplates, saveJobTemplates } from "@/lib/company/api";
+import { isForbiddenError } from "@/lib/me/client";
 import {
   MAX_JOB_TEMPLATES,
   MAX_TEMPLATE_NAME,
@@ -20,13 +21,24 @@ import {
   type JobTemplateDraft,
 } from "@/lib/layer-a";
 
+function templateErrorMessage(error: unknown, fallback: string) {
+  if (isForbiddenError(error)) return error.message || fallback;
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 /** Save the current draft as a reusable template, or load one into the editor. */
 export function JobTemplateBar({
   draft,
   onApply,
+  canEdit = true,
+  denial = "You need jobs.edit to manage templates.",
 }: {
   draft: JobTemplateDraft;
   onApply: (draft: JobTemplateDraft) => void;
+  /** Soft gate — jobs.edit for save/delete. Load stays available with jobs.view. */
+  canEdit?: boolean;
+  denial?: string;
 }) {
   const toast = useToast();
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
@@ -40,7 +52,9 @@ export function JobTemplateBar({
       .then((loaded) => {
         if (active) setTemplates(loaded);
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+      .catch((error: unknown) =>
+        toast({ body: templateErrorMessage(error, "Could not load templates."), type: "error" }),
+      );
     return () => {
       active = false;
     };
@@ -52,13 +66,19 @@ export function JobTemplateBar({
   ];
 
   const persist = (next: JobTemplate[], message: string) => {
+    if (!canEdit) {
+      toast({ body: denial, type: "error" });
+      return;
+    }
     setBusy(true);
     saveJobTemplates(next)
       .then((saved) => {
         setTemplates(saved);
         toast({ body: message });
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }))
+      .catch((error: unknown) =>
+        toast({ body: templateErrorMessage(error, denial), type: "error" }),
+      )
       .finally(() => setBusy(false));
   };
 
@@ -66,8 +86,8 @@ export function JobTemplateBar({
     <Stack gap={3}>
       <Text type="label">Job templates</Text>
       <Text type="supporting" color="secondary">
-        Reuse a past posting. Templates stay on this device until Einstein lands GET/PUT
-        /v1/company/job-templates.
+        Reuse a past posting. Templates sync to GET/PUT /v1/company/job-templates
+        {canEdit ? "" : ` — ${denial}`}
       </Text>
       <HStack gap={2} vAlign="end" wrap="wrap">
         <Selector
@@ -83,43 +103,47 @@ export function JobTemplateBar({
             toast({ body: `Loaded “${match.name}”.` });
           }}
         />
-        <TextInput
-          label="Template name"
-          isLabelHidden
-          value={name}
-          onChange={(value) => setName(value.slice(0, MAX_TEMPLATE_NAME))}
-          placeholder="Name this template"
-        />
-        <Button
-          label="Save as template"
-          variant="secondary"
-          isDisabled={!name.trim() || !draft.title.trim() || busy}
-          onClick={() => {
-            if (templates.length >= MAX_JOB_TEMPLATES) {
-              toast({
-                body: `You can keep up to ${MAX_JOB_TEMPLATES} templates.`,
-                type: "error",
-              });
-              return;
-            }
-            const created = newJobTemplate(name, draft);
-            setName("");
-            setSelectedId(created.id);
-            persist([...templates, created], `Saved “${created.name}”.`);
-          }}
-        />
-        {selectedId ? (
-          <Button
-            label="Delete"
-            variant="ghost"
-            isDisabled={busy}
-            onClick={() => {
-              const match = templates.find((item) => item.id === selectedId);
-              const next = templates.filter((item) => item.id !== selectedId);
-              setSelectedId("");
-              persist(next, match ? `Deleted “${match.name}”.` : "Template deleted.");
-            }}
-          />
+        {canEdit ? (
+          <>
+            <TextInput
+              label="Template name"
+              isLabelHidden
+              value={name}
+              onChange={(value) => setName(value.slice(0, MAX_TEMPLATE_NAME))}
+              placeholder="Name this template"
+            />
+            <Button
+              label="Save as template"
+              variant="secondary"
+              isDisabled={!name.trim() || !draft.title.trim() || busy}
+              onClick={() => {
+                if (templates.length >= MAX_JOB_TEMPLATES) {
+                  toast({
+                    body: `You can keep up to ${MAX_JOB_TEMPLATES} templates.`,
+                    type: "error",
+                  });
+                  return;
+                }
+                const created = newJobTemplate(name, draft);
+                setName("");
+                setSelectedId(created.id);
+                persist([...templates, created], `Saved “${created.name}”.`);
+              }}
+            />
+            {selectedId ? (
+              <Button
+                label="Delete"
+                variant="ghost"
+                isDisabled={busy}
+                onClick={() => {
+                  const match = templates.find((item) => item.id === selectedId);
+                  const next = templates.filter((item) => item.id !== selectedId);
+                  setSelectedId("");
+                  persist(next, match ? `Deleted “${match.name}”.` : "Template deleted.");
+                }}
+              />
+            ) : null}
+          </>
         ) : null}
       </HStack>
     </Stack>

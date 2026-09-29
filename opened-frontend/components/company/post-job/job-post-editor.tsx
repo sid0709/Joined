@@ -395,7 +395,12 @@ export function JobPostEditor({
             title="Templates"
             description="Save this draft or start from one you already posted."
           >
-            <JobTemplateBar draft={templateDraft()} onApply={applyTemplate} />
+            <JobTemplateBar
+              draft={templateDraft()}
+              onApply={applyTemplate}
+              canEdit={canEditJobs}
+              denial={denialReason(actorRole, "jobs.edit")}
+            />
           </SettingsGroup>
 
           <SettingsGroup

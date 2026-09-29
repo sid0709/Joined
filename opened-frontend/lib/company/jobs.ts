@@ -48,6 +48,8 @@ export type CompanyJob = {
   closedAt?: string;
   /** Short note set on close (Layer A). */
   closeReason?: string;
+  /** Whether candidates were flagged for notify on close (stored only). */
+  notifyOnClose?: boolean;
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {

@@ -74,8 +74,25 @@ function SkeletonTokens({ count = 3 }: { count?: number }) {
 }
 
 /** The public company page: identity up top, open roles, and the facts that matter. */
-export function CompanyProfileView({ company, jobs }: { company: PublicCompany; jobs: Job[] }) {
-  const profile = presentCompany(company, jobs);
+export function CompanyProfileView({
+  company,
+  jobs,
+  allJobs,
+  companyId,
+  departmentFilter = "",
+  locationFilter = "",
+}: {
+  company: PublicCompany;
+  /** Open roles after optional ?department=&location= BE filters. */
+  jobs: Job[];
+  /** Unfiltered open roles for careers facet chips. */
+  allJobs?: Job[];
+  companyId?: string;
+  departmentFilter?: string;
+  locationFilter?: string;
+}) {
+  const facetJobs = allJobs ?? jobs;
+  const profile = presentCompany(company, facetJobs);
   const website = profile.url ? websiteHref(profile.url) : "";
   const hasValues = profile.values != null && profile.values.length > 0;
   const hasBenefits = profile.benefitCategories != null && profile.benefitCategories.length > 0;
@@ -201,7 +218,14 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
               )}
             </SectionCard>
 
-            <CompanyCareers companyName={profile.name} jobs={jobs} />
+            <CompanyCareers
+              companyId={companyId ?? company.id}
+              companyName={profile.name}
+              jobs={jobs}
+              allJobs={facetJobs}
+              departmentFilter={departmentFilter}
+              locationFilter={locationFilter}
+            />
           </Stack>
         </GridColumn>
         <GridColumn span="full" lg={4}>

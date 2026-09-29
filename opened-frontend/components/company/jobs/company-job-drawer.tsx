@@ -68,9 +68,9 @@ export function CompanyJobDrawer({
     pipeline: JobPipelineConfig,
     offerTemplates?: OfferTemplate[],
   ) => void;
-  /** Soft gate — jobs.edit (pause / close). */
+  /** Soft gate — jobs.edit (pause / edit). */
   canEdit?: boolean;
-  /** Soft gate — jobs.publish (resume / reopen → open). */
+  /** Soft gate — jobs.publish (resume / reopen / close). */
   canPublish?: boolean;
 }) {
   if (!job) return null;
@@ -101,7 +101,7 @@ export function CompanyJobDrawer({
             {job.status !== "closed" && canEdit ? (
               <Button label="Edit" variant="secondary" href={ROUTES.companyJobEdit(job.id)} />
             ) : null}
-            {job.status !== "closed" && job.status !== "draft" && canEdit ? (
+            {job.status !== "closed" && job.status !== "draft" && canPublish ? (
               <Button
                 label="Close & archive"
                 variant="secondary"
@@ -142,6 +142,11 @@ export function CompanyJobDrawer({
           {job.status === "closed" ? (
             <MetadataListItem label="Closed">
               {job.closeReason || (job.closedAt ? "Archived from search" : "Archived")}
+              {job.notifyOnClose != null
+                ? job.notifyOnClose
+                  ? " · Notify flagged"
+                  : " · Notify off"
+                : ""}
             </MetadataListItem>
           ) : null}
         </MetadataList>

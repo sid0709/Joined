@@ -159,6 +159,7 @@ function hydrateJob(job: ApiJob): CompanyJob {
     department: job.department?.trim() || job.team || undefined,
     closedAt: job.closedAt || undefined,
     closeReason: job.closeReason?.trim() || undefined,
+    notifyOnClose: job.notifyOnClose ?? undefined,
   };
 }
 
@@ -323,58 +324,28 @@ export function setJobStatus(
   }).then(hydrateJob);
 }
 
-const JOB_TEMPLATES_KEY = "openseat.company.job-templates";
-const OFFICE_LOCATIONS_KEY = "openseat.company.office-locations";
-
-function readLocalJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeLocalJson(key: string, value: unknown) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Quota / private mode — ignore; API soft-fail still applies.
-  }
-}
-
-/** Job post templates — Einstein soft-fails to localStorage. */
+/** Job post templates — GET/PUT /v1/company/job-templates (jobs.view / jobs.edit). */
 export function fetchJobTemplates() {
-  return companyGet<{ templates?: JobTemplate[] }>("/job-templates")
-    .then((body) => hydrateJobTemplates(body.templates))
-    .catch(() => hydrateJobTemplates(readLocalJson<JobTemplate[]>(JOB_TEMPLATES_KEY, [])));
+  return companyGet<{ templates?: JobTemplate[] }>("/job-templates").then((body) =>
+    hydrateJobTemplates(body.templates),
+  );
 }
 
 export function saveJobTemplates(templates: JobTemplate[]) {
   const next = hydrateJobTemplates(templates);
-  writeLocalJson(JOB_TEMPLATES_KEY, next);
   return companySend<{ templates?: JobTemplate[] }>("/job-templates", "PUT", {
     templates: next,
-  })
-    .then((body) => hydrateJobTemplates(body.templates ?? next))
-    .catch(() => next);
+  }).then((body) => hydrateJobTemplates(body.templates ?? next));
 }
 
 /**
- * Departments catalog. Prefers /departments; falls back to /job-teams then [].
- * Same strings as CompanyJob.team until Einstein splits the fields.
+ * Departments catalog — GET/PUT /v1/company/departments (jobs.view / jobs.edit).
+ * BE returns { departments, teams } (same list). Rename updates CompanyJob.team.
  */
 export function fetchDepartments() {
-  return companyGet<{ departments?: string[] }>("/departments")
-    .then((body) => hydrateDepartments(body.departments))
-    .catch(() =>
-      companyGet<{ teams?: string[] }>("/job-teams")
-        .then((body) => hydrateDepartments(body.teams))
-        .catch(() => [] as string[]),
-    );
+  return companyGet<{ departments?: string[]; teams?: string[] }>("/departments").then((body) =>
+    hydrateDepartments(body.departments ?? body.teams),
+  );
 }
 
 export function saveDepartments(departments: string[], rename?: { from: string; to: string }) {
@@ -382,32 +353,22 @@ export function saveDepartments(departments: string[], rename?: { from: string; 
   return companySend<{ departments?: string[]; teams?: string[] }>("/departments", "PUT", {
     departments: next,
     rename,
-  })
-    .then((body) => hydrateDepartments(body.departments ?? body.teams ?? next))
-    .catch(() =>
-      // Mirror onto job-teams so existing team pickers stay in sync.
-      saveJobTeams(next, rename)
-        .then((teams) => hydrateDepartments(teams))
-        .catch(() => next),
-    );
+  }).then((body) => hydrateDepartments(body.departments ?? body.teams ?? next));
 }
 
-/** Office / hiring cities catalog — soft-fails to localStorage. */
+/** Office / hiring cities — GET/PUT /v1/company/office-locations (jobs.view / jobs.edit). */
 export function fetchOfficeLocations() {
-  return companyGet<{ locations?: string[] }>("/office-locations")
-    .then((body) => hydrateOfficeLocations(body.locations))
-    .catch(() => hydrateOfficeLocations(readLocalJson<string[]>(OFFICE_LOCATIONS_KEY, [])));
+  return companyGet<{ locations?: string[] }>("/office-locations").then((body) =>
+    hydrateOfficeLocations(body.locations),
+  );
 }
 
 export function saveOfficeLocations(locations: string[], rename?: { from: string; to: string }) {
   const next = hydrateOfficeLocations(locations);
-  writeLocalJson(OFFICE_LOCATIONS_KEY, next);
   return companySend<{ locations?: string[] }>("/office-locations", "PUT", {
     locations: next,
     rename,
-  })
-    .then((body) => hydrateOfficeLocations(body.locations ?? next))
-    .catch(() => next);
+  }).then((body) => hydrateOfficeLocations(body.locations ?? next));
 }
 
 type ApiPipeline = {
@@ -586,6 +547,7 @@ export function jobWritePayload(
   return {
     title: job.title,
     team: job.team,
+    department: job.department || job.team || undefined,
     seniority: job.seniority,
     location: job.location,
     workplace: job.workplace,

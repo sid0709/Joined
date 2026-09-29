@@ -119,6 +119,7 @@ export {
   templateToDraft,
   groupJobsByDepartment,
   uniqueJobLocations,
+  uniqueJobDepartments,
   type JobTemplate,
   type JobTemplateDraft,
   type CloseJobPayload,

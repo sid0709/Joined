@@ -27,6 +27,7 @@ import {
 } from "@/lib/company";
 import { fetchSettings, fetchTeam, saveSettings, transferOwnership } from "@/lib/company/api";
 import type { AuthSession } from "@/lib/auth/types";
+import { sessionHiringRole } from "@/lib/company/access";
 import { RemoveAccount } from "@/components/settings/remove-account";
 import { OrgCatalogSettings } from "@/components/company/settings/org-catalog";
 
@@ -249,7 +250,7 @@ export function CompanySettings({ session }: { session: AuthSession }) {
         </SettingsRow>
       </SettingsGroup>
 
-      <OrgCatalogSettings />
+      <OrgCatalogSettings actorRole={sessionHiringRole(session.company)} />
 
       <SettingsGroup
         title="Ownership"

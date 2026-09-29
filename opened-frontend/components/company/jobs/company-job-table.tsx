@@ -33,7 +33,7 @@ function actionsFor(
   canPublish: boolean,
 ): DropdownMenuOption[] {
   const act = (action: JobAction) => () => onAction(job, action);
-  // Einstein AuthorizeJobUpdate: jobs.edit always; jobs.publish when opening to market.
+  // Einstein: pause stays jobs.edit; close/reopen/publish/resume need jobs.publish (PATCH).
   return [
     { label: "View details", onClick: act("open") },
     { type: "divider" },
@@ -45,7 +45,7 @@ function actionsFor(
     ...(job.status === "closed" && canPublish
       ? [{ label: "Reopen job", onClick: act("reopen") }]
       : []),
-    ...(job.status !== "closed" && canEdit
+    ...(job.status !== "closed" && canPublish
       ? [{ label: "Close & archive", variant: "destructive" as const, onClick: act("close") }]
       : []),
   ];
@@ -60,9 +60,9 @@ export function CompanyJobTable({
 }: {
   jobs: CompanyJob[];
   onAction: (job: CompanyJob, action: JobAction) => void;
-  /** Soft gate — jobs.edit (pause / close). */
+  /** Soft gate — jobs.edit (pause). */
   canEdit?: boolean;
-  /** Soft gate — jobs.publish (publish / resume / reopen → open). */
+  /** Soft gate — jobs.publish (publish / resume / close / reopen). */
   canPublish?: boolean;
 }) {
   const now = new Date();

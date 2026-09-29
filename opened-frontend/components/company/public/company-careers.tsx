@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Button,
   ClickableCard,
@@ -15,7 +16,7 @@ import { CompanyLogo } from "@/components/jobs/company-logo";
 import { JobTags } from "@/components/jobs/job-tags";
 import { SectionCard } from "@/components/section-card";
 import { formatPay, formatPosted, type Job } from "@/lib/jobs";
-import { groupJobsByDepartment, uniqueJobLocations } from "@/lib/layer-a";
+import { groupJobsByDepartment, uniqueJobDepartments, uniqueJobLocations } from "@/lib/layer-a";
 import { ROUTES } from "@/lib/routes";
 
 const ROLE_LOGO_SIZE = 40;
@@ -52,31 +53,80 @@ function RoleRow({ job }: { job: Job }) {
   );
 }
 
+function careersHref(companyId: string, department: string, location: string) {
+  const params = new URLSearchParams();
+  if (department && department !== ALL) params.set("department", department);
+  if (location && location !== ALL) params.set("location", location);
+  const base = ROUTES.companyPublic(companyId);
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
 /** Light careers listing on the public company page — not a branded multi-page portal. */
-export function CompanyCareers({ companyName, jobs }: { companyName: string; jobs: Job[] }) {
-  const locations = useMemo(() => uniqueJobLocations(jobs), [jobs]);
-  const [location, setLocation] = useState(ALL);
+export function CompanyCareers({
+  companyId,
+  companyName,
+  jobs,
+  allJobs,
+  departmentFilter = "",
+  locationFilter = "",
+}: {
+  companyId: string;
+  companyName: string;
+  /** Roles from GET /v1/search/companies/:id?department=&location=. */
+  jobs: Job[];
+  /** Unfiltered open roles for facet chips. */
+  allJobs: Job[];
+  departmentFilter?: string;
+  locationFilter?: string;
+}) {
+  const router = useRouter();
+  const locations = useMemo(() => uniqueJobLocations(allJobs), [allJobs]);
+  const departments = useMemo(() => uniqueJobDepartments(allJobs), [allJobs]);
+  const department = departmentFilter.trim() || ALL;
+  const location = locationFilter.trim() || ALL;
 
-  const filtered = useMemo(() => {
-    const list = location === ALL ? jobs : jobs.filter((job) => job.location.trim() === location);
-    return [...list].sort((a, b) => a.postedHoursAgo - b.postedHoursAgo);
-  }, [jobs, location]);
-
+  const filtered = useMemo(
+    () => [...jobs].sort((a, b) => a.postedHoursAgo - b.postedHoursAgo),
+    [jobs],
+  );
   const groups = useMemo(() => groupJobsByDepartment(filtered), [filtered]);
   const showLocationFilter = locations.length > 1;
+  const showDepartmentFilter = departments.length > 1;
+
+  const setFilters = (nextDepartment: string, nextLocation: string) => {
+    router.replace(careersHref(companyId, nextDepartment, nextLocation), { scroll: false });
+  };
 
   return (
     <SectionCard
       title="Open roles"
       description={
-        jobs.length === 0
+        allJobs.length === 0
           ? `${companyName} isn’t hiring on OpenSeat right now`
-          : `${filtered.length} of ${jobs.length} open at ${companyName}`
+          : `${filtered.length} of ${allJobs.length} open at ${companyName}`
       }
     >
       <Stack gap={4}>
+        {showDepartmentFilter ? (
+          <SegmentedControl
+            label="Filter by department"
+            value={department}
+            onChange={(value) => setFilters(value, location)}
+          >
+            <SegmentedControlItem value={ALL} label="All departments" />
+            {departments.map((item) => (
+              <SegmentedControlItem key={item} value={item} label={item} />
+            ))}
+          </SegmentedControl>
+        ) : null}
+
         {showLocationFilter ? (
-          <SegmentedControl label="Filter by location" value={location} onChange={setLocation}>
+          <SegmentedControl
+            label="Filter by location"
+            value={location}
+            onChange={(value) => setFilters(department, value)}
+          >
             <SegmentedControlItem value={ALL} label="All locations" />
             {locations.map((item) => (
               <SegmentedControlItem key={item} value={item} label={item} />
@@ -88,9 +138,9 @@ export function CompanyCareers({ companyName, jobs }: { companyName: string; job
           <EmptyState
             title="No open roles right now"
             description={
-              location === ALL
+              department === ALL && location === ALL
                 ? `${companyName} isn’t hiring on OpenSeat at the moment. Check back soon.`
-                : `No open roles in ${location}. Try another location.`
+                : "No open roles match these filters. Try another department or location."
             }
           />
         ) : (
