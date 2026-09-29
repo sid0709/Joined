@@ -232,11 +232,9 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
     };
   }, [canView, toast]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- reset loading flags before analytics refetch */
   useEffect(() => {
-    if (!canView) {
-      setLoaded(true);
-      return;
-    }
+    if (!canView) return;
     let active = true;
     setLoaded(false);
     setFailed(false);
@@ -264,6 +262,7 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
       active = false;
     };
   }, [actorRole, canView, filters, toast]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const jobOptions = useMemo(
     () => [

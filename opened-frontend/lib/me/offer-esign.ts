@@ -9,9 +9,9 @@ function asEsign(raw: OfferEsign): OfferEsign {
 
 /** GET /v1/me/applications/:id/offer/esign — the signed-in applicant only. */
 export function fetchMyOfferEsign(applicationId: string) {
-  return meGet<OfferEsign>(
-    `/applications/${encodeURIComponent(applicationId)}/offer/esign`,
-  ).then(asEsign);
+  return meGet<OfferEsign>(`/applications/${encodeURIComponent(applicationId)}/offer/esign`).then(
+    asEsign,
+  );
 }
 
 /** POST /v1/me/applications/:id/offer/esign — candidate countersign or decline. */

@@ -43,11 +43,9 @@ export function OfferSignPanel({
   const [loading, setLoading] = useState(signedIn);
   const [busy, setBusy] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- reset loading before e-sign refetch */
   useEffect(() => {
-    if (!signedIn) {
-      setLoading(false);
-      return;
-    }
+    if (!signedIn) return;
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
@@ -65,6 +63,7 @@ export function OfferSignPanel({
       cancelled = true;
     };
   }, [applicantId, signedIn]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const respond = (status: "signed" | "declined") => {
     setActionError(null);

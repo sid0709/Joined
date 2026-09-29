@@ -23,10 +23,7 @@ export function AuditTrailPanel({ canView }: { canView: boolean }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!canView) {
-      setLoaded(true);
-      return;
-    }
+    if (!canView) return;
     let active = true;
     fetchTeamAudit({ limit: 40 })
       .then((body) => {

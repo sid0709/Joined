@@ -576,7 +576,11 @@ export function patchHirePacketStatus(applicantId: string, body: HirePacketStatu
 }
 
 /** PATCH /v1/company/applicants/:id/hire-packet/items/:itemId — todo, done, or skipped. */
-export function patchHirePacketItem(applicantId: string, itemId: string, body: HirePacketItemPatch) {
+export function patchHirePacketItem(
+  applicantId: string,
+  itemId: string,
+  body: HirePacketItemPatch,
+) {
   return companySend<HirePacket>(
     `/applicants/${encodeURIComponent(applicantId)}/hire-packet/items/${encodeURIComponent(itemId)}`,
     "PATCH",

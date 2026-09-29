@@ -108,7 +108,9 @@ export function DirectJobDetail({ id }: { id: string }) {
           ]}
           dispositions={[...JOB_REJECT_DISPOSITIONS]}
           disposition={disposition}
-          onDisposition={setDisposition}
+          onDisposition={(value) => {
+            if (value === "draft" || value === "removed") setDisposition(value);
+          }}
           pending={pending}
           error={decisionError}
           onSubmit={(actionId, reason) => void decide(actionId, reason)}

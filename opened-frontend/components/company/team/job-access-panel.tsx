@@ -39,7 +39,7 @@ export function JobAccessPanel({ members, canEdit }: { members: TeamMember[]; ca
         if (!active) return;
         const options = jobs.map((job) => ({ value: job.id, label: job.title }));
         setJobOptions(options);
-        if (options[0] && !jobId) setJobId(options[0].value);
+        setJobId((current) => current || options[0]?.value || "");
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
     return () => {
