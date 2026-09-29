@@ -139,7 +139,9 @@ func (s *Store) ScheduleForCompany(ctx context.Context, companyID, candidateName
 		item.CompanyStatus = input.CompanyStatus
 	}
 	if item.SelfSchedule {
-		item.SelfScheduleURL = publicScheduleURL(input.PublicOrigin, item.ID)
+		if err := applySelfScheduleSecret(&item, input.PublicOrigin, now); err != nil {
+			return Interview{}, err
+		}
 	}
 	item.JobID = jobID
 	item.CandidateName = candidateName

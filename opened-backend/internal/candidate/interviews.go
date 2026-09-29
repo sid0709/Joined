@@ -292,13 +292,15 @@ func slotTimes(input InterviewInput) (date, start, end string, err error) {
 }
 
 // publicScheduleURL is the link employers share while a round is awaiting.
-// Origin comes from FRONTEND_ORIGIN; the path matches schedule-join.ts.
-func publicScheduleURL(origin, interviewID string) string {
+// Origin comes from FRONTEND_ORIGIN. key is the self-schedule token.
+// Legacy callers may still pass an interview id; that path keeps resolving.
+func publicScheduleURL(origin, key string) string {
 	origin = strings.TrimRight(strings.TrimSpace(origin), "/")
-	if origin == "" || interviewID == "" {
+	key = strings.TrimSpace(key)
+	if origin == "" || key == "" {
 		return ""
 	}
-	return origin + selfSchedulePath + url.PathEscape(interviewID)
+	return origin + selfSchedulePath + url.PathEscape(key)
 }
 
 func defaultPrep(id string) []PrepTask {

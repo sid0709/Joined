@@ -12,8 +12,9 @@ export const metadata: Metadata = {
 
 /**
  * Public candidate self-schedule landing.
- * Einstein mints `{FRONTEND_ORIGIN}/schedule/{interviewId}` on awaiting self-schedule
- * rounds. Candidate accept/lock API is not built yet — this page is a placeholder.
+ * The API mints `{FRONTEND_ORIGIN}/schedule/{selfScheduleToken}` and still
+ * accepts a legacy interview id at GET/POST /v1/schedule/:key(/accept).
+ * This page does not call that API yet.
  */
 export default async function PublicSchedulePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -198,6 +198,13 @@ func (s *Store) Interviews(ctx context.Context, companyID string) ([]Interview, 
 	if err != nil {
 		return nil, err
 	}
+	items, err = s.people.BackfillSelfScheduleSecrets(ctx, items, time.Now())
+	if err != nil {
+		if errors.Is(err, candidate.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
 	titles, err := s.jobTitles(ctx, companyID)
 	if err != nil {
 		return nil, err
@@ -332,6 +339,13 @@ func (s *Store) PatchInterview(ctx context.Context, companyID, id string, input 
 	}
 	if attendance != "" {
 		return s.SetAttendance(ctx, companyID, id, attendance, now)
+	}
+	current, err = s.people.BackfillSelfScheduleSecretsOne(ctx, current, now)
+	if err != nil {
+		if errors.Is(err, candidate.ErrNotFound) {
+			return Interview{}, ErrNotFound
+		}
+		return Interview{}, err
 	}
 	titles, err := s.jobTitles(ctx, companyID)
 	if err != nil {
@@ -580,29 +594,35 @@ func viewInterview(item candidate.Interview, jobTitle string) Interview {
 		slots = nil
 	}
 	selfURL := ""
+	var expires *time.Time
 	if status == interviewAwaiting {
 		selfURL = strings.TrimSpace(item.SelfScheduleURL)
+		if !item.SelfScheduleExpiresAt.IsZero() {
+			when := item.SelfScheduleExpiresAt.UTC()
+			expires = &when
+		}
 	}
 	return Interview{
-		ID:              item.ID,
-		ApplicantID:     item.ApplicationID,
-		Candidate:       name,
-		JobID:           item.JobID,
-		JobTitle:        title,
-		Round:           item.Round,
-		Date:            item.Date,
-		Start:           item.Start,
-		End:             item.End,
-		Format:          item.Format,
-		Interviewers:    names,
-		Status:          status,
-		FaceCheck:       face,
-		ChargedCents:    item.ChargedCents,
-		Where:           presentedWhere(item),
-		MeetingURL:      strings.TrimSpace(item.MeetingURL),
-		Mode:            item.ScheduleMode,
-		SelfScheduleURL: selfURL,
-		ProposedSlots:   slots,
+		ID:                    item.ID,
+		ApplicantID:           item.ApplicationID,
+		Candidate:             name,
+		JobID:                 item.JobID,
+		JobTitle:              title,
+		Round:                 item.Round,
+		Date:                  item.Date,
+		Start:                 item.Start,
+		End:                   item.End,
+		Format:                item.Format,
+		Interviewers:          names,
+		Status:                status,
+		FaceCheck:             face,
+		ChargedCents:          item.ChargedCents,
+		Where:                 presentedWhere(item),
+		MeetingURL:            strings.TrimSpace(item.MeetingURL),
+		Mode:                  item.ScheduleMode,
+		SelfScheduleURL:       selfURL,
+		SelfScheduleExpiresAt: expires,
+		ProposedSlots:         slots,
 	}
 }
 

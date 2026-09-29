@@ -235,6 +235,29 @@ type Interview struct {
 	ProposedSlots   []ProposedSlot `json:"-" bson:"proposedSlots,omitempty"`
 	SelfSchedule    bool           `json:"-" bson:"selfSchedule,omitempty"`
 	SelfScheduleURL string         `json:"-" bson:"selfScheduleUrl,omitempty"`
+	// SelfScheduleToken is the unguessable public /schedule/{token} key.
+	// Interview id URLs keep resolving for links already shared.
+	SelfScheduleToken string `json:"-" bson:"selfScheduleToken,omitempty"`
+	// SelfScheduleExpiresAt is when an awaiting link stops accepting a slot.
+	// The zero value means the link does not expire.
+	SelfScheduleExpiresAt time.Time `json:"-" bson:"selfScheduleExpiresAt,omitempty"`
+}
+
+// PublicSchedule is the candidate self-schedule page. It omits candidate identity.
+type PublicSchedule struct {
+	Company       string         `json:"company"`
+	Role          string         `json:"role"`
+	Round         string         `json:"round"`
+	Format        string         `json:"format"`
+	Where         string         `json:"where,omitempty"`
+	MeetingURL    string         `json:"meetingUrl,omitempty"`
+	Status        string         `json:"status"`
+	Mode          string         `json:"mode,omitempty"`
+	ProposedSlots []ProposedSlot `json:"proposedSlots,omitempty"`
+	Date          string         `json:"date,omitempty"`
+	Start         string         `json:"start,omitempty"`
+	End           string         `json:"end,omitempty"`
+	ExpiresAt     *time.Time     `json:"expiresAt,omitempty"`
 }
 
 type CalendarConnection struct {

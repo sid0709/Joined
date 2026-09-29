@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 )
@@ -113,15 +114,17 @@ func TestPlanTruncatesProposedSlots(t *testing.T) {
 }
 
 func TestViewInterviewReturnsScheduleFields(t *testing.T) {
+	expires := time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
 	view := viewInterview(candidate.Interview{
-		ID:              "iv-1",
-		ApplicationID:   "app-1",
-		Format:          "video",
-		Where:           "https://meet.example.com/a",
-		MeetingURL:      "https://meet.example.com/a",
-		ScheduleMode:    scheduleModePropose,
-		CompanyStatus:   interviewAwaiting,
-		SelfScheduleURL: "http://127.0.0.1:3002/schedule/iv-1",
+		ID:                    "iv-1",
+		ApplicationID:         "app-1",
+		Format:                "video",
+		Where:                 "https://meet.example.com/a",
+		MeetingURL:            "https://meet.example.com/a",
+		ScheduleMode:          scheduleModePropose,
+		CompanyStatus:         interviewAwaiting,
+		SelfScheduleURL:       "http://127.0.0.1:3002/schedule/iv-1",
+		SelfScheduleExpiresAt: expires,
 		ProposedSlots: []candidate.ProposedSlot{
 			{Date: "2026-10-05", Start: "09:00", End: "09:45"},
 		},
@@ -135,6 +138,9 @@ func TestViewInterviewReturnsScheduleFields(t *testing.T) {
 	}
 	if view.SelfScheduleURL != "http://127.0.0.1:3002/schedule/iv-1" || len(view.ProposedSlots) != 1 {
 		t.Fatalf("offer = %+v", view)
+	}
+	if view.SelfScheduleExpiresAt == nil || !view.SelfScheduleExpiresAt.Equal(expires) {
+		t.Fatalf("expiry = %v", view.SelfScheduleExpiresAt)
 	}
 
 	legacy := viewInterview(candidate.Interview{Format: "video", Where: "video", CompanyStatus: interviewScheduled}, "Designer")
@@ -153,14 +159,17 @@ func TestViewInterviewReturnsScheduleFields(t *testing.T) {
 }
 
 func TestApplyInterviewUpdateLocksAndReoffers(t *testing.T) {
+	expires := time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC)
 	awaiting := candidate.Interview{
-		ID:            "iv-1",
-		CompanyID:     "co-1",
-		Format:        "video",
-		Where:         "video",
-		CompanyStatus: interviewAwaiting,
-		Status:        candidate.StatusUnconfirmed,
-		ProposedSlots: []candidate.ProposedSlot{{Date: "2026-10-05", Start: "09:00", End: "09:45"}},
+		ID:                    "iv-1",
+		CompanyID:             "co-1",
+		Format:                "video",
+		Where:                 "video",
+		CompanyStatus:         interviewAwaiting,
+		Status:                candidate.StatusUnconfirmed,
+		SelfScheduleToken:     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		SelfScheduleExpiresAt: expires,
+		ProposedSlots:         []candidate.ProposedSlot{{Date: "2026-10-05", Start: "09:00", End: "09:45"}},
 	}
 	locked, attendance, _, err := applyInterviewUpdate(awaiting, InterviewUpdate{
 		Date:  strPtr("2026-10-06"),
@@ -175,6 +184,9 @@ func TestApplyInterviewUpdateLocksAndReoffers(t *testing.T) {
 	}
 	if locked.Date != "2026-10-06" || locked.Start != "11:00" || locked.End != "11:45" {
 		t.Fatalf("time = %s %s %s", locked.Date, locked.Start, locked.End)
+	}
+	if locked.SelfScheduleToken == "" || !locked.SelfScheduleExpiresAt.Equal(expires) {
+		t.Fatalf("company lock cleared the schedule secret: %+v", locked)
 	}
 
 	reoffered, _, _, err := applyInterviewUpdate(awaiting, InterviewUpdate{

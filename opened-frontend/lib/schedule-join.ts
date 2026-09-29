@@ -9,10 +9,13 @@
  *   body.proposedSlots?: ProposedSlot[]  // when mode=propose; status → awaiting
  *   body.selfSchedule?: boolean      // when true, create awaiting + selfScheduleUrl
  *   Propose / self_schedule → status "awaiting". Fixed → "scheduled".
- *   selfScheduleUrl = {FRONTEND_ORIGIN}/schedule/{interviewId}
+ *   selfScheduleUrl = {FRONTEND_ORIGIN}/schedule/{selfScheduleToken}
+ *   selfScheduleToken is 32-byte hex, not the interview id.
+ *   selfScheduleExpiresAt is set to 14 days. A zero expiry does not expire.
+ *   Links already shared as /schedule/{interviewId} still resolve and accept.
  *
  * GET /v1/company/interviews (and overview)
- *   where, meetingUrl, mode, selfScheduleUrl, proposedSlots
+ *   where, meetingUrl, mode, selfScheduleUrl, selfScheduleExpiresAt, proposedSlots
  *
  * PATCH /v1/company/interviews/:id
  *   { status: "attended" | "no-show" }
@@ -20,12 +23,27 @@
  *   proposedSlots (employer re-offers while awaiting)
  *   date+start+end locks awaiting → scheduled
  *
+ * GET  /v1/schedule/:key
+ * POST /v1/schedule/:key/accept   { date, start, end }
+ *   Public. key is the self-schedule token, or a legacy interview id.
+ *   Accept locks awaiting → scheduled. When proposedSlots is non-empty the
+ *   slot must be one of them. The same slot again is idempotent. A different
+ *   slot after lock is 409. An expired awaiting link is 410.
+ *   Body omits candidate identity: company, role, round, format, where,
+ *   meetingUrl, status, mode, proposedSlots, date, start, end, expiresAt.
+ *
  * GET /v1/company/profile
  *   HiringProfile meetingLink / interviewDays / dayStart / dayEnd /
- *   interviewLength / buffer / timeZone — client proposes slots (no free/busy yet).
+ *   interviewLength / buffer / timeZone — client proposes slots.
  *
- * Public /schedule/:id candidate accept is still a FE stub (no candidate accept API).
- * Out of scope: free/busy, SSO, Scoutwell, offers (offer-hire.ts).
+ * Free/busy is not implemented. Next contract:
+ *   GET /v1/company/interviews/free-busy?from=YYYY-MM-DD&to=YYYY-MM-DD
+ *   Auth: company session, interviews.schedule
+ *   200 { blocks: [{ date, start, end }] } busy intervals in the hiring
+ *   profile time zone, from the interviewer's calendar (not connected).
+ *   Do not use the candidate Google calendar connection, and do not serve
+ *   hiring-profile hours as free/busy.
+ * Out of scope: SSO, Scoutwell, offers (offer-hire.ts).
  */
 
 import type { HiringProfile } from "@/lib/company/me";
@@ -171,7 +189,10 @@ export function hydrateOptionalUrl(raw: string | undefined | null): string | und
   return trimmed.length > 0 ? trimmed.slice(0, 500) : undefined;
 }
 
-/** Scaffold self-schedule URL when the API has not minted one yet. */
+/**
+ * Scaffold a legacy interview-id URL when the API has not minted a token yet.
+ * GET/POST /v1/schedule/:key still accepts this path.
+ */
 export function scaffoldSelfScheduleUrl(interviewId: string, origin?: string): string {
   const base =
     origin || (typeof window !== "undefined" ? window.location.origin : "https://openseat.app");

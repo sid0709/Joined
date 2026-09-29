@@ -82,25 +82,26 @@ type Applicant struct {
 }
 
 type Interview struct {
-	ID              string                   `json:"id"`
-	ApplicantID     string                   `json:"applicantId"`
-	Candidate       string                   `json:"candidate"`
-	JobID           string                   `json:"jobId"`
-	JobTitle        string                   `json:"jobTitle"`
-	Round           string                   `json:"round"`
-	Date            string                   `json:"date"`
-	Start           string                   `json:"start"`
-	End             string                   `json:"end"`
-	Format          string                   `json:"format"`
-	Interviewers    []string                 `json:"interviewers"`
-	Status          string                   `json:"status"`
-	FaceCheck       string                   `json:"faceCheck"`
-	ChargedCents    int                      `json:"chargedCents"`
-	Where           string                   `json:"where,omitempty"`
-	MeetingURL      string                   `json:"meetingUrl,omitempty"`
-	Mode            string                   `json:"mode,omitempty"`
-	SelfScheduleURL string                   `json:"selfScheduleUrl,omitempty"`
-	ProposedSlots   []candidate.ProposedSlot `json:"proposedSlots,omitempty"`
+	ID                    string                   `json:"id"`
+	ApplicantID           string                   `json:"applicantId"`
+	Candidate             string                   `json:"candidate"`
+	JobID                 string                   `json:"jobId"`
+	JobTitle              string                   `json:"jobTitle"`
+	Round                 string                   `json:"round"`
+	Date                  string                   `json:"date"`
+	Start                 string                   `json:"start"`
+	End                   string                   `json:"end"`
+	Format                string                   `json:"format"`
+	Interviewers          []string                 `json:"interviewers"`
+	Status                string                   `json:"status"`
+	FaceCheck             string                   `json:"faceCheck"`
+	ChargedCents          int                      `json:"chargedCents"`
+	Where                 string                   `json:"where,omitempty"`
+	MeetingURL            string                   `json:"meetingUrl,omitempty"`
+	Mode                  string                   `json:"mode,omitempty"`
+	SelfScheduleURL       string                   `json:"selfScheduleUrl,omitempty"`
+	SelfScheduleExpiresAt *time.Time               `json:"selfScheduleExpiresAt,omitempty"`
+	ProposedSlots         []candidate.ProposedSlot `json:"proposedSlots,omitempty"`
 }
 
 type Activity struct {

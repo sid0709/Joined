@@ -27,8 +27,10 @@ export type CompanyInterview = {
   meetingUrl?: string;
   /** Schedule mode returned by the company interviews API. */
   mode?: ScheduleMode;
-  /** Candidate self-schedule link while status is awaiting. */
+  /** Candidate self-schedule link while status is awaiting. Token path, not the interview id. */
   selfScheduleUrl?: string;
+  /** When the public link stops accepting a slot. Omitted when the link does not expire. */
+  selfScheduleExpiresAt?: string;
   /** Slots offered while awaiting a pick. */
   proposedSlots?: ProposedSlot[];
 };

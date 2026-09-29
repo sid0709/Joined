@@ -73,6 +73,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("POST /v1/auth/company", server.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", server.searchCompanies)
 	mux.HandleFunc("GET /health", server.health)
+	mux.HandleFunc("GET /v1/schedule/{key}", server.getPublicSchedule)
+	mux.HandleFunc("POST /v1/schedule/{key}/accept", server.acceptPublicSchedule)
 	mux.HandleFunc("GET /v1/settings", server.admin(server.settings))
 	mux.HandleFunc("GET /v1/jobs/temp", server.admin(server.listTempJobs))
 	mux.HandleFunc("GET /v1/jobs/scout-temp", server.admin(server.listScoutTempJobs))
