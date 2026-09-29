@@ -1,120 +1,151 @@
 import { expect, test } from "bun:test";
 
 import {
-  caseDecisionBody,
-  caseStatus,
-  companyCasesPath,
-  directJobStatus,
   directJobsPath,
   jobReviewBody,
   jobTakedownBody,
-  readCaseDetail,
-  readCaseList,
-  readDirectJobDetail,
+  readCompanyVerification,
   readDirectJobList,
+  readPendingCount,
+  readReviewedJob,
+  readVerificationList,
   requireReason,
   trustLoadError,
+  verificationListStatus,
+  verificationsPath,
+  verifyCompanyBody,
 } from "./trust";
 
-test("company cases path pins the verification queue", () => {
-  expect(companyCasesPath("pending", 1, 1)).toBe(
-    "/v1/admin/cases?queue=company_verification&page=1&page_size=1&status=pending",
+test("verification list uses camelCase pageSize and never the cases queue", () => {
+  expect(verificationsPath("pending", 1, 1)).toBe(
+    "/v1/admin/companies/verifications?status=pending&page=1&pageSize=1",
   );
-  expect(companyCasesPath("", 2)).toBe(
-    "/v1/admin/cases?queue=company_verification&page=2&page_size=25",
+  expect(verificationsPath("nope", 2)).toBe(
+    "/v1/admin/companies/verifications?status=pending&page=2&pageSize=25",
   );
-  expect(caseStatus(null)).toBe("pending");
-  expect(caseStatus("all")).toBe("");
+  expect(verificationsPath("suspended", 1)).toContain("status=suspended");
+  expect(verificationsPath("pending", 1)).not.toContain("/cases");
+  expect(verificationListStatus(null)).toBe("pending");
 });
 
-test("direct jobs path asks for source and status", () => {
-  expect(directJobsPath("pending_review", 1)).toBe(
-    "/v1/admin/jobs?source=direct&page=1&page_size=25&status=pending_review",
+test("direct jobs list is source direct and pending_review", () => {
+  expect(directJobsPath(1)).toBe(
+    "/v1/admin/jobs?source=direct&status=pending_review&page=1&pageSize=25",
   );
-  expect(directJobStatus("nope")).toBe("pending_review");
-  expect(directJobStatus("removed")).toBe("removed");
 });
 
-test("decisions require a reason and an explicit job disposition", () => {
+test("decision bodies match the locked contract", () => {
   expect(() => requireReason("  ")).toThrow("Reason is required.");
-  expect(caseDecisionBody("suspend", " Domain mismatch ")).toEqual({
+  expect(verifyCompanyBody("suspend", " Domain mismatch ")).toEqual({
     decision: "suspend",
     reason: "Domain mismatch",
-    actions: [],
   });
   expect(jobReviewBody("approve", "Domain matches")).toEqual({
     decision: "approve",
-    disposition: "active",
     reason: "Domain matches",
   });
+  expect(jobReviewBody("approve", "  ")).toEqual({ decision: "approve" });
   expect(jobReviewBody("reject", "Scam copy", "draft")).toEqual({
     decision: "reject",
-    disposition: "draft",
     reason: "Scam copy",
+    rejectDisposition: "draft",
+  });
+  expect(jobReviewBody("reject", "", "removed")).toEqual({
+    decision: "reject",
+    rejectDisposition: "removed",
   });
   expect(() => jobReviewBody("reject", "Scam copy")).toThrow("Choose removed or draft.");
-  expect(jobTakedownBody("takedown", "Off-platform fee")).toEqual({
-    decision: "takedown",
-    disposition: "removed",
-    reason: "Off-platform fee",
-  });
-  expect(jobTakedownBody("restore", "Restored after appeal")).toEqual({
-    decision: "restore",
-    disposition: "active",
-    reason: "Restored after appeal",
-  });
+  expect(jobTakedownBody("Off-platform fee")).toEqual({ reason: "Off-platform fee" });
+  expect(() => jobTakedownBody(" ")).toThrow("Reason is required.");
 });
 
-test("case lists accept the docs envelope and a cases alias", () => {
-  const item = {
-    id: "case-1",
-    status: "pending",
-    domain: "acme.test",
-    claim_method: "dns_txt",
-    company: { id: "co-1", name: "Acme", primary_domain: "acme.test", status: "unclaimed" },
-    members: [{ user_id: "u1", email: "a@acme.test", role: "owner", status: "active" }],
-    created_at: "2026-09-01T00:00:00Z",
-  };
-  const fromData = readCaseList({ data: [item], total: 4 });
-  expect(fromData.recognized).toBe(true);
-  expect(fromData.total).toBe(4);
-  expect(fromData.rows[0]?.company?.id).toBe("co-1");
-  expect(fromData.rows[0]?.members[0]?.email).toBe("a@acme.test");
-  expect(readCaseList({ cases: [] })).toEqual({ rows: [], total: 0, recognized: true });
-  expect(readCaseList({ ok: true }).recognized).toBe(false);
-  expect(readCaseDetail({ case: item })?.claimMethod).toBe("dns_txt");
-});
-
-test("direct job lists accept admin rows and nested search jobs", () => {
-  const admin = readDirectJobList({
+test("verification list and company detail read camelCase only", () => {
+  const list = readVerificationList({
     data: [
+      {
+        id: "claim-1",
+        companyId: "co-1",
+        companyName: "Acme",
+        claimMethod: "dns_txt",
+        requestedBy: "a@acme.test",
+        domains: ["acme.test"],
+        memberCount: 2,
+        status: "pending",
+        createdAt: "2026-09-01T00:00:00Z",
+        slaAt: "2026-09-03T00:00:00Z",
+      },
+    ],
+    total: 4,
+    next: "2",
+  });
+  expect(list.recognized).toBe(true);
+  expect(list.total).toBe(4);
+  expect(list.rows[0]).toMatchObject({ companyId: "co-1", memberCount: 2, domains: ["acme.test"] });
+  expect(readVerificationList({ cases: [] }).recognized).toBe(false);
+  expect(readVerificationList({ data: [] })).toEqual({ rows: [], total: 0, recognized: true });
+  expect(readPendingCount({ pending: 3 })).toBe(3);
+  expect(readPendingCount({ total: 3 })).toBeNull();
+
+  const detail = readCompanyVerification({
+    id: "co-1",
+    name: "Acme",
+    url: "https://acme.test",
+    primaryDomain: "acme.test",
+    domains: [{ domain: "acme.test", verified: true }],
+    members: [
+      { userId: "u1", email: "a@acme.test", role: "owner", createdAt: "2026-09-01T00:00:00Z" },
+    ],
+    claimMethod: "domain_email",
+    claimed: true,
+    verificationStatus: "pending",
+    pendingClaim: {
+      id: "claim-1",
+      method: "domain_email",
+      requestedBy: "a@acme.test",
+      createdAt: "2026-09-01T00:00:00Z",
+    },
+    audit: [{ at: "2026-09-01T00:00:00Z", actor: "admin", action: "reject", reason: "Mismatch" }],
+  });
+  expect(detail?.domains[0]?.verified).toBe(true);
+  expect(detail?.members[0]?.userId).toBe("u1");
+  expect(detail?.pendingClaim?.method).toBe("domain_email");
+  expect(detail?.audit[0]?.reason).toBe("Mismatch");
+});
+
+test("direct job list reads jobs and review answers unwrap job", () => {
+  const list = readDirectJobList({
+    jobs: [
       {
         id: "job-1",
         title: "Engineer",
-        company_id: "co-1",
-        company_name: "Acme",
+        companyId: "co-1",
+        companyName: "Acme",
         source: "direct",
         status: "pending_review",
+        createdAt: "2026-09-01T00:00:00Z",
+        location: "Remote",
       },
     ],
     total: 1,
   });
-  expect(admin.rows[0]).toMatchObject({
-    id: "job-1",
+  expect(list.rows[0]).toMatchObject({
     companyId: "co-1",
+    location: "Remote",
     status: "pending_review",
   });
-  const nested = readDirectJobDetail({
-    job: { id: "job-2", title: "Designer", company: "Acme", companyId: "co-2", source: "direct" },
-    status: "active",
-    applyLink: "https://acme.test/apply",
-  });
-  expect(nested).toMatchObject({
-    id: "job-2",
-    companyName: "Acme",
-    status: "active",
-    applyUrl: "https://acme.test/apply",
-  });
+  expect(readDirectJobList({ data: [] }).recognized).toBe(false);
+  expect(
+    readReviewedJob({
+      auditId: "aud-1",
+      job: {
+        id: "job-1",
+        companyId: "co-1",
+        companyName: "Acme",
+        source: "direct",
+        status: "removed",
+      },
+    })?.status,
+  ).toBe("removed");
 });
 
 test("missing endpoints get a distinct message", () => {

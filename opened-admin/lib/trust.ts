@@ -1,32 +1,24 @@
 /**
- * Staff trust queues for company mode. Paths follow docs/32 for cases.
- * Direct-job review is provisional until Einstein publishes the admin job contract.
- * The browser calls these through the admin proxy, which attaches X-Admin-Actor.
+ * Staff trust clients for company mode. Shapes are Einstein's locked admin
+ * contract (camelCase). Calls go through the admin proxy, which sends
+ * Authorization and X-Admin-Actor. There is no /v1/admin/cases queue.
  */
 
-export const CASES_PATH = "/v1/admin/cases";
+export const ADMIN_COMPANIES_PATH = "/v1/admin/companies";
+export const VERIFICATIONS_PATH = "/v1/admin/companies/verifications";
+export const VERIFICATION_PENDING_COUNT_PATH = "/v1/admin/companies/verifications/pending-count";
 export const ADMIN_JOBS_PATH = "/v1/admin/jobs";
 
-export const COMPANY_VERIFICATION_QUEUE = "company_verification";
-export const CASE_STATUS_PENDING = "pending";
+export const VERIFICATION_PENDING = "pending";
 export const DIRECT_JOB_SOURCE = "direct";
 export const DIRECT_JOB_PENDING = "pending_review";
 export const TRUST_PAGE_SIZE = 25;
 
-export const CASE_STATUSES = [
-  { value: CASE_STATUS_PENDING, label: "Pending" },
+export const VERIFICATION_STATUSES = [
+  { value: VERIFICATION_PENDING, label: "Pending" },
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
   { value: "suspended", label: "Suspended" },
-  { value: "", label: "All" },
-] as const;
-
-export const DIRECT_JOB_STATUSES = [
-  { value: DIRECT_JOB_PENDING, label: "Pending review" },
-  { value: "active", label: "Active" },
-  { value: "draft", label: "Draft" },
-  { value: "removed", label: "Removed" },
-  { value: "", label: "All direct" },
 ] as const;
 
 export const JOB_REJECT_DISPOSITIONS = [
@@ -34,64 +26,86 @@ export const JOB_REJECT_DISPOSITIONS = [
   { value: "draft", label: "Draft" },
 ] as const;
 
-export type CaseDecision = "approve" | "reject" | "suspend";
+export type VerificationDecision = "approve" | "reject" | "suspend";
 export type JobReviewDecision = "approve" | "reject";
-export type JobTakedownDecision = "takedown" | "restore";
-export type JobDisposition = "active" | "removed" | "draft";
+export type RejectDisposition = "removed" | "draft";
 
-export type CaseDecisionBody = {
-  decision: CaseDecision;
-  reason: string;
-  actions: string[];
-};
-
-export type JobReviewBody = {
-  decision: JobReviewDecision;
-  disposition: JobDisposition;
+export type VerifyCompanyBody = {
+  decision: VerificationDecision;
   reason: string;
 };
 
-export type JobTakedownBody = {
-  decision: JobTakedownDecision;
-  disposition: "removed" | "active";
-  reason: string;
-};
+export type JobReviewBody =
+  | { decision: "approve"; reason?: string }
+  | { decision: "reject"; reason?: string; rejectDisposition: RejectDisposition };
 
-export type TrustCompany = {
-  id: string;
-  name: string;
-  domain: string;
-  status: string;
-};
+export type JobTakedownBody = { reason: string };
 
-export type TrustMember = {
+export type VerificationRow = {
   id: string;
-  email: string;
-  role: string;
-  status: string;
-};
-
-export type TrustCase = {
-  id: string;
-  queue: string;
+  companyId: string;
+  companyName: string;
+  claimMethod: string;
+  requestedBy: string;
+  domains: string[];
+  memberCount: number;
   status: string;
   createdAt: string;
-  domain: string;
-  claimMethod: string;
-  company: TrustCompany | null;
-  members: TrustMember[];
-  title: string;
+  slaAt: string;
 };
 
-export type DirectJob = {
+export type CompanyDomain = { domain: string; verified: boolean };
+
+export type CompanyMember = {
+  userId: string;
+  email: string;
+  role: string;
+  createdAt: string;
+};
+
+export type PendingClaim = {
+  id: string;
+  method: string;
+  requestedBy: string;
+  createdAt: string;
+};
+
+export type VerificationAudit = {
+  at: string;
+  actor: string;
+  action: string;
+  reason: string;
+};
+
+/** GET /v1/admin/companies/{id}. */
+export type CompanyVerification = {
+  id: string;
+  name: string;
+  url: string;
+  logo: string;
+  primaryDomain: string;
+  domains: CompanyDomain[];
+  members: CompanyMember[];
+  claimMethod: string;
+  claimed: boolean;
+  verificationStatus: string;
+  pendingClaim: PendingClaim | null;
+  verifiedAt: string;
+  suspendedAt: string;
+  audit: VerificationAudit[];
+};
+
+/** A row from GET /v1/admin/jobs and the job inside review/takedown responses. */
+export type AdminDirectJob = {
   id: string;
   title: string;
   companyId: string;
   companyName: string;
   source: string;
   status: string;
-  applyUrl: string;
   postedAt: string;
+  createdAt: string;
+  location: string;
 };
 
 export type ReadList<T> = {
@@ -118,104 +132,88 @@ export function claimMethodLabel(method: string) {
   return CLAIM_METHODS[method] ?? method;
 }
 
-export function caseStatus(value: string | null | undefined) {
-  if (value === "all") return "";
-  return CASE_STATUSES.some((item) => item.value === value) ? value || "" : CASE_STATUS_PENDING;
+export function verificationListStatus(value: string | null | undefined) {
+  return VERIFICATION_STATUSES.some((item) => item.value === value)
+    ? (value as (typeof VERIFICATION_STATUSES)[number]["value"])
+    : VERIFICATION_PENDING;
 }
 
-export function directJobStatus(value: string | null | undefined) {
-  if (value === "all") return "";
-  return DIRECT_JOB_STATUSES.some((item) => item.value === value)
-    ? value || ""
-    : DIRECT_JOB_PENDING;
-}
-
-export function companyCasesPath(status: string, page: number, pageSize = TRUST_PAGE_SIZE) {
+export function verificationsPath(status: string, page: number, pageSize = TRUST_PAGE_SIZE) {
   const params = new URLSearchParams({
-    queue: COMPANY_VERIFICATION_QUEUE,
+    status: verificationListStatus(status),
     page: String(page),
-    page_size: String(pageSize),
+    pageSize: String(pageSize),
   });
-  if (status) params.set("status", status);
-  return `${CASES_PATH}?${params}`;
+  return `${VERIFICATIONS_PATH}?${params}`;
 }
 
-export function casePath(id: string) {
-  return `${CASES_PATH}/${encodeURIComponent(id)}`;
+export function adminCompanyPath(id: string) {
+  return `${ADMIN_COMPANIES_PATH}/${encodeURIComponent(id)}`;
 }
 
-export function caseDecisionPath(id: string) {
-  return `${casePath(id)}/decision`;
+export function verifyCompanyPath(id: string) {
+  return `${adminCompanyPath(id)}/verify`;
 }
 
-export function directJobsPath(status: string, page: number, pageSize = TRUST_PAGE_SIZE) {
+export function directJobsPath(page: number, pageSize = TRUST_PAGE_SIZE) {
   const params = new URLSearchParams({
     source: DIRECT_JOB_SOURCE,
+    status: DIRECT_JOB_PENDING,
     page: String(page),
-    page_size: String(pageSize),
+    pageSize: String(pageSize),
   });
-  if (status) params.set("status", status);
   return `${ADMIN_JOBS_PATH}?${params}`;
 }
 
-export function directJobPath(id: string) {
-  return `${ADMIN_JOBS_PATH}/${encodeURIComponent(id)}`;
-}
-
 export function jobReviewPath(id: string) {
-  return `${directJobPath(id)}/review`;
+  return `${ADMIN_JOBS_PATH}/${encodeURIComponent(id)}/review`;
 }
 
 export function jobTakedownPath(id: string) {
-  return `${directJobPath(id)}/takedown`;
+  return `${ADMIN_JOBS_PATH}/${encodeURIComponent(id)}/takedown`;
 }
 
-export function caseListQuery(status: string, page: number) {
+export function verificationListQuery(status: string, page: number) {
   const params = new URLSearchParams();
-  if (status !== CASE_STATUS_PENDING) params.set("status", status || "all");
+  if (status !== VERIFICATION_PENDING) params.set("status", status);
   if (page > 1) params.set("page", String(page));
   const query = params.toString();
   return query ? `?${query}` : "";
 }
 
-export function directJobListQuery(status: string, page: number) {
-  const params = new URLSearchParams();
-  if (status !== DIRECT_JOB_PENDING) params.set("status", status || "all");
-  if (page > 1) params.set("page", String(page));
-  const query = params.toString();
-  return query ? `?${query}` : "";
-}
-
-/** A decision cannot be sent until the reviewer writes a reason. */
+/** Verify and take-down reject an empty reason. Review may omit it. */
 export function requireReason(reason: string) {
   const trimmed = reason.trim();
   if (!trimmed) throw new Error("Reason is required.");
   return trimmed;
 }
 
-export function caseDecisionBody(decision: CaseDecision, reason: string): CaseDecisionBody {
-  return { decision, reason: requireReason(reason), actions: [] };
+export function verifyCompanyBody(
+  decision: VerificationDecision,
+  reason: string,
+): VerifyCompanyBody {
+  return { decision, reason: requireReason(reason) };
 }
 
 export function jobReviewBody(
   decision: JobReviewDecision,
   reason: string,
-  disposition?: string,
+  rejectDisposition?: string,
 ): JobReviewBody {
-  const text = requireReason(reason);
-  if (decision === "approve") return { decision, disposition: "active", reason: text };
-  if (disposition !== "removed" && disposition !== "draft") {
+  const text = reason.trim();
+  if (decision === "approve") {
+    return text ? { decision: "approve", reason: text } : { decision: "approve" };
+  }
+  if (rejectDisposition !== "removed" && rejectDisposition !== "draft") {
     throw new Error("Choose removed or draft.");
   }
-  return { decision, disposition, reason: text };
+  return text
+    ? { decision: "reject", reason: text, rejectDisposition }
+    : { decision: "reject", rejectDisposition };
 }
 
-export function jobTakedownBody(decision: JobTakedownDecision, reason: string): JobTakedownBody {
-  return {
-    decision,
-    disposition: decision === "takedown" ? "removed" : "active",
-    reason: requireReason(reason),
-  };
+export function jobTakedownBody(reason: string): JobTakedownBody {
+  return { reason: requireReason(reason) };
 }
 
 export function trustLoadError(status: number | null, message: string | null) {
@@ -225,133 +223,162 @@ export function trustLoadError(status: number | null, message: string | null) {
   return message || "Could not load.";
 }
 
-export function readCaseList(body: unknown): ReadList<TrustCase> {
-  return readRows(body, ["data", "cases", "items"], readTrustCase);
-}
-
-export function readCaseDetail(body: unknown): TrustCase | null {
-  const row = asRecord(body);
-  if (!row) return null;
-  const nested = row.case ?? row.data;
-  if (nested && !Array.isArray(nested)) return readTrustCase(nested);
-  return readTrustCase(body);
-}
-
-export function readDirectJobList(body: unknown): ReadList<DirectJob> {
-  return readRows(body, ["data", "jobs", "items"], readDirectJob);
-}
-
-export function readDirectJobDetail(body: unknown): DirectJob | null {
-  const row = asRecord(body);
-  if (!row) return null;
-  const data = row.data;
-  if (data && !Array.isArray(data) && !text(row.id) && !asRecord(row.job)) {
-    return readDirectJob(data);
-  }
-  return readDirectJob(body);
-}
-
-function readRows<T extends { id: string }>(
-  body: unknown,
-  keys: string[],
-  read: (value: unknown) => T | null,
-): ReadList<T> {
-  const source = Array.isArray(body) ? body : arrayField(body, keys);
-  if (!source) return { rows: [], total: 0, recognized: false };
-  const rows = source.map(read).filter((item): item is T => item !== null);
-  if (source.length > 0 && rows.length === 0) return { rows: [], total: 0, recognized: false };
+export function readVerificationList(body: unknown): ReadList<VerificationRow> {
+  const data = asRecord(body)?.data;
+  if (!Array.isArray(data)) return { rows: [], total: 0, recognized: false };
+  const rows = data
+    .map(readVerificationRow)
+    .filter((item): item is VerificationRow => item !== null);
+  if (data.length > 0 && rows.length === 0) return { rows: [], total: 0, recognized: false };
   return { rows, total: readTotal(body, rows.length), recognized: true };
 }
 
-export function readTrustCase(value: unknown): TrustCase | null {
+export function readPendingCount(body: unknown) {
+  const pending = asRecord(body)?.pending;
+  return typeof pending === "number" && Number.isFinite(pending) ? pending : null;
+}
+
+export function readCompanyVerification(body: unknown): CompanyVerification | null {
+  const row = asRecord(body);
+  if (!row) return null;
+  const id = text(row.id);
+  if (!id) return null;
+  return {
+    id,
+    name: text(row.name),
+    url: text(row.url),
+    logo: text(row.logo),
+    primaryDomain: text(row.primaryDomain),
+    domains: readDomains(row.domains),
+    members: readMembers(row.members),
+    claimMethod: text(row.claimMethod),
+    claimed: row.claimed === true,
+    verificationStatus: text(row.verificationStatus),
+    pendingClaim: readPendingClaim(row.pendingClaim),
+    verifiedAt: text(row.verifiedAt),
+    suspendedAt: text(row.suspendedAt),
+    audit: readAudit(row.audit),
+  };
+}
+
+export function readDirectJobList(body: unknown): ReadList<AdminDirectJob> {
+  const jobs = asRecord(body)?.jobs;
+  if (!Array.isArray(jobs)) return { rows: [], total: 0, recognized: false };
+  const rows = jobs.map(readAdminDirectJob).filter((item): item is AdminDirectJob => item !== null);
+  if (jobs.length > 0 && rows.length === 0) return { rows: [], total: 0, recognized: false };
+  return { rows, total: readTotal(body, rows.length), recognized: true };
+}
+
+/** Review and take-down both answer `{ job, auditId }`. */
+export function readReviewedJob(body: unknown): AdminDirectJob | null {
+  return readAdminDirectJob(asRecord(body)?.job);
+}
+
+function readVerificationRow(value: unknown): VerificationRow | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const id = text(row.id);
+  const companyId = text(row.companyId);
+  if (!id || !companyId) return null;
+  return {
+    id,
+    companyId,
+    companyName: text(row.companyName),
+    claimMethod: text(row.claimMethod),
+    requestedBy: text(row.requestedBy),
+    domains: stringList(row.domains),
+    memberCount: count(row.memberCount),
+    status: text(row.status),
+    createdAt: text(row.createdAt),
+    slaAt: text(row.slaAt),
+  };
+}
+
+function readAdminDirectJob(value: unknown): AdminDirectJob | null {
   const row = asRecord(value);
   if (!row) return null;
   const id = text(row.id);
   if (!id) return null;
-  const claim = asRecord(row.claim);
-  const company = readCompany(row.company ?? row.linked_company ?? claim?.company);
-  const domain = text(row.domain, row.primary_domain, claim?.domain, company?.domain);
-  const claimMethod = text(row.claim_method, row.claimMethod, claim?.method);
-  const name = text(company?.name, row.company_name, row.subject);
   return {
     id,
-    queue: text(row.queue),
-    status: text(row.status) || CASE_STATUS_PENDING,
-    createdAt: text(row.created_at, row.createdAt),
-    domain,
-    claimMethod,
-    company,
-    members: readMembers(row.members ?? claim?.members),
-    title: name || domain || "Verification case",
+    title: text(row.title) || "Untitled job",
+    companyId: text(row.companyId),
+    companyName: text(row.companyName),
+    source: text(row.source),
+    status: text(row.status),
+    postedAt: text(row.postedAt),
+    createdAt: text(row.createdAt),
+    location: text(row.location),
   };
 }
 
-export function readDirectJob(value: unknown): DirectJob | null {
+function readDomains(value: unknown): CompanyDomain[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const row = asRecord(item);
+    const domain = text(row?.domain);
+    if (!domain) return [];
+    return [{ domain, verified: row?.verified === true }];
+  });
+}
+
+function readMembers(value: unknown): CompanyMember[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const row = asRecord(item);
+    const userId = text(row?.userId);
+    if (!userId) return [];
+    return [
+      {
+        userId,
+        email: text(row?.email),
+        role: text(row?.role),
+        createdAt: text(row?.createdAt),
+      },
+    ];
+  });
+}
+
+function readPendingClaim(value: unknown): PendingClaim | null {
   const row = asRecord(value);
-  if (!row) return null;
-  const job = asRecord(row.job);
-  const id = text(row.id, job?.id);
+  const id = text(row?.id);
   if (!id) return null;
-  const company = asRecord(row.company);
   return {
     id,
-    title: text(row.title, job?.title) || "Untitled job",
-    companyId: text(row.company_id, row.companyId, job?.companyId, job?.company_id, company?.id),
-    companyName: text(
-      row.company_name,
-      row.companyName,
-      company?.name,
-      job?.company,
-      job?.companyName,
-    ),
-    source: text(row.source, job?.source),
-    status: text(row.status, job?.status),
-    applyUrl: text(
-      row.official_apply_url,
-      row.apply_url,
-      row.applyUrl,
-      row.applyLink,
-      job?.applyLink,
-    ),
-    postedAt: text(row.posted_at, row.postedAt, job?.postedAt),
+    method: text(row?.method),
+    requestedBy: text(row?.requestedBy),
+    createdAt: text(row?.createdAt),
   };
 }
 
-function readCompany(value: unknown): TrustCompany | null {
-  const row = asRecord(value);
-  if (!row) return null;
-  const id = text(row.id);
-  const name = text(row.name, row.legal_name);
-  const domain = text(row.primary_domain, row.domain, row.url);
-  if (!id && !name && !domain) return null;
-  return { id, name, domain, status: text(row.status) };
-}
-
-function readMembers(value: unknown): TrustMember[] {
+function readAudit(value: unknown): VerificationAudit[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
     const row = asRecord(item);
     if (!row) return [];
-    const email = text(row.email, row.user_email);
-    const id = text(row.user_id, row.userId, row.id, email);
-    if (!id && !email) return [];
-    return [{ id, email, role: text(row.role), status: text(row.status) }];
+    return [
+      {
+        at: text(row.at),
+        actor: text(row.actor),
+        action: text(row.action),
+        reason: text(row.reason),
+      },
+    ];
   });
 }
 
-function arrayField(body: unknown, keys: string[]) {
-  const row = asRecord(body);
-  if (!row) return null;
-  for (const key of keys) {
-    if (Array.isArray(row[key])) return row[key];
-  }
-  return null;
+function stringList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim() !== "");
 }
 
 function readTotal(body: unknown, fallback: number) {
-  const row = asRecord(body);
-  const total = row?.total;
+  const total = asRecord(body)?.total;
   return typeof total === "number" && Number.isFinite(total) ? total : fallback;
+}
+
+function count(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -360,9 +387,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function text(...values: unknown[]) {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return "";
+function text(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
 }
