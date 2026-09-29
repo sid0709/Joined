@@ -319,11 +319,14 @@ type storedThread struct {
 }
 
 type Message struct {
-	ID        string    `json:"id" bson:"id"`
-	ThreadID  string    `json:"-" bson:"threadId"`
-	From      string    `json:"from" bson:"from"`
-	AuthorID  string    `json:"-" bson:"authorId"`
-	Text      string    `json:"text" bson:"text"`
+	ID       string `json:"id" bson:"id"`
+	ThreadID string `json:"-" bson:"threadId"`
+	From     string `json:"from" bson:"from"`
+	AuthorID string `json:"-" bson:"authorId"`
+	Text     string `json:"text" bson:"text"`
+	// Notice marks a system line that should badge the candidate inbox.
+	// Hiring-team unread ignores it, the same as other events.
+	Notice    bool      `json:"-" bson:"notice,omitempty"`
 	Day       string    `json:"day" bson:"-"`
 	Time      string    `json:"time" bson:"-"`
 	Status    string    `json:"status,omitempty" bson:"-"`

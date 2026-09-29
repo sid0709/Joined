@@ -144,8 +144,8 @@ export function CompanyJobDrawer({
               {job.closeReason || (job.closedAt ? "Archived from search" : "Archived")}
               {job.notifyOnClose != null
                 ? job.notifyOnClose
-                  ? " · Notify flagged"
-                  : " · Notify off"
+                  ? " · Applicants notified"
+                  : " · Applicants not notified"
                 : ""}
             </MetadataListItem>
           ) : null}

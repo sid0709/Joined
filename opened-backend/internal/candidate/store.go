@@ -48,6 +48,7 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		{profilesCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{savedJobsCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "jobId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{applicationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "jobId", Value: 1}}, Options: options.Index().SetUnique(true)}},
+		{applicationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "jobId", Value: 1}}}},
 		{interviewsCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "googleEventId", Value: 1}}, Options: options.Index().SetUnique(true).SetSparse(true)}},
 		{interviewsCollection, mongo.IndexModel{Keys: bson.D{{Key: "selfScheduleToken", Value: 1}}, Options: options.Index().SetUnique(true).SetSparse(true)}},
 		{calendarCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}},

@@ -48,7 +48,7 @@ export type CompanyJob = {
   closedAt?: string;
   /** Short note set on close (Layer A). */
   closeReason?: string;
-  /** Whether candidates were flagged for notify on close (stored only). */
+  /** Close asked to notify open applicants in-app. Delivery is best-effort. */
   notifyOnClose?: boolean;
 };
 

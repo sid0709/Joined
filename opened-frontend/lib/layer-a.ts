@@ -19,18 +19,19 @@
  *   CompanyJob.department?: string   // alias of team
  *   CompanyJob.closedAt?: string     // ISO when status became "closed"
  *   CompanyJob.closeReason?: string
- *   CompanyJob.notifyOnClose?: boolean // stored only; no candidate message yet
+ *   CompanyJob.notifyOnClose?: boolean // true (default) messages open applicants in-app
  *
  * PATCH /v1/company/jobs/:id
  *   { status, closeReason?, notifyOnClose? }
- *   notifyOnClose defaults true on close. status "open" on closed = reopen
+ *   notifyOnClose defaults true on close and messages open applicants on their
+ *   application thread. false skips notices. status "open" on closed = reopen
  *   (clears close fields). Pause/close/reopen/publish need jobs.publish (PATCH).
  *
  * Public careers (light):
  *   GET /v1/search/companies/:id?department=&location=
  *   Do NOT invent a branded multi-page careers portal.
  *
- * Out of scope: notifyOnClose candidate messaging; D polish; SSO; admin.
+ * Out of scope: D polish; SSO; admin.
  * Related: assisted policy on CompanyJob.policy. Intake: lib/intake.ts.
  */
 

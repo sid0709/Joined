@@ -163,8 +163,13 @@ func (s *Store) SetJobStatus(ctx context.Context, company auth.Company, userID, 
 	if _, err := s.collection(jobsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "companyId", Value: company.ID}}, doc); err != nil {
 		return Job{}, err
 	}
-	if err := s.record(ctx, company.ID, doc.Title+" is "+activityLabel(doc.Status), "", toneForStatus(doc.Status), now); err != nil {
-		return Job{}, err
+	recordErr := s.record(ctx, company.ID, doc.Title+" is "+activityLabel(doc.Status), "", toneForStatus(doc.Status), now)
+	// The close is already stored. Notices are best-effort and never roll it back.
+	if wantsCloseNotice(doc) {
+		s.notifyApplicantsOfClose(ctx, company, doc, now)
+	}
+	if recordErr != nil {
+		return Job{}, recordErr
 	}
 	pipelines, err := s.pipelines(ctx, company.ID)
 	if err != nil {
@@ -319,9 +324,27 @@ func searchJob(doc storedJob, companyName string) jobs.SearchJob {
 	}
 }
 
+// wantsCloseNotice is true after a close that asked to tell applicants.
+// applyJobStatus defaults the flag to true. An explicit false skips notices.
+func wantsCloseNotice(doc storedJob) bool {
+	return doc.Status == statusClosed && doc.NotifyOnClose != nil && *doc.NotifyOnClose
+}
+
+// notifyApplicantsOfClose tells open applicants the role closed.
+// Errors stay inside the candidate store: a missed notice must not undo the close.
+// This service has no outbound mailer. The application thread is the in-app channel.
+func (s *Store) notifyApplicantsOfClose(ctx context.Context, company auth.Company, doc storedJob, now time.Time) {
+	if s == nil || s.people == nil {
+		return
+	}
+	s.people.NotifyJobClosed(ctx, company.ID, company.Name, doc.ID, doc.Title, doc.CloseReason, now)
+}
+
 // applyJobStatus checks a status change and stamps close or reopen fields.
-// Opening a closed job clears closedAt and closeReason. NotifyOnClose defaults
-// to true when the job becomes closed. Publish approval still happens in the store.
+// Opening a closed job clears closedAt, closeReason, and notifyOnClose.
+// NotifyOnClose defaults to true when the job becomes closed. SetJobStatus
+// sends candidate notices after that close is stored. Publish approval still
+// happens in the store.
 func applyJobStatus(doc storedJob, input JobStatusPatch, now time.Time) (storedJob, error) {
 	status := strings.TrimSpace(input.Status)
 	if !validStatus(status) || status == doc.Status {

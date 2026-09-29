@@ -61,6 +61,26 @@ func TestCloseStampsReasonAndDefaultsNotify(t *testing.T) {
 	}
 }
 
+func TestCloseWantsNoticeUnlessOptedOut(t *testing.T) {
+	now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
+	closed, err := applyJobStatus(readyJob(statusOpen), JobStatusPatch{Status: statusClosed}, now)
+	if err != nil || !wantsCloseNotice(closed) {
+		t.Fatalf("default close = %+v %v", closed.NotifyOnClose, err)
+	}
+	off := false
+	silent, err := applyJobStatus(readyJob(statusPaused), JobStatusPatch{Status: statusClosed, NotifyOnClose: &off}, now)
+	if err != nil || wantsCloseNotice(silent) {
+		t.Fatalf("opt-out = %+v %v", silent.NotifyOnClose, err)
+	}
+	reopened, err := applyJobStatus(closed, JobStatusPatch{Status: statusOpen}, now.Add(time.Hour))
+	if err != nil || wantsCloseNotice(reopened) {
+		t.Fatalf("reopen = %+v %v", reopened.NotifyOnClose, err)
+	}
+	if wantsCloseNotice(readyJob(statusOpen)) {
+		t.Fatal("an open job must not notify")
+	}
+}
+
 func TestCloseHonorsNotifyFalse(t *testing.T) {
 	notify := false
 	now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
