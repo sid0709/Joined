@@ -108,16 +108,31 @@ export function normalizePersonKey(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-/** Same display name on another job — soft dupe until Einstein returns userId. */
+/**
+ * Same person on another job.
+ * Prefer opaque userId when Einstein returns it; fall back to normalized name.
+ */
 export function findDuplicateApplicants<
-  T extends { id: string; name: string; jobId: string; jobTitle: string },
+  T extends { id: string; name: string; jobId: string; jobTitle: string; userId?: string },
 >(applicant: T, all: T[]): T[] {
+  const userId = applicant.userId?.trim();
+  if (userId) {
+    return all.filter(
+      (other) =>
+        other.id !== applicant.id &&
+        other.jobId !== applicant.jobId &&
+        Boolean(other.userId?.trim()) &&
+        other.userId?.trim() === userId,
+    );
+  }
   const key = normalizePersonKey(applicant.name);
   if (!key) return [];
   return all.filter(
     (other) =>
       other.id !== applicant.id &&
       other.jobId !== applicant.jobId &&
+      // Skip name soft-match when the other row has a different userId.
+      !other.userId?.trim() &&
       normalizePersonKey(other.name) === key,
   );
 }

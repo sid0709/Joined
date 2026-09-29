@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import {
+  AlertDialog,
   Badge,
   HStack,
   Icon,
   Stack,
   Tab,
   TabList,
+  Text,
   TextInput,
   icons,
   useToast,
@@ -33,12 +35,14 @@ const NEXT_STATUS: Partial<Record<JobAction, CompanyJobStatus>> = {
   resume: "open",
   close: "closed",
   publish: "open",
+  reopen: "open",
 };
 const DONE_MESSAGE: Partial<Record<JobAction, string>> = {
   pause: "paused. It is hidden from search until you resume it.",
   resume: "is open again.",
-  close: "closed. Candidates in progress will be told.",
+  close: "closed and archived from search. Candidates in progress will be told.",
   publish: "is live.",
+  reopen: "reopened and is live again.",
 };
 
 /** The jobs console: stats, status tabs, search, a table, and a detail drawer. */
@@ -49,6 +53,8 @@ export function CompanyJobsWorkspace() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [closing, setClosing] = useState<CompanyJob | null>(null);
+  const [closingBusy, setClosingBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -66,21 +72,39 @@ export function CompanyJobsWorkspace() {
 
   const needle = query.trim().toLowerCase();
   const searched = jobs.filter(
-    (job) => !needle || `${job.title} ${job.team} ${job.location}`.toLowerCase().includes(needle),
+    (job) =>
+      !needle ||
+      `${job.title} ${job.team} ${job.department ?? ""} ${job.location}`
+        .toLowerCase()
+        .includes(needle),
   );
   const shown = filter === "all" ? searched : searched.filter((job) => job.status === filter);
   const live = jobs.filter((job) => job.status === "open");
+  const closedCount = jobs.filter((job) => job.status === "closed").length;
+  const closingPipeline = closing ? pipelineTotal(closing.pipeline) : 0;
 
-  const act = (job: CompanyJob, action: JobAction) => {
-    if (action === "open") return setOpenId(job.id);
+  const applyStatus = (
+    job: CompanyJob,
+    action: JobAction,
+    options?: { closeReason?: string; notifyOnClose?: boolean },
+  ) => {
     const next = NEXT_STATUS[action];
     if (!next) return;
-    setJobStatus(job.id, next)
+    setJobStatus(job.id, next, options)
       .then((saved) => {
         setJobs((current) => current.map((item) => (item.id === saved.id ? saved : item)));
         toast({ body: `${job.title} ${DONE_MESSAGE[action]}` });
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
+
+  const act = (job: CompanyJob, action: JobAction) => {
+    if (action === "open") return setOpenId(job.id);
+    if (action === "close") {
+      setClosing(job);
+      return;
+    }
+    applyStatus(job, action);
   };
 
   return (
@@ -98,7 +122,11 @@ export function CompanyJobsWorkspace() {
             value: jobs.reduce((sum, job) => sum + job.views, 0).toLocaleString(),
             hint: "Since posting",
           },
-          { label: "Cost to post", value: "$0", hint: "Pay only for attended interviews" },
+          {
+            label: "Archived",
+            value: String(closedCount),
+            hint: "Closed jobs stay here to reopen",
+          },
         ]}
       />
 
@@ -108,7 +136,13 @@ export function CompanyJobsWorkspace() {
             <Tab
               key={value}
               value={value}
-              label={value === "all" ? "All" : JOB_STATUS_META[value].label}
+              label={
+                value === "all"
+                  ? "All"
+                  : value === "closed"
+                    ? "Archived"
+                    : JOB_STATUS_META[value].label
+              }
               endContent={
                 <Badge
                   label={String(
@@ -134,12 +168,48 @@ export function CompanyJobsWorkspace() {
         />
       </HStack>
 
+      {filter === "closed" ? (
+        <Text type="supporting" color="secondary">
+          Closed jobs are archived from search. Reopen one to put it live again; in-progress
+          candidates keep their history.
+        </Text>
+      ) : null}
+
       <CompanyJobTable jobs={shown} onAction={act} />
       <CompanyJobDrawer
         job={jobs.find((job) => job.id === openId) ?? null}
         applicants={applicants}
         onClose={() => setOpenId(null)}
         onAction={act}
+      />
+
+      <AlertDialog
+        isOpen={closing != null}
+        onOpenChange={(open) => {
+          if (!open) setClosing(null);
+        }}
+        title={`Close and archive “${closing?.title ?? ""}”?`}
+        description={
+          closingPipeline > 0
+            ? `${closingPipeline} candidate${closingPipeline === 1 ? "" : "s"} are still in the pipeline. They’ll be told the role closed. You can reopen later from Archived.`
+            : "The posting leaves search right away. You can reopen it later from Archived."
+        }
+        actionLabel="Close job"
+        actionVariant="destructive"
+        isActionLoading={closingBusy}
+        onAction={() => {
+          if (!closing) return;
+          setClosingBusy(true);
+          const job = closing;
+          setJobStatus(job.id, "closed", { notifyOnClose: true })
+            .then((saved) => {
+              setJobs((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+              toast({ body: `${job.title} ${DONE_MESSAGE.close}` });
+              setClosing(null);
+            })
+            .catch((error: Error) => toast({ body: error.message, type: "error" }))
+            .finally(() => setClosingBusy(false));
+        }}
       />
     </Stack>
   );

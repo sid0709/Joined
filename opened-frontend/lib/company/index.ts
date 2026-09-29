@@ -94,3 +94,23 @@ export {
   type AuditAction,
   type AuditListResponse,
 } from "@/lib/rbac";
+
+export {
+  MAX_JOB_TEMPLATES,
+  MAX_DEPARTMENTS,
+  MAX_OFFICE_LOCATIONS,
+  MAX_TEMPLATE_NAME,
+  MAX_CLOSE_REASON,
+  newJobTemplate,
+  newJobTemplateId,
+  hydrateJobTemplates,
+  hydrateJobTemplate,
+  hydrateDepartments,
+  hydrateOfficeLocations,
+  templateToDraft,
+  groupJobsByDepartment,
+  uniqueJobLocations,
+  type JobTemplate,
+  type JobTemplateDraft,
+  type CloseJobPayload,
+} from "@/lib/layer-a";

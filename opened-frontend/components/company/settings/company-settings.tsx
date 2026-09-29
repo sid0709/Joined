@@ -28,6 +28,7 @@ import {
 import { fetchSettings, fetchTeam, saveSettings, transferOwnership } from "@/lib/company/api";
 import type { AuthSession } from "@/lib/auth/types";
 import { RemoveAccount } from "@/components/settings/remove-account";
+import { OrgCatalogSettings } from "@/components/company/settings/org-catalog";
 
 const DIGESTS = [
   { value: "instant", label: "Instant" },
@@ -247,6 +248,8 @@ export function CompanySettings({ session }: { session: AuthSession }) {
           <Switch label="Spend alert" isLabelHidden value={spendAlert} onChange={setSpendAlert} />
         </SettingsRow>
       </SettingsGroup>
+
+      <OrgCatalogSettings />
 
       <SettingsGroup
         title="Ownership"

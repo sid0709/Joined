@@ -41,6 +41,12 @@ import {
 } from "@/lib/rbac";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
+import {
+  hydrateDepartments,
+  hydrateJobTemplates,
+  hydrateOfficeLocations,
+  type JobTemplate,
+} from "@/lib/layer-a";
 
 const CENTS_PER_DOLLAR = 100;
 
@@ -134,6 +140,9 @@ function hydrateJob(job: ApiJob): CompanyJob {
     scorecardTemplate: hydrateScorecardTemplate(job.scorecardTemplate) ?? undefined,
     interviewGuide: hydrateInterviewGuide(job.interviewGuide) ?? undefined,
     offerTemplates: hydrateOfferTemplates(job.offerTemplates),
+    department: job.department?.trim() || job.team || undefined,
+    closedAt: job.closedAt || undefined,
+    closeReason: job.closeReason?.trim() || undefined,
   };
 }
 
@@ -260,8 +269,107 @@ export function saveJobTeams(teams: string[], rename?: { from: string; to: strin
   );
 }
 
-export function setJobStatus(id: string, status: CompanyJobStatus) {
-  return companySend<ApiJob>(`/jobs/${id}`, "PATCH", { status }).then(hydrateJob);
+export function setJobStatus(
+  id: string,
+  status: CompanyJobStatus,
+  options?: { closeReason?: string; notifyOnClose?: boolean },
+) {
+  return companySend<ApiJob>(`/jobs/${id}`, "PATCH", {
+    status,
+    ...(status === "closed"
+      ? {
+          closeReason: options?.closeReason,
+          notifyOnClose: options?.notifyOnClose ?? true,
+        }
+      : {}),
+  }).then(hydrateJob);
+}
+
+const JOB_TEMPLATES_KEY = "openseat.company.job-templates";
+const OFFICE_LOCATIONS_KEY = "openseat.company.office-locations";
+
+function readLocalJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalJson(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Quota / private mode — ignore; API soft-fail still applies.
+  }
+}
+
+/** Job post templates — Einstein soft-fails to localStorage. */
+export function fetchJobTemplates() {
+  return companyGet<{ templates?: JobTemplate[] }>("/job-templates")
+    .then((body) => hydrateJobTemplates(body.templates))
+    .catch(() => hydrateJobTemplates(readLocalJson<JobTemplate[]>(JOB_TEMPLATES_KEY, [])));
+}
+
+export function saveJobTemplates(templates: JobTemplate[]) {
+  const next = hydrateJobTemplates(templates);
+  writeLocalJson(JOB_TEMPLATES_KEY, next);
+  return companySend<{ templates?: JobTemplate[] }>("/job-templates", "PUT", {
+    templates: next,
+  })
+    .then((body) => hydrateJobTemplates(body.templates ?? next))
+    .catch(() => next);
+}
+
+/**
+ * Departments catalog. Prefers /departments; falls back to /job-teams then [].
+ * Same strings as CompanyJob.team until Einstein splits the fields.
+ */
+export function fetchDepartments() {
+  return companyGet<{ departments?: string[] }>("/departments")
+    .then((body) => hydrateDepartments(body.departments))
+    .catch(() =>
+      companyGet<{ teams?: string[] }>("/job-teams")
+        .then((body) => hydrateDepartments(body.teams))
+        .catch(() => [] as string[]),
+    );
+}
+
+export function saveDepartments(departments: string[], rename?: { from: string; to: string }) {
+  const next = hydrateDepartments(departments);
+  return companySend<{ departments?: string[]; teams?: string[] }>("/departments", "PUT", {
+    departments: next,
+    rename,
+  })
+    .then((body) => hydrateDepartments(body.departments ?? body.teams ?? next))
+    .catch(() =>
+      // Mirror onto job-teams so existing team pickers stay in sync.
+      saveJobTeams(next, rename)
+        .then((teams) => hydrateDepartments(teams))
+        .catch(() => next),
+    );
+}
+
+/** Office / hiring cities catalog — soft-fails to localStorage. */
+export function fetchOfficeLocations() {
+  return companyGet<{ locations?: string[] }>("/office-locations")
+    .then((body) => hydrateOfficeLocations(body.locations))
+    .catch(() => hydrateOfficeLocations(readLocalJson<string[]>(OFFICE_LOCATIONS_KEY, [])));
+}
+
+export function saveOfficeLocations(locations: string[], rename?: { from: string; to: string }) {
+  const next = hydrateOfficeLocations(locations);
+  writeLocalJson(OFFICE_LOCATIONS_KEY, next);
+  return companySend<{ locations?: string[] }>("/office-locations", "PUT", {
+    locations: next,
+    rename,
+  })
+    .then((body) => hydrateOfficeLocations(body.locations ?? next))
+    .catch(() => next);
 }
 
 export function fetchApplicants() {

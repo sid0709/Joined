@@ -4,9 +4,7 @@ import {
   Blockquote,
   Button,
   Card,
-  ClickableCard,
   Divider,
-  EmptyState,
   Glyph,
   GridColumn,
   GridSystem,
@@ -22,49 +20,17 @@ import {
   Token,
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { JobTags } from "@/components/jobs/job-tags";
 import { SectionCard } from "@/components/section-card";
 import {
-  formatPay,
-  formatPosted,
   presentCompany,
   websiteHref,
   websiteLabel,
   type Job,
   type PublicCompany,
 } from "@/lib/jobs";
-import { ROUTES } from "@/lib/routes";
+import { CompanyCareers } from "@/components/company/public/company-careers";
 
 const LOGO_SIZE = 96;
-const ROLE_LOGO_SIZE = 40;
-
-function RoleRow({ job }: { job: Job }) {
-  return (
-    <ClickableCard label={`${job.title} at ${job.company}`} href={ROUTES.job(job.id)} padding={4}>
-      <HStack gap={3} vAlign="start">
-        <CompanyLogo
-          name={job.company}
-          companyId={job.companyId}
-          src={job.companyLogo}
-          size={ROLE_LOGO_SIZE}
-        />
-        <Stack gap={2}>
-          <Stack gap={0.5}>
-            <Text weight="semibold">{job.title}</Text>
-            <Text type="supporting" color="secondary">
-              {job.team ? `${job.team} · ` : ""}
-              {job.location} · {formatPosted(job.postedHoursAgo)}
-            </Text>
-          </Stack>
-          <JobTags job={job} applied={false} />
-          <Text weight="medium" hasTabularNumbers>
-            {formatPay(job.pay)}
-          </Text>
-        </Stack>
-      </HStack>
-    </ClickableCard>
-  );
-}
 
 /** A single stat's value: the real figure, or a skeleton while the field is unset. */
 function StatValue({ value }: { value?: ReactNode }) {
@@ -235,21 +201,7 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
               )}
             </SectionCard>
 
-            <SectionCard
-              title="Open roles"
-              description={`${jobs.length} open at ${profile.name} right now`}
-            >
-              <Stack gap={4}>
-                {jobs.length > 0 ? (
-                  jobs.map((job) => <RoleRow key={job.id} job={job} />)
-                ) : (
-                  <EmptyState
-                    title="No open roles right now"
-                    description={`${profile.name} isn’t hiring at the moment.`}
-                  />
-                )}
-              </Stack>
-            </SectionCard>
+            <CompanyCareers companyName={profile.name} jobs={jobs} />
           </Stack>
         </GridColumn>
         <GridColumn span="full" lg={4}>

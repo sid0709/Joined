@@ -240,10 +240,16 @@ export function ApplicantDrawer({
         {duplicates.length > 0 ? (
           <Banner
             status="warning"
-            title="Possible duplicate"
-            description={`Same name also applied to ${duplicates
-              .map((item) => item.jobTitle)
-              .join(", ")}. Confirm it is not the same person before advancing.`}
+            title={applicant.userId ? "Same account on another job" : "Possible duplicate"}
+            description={
+              applicant.userId
+                ? `This seeker also applied to ${duplicates
+                    .map((item) => item.jobTitle)
+                    .join(", ")}.`
+                : `Same name also applied to ${duplicates
+                    .map((item) => item.jobTitle)
+                    .join(", ")}. Confirm it is not the same person before advancing.`
+            }
           />
         ) : null}
 

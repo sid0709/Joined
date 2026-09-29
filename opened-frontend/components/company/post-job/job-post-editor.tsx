@@ -30,11 +30,19 @@ import { useEffect, useMemo, useState } from "react";
 import { JobAiPaste, type ParsedJob } from "@/components/company/post-job/job-ai-paste";
 import { ScreeningQuestionsEditor } from "@/components/company/post-job/screening-questions-editor";
 import { JobTeamField, JobTeamList } from "@/components/company/post-job/job-team-field";
+import { JobTemplateBar } from "@/components/company/post-job/job-template-bar";
 import { JobResultCard } from "@/components/jobs/job-result-card";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { createJob, fetchJob, fetchJobTeams, updateJob } from "@/lib/company/api";
+import {
+  createJob,
+  fetchJob,
+  fetchJobTeams,
+  fetchOfficeLocations,
+  updateJob,
+} from "@/lib/company/api";
 import type { CompanyJob } from "@/lib/company";
 import { hydrateScreeningQuestions, type ScreeningQuestion } from "@/lib/intake";
+import type { JobTemplateDraft } from "@/lib/layer-a";
 import type { AuthCompany } from "@/lib/auth/types";
 import {
   CURRENCY_OPTIONS,
@@ -192,6 +200,7 @@ export function JobPostEditor({
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [teams, setTeams] = useState<string[]>([]);
+  const [offices, setOffices] = useState<string[]>([]);
   const [status, setStatus] = useState<CompanyJob["status"]>("draft");
   const [saving, setSaving] = useState(false);
   const skillSource = useMemo(
@@ -204,11 +213,66 @@ export function JobPostEditor({
     (value: Draft[K]) =>
       setDraft((current) => ({ ...current, [key]: value }));
 
+  const applyTemplate = (template: JobTemplateDraft) => {
+    setDraft((current) => ({
+      ...current,
+      title: template.title || current.title,
+      team: template.team || current.team,
+      seniority: template.seniority || current.seniority,
+      location: template.location || current.location,
+      workplace: template.workplace || current.workplace,
+      payMin: template.payMin || current.payMin,
+      payMax: template.payMax || current.payMax,
+      currency: template.currency || current.currency,
+      visa: template.visa,
+      summary: template.summary || current.summary,
+      skills: template.skills.length ? toItems(template.skills) : current.skills,
+      responsibilities: template.responsibilities.length
+        ? toItems(template.responsibilities)
+        : current.responsibilities,
+      requirements: template.requirements.length
+        ? toItems(template.requirements)
+        : current.requirements,
+      description: template.description || current.description,
+      screeningQuestions: template.screeningQuestions.length
+        ? hydrateScreeningQuestions(template.screeningQuestions)
+        : current.screeningQuestions,
+    }));
+    if (template.team.trim()) {
+      setTeams((current) =>
+        current.some((team) => team.toLowerCase() === template.team.toLowerCase())
+          ? current
+          : [...current, template.team.trim()],
+      );
+    }
+  };
+
+  const templateDraft = (): JobTemplateDraft => ({
+    title: draft.title,
+    team: draft.team,
+    department: draft.team || undefined,
+    seniority: draft.seniority,
+    location: draft.location,
+    workplace: draft.workplace,
+    payMin: draft.payMin,
+    payMax: draft.payMax,
+    currency: draft.currency,
+    visa: draft.visa,
+    summary: draft.summary,
+    skills: draft.skills.map((skill) => skill.label),
+    responsibilities: draft.responsibilities.map((item) => item.label),
+    requirements: draft.requirements.map((item) => item.label),
+    description: draft.description,
+    screeningQuestions: draft.screeningQuestions,
+  });
+
   useEffect(() => {
     let active = true;
-    fetchJobTeams()
-      .then((loaded) => {
-        if (active) setTeams(loaded);
+    Promise.all([fetchJobTeams(), fetchOfficeLocations()])
+      .then(([loadedTeams, loadedOffices]) => {
+        if (!active) return;
+        setTeams(loadedTeams);
+        setOffices(loadedOffices);
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
     if (jobId) {
@@ -238,6 +302,7 @@ export function JobPostEditor({
   const payload = (nextStatus: "draft" | "open" | "paused") => ({
     title: draft.title,
     team: draft.team,
+    department: draft.team || undefined,
     seniority: draft.seniority,
     location: draft.location,
     workplace: draft.workplace,
@@ -300,7 +365,17 @@ export function JobPostEditor({
             }}
           />
 
-          <SettingsGroup title="The role" description="What candidates search for.">
+          <SettingsGroup
+            title="Templates"
+            description="Save this draft or start from one you already posted."
+          >
+            <JobTemplateBar draft={templateDraft()} onApply={applyTemplate} />
+          </SettingsGroup>
+
+          <SettingsGroup
+            title="The role"
+            description="What candidates search for. Team doubles as department until Einstein splits them."
+          >
             <TextInput
               label="Job title"
               value={draft.title}
@@ -353,12 +428,31 @@ export function JobPostEditor({
               </SegmentedControl>
             </SettingsRow>
             <SettingsRow label="Location">
-              <LocationSelector
-                label="Location"
-                isLabelHidden
-                value={draft.location}
-                onChange={set("location")}
-              />
+              <Stack gap={2}>
+                <LocationSelector
+                  label="Location"
+                  isLabelHidden
+                  value={draft.location}
+                  onChange={set("location")}
+                />
+                {offices.length > 0 ? (
+                  <HStack gap={2} wrap="wrap">
+                    {offices.map((office) => (
+                      <Button
+                        key={office}
+                        label={office}
+                        size="sm"
+                        variant={draft.location === office ? "primary" : "secondary"}
+                        onClick={() => set("location")(office)}
+                      />
+                    ))}
+                  </HStack>
+                ) : (
+                  <Text type="supporting" color="secondary">
+                    Add office locations in Company settings to pick them here.
+                  </Text>
+                )}
+              </Stack>
             </SettingsRow>
             <SettingsRow label="Pay range" description="Yearly base.">
               <Grid columns={{ minWidth: FIELD_MIN_WIDTH, repeat: "fit" }} gap={3}>

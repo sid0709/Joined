@@ -88,19 +88,28 @@ export function CompanyJobDrawer({
       isOpen
       onOpenChange={(open) => (open ? null : onClose())}
       title={job.title}
-      subtitle={`${job.team} · ${job.location}`}
+      subtitle={`${job.department || job.team} · ${job.location}`}
       footer={
         <HStack gap={2} hAlign="between" wrap="wrap">
           {job.status === "open" ? (
             <Button label="Pause job" variant="ghost" onClick={() => onAction(job, "pause")} />
           ) : job.status === "paused" ? (
             <Button label="Resume job" variant="ghost" onClick={() => onAction(job, "resume")} />
+          ) : job.status === "closed" ? (
+            <Button label="Reopen job" variant="ghost" onClick={() => onAction(job, "reopen")} />
           ) : (
             <span />
           )}
           <HStack gap={2}>
             {job.status !== "closed" ? (
               <Button label="Edit" variant="secondary" href={ROUTES.companyJobEdit(job.id)} />
+            ) : null}
+            {job.status !== "closed" && job.status !== "draft" ? (
+              <Button
+                label="Close & archive"
+                variant="secondary"
+                onClick={() => onAction(job, "close")}
+              />
             ) : null}
             {job.jobId ? (
               <CandidateViewButton label="View posting" href={ROUTES.job(job.jobId)} />
@@ -133,6 +142,11 @@ export function CompanyJobDrawer({
           <MetadataListItem label="Screening questions">
             {(job.screeningQuestions ?? []).length || "None"}
           </MetadataListItem>
+          {job.status === "closed" ? (
+            <MetadataListItem label="Closed">
+              {job.closeReason || (job.closedAt ? "Archived from search" : "Archived")}
+            </MetadataListItem>
+          ) : null}
         </MetadataList>
 
         <Divider />

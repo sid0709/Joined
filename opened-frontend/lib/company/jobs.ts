@@ -14,6 +14,8 @@ export type CompanyJob = {
   jobId?: string;
   title: string;
   team: string;
+  /** Optional department label; mirrors team when Einstein has no separate field. */
+  department?: string;
   location: string;
   workplace: Workplace;
   seniority: Seniority;
@@ -42,6 +44,10 @@ export type CompanyJob = {
   interviewGuide?: import("@/lib/pipeline-eval").InterviewGuide;
   /** Layer E — reusable offer letter templates when Einstein returns them. */
   offerTemplates?: import("@/lib/offer-hire").OfferTemplate[];
+  /** ISO when the job was closed (Layer A). */
+  closedAt?: string;
+  /** Short note set on close (Layer A). */
+  closeReason?: string;
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {

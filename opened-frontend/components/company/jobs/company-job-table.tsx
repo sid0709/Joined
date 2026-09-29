@@ -24,7 +24,7 @@ const PIPELINE_WIDTH = 200;
 const PAGE_SIZE = 8;
 const STATUS_ORDER: Record<CompanyJobStatus, number> = { open: 0, paused: 1, draft: 2, closed: 3 };
 
-export type JobAction = "open" | "pause" | "resume" | "close" | "publish";
+export type JobAction = "open" | "pause" | "resume" | "close" | "publish" | "reopen";
 
 function actionsFor(
   job: CompanyJob,
@@ -37,8 +37,9 @@ function actionsFor(
     ...(job.status === "open" ? [{ label: "Pause", onClick: act("pause") }] : []),
     ...(job.status === "paused" ? [{ label: "Resume", onClick: act("resume") }] : []),
     ...(job.status === "draft" ? [{ label: "Publish", onClick: act("publish") }] : []),
+    ...(job.status === "closed" ? [{ label: "Reopen job", onClick: act("reopen") }] : []),
     ...(job.status !== "closed"
-      ? [{ label: "Close job", variant: "destructive" as const, onClick: act("close") }]
+      ? [{ label: "Close & archive", variant: "destructive" as const, onClick: act("close") }]
       : []),
   ];
 }
@@ -61,8 +62,19 @@ export function CompanyJobTable({
         <Stack gap={0.5}>
           <Text weight="semibold">{row.title}</Text>
           <Text type="supporting" color="secondary">
-            {row.team} · {row.location} · {formatCount(daysBetween(row.postedOn, now), "day")} ago
+            {[
+              row.department || row.team,
+              row.location,
+              `${formatCount(daysBetween(row.postedOn, now), "day")} ago`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </Text>
+          {row.status === "closed" && row.closeReason ? (
+            <Text type="supporting" color="secondary">
+              Closed: {row.closeReason}
+            </Text>
+          ) : null}
         </Stack>
       ),
     },
@@ -110,7 +122,7 @@ export function CompanyJobTable({
       sortValue: (row) => STATUS_ORDER[row.status],
       render: (row) => (
         <Badge
-          label={JOB_STATUS_META[row.status].label}
+          label={row.status === "closed" ? "Archived" : JOB_STATUS_META[row.status].label}
           variant={JOB_STATUS_META[row.status].badge}
         />
       ),
