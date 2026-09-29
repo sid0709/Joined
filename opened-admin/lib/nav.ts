@@ -10,14 +10,18 @@ export const ROUTES = {
   jobs: "/jobs",
   tempJobs: "/jobs/temp",
   scoutJobs: "/jobs/scout",
+  directReview: "/jobs/direct-review",
+  directJob: (id: string) => `/jobs/direct-review/${id}`,
   companies: "/companies",
+  companyVerification: "/trust/company-verification",
+  companyCase: (id: string) => `/trust/company-verification/${id}`,
 } as const;
 
 export type NavLink = {
   href: string;
   label: string;
   icon: GlyphName;
-  badge?: "queue" | "payouts" | "verifications";
+  badge?: "queue" | "payouts" | "verifications" | "companyVerification" | "directReview";
 };
 
 export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
@@ -36,6 +40,18 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
       { href: ROUTES.jobs, label: "Jobs", icon: "folder" },
       { href: ROUTES.tempJobs, label: "Temp", icon: "archive" },
       { href: ROUTES.scoutJobs, label: "Scout jobs", icon: "star" },
+      { href: ROUTES.directReview, label: "Direct review", icon: "clock", badge: "directReview" },
+    ],
+  },
+  {
+    title: "Trust",
+    links: [
+      {
+        href: ROUTES.companyVerification,
+        label: "Company claims",
+        icon: "check",
+        badge: "companyVerification",
+      },
     ],
   },
   {
