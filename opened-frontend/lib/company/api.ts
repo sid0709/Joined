@@ -2,7 +2,7 @@ import { companyGet, companySend, companySendForm } from "@/lib/me/client";
 import { parseISODate } from "@/lib/dates";
 import { DEFAULT_CURRENCY } from "@openseat/job-schema";
 import type { ActivityItem } from "./activity";
-import type { Applicant, ApplicantStage, AssistedBy } from "./applicants";
+import type { Applicant, ApplicantColumnId, AssistedBy } from "./applicants";
 import type { BillingAccount, BillableEvent, Purchase } from "./billing";
 import type { CompanyInterview, CompanyInterviewStatus, FaceCheck } from "./interviews";
 import type { AssistedPolicy, CompanyJob, CompanyJobStatus, PipelineCounts } from "./jobs";
@@ -67,7 +67,7 @@ type ApiJob = Omit<CompanyJob, "postedOn" | "workplace" | "status" | "policy" | 
 
 type ApiApplicant = Omit<Applicant, "appliedOn" | "columnId" | "assisted" | "skills"> & {
   appliedOn: string;
-  columnId: ApplicantStage;
+  columnId: ApplicantColumnId;
   assisted: AssistedBy;
   skills?: string[];
 };
@@ -453,7 +453,7 @@ export function fetchApplicants() {
 
 export function moveApplicant(
   id: string,
-  columnId: ApplicantStage,
+  columnId: ApplicantColumnId,
   notes?: string,
   rating?: number,
   tags?: string[],
@@ -472,7 +472,7 @@ export function moveApplicant(
 }
 
 /** Sparse offer update without forcing a column move. */
-export function patchApplicantOffer(id: string, offer: OfferPatch, columnId?: ApplicantStage) {
+export function patchApplicantOffer(id: string, offer: OfferPatch, columnId?: ApplicantColumnId) {
   return companySend<ApiApplicant>(`/applicants/${id}`, "PATCH", {
     // TODO(einstein): persist offer on PATCH /v1/company/applicants/:id
     offer,

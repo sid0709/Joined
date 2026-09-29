@@ -16,10 +16,12 @@ import {
   useToast,
 } from "@openseat/design-system";
 import {
+  APPLICANT_STAGES,
   DEFAULT_FEEDBACK_GATE,
   JOB_STATUS_META,
   POLICY_META,
   STRONG_FIT,
+  mergeStageOptions,
   newInterviewGuide,
   newScorecardTemplate,
   type Applicant,
@@ -266,7 +268,11 @@ function JobPipelinePanel({
 
       <Stack gap={3}>
         <Heading level={3}>Feedback gate</Heading>
-        <FeedbackGateEditor value={feedbackGate} onChange={setFeedbackGate} />
+        <FeedbackGateEditor
+          value={feedbackGate}
+          onChange={setFeedbackGate}
+          stages={mergeStageOptions(APPLICANT_STAGES, customStages)}
+        />
       </Stack>
 
       <Stack gap={3}>

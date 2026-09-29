@@ -32,8 +32,6 @@
  * Out of scope here: SSO, Scoutwell, schedule/Join deep (D). Offers: see offer-hire.ts.
  */
 
-import type { ApplicantStage } from "@/lib/company/applicants";
-
 export const FIXED_PIPELINE_STAGE_IDS = [
   "new",
   "screening",
@@ -363,14 +361,60 @@ export function canAdvanceStage(input: AdvanceCheckInput): AdvanceCheckResult {
   return { ok: true };
 }
 
-/** Merge fixed applicant stages with custom defs for column UIs (scaffold). */
+const TERMINAL_STAGE_IDS = new Set<string>(["hired", "rejected"]);
+
+/** Merge fixed applicant stages with custom defs for column / selector UIs.
+ * Custom stages insert before hired/rejected so terminals stay at the end.
+ */
 export function mergeStageOptions(
-  fixed: { id: ApplicantStage; title: string }[],
-  custom: PipelineStageDef[],
+  fixed: { id: string; title: string }[],
+  custom: PipelineStageDef[] | undefined | null,
 ): { id: string; title: string }[] {
   const extras = hydrateCustomStages(custom).map((stage) => ({
     id: stage.id,
     title: stage.title,
   }));
-  return [...fixed.map((stage) => ({ id: stage.id, title: stage.title })), ...extras];
+  const leading = fixed.filter((stage) => !TERMINAL_STAGE_IDS.has(stage.id));
+  const trailing = fixed.filter((stage) => TERMINAL_STAGE_IDS.has(stage.id));
+  return [
+    ...leading.map((stage) => ({ id: stage.id, title: stage.title })),
+    ...extras,
+    ...trailing.map((stage) => ({ id: stage.id, title: stage.title })),
+  ];
+}
+
+/** Dedupe custom stages across jobs (first title wins; preserves encounter order). */
+export function unionCustomStages(
+  jobs: { customStages?: PipelineStageDef[] | null }[],
+): PipelineStageDef[] {
+  const seen = new Set<string>();
+  const out: PipelineStageDef[] = [];
+  for (const job of jobs) {
+    for (const stage of hydrateCustomStages(job.customStages)) {
+      if (seen.has(stage.id)) continue;
+      seen.add(stage.id);
+      out.push(stage);
+    }
+  }
+  return out;
+}
+
+/** Display title for a columnId — fixed first, then custom, else the raw id. */
+export function stageLabel(
+  id: string,
+  custom?: PipelineStageDef[] | null,
+  fixed: { id: string; title: string }[] = [],
+): string {
+  const fromFixed = fixed.find((stage) => stage.id === id);
+  if (fromFixed) return fromFixed.title;
+  const fromCustom = hydrateCustomStages(custom).find((stage) => stage.id === id);
+  return fromCustom?.title || id;
+}
+
+/** Kanban columns for the applicants board from a job (or union) pipeline. */
+export function buildApplicantColumns(
+  fixed: { id: string; title: string }[],
+  custom?: PipelineStageDef[] | null,
+): { id: string; title: string }[] {
+  return mergeStageOptions(fixed, custom);
 }

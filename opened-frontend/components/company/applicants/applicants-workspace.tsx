@@ -26,15 +26,18 @@ import {
   submitApplicantScorecard,
 } from "@/lib/company/api";
 import {
-  APPLICANT_COLUMNS,
-  APPLICANT_STAGE_BY_ID,
+  APPLICANT_STAGES,
   DEFAULT_FEEDBACK_GATE,
   EMPTY_HIRING_PROFILE,
   STRONG_FIT,
+  buildApplicantColumns,
+  stageLabel,
+  unionCustomStages,
   type Applicant,
-  type ApplicantStage,
+  type ApplicantColumnId,
   type CompanyJob,
   type HiringProfile,
+  type PipelineStageDef,
   type ScorecardSubmission,
   type ScorecardSubmissionInput,
   type TeamMember,
@@ -130,6 +133,21 @@ export function ApplicantsWorkspace() {
     activeJob?.offerTemplates && activeJob.offerTemplates.length > 0
       ? activeJob.offerTemplates
       : defaultOfferTemplates();
+
+  // Board columns: selected job → that job's customStages; "All jobs" → union of
+  // custom stages across loaded jobs (fixed six when none). Avoids hiding cards
+  // that sit on a per-job custom stage while still keeping one shared board.
+  const boardCustomStages: PipelineStageDef[] = useMemo(() => {
+    if (jobId !== ALL_JOBS) {
+      const job = jobs.find((item) => item.id === jobId);
+      return job?.customStages ?? [];
+    }
+    return unionCustomStages(jobs);
+  }, [jobId, jobs]);
+  const boardColumns = useMemo(
+    () => buildApplicantColumns(APPLICANT_STAGES, boardCustomStages),
+    [boardCustomStages],
+  );
 
   const needle = query.trim().toLowerCase();
   const tagOptions = [
@@ -305,7 +323,7 @@ export function ApplicantsWorkspace() {
 
       <KanbanBoard
         label="Candidates by stage"
-        columns={APPLICANT_COLUMNS}
+        columns={boardColumns}
         items={visible}
         onItemsChange={(next, move) => {
           const hidden = people.filter(
@@ -328,7 +346,8 @@ export function ApplicantsWorkspace() {
               toast({ body: check.reason, type: "error" });
               return;
             }
-            const toStage = move.to.columnId as ApplicantStage;
+            const toStage = move.to.columnId as ApplicantColumnId;
+            const jobCustom = job?.customStages;
             let stampOffer = moved.offer;
             let offerPatch = undefined as ReturnType<typeof buildOfferPatch> | undefined;
             if (toStage === "offer" && !stampOffer) {
@@ -356,7 +375,7 @@ export function ApplicantsWorkspace() {
                   ),
                 );
                 toast({
-                  body: `Moved to ${APPLICANT_STAGE_BY_ID[toStage].title}`,
+                  body: `Moved to ${stageLabel(toStage, jobCustom, APPLICANT_STAGES)}`,
                 });
               })
               .catch((error: unknown) => {

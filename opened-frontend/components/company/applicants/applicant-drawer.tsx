@@ -28,8 +28,9 @@ import {
   STRONG_FIT,
   TAG_SUGGESTIONS,
   findDuplicateApplicants,
+  mergeStageOptions,
   type Applicant,
-  type ApplicantStage,
+  type ApplicantColumnId,
   type HiringProfile,
   type InterviewGuide,
   type ScorecardSubmission,
@@ -48,14 +49,17 @@ import {
 } from "@/components/company/interviews/schedule-panel";
 import { formatShortDate } from "@/lib/dates";
 import { formatCount } from "@/lib/jobs";
-import { DEFAULT_FEEDBACK_GATE, type FeedbackGateConfig } from "@/lib/pipeline-eval";
+import {
+  DEFAULT_FEEDBACK_GATE,
+  type FeedbackGateConfig,
+  type PipelineStageDef,
+} from "@/lib/pipeline-eval";
 import type { ScheduleMode, ProposedSlot } from "@/lib/schedule-join";
 import type { OfferTemplate } from "@/lib/offer-hire";
 import { OfferPanel, type OfferActionResult } from "@/components/company/offer/offer-panel";
 
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
-const STAGE_OPTIONS = APPLICANT_STAGES.map((stage) => ({ value: stage.id, label: stage.title }));
 const REFERRAL_LABEL = Object.fromEntries(
   REFERRAL_OPTIONS.map((option) => [option.value, option.label]),
 );
@@ -96,7 +100,7 @@ export function ApplicantDrawer({
   scorecardTemplate: ScorecardTemplate | null;
   interviewGuide: InterviewGuide | null;
   feedbackGate: FeedbackGateConfig;
-  customStages?: import("@/lib/pipeline-eval").PipelineStageDef[];
+  customStages?: PipelineStageDef[];
   scorecards: ScorecardSubmission[];
   offerTemplates: OfferTemplate[];
   onScorecard: (input: ScorecardSubmissionInput) => void | Promise<void>;
@@ -127,7 +131,11 @@ export function ApplicantDrawer({
   if (!applicant) return null;
 
   const applicantScorecards = scorecards.filter((item) => item.applicantId === applicant.id);
-  const tryMove = (stage: ApplicantStage, message?: string) => {
+  const stageOptions = mergeStageOptions(APPLICANT_STAGES, customStages).map((stage) => ({
+    value: stage.id,
+    label: stage.title,
+  }));
+  const tryMove = (stage: ApplicantColumnId, message?: string) => {
     const nextNotes = notes[applicant.id] ?? applicant.notes;
     const check = canAdvanceStage({
       fromStage: applicant.columnId,
@@ -145,7 +153,7 @@ export function ApplicantDrawer({
     setGateError(null);
     onChange({ ...applicant, columnId: stage, notes: nextNotes }, message);
   };
-  const move = (stage: ApplicantStage, message: string) => tryMove(stage, message);
+  const move = (stage: ApplicantColumnId, message: string) => tryMove(stage, message);
   const slotReady = scheduleDraftReady(draft);
   const duplicates = findDuplicateApplicants(applicant, allApplicants);
   const answers = applicant.screeningAnswers ?? [];
@@ -383,9 +391,9 @@ export function ApplicantDrawer({
           />
           <Selector
             label="Stage"
-            options={STAGE_OPTIONS}
+            options={stageOptions}
             value={applicant.columnId}
-            onChange={(value) => tryMove(value as ApplicantStage)}
+            onChange={(value) => tryMove(value)}
           />
           <TextArea
             label="Notes for the team"

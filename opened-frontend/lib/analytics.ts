@@ -153,10 +153,12 @@ const FUNNEL_LABEL: Record<FunnelStageId, string> = {
   hired: "Hired",
 };
 
-/** Stages that count as "reached screening or beyond" for conversion. */
-const REACHED_SCREENING: readonly ApplicantStage[] = ["screening", "interview", "offer", "hired"];
-const REACHED_INTERVIEW: readonly ApplicantStage[] = ["interview", "offer", "hired"];
-const REACHED_OFFER: readonly ApplicantStage[] = ["offer", "hired"];
+/** Stages that count as "reached screening or beyond" for conversion.
+ * Custom mid-pipeline stages do not count toward fixed conversion gates.
+ */
+const REACHED_SCREENING: readonly string[] = ["screening", "interview", "offer", "hired"];
+const REACHED_INTERVIEW: readonly string[] = ["interview", "offer", "hired"];
+const REACHED_OFFER: readonly string[] = ["offer", "hired"];
 
 function rate(numerator: number, denominator: number): number | null {
   if (denominator <= 0) return null;

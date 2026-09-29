@@ -3,12 +3,14 @@ import type { BadgeVariant, KanbanColumn } from "@openseat/design-system";
 /** Hiring workspace — applicants to this company's jobs. */
 
 export type ApplicantStage = "new" | "screening" | "interview" | "offer" | "hired" | "rejected";
+/** Fixed six plus employer custom stage ids from the job pipeline. */
+export type ApplicantColumnId = ApplicantStage | (string & {});
 export type AssistedBy = "direct" | "bidder" | "agent";
 
 export type Applicant = {
   id: string;
-  /** KanbanBoard reads the stage as its column. */
-  columnId: ApplicantStage;
+  /** KanbanBoard reads the stage as its column (fixed or custom). */
+  columnId: ApplicantColumnId;
   name: string;
   headline: string;
   location: string;
