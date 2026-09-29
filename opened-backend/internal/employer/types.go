@@ -18,6 +18,7 @@ type Job struct {
 	Workplace        string    `json:"workplace"`
 	Seniority        string    `json:"seniority"`
 	Status           string    `json:"status"`
+	ReviewStatus     string    `json:"reviewStatus,omitempty"`
 	PostedOn         time.Time `json:"postedOn"`
 	Views            int       `json:"views"`
 	Pipeline         Pipeline  `json:"pipeline"`

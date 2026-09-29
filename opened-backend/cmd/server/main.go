@@ -19,6 +19,7 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/staff"
 )
 
 const (
@@ -80,6 +81,11 @@ func main() {
 		slog.Info("drop company leadership", "companies", dropped)
 	}
 	scouts := scout.NewStore(client, cfg.DestDB, accounts, store, people, scout.NewHTTPFetcher())
+	moderation := staff.NewStore(client, cfg.DestDB, cfg.CompaniesCollection, cfg.JobsCollection, accounts, hiring)
+	if err := moderation.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("staff indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
 	accounts.SetUserData(httpapi.NewAccountEraser(people, scouts, store, hiring))
 	if err := scouts.EnsureIndexes(context.Background()); err != nil {
 		slog.Error("scout indexes", "error", config.Redact(err, cfg.MongoURI))
@@ -96,7 +102,7 @@ func main() {
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler: httpapi.New(store, accounts, people, scouts, hiring, reader, httpapi.Options{
+		Handler: httpapi.New(store, accounts, people, scouts, hiring, moderation, reader, httpapi.Options{
 			Origins:    cfg.AdminOrigins,
 			Frontend:   cfg.FrontendOrigin,
 			AdminToken: cfg.AdminAPIToken,

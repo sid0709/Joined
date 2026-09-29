@@ -17,10 +17,12 @@ const (
 )
 
 // UpsertDirectJob publishes a company job into search so candidates can apply.
-// The public id is stable across pause and resume.
-func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy string, now time.Time) error {
+// The public id is stable across pause and resume. The returned listing status
+// is active for a verified company and pending_review otherwise. A staff or
+// suspension takedown is kept until staff restore it.
+func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy string, now time.Time) (string, error) {
 	if job.ID == "" || job.CompanyID == "" || job.Title == "" {
-		return ErrInvalidInput
+		return "", ErrInvalidInput
 	}
 	job.Source = directType
 	if job.Skills == nil {
@@ -38,25 +40,43 @@ func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy st
 
 	var existing storedSearchJob
 	err := s.structured().FindOne(ctx, bson.D{{Key: "job.id", Value: job.ID}}).Decode(&existing)
+	found := err == nil
 	id := bson.NewObjectID()
 	posted := now.UTC()
-	if err == nil {
+	if found {
 		id = existing.ID
 		if !existing.PostedAt.IsZero() {
 			posted = existing.PostedAt
 		}
 	} else if !errors.Is(err, mongo.ErrNoDocuments) {
-		return err
+		return "", err
 	}
-	return s.saveSearchJob(ctx, storedSearchJob{
-		ID:         id,
-		PostedAt:   posted,
-		AnalyzedAt: now.UTC(),
-		Model:      directModel,
-		CreatedBy:  createdBy,
-		Source:     DirectSource,
-		Job:        job,
-	})
+	trust, err := s.companyTrustStatus(ctx, job.CompanyID)
+	if err != nil {
+		return "", err
+	}
+	doc := storedSearchJob{
+		ID:            id,
+		PostedAt:      posted,
+		AnalyzedAt:    now.UTC(),
+		Model:         directModel,
+		CreatedBy:     createdBy,
+		Source:        DirectSource,
+		ListingStatus: ListingStatusForTrust(trust),
+		Job:           job,
+	}
+	if found && heldDown(existing) {
+		doc.ListingStatus = ListingRemoved
+		doc.PreviousListingStatus = existing.PreviousListingStatus
+		doc.TakedownCause = existing.TakedownCause
+		doc.ReviewNote = existing.ReviewNote
+		doc.ReviewedBy = existing.ReviewedBy
+		doc.ReviewedAt = existing.ReviewedAt
+	}
+	if err := s.saveSearchJob(ctx, doc); err != nil {
+		return "", err
+	}
+	return doc.ListingStatus, nil
 }
 
 // RenameDirectTeam updates the team name on this company's published jobs.

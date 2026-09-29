@@ -66,10 +66,9 @@ func (s *Store) CreateJob(ctx context.Context, company auth.Company, userID stri
 	doc.CompanyID = company.ID
 	doc.CreatedBy = userID
 	if doc.Status == statusOpen {
-		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-		doc.PostedAt = now.UTC()
 	}
 	if _, err := s.collection(jobsCollection).InsertOne(ctx, doc); err != nil {
 		return Job{}, err
@@ -109,13 +108,11 @@ func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id 
 	doc.PostedAt = existing.PostedAt
 	doc.UpdatedAt = now.UTC()
 	if doc.Status == statusOpen {
-		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-		if doc.PostedAt.IsZero() {
-			doc.PostedAt = now.UTC()
-		}
 	} else if existing.Status == statusOpen {
+		doc.ReviewStatus = ""
 		if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
 			return Job{}, err
 		}
@@ -151,14 +148,14 @@ func (s *Store) SetJobStatus(ctx context.Context, company auth.Company, userID, 
 		if err := readyToPublish(doc); err != nil {
 			return Job{}, err
 		}
-		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-		if doc.PostedAt.IsZero() {
-			doc.PostedAt = now.UTC()
+	} else {
+		doc.ReviewStatus = ""
+		if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
+			return Job{}, err
 		}
-	} else if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
-		return Job{}, err
 	}
 	doc.Status = status
 	doc.UpdatedAt = now.UTC()
@@ -267,6 +264,18 @@ func readyToPublish(doc storedJob) error {
 	return nil
 }
 
+func (s *Store) publishDirect(ctx context.Context, company auth.Company, userID string, doc *storedJob, now time.Time) error {
+	status, err := s.jobs.UpsertDirectJob(ctx, searchJob(*doc, company.Name), userID, now)
+	if err != nil {
+		return err
+	}
+	doc.ReviewStatus = status
+	if doc.PostedAt.IsZero() {
+		doc.PostedAt = now.UTC()
+	}
+	return nil
+}
+
 func searchJob(doc storedJob, companyName string) jobs.SearchJob {
 	return jobs.SearchJob{
 		ID:               doc.ID,
@@ -303,6 +312,7 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 		Workplace:        doc.Workplace,
 		Seniority:        doc.Seniority,
 		Status:           doc.Status,
+		ReviewStatus:     doc.ReviewStatus,
 		PostedOn:         posted,
 		Views:            doc.Views,
 		Pipeline:         pipeline,

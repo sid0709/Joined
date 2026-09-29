@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -345,6 +346,11 @@ func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice,
 			{Key: "jobIds", Value: bson.A{}},
 			{Key: "createdBy", Value: userID},
 			{Key: "createdAt", Value: now.UTC()},
+			{Key: "trustStatus", Value: jobs.TrustClaimed},
+			{Key: "claimed", Value: true},
+			{Key: "claimMethod", Value: jobs.ClaimManual},
+			{Key: "claimStatus", Value: jobs.ClaimPending},
+			{Key: "claimedBy", Value: userID},
 		})
 		if err != nil {
 			return err
