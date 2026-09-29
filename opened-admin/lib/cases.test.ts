@@ -12,15 +12,22 @@ import {
   caseListQueue,
   caseListStatus,
   caseRecordQuery,
+  caseRecordQueryFromReport,
   casesListQuery,
   casesPath,
   createCaseBody,
   fileReportBody,
   isCompanyAtsReason,
+  newReportIdempotencyKey,
   readCaseList,
   readCasePayload,
   readReportList,
+  readReportPayload,
   reportAppealPath,
+  reportFromSearch,
+  reportListStatus,
+  reportRecordQuery,
+  reportsListQuery,
   reportsPath,
   slaLabel,
 } from "./cases";
@@ -297,4 +304,44 @@ test("staff report list reads GET /v1/reports envelope", () => {
     resolution: "",
   });
   expect(readReportList({ data: [] }).recognized).toBe(false);
+});
+
+test("staff report list query and payload helpers", () => {
+  expect(reportListStatus(null)).toBe("open");
+  expect(reportListStatus("  pending ")).toBe("pending");
+  expect(reportsListQuery("open", 1)).toBe("");
+  expect(reportsListQuery("resolved", 2)).toBe("?status=resolved&page=2");
+  const key = newReportIdempotencyKey();
+  expect(key.length).toBeGreaterThanOrEqual(1);
+  expect(key.length).toBeLessThanOrEqual(255);
+
+  const payload = readReportPayload({
+    report: {
+      id: "674c1f0e5b2a4e18d0a1c020",
+      subjectType: "job",
+      subjectId: "job_1",
+      reasonCode: "scam_job",
+      details: "Asks for a fee",
+      evidenceKeys: ["shot"],
+      status: "open",
+      caseId: "674c1f0e5b2a4e18d0a1c010",
+      createdAt: "2026-09-29T17:00:00Z",
+      appeal: { statement: "It was real", evidenceKeys: ["note"], at: "2026-09-30T12:00:00Z" },
+      resolution: "",
+    },
+    auditId: "audit-r1",
+  });
+  expect(payload).toMatchObject({
+    id: "674c1f0e5b2a4e18d0a1c020",
+    caseId: "674c1f0e5b2a4e18d0a1c010",
+    appealStatement: "It was real",
+    appealEvidenceKeys: ["note"],
+    appealAt: "2026-09-30T12:00:00Z",
+  });
+  if (!payload) throw new Error("missing payload");
+  const params = new URLSearchParams(reportRecordQuery(payload));
+  expect(reportFromSearch(payload.id, params)).toEqual(payload);
+  expect(caseRecordQueryFromReport(payload)).toContain("queue=reports");
+  expect(caseRecordQueryFromReport(payload)).toContain("subjectId=job_1");
+  expect(readReportPayload({ data: {} })).toBeNull();
 });

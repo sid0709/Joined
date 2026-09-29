@@ -14,6 +14,10 @@ test("the deepest matching link is active", () => {
   expect(activeHref("/trust/company-verification/case-1")).toBe(ROUTES.companyVerification);
   expect(activeHref("/trust/cases")).toBe(ROUTES.cases);
   expect(activeHref("/trust/cases/case-1")).toBe(ROUTES.cases);
+  expect(activeHref("/trust/cases/new")).toBe(ROUTES.createCase);
+  expect(activeHref("/trust/reports")).toBe(ROUTES.reports);
+  expect(activeHref("/trust/reports/new")).toBe(ROUTES.reports);
+  expect(activeHref("/trust/reports/rep-1")).toBe(ROUTES.reports);
   expect(activeHref("/ops")).toBe(ROUTES.retentionOps);
   expect(activeHref("/elsewhere")).toBeUndefined();
 });
@@ -24,4 +28,7 @@ test("routes build ids into paths", () => {
   expect(ROUTES.companyCase("case-1")).toBe("/trust/company-verification/case-1");
   expect(ROUTES.directJob("job-1")).toBe("/jobs/direct-review/job-1");
   expect(ROUTES.moderationCase("case-1")).toBe("/trust/cases/case-1");
+  expect(ROUTES.report("rep-1")).toBe("/trust/reports/rep-1");
+  expect(ROUTES.createCase).toBe("/trust/cases/new");
+  expect(ROUTES.fileReport).toBe("/trust/reports/new");
 });

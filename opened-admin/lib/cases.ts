@@ -386,6 +386,93 @@ export function readReportList(body: unknown): ReadList<StaffReport> {
   return { rows, total: readTotal(body, rows.length), recognized: true };
 }
 
+/** Named report statuses stay. Empty defaults to open (same as the cases queue). */
+export function reportListStatus(value: string | null | undefined) {
+  const status = value?.trim() ?? "";
+  return status || CASE_STATUS_OPEN;
+}
+
+/** Page query for /trust/reports. Defaults (open, page 1) stay off the URL. */
+export function reportsListQuery(status: string, page: number) {
+  const params = new URLSearchParams();
+  const selectedStatus = reportListStatus(status);
+  if (selectedStatus !== CASE_STATUS_OPEN) params.set("status", selectedStatus);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+/** `{ report, auditId }` from file or appeal. */
+export function readReportPayload(body: unknown): StaffReport | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  return readReportRow(record.report);
+}
+
+/** Carry a list row onto the report detail page (no get-by-id). */
+export function reportRecordQuery(row: StaffReport) {
+  const params = new URLSearchParams();
+  setParam(params, "subjectType", row.subjectType);
+  setParam(params, "subjectId", row.subjectId);
+  setParam(params, "reasonCode", row.reasonCode);
+  setParam(params, "details", row.details);
+  setParam(params, "status", row.status);
+  setParam(params, "caseId", row.caseId);
+  setParam(params, "createdAt", row.createdAt);
+  setParam(params, "resolution", row.resolution);
+  setParam(params, "appealStatement", row.appealStatement);
+  setParam(params, "appealAt", row.appealAt);
+  for (const key of row.evidenceKeys) params.append("evidenceKeys", key);
+  for (const key of row.appealEvidenceKeys) params.append("appealEvidenceKeys", key);
+  return params.toString();
+}
+
+export function reportFromSearch(
+  id: string,
+  params: { get(name: string): string | null; getAll(name: string): string[] },
+): StaffReport {
+  return {
+    id,
+    subjectType: params.get("subjectType")?.trim() ?? "",
+    subjectId: params.get("subjectId")?.trim() ?? "",
+    reasonCode: params.get("reasonCode")?.trim() ?? "",
+    details: params.get("details")?.trim() ?? "",
+    evidenceKeys: cleanKeys(params.getAll("evidenceKeys")),
+    status: params.get("status")?.trim() ?? "",
+    caseId: params.get("caseId")?.trim() ?? "",
+    createdAt: params.get("createdAt")?.trim() ?? "",
+    resolution: params.get("resolution")?.trim() ?? "",
+    appealStatement: params.get("appealStatement")?.trim() ?? "",
+    appealEvidenceKeys: cleanKeys(params.getAll("appealEvidenceKeys")),
+    appealAt: params.get("appealAt")?.trim() ?? "",
+  };
+}
+
+/**
+ * Case-detail query built from a staff report so ops can open the linked case
+ * without a get-by-id. Queue is always reports.
+ */
+export function caseRecordQueryFromReport(row: StaffReport) {
+  const params = new URLSearchParams();
+  setParam(params, "queue", REPORTS_QUEUE);
+  setParam(params, "status", row.status);
+  setParam(params, "reasonCode", row.reasonCode);
+  setParam(params, "subjectType", row.subjectType);
+  setParam(params, "subjectId", row.subjectId);
+  setParam(params, "details", row.details);
+  setParam(params, "createdAt", row.createdAt);
+  for (const key of row.evidenceKeys) params.append("evidenceKeys", key);
+  return params.toString();
+}
+
+/** Stable Idempotency-Key for one file-report submit (1–255). */
+export function newReportIdempotencyKey() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `report-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function readCaseRow(value: unknown): ModerationCase | null {
   const row = asRecord(value);
   if (!row) return null;

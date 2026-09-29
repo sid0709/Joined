@@ -16,7 +16,11 @@ export const ROUTES = {
   companyVerification: "/trust/company-verification",
   companyCase: (id: string) => `/trust/company-verification/${id}`,
   cases: "/trust/cases",
+  createCase: "/trust/cases/new",
   moderationCase: (id: string) => `/trust/cases/${id}`,
+  reports: "/trust/reports",
+  fileReport: "/trust/reports/new",
+  report: (id: string) => `/trust/reports/${id}`,
   retentionOps: "/ops",
 } as const;
 
@@ -56,6 +60,8 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
         badge: "companyVerification",
       },
       { href: ROUTES.cases, label: "Cases", icon: "bell", badge: "cases" },
+      { href: ROUTES.reports, label: "Reports", icon: "chat" },
+      { href: ROUTES.createCase, label: "Create case", icon: "plus" },
     ],
   },
   {

@@ -1,4 +1,5 @@
-import { EmptyState, PageHeader, Stack } from "@openseat/design-system";
+import { Button, EmptyState, HStack, PageHeader, Stack } from "@openseat/design-system";
+import { ROUTES } from "@/lib/nav";
 
 export const metadata = { title: "Retention and ops" };
 
@@ -13,7 +14,14 @@ export default function RetentionOpsPage() {
       <EmptyState
         isCompact
         title="Nothing to review"
-        description="Retention exceptions and connect ops are not a queue yet. Reports, disputes, and fraud flags stay under Cases."
+        description="Retention exceptions and connect ops are not a queue yet. Filed reports and create-case live under Trust."
+        actions={
+          <HStack gap={2} wrap="wrap">
+            <Button label="Reports" variant="secondary" href={ROUTES.reports} />
+            <Button label="Create case" variant="secondary" href={ROUTES.createCase} />
+            <Button label="Cases" variant="ghost" href={ROUTES.cases} />
+          </HStack>
+        }
       />
     </Stack>
   );
