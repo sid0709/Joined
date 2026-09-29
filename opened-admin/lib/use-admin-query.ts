@@ -15,6 +15,10 @@ export function useAdminQuery<T>(path: string) {
   const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(null);
 
   useEffect(() => {
+    if (!path) {
+      setSnapshot({ key, result: null, error: null });
+      return;
+    }
     const controller = new AbortController();
     adminFetch<T>(path, { signal: controller.signal })
       .then((result) => {

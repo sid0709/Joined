@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
 )
 
 const (
@@ -77,6 +78,10 @@ func (s *Store) StageScouted(ctx context.Context, listing ScoutedListing, now ti
 		{Key: "source", Value: ScoutedSource},
 		{Key: "sourceRef", Value: listing.SubmissionID},
 		{Key: "companyPublicId", Value: listing.CompanyID},
+		{Key: "skills", Value: listing.Skills},
+		{Key: "tags", Value: listing.Tags},
+		{Key: "equity", Value: listing.Equity},
+		{Key: "pay", Value: listing.Pay},
 		{Key: "metadata", Value: bson.D{{Key: "details", Value: bson.D{
 			{Key: "location", Value: listing.Location},
 			{Key: "remote", Value: listing.Workplace},
@@ -89,6 +94,44 @@ func (s *Store) StageScouted(ctx context.Context, listing ScoutedListing, now ti
 		return "", err
 	}
 	return id.Hex(), nil
+}
+
+// AnalyzeScouted turns a scout submission into a search record. Scout-entered
+// salary, location, and similar facts stay; the model writes the listing copy.
+func (s *Store) AnalyzeScouted(ctx context.Context, reader ModelReader, listing ScoutedListing, tempJobID string, now time.Time) (SearchRecord, error) {
+	if reader == nil {
+		return SearchRecord{}, openai.ErrMissingAPIKey
+	}
+	id, err := bson.ObjectIDFromHex(tempJobID)
+	if err != nil {
+		id = bson.NewObjectID()
+	}
+	return s.writeAnalysis(ctx, reader, listingFromScouted(listing, id), now)
+}
+
+func listingFromScouted(listing ScoutedListing, id bson.ObjectID) tempListing {
+	doc := tempListing{
+		ID:              id,
+		Title:           listing.Title,
+		CompanyName:     listing.CompanyName,
+		Description:     listing.Summary,
+		ApplyLink:       listing.ApplyLink,
+		PostedAt:        listing.SubmittedAt.UTC(),
+		CreatedBy:       listing.ScoutUserID,
+		Source:          ScoutedSource,
+		SourceRef:       listing.SubmissionID,
+		CompanyPublicID: listing.CompanyID,
+		Skills:          listing.Skills,
+		Tags:            listing.Tags,
+		Equity:          listing.Equity,
+		Pay:             listing.Pay,
+	}
+	doc.Metadata.Details.Location = listing.Location
+	doc.Metadata.Details.Remote = listing.Workplace
+	doc.Metadata.Details.Seniority = listing.Seniority
+	doc.Metadata.Details.Time = listing.Employment
+	doc.Metadata.Details.Salary = salaryHint(listing)
+	return doc
 }
 
 func salaryHint(listing ScoutedListing) string {

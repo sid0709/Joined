@@ -35,6 +35,7 @@ export default async function SubmissionReviewPage({
     <ReviewWorkspace
       detail={detail}
       jobHref={web && sub.job_id && !sub.expired ? `${web}/jobs/${sub.job_id}` : ""}
+      openedOrigin={web}
       checks={<ChecksCard submission={sub} />}
       related={<RelatedCard detail={detail} />}
       scout={<ScoutCard summary={detail.scout} rule={detail.level_rule} />}

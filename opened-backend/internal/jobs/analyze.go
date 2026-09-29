@@ -230,7 +230,7 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 		CreatedBy:  strings.TrimSpace(listing.CreatedBy),
 		Source:     strings.TrimSpace(listing.Source),
 		SourceRef:  strings.TrimSpace(listing.SourceRef),
-		Job: buildSearchJob(
+		Job: keepScoutFilled(buildSearchJob(
 			publicID,
 			companyID,
 			listing.Title,
@@ -245,7 +245,7 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 				Salary:     listing.Metadata.Details.Salary,
 			},
 			extracted,
-		),
+		), listing),
 	}
 	if err := s.saveSearchJob(ctx, record); err != nil {
 		return SearchRecord{}, err

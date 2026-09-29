@@ -72,6 +72,8 @@ export function JobEditor({
   isEditable,
   isDirty,
   onReset,
+  onAnalyze,
+  analyzing,
 }: {
   submission: Submission;
   value: SubmissionInput;
@@ -79,6 +81,8 @@ export function JobEditor({
   isEditable: boolean;
   isDirty: boolean;
   onReset: () => void;
+  onAnalyze?: () => void;
+  analyzing?: boolean;
 }) {
   const set =
     <K extends keyof SubmissionInput>(key: K) =>
@@ -90,21 +94,31 @@ export function JobEditor({
       <SectionCard
         title="Job details"
         description={
-          submission.job_id ? "Published. Edit the live listing on Jobs." : "Details as submitted."
+          submission.job_id ? "On Jobs after analyze. Edit the live listing there." : "Details as submitted."
         }
         action={
-          submission.job_id ? (
-            <Button
-              label="Edit on Jobs"
-              variant="ghost"
-              size="sm"
-              href={`${ROUTES.jobs}?job=${submission.job_id}`}
-            />
-          ) : undefined
+          <HStack gap={2}>
+            {onAnalyze ? (
+              <Button
+                label={analyzing ? "Analyzing…" : "Analyze with AI"}
+                variant="secondary"
+                size="sm"
+                clickAction={onAnalyze}
+                isDisabled={analyzing}
+              />
+            ) : null}
+            {submission.job_id ? (
+              <Button
+                label="Edit on Jobs"
+                variant="ghost"
+                size="sm"
+                href={`${ROUTES.jobs}?job=${submission.job_id}`}
+              />
+            ) : null}
+          </HStack>
         }
       >
         <MetadataList columns={2}>
-          <MetadataListItem label="Company">{submission.company_name}</MetadataListItem>
           <MetadataListItem label="Location">{submission.location_text || "—"}</MetadataListItem>
           <MetadataListItem label="Work mode">
             {WORKPLACE_LABEL[submission.workplace]}
@@ -138,11 +152,22 @@ export function JobEditor({
   return (
     <SectionCard
       title="Job details"
-      description="Fix anything the scout got wrong. Approving publishes exactly this."
+      description="Fix anything the scout got wrong. Analyze writes About / What you’ll do for Opened. Salary and other filled fields stay."
       action={
-        isDirty ? (
-          <Button label="Undo edits" variant="ghost" size="sm" clickAction={onReset} />
-        ) : undefined
+        <HStack gap={2}>
+          {isDirty ? (
+            <Button label="Undo edits" variant="ghost" size="sm" clickAction={onReset} />
+          ) : null}
+          {onAnalyze ? (
+            <Button
+              label={analyzing ? "Analyzing…" : "Analyze with AI"}
+              variant="secondary"
+              size="sm"
+              clickAction={onAnalyze}
+              isDisabled={analyzing}
+            />
+          ) : null}
+        </HStack>
       }
     >
       <Stack gap={4}>
@@ -150,19 +175,6 @@ export function JobEditor({
           {submission.url}
         </Link>
         <GridSystem gap={4}>
-          <GridColumn span="full" md={6}>
-            <TextInput
-              label="Company"
-              value={value.company_name}
-              onChange={(next) =>
-                onChange({
-                  ...value,
-                  company_name: next,
-                  company_id: next === value.company_name ? value.company_id : "",
-                })
-              }
-            />
-          </GridColumn>
           <GridColumn span="full" md={6}>
             <TextInput label="Title" value={value.title} onChange={set("title")} />
           </GridColumn>
