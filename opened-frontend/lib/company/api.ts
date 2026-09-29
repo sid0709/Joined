@@ -18,7 +18,18 @@ import {
   hydrateProposedSlots,
   type SchedulePayload,
 } from "@/lib/schedule-join";
-import { hydrateOfferRecord, hydrateOfferTemplates, type OfferPatch } from "@/lib/offer-hire";
+import {
+  hydrateOfferRecord,
+  hydrateOfferTemplates,
+  hydrateHirePacket,
+  hydrateOfferApproval,
+  hydrateOfferEsign,
+  type HirePacket,
+  type HirePacketInput,
+  type OfferApproval,
+  type OfferEsign,
+  type OfferPatch,
+} from "@/lib/offer-hire";
 import type { TeamMember, TeamRole } from "./team";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
@@ -259,6 +270,62 @@ export function moveApplicant(
     // TODO(einstein): persist OfferPatch on PATCH /v1/company/applicants/:id
     offer: offer ?? undefined,
   }).then(hydrateApplicant);
+}
+
+/** Sparse offer update without forcing a column move. */
+export function patchApplicantOffer(id: string, offer: OfferPatch, columnId?: ApplicantStage) {
+  return companySend<ApiApplicant>(`/applicants/${id}`, "PATCH", {
+    // TODO(einstein): persist offer on PATCH /v1/company/applicants/:id
+    offer,
+    ...(columnId ? { columnId } : {}),
+  }).then(hydrateApplicant);
+}
+
+/** Light internal approval request — Einstein POST scaffold. Soft-fails local. */
+export function requestOfferApproval(
+  applicantId: string,
+  body: { note?: string; approverIds?: string[] },
+) {
+  return companySend<OfferApproval>(`/applicants/${applicantId}/offer/approvals`, "POST", body)
+    .then((raw) => hydrateOfferApproval(raw))
+    .catch(() =>
+      hydrateOfferApproval({
+        id: "oapr-local",
+        status: "pending",
+        requestedAt: new Date().toISOString(),
+        note: body.note,
+        approverIds: body.approverIds,
+      }),
+    );
+}
+
+/** First-party e-sign session — no DocuSign. Soft-fails until Einstein lands. */
+export function createOfferEsign(applicantId: string, body?: { documentTitle?: string }) {
+  return companySend<OfferEsign>(`/applicants/${applicantId}/offer/esign`, "POST", body ?? {})
+    .then((raw) => hydrateOfferEsign(raw))
+    .catch(() =>
+      hydrateOfferEsign({
+        status: "pending",
+        documentTitle: body?.documentTitle,
+        sentAt: new Date().toISOString(),
+      }),
+    );
+}
+
+/** Hire packet / onboarding handoff stub. Soft-fails until Einstein lands. */
+export function createHirePacket(applicantId: string, body?: HirePacketInput) {
+  return companySend<HirePacket>(`/applicants/${applicantId}/hire-packet`, "POST", body ?? {})
+    .then((raw) => hydrateHirePacket(raw))
+    .catch(() =>
+      hydrateHirePacket({
+        status: "draft",
+        checklist: [],
+        startDate: body?.startDate,
+        ownerNote: body?.ownerNote,
+        handoffTarget: body?.handoffTarget,
+        generatedAt: new Date().toISOString(),
+      }),
+    );
 }
 
 export function fetchInterviews() {

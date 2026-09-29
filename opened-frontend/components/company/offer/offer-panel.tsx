@@ -14,8 +14,12 @@ import {
   TextArea,
   TextInput,
   Token,
+  Tokenizer,
+  createStaticSource,
+  type SearchableItem,
 } from "@openseat/design-system";
 import type { Applicant, TeamMember } from "@/lib/company";
+import { EsignShare } from "@/components/company/offer/esign-share";
 import { formatCents } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
 import {
@@ -24,8 +28,10 @@ import {
   buildOfferPatch,
   canTransitionOffer,
   centsToDollarsInput,
+  decideApproval,
   dollarsToCents,
   emptyOffer,
+  markHirePacketStatus,
   newHirePacket,
   offerReadyToHire,
   renderOfferBody,
@@ -95,10 +101,16 @@ export function OfferPanel({
 }) {
   const [draft, setDraft] = useState<OfferDraft>(() => emptyOfferDraft(applicant.offer));
   const [actionError, setActionError] = useState<string | null>(null);
+  const [approvalNote, setApprovalNote] = useState("");
+  const [approverIds, setApproverIds] = useState<string[]>(
+    () => applicant.offer?.approval?.approverIds ?? [],
+  );
 
   useEffect(() => {
     setDraft(emptyOfferDraft(applicant.offer));
     setActionError(null);
+    setApprovalNote(applicant.offer?.approval?.note ?? "");
+    setApproverIds(applicant.offer?.approval?.approverIds ?? []);
   }, [applicant.id, applicant.offer]);
 
   const templateOptions = useMemo(
@@ -108,6 +120,29 @@ export function OfferPanel({
     ],
     [templates],
   );
+
+  const approverSource = useMemo(
+    () =>
+      createStaticSource(
+        teamMembers.map((member) => ({
+          id: member.id,
+          label: member.isYou ? `${member.name} (you)` : member.name,
+        })),
+      ),
+    [teamMembers],
+  );
+
+  const selectedApprovers: SearchableItem[] = approverIds
+    .map((id) => {
+      const member = teamMembers.find((item) => item.id === id);
+      return member
+        ? {
+            id: member.id,
+            label: member.isYou ? `${member.name} (you)` : member.name,
+          }
+        : { id, label: id };
+    })
+    .filter(Boolean);
 
   const selectedTemplate = templates.find((item) => item.id === draft.offer.templateId);
   const status = draft.offer.status;
@@ -163,11 +198,74 @@ export function OfferPanel({
   };
 
   const requestApproval = () => {
-    transition("pending_approval", `Approval requested for ${applicant.name}'s offer`);
+    const seeded: OfferRecord = {
+      ...withComp(draft),
+      approval: {
+        id: draft.offer.approval?.id || `oapr-${Date.now()}`,
+        status: "pending",
+        requestedAt: new Date().toISOString(),
+        approverIds,
+        note: approvalNote || undefined,
+      },
+    };
+    setDraft((current) => ({ ...current, offer: seeded }));
+    const check = canTransitionOffer({
+      from: seeded.status === "pending_approval" ? "pending_approval" : status,
+      to: "pending_approval",
+      requiresApproval: selectedTemplate?.requiresApproval,
+    });
+    // Force status via applyOfferStatus after seeding approvers.
+    const next = applyOfferStatus(seeded, "pending_approval", { notes: seeded.notes });
+    next.approval = {
+      ...(next.approval ?? seeded.approval!),
+      approverIds,
+      note: approvalNote || undefined,
+    };
+    if (!check.ok && status !== "draft" && status !== "pending_approval") {
+      setActionError(check.reason);
+      return;
+    }
+    setActionError(null);
+    setDraft((current) => ({ ...current, offer: next }));
+    emit(next, `Approval requested for ${applicant.name}'s offer`);
   };
 
   const markApproved = () => {
-    transition("approved", `Offer for ${applicant.name} approved`);
+    const next = decideApproval(withComp(draft), "approved", {
+      note: approvalNote || undefined,
+      decidedBy: teamMembers.find((member) => member.isYou)?.id,
+    });
+    next.approval = {
+      ...(next.approval as NonNullable<OfferRecord["approval"]>),
+      approverIds: approverIds.length ? approverIds : next.approval?.approverIds,
+    };
+    setActionError(null);
+    setDraft((current) => ({ ...current, offer: next }));
+    emit(next, `Offer for ${applicant.name} approved`);
+  };
+
+  const markRejectedApproval = () => {
+    const next = decideApproval(withComp(draft), "rejected", {
+      note: approvalNote || undefined,
+      decidedBy: teamMembers.find((member) => member.isYou)?.id,
+    });
+    setActionError(null);
+    setDraft((current) => ({ ...current, offer: next }));
+    emit(next, `Offer approval rejected for ${applicant.name}`);
+  };
+
+  const setPacketStatus = (packetStatus: "ready" | "sent") => {
+    const next = markHirePacketStatus(withComp(draft), packetStatus, {
+      handoffTarget: draft.offer.hirePacket?.handoffTarget,
+      ownerNote: draft.offer.hirePacket?.ownerNote ?? draft.offer.notes,
+    });
+    setDraft((current) => ({ ...current, offer: next }));
+    emit(
+      next,
+      packetStatus === "sent"
+        ? `Hire packet sent for ${applicant.name}`
+        : `Hire packet marked ready for ${applicant.name}`,
+    );
   };
 
   const startEsign = () => {
@@ -340,6 +438,21 @@ export function OfferPanel({
           onChange={(equityNote) => setCompField("equityNote", equityNote || undefined)}
           placeholder="0.15% over 4 years"
         />
+        <HStack gap={2} wrap="wrap">
+          <TextInput
+            label="Currency"
+            value={draft.offer.comp?.currency ?? "USD"}
+            onChange={(currency) => setCompField("currency", currency.toUpperCase() || "USD")}
+            placeholder="USD"
+          />
+        </HStack>
+        <TextArea
+          label="Comp package notes"
+          value={draft.offer.comp?.notes ?? ""}
+          onChange={(notes) => setCompField("notes", notes || undefined)}
+          rows={2}
+          placeholder="Band, leveling, relocation stipend, benefits callouts…"
+        />
         <TextInput
           label="Proposed start (YYYY-MM-DD)"
           value={draft.offer.comp?.startDate ?? ""}
@@ -398,6 +511,22 @@ export function OfferPanel({
         <Text type="supporting" color="secondary">
           Internal approve/reject only — no external workflow engine yet.
         </Text>
+        <Tokenizer
+          label="Approvers"
+          description="Who must sign off before this offer can go out."
+          searchSource={approverSource}
+          value={selectedApprovers}
+          onChange={(next) => setApproverIds(next.map((item) => item.id))}
+          hasEntriesOnFocus
+          placeholder={teamMembers.length ? "Add an approver" : "Load team to assign"}
+        />
+        <TextArea
+          label="Approval note"
+          value={approvalNote}
+          onChange={setApprovalNote}
+          rows={2}
+          placeholder="Why this package, exceptions, competing offer…"
+        />
         {draft.offer.approval ? (
           <HStack gap={2} wrap="wrap" vAlign="center">
             <Badge
@@ -418,6 +547,7 @@ export function OfferPanel({
         <HStack gap={2} wrap="wrap">
           <Button label="Request approval" variant="secondary" onClick={requestApproval} />
           <Button label="Mark approved" variant="secondary" onClick={markApproved} />
+          <Button label="Reject approval" variant="ghost" onClick={markRejectedApproval} />
         </HStack>
       </Stack>
 
@@ -427,18 +557,31 @@ export function OfferPanel({
           OpenSeat-hosted sign link only. DocuSign and other connectors are out of scope.
         </Text>
         {draft.offer.esign && draft.offer.esign.status !== "none" ? (
-          <HStack gap={2} wrap="wrap" vAlign="center">
-            <Badge label={draft.offer.esign.status} variant="info" />
-            {draft.offer.esign.signUrl ? (
-              <Text type="supporting" color="secondary" maxLines={1}>
-                {draft.offer.esign.signUrl}
-              </Text>
-            ) : null}
-          </HStack>
+          <Badge label={draft.offer.esign.status} variant="info" />
         ) : null}
+        <EsignShare
+          applicantId={applicant.id}
+          url={draft.offer.esign?.signUrl}
+          candidate={applicant.name}
+        />
         <HStack gap={2} wrap="wrap">
           <Button label="Create sign link" variant="secondary" onClick={startEsign} />
           <Button label="Mark signed" variant="ghost" onClick={markEsignSigned} />
+          <Button
+            label="Mark e-sign declined"
+            variant="ghost"
+            onClick={() => {
+              const next: OfferRecord = {
+                ...withComp(draft),
+                esign: {
+                  ...(draft.offer.esign ?? { status: "pending" }),
+                  status: "declined",
+                },
+              };
+              setDraft((current) => ({ ...current, offer: next }));
+              emit(next, `${applicant.name} declined e-sign`);
+            }}
+          />
         </HStack>
       </Stack>
 
@@ -447,7 +590,11 @@ export function OfferPanel({
         <Text type="supporting" color="secondary">
           Light checklist stub — not full HRIS onboarding.
         </Text>
-        <Button label="Generate hire packet" variant="secondary" onClick={generateHirePacket} />
+        <HStack gap={2} wrap="wrap">
+          <Button label="Generate hire packet" variant="secondary" onClick={generateHirePacket} />
+          <Button label="Mark ready" variant="secondary" onClick={() => setPacketStatus("ready")} />
+          <Button label="Mark sent to HR" variant="ghost" onClick={() => setPacketStatus("sent")} />
+        </HStack>
         {draft.offer.hirePacket && draft.offer.hirePacket.status !== "none" ? (
           <Stack gap={2}>
             <Badge label={draft.offer.hirePacket.status} variant="purple" />
@@ -471,6 +618,25 @@ export function OfferPanel({
                 })
               }
               placeholder="hr@company.com or #onboarding"
+            />
+            <TextArea
+              label="Owner note for HR"
+              value={draft.offer.hirePacket.ownerNote ?? ""}
+              onChange={(ownerNote) =>
+                setOffer({
+                  hirePacket: {
+                    ...draft.offer.hirePacket!,
+                    ownerNote: ownerNote || undefined,
+                  },
+                })
+              }
+              rows={2}
+              placeholder="Start date flexibility, equipment, buddy assignment…"
+            />
+            <Button
+              label="Save handoff notes"
+              variant="secondary"
+              onClick={() => emit(withComp(draft), `Hire handoff saved for ${applicant.name}`)}
             />
           </Stack>
         ) : null}

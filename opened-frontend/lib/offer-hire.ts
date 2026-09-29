@@ -501,6 +501,70 @@ export function todayYmd(now = new Date()): string {
   return formatISODate(now);
 }
 
+export function decideApproval(
+  current: OfferRecord | undefined,
+  decision: "approved" | "rejected",
+  extras?: { note?: string; decidedBy?: string; now?: Date },
+): OfferRecord {
+  const base = current
+    ? { ...current, comp: current.comp ? { ...current.comp } : undefined }
+    : emptyOffer({ status: "pending_approval" });
+  const now = extras?.now ?? new Date();
+  const iso = now.toISOString();
+  const approval = {
+    id:
+      base.approval?.id ||
+      (typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? `oapr-${crypto.randomUUID()}`
+        : `oapr-${Date.now()}`),
+    status: decision,
+    requestedAt: base.approval?.requestedAt || iso,
+    decidedAt: iso,
+    approverIds: base.approval?.approverIds,
+    decidedBy: extras?.decidedBy,
+    note: extras?.note ?? base.approval?.note,
+  } as OfferApproval;
+  if (decision === "approved") {
+    return { ...base, status: "approved", approval };
+  }
+  return { ...base, status: "draft", approval };
+}
+
+export function markHirePacketStatus(
+  current: OfferRecord | undefined,
+  status: HirePacketStatus,
+  extras?: { handoffTarget?: string; ownerNote?: string },
+): OfferRecord {
+  const base = current
+    ? { ...current, comp: current.comp ? { ...current.comp } : undefined }
+    : emptyOffer({ status: "accepted" });
+  const packet =
+    base.hirePacket && base.hirePacket.status !== "none" ? { ...base.hirePacket } : newHirePacket();
+  packet.status = status;
+  if (extras?.handoffTarget !== undefined) packet.handoffTarget = extras.handoffTarget;
+  if (extras?.ownerNote !== undefined) packet.ownerNote = extras.ownerNote;
+  if (!packet.generatedAt) packet.generatedAt = new Date().toISOString();
+  return { ...base, hirePacket: packet };
+}
+
+/** Default templates when a job has none yet (client scaffold). */
+export function defaultOfferTemplates(): OfferTemplate[] {
+  return [
+    newOfferTemplate({
+      name: "Standard full-time",
+      body: "Dear {{name}},\n\nWe are pleased to offer you the {{role}} position.\n\nPlease review the compensation details and reply with your decision.",
+      requiresApproval: false,
+      requiresEsign: false,
+    }),
+    newOfferTemplate({
+      name: "Executive (approval + e-sign)",
+      body: "Dear {{name}},\n\nOn behalf of the leadership team, we are delighted to offer you the {{role}} role.\n\nThis offer requires countersignature.",
+      requiresApproval: true,
+      requiresEsign: true,
+    }),
+  ];
+}
+
 export function buildOfferPatch(offer: OfferRecord): OfferPatch {
   return {
     status: offer.status,

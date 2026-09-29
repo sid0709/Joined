@@ -38,7 +38,7 @@ import {
 import { ApplicantCard } from "./applicant-card";
 import { ApplicantDrawer, type ApplicantScheduleRequest } from "./applicant-drawer";
 import type { OfferActionResult } from "@/components/company/offer/offer-panel";
-import { applyOfferStatus, buildOfferPatch } from "@/lib/offer-hire";
+import { applyOfferStatus, buildOfferPatch, defaultOfferTemplates } from "@/lib/offer-hire";
 
 const COLUMN_WIDTH = 240;
 const PERCENT = 100;
@@ -103,7 +103,10 @@ export function ApplicantsWorkspace() {
   const feedbackGate = activeJob?.feedbackGate ?? DEFAULT_FEEDBACK_GATE;
   const scorecardTemplate = activeJob?.scorecardTemplate ?? null;
   const interviewGuide = activeJob?.interviewGuide ?? null;
-  const offerTemplates = activeJob?.offerTemplates ?? [];
+  const offerTemplates =
+    activeJob?.offerTemplates && activeJob.offerTemplates.length > 0
+      ? activeJob.offerTemplates
+      : defaultOfferTemplates();
 
   const needle = query.trim().toLowerCase();
   const tagOptions = [

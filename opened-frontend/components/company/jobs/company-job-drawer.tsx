@@ -28,6 +28,7 @@ import {
   type PipelineStageDef,
   type ScorecardTemplate,
   type OfferTemplate,
+  defaultOfferTemplates,
 } from "@/lib/company";
 import { CustomStagesEditor } from "@/components/company/pipeline/custom-stages-editor";
 import { FeedbackGateEditor } from "@/components/company/pipeline/feedback-gate";
@@ -68,7 +69,11 @@ export function CompanyJobDrawer({
     setFeedbackGate(job.feedbackGate ?? DEFAULT_FEEDBACK_GATE);
     setScorecardTemplate(job.scorecardTemplate ?? newScorecardTemplate());
     setInterviewGuide(job.interviewGuide ?? newInterviewGuide());
-    setOfferTemplates(job.offerTemplates ?? []);
+    setOfferTemplates(
+      job.offerTemplates && job.offerTemplates.length > 0
+        ? job.offerTemplates
+        : defaultOfferTemplates(),
+    );
   }, [job]);
 
   if (!job) return null;
