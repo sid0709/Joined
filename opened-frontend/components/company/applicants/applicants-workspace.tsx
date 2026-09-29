@@ -15,12 +15,15 @@ import {
 import { StatGrid } from "@/components/stat-card";
 import { canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
 import {
+  fetchApplicantScorecards,
   fetchApplicants,
   fetchHiringProfile,
   fetchJobs,
   fetchTeam,
   moveApplicant,
   scheduleInterview,
+  stageMoveErrorMessage,
+  submitApplicantScorecard,
 } from "@/lib/company/api";
 import {
   APPLICANT_COLUMNS,
@@ -33,6 +36,7 @@ import {
   type CompanyJob,
   type HiringProfile,
   type ScorecardSubmission,
+  type ScorecardSubmissionInput,
   type TeamMember,
 } from "@/lib/company";
 import { ApplicantCard } from "./applicant-card";
@@ -94,6 +98,25 @@ export function ApplicantsWorkspace() {
       active = false;
     };
   }, [toast]);
+
+  useEffect(() => {
+    if (!openId) return;
+    let active = true;
+    fetchApplicantScorecards(openId)
+      .then((items) => {
+        if (!active) return;
+        setScorecards((current) => {
+          const others = current.filter((item) => item.applicantId !== openId);
+          return [...items, ...others];
+        });
+      })
+      .catch(() => {
+        /* Gate still runs client-side; empty list until retry. */
+      });
+    return () => {
+      active = false;
+    };
+  }, [openId]);
 
   const openApplicant = people.find((person) => person.id === openId) ?? null;
   const activeJob = useMemo(() => {
@@ -165,7 +188,7 @@ export function ApplicantsWorkspace() {
           setOpenId(null);
         }
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+      .catch((error: unknown) => toast({ body: stageMoveErrorMessage(error), type: "error" }));
   };
 
   const applyOffer = (result: OfferActionResult) => {
@@ -336,9 +359,9 @@ export function ApplicantsWorkspace() {
                   body: `Moved to ${APPLICANT_STAGE_BY_ID[toStage].title}`,
                 });
               })
-              .catch((error: Error) => {
+              .catch((error: unknown) => {
                 setPeople(people);
-                toast({ body: error.message, type: "error" });
+                toast({ body: stageMoveErrorMessage(error), type: "error" });
               });
             return;
           }
@@ -360,11 +383,22 @@ export function ApplicantsWorkspace() {
         scorecardTemplate={scorecardTemplate}
         interviewGuide={interviewGuide}
         feedbackGate={feedbackGate}
+        customStages={activeJob?.customStages}
         scorecards={scorecards}
         offerTemplates={offerTemplates}
-        onScorecard={(submission) => {
-          setScorecards((current) => [submission, ...current]);
-          toast({ body: "Scorecard saved locally — Einstein persist pending." });
+        onScorecard={async (input: ScorecardSubmissionInput) => {
+          if (!openApplicant) return;
+          try {
+            const saved = await submitApplicantScorecard(openApplicant.id, input);
+            setScorecards((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+            toast({ body: "Scorecard submitted." });
+          } catch (error) {
+            toast({
+              body: error instanceof Error ? error.message : "Could not submit scorecard.",
+              type: "error",
+            });
+            throw error;
+          }
         }}
         onClose={() => setOpenId(null)}
         onChange={replace}

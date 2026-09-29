@@ -33,6 +33,7 @@ import {
   type HiringProfile,
   type InterviewGuide,
   type ScorecardSubmission,
+  type ScorecardSubmissionInput,
   type ScorecardTemplate,
   type TeamMember,
 } from "@/lib/company";
@@ -79,6 +80,7 @@ export function ApplicantDrawer({
   scorecardTemplate,
   interviewGuide,
   feedbackGate,
+  customStages,
   scorecards,
   offerTemplates,
   onScorecard,
@@ -94,9 +96,10 @@ export function ApplicantDrawer({
   scorecardTemplate: ScorecardTemplate | null;
   interviewGuide: InterviewGuide | null;
   feedbackGate: FeedbackGateConfig;
+  customStages?: import("@/lib/pipeline-eval").PipelineStageDef[];
   scorecards: ScorecardSubmission[];
   offerTemplates: OfferTemplate[];
-  onScorecard: (submission: ScorecardSubmission) => void;
+  onScorecard: (input: ScorecardSubmissionInput) => void | Promise<void>;
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
   onSchedule: (applicant: Applicant, slot: ApplicantScheduleRequest) => void;
@@ -110,6 +113,7 @@ export function ApplicantDrawer({
   );
   const [gateError, setGateError] = useState<ReturnType<typeof canAdvanceStage> | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- reset on candidate id */
   useEffect(() => {
     if (!applicant) return;
     setDraft({
@@ -118,6 +122,7 @@ export function ApplicantDrawer({
     });
     setGateError(null);
   }, [applicant?.id]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   if (!applicant) return null;
 
@@ -131,6 +136,7 @@ export function ApplicantDrawer({
       rating: applicant.rating,
       hasScorecard: applicantScorecards.length > 0,
       gate: feedbackGate ?? DEFAULT_FEEDBACK_GATE,
+      customStages,
     });
     if (!check.ok) {
       setGateError(check);
@@ -353,6 +359,7 @@ export function ApplicantDrawer({
         </Stack>
 
         <ScorecardSubmitShell
+          key={applicant.id}
           template={scorecardTemplate}
           applicantId={applicant.id}
           existing={applicantScorecards}

@@ -1,5 +1,20 @@
 export const MESSAGE_POLL_MS = 4000;
 
+/** Company/me API failure with HTTP status (409 feedback gate, etc.). */
+export class CompanyRequestError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "CompanyRequestError";
+    this.status = status;
+  }
+}
+
+export function isConflictError(error: unknown): error is CompanyRequestError {
+  return error instanceof CompanyRequestError && error.status === 409;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { cache: "no-store", ...init });
   if (response.status === 204) return undefined as T;
@@ -12,7 +27,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       /* keep default */
     }
-    throw new Error(message);
+    throw new CompanyRequestError(message, response.status);
   }
   return text ? (JSON.parse(text) as T) : (undefined as T);
 }

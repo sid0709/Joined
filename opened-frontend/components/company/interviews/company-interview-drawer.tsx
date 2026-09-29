@@ -20,7 +20,11 @@ import {
 import { SelfScheduleShare } from "@/components/company/interviews/self-schedule-share";
 import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
 import { FACE_CHECK_META, INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";
-import type { ScorecardSubmission, ScorecardTemplate } from "@/lib/pipeline-eval";
+import type {
+  ScorecardSubmission,
+  ScorecardSubmissionInput,
+  ScorecardTemplate,
+} from "@/lib/pipeline-eval";
 import { formatDay, formatTime } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 import { openJoinUrl, resolveJoinUrl, slotLabel, type ProposedSlot } from "@/lib/schedule-join";
@@ -52,7 +56,7 @@ export function CompanyInterviewDrawer({
   meetingLink?: string | null;
   scorecardTemplate?: ScorecardTemplate | null;
   scorecards?: ScorecardSubmission[];
-  onScorecard?: (submission: ScorecardSubmission) => void;
+  onScorecard?: (input: ScorecardSubmissionInput) => void | Promise<void>;
   onClose: () => void;
   onChange: (next: CompanyInterview, message: string) => void;
 }) {
@@ -60,10 +64,12 @@ export function CompanyInterviewDrawer({
   const [feedbackPrompt, setFeedbackPrompt] = useState(false);
   const [quickNotes, setQuickNotes] = useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect -- remount-equivalent reset on id change */
   useEffect(() => {
     setFeedbackPrompt(false);
     setQuickNotes("");
   }, [interview?.id]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!interview) return null;
   const status = INTERVIEW_STATUS_META[interview.status];
@@ -268,10 +274,11 @@ export function CompanyInterviewDrawer({
             />
             {scorecardTemplate && onScorecard ? (
               <ScorecardSubmitShell
+                key={interview.applicantId}
                 template={scorecardTemplate}
                 applicantId={interview.applicantId}
                 existing={applicantScorecards}
-                onSubmit={onScorecard}
+                onSubmit={onScorecard ?? (async () => undefined)}
               />
             ) : null}
             <TextArea

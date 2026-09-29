@@ -38,11 +38,16 @@ export {
   hydrateFeedbackGate,
   hydrateScorecardTemplate,
   hydrateInterviewGuide,
+  hydrateScorecardSubmission,
+  hydrateScorecardSubmissions,
   type PipelineStageDef,
   type FeedbackGateConfig,
   type ScorecardTemplate,
   type ScorecardSubmission,
+  type ScorecardSubmissionInput,
   type InterviewGuide,
+  type JobPipelineConfig,
+  type JobPipelinePut,
 } from "@/lib/pipeline-eval";
 
 export {

@@ -21,7 +21,7 @@ import {
 
 const PROMPT_ROWS = 2;
 
-/** Structured interview guide editor — local scaffold until Einstein persists. */
+/** Structured interview guide editor. */
 export function InterviewGuideShell({
   value,
   onChange,
@@ -111,7 +111,6 @@ export function InterviewGuideShell({
         isDisabled={value.sections.length >= MAX_GUIDE_SECTIONS}
         onClick={() => onChange({ ...value, sections: [...value.sections, newGuideSection()] })}
       />
-      {/* TODO(einstein): PUT /v1/company/jobs/:id/pipeline { interviewGuide } */}
     </Stack>
   );
 }

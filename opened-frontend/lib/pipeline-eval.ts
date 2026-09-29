@@ -113,6 +113,22 @@ export type InterviewGuide = {
   sections: InterviewGuideSection[];
 };
 
+/** GET/PUT /v1/company/jobs/:id/pipeline body (stages = custom only). */
+export type JobPipelineConfig = {
+  stages: PipelineStageDef[];
+  feedbackGate: FeedbackGateConfig;
+  scorecardTemplate?: ScorecardTemplate | null;
+  interviewGuide?: InterviewGuide | null;
+};
+
+/** Sparse PUT — omit a key to leave it unchanged; null clears template/guide. */
+export type JobPipelinePut = {
+  stages?: PipelineStageDef[];
+  feedbackGate?: FeedbackGateConfig;
+  scorecardTemplate?: ScorecardTemplate | null;
+  interviewGuide?: InterviewGuide | null;
+};
+
 export const MAX_CUSTOM_STAGES = 8;
 export const MAX_SCORECARD_CRITERIA = 10;
 export const MAX_GUIDE_SECTIONS = 8;
@@ -271,6 +287,43 @@ export function hydrateInterviewGuide(
     title: (raw.title || "Interview guide").trim(),
     sections,
   };
+}
+
+export function hydrateScorecardSubmission(
+  raw: ScorecardSubmission | undefined | null,
+): ScorecardSubmission | null {
+  if (!raw || typeof raw !== "object" || !raw.id || !raw.applicantId) return null;
+  const scores = Array.isArray(raw.scores)
+    ? raw.scores
+        .filter((item) => item && typeof item.criterionId === "string")
+        .map((item) => ({
+          criterionId: String(item.criterionId),
+          score: typeof item.score === "number" ? item.score : 0,
+          note: item.note?.trim() || undefined,
+        }))
+    : [];
+  return {
+    id: String(raw.id),
+    applicantId: String(raw.applicantId),
+    interviewId: raw.interviewId ? String(raw.interviewId) : undefined,
+    templateId: String(raw.templateId || ""),
+    scores,
+    overall: typeof raw.overall === "number" ? raw.overall : undefined,
+    submittedAt:
+      typeof raw.submittedAt === "string" && raw.submittedAt
+        ? raw.submittedAt
+        : new Date().toISOString(),
+    submittedBy: raw.submittedBy ? String(raw.submittedBy) : undefined,
+  };
+}
+
+export function hydrateScorecardSubmissions(
+  raw: ScorecardSubmission[] | undefined | null,
+): ScorecardSubmission[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => hydrateScorecardSubmission(item))
+    .filter((item): item is ScorecardSubmission => item != null);
 }
 
 export type AdvanceCheckInput = {

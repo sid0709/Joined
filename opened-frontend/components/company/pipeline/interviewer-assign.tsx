@@ -10,7 +10,7 @@ import {
 import { useMemo } from "react";
 import type { TeamMember } from "@/lib/company";
 
-/** Assign team interviewers on a candidate. Persists via applicant PATCH when Einstein accepts interviewerIds. */
+/** Assign team interviewers on a candidate. Persists via PATCH interviewerIds. */
 export function InterviewerAssign({
   members,
   value,
@@ -56,7 +56,6 @@ export function InterviewerAssign({
           No team members loaded yet.
         </Text>
       ) : null}
-      {/* TODO(einstein): PATCH /v1/company/applicants/:id { interviewerIds } */}
     </Stack>
   );
 }

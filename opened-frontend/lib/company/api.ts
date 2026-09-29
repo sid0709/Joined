@@ -11,8 +11,15 @@ import {
   hydrateCustomStages,
   hydrateFeedbackGate,
   hydrateInterviewGuide,
+  hydrateScorecardSubmission,
+  hydrateScorecardSubmissions,
   hydrateScorecardTemplate,
+  type JobPipelineConfig,
+  type JobPipelinePut,
+  type ScorecardSubmission,
+  type ScorecardSubmissionInput,
 } from "@/lib/pipeline-eval";
+import { CompanyRequestError, isConflictError } from "@/lib/me/client";
 import {
   hydrateOptionalUrl,
   hydrateProposedSlots,
@@ -372,6 +379,72 @@ export function saveOfficeLocations(locations: string[], rename?: { from: string
     .catch(() => next);
 }
 
+type ApiPipeline = {
+  stages?: JobPipelineConfig["stages"];
+  feedbackGate?: JobPipelineConfig["feedbackGate"];
+  scorecardTemplate?: JobPipelineConfig["scorecardTemplate"];
+  interviewGuide?: JobPipelineConfig["interviewGuide"];
+};
+
+function hydratePipeline(raw: ApiPipeline): JobPipelineConfig {
+  return {
+    stages: hydrateCustomStages(raw.stages),
+    feedbackGate: hydrateFeedbackGate(raw.feedbackGate),
+    scorecardTemplate: hydrateScorecardTemplate(raw.scorecardTemplate ?? null),
+    interviewGuide: hydrateInterviewGuide(raw.interviewGuide ?? null),
+  };
+}
+
+/** GET /v1/company/jobs/:id/pipeline — custom stages + eval config. */
+export function fetchJobPipeline(jobId: string) {
+  return companyGet<ApiPipeline>(`/jobs/${encodeURIComponent(jobId)}/pipeline`).then(
+    hydratePipeline,
+  );
+}
+
+/** PUT /v1/company/jobs/:id/pipeline — partial; omitted keys stay unchanged. */
+export function saveJobPipeline(jobId: string, input: JobPipelinePut) {
+  const body: Record<string, unknown> = {};
+  if (input.stages !== undefined) body.stages = input.stages;
+  if (input.feedbackGate !== undefined) body.feedbackGate = input.feedbackGate;
+  if (input.scorecardTemplate !== undefined) body.scorecardTemplate = input.scorecardTemplate;
+  if (input.interviewGuide !== undefined) body.interviewGuide = input.interviewGuide;
+  return companySend<ApiPipeline>(`/jobs/${encodeURIComponent(jobId)}/pipeline`, "PUT", body).then(
+    hydratePipeline,
+  );
+}
+
+type ApiScorecard = ScorecardSubmission & { submittedAt: string };
+
+/** GET /v1/company/applicants/:id/scorecards — bare array from Einstein. */
+export function fetchApplicantScorecards(applicantId: string) {
+  return companyGet<ApiScorecard[]>(
+    `/applicants/${encodeURIComponent(applicantId)}/scorecards`,
+  ).then((body) => hydrateScorecardSubmissions(body));
+}
+
+/** POST /v1/company/applicants/:id/scorecards */
+export function submitApplicantScorecard(applicantId: string, input: ScorecardSubmissionInput) {
+  return companySend<ApiScorecard>(
+    `/applicants/${encodeURIComponent(applicantId)}/scorecards`,
+    "POST",
+    input,
+  ).then((raw) => {
+    const saved = hydrateScorecardSubmission(raw);
+    if (!saved) throw new CompanyRequestError("Invalid scorecard response", 500);
+    return saved;
+  });
+}
+
+/** Toast copy for stage-move failures — keep 409 gate reasons visible. */
+export function stageMoveErrorMessage(error: unknown): string {
+  if (isConflictError(error)) {
+    return error.message || "Feedback required before advancing this candidate.";
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "Could not move this candidate.";
+}
+
 export function fetchApplicants() {
   return companyGet<{ applicants: ApiApplicant[] }>("/applicants").then((body) =>
     body.applicants.map(hydrateApplicant),
@@ -392,7 +465,6 @@ export function moveApplicant(
     notes: notes ?? "",
     rating,
     tags: tags ?? undefined,
-    // TODO(einstein): accept interviewerIds on PATCH /v1/company/applicants/:id
     interviewerIds: interviewerIds ?? undefined,
     // TODO(einstein): persist OfferPatch on PATCH /v1/company/applicants/:id
     offer: offer ?? undefined,

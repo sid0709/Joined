@@ -13,7 +13,7 @@ import {
 } from "@openseat/design-system";
 import { MAX_CUSTOM_STAGES, newCustomStage, type PipelineStageDef } from "@/lib/pipeline-eval";
 
-/** Employer-authored pipeline stages beyond the fixed six. Local state until Einstein persists. */
+/** Employer-authored pipeline stages beyond the fixed six. */
 export function CustomStagesEditor({
   value,
   onChange,
@@ -69,7 +69,6 @@ export function CustomStagesEditor({
         isDisabled={value.length >= MAX_CUSTOM_STAGES}
         onClick={() => onChange([...value, newCustomStage()])}
       />
-      {/* TODO(einstein): PUT /v1/company/jobs/:id/pipeline { stages } */}
     </Stack>
   );
 }

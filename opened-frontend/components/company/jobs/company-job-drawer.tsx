@@ -13,6 +13,7 @@ import {
   MetadataListItem,
   Stack,
   Text,
+  useToast,
 } from "@openseat/design-system";
 import {
   DEFAULT_FEEDBACK_GATE,
@@ -25,11 +26,13 @@ import {
   type CompanyJob,
   type FeedbackGateConfig,
   type InterviewGuide,
+  type JobPipelineConfig,
   type PipelineStageDef,
   type ScorecardTemplate,
   type OfferTemplate,
   defaultOfferTemplates,
 } from "@/lib/company";
+import { fetchJobPipeline, saveJobPipeline } from "@/lib/company/api";
 import { CustomStagesEditor } from "@/components/company/pipeline/custom-stages-editor";
 import { FeedbackGateEditor } from "@/components/company/pipeline/feedback-gate";
 import { InterviewGuideShell } from "@/components/company/pipeline/interview-guide-shell";
@@ -50,32 +53,14 @@ export function CompanyJobDrawer({
   applicants,
   onClose,
   onAction,
+  onPipelineSaved,
 }: {
   job: CompanyJob | null;
   applicants: Applicant[];
   onClose: () => void;
   onAction: (job: CompanyJob, action: JobAction) => void;
+  onPipelineSaved?: (jobId: string, pipeline: JobPipelineConfig) => void;
 }) {
-  const [customStages, setCustomStages] = useState<PipelineStageDef[]>([]);
-  const [feedbackGate, setFeedbackGate] = useState<FeedbackGateConfig>(DEFAULT_FEEDBACK_GATE);
-  const [scorecardTemplate, setScorecardTemplate] =
-    useState<ScorecardTemplate>(newScorecardTemplate());
-  const [interviewGuide, setInterviewGuide] = useState<InterviewGuide>(newInterviewGuide());
-  const [offerTemplates, setOfferTemplates] = useState<OfferTemplate[]>([]);
-
-  useEffect(() => {
-    if (!job) return;
-    setCustomStages(job.customStages ?? []);
-    setFeedbackGate(job.feedbackGate ?? DEFAULT_FEEDBACK_GATE);
-    setScorecardTemplate(job.scorecardTemplate ?? newScorecardTemplate());
-    setInterviewGuide(job.interviewGuide ?? newInterviewGuide());
-    setOfferTemplates(
-      job.offerTemplates && job.offerTemplates.length > 0
-        ? job.offerTemplates
-        : defaultOfferTemplates(),
-    );
-  }, [job]);
-
   if (!job) return null;
   const status = JOB_STATUS_META[job.status];
   const top = applicants
@@ -151,33 +136,7 @@ export function CompanyJobDrawer({
 
         <Divider />
 
-        <Stack gap={3}>
-          <Heading level={3}>Custom stages</Heading>
-          <CustomStagesEditor value={customStages} onChange={setCustomStages} />
-        </Stack>
-
-        <Stack gap={3}>
-          <Heading level={3}>Feedback gate</Heading>
-          <FeedbackGateEditor value={feedbackGate} onChange={setFeedbackGate} />
-        </Stack>
-
-        <Stack gap={3}>
-          <Heading level={3}>Scorecard template</Heading>
-          <ScorecardTemplateEditor value={scorecardTemplate} onChange={setScorecardTemplate} />
-        </Stack>
-
-        <Stack gap={3}>
-          <Heading level={3}>Interview guide</Heading>
-          <InterviewGuideShell value={interviewGuide} onChange={setInterviewGuide} />
-        </Stack>
-        <Stack gap={3}>
-          <Heading level={3}>Offer templates</Heading>
-          <OfferTemplateEditor value={offerTemplates} onChange={setOfferTemplates} />
-        </Stack>
-        <Text type="supporting" color="secondary">
-          Pipeline eval and offer template settings stay local until Einstein lands PUT
-          /v1/company/jobs/:id/pipeline (and offerTemplates on the job).
-        </Text>
+        <JobPipelinePanel key={job.id} job={job} onPipelineSaved={onPipelineSaved} />
 
         <Divider />
 
@@ -207,5 +166,128 @@ export function CompanyJobDrawer({
         </Stack>
       </Stack>
     </Drawer>
+  );
+}
+
+/** Remounts per job via key so editor state seeds from props without sync effects. */
+function JobPipelinePanel({
+  job,
+  onPipelineSaved,
+}: {
+  job: CompanyJob;
+  onPipelineSaved?: (jobId: string, pipeline: JobPipelineConfig) => void;
+}) {
+  const toast = useToast();
+  const [customStages, setCustomStages] = useState<PipelineStageDef[]>(
+    () => job.customStages ?? [],
+  );
+  const [feedbackGate, setFeedbackGate] = useState<FeedbackGateConfig>(
+    () => job.feedbackGate ?? DEFAULT_FEEDBACK_GATE,
+  );
+  const [scorecardTemplate, setScorecardTemplate] = useState<ScorecardTemplate>(
+    () => job.scorecardTemplate ?? newScorecardTemplate(),
+  );
+  const [interviewGuide, setInterviewGuide] = useState<InterviewGuide>(
+    () => job.interviewGuide ?? newInterviewGuide(),
+  );
+  const [offerTemplates, setOfferTemplates] = useState<OfferTemplate[]>(() =>
+    job.offerTemplates && job.offerTemplates.length > 0
+      ? job.offerTemplates
+      : defaultOfferTemplates(),
+  );
+  const [pipelineLoading, setPipelineLoading] = useState(true);
+  const [pipelineSaving, setPipelineSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchJobPipeline(job.id)
+      .then((pipeline) => {
+        if (!active) return;
+        setCustomStages(pipeline.stages);
+        setFeedbackGate(pipeline.feedbackGate);
+        setScorecardTemplate(pipeline.scorecardTemplate ?? newScorecardTemplate());
+        setInterviewGuide(pipeline.interviewGuide ?? newInterviewGuide());
+      })
+      .catch(() => {
+        /* Job list hydrate is enough when pipeline GET fails. */
+      })
+      .finally(() => {
+        if (active) setPipelineLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [job.id]);
+
+  const savePipeline = () => {
+    setPipelineSaving(true);
+    saveJobPipeline(job.id, {
+      stages: customStages,
+      feedbackGate,
+      scorecardTemplate,
+      interviewGuide,
+    })
+      .then((pipeline) => {
+        setCustomStages(pipeline.stages);
+        setFeedbackGate(pipeline.feedbackGate);
+        setScorecardTemplate(pipeline.scorecardTemplate ?? newScorecardTemplate());
+        setInterviewGuide(pipeline.interviewGuide ?? newInterviewGuide());
+        onPipelineSaved?.(job.id, pipeline);
+        toast({ body: "Pipeline settings saved." });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }))
+      .finally(() => setPipelineSaving(false));
+  };
+
+  return (
+    <Stack gap={6}>
+      <Stack gap={3}>
+        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+          <Heading level={3}>Pipeline & evaluation</Heading>
+          <Button
+            label={pipelineSaving ? "Saving…" : "Save pipeline"}
+            variant="secondary"
+            size="sm"
+            isDisabled={pipelineLoading || pipelineSaving}
+            onClick={savePipeline}
+          />
+        </HStack>
+        {pipelineLoading ? (
+          <Text type="supporting" color="secondary">
+            Loading pipeline settings…
+          </Text>
+        ) : null}
+      </Stack>
+
+      <Stack gap={3}>
+        <Heading level={3}>Custom stages</Heading>
+        <CustomStagesEditor value={customStages} onChange={setCustomStages} />
+      </Stack>
+
+      <Stack gap={3}>
+        <Heading level={3}>Feedback gate</Heading>
+        <FeedbackGateEditor value={feedbackGate} onChange={setFeedbackGate} />
+      </Stack>
+
+      <Stack gap={3}>
+        <Heading level={3}>Scorecard template</Heading>
+        <ScorecardTemplateEditor value={scorecardTemplate} onChange={setScorecardTemplate} />
+      </Stack>
+
+      <Stack gap={3}>
+        <Heading level={3}>Interview guide</Heading>
+        <InterviewGuideShell value={interviewGuide} onChange={setInterviewGuide} />
+      </Stack>
+
+      <Stack gap={3}>
+        <Heading level={3}>Offer templates</Heading>
+        <OfferTemplateEditor value={offerTemplates} onChange={setOfferTemplates} />
+      </Stack>
+      <Text type="supporting" color="secondary">
+        Offer templates stay local until Einstein lands offerTemplates on the job. Pipeline stages,
+        feedback gate, scorecard template, and interview guide save via PUT
+        /v1/company/jobs/:id/pipeline.
+      </Text>
+    </Stack>
   );
 }

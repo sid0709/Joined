@@ -17,11 +17,13 @@ import {
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
 import {
+  fetchApplicantScorecards,
   fetchBilling,
   fetchHiringProfile,
   fetchInterviews,
   fetchJobs,
   setAttendance,
+  submitApplicantScorecard,
 } from "@/lib/company/api";
 import {
   toCompanyCalendarEvent,
@@ -30,6 +32,7 @@ import {
   type CompanyJob,
   type HiringProfile,
   type ScorecardSubmission,
+  type ScorecardSubmissionInput,
 } from "@/lib/company";
 import { daysBetween, formatDay, isSameDay, startOfDay } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
@@ -72,6 +75,26 @@ export function CompanyInterviewsWorkspace() {
       active = false;
     };
   }, [toast]);
+
+  useEffect(() => {
+    const applicantId = items.find((item) => item.id === openId)?.applicantId;
+    if (!applicantId) return;
+    let active = true;
+    fetchApplicantScorecards(applicantId)
+      .then((next) => {
+        if (!active) return;
+        setScorecards((current) => {
+          const others = current.filter((item) => item.applicantId !== applicantId);
+          return [...next, ...others];
+        });
+      })
+      .catch(() => {
+        /* Scorecard shell still works; list stays empty on failure. */
+      });
+    return () => {
+      active = false;
+    };
+  }, [openId, items]);
 
   const now = new Date();
   const thisWeek = items.filter((item) => {
@@ -221,9 +244,22 @@ export function CompanyInterviewsWorkspace() {
         meetingLink={hiringProfile?.meetingLink}
         scorecardTemplate={scorecardTemplate}
         scorecards={scorecards}
-        onScorecard={(submission) => {
-          setScorecards((current) => [submission, ...current]);
-          toast({ body: "Scorecard saved locally — Einstein persist pending." });
+        onScorecard={async (input: ScorecardSubmissionInput) => {
+          if (!openInterview?.applicantId) return;
+          try {
+            const saved = await submitApplicantScorecard(openInterview.applicantId, {
+              ...input,
+              interviewId: openInterview.id,
+            });
+            setScorecards((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+            toast({ body: "Scorecard submitted." });
+          } catch (error) {
+            toast({
+              body: error instanceof Error ? error.message : "Could not submit scorecard.",
+              type: "error",
+            });
+            throw error;
+          }
         }}
         onChange={replace}
       />

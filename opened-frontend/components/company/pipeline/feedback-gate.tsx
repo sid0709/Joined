@@ -11,7 +11,7 @@ import {
 export { canAdvanceStage };
 export type { AdvanceCheckInput, AdvanceCheckResult, FeedbackGateConfig };
 
-/** Configure when stage moves need notes / rating / scorecard. Local until Einstein persists. */
+/** Configure when stage moves need notes / rating / scorecard. */
 export function FeedbackGateEditor({
   value,
   onChange,
@@ -35,7 +35,6 @@ export function FeedbackGateEditor({
         value={value.requireRatingOnAdvance}
         onChange={(requireRatingOnAdvance) => onChange({ ...value, requireRatingOnAdvance })}
       />
-      {/* TODO(einstein): PUT /v1/company/jobs/:id/pipeline { feedbackGate } */}
     </Stack>
   );
 }

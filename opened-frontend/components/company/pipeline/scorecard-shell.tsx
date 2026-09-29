@@ -20,13 +20,13 @@ import {
   type ScorecardCriterion,
   type ScorecardScore,
   type ScorecardSubmission,
+  type ScorecardSubmissionInput,
   type ScorecardTemplate,
-  newId,
 } from "@/lib/pipeline-eval";
 
 const NOTE_ROWS = 2;
 
-/** Edit a job's scorecard criteria template (local until Einstein persists). */
+/** Edit a job's scorecard criteria template (persists via job pipeline PUT). */
 export function ScorecardTemplateEditor({
   value,
   onChange,
@@ -87,12 +87,11 @@ export function ScorecardTemplateEditor({
         isDisabled={value.criteria.length >= MAX_SCORECARD_CRITERIA}
         onClick={() => onChange({ ...value, criteria: [...value.criteria, newCriterion()] })}
       />
-      {/* TODO(einstein): PUT /v1/company/jobs/:id/pipeline { scorecardTemplate } */}
     </Stack>
   );
 }
 
-/** Submit scores after an interview — optimistic local; POST when Einstein lands. */
+/** Submit scores after an interview — POST /v1/company/applicants/:id/scorecards via onSubmit. */
 export function ScorecardSubmitShell({
   template,
   applicantId,
@@ -102,10 +101,14 @@ export function ScorecardSubmitShell({
   template: ScorecardTemplate | null;
   applicantId: string;
   existing: ScorecardSubmission[];
-  onSubmit: (submission: ScorecardSubmission) => void;
+  onSubmit: (input: ScorecardSubmissionInput) => void | Promise<void>;
 }) {
   const [scores, setScores] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  // Remount via key={applicantId} from parent to clear scores between candidates.
+  void applicantId;
 
   const ready = useMemo(() => {
     if (!template || template.criteria.length === 0) return false;
@@ -158,10 +161,10 @@ export function ScorecardSubmitShell({
         </Stack>
       ))}
       <Button
-        label="Submit scorecard"
+        label={busy ? "Submitting…" : "Submit scorecard"}
         variant="secondary"
         size="sm"
-        isDisabled={!ready}
+        isDisabled={!ready || busy}
         onClick={() => {
           const payload: ScorecardScore[] = template.criteria.map((criterion) => ({
             criterionId: criterion.id,
@@ -170,15 +173,18 @@ export function ScorecardSubmitShell({
           }));
           const overall =
             payload.reduce((sum, item) => sum + item.score, 0) / Math.max(payload.length, 1);
-          onSubmit({
-            id: newId("sc"),
-            applicantId,
+          const input: ScorecardSubmissionInput = {
             templateId: template.id,
             scores: payload,
             overall: Math.round(overall * 10) / 10,
-            submittedAt: new Date().toISOString(),
-          });
-          // TODO(einstein): POST /v1/company/applicants/:id/scorecards
+          };
+          setBusy(true);
+          Promise.resolve(onSubmit(input))
+            .then(() => {
+              setScores({});
+              setNotes({});
+            })
+            .finally(() => setBusy(false));
         }}
       />
     </Stack>

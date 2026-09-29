@@ -181,6 +181,21 @@ export function CompanyJobsWorkspace() {
         applicants={applicants}
         onClose={() => setOpenId(null)}
         onAction={act}
+        onPipelineSaved={(jobId, pipeline) => {
+          setJobs((current) =>
+            current.map((job) =>
+              job.id === jobId
+                ? {
+                    ...job,
+                    customStages: pipeline.stages,
+                    feedbackGate: pipeline.feedbackGate,
+                    scorecardTemplate: pipeline.scorecardTemplate ?? undefined,
+                    interviewGuide: pipeline.interviewGuide ?? undefined,
+                  }
+                : job,
+            ),
+          );
+        }}
       />
 
       <AlertDialog
