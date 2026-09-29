@@ -310,6 +310,8 @@ export function KanbanBoard<T extends KanbanItemBase>({
     return (
       <Card
         key={`${column.id}:${laneId ?? ""}`}
+        className="os-kanban-cell"
+        data-kanban-column={column.id}
         variant={blocked ? "red" : "muted"}
         padding={2}
         width={columnWidth}
@@ -407,7 +409,7 @@ export function KanbanBoard<T extends KanbanItemBase>({
                   <Badge label={count} />
                 </HStack>
               )}
-              <HStack gap={3} wrap="nowrap" vAlign="stretch">
+              <HStack gap={3} wrap="nowrap" vAlign="stretch" className="os-kanban-row">
                 {columns.map((column) => renderCell(column, laneId))}
               </HStack>
             </Stack>

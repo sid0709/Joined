@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@openseat/design-system/styles/theme.css";
 @import "@openseat/design-system/styles/astryx.css";
+@import "../src/client/styles/hunter.css";
 
 html,
 body {
@@ -362,8 +363,16 @@ body {
 }
 
 .marketplace-page-body-wide {
-  width: min(100%, 1180px);
-  max-width: 1180px;
+  width: 100%;
+  max-width: none;
+}
+
+/* Marketplace pages should use the AppShell content area rather than the
+   design-system guide width. Individual grids still control their readable
+   columns, while the page background and cards can span the viewport. */
+.os-page-body {
+  width: 100%;
+  max-width: none;
 }
 .marketplace-applications-workspace {
   display: grid;

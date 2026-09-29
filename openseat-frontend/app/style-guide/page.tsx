@@ -1,10 +1,10 @@
-import { Button, JobCard, Badge, Nav, EmptyState, TokenDemo } from "@/components/ui";
-
 import { AvatarSamples } from "./_components/AvatarSamples";
 import { InputSamples } from "./_components/InputSamples";
 import { ToastSamples } from "./_components/ToastSamples";
 
 import type { ReactNode } from "react";
+
+import { Button, JobCard, Badge, Nav, EmptyState, TokenDemo } from "@/components/ui";
 
 const CARD_WIDTH = 208;
 
