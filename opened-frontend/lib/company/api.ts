@@ -480,7 +480,6 @@ export function moveApplicant(
     rating,
     tags: tags ?? undefined,
     interviewerIds: interviewerIds ?? undefined,
-    // TODO(einstein): persist OfferPatch on PATCH /v1/company/applicants/:id
     offer: offer ?? undefined,
   }).then(hydrateApplicant);
 }
@@ -488,57 +487,111 @@ export function moveApplicant(
 /** Sparse offer update without forcing a column move. */
 export function patchApplicantOffer(id: string, offer: OfferPatch, columnId?: ApplicantColumnId) {
   return companySend<ApiApplicant>(`/applicants/${id}`, "PATCH", {
-    // TODO(einstein): persist offer on PATCH /v1/company/applicants/:id
     offer,
     ...(columnId ? { columnId } : {}),
   }).then(hydrateApplicant);
 }
 
-/** Light internal approval request — Einstein POST scaffold. Soft-fails local. */
+/** POST /v1/company/applicants/:id/offer/approvals — light internal approval. */
 export function requestOfferApproval(
   applicantId: string,
   body: { note?: string; approverIds?: string[] },
 ) {
-  return companySend<OfferApproval>(`/applicants/${applicantId}/offer/approvals`, "POST", body)
-    .then((raw) => hydrateOfferApproval(raw))
-    .catch(() =>
-      hydrateOfferApproval({
-        id: "oapr-local",
-        status: "pending",
-        requestedAt: new Date().toISOString(),
-        note: body.note,
-        approverIds: body.approverIds,
-      }),
-    );
+  return companySend<OfferApproval>(
+    `/applicants/${encodeURIComponent(applicantId)}/offer/approvals`,
+    "POST",
+    body,
+  ).then((raw) => {
+    const approval = hydrateOfferApproval(raw);
+    if (!approval) throw new CompanyRequestError("Invalid approval response", 500);
+    return approval;
+  });
 }
 
-/** First-party e-sign session — no DocuSign. Soft-fails until Einstein lands. */
+/** PATCH /v1/company/applicants/:id/offer/approvals/:approvalId */
+export function decideOfferApproval(
+  applicantId: string,
+  approvalId: string,
+  body: { status: "approved" | "rejected"; note?: string },
+) {
+  return companySend<OfferApproval>(
+    `/applicants/${encodeURIComponent(applicantId)}/offer/approvals/${encodeURIComponent(approvalId)}`,
+    "PATCH",
+    body,
+  ).then((raw) => {
+    const approval = hydrateOfferApproval(raw);
+    if (!approval) throw new CompanyRequestError("Invalid approval response", 500);
+    return approval;
+  });
+}
+
+/** POST /v1/company/applicants/:id/offer/esign — first-party OpenSeat sign URL. */
 export function createOfferEsign(applicantId: string, body?: { documentTitle?: string }) {
-  return companySend<OfferEsign>(`/applicants/${applicantId}/offer/esign`, "POST", body ?? {})
-    .then((raw) => hydrateOfferEsign(raw))
-    .catch(() =>
-      hydrateOfferEsign({
-        status: "pending",
-        documentTitle: body?.documentTitle,
-        sentAt: new Date().toISOString(),
-      }),
-    );
+  return companySend<OfferEsign>(
+    `/applicants/${encodeURIComponent(applicantId)}/offer/esign`,
+    "POST",
+    body ?? {},
+  ).then((raw) => {
+    const esign = hydrateOfferEsign(raw);
+    if (!esign) throw new CompanyRequestError("Invalid e-sign response", 500);
+    return esign;
+  });
 }
 
-/** Hire packet / onboarding handoff stub. Soft-fails until Einstein lands. */
+/** POST /v1/company/applicants/:id/hire-packet — draft onboarding checklist. */
 export function createHirePacket(applicantId: string, body?: HirePacketInput) {
-  return companySend<HirePacket>(`/applicants/${applicantId}/hire-packet`, "POST", body ?? {})
-    .then((raw) => hydrateHirePacket(raw))
-    .catch(() =>
-      hydrateHirePacket({
-        status: "draft",
-        checklist: [],
-        startDate: body?.startDate,
-        ownerNote: body?.ownerNote,
-        handoffTarget: body?.handoffTarget,
-        generatedAt: new Date().toISOString(),
-      }),
-    );
+  return companySend<HirePacket>(
+    `/applicants/${encodeURIComponent(applicantId)}/hire-packet`,
+    "POST",
+    body ?? {},
+  ).then((raw) => {
+    const packet = hydrateHirePacket(raw);
+    if (!packet) throw new CompanyRequestError("Invalid hire packet response", 500);
+    return packet;
+  });
+}
+
+/** Toast copy for offer/hire API failures. */
+export function offerHireErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return "Could not update this offer.";
+}
+
+/** PUT job fields including offerTemplates (Einstein create/update/GET). */
+export function jobWritePayload(
+  job: CompanyJob,
+  extras?: { offerTemplates?: import("@/lib/offer-hire").OfferTemplate[] },
+): Record<string, unknown> {
+  const status = job.status === "closed" ? "paused" : job.status;
+  return {
+    title: job.title,
+    team: job.team,
+    seniority: job.seniority,
+    location: job.location,
+    workplace: job.workplace,
+    payMin: job.payMin,
+    payMax: job.payMax,
+    currency: job.currency,
+    visa: job.visa,
+    summary: job.summary,
+    skills: job.skills ?? [],
+    responsibilities: job.responsibilities ?? [],
+    requirements: job.requirements ?? [],
+    description: job.description ?? "",
+    screeningQuestions: job.screeningQuestions ?? [],
+    policy: job.policy,
+    dailyCap: job.dailyCap,
+    status,
+    offerTemplates: extras?.offerTemplates ?? job.offerTemplates ?? [],
+  };
+}
+
+/** Persist offer letter templates on the job via PUT /v1/company/jobs/:id. */
+export function saveJobOfferTemplates(
+  job: CompanyJob,
+  offerTemplates: import("@/lib/offer-hire").OfferTemplate[],
+) {
+  return updateJob(job.id, jobWritePayload(job, { offerTemplates }));
 }
 
 export function fetchInterviews() {

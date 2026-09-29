@@ -19,6 +19,13 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import type { Applicant, TeamMember } from "@/lib/company";
+import {
+  createHirePacket,
+  createOfferEsign,
+  decideOfferApproval,
+  offerHireErrorMessage,
+  requestOfferApproval,
+} from "@/lib/company/api";
 import { canPermission, currentMemberRole, denialReason } from "@/lib/rbac";
 import { EsignShare } from "@/components/company/offer/esign-share";
 import { formatCents } from "@/lib/money";
@@ -29,17 +36,14 @@ import {
   buildOfferPatch,
   canTransitionOffer,
   centsToDollarsInput,
-  decideApproval,
   dollarsToCents,
   emptyOffer,
   markHirePacketStatus,
   newHirePacket,
   offerReadyToHire,
   renderOfferBody,
-  scaffoldEsignUrl,
   todayYmd,
   type CompPackage,
-  type HirePacket,
   type OfferPatch,
   type OfferRecord,
   type OfferStatus,
@@ -106,6 +110,7 @@ export function OfferPanel({
   const [approverIds, setApproverIds] = useState<string[]>(
     () => applicant.offer?.approval?.approverIds ?? [],
   );
+  const [busy, setBusy] = useState(false);
 
   const actorRole = currentMemberRole(teamMembers);
   const canDraftOffer = canPermission(actorRole, "offers.draft");
@@ -206,63 +211,93 @@ export function OfferPanel({
   };
 
   const requestApproval = () => {
-    const seeded: OfferRecord = {
-      ...withComp(draft),
-      approval: {
-        id: draft.offer.approval?.id || `oapr-${Date.now()}`,
-        status: "pending",
-        requestedAt: new Date().toISOString(),
-        approverIds,
-        note: approvalNote || undefined,
-      },
-    };
-    setDraft((current) => ({ ...current, offer: seeded }));
     const check = canTransitionOffer({
-      from: seeded.status === "pending_approval" ? "pending_approval" : status,
+      from: status === "pending_approval" ? "pending_approval" : status,
       to: "pending_approval",
       requiresApproval: selectedTemplate?.requiresApproval,
     });
-    // Force status via applyOfferStatus after seeding approvers.
-    const next = applyOfferStatus(seeded, "pending_approval", { notes: seeded.notes });
-    next.approval = {
-      ...(next.approval ?? seeded.approval!),
-      approverIds,
-      note: approvalNote || undefined,
-    };
     if (!check.ok && status !== "draft" && status !== "pending_approval") {
       setActionError(check.reason);
       return;
     }
     setActionError(null);
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `Approval requested for ${applicant.name}'s offer`);
+    setBusy(true);
+    requestOfferApproval(applicant.id, {
+      note: approvalNote || undefined,
+      approverIds: approverIds.length ? approverIds : undefined,
+    })
+      .then((approval) => {
+        const next: OfferRecord = {
+          ...withComp(draft),
+          status: "pending_approval",
+          approval: {
+            ...approval,
+            approverIds: approval.approverIds?.length ? approval.approverIds : approverIds,
+            note: approval.note || approvalNote || undefined,
+          },
+        };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `Approval requested for ${applicant.name}'s offer`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const markApproved = () => {
-    const next = decideApproval(withComp(draft), "approved", {
-      note: approvalNote || undefined,
-      decidedBy: teamMembers.find((member) => member.isYou)?.id,
-    });
-    next.approval = {
-      ...(next.approval as NonNullable<OfferRecord["approval"]>),
-      approverIds: approverIds.length ? approverIds : next.approval?.approverIds,
-    };
+    const approvalId = draft.offer.approval?.id;
+    if (!approvalId) {
+      setActionError("Request approval before approving.");
+      return;
+    }
     setActionError(null);
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `Offer for ${applicant.name} approved`);
+    setBusy(true);
+    decideOfferApproval(applicant.id, approvalId, {
+      status: "approved",
+      note: approvalNote || undefined,
+    })
+      .then((approval) => {
+        const next: OfferRecord = {
+          ...withComp(draft),
+          status: "approved",
+          approval: {
+            ...approval,
+            approverIds: approverIds.length ? approverIds : approval.approverIds,
+          },
+        };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `Offer for ${applicant.name} approved`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const markRejectedApproval = () => {
-    const next = decideApproval(withComp(draft), "rejected", {
-      note: approvalNote || undefined,
-      decidedBy: teamMembers.find((member) => member.isYou)?.id,
-    });
+    const approvalId = draft.offer.approval?.id;
+    if (!approvalId) {
+      setActionError("Request approval before rejecting.");
+      return;
+    }
     setActionError(null);
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `Offer approval rejected for ${applicant.name}`);
+    setBusy(true);
+    decideOfferApproval(applicant.id, approvalId, {
+      status: "rejected",
+      note: approvalNote || undefined,
+    })
+      .then((approval) => {
+        const next: OfferRecord = {
+          ...withComp(draft),
+          status: "draft",
+          approval,
+        };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `Offer approval rejected for ${applicant.name}`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const setPacketStatus = (packetStatus: "ready" | "sent") => {
+    // ready/sent checklist polish is still FE-local — Einstein hire-packet POST drafts only.
     const next = markHirePacketStatus(withComp(draft), packetStatus, {
       handoffTarget: draft.offer.hirePacket?.handoffTarget,
       ownerNote: draft.offer.hirePacket?.ownerNote ?? draft.offer.notes,
@@ -277,20 +312,22 @@ export function OfferPanel({
   };
 
   const startEsign = () => {
-    const next: OfferRecord = {
-      ...withComp(draft),
-      esign: {
-        status: "pending",
-        documentTitle: selectedTemplate?.name || "Offer letter",
-        signUrl: scaffoldEsignUrl(applicant.id),
-        sentAt: new Date().toISOString(),
-      },
-    };
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `First-party e-sign link ready for ${applicant.name}`);
+    setActionError(null);
+    setBusy(true);
+    createOfferEsign(applicant.id, {
+      documentTitle: selectedTemplate?.name || "Offer letter",
+    })
+      .then((esign) => {
+        const next: OfferRecord = { ...withComp(draft), esign };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `First-party e-sign link ready for ${applicant.name}`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const markEsignSigned = () => {
+    // Candidate sign-page UX is still FE-later; employer can mark signed locally.
     const next: OfferRecord = {
       ...withComp(draft),
       esign: {
@@ -304,14 +341,21 @@ export function OfferPanel({
   };
 
   const generateHirePacket = () => {
-    const packet: HirePacket = newHirePacket({
+    setActionError(null);
+    setBusy(true);
+    createHirePacket(applicant.id, {
       startDate: draft.offer.comp?.startDate || todayYmd(),
       ownerNote: draft.offer.notes,
-      status: "ready",
-    });
-    const next: OfferRecord = { ...withComp(draft), hirePacket: packet };
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `Hire packet drafted for ${applicant.name}`);
+      handoffTarget: draft.offer.hirePacket?.handoffTarget,
+      resetChecklist: true,
+    })
+      .then((packet) => {
+        const next: OfferRecord = { ...withComp(draft), hirePacket: packet };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `Hire packet drafted for ${applicant.name}`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const toggleChecklistItem = (id: string) => {
@@ -571,19 +615,19 @@ export function OfferPanel({
             label="Request approval"
             variant="secondary"
             onClick={requestApproval}
-            isDisabled={!canDraftOffer}
+            isDisabled={busy || !canDraftOffer}
           />
           <Button
             label="Mark approved"
             variant="secondary"
             onClick={markApproved}
-            isDisabled={!canApproveOffer}
+            isDisabled={busy || !canApproveOffer}
           />
           <Button
             label="Reject approval"
             variant="ghost"
             onClick={markRejectedApproval}
-            isDisabled={!canApproveOffer}
+            isDisabled={busy || !canApproveOffer}
           />
         </HStack>
       </Stack>
@@ -606,7 +650,7 @@ export function OfferPanel({
             label="Create sign link"
             variant="secondary"
             onClick={startEsign}
-            isDisabled={!canSendOffer}
+            isDisabled={busy || !canSendOffer}
           />
           <Button label="Mark signed" variant="ghost" onClick={markEsignSigned} />
           <Button
@@ -637,7 +681,7 @@ export function OfferPanel({
             label="Generate hire packet"
             variant="secondary"
             onClick={generateHirePacket}
-            isDisabled={!canHire && !canDraftOffer}
+            isDisabled={busy || (!canHire && !canDraftOffer)}
           />
           <Button
             label="Mark ready"

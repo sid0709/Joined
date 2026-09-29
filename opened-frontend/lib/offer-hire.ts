@@ -1,7 +1,7 @@
 /**
- * Layer E — Offer & hire (scaffold) shapes.
+ * Layer E — Offer & hire shapes (wired to Einstein persistence on feat/mode-company).
  *
- * Einstein contract (persist + return these fields; UI scaffolds against them):
+ * Einstein contract:
  *
  * GET/PUT /v1/company/jobs/:id  (and list, when cheap)
  *   CompanyJob.offerTemplates?: OfferTemplate[]
@@ -486,7 +486,7 @@ export function renderOfferBody(
     .replace(/\{\{\s*role\s*\}\}/gi, vars.role);
 }
 
-/** Scaffold first-party sign URL when Einstein has not minted one. */
+/** Preview first-party sign URL; prefer offer.esign.signUrl from POST .../offer/esign. */
 export function scaffoldEsignUrl(applicantId: string, origin?: string): string {
   const base =
     origin || (typeof window !== "undefined" ? window.location.origin : "https://openseat.app");

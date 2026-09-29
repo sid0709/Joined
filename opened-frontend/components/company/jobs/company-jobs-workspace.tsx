@@ -181,7 +181,7 @@ export function CompanyJobsWorkspace() {
         applicants={applicants}
         onClose={() => setOpenId(null)}
         onAction={act}
-        onPipelineSaved={(jobId, pipeline) => {
+        onPipelineSaved={(jobId, pipeline, templates) => {
           setJobs((current) =>
             current.map((job) =>
               job.id === jobId
@@ -191,6 +191,7 @@ export function CompanyJobsWorkspace() {
                     feedbackGate: pipeline.feedbackGate,
                     scorecardTemplate: pipeline.scorecardTemplate ?? undefined,
                     interviewGuide: pipeline.interviewGuide ?? undefined,
+                    offerTemplates: templates ?? job.offerTemplates,
                   }
                 : job,
             ),

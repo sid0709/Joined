@@ -34,7 +34,7 @@ import {
   type OfferTemplate,
   defaultOfferTemplates,
 } from "@/lib/company";
-import { fetchJobPipeline, saveJobPipeline } from "@/lib/company/api";
+import { fetchJobPipeline, saveJobOfferTemplates, saveJobPipeline } from "@/lib/company/api";
 import { CustomStagesEditor } from "@/components/company/pipeline/custom-stages-editor";
 import { FeedbackGateEditor } from "@/components/company/pipeline/feedback-gate";
 import { InterviewGuideShell } from "@/components/company/pipeline/interview-guide-shell";
@@ -61,7 +61,11 @@ export function CompanyJobDrawer({
   applicants: Applicant[];
   onClose: () => void;
   onAction: (job: CompanyJob, action: JobAction) => void;
-  onPipelineSaved?: (jobId: string, pipeline: JobPipelineConfig) => void;
+  onPipelineSaved?: (
+    jobId: string,
+    pipeline: JobPipelineConfig,
+    offerTemplates?: OfferTemplate[],
+  ) => void;
 }) {
   if (!job) return null;
   const status = JOB_STATUS_META[job.status];
@@ -177,7 +181,11 @@ function JobPipelinePanel({
   onPipelineSaved,
 }: {
   job: CompanyJob;
-  onPipelineSaved?: (jobId: string, pipeline: JobPipelineConfig) => void;
+  onPipelineSaved?: (
+    jobId: string,
+    pipeline: JobPipelineConfig,
+    offerTemplates?: OfferTemplate[],
+  ) => void;
 }) {
   const toast = useToast();
   const [customStages, setCustomStages] = useState<PipelineStageDef[]>(
@@ -223,19 +231,31 @@ function JobPipelinePanel({
 
   const savePipeline = () => {
     setPipelineSaving(true);
-    saveJobPipeline(job.id, {
+    const pipelinePromise = saveJobPipeline(job.id, {
       stages: customStages,
       feedbackGate,
       scorecardTemplate,
       interviewGuide,
-    })
-      .then((pipeline) => {
+    });
+    const templatesPromise =
+      job.status === "closed" ? Promise.resolve(null) : saveJobOfferTemplates(job, offerTemplates);
+    Promise.all([pipelinePromise, templatesPromise])
+      .then(([pipeline, savedJob]) => {
         setCustomStages(pipeline.stages);
         setFeedbackGate(pipeline.feedbackGate);
         setScorecardTemplate(pipeline.scorecardTemplate ?? newScorecardTemplate());
         setInterviewGuide(pipeline.interviewGuide ?? newInterviewGuide());
-        onPipelineSaved?.(job.id, pipeline);
-        toast({ body: "Pipeline settings saved." });
+        const savedTemplates = savedJob?.offerTemplates ?? offerTemplates;
+        setOfferTemplates(
+          savedTemplates && savedTemplates.length > 0 ? savedTemplates : defaultOfferTemplates(),
+        );
+        onPipelineSaved?.(job.id, pipeline, savedTemplates);
+        toast({
+          body:
+            job.status === "closed"
+              ? "Pipeline settings saved. Offer templates are read-only on closed jobs."
+              : "Pipeline and offer templates saved.",
+        });
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }))
       .finally(() => setPipelineSaving(false));
@@ -290,9 +310,8 @@ function JobPipelinePanel({
         <OfferTemplateEditor value={offerTemplates} onChange={setOfferTemplates} />
       </Stack>
       <Text type="supporting" color="secondary">
-        Offer templates stay local until Einstein lands offerTemplates on the job. Pipeline stages,
-        feedback gate, scorecard template, and interview guide save via PUT
-        /v1/company/jobs/:id/pipeline.
+        Save persists pipeline via PUT /v1/company/jobs/:id/pipeline and offerTemplates via PUT
+        /v1/company/jobs/:id. Closed jobs keep templates read-only.
       </Text>
     </Stack>
   );

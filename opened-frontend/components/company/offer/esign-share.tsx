@@ -21,7 +21,9 @@ export function EsignShare({
     try {
       await navigator.clipboard.writeText(display);
       toast({
-        body: live ? "E-sign link copied." : "Scaffold e-sign link copied — Einstein mint pending.",
+        body: live
+          ? "E-sign link copied."
+          : "Preview link copied — create a sign link to mint the live URL.",
       });
     } catch {
       toast({ body: "Could not copy link.", type: "error" });
@@ -34,7 +36,7 @@ export function EsignShare({
         <Banner
           status="info"
           title="E-sign link not minted yet"
-          description="First-party only. Einstein should return offer.esign.signUrl (see lib/offer-hire.ts). No DocuSign."
+          description="Use Create sign link to mint a first-party OpenSeat URL (/offer/sign/:applicantId). No DocuSign."
         />
       ) : null}
       <Text type="supporting" color="secondary">
