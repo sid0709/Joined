@@ -1,5 +1,5 @@
-import { ClientJobPostView } from "@/src/client/components/ClientJobPostView";
+import { TaskComposer } from "@/src/client/components/tasks/TaskComposer";
 
-export default function NewClientJobPage() {
-  return <ClientJobPostView />;
+export default function NewClientTaskPage() {
+  return <TaskComposer />;
 }

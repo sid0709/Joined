@@ -1,5 +1,5 @@
-import { ClientJobsView } from "@/src/client/components/ClientJobsView";
+import { TasksView } from "@/src/client/components/tasks/TasksView";
 
-export default function ClientJobsPage() {
-  return <ClientJobsView />;
+export default function ClientTasksPage() {
+  return <TasksView />;
 }
