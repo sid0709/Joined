@@ -36,7 +36,7 @@ import { ROUTES } from "@/lib/nav";
 import { TRUST_PAGE_SIZE, trustLoadError } from "@/lib/trust";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
-/** Reports, disputes, and fraud flags. A missing cases route stays on the empty state. */
+/** Reports, disputes, and fraud flags — staff GET /v1/admin/cases (docs/62 Layer H). */
 export function ModerationCaseQueue() {
   const router = useRouter();
   const searchParams = useSearchParams();

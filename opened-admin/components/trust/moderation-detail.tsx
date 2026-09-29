@@ -18,15 +18,18 @@ import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";
 import {
   CASE_DECISIONS,
+  CASE_STATUS_RESOLVED,
   caseDecisionBody,
   caseDecisionPath,
   caseDue,
   caseFromSearch,
   casesListQuery,
   isCompanyAtsReason,
+  readCasePayload,
   reasonCodeLabel,
   slaLabel,
   slaOverdue,
+  type ModerationCase,
 } from "@/lib/cases";
 import { formatDateTime } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
@@ -36,16 +39,31 @@ export function ModerationCaseDetail({ id }: { id: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
-  const record = caseFromSearch(id, searchParams);
+  const [record, setRecord] = useState<ModerationCase>(() => caseFromSearch(id, searchParams));
   const [pending, setPending] = useState(false);
   const [decisionError, setDecisionError] = useState("");
   const due = caseDue(record.queue, record.createdAt, record.slaAt);
+  const resolved = record.status === CASE_STATUS_RESOLVED || Boolean(record.decision);
 
   async function decide(decision: string, reason: string) {
     setPending(true);
     setDecisionError("");
     try {
-      await adminSend(caseDecisionPath(id), "POST", caseDecisionBody(decision, reason));
+      const response = await adminSend<unknown>(
+        caseDecisionPath(id),
+        "POST",
+        caseDecisionBody(decision, reason),
+      );
+      const updated = readCasePayload(response);
+      if (updated) setRecord(updated);
+      else {
+        setRecord((current) => ({
+          ...current,
+          status: CASE_STATUS_RESOLVED,
+          decision,
+          decisionReason: reason.trim(),
+        }));
+      }
       toast({ body: "Decision recorded." });
       router.refresh();
     } catch (cause) {
@@ -83,7 +101,12 @@ export function ModerationCaseDetail({ id }: { id: string }) {
             <MetadataListItem label="Subject type">{record.subjectType || "—"}</MetadataListItem>
             <MetadataListItem label="Subject id">{record.subjectId || "—"}</MetadataListItem>
             <MetadataListItem label="Opened">{formatDateTime(record.createdAt)}</MetadataListItem>
+            <MetadataListItem label="SLA">{formatDateTime(record.slaAt)}</MetadataListItem>
             <MetadataListItem label="Decision">{record.decision || "—"}</MetadataListItem>
+            <MetadataListItem label="Decided by">{record.decidedBy || "—"}</MetadataListItem>
+            <MetadataListItem label="Decision reason">
+              {record.decisionReason || "—"}
+            </MetadataListItem>
           </MetadataList>
           <Text color="secondary">{record.details || "No statement on this case."}</Text>
         </Stack>
@@ -99,22 +122,42 @@ export function ModerationCaseDetail({ id }: { id: string }) {
           <Text color="secondary">No evidence keys on this case.</Text>
         )}
       </SectionCard>
-      <SectionCard
-        title="Decision"
-        description="A reason is required. The admin proxy records X-Admin-Actor."
-      >
-        <ReasonActions
-          description="Uphold or dismiss. The body omits actions until action codes are locked."
-          actions={CASE_DECISIONS.map((item) => ({
-            id: item.value,
-            label: item.label,
-            variant: item.value === "uphold" ? ("primary" as const) : ("destructive" as const),
-          }))}
-          pending={pending}
-          error={decisionError}
-          onSubmit={(actionId, reason) => void decide(actionId, reason)}
-        />
-      </SectionCard>
+      {record.decisionEvidenceKeys.length ? (
+        <SectionCard title="Decision evidence">
+          <Stack gap={2}>
+            {record.decisionEvidenceKeys.map((key) => (
+              <Text key={key}>{key}</Text>
+            ))}
+          </Stack>
+        </SectionCard>
+      ) : null}
+      {resolved ? (
+        <SectionCard
+          title="Decision"
+          description="This case is resolved. A second decision is rejected."
+        >
+          <Text color="secondary">
+            {[record.decision, record.decisionReason].filter(Boolean).join(" — ") || "Resolved."}
+          </Text>
+        </SectionCard>
+      ) : (
+        <SectionCard
+          title="Decision"
+          description="A reason is required. The admin proxy records X-Admin-Actor."
+        >
+          <ReasonActions
+            description="Uphold or dismiss. The body omits actions until action codes are locked."
+            actions={CASE_DECISIONS.map((item) => ({
+              id: item.value,
+              label: item.label,
+              variant: item.value === "uphold" ? ("primary" as const) : ("destructive" as const),
+            }))}
+            pending={pending}
+            error={decisionError}
+            onSubmit={(actionId, reason) => void decide(actionId, reason)}
+          />
+        </SectionCard>
+      )}
     </Stack>
   );
 }

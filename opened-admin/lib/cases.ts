@@ -1,44 +1,42 @@
 /**
- * Layer H trust cases. Provisional lock from docs/32 and Einstein.
- * CamelCase JSON. Staff calls go through the admin proxy, which adds
- * ADMIN_API_TOKEN and X-Admin-Actor. This branch has no cases routes yet.
+ * Layer H staff trust cases and reports — locked wire in docs/62-staff-company-api.md
+ * (Einstein @ 515e645). CamelCase JSON. Staff calls go through the admin proxy,
+ * which adds ADMIN_API_TOKEN and X-Admin-Actor.
  *
- * Public (types only; no admin UI):
- *   POST /v1/reports
- *     { subjectType, subjectId, reasonCode, details, evidenceKeys[] }
- *   GET  /v1/me/reports
- *   POST /v1/reports/{id}/appeal
- *     { statement, evidenceKeys[] }
- *   reasonCode:
- *     no_show | identity_mismatch | proxy_interviewer | fake_credentials |
- *     abusive_behavior | scam_job | fake_company | fabricated_application |
- *     payment_request | other_with_evidence
- *
- * Staff:
- *   GET  /v1/admin/cases?queue=reports|disputes|fraud_flags&status=&page=&pageSize=
- *     status values named in the lock: open | pending | resolved.
- *     Other status strings are forwarded as-is (the lock allows more).
+ * Staff cases:
+ *   GET  /v1/admin/cases?queue=reports|disputes|fraud_flags&status=open|pending|resolved&page=&pageSize=
+ *     → { cases: Case[], total, next? }
+ *     cases/evidenceKeys always arrays; decision "" until set; slaAt always set.
+ *     No get-by-id — the console keeps the list row and posts the decision.
+ *   POST /v1/admin/cases
+ *     { queue, reasonCode, subjectType, subjectId, details?, evidenceKeys? }
+ *     → 201 { case, auditId }. SLA: reports/fraud_flags 48h; disputes 5 business days.
  *   POST /v1/admin/cases/{id}/decision
  *     { decision: "uphold" | "dismiss", reason, actions?[] }
- *     actions is omitted when empty. Action codes are not locked, so the UI
- *     does not offer any.
+ *     → 200 { case, auditId }. Status becomes resolved; decidedBy, decisionReason,
+ *     decisionEvidenceKeys are set. Second decision is 409. actions omitted when empty.
  *
- * Assumed list body until Einstein publishes the wire (camelCase only):
- *   { cases: AdminCase[], total?: number }
- *   AdminCase: {
- *     id, queue?, status?, reasonCode?, subjectType?, subjectId?,
- *     details?, evidenceKeys?: string[], createdAt?, slaAt?, decision?
- *   }
- * There is no locked get-by-id. The detail page repeats the list row and
- * posts the decision. SLA when slaAt is absent: disputes +5 business days,
- * reports and fraud_flags +48h (docs/32 default).
+ * Staff reports:
+ *   GET  /v1/reports?status=&page=&pageSize= → { reports: Report[], total, next? }
+ *   POST /v1/reports + Idempotency-Key (1–255) → 201 { report, auditId }; opens a reports case.
+ *   POST /v1/reports/{id}/appeal { statement, evidenceKeys? } — 7d window → pending.
+ *
+ * reasonCode (not_a_good_fit → 422):
+ *   no_show | identity_mismatch | proxy_interviewer | fake_credentials |
+ *   abusive_behavior | scam_job | fake_company | fabricated_application |
+ *   payment_request | other_with_evidence
+ *
+ * GET /v1/me/reports is the subject's own list (docs/32), not a staff route.
  */
 
 import { TRUST_PAGE_SIZE, requireReason, type ReadList } from "./trust";
 
 export const REPORTS_PATH = "/v1/reports";
+/** Subject-owned list from docs/32 — not a staff route. Kept for type docs only. */
 export const MY_REPORTS_PATH = "/v1/me/reports";
 export const ADMIN_CASES_PATH = "/v1/admin/cases";
+/** Required on POST /v1/reports (1–255 characters). */
+export const REPORT_IDEMPOTENCY_HEADER = "Idempotency-Key";
 
 export const REPORTS_QUEUE = "reports";
 export const DISPUTES_QUEUE = "disputes";
@@ -48,7 +46,7 @@ export const CASE_STATUS_OPEN = "open";
 export const CASE_STATUS_PENDING = "pending";
 export const CASE_STATUS_RESOLVED = "resolved";
 
-/** Reports and fraud flags are due 48 hours after they open (docs/32 default). */
+/** Reports and fraud flags are due 48 hours after they open. */
 export const REPORT_SLA_HOURS = 48;
 /** Disputes are due 5 business days after they open. */
 export const DISPUTE_SLA_BUSINESS_DAYS = 5;
@@ -90,7 +88,7 @@ export const CASE_DECISIONS = [
 ] as const;
 
 export type CaseReasonCode = (typeof CASE_REASON_CODES)[number]["value"];
-export type CompanyAtsReasonCode = (typeof COMPANY_ATS_REASON_CODES)[number]["value"];
+export type CompanyAtsReasonCode = (typeof COMPANY_ATS_REASON_CODES)[number];
 export type CaseQueue = (typeof CASE_QUEUES)[number]["value"];
 export type CaseDecision = (typeof CASE_DECISIONS)[number]["value"];
 
@@ -107,13 +105,26 @@ export type AppealReportBody = {
   evidenceKeys: string[];
 };
 
+export type CreateCaseBody = {
+  queue: CaseQueue;
+  reasonCode: CaseReasonCode;
+  subjectType: string;
+  subjectId: string;
+  details?: string;
+  evidenceKeys?: string[];
+};
+
 export type CaseDecisionBody = {
   decision: CaseDecision;
   reason: string;
   actions?: string[];
 };
 
-/** Assumed row inside `{ cases }`. Fields other than id may be empty. */
+/**
+ * Staff case row from GET /v1/admin/cases and mutation payloads.
+ * decision is "" until set. evidenceKeys is always an array. slaAt is always set.
+ * After decision: status resolved; decidedBy, decisionReason, decisionEvidenceKeys present.
+ */
 export type ModerationCase = {
   id: string;
   queue: string;
@@ -126,6 +137,26 @@ export type ModerationCase = {
   createdAt: string;
   slaAt: string;
   decision: string;
+  decidedBy: string;
+  decisionReason: string;
+  decisionEvidenceKeys: string[];
+};
+
+/** Staff report row from GET /v1/reports. */
+export type StaffReport = {
+  id: string;
+  subjectType: string;
+  subjectId: string;
+  reasonCode: string;
+  details: string;
+  evidenceKeys: string[];
+  status: string;
+  caseId: string;
+  createdAt: string;
+  resolution: string;
+  appealStatement: string;
+  appealEvidenceKeys: string[];
+  appealAt: string;
 };
 
 export function isReasonCode(value: string): value is CaseReasonCode {
@@ -160,6 +191,21 @@ export function reportAppealPath(id: string) {
   return `${REPORTS_PATH}/${encodeURIComponent(id)}/appeal`;
 }
 
+/** Staff list path. Empty status omits the filter (lists every value). */
+export function reportsPath(status: string, page: number, pageSize = TRUST_PAGE_SIZE) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const selected = status.trim();
+  if (selected) params.set("status", selected);
+  return `${REPORTS_PATH}?${params}`;
+}
+
+/**
+ * POST /v1/reports body. Callers must also send Idempotency-Key (1–255).
+ * Admin console does not file public reports; helper is for types/tests.
+ */
 export function fileReportBody(input: {
   subjectType: string;
   subjectId: string;
@@ -213,6 +259,34 @@ export function casesListQuery(queue: string, status: string, page: number) {
   return query ? `?${query}` : "";
 }
 
+/** POST /v1/admin/cases body. details and evidenceKeys are omitted when empty. */
+export function createCaseBody(input: {
+  queue: string;
+  reasonCode: string;
+  subjectType: string;
+  subjectId: string;
+  details?: string;
+  evidenceKeys?: readonly string[];
+}): CreateCaseBody {
+  if (!isReasonCode(input.reasonCode)) throw new Error("Unknown reason code.");
+  const queue = CASE_QUEUES.find((item) => item.value === input.queue)?.value;
+  if (!queue) throw new Error("Choose a queue.");
+  const subjectType = input.subjectType.trim();
+  const subjectId = input.subjectId.trim();
+  if (!subjectType || !subjectId) throw new Error("Subject is required.");
+  const body: CreateCaseBody = {
+    queue,
+    reasonCode: input.reasonCode,
+    subjectType,
+    subjectId,
+  };
+  const details = input.details?.trim() ?? "";
+  if (details) body.details = details;
+  const keys = cleanKeys(input.evidenceKeys ?? []);
+  if (keys.length > 0) body.evidenceKeys = keys;
+  return body;
+}
+
 /** Decision body. `actions` is left off when none are passed. */
 export function caseDecisionBody(
   decision: string,
@@ -227,7 +301,7 @@ export function caseDecisionBody(
   return body;
 }
 
-/** Query string that carries an assumed list row onto the detail page. */
+/** Query string that carries a list row onto the detail page (no get-by-id). */
 export function caseRecordQuery(row: ModerationCase) {
   const params = new URLSearchParams();
   setParam(params, "queue", row.queue);
@@ -239,7 +313,10 @@ export function caseRecordQuery(row: ModerationCase) {
   setParam(params, "createdAt", row.createdAt);
   setParam(params, "slaAt", row.slaAt);
   setParam(params, "decision", row.decision);
+  setParam(params, "decidedBy", row.decidedBy);
+  setParam(params, "decisionReason", row.decisionReason);
   for (const key of row.evidenceKeys) params.append("evidenceKeys", key);
+  for (const key of row.decisionEvidenceKeys) params.append("decisionEvidenceKeys", key);
   return params.toString();
 }
 
@@ -259,10 +336,13 @@ export function caseFromSearch(
     createdAt: params.get("createdAt")?.trim() ?? "",
     slaAt: params.get("slaAt")?.trim() ?? "",
     decision: params.get("decision")?.trim() ?? "",
+    decidedBy: params.get("decidedBy")?.trim() ?? "",
+    decisionReason: params.get("decisionReason")?.trim() ?? "",
+    decisionEvidenceKeys: cleanKeys(params.getAll("decisionEvidenceKeys")),
   };
 }
 
-/** Prefer an assumed slaAt. Otherwise apply the docs/32 SLA from createdAt. */
+/** Prefer wire slaAt. Otherwise apply the docs/62 SLA from createdAt. */
 export function caseDue(queue: string, createdAt: string, slaAt: string) {
   const provided = parseDate(slaAt);
   if (provided) return provided;
@@ -291,6 +371,21 @@ export function readCaseList(body: unknown): ReadList<ModerationCase> {
   return { rows, total: readTotal(body, rows.length), recognized: true };
 }
 
+/** `{ case, auditId }` from create or decision. */
+export function readCasePayload(body: unknown): ModerationCase | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  return readCaseRow(record.case);
+}
+
+export function readReportList(body: unknown): ReadList<StaffReport> {
+  const reports = asRecord(body)?.reports;
+  if (!Array.isArray(reports)) return { rows: [], total: 0, recognized: false };
+  const rows = reports.map(readReportRow).filter((item): item is StaffReport => item !== null);
+  if (reports.length > 0 && rows.length === 0) return { rows: [], total: 0, recognized: false };
+  return { rows, total: readTotal(body, rows.length), recognized: true };
+}
+
 function readCaseRow(value: unknown): ModerationCase | null {
   const row = asRecord(value);
   if (!row) return null;
@@ -307,7 +402,36 @@ function readCaseRow(value: unknown): ModerationCase | null {
     evidenceKeys: cleanKeys(Array.isArray(row.evidenceKeys) ? row.evidenceKeys : []),
     createdAt: text(row.createdAt),
     slaAt: text(row.slaAt),
-    decision: text(row.decision),
+    // Empty string until a decision is stored (docs/62).
+    decision: typeof row.decision === "string" ? row.decision.trim() : "",
+    decidedBy: text(row.decidedBy),
+    decisionReason: text(row.decisionReason),
+    decisionEvidenceKeys: cleanKeys(
+      Array.isArray(row.decisionEvidenceKeys) ? row.decisionEvidenceKeys : [],
+    ),
+  };
+}
+
+function readReportRow(value: unknown): StaffReport | null {
+  const row = asRecord(value);
+  if (!row) return null;
+  const id = text(row.id);
+  if (!id) return null;
+  const appeal = asRecord(row.appeal);
+  return {
+    id,
+    subjectType: text(row.subjectType),
+    subjectId: text(row.subjectId),
+    reasonCode: text(row.reasonCode),
+    details: text(row.details),
+    evidenceKeys: cleanKeys(Array.isArray(row.evidenceKeys) ? row.evidenceKeys : []),
+    status: text(row.status),
+    caseId: text(row.caseId),
+    createdAt: text(row.createdAt),
+    resolution: text(row.resolution),
+    appealStatement: text(appeal?.statement),
+    appealEvidenceKeys: cleanKeys(Array.isArray(appeal?.evidenceKeys) ? appeal.evidenceKeys : []),
+    appealAt: text(appeal?.at),
   };
 }
 
