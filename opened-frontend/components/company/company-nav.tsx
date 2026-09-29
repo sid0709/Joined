@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Badge,
@@ -21,9 +20,8 @@ import {
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
-import { canManageCompany, companyRoleLabel } from "@/lib/company/access";
-import { fetchTeam } from "@/lib/company/api";
-import { ROLE_META, canPermission, currentMemberRole, type TeamRole } from "@/lib/rbac";
+import { companyRoleLabel, sessionHiringRole } from "@/lib/company/access";
+import { canPermission } from "@/lib/rbac";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_ANALYTICS_PAGE,
@@ -97,31 +95,15 @@ export function CompanyNav({
   newApplicants?: number;
 }) {
   const pathname = usePathname();
-  const manageCompany = canManageCompany(company);
-  const [hiringRole, setHiringRole] = useState<TeamRole | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    fetchTeam()
-      .then((team) => {
-        if (active) setHiringRole(currentMemberRole(team.members));
-      })
-      .catch(() => {
-        /* soft — nav still works for creator */
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const hiringRole = sessionHiringRole(company);
 
   const showTeam =
-    manageCompany ||
     canPermission(hiringRole, "team.invite") ||
     canPermission(hiringRole, "team.manage_roles") ||
     canPermission(hiringRole, "audit.view");
-  const showBilling = manageCompany || canPermission(hiringRole, "billing.view");
-  const showSettings = manageCompany || canPermission(hiringRole, "team.manage_roles");
-  const showAnalytics = manageCompany || canPermission(hiringRole, "analytics.view");
+  const showBilling = canPermission(hiringRole, "billing.view");
+  const showSettings = canPermission(hiringRole, "team.manage_roles");
+  const showAnalytics = canPermission(hiringRole, "analytics.view");
 
   const links = groups(
     openJobs,
@@ -162,7 +144,7 @@ export function CompanyNav({
                 <Stack gap={0.5}>
                   <Text weight="semibold">{company.name}</Text>
                   <Text type="supporting" color="secondary">
-                    {hiringRole ? ROLE_META[hiringRole].label : companyRoleLabel(company)}
+                    {companyRoleLabel(company)}
                   </Text>
                 </Stack>
               </HStack>

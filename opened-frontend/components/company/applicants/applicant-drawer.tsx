@@ -37,6 +37,7 @@ import {
   type ScorecardSubmissionInput,
   type ScorecardTemplate,
   type TeamMember,
+  type TeamRole,
 } from "@/lib/company";
 import { FeedbackGateBanner, canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
 import { InterviewGuideView } from "@/components/company/pipeline/interview-guide-shell";
@@ -80,6 +81,7 @@ export function ApplicantDrawer({
   applicant,
   allApplicants,
   teamMembers,
+  actorRole = null,
   hiringProfile,
   scorecardTemplate,
   interviewGuide,
@@ -96,6 +98,7 @@ export function ApplicantDrawer({
   applicant: Applicant | null;
   allApplicants: Applicant[];
   teamMembers: TeamMember[];
+  actorRole?: TeamRole | null;
   hiringProfile: HiringProfile | null;
   scorecardTemplate: ScorecardTemplate | null;
   interviewGuide: InterviewGuide | null;
@@ -378,6 +381,7 @@ export function ApplicantDrawer({
           applicant={applicant}
           templates={offerTemplates}
           teamMembers={teamMembers}
+          actorRole={actorRole}
           onApply={onOffer}
         />
 

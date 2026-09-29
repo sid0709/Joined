@@ -16,7 +16,7 @@ import type { AuditEvent } from "@/lib/rbac";
 
 const WHEN_WIDTH = 120;
 
-/** Who changed roles / stages / offers — scaffold until Einstein GET /team/audit lands. */
+/** Who changed roles / stages / offers — GET /v1/company/team/audit (audit.view). */
 export function AuditTrailPanel({ canView }: { canView: boolean }) {
   const toast = useToast();
   const [events, setEvents] = useState<AuditEvent[]>([]);
@@ -95,8 +95,8 @@ export function AuditTrailPanel({ canView }: { canView: boolean }) {
     return (
       <Stack gap={2}>
         <Text type="supporting" color="secondary">
-          No audit events yet. Einstein should return role, stage, offer, hire, and billing changes
-          from GET /v1/company/team/audit (see lib/rbac.ts).
+          No audit events yet. Role changes, stage moves, offers, hires, billing, and job-access
+          edits will show up here.
         </Text>
         <HStack gap={2} wrap="wrap">
           <Badge label="role.changed" variant="blue" />

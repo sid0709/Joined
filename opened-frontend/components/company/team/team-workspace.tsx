@@ -41,7 +41,7 @@ const ROLE_WIDTH = 200;
 const INVITE_MIN_WIDTH = 200;
 
 /** Members with editable roles, permission matrix, per-job access, and audit trail. */
-export function TeamWorkspace() {
+export function TeamWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [domain, setDomain] = useState("");
@@ -64,7 +64,8 @@ export function TeamWorkspace() {
     };
   }, [toast]);
 
-  const actor = currentMemberRole(members);
+  // Prefer session hiringRole; fall back to the you-row on the team list.
+  const actor = actorRole ?? currentMemberRole(members);
   const canInvite = canPermission(actor, "team.invite");
   const canManageRoles = canPermission(actor, "team.manage_roles");
   const canViewAudit = canPermission(actor, "audit.view");
@@ -86,7 +87,6 @@ export function TeamWorkspace() {
       toast({ body: check.reason ?? "Cannot invite", type: "error" });
       return;
     }
-    // TODO(einstein): enforce team.invite + role allow-list server-side.
     inviteTeammate(address, role)
       .then((team) => {
         setMembers(
@@ -104,7 +104,6 @@ export function TeamWorkspace() {
       toast({ body: check.reason ?? "Cannot change role", type: "error" });
       return;
     }
-    // TODO(einstein): enforce team.manage_roles; write audit role.changed.
     setTeammateRole(member.id, nextRole)
       .then(() => {
         setMembers((current) =>
@@ -119,7 +118,6 @@ export function TeamWorkspace() {
       toast({ body: denialReason(actor, "team.manage_roles"), type: "error" });
       return;
     }
-    // TODO(einstein): enforce team.manage_roles; write audit member.removed.
     removeTeammate(member.id)
       .then(() => {
         setMembers((current) => current.filter((item) => item.id !== member.id));
@@ -294,7 +292,7 @@ export function TeamWorkspace() {
 
       <SettingsGroup
         title="Audit trail"
-        description="Who changed roles, stages, offers, and hires. Soft scaffold until Einstein persists."
+        description="Who changed roles, stages, offers, hires, billing, and job access."
       >
         <AuditTrailPanel canView={canViewAudit} />
       </SettingsGroup>

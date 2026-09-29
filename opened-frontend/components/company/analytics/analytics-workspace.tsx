@@ -34,11 +34,11 @@ import {
   type SourceBucket,
   type TimeInStageMetric,
 } from "@/lib/analytics";
-import { canManageCompany } from "@/lib/company/access";
-import { fetchOverview, fetchTeam } from "@/lib/company/api";
+import { sessionHiringRole } from "@/lib/company/access";
+import { fetchOverview } from "@/lib/company/api";
 import type { CompanyJob } from "@/lib/company/jobs";
 import type { AuthCompany } from "@/lib/auth/types";
-import { canPermission, currentMemberRole, denialReason, type TeamRole } from "@/lib/rbac";
+import { canPermission, denialReason } from "@/lib/rbac";
 
 const BAR_HEIGHT = 10;
 const SWATCH = 8;
@@ -212,19 +212,18 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
     Awaited<ReturnType<typeof fetchOverview>>["interviews"]
   >([]);
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultAnalyticsFilters);
-  const [actorRole, setActorRole] = useState<TeamRole | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const actorRole = sessionHiringRole(company);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchOverview(), fetchTeam()])
-      .then(([overview, team]) => {
+    fetchOverview()
+      .then((overview) => {
         if (!active) return;
         setJobs(overview.jobs);
         setApplicants(overview.applicants);
         setInterviews(overview.interviews);
-        setActorRole(currentMemberRole(team.members));
         setLoaded(true);
       })
       .catch((error: Error) => {
@@ -237,9 +236,8 @@ export function AnalyticsWorkspace({ company }: { company: AuthCompany }) {
     };
   }, [toast]);
 
-  const manageCompany = canManageCompany(company);
-  const canView = manageCompany || canPermission(actorRole, "analytics.view");
-  // TODO(einstein): enforce analytics.view on GET /company/analytics.
+  const canView = canPermission(actorRole, "analytics.view");
+  // Layer G: analytics.view reserved; no dedicated analytics server auth yet.
 
   const snapshot: CompanyAnalyticsSnapshot | null = useMemo(() => {
     if (!loaded) return null;

@@ -44,7 +44,6 @@ import {
   hydrateAuditEvent,
   hydrateJobAccess,
   normalizeTeamRole,
-  type AuditEvent,
   type AuditListResponse,
   type JobAccessAssignment,
 } from "@/lib/rbac";
@@ -663,13 +662,12 @@ export function fetchTeam() {
 }
 
 export function inviteTeammate(email: string, role: TeamRole) {
-  // Einstein should accept hiring_manager / interviewer / finance directly.
-  // TODO(einstein): enforce team.invite server-side; reject unknown roles with 400.
+  // Einstein: team.invite + role allow-list (403 / 400). Owner-only admin.
   return companySend<TeamResponse>("/team", "POST", { email, role }).then(hydrateTeam);
 }
 
 export function setTeammateRole(id: string, role: TeamRole) {
-  // TODO(einstein): enforce team.manage_roles; append audit role.changed.
+  // Einstein: team.manage_roles; audit role.changed. Owner-only admin grant/revoke.
   return companySend<{ ok: boolean }>(`/team/${id}`, "PATCH", { role });
 }
 
@@ -715,33 +713,30 @@ export function saveHiringProfile(input: HiringProfile & { name: string }) {
   return companySend<HiringProfile & { name: string }>("/profile", "PUT", input);
 }
 
-/** Company audit trail — Einstein GET scaffold. Soft-fails empty. */
+/** Company audit trail — GET /v1/company/team/audit (audit.view). Propagates 403. */
 export function fetchTeamAudit(params?: { cursor?: string; limit?: number }) {
   const query = new URLSearchParams();
   if (params?.cursor) query.set("cursor", params.cursor);
   if (params?.limit) query.set("limit", String(params.limit));
   const suffix = query.size ? `?${query}` : "";
-  return companyGet<AuditListResponse>(`/team/audit${suffix}`)
-    .then((body) => ({
-      events: (body.events ?? []).map((event) => hydrateAuditEvent(event)),
-      nextCursor: body.nextCursor,
-    }))
-    .catch(() => ({ events: [] as AuditEvent[], nextCursor: undefined }));
+  return companyGet<AuditListResponse>(`/team/audit${suffix}`).then((body) => ({
+    events: (body.events ?? []).map((event) => hydrateAuditEvent(event)),
+    nextCursor: body.nextCursor,
+  }));
 }
 
-/** Per-job access overrides — Einstein GET scaffold. Soft-fails empty. */
+/** Per-job access — GET /v1/company/jobs/:id/access. Propagates 403. */
 export function fetchJobAccess(jobId: string) {
-  return companyGet<{ assignments?: JobAccessAssignment[] }>(`/jobs/${jobId}/access`)
-    .then((body) => hydrateJobAccess(jobId, body))
-    .catch(() => hydrateJobAccess(jobId, { assignments: [] }));
+  return companyGet<{ assignments?: JobAccessAssignment[] }>(
+    `/jobs/${encodeURIComponent(jobId)}/access`,
+  ).then((body) => hydrateJobAccess(jobId, body));
 }
 
-/** Persist per-job access — Einstein PUT scaffold. Soft-fails local echo. */
+/** Persist per-job access — PUT jobs.edit | team.manage_roles. Propagates 403. */
 export function saveJobAccess(jobId: string, assignments: JobAccessAssignment[]) {
-  // TODO(einstein): enforce jobs.edit / team.manage_roles; append job_access.updated.
-  return companySend<{ assignments?: JobAccessAssignment[] }>(`/jobs/${jobId}/access`, "PUT", {
-    assignments,
-  })
-    .then((body) => hydrateJobAccess(jobId, body))
-    .catch(() => hydrateJobAccess(jobId, { assignments }));
+  return companySend<{ assignments?: JobAccessAssignment[] }>(
+    `/jobs/${encodeURIComponent(jobId)}/access`,
+    "PUT",
+    { assignments },
+  ).then((body) => hydrateJobAccess(jobId, body));
 }

@@ -1,53 +1,24 @@
 /**
- * Layer F — Company team RBAC (scaffold) shapes.
+ * Layer F — Company team RBAC.
  *
- * Einstein contract (persist + return these fields; UI scaffolds against them):
+ * Soft client gates only. Einstein enforces the same matrix server-side (403 /
+ * 400). Honor session company.hiringRole via sessionHiringRole() in access.ts;
+ * creator acts as owner.
  *
- * GET /v1/company/team
- *   members[].role: TeamRole
- *   Legacy "viewer" still accepted on read; normalize via normalizeTeamRole().
+ * GET /v1/company/team — members[].role: TeamRole; legacy viewer normalizes.
+ * POST /v1/company/team — { email, role }; never owner; 403 without team.invite;
+ *   400 for owner / viewer / unknown. Owner-only admin invite.
+ * PATCH /v1/company/team/:memberId — { role }; owner-only admin grant/revoke;
+ *   403 without team.manage_roles.
+ * DELETE /v1/company/team/:memberId — no owner remove; team.manage_roles.
+ * GET /v1/company/team/audit?cursor=&limit= — { events, nextCursor? }; audit.view.
+ * GET|PUT /v1/company/jobs/:id/access — { assignments }; empty permissions inherit;
+ *   PUT needs jobs.edit | team.manage_roles.
  *
- * POST /v1/company/team
- *   body: { email: string; role: TeamRole }
- *   role must be invitabile (never owner). Reject 403 when actor lacks team.invite.
- *   Reject 400 when role is owner or unknown.
- *
- * PATCH /v1/company/team/:memberId
- *   body: { role: TeamRole }
- *   Never change the owner row via this path (use transfer). Only owner may
- *   grant/revoke admin. Reject 403 when actor lacks team.manage_roles.
- *
- * DELETE /v1/company/team/:memberId
- *   Reject removing owner. Require team.manage_roles.
- *
- * GET /v1/company/team/audit?cursor=&limit=
- *   response: { events: AuditEvent[]; nextCursor?: string }
- *   Append-only. Cover role changes, stage moves, offer status, hire, billing,
- *   invites, and job-access edits.
- *
- * GET /v1/company/jobs/:id/access
- *   response: { assignments: JobAccessAssignment[] }
- *
- * PUT /v1/company/jobs/:id/access
- *   body: { assignments: JobAccessAssignment[] }
- *   Per-job overrides on top of company role. Empty permissions = inherit role.
- *   Require jobs.edit (or team.manage_roles). Reject 403 otherwise.
- *
- * Enforcement: Einstein MUST enforce every sensitive mutation server-side.
- * Frontend gates are soft UX only — see canPermission() TODOs at call sites.
- *
- * Migration (legacy API → Einstein TeamRole):
- *   owner            → owner
- *   admin            → admin
- *   recruiter        → recruiter
- *   viewer           → interviewer  (read + score; no post / hire / billing)
- * New Einstein roles (not yet in opened-backend validHiringRole):
- *   hiring_manager, interviewer, finance
- * Until Einstein accepts them, POST/PATCH may 400 — UI still offers them and
- * soft-fails with a toast; do not invent a parallel backend enum here.
- *
- * Analytics (G): see lib/analytics.ts — soft-gated by analytics.view.
- * Out of scope: SSO, Scoutwell, DocuSign, staff admin warehouse BI.
+ * Roles: owner (creator), admin, recruiter, hiring_manager, interviewer, finance;
+ *   legacy viewer → interviewer perms via effectiveTeamRole().
+ * Billing: finance can purchase; admin cannot (billing.view only).
+ * Analytics (G): analytics.view reserved — no server aggregate auth yet.
  */
 
 /** Company hiring roles — owner is creator-only; never inviteable. */
@@ -73,8 +44,15 @@ export const INVITABLE_ROLES: readonly TeamRole[] = [
   "finance",
 ];
 
-/** Roles the current opened-backend validHiringRole accepts today. */
-export const LEGACY_API_ROLES: readonly TeamRole[] = ["admin", "recruiter", "viewer"];
+/** @deprecated Einstein accepts the full TeamRole invite set; kept for older clients. */
+export const LEGACY_API_ROLES: readonly TeamRole[] = [
+  "admin",
+  "recruiter",
+  "hiring_manager",
+  "interviewer",
+  "finance",
+  "viewer",
+];
 
 export type Permission =
   | "jobs.view"
@@ -258,8 +236,8 @@ const ROLE_PERMISSIONS: Record<TeamRole, readonly Permission[]> = {
     "audit.view",
     "analytics.view",
   ],
-  /** Legacy — same as interviewer until Einstein migrates rows. */
-  viewer: ["jobs.view", "applicants.view"],
+  /** Legacy — effectiveTeamRole maps viewer → interviewer before checks. */
+  viewer: ["jobs.view", "applicants.view", "interviews.score"],
 };
 
 export type RoleMeta = {
@@ -498,30 +476,27 @@ export function canOnJob(
   return effectiveJobPermissions(role, assignment).includes(permission);
 }
 
-/** Map Einstein role → legacy API role when backend still validates the old enum. */
+/**
+ * @deprecated Einstein accepts hiring_manager / interviewer / finance directly.
+ * Identity map kept so older call sites do not remap away from live roles.
+ */
 export function toLegacyApiRole(role: TeamRole): TeamRole {
-  switch (effectiveTeamRole(role)) {
-    case "owner":
-      return "owner";
-    case "admin":
-      return "admin";
-    case "finance":
-      return "admin";
-    case "hiring_manager":
-      return "recruiter";
-    case "interviewer":
-      return "viewer";
-    case "recruiter":
-      return "recruiter";
-    default:
-      return "viewer";
-  }
+  return effectiveTeamRole(role);
 }
 
-export function hydrateAuditEvent(raw: Partial<AuditEvent> & { id?: string }): AuditEvent {
+export function hydrateAuditEvent(
+  raw: Partial<Omit<AuditEvent, "at">> & { id?: string; at?: string | Date },
+): AuditEvent {
+  const atRaw = raw.at;
+  let at = new Date().toISOString();
+  if (typeof atRaw === "string" && atRaw.trim()) {
+    at = atRaw;
+  } else if (atRaw instanceof Date && !Number.isNaN(atRaw.getTime())) {
+    at = atRaw.toISOString();
+  }
   return {
     id: String(raw.id ?? `aud-${Date.now()}`),
-    at: String(raw.at ?? new Date().toISOString()),
+    at,
     actorId: String(raw.actorId ?? ""),
     actorName: raw.actorName ? String(raw.actorName) : undefined,
     action: (raw.action as AuditAction) || "role.changed",

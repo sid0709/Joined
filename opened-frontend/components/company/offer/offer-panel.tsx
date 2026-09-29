@@ -26,7 +26,7 @@ import {
   offerHireErrorMessage,
   requestOfferApproval,
 } from "@/lib/company/api";
-import { canPermission, currentMemberRole, denialReason } from "@/lib/rbac";
+import { canPermission, currentMemberRole, denialReason, type TeamRole } from "@/lib/rbac";
 import { EsignShare } from "@/components/company/offer/esign-share";
 import { formatCents } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
@@ -97,11 +97,14 @@ export function OfferPanel({
   applicant,
   templates,
   teamMembers,
+  actorRole: actorRoleProp = null,
   onApply,
 }: {
   applicant: Applicant;
   templates: OfferTemplate[];
   teamMembers: TeamMember[];
+  /** Session hiringRole when known; falls back to the you-row on teamMembers. */
+  actorRole?: TeamRole | null;
   onApply: (result: OfferActionResult) => void;
 }) {
   const [draft, setDraft] = useState<OfferDraft>(() => emptyOfferDraft(applicant.offer));
@@ -112,12 +115,12 @@ export function OfferPanel({
   );
   const [busy, setBusy] = useState(false);
 
-  const actorRole = currentMemberRole(teamMembers);
+  const actorRole = actorRoleProp ?? currentMemberRole(teamMembers);
   const canDraftOffer = canPermission(actorRole, "offers.draft");
   const canSendOffer = canPermission(actorRole, "offers.send");
   const canApproveOffer = canPermission(actorRole, "offers.approve");
   const canHire = canPermission(actorRole, "offers.hire");
-  // TODO(einstein): enforce offers.* on offer/hire mutations server-side.
+  // Einstein enforces offers.* server-side (403). Soft gates hide unavailable CTAs.
 
   useEffect(() => {
     setDraft(emptyOfferDraft(applicant.offer));

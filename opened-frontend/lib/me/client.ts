@@ -15,6 +15,14 @@ export function isConflictError(error: unknown): error is CompanyRequestError {
   return error instanceof CompanyRequestError && error.status === 409;
 }
 
+export function isForbiddenError(error: unknown): error is CompanyRequestError {
+  return error instanceof CompanyRequestError && error.status === 403;
+}
+
+export function isBadRequestError(error: unknown): error is CompanyRequestError {
+  return error instanceof CompanyRequestError && error.status === 400;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { cache: "no-store", ...init });
   if (response.status === 204) return undefined as T;

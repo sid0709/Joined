@@ -18,7 +18,8 @@ import { SpendSummary } from "@/components/company/spend-summary";
 import { SectionCard } from "@/components/section-card";
 import { StatGrid } from "@/components/stat-card";
 import { fetchOverview, type CompanyOverview } from "@/lib/company/api";
-import { canManageCompany } from "@/lib/company/access";
+import { sessionHiringRole } from "@/lib/company/access";
+import { canPermission } from "@/lib/rbac";
 import { pipelineTotal } from "@/lib/company";
 import type { AuthCompany } from "@/lib/auth/types";
 import { daysBetween, formatAgo } from "@/lib/dates";
@@ -91,7 +92,9 @@ export function CompanyHome({ greeting, company }: { greeting: string; company: 
   }
   if (!overview) return null;
 
-  const manageCompany = canManageCompany(company);
+  const hiringRole = sessionHiringRole(company);
+  const canViewBilling = canPermission(hiringRole, "billing.view");
+  const canPurchase = canPermission(hiringRole, "billing.purchase");
 
   return (
     <Stack gap={6}>
@@ -105,7 +108,7 @@ export function CompanyHome({ greeting, company }: { greeting: string; company: 
               interviews={overview.interviews}
               jobs={overview.jobs}
               billing={overview.billing}
-              canAddBalance={manageCompany}
+              canAddBalance={canPurchase}
             />
             <JobsPipeline jobs={overview.jobs} />
           </Stack>
@@ -116,7 +119,7 @@ export function CompanyHome({ greeting, company }: { greeting: string; company: 
             <SectionCard
               title="Balance"
               action={
-                manageCompany ? (
+                canViewBilling ? (
                   <Button
                     label="Billing"
                     variant="ghost"

@@ -19,8 +19,8 @@ import {
 } from "@openseat/design-system";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { SectionCard } from "@/components/section-card";
-import { fetchBilling, fetchTeam, purchaseBalance } from "@/lib/company/api";
-import { canPermission, currentMemberRole, denialReason, type TeamRole } from "@/lib/rbac";
+import { fetchBilling, purchaseBalance } from "@/lib/company/api";
+import { canPermission, denialReason, type TeamRole } from "@/lib/rbac";
 import { BILLING_STATUS_META, type BillableEvent, type BillingAccount } from "@/lib/company";
 import { formatShortDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
@@ -79,20 +79,17 @@ function columns(currency: string): TableColumn<BillableEvent>[] {
 }
 
 /** Prepaid balance: add an amount, see what interviews have used. */
-export function BillingWorkspace() {
+export function BillingWorkspace({ actorRole }: { actorRole: TeamRole | null }) {
   const toast = useToast();
   const [billing, setBilling] = useState<BillingAccount | null>(null);
   const [dollars, setDollars] = useState(100);
   const [pending, setPending] = useState(false);
-  const [actorRole, setActorRole] = useState<TeamRole | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchBilling(), fetchTeam()])
-      .then(([next, team]) => {
-        if (!active) return;
-        setBilling(next);
-        setActorRole(currentMemberRole(team.members));
+    fetchBilling()
+      .then((next) => {
+        if (active) setBilling(next);
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
     return () => {
@@ -104,7 +101,7 @@ export function BillingWorkspace() {
 
   const canViewBilling = canPermission(actorRole, "billing.view");
   const canPurchase = canPermission(actorRole, "billing.purchase");
-  // TODO(einstein): enforce billing.* on /billing and /billing/purchase.
+  // Einstein: billing.view / billing.purchase — finance purchases; admin view-only.
 
   if (!canViewBilling) {
     return (

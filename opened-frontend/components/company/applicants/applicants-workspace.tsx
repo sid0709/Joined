@@ -41,6 +41,7 @@ import {
   type ScorecardSubmission,
   type ScorecardSubmissionInput,
   type TeamMember,
+  type TeamRole,
 } from "@/lib/company";
 import { ApplicantCard } from "./applicant-card";
 import { ApplicantDrawer, type ApplicantScheduleRequest } from "./applicant-drawer";
@@ -54,7 +55,7 @@ const ALL_JOBS = "all";
 const ALL_TAGS = "all";
 
 /** The hiring pipeline: filter, drag candidates between stages, open one to decide. */
-export function ApplicantsWorkspace() {
+export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
   const [people, setPeople] = useState<Applicant[]>([]);
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
@@ -402,6 +403,7 @@ export function ApplicantsWorkspace() {
         applicant={openApplicant}
         allApplicants={people}
         teamMembers={teamMembers}
+        actorRole={actorRole}
         hiringProfile={hiringProfile}
         scorecardTemplate={scorecardTemplate}
         interviewGuide={interviewGuide}

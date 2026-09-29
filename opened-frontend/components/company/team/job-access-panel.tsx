@@ -21,8 +21,8 @@ import {
 } from "@/lib/rbac";
 
 /**
- * Per-job access overrides scaffold. Empty assignment = inherit company role.
- * Einstein GET/PUT /v1/company/jobs/:id/access.
+ * Per-job access overrides. Empty assignment = inherit company role.
+ * Live GET/PUT /v1/company/jobs/:id/access (jobs.edit | team.manage_roles on PUT).
  */
 export function JobAccessPanel({ members, canEdit }: { members: TeamMember[]; canEdit: boolean }) {
   const toast = useToast();
@@ -91,11 +91,10 @@ export function JobAccessPanel({ members, canEdit }: { members: TeamMember[]; ca
 
   const save = () => {
     if (!jobId || !canEdit) return;
-    // TODO(einstein): PUT /v1/company/jobs/:id/access must enforce authz.
     saveJobAccess(jobId, assignments)
       .then((doc) => {
         setAssignments(doc.assignments);
-        toast({ body: "Job access saved (scaffold — Einstein persist pending)." });
+        toast({ body: "Job access saved." });
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
@@ -105,7 +104,7 @@ export function JobAccessPanel({ members, canEdit }: { members: TeamMember[]; ca
       <Banner
         status="info"
         title="Per-job permissions"
-        description="Overrides sit on top of the company role. Leave someone off this list to inherit their team role. Soft UI until Einstein lands GET/PUT /jobs/:id/access."
+        description="Overrides sit on top of the company role. Leave someone off this list to inherit their team role. Empty permissions on save also inherit."
       />
       <Selector
         label="Job"
