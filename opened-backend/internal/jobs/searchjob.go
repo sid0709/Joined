@@ -59,6 +59,7 @@ type SearchJob struct {
 	Responsibilities []string `json:"responsibilities" bson:"responsibilities"`
 	Requirements     []string `json:"requirements" bson:"requirements"`
 	Benefits         []string `json:"benefits" bson:"benefits"`
+	Description      string   `json:"description,omitempty" bson:"description,omitempty"`
 }
 
 type Pay struct {

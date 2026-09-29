@@ -1,5 +1,6 @@
 import { companyGet, companySend, companySendForm } from "@/lib/me/client";
 import { parseISODate } from "@/lib/dates";
+import { DEFAULT_CURRENCY } from "@openseat/job-schema";
 import type { ActivityItem } from "./activity";
 import type { Applicant, ApplicantStage, AssistedBy } from "./applicants";
 import type { BillingAccount, BillableEvent, Purchase } from "./billing";
@@ -69,7 +70,22 @@ export type CompanySettings = {
 type TeamResponse = { members: TeamMember[]; emailDomain: string };
 
 function hydrateJob(job: ApiJob): CompanyJob {
-  return { ...job, postedOn: new Date(job.postedOn), pipeline: job.pipeline ?? emptyPipeline() };
+  return {
+    ...job,
+    postedOn: new Date(job.postedOn),
+    pipeline: job.pipeline ?? emptyPipeline(),
+    skills: job.skills ?? [],
+    responsibilities: job.responsibilities ?? [],
+    requirements: job.requirements ?? [],
+    description: job.description ?? "",
+    summary: job.summary ?? "",
+    currency: job.currency || DEFAULT_CURRENCY,
+    payMin: job.payMin ?? 0,
+    payMax: job.payMax ?? 0,
+    visa: job.visa ?? false,
+    seniority: job.seniority ?? "Middle",
+    jobId: job.jobId || (job.status === "open" ? job.id : undefined),
+  };
 }
 
 function hydrateApplicant(person: ApiApplicant): Applicant {
@@ -133,6 +149,52 @@ export function fetchJobs() {
 
 export function createJob(input: Record<string, unknown>) {
   return companySend<ApiJob>("/jobs", "POST", input).then(hydrateJob);
+}
+
+export function fetchJob(id: string) {
+  return companyGet<ApiJob>(`/jobs/${encodeURIComponent(id)}`).then(hydrateJob);
+}
+
+export function updateJob(id: string, input: Record<string, unknown>) {
+  return companySend<ApiJob>(`/jobs/${encodeURIComponent(id)}`, "PUT", input).then(hydrateJob);
+}
+
+export function parseJobDescription(description: string) {
+  return companySend<{
+    title: string;
+    team: string;
+    seniority: CompanyJob["seniority"];
+    location: string;
+    workplace: CompanyJob["workplace"];
+    payMin: number;
+    payMax: number;
+    currency: string;
+    visa: boolean;
+    summary: string;
+    skills: string[];
+    responsibilities: string[];
+    requirements: string[];
+    description: string;
+  }>("/jobs/parse", "POST", { description }).then((draft) => ({
+    ...draft,
+    skills: draft.skills ?? [],
+    responsibilities: draft.responsibilities ?? [],
+    requirements: draft.requirements ?? [],
+    description: draft.description ?? "",
+    currency: draft.currency || DEFAULT_CURRENCY,
+    payMin: draft.payMin ?? 0,
+    payMax: draft.payMax ?? 0,
+  }));
+}
+
+export function fetchJobTeams() {
+  return companyGet<{ teams: string[] }>("/job-teams").then((body) => body.teams ?? []);
+}
+
+export function saveJobTeams(teams: string[], rename?: { from: string; to: string }) {
+  return companySend<{ teams: string[] }>("/job-teams", "PUT", { teams, rename }).then(
+    (body) => body.teams ?? [],
+  );
 }
 
 export function setJobStatus(id: string, status: CompanyJobStatus) {

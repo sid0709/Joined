@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -11,11 +12,16 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 )
 
+const parseJobTimeout = 90 * time.Second
+
 func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/company/overview", s.getCompanyOverview)
 	mux.HandleFunc("GET /v1/company/counts", s.getCompanyCounts)
 	mux.HandleFunc("GET /v1/company/jobs", s.getCompanyJobs)
 	mux.HandleFunc("POST /v1/company/jobs", s.postCompanyJob)
+	mux.HandleFunc("POST /v1/company/jobs/parse", s.parseCompanyJob)
+	mux.HandleFunc("GET /v1/company/jobs/{id}", s.getCompanyJob)
+	mux.HandleFunc("PUT /v1/company/jobs/{id}", s.putCompanyJob)
 	mux.HandleFunc("PATCH /v1/company/jobs/{id}", s.patchCompanyJob)
 	mux.HandleFunc("GET /v1/company/applicants", s.getCompanyApplicants)
 	mux.HandleFunc("PATCH /v1/company/applicants/{id}", s.patchCompanyApplicant)
@@ -31,6 +37,8 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/company/team/transfer", s.postCompanyTransfer)
 	mux.HandleFunc("GET /v1/company/settings", s.getCompanySettings)
 	mux.HandleFunc("PUT /v1/company/settings", s.putCompanySettings)
+	mux.HandleFunc("GET /v1/company/job-teams", s.getCompanyJobTeams)
+	mux.HandleFunc("PUT /v1/company/job-teams", s.putCompanyJobTeams)
 	mux.HandleFunc("GET /v1/company/page", s.getCompanyPage)
 	mux.HandleFunc("PUT /v1/company/page", s.putCompanyPage)
 	mux.HandleFunc("POST /v1/company/page/logo", s.postCompanyPageLogo)
@@ -109,6 +117,64 @@ func (s *Server) postCompanyJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, job)
+}
+
+func (s *Server) getCompanyJob(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	job, err := s.hiring.GetJob(r.Context(), session.Company.ID, r.PathValue("id"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, job)
+}
+
+func (s *Server) putCompanyJob(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.JobInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	job, err := s.hiring.UpdateJob(r.Context(), *session.Company, session.User.ID, r.PathValue("id"), input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, job)
+}
+
+func (s *Server) parseCompanyJob(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input struct {
+		Description string `json:"description"`
+	}
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), parseJobTimeout)
+	defer cancel()
+	draft, err := jobs.ParsePostedJob(ctx, s.reader, session.Company.Name, input.Description)
+	if jobs.IsMissingAPIKey(err) {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the API environment")
+		return
+	}
+	if errors.Is(err, jobs.ErrInvalidInput) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err != nil {
+		slog.Error("parse company job", "error", err)
+		writeError(w, http.StatusBadGateway, "could not read that job description")
+		return
+	}
+	writeJSON(w, http.StatusOK, draft)
 }
 
 func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
@@ -327,6 +393,34 @@ func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, settings)
+}
+
+func (s *Server) getCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	teams, err := s.hiring.JobTeams(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, teams)
+}
+
+func (s *Server) putCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.companyCreator(w, r)
+	if !ok {
+		return
+	}
+	var input employer.JobTeamsWrite
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	teams, err := s.hiring.SaveJobTeams(r.Context(), session.Company.ID, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, teams)
 }
 
 func (s *Server) getCompanyPage(w http.ResponseWriter, r *http.Request) {

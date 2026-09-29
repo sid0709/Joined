@@ -4,7 +4,7 @@ const PLACES_LIMIT = 8;
 /** Wait until a few characters are typed before calling Geoapify. */
 export const PLACES_MIN_TEXT = 3;
 
-export type PlaceKind = "city" | "address" | "country";
+export type PlaceKind = "city" | "address" | "country" | "location";
 
 export type PlaceResult = {
   id: string;
@@ -27,6 +27,7 @@ type GeoResult = {
   country?: string;
   housenumber?: string;
   street?: string;
+  result_type?: string;
   lat?: number;
   lon?: number;
 };
@@ -76,13 +77,23 @@ export async function searchPlaces(
   }
   const body = (await response.json()) as { results?: GeoResult[] };
   return (body.results ?? [])
+    .filter((hit) => kind !== "location" || isRegion(hit))
     .map((hit) => toPlace(hit, kind))
     .filter((hit) => hit.label.length > 0);
 }
 
 function placeKind(value: string | null): PlaceKind {
-  if (value === "city" || value === "country") return value;
+  if (value === "city" || value === "country" || value === "location") return value;
   return "address";
+}
+
+function regionType(hit: GeoResult) {
+  return (hit.result_type ?? "").trim().toLowerCase();
+}
+
+function isRegion(hit: GeoResult) {
+  const type = regionType(hit);
+  return type === "city" || type === "state" || type === "country";
 }
 
 function toPlace(hit: GeoResult, kind: PlaceKind): PlaceResult {
@@ -91,19 +102,28 @@ function toPlace(hit: GeoResult, kind: PlaceKind): PlaceResult {
   const street = [hit.housenumber, hit.street].filter(Boolean).join(" ").trim();
   const line1 = street || hit.address_line1?.trim() || "";
   const country = hit.country?.trim() || "";
+  const type = regionType(hit);
   const label =
     kind === "city"
       ? [city, state].filter(Boolean).join(", ")
       : kind === "country"
         ? country || hit.formatted?.trim() || ""
-        : hit.formatted?.trim() || [line1, city, state].filter(Boolean).join(", ");
+        : kind === "location"
+          ? locationLabel(hit, type, city, state, country)
+          : hit.formatted?.trim() || [line1, city, state].filter(Boolean).join(", ");
   return {
     id: hit.place_id || `${hit.lat ?? ""},${hit.lon ?? ""},${label}`,
     label,
-    line1: kind === "city" || kind === "country" ? "" : line1,
+    line1: kind === "city" || kind === "country" || kind === "location" ? "" : line1,
     city: kind === "country" ? "" : city,
     state: kind === "country" ? "" : state,
-    postalCode: kind === "country" ? "" : (hit.postcode?.trim() ?? ""),
+    postalCode: kind === "country" || kind === "location" ? "" : (hit.postcode?.trim() ?? ""),
     country: country || (kind === "country" ? label : ""),
   };
+}
+
+function locationLabel(hit: GeoResult, type: string, city: string, state: string, country: string) {
+  if (type === "country") return country || hit.formatted?.trim() || "";
+  if (type === "state") return [hit.state?.trim() || state, country].filter(Boolean).join(", ");
+  return [city, state].filter(Boolean).join(", ") || hit.formatted?.trim() || "";
 }

@@ -1,7 +1,7 @@
 /** Hiring workspace — jobs the signed-in company has posted. */
 
 import type { BadgeVariant } from "@openseat/design-system";
-import type { Workplace } from "@/lib/jobs";
+import type { Seniority, Workplace } from "@/lib/jobs";
 
 export type CompanyJobStatus = "open" | "paused" | "draft" | "closed";
 export type AssistedPolicy = "accept" | "cap" | "direct";
@@ -16,6 +16,7 @@ export type CompanyJob = {
   team: string;
   location: string;
   workplace: Workplace;
+  seniority: Seniority;
   status: CompanyJobStatus;
   postedOn: Date;
   views: number;
@@ -23,6 +24,15 @@ export type CompanyJob = {
   policy: AssistedPolicy;
   /** Assisted applications allowed per day when the policy is "cap". */
   dailyCap?: number;
+  payMin: number;
+  payMax: number;
+  currency: string;
+  visa: boolean;
+  summary: string;
+  skills: string[];
+  responsibilities: string[];
+  requirements: string[];
+  description: string;
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {

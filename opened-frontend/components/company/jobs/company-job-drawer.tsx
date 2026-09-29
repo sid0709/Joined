@@ -64,6 +64,9 @@ export function CompanyJobDrawer({
             <span />
           )}
           <HStack gap={2}>
+            {job.status !== "closed" ? (
+              <Button label="Edit" variant="secondary" href={ROUTES.companyJobEdit(job.id)} />
+            ) : null}
             {job.jobId ? (
               <CandidateViewButton label="View posting" href={ROUTES.job(job.jobId)} />
             ) : null}

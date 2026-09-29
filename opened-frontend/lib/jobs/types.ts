@@ -39,6 +39,7 @@ export type Job = {
   responsibilities: string[];
   requirements: string[];
   benefits: string[];
+  description?: string;
   /** Official listing. Apply and copy link use this for aggregated jobs. */
   applyLink?: string;
 };

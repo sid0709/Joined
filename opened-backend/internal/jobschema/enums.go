@@ -25,6 +25,9 @@ const (
 	PayHour = "hour"
 
 	CurrencyUSD = "USD"
+	CurrencyEUR = "EUR"
+	CurrencyGBP = "GBP"
+	CurrencyCAD = "CAD"
 )
 
 func Workplaces() []string {
@@ -41,6 +44,20 @@ func Employments() []string {
 
 func PayPeriods() []string {
 	return []string{PayYear, PayHour}
+}
+
+func Currencies() []string {
+	return []string{CurrencyUSD, CurrencyEUR, CurrencyGBP, CurrencyCAD}
+}
+
+func CanonicalCurrency(value string) string {
+	code := strings.ToUpper(strings.TrimSpace(value))
+	for _, currency := range Currencies() {
+		if currency == code {
+			return currency
+		}
+	}
+	return CurrencyUSD
 }
 
 // seniorityAliases folds older scout values and any casing onto the job record.

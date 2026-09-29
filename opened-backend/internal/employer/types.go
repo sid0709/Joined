@@ -10,23 +10,28 @@ type Pipeline struct {
 }
 
 type Job struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	Team      string    `json:"team"`
-	Location  string    `json:"location"`
-	Workplace string    `json:"workplace"`
-	Seniority string    `json:"seniority"`
-	Status    string    `json:"status"`
-	PostedOn  time.Time `json:"postedOn"`
-	Views     int       `json:"views"`
-	Pipeline  Pipeline  `json:"pipeline"`
-	Policy    string    `json:"policy"`
-	DailyCap  int       `json:"dailyCap,omitempty"`
-	PayMin    int       `json:"payMin"`
-	PayMax    int       `json:"payMax"`
-	Visa      bool      `json:"visa"`
-	Summary   string    `json:"summary"`
-	Skills    []string  `json:"skills"`
+	ID               string    `json:"id"`
+	JobID            string    `json:"jobId,omitempty"`
+	Title            string    `json:"title"`
+	Team             string    `json:"team"`
+	Location         string    `json:"location"`
+	Workplace        string    `json:"workplace"`
+	Seniority        string    `json:"seniority"`
+	Status           string    `json:"status"`
+	PostedOn         time.Time `json:"postedOn"`
+	Views            int       `json:"views"`
+	Pipeline         Pipeline  `json:"pipeline"`
+	Policy           string    `json:"policy"`
+	DailyCap         int       `json:"dailyCap,omitempty"`
+	PayMin           int       `json:"payMin"`
+	PayMax           int       `json:"payMax"`
+	Currency         string    `json:"currency"`
+	Visa             bool      `json:"visa"`
+	Summary          string    `json:"summary"`
+	Skills           []string  `json:"skills"`
+	Responsibilities []string  `json:"responsibilities"`
+	Requirements     []string  `json:"requirements"`
+	Description      string    `json:"description"`
 }
 
 type Applicant struct {
@@ -132,20 +137,38 @@ type Team struct {
 	EmailDomain string   `json:"emailDomain"`
 }
 
+type JobTeams struct {
+	Teams []string `json:"teams"`
+}
+
+type JobTeamsWrite struct {
+	Teams  []string    `json:"teams"`
+	Rename *TeamRename `json:"rename"`
+}
+
+type TeamRename struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
 type JobInput struct {
-	Title     string   `json:"title"`
-	Team      string   `json:"team"`
-	Seniority string   `json:"seniority"`
-	Location  string   `json:"location"`
-	Workplace string   `json:"workplace"`
-	PayMin    int      `json:"payMin"`
-	PayMax    int      `json:"payMax"`
-	Visa      bool     `json:"visa"`
-	Summary   string   `json:"summary"`
-	Skills    []string `json:"skills"`
-	Policy    string   `json:"policy"`
-	DailyCap  int      `json:"dailyCap"`
-	Status    string   `json:"status"`
+	Title            string   `json:"title"`
+	Team             string   `json:"team"`
+	Seniority        string   `json:"seniority"`
+	Location         string   `json:"location"`
+	Workplace        string   `json:"workplace"`
+	PayMin           int      `json:"payMin"`
+	PayMax           int      `json:"payMax"`
+	Currency         string   `json:"currency"`
+	Visa             bool     `json:"visa"`
+	Summary          string   `json:"summary"`
+	Skills           []string `json:"skills"`
+	Responsibilities []string `json:"responsibilities"`
+	Requirements     []string `json:"requirements"`
+	Description      string   `json:"description"`
+	Policy           string   `json:"policy"`
+	DailyCap         int      `json:"dailyCap"`
+	Status           string   `json:"status"`
 }
 
 type StageInput struct {

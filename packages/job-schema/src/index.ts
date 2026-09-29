@@ -24,6 +24,9 @@ export type PayPeriod = (typeof PAY_PERIODS)[number];
 
 export const DEFAULT_CURRENCY = "USD";
 
+export const CURRENCIES = ["USD", "EUR", "GBP", "CAD"] as const;
+export type JobCurrency = (typeof CURRENCIES)[number];
+
 export const WORKPLACE_LABEL: Record<Workplace, string> = {
   remote: "Remote",
   hybrid: "Hybrid",
@@ -76,6 +79,7 @@ export const WORKPLACE_OPTIONS = options(WORKPLACES, WORKPLACE_LABEL);
 export const SENIORITY_OPTIONS = options(SENIORITIES, SENIORITY_LABEL);
 export const EMPLOYMENT_OPTIONS = options(EMPLOYMENTS, EMPLOYMENT_LABEL);
 export const PAY_PERIOD_OPTIONS = options(PAY_PERIODS, PAY_PERIOD_LABEL);
+export const CURRENCY_OPTIONS = CURRENCIES.map((value) => ({ value, label: value }));
 
 export function canonicalSeniority(value: string): Seniority | null {
   const key = value.trim().toLowerCase();

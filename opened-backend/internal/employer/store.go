@@ -16,6 +16,7 @@ import (
 
 const (
 	jobsCollection     = "company_jobs"
+	jobTeamsCollection = "company_job_teams"
 	walletsCollection  = "company_wallets"
 	ledgerCollection   = "company_ledger"
 	activityCollection = "company_activity"
@@ -46,6 +47,7 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	}{
 		{jobsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "updatedAt", Value: -1}}}},
 		{jobsCollection, mongo.IndexModel{Keys: bson.D{{Key: "id", Value: 1}}, Options: options.Index().SetUnique(true)}},
+		{jobTeamsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{walletsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{ledgerCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "createdAt", Value: -1}}}},
 		{activityCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "createdAt", Value: -1}}}},
@@ -67,7 +69,7 @@ func (s *Store) DeleteCompany(ctx context.Context, companyID string) error {
 		return nil
 	}
 	filter := bson.D{{Key: "companyId", Value: companyID}}
-	for _, name := range []string{jobsCollection, walletsCollection, ledgerCollection, activityCollection, invitesCollection, settingsCollection} {
+	for _, name := range []string{jobsCollection, jobTeamsCollection, walletsCollection, ledgerCollection, activityCollection, invitesCollection, settingsCollection} {
 		if _, err := s.collection(name).DeleteMany(ctx, filter); err != nil {
 			return err
 		}

@@ -41,6 +41,18 @@ func (s *Store) ListJobs(ctx context.Context, companyID string) ([]Job, error) {
 	return out, nil
 }
 
+func (s *Store) GetJob(ctx context.Context, companyID, id string) (Job, error) {
+	doc, err := s.job(ctx, companyID, id)
+	if err != nil {
+		return Job{}, err
+	}
+	pipelines, err := s.pipelines(ctx, companyID)
+	if err != nil {
+		return Job{}, err
+	}
+	return viewJob(doc, pipelines[doc.ID]), nil
+}
+
 func (s *Store) CreateJob(ctx context.Context, company auth.Company, userID string, input JobInput, now time.Time) (Job, error) {
 	doc, err := normalizeJob(input, now)
 	if err != nil {
@@ -71,7 +83,57 @@ func (s *Store) CreateJob(ctx context.Context, company auth.Company, userID stri
 	if err := s.record(ctx, company.ID, doc.Title+" "+verb, doc.Location, tone, now); err != nil {
 		return Job{}, err
 	}
+	if err := s.ensureTeam(ctx, company.ID, doc.Team); err != nil {
+		return Job{}, err
+	}
 	return viewJob(doc, Pipeline{}), nil
+}
+
+func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id string, input JobInput, now time.Time) (Job, error) {
+	existing, err := s.job(ctx, company.ID, id)
+	if err != nil {
+		return Job{}, err
+	}
+	if existing.Status == statusClosed {
+		return Job{}, ErrConflict
+	}
+	doc, err := normalizeJob(input, now)
+	if err != nil {
+		return Job{}, err
+	}
+	doc.ID = existing.ID
+	doc.CompanyID = existing.CompanyID
+	doc.CreatedBy = existing.CreatedBy
+	doc.CreatedAt = existing.CreatedAt
+	doc.Views = existing.Views
+	doc.PostedAt = existing.PostedAt
+	doc.UpdatedAt = now.UTC()
+	if doc.Status == statusOpen {
+		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+			return Job{}, err
+		}
+		if doc.PostedAt.IsZero() {
+			doc.PostedAt = now.UTC()
+		}
+	} else if existing.Status == statusOpen {
+		if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
+			return Job{}, err
+		}
+	}
+	if _, err := s.collection(jobsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "companyId", Value: company.ID}}, doc); err != nil {
+		return Job{}, err
+	}
+	if err := s.record(ctx, company.ID, doc.Title+" updated", doc.Location, "neutral", now); err != nil {
+		return Job{}, err
+	}
+	if err := s.ensureTeam(ctx, company.ID, doc.Team); err != nil {
+		return Job{}, err
+	}
+	pipelines, err := s.pipelines(ctx, company.ID)
+	if err != nil {
+		return Job{}, err
+	}
+	return viewJob(doc, pipelines[doc.ID]), nil
 }
 
 func (s *Store) SetJobStatus(ctx context.Context, company auth.Company, userID, id, status string, now time.Time) (Job, error) {
@@ -168,26 +230,27 @@ func normalizeJob(input JobInput, now time.Time) (storedJob, error) {
 	if !oneOf(seniority, jobschema.Seniorities()) {
 		return storedJob{}, ErrInvalidInput
 	}
-	skills := compact(input.Skills, 12)
+	skills := compactList(input.Skills, 12, 40)
 	doc := storedJob{
-		Title:     title,
-		Team:      clip(input.Team, 80),
-		Seniority: seniority,
-		Location:  clip(input.Location, 80),
-		Workplace: workplace,
-		PayMin:    input.PayMin,
-		PayMax:    input.PayMax,
-		Visa:      input.Visa,
-		Summary:   clip(input.Summary, 2000),
-		Skills:    skills,
-		Policy:    policy,
-		DailyCap:  input.DailyCap,
-		Status:    status,
-		CreatedAt: now.UTC(),
-		UpdatedAt: now.UTC(),
-	}
-	if policy == policyCap && doc.DailyCap < 1 {
-		doc.DailyCap = 5
+		Title:            title,
+		Team:             clip(input.Team, 80),
+		Seniority:        seniority,
+		Location:         clip(input.Location, 120),
+		Workplace:        workplace,
+		PayMin:           input.PayMin,
+		PayMax:           input.PayMax,
+		Currency:         jobschema.CanonicalCurrency(input.Currency),
+		Visa:             input.Visa,
+		Summary:          clip(input.Summary, 2000),
+		Skills:           skills,
+		Responsibilities: compactList(input.Responsibilities, 6, 120),
+		Requirements:     compactList(input.Requirements, 6, 120),
+		Description:      clip(input.Description, 12000),
+		Policy:           policyAccept,
+		DailyCap:         0,
+		Status:           status,
+		CreatedAt:        now.UTC(),
+		UpdatedAt:        now.UTC(),
 	}
 	if status == statusOpen {
 		if err := readyToPublish(doc); err != nil {
@@ -205,10 +268,6 @@ func readyToPublish(doc storedJob) error {
 }
 
 func searchJob(doc storedJob, companyName string) jobs.SearchJob {
-	skills := doc.Skills
-	if skills == nil {
-		skills = []string{}
-	}
 	return jobs.SearchJob{
 		ID:               doc.ID,
 		Title:            doc.Title,
@@ -216,17 +275,18 @@ func searchJob(doc storedJob, companyName string) jobs.SearchJob {
 		CompanyID:        doc.CompanyID,
 		Location:         doc.Location,
 		Workplace:        doc.Workplace,
-		Pay:              jobs.Pay{Min: doc.PayMin, Max: doc.PayMax, Currency: CurrencyUSD, Period: jobschema.PayYear},
+		Pay:              jobs.Pay{Min: doc.PayMin, Max: doc.PayMax, Currency: jobschema.CanonicalCurrency(doc.Currency), Period: jobschema.PayYear},
 		Seniority:        doc.Seniority,
 		Employment:       jobschema.EmploymentFullTime,
 		Source:           "direct",
 		Visa:             doc.Visa,
 		Team:             doc.Team,
-		Skills:           skills,
+		Skills:           listOrEmpty(doc.Skills),
 		Summary:          doc.Summary,
-		Responsibilities: []string{},
-		Requirements:     []string{},
+		Responsibilities: listOrEmpty(doc.Responsibilities),
+		Requirements:     listOrEmpty(doc.Requirements),
 		Benefits:         []string{},
+		Description:      doc.Description,
 	}
 }
 
@@ -235,29 +295,33 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 	if posted.IsZero() {
 		posted = doc.CreatedAt
 	}
-	skills := doc.Skills
-	if skills == nil {
-		skills = []string{}
+	job := Job{
+		ID:               doc.ID,
+		Title:            doc.Title,
+		Team:             doc.Team,
+		Location:         doc.Location,
+		Workplace:        doc.Workplace,
+		Seniority:        doc.Seniority,
+		Status:           doc.Status,
+		PostedOn:         posted,
+		Views:            doc.Views,
+		Pipeline:         pipeline,
+		Policy:           doc.Policy,
+		DailyCap:         doc.DailyCap,
+		PayMin:           doc.PayMin,
+		PayMax:           doc.PayMax,
+		Currency:         jobschema.CanonicalCurrency(doc.Currency),
+		Visa:             doc.Visa,
+		Summary:          doc.Summary,
+		Skills:           listOrEmpty(doc.Skills),
+		Responsibilities: listOrEmpty(doc.Responsibilities),
+		Requirements:     listOrEmpty(doc.Requirements),
+		Description:      doc.Description,
 	}
-	return Job{
-		ID:        doc.ID,
-		Title:     doc.Title,
-		Team:      doc.Team,
-		Location:  doc.Location,
-		Workplace: doc.Workplace,
-		Seniority: doc.Seniority,
-		Status:    doc.Status,
-		PostedOn:  posted,
-		Views:     doc.Views,
-		Pipeline:  pipeline,
-		Policy:    doc.Policy,
-		DailyCap:  doc.DailyCap,
-		PayMin:    doc.PayMin,
-		PayMax:    doc.PayMax,
-		Visa:      doc.Visa,
-		Summary:   doc.Summary,
-		Skills:    skills,
+	if doc.Status == statusOpen {
+		job.JobID = doc.ID
 	}
+	return job
 }
 
 func validStatus(status string) bool {
@@ -290,23 +354,36 @@ func oneOf(value string, allowed []string) bool {
 }
 
 func compact(values []string, limit int) []string {
-	out := make([]string, 0, len(values))
+	return compactList(values, limit, 40)
+}
+
+func compactList(values []string, limit, itemRunes int) []string {
+	out := make([]string, 0, min(len(values), limit))
 	seen := map[string]struct{}{}
 	for _, value := range values {
 		value = strings.TrimSpace(value)
 		if value == "" {
 			continue
 		}
-		if _, ok := seen[value]; ok {
+		value = clip(value, itemRunes)
+		key := strings.ToLower(value)
+		if _, ok := seen[key]; ok {
 			continue
 		}
-		seen[value] = struct{}{}
-		out = append(out, clip(value, 40))
+		seen[key] = struct{}{}
+		out = append(out, value)
 		if len(out) == limit {
 			break
 		}
 	}
 	return out
+}
+
+func listOrEmpty(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 func clip(value string, limit int) string {

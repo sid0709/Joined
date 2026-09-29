@@ -16,6 +16,7 @@ export const ROUTES = {
   company: "/company",
   companyJobs: "/company/jobs",
   companyJobNew: "/company/jobs/new",
+  companyJobEdit: (id: string) => `/company/jobs/${encodeURIComponent(id)}/edit`,
   companyApplicants: "/company/applicants",
   companyInterviews: "/company/interviews",
   companyAbout: "/company/about",

@@ -5,18 +5,23 @@ import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";
 import { canManageCompany } from "@/lib/company/access";
 
-export const metadata: Metadata = { title: "Post a job" };
+export const metadata: Metadata = { title: "Edit job" };
 
-export default async function NewJobPage() {
+export default async function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await loadSession();
   if (!session?.company) return null;
+  const { id } = await params;
   return (
     <Stack gap={6}>
       <PageHeader
-        title="Post a job"
-        description="Posting is free. Scheduling an interview spends your purchase balance, and a no-show returns it."
+        title="Edit job"
+        description="Changes to an open job show up on the candidate posting right away."
       />
-      <JobPostEditor company={session.company} canEditTeams={canManageCompany(session.company)} />
+      <JobPostEditor
+        company={session.company}
+        canEditTeams={canManageCompany(session.company)}
+        jobId={id}
+      />
     </Stack>
   );
 }

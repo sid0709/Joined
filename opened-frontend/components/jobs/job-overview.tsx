@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  Collapsible,
   Glyph,
   HStack,
   Heading,
@@ -67,7 +68,7 @@ export function JobOverview({ job }: { job: Job }) {
 
       <Section title="What you’ll do">
         <List listStyle="disc">
-          {job.responsibilities.map((item) => (
+          {(job.responsibilities ?? []).map((item) => (
             <ListItem key={item} label={item} />
           ))}
         </List>
@@ -75,7 +76,7 @@ export function JobOverview({ job }: { job: Job }) {
 
       <Section title="What you’ll need">
         <List density="compact">
-          {job.requirements.map((item) => (
+          {(job.requirements ?? []).map((item) => (
             <ListItem
               key={item}
               label={item}
@@ -85,10 +86,25 @@ export function JobOverview({ job }: { job: Job }) {
         </List>
       </Section>
 
-      {job.benefits.length ? (
+      {job.description?.trim() ? (
+        <Collapsible trigger="More details">
+          <Stack gap={3}>
+            {job.description
+              .trim()
+              .split(/\n+/)
+              .map((paragraph, index) => (
+                <Text key={`${index}-${paragraph.slice(0, 24)}`} display="block">
+                  {paragraph}
+                </Text>
+              ))}
+          </Stack>
+        </Collapsible>
+      ) : null}
+
+      {(job.benefits ?? []).length ? (
         <Section title="Benefits">
           <HStack gap={2} wrap="wrap">
-            {job.benefits.map((benefit) => (
+            {(job.benefits ?? []).map((benefit) => (
               <Token key={benefit} label={benefit} icon={<Glyph name="heart" />} />
             ))}
           </HStack>
