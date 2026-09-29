@@ -15,10 +15,7 @@ export function useAdminQuery<T>(path: string) {
   const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(null);
 
   useEffect(() => {
-    if (!path) {
-      setSnapshot({ key, result: null, error: null });
-      return;
-    }
+    if (!path) return;
     const controller = new AbortController();
     adminFetch<T>(path, { signal: controller.signal })
       .then((result) => {
@@ -35,12 +32,13 @@ export function useAdminQuery<T>(path: string) {
     return () => controller.abort();
   }, [key, path]);
 
-  const loading = snapshot?.key !== key;
+  const idle = !path;
+  const loading = !idle && snapshot?.key !== key;
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
   return {
-    result: snapshot?.result ?? null,
+    result: idle ? null : (snapshot?.result ?? null),
     loading,
-    error: loading ? null : (snapshot?.error ?? null),
+    error: idle || loading ? null : (snapshot?.error ?? null),
     reload,
   };
 }
