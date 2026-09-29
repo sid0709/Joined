@@ -3,39 +3,41 @@ package employer
 import (
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 )
 
 type storedJob struct {
-	ID                 string                   `bson:"id"`
-	CompanyID          string                   `bson:"companyId"`
-	CreatedBy          string                   `bson:"createdBy"`
-	Title              string                   `bson:"title"`
-	Team               string                   `bson:"team"`
-	Seniority          string                   `bson:"seniority"`
-	Location           string                   `bson:"location"`
-	Workplace          string                   `bson:"workplace"`
-	PayMin             int                      `bson:"payMin"`
-	PayMax             int                      `bson:"payMax"`
-	Currency           string                   `bson:"currency"`
-	Visa               bool                     `bson:"visa"`
-	Summary            string                   `bson:"summary"`
-	Skills             []string                 `bson:"skills"`
-	Responsibilities   []string                 `bson:"responsibilities"`
-	Requirements       []string                 `bson:"requirements"`
-	Description        string                   `bson:"description"`
-	ScreeningQuestions []jobs.ScreeningQuestion `bson:"screeningQuestions,omitempty"`
-	CustomStages       []PipelineStageDef       `bson:"customStages,omitempty"`
-	FeedbackGate       *FeedbackGateConfig      `bson:"feedbackGate,omitempty"`
-	ScorecardTemplate  *ScorecardTemplate       `bson:"scorecardTemplate,omitempty"`
-	InterviewGuide     *InterviewGuide          `bson:"interviewGuide,omitempty"`
-	Policy             string                   `bson:"policy"`
-	DailyCap           int                      `bson:"dailyCap,omitempty"`
-	Status             string                   `bson:"status"`
-	Views              int                      `bson:"views"`
-	CreatedAt          time.Time                `bson:"createdAt"`
-	UpdatedAt          time.Time                `bson:"updatedAt"`
-	PostedAt           time.Time                `bson:"postedAt,omitempty"`
+	ID                 string                    `bson:"id"`
+	CompanyID          string                    `bson:"companyId"`
+	CreatedBy          string                    `bson:"createdBy"`
+	Title              string                    `bson:"title"`
+	Team               string                    `bson:"team"`
+	Seniority          string                    `bson:"seniority"`
+	Location           string                    `bson:"location"`
+	Workplace          string                    `bson:"workplace"`
+	PayMin             int                       `bson:"payMin"`
+	PayMax             int                       `bson:"payMax"`
+	Currency           string                    `bson:"currency"`
+	Visa               bool                      `bson:"visa"`
+	Summary            string                    `bson:"summary"`
+	Skills             []string                  `bson:"skills"`
+	Responsibilities   []string                  `bson:"responsibilities"`
+	Requirements       []string                  `bson:"requirements"`
+	Description        string                    `bson:"description"`
+	ScreeningQuestions []jobs.ScreeningQuestion  `bson:"screeningQuestions,omitempty"`
+	CustomStages       []PipelineStageDef        `bson:"customStages,omitempty"`
+	FeedbackGate       *FeedbackGateConfig       `bson:"feedbackGate,omitempty"`
+	ScorecardTemplate  *ScorecardTemplate        `bson:"scorecardTemplate,omitempty"`
+	InterviewGuide     *InterviewGuide           `bson:"interviewGuide,omitempty"`
+	OfferTemplates     []candidate.OfferTemplate `bson:"offerTemplates,omitempty"`
+	Policy             string                    `bson:"policy"`
+	DailyCap           int                       `bson:"dailyCap,omitempty"`
+	Status             string                    `bson:"status"`
+	Views              int                       `bson:"views"`
+	CreatedAt          time.Time                 `bson:"createdAt"`
+	UpdatedAt          time.Time                 `bson:"updatedAt"`
+	PostedAt           time.Time                 `bson:"postedAt,omitempty"`
 }
 
 type storedJobTeams struct {

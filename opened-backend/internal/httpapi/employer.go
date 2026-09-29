@@ -27,6 +27,10 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/company/jobs/{id}/pipeline", s.putCompanyPipeline)
 	mux.HandleFunc("GET /v1/company/applicants", s.getCompanyApplicants)
 	mux.HandleFunc("PATCH /v1/company/applicants/{id}", s.patchCompanyApplicant)
+	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/approvals", s.postOfferApproval)
+	mux.HandleFunc("PATCH /v1/company/applicants/{id}/offer/approvals/{approvalId}", s.patchOfferApproval)
+	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/esign", s.postOfferEsign)
+	mux.HandleFunc("POST /v1/company/applicants/{id}/hire-packet", s.postHirePacket)
 	mux.HandleFunc("GET /v1/company/applicants/{id}/scorecards", s.getApplicantScorecards)
 	mux.HandleFunc("POST /v1/company/applicants/{id}/scorecards", s.postApplicantScorecard)
 	mux.HandleFunc("GET /v1/company/interviews", s.getCompanyInterviews)
@@ -253,6 +257,70 @@ func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, person)
+}
+
+func (s *Server) postOfferApproval(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.ApprovalRequest
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.RequestOfferApproval(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) patchOfferApproval(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.ApprovalDecision
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.DecideOfferApproval(r.Context(), session.Company.ID, r.PathValue("id"), r.PathValue("approvalId"), session.User.ID, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (s *Server) postOfferEsign(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.EsignInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.CreateOfferEsign(r.Context(), session.Company.ID, r.PathValue("id"), s.frontend, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.HirePacketInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.CreateHirePacket(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) {

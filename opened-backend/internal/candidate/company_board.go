@@ -47,7 +47,8 @@ func (s *Store) ApplicationForCompany(ctx context.Context, companyID, id string)
 }
 
 // SetCompanyStage records the hiring stage and mirrors it onto the candidate board.
-func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, companyStage, closedReason string, notes *string, rating *int, tags *[]string, interviewerIDs *[]string, now time.Time) (Application, error) {
+// writeOffer replaces the employer offer. A false writeOffer leaves the stored offer in place.
+func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, companyStage, closedReason string, notes *string, rating *int, tags *[]string, interviewerIDs *[]string, offer *OfferRecord, writeOffer bool, now time.Time) (Application, error) {
 	app, err := s.ApplicationForCompany(ctx, companyID, id)
 	if err != nil {
 		return Application{}, err
@@ -85,6 +86,27 @@ func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, co
 	if interviewerIDs != nil {
 		app.InterviewerIDs = *interviewerIDs
 	}
+	if writeOffer {
+		app.Offer = offer
+	}
+	app.Updated = now.UTC()
+	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "companyId", Value: companyID}}, app)
+	if err != nil {
+		return Application{}, err
+	}
+	return app, nil
+}
+
+// SetApplicationOffer stores the employer offer without moving the candidate's stage.
+func (s *Store) SetApplicationOffer(ctx context.Context, companyID, id string, offer *OfferRecord, now time.Time) (Application, error) {
+	if offer == nil || offer.Status == "" {
+		return Application{}, ErrInvalidInput
+	}
+	app, err := s.ApplicationForCompany(ctx, companyID, id)
+	if err != nil {
+		return Application{}, err
+	}
+	app.Offer = offer
 	app.Updated = now.UTC()
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "companyId", Value: companyID}}, app)
 	if err != nil {

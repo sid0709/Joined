@@ -59,7 +59,7 @@ func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input S
 	if errors.Is(err, ErrNotFound) {
 		doc = storedJob{}
 	}
-	hasSide := input.Tags != nil || input.InterviewerIDs != nil || input.Rating != nil || strings.TrimSpace(input.Notes) != ""
+	hasSide := input.Tags != nil || input.InterviewerIDs != nil || input.Rating != nil || strings.TrimSpace(input.Notes) != "" || offerPatchPresent(input.Offer)
 	column, reason, nextStage, ok := applicantPatch(input.ColumnID, stageSet(doc.CustomStages), hasSide)
 	if !ok {
 		return Applicant{}, ErrInvalidInput
@@ -108,7 +108,12 @@ func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input S
 	if notes != "" {
 		notePtr = &notes
 	}
-	app, err = s.people.SetCompanyStage(ctx, companyID, id, column, nextStage, reason, notePtr, input.Rating, tags, interviewerIDs, now)
+	fromColumn := companyStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
+	offer, writeOffer, err := mergeApplicantOffer(app.Offer, input.Offer, input.ColumnID, fromColumn, doc.OfferTemplates, now)
+	if err != nil {
+		return Applicant{}, err
+	}
+	app, err = s.people.SetCompanyStage(ctx, companyID, id, column, nextStage, reason, notePtr, input.Rating, tags, interviewerIDs, offer, writeOffer, now)
 	if errors.Is(err, candidate.ErrNotFound) {
 		return Applicant{}, ErrNotFound
 	}
@@ -472,6 +477,7 @@ func viewApplicant(app candidate.Application, user auth.User, profile candidate.
 		ReferralSource:   app.ReferralSource,
 		ConsentAt:        app.ConsentAt,
 		ConsentVersion:   app.ConsentVersion,
+		Offer:            presentOffer(app.Offer),
 	}
 }
 

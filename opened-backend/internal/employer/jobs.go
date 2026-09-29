@@ -70,6 +70,11 @@ func (s *Store) CreateJob(ctx context.Context, company auth.Company, userID stri
 	doc.ID = id
 	doc.CompanyID = company.ID
 	doc.CreatedBy = userID
+	templates, err := assignOfferTemplates(input.OfferTemplates, nil)
+	if err != nil {
+		return Job{}, err
+	}
+	doc.OfferTemplates = templates
 	if doc.Status == statusOpen {
 		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
@@ -108,6 +113,11 @@ func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id 
 	doc.PostedAt = existing.PostedAt
 	doc.UpdatedAt = now.UTC()
 	doc = carryPipeline(doc, existing)
+	templates, err := assignOfferTemplates(input.OfferTemplates, existing.OfferTemplates)
+	if err != nil {
+		return Job{}, err
+	}
+	doc.OfferTemplates = templates
 	if doc.Status == statusOpen {
 		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
@@ -347,6 +357,7 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 		FeedbackGate:       doc.FeedbackGate,
 		ScorecardTemplate:  doc.ScorecardTemplate,
 		InterviewGuide:     doc.InterviewGuide,
+		OfferTemplates:     doc.OfferTemplates,
 	}
 	if doc.Status == statusOpen {
 		job.JobID = doc.ID

@@ -148,6 +148,8 @@ type Application struct {
 	CompanyNotes     string             `json:"-" bson:"companyNotes,omitempty"`
 	Tags             []string           `json:"-" bson:"tags,omitempty"`
 	InterviewerIDs   []string           `json:"-" bson:"interviewerIds,omitempty"`
+	// Offer is employer-only. Candidate payloads keep json:"-".
+	Offer *OfferRecord `json:"-" bson:"offer,omitempty"`
 }
 
 // ScreeningAnswer is one reply on an application.
