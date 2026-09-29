@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HStack,
   Icon,
@@ -13,11 +13,10 @@ import {
   useToast,
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
+import { fetchApplicants, fetchJobs, moveApplicant, scheduleInterview } from "@/lib/company/api";
 import {
-  APPLICANTS,
   APPLICANT_COLUMNS,
   APPLICANT_STAGE_BY_ID,
-  COMPANY_JOBS,
   STRONG_FIT,
   type Applicant,
   type ApplicantStage,
@@ -29,22 +28,35 @@ const COLUMN_WIDTH = 240;
 const PERCENT = 100;
 const SEARCH_WIDTH = 240;
 const ALL_JOBS = "all";
-const JOB_OPTIONS = [
-  { value: ALL_JOBS, label: "All jobs" },
-  ...COMPANY_JOBS.filter((job) => job.status !== "draft").map((job) => ({
-    value: job.id,
-    label: job.title,
-  })),
-];
 
 /** The hiring pipeline: filter, drag candidates between stages, open one to decide. */
 export function ApplicantsWorkspace() {
   const toast = useToast();
-  const [people, setPeople] = useState(APPLICANTS);
+  const [people, setPeople] = useState<Applicant[]>([]);
+  const [jobOptions, setJobOptions] = useState([{ value: ALL_JOBS, label: "All jobs" }]);
   const [jobId, setJobId] = useState(ALL_JOBS);
   const [query, setQuery] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([fetchApplicants(), fetchJobs()])
+      .then(([nextPeople, jobs]) => {
+        if (!active) return;
+        setPeople(nextPeople);
+        setJobOptions([
+          { value: ALL_JOBS, label: "All jobs" },
+          ...jobs
+            .filter((job) => job.status !== "draft")
+            .map((job) => ({ value: job.id, label: job.title })),
+        ]);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
 
   const needle = query.trim().toLowerCase();
   const visible = people.filter(
@@ -61,11 +73,41 @@ export function ApplicantsWorkspace() {
   );
 
   const replace = (next: Applicant, message?: string) => {
-    setPeople((current) => current.map((person) => (person.id === next.id ? next : person)));
-    if (message) {
-      toast({ body: message });
-      setOpenId(null);
-    }
+    moveApplicant(next.id, next.columnId, next.notes, next.rating)
+      .then((saved) => {
+        setPeople((current) => current.map((person) => (person.id === saved.id ? saved : person)));
+        if (message) {
+          toast({ body: message });
+          setOpenId(null);
+        }
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
+
+  const schedule = (
+    person: Applicant,
+    slot: { date: string; start: string; end: string; round: string },
+  ) => {
+    scheduleInterview({
+      applicationId: person.id,
+      round: slot.round,
+      date: slot.date,
+      start: slot.start,
+      end: slot.end,
+      format: "video",
+    })
+      .then(() => {
+        setPeople((current) =>
+          current.map((item) =>
+            item.id === person.id ? { ...item, columnId: "interview" } : item,
+          ),
+        );
+        toast({
+          body: `Scheduled ${person.name}. The interview price was taken from your balance.`,
+        });
+        setOpenId(null);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
 
   return (
@@ -95,7 +137,7 @@ export function ApplicantsWorkspace() {
         <Selector
           label="Job"
           isLabelHidden
-          options={JOB_OPTIONS}
+          options={jobOptions}
           value={jobId}
           onChange={setJobId}
         />
@@ -120,11 +162,22 @@ export function ApplicantsWorkspace() {
           const hidden = people.filter(
             (person) => !visible.some((shown) => shown.id === person.id),
           );
+          const moved = next.find((person) => person.id === move.itemId);
           setPeople([...hidden, ...next]);
-          if (move.from.columnId !== move.to.columnId) {
-            toast({
-              body: `Moved to ${APPLICANT_STAGE_BY_ID[move.to.columnId as ApplicantStage].title}`,
-            });
+          if (move.from.columnId !== move.to.columnId && moved) {
+            moveApplicant(moved.id, move.to.columnId as ApplicantStage)
+              .then((saved) => {
+                setPeople((current) =>
+                  current.map((person) => (person.id === saved.id ? saved : person)),
+                );
+                toast({
+                  body: `Moved to ${APPLICANT_STAGE_BY_ID[move.to.columnId as ApplicantStage].title}`,
+                });
+              })
+              .catch((error: Error) => {
+                setPeople(people);
+                toast({ body: error.message, type: "error" });
+              });
           }
         }}
         getItemLabel={(person) => `${person.name}, ${person.fit}% fit`}
@@ -139,6 +192,7 @@ export function ApplicantsWorkspace() {
         applicant={people.find((person) => person.id === openId) ?? null}
         onClose={() => setOpenId(null)}
         onChange={replace}
+        onSchedule={schedule}
       />
     </Stack>
   );

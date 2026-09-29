@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -17,7 +17,8 @@ import {
   type TableColumn,
 } from "@openseat/design-system";
 import { SettingsGroup } from "@/components/settings-group";
-import { ROLE_META, TEAM, TEAM_EMAIL_DOMAIN, type TeamMember, type TeamRole } from "@/lib/company";
+import { fetchTeam, inviteTeammate, removeTeammate, setTeammateRole } from "@/lib/company/api";
+import { ROLE_META, type TeamMember, type TeamRole } from "@/lib/company";
 
 const AVATAR_SIZE = 36;
 const ROLE_WIDTH = 160;
@@ -32,38 +33,57 @@ const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: ROLE_META[role].
 /** Members with editable roles, a domain-checked invite form, and what each role can do. */
 export function TeamWorkspace() {
   const toast = useToast();
-  const [members, setMembers] = useState(TEAM);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [domain, setDomain] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamRole>("recruiter");
 
+  useEffect(() => {
+    let active = true;
+    fetchTeam()
+      .then((team) => {
+        if (!active) return;
+        setMembers(team.members);
+        setDomain(team.emailDomain);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  const suffix = domain ? `@${domain}` : "";
   const address = email.trim().toLowerCase();
-  const wrongDomain = address.length > 0 && !address.endsWith(TEAM_EMAIL_DOMAIN);
+  const wrongDomain = suffix.length > 0 && address.length > 0 && !address.endsWith(suffix);
   const exists = members.some((member) => member.email === address);
 
   const invite = () => {
-    setMembers((current) => [
-      ...current,
-      {
-        id: `t-${address}`,
-        name: address,
-        email: address,
-        role,
-        lastActive: "Invited just now",
-        isPending: true,
-      },
-    ]);
-    setEmail("");
-    toast({ body: `Invite sent to ${address}` });
+    inviteTeammate(address, role)
+      .then((team) => {
+        setMembers(team.members);
+        setEmail("");
+        toast({ body: `Invite saved for ${address}` });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
-  const update = (id: string, patch: Partial<TeamMember>) =>
-    setMembers((current) =>
-      current.map((member) => (member.id === id ? { ...member, ...patch } : member)),
-    );
+  const update = (id: string, nextRole: TeamRole) => {
+    setTeammateRole(id, nextRole)
+      .then(() => {
+        setMembers((current) =>
+          current.map((member) => (member.id === id ? { ...member, role: nextRole } : member)),
+        );
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
   const remove = (member: TeamMember) => {
-    setMembers((current) => current.filter((item) => item.id !== member.id));
-    toast({
-      body: member.isPending ? `Invite to ${member.email} cancelled` : `${member.name} removed`,
-    });
+    removeTeammate(member.id)
+      .then(() => {
+        setMembers((current) => current.filter((item) => item.id !== member.id));
+        toast({
+          body: member.isPending ? `Invite to ${member.email} cancelled` : `${member.name} removed`,
+        });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
 
   const columns: TableColumn<TeamMember>[] = [
@@ -100,7 +120,7 @@ export function TeamWorkspace() {
             size="sm"
             options={ROLE_OPTIONS.filter((option) => option.value !== "owner")}
             value={row.role}
-            onChange={(value) => update(row.id, { role: value as TeamRole })}
+            onChange={(value) => update(row.id, value as TeamRole)}
           />
         ),
     },
@@ -127,7 +147,7 @@ export function TeamWorkspace() {
                 ? [
                     {
                       label: "Resend invite",
-                      onClick: () => toast({ body: `Invite resent to ${row.email}` }),
+                      onClick: () => toast({ body: `${row.email} is still pending` }),
                     },
                   ]
                 : []),
@@ -146,18 +166,20 @@ export function TeamWorkspace() {
     <Stack gap={6}>
       <SettingsGroup
         title="Invite teammates"
-        description={`Anyone with a ${TEAM_EMAIL_DOMAIN} address.`}
+        description={
+          suffix
+            ? `Anyone with a ${suffix} address.`
+            : "Anyone you invite. Add a website to limit this to your domain."
+        }
       >
         <Grid columns={{ minWidth: INVITE_MIN_WIDTH, repeat: "fit" }} gap={3} align="end">
           <TextInput
             label="Work email"
             value={email}
             onChange={setEmail}
-            placeholder={`name${TEAM_EMAIL_DOMAIN}`}
+            placeholder={suffix ? `name${suffix}` : "name@company.com"}
             status={
-              wrongDomain
-                ? { type: "error", message: `Use a ${TEAM_EMAIL_DOMAIN} address.` }
-                : undefined
+              wrongDomain ? { type: "error", message: `Use a ${suffix} address.` } : undefined
             }
           />
           <Selector

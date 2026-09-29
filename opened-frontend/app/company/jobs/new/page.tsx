@@ -2,17 +2,20 @@ import type { Metadata } from "next";
 import { Stack } from "@openseat/design-system";
 import { JobPostEditor } from "@/components/company/post-job/job-post-editor";
 import { PageHeader } from "@/components/page-header";
+import { loadSession } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Post a job" };
 
-export default function NewJobPage() {
+export default async function NewJobPage() {
+  const session = await loadSession();
+  if (!session?.company) return null;
   return (
     <Stack gap={6}>
       <PageHeader
         title="Post a job"
-        description="Verified companies post for free. You pay only when a candidate attends an interview scheduled here."
+        description="Posting is free. Scheduling an interview spends your purchase balance, and a no-show returns it."
       />
-      <JobPostEditor />
+      <JobPostEditor company={session.company} />
     </Stack>
   );
 }

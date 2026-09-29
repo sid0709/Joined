@@ -30,7 +30,9 @@ import { useMemo, useState } from "react";
 
 import { JobResultCard } from "@/components/jobs/job-result-card";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { POLICY_META, WORKSPACE, type AssistedPolicy } from "@/lib/company";
+import { POLICY_META, type AssistedPolicy } from "@/lib/company";
+import { createJob } from "@/lib/company/api";
+import type { AuthCompany } from "@/lib/auth/types";
 import {
   SENIORITY_OPTIONS,
   WORKPLACE_OPTIONS,
@@ -92,12 +94,12 @@ const EMPTY: Draft = {
 };
 
 /** The job as candidates will see it in search, built from the draft. */
-function toPreviewJob(draft: Draft): Job {
+function toPreviewJob(draft: Draft, company: AuthCompany): Job {
   return {
     id: "draft",
     title: draft.title || "Job title",
-    company: WORKSPACE.name,
-    companyId: WORKSPACE.slug,
+    company: company.name,
+    companyId: company.id,
     location: draft.location || "Location",
     workplace: draft.workplace,
     pay: { min: draft.payMin, max: draft.payMax, currency: CURRENCY, period: "year" },
@@ -117,10 +119,11 @@ function toPreviewJob(draft: Draft): Job {
 }
 
 /** Write a job on the left, watch its search card update on the right, publish when ready. */
-export function JobPostEditor() {
+export function JobPostEditor({ company }: { company: AuthCompany }) {
   const toast = useToast();
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [saving, setSaving] = useState(false);
   const skillSource = useMemo(
     () => createStaticSource(SKILL_SUGGESTIONS.map((label) => ({ id: label, label }))),
     [],
@@ -139,6 +142,34 @@ export function JobPostEditor() {
   ];
   const done = checks.filter((check) => check.done).length;
   const ready = checks.every((check) => check.done);
+
+  const payload = (status: "draft" | "open") => ({
+    title: draft.title,
+    team: draft.team,
+    seniority: draft.seniority,
+    location: draft.location,
+    workplace: draft.workplace,
+    payMin: draft.payMin,
+    payMax: draft.payMax,
+    visa: draft.visa,
+    summary: draft.summary,
+    skills: draft.skills.map((skill) => skill.label),
+    policy: draft.policy,
+    status,
+  });
+
+  const save = (status: "draft" | "open") => {
+    setSaving(true);
+    createJob(payload(status))
+      .then(() => {
+        toast({
+          body: status === "open" ? `${draft.title} is live. Posting is free.` : "Draft saved",
+        });
+        router.push(ROUTES.companyJobs);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }))
+      .finally(() => setSaving(false));
+  };
 
   return (
     <GridSystem gap={6} align="start">
@@ -265,7 +296,7 @@ export function JobPostEditor() {
           <Stack gap={4}>
             <Text type="label">Preview in search</Text>
             <JobResultCard
-              job={toPreviewJob(draft)}
+              job={toPreviewJob(draft, company)}
               score={PREVIEW_SCORE}
               selected={false}
               saved={false}
@@ -303,17 +334,14 @@ export function JobPostEditor() {
               <Button
                 label="Save draft"
                 variant="secondary"
-                isDisabled={!draft.title.trim()}
-                onClick={() => toast({ body: "Draft saved" })}
+                isDisabled={!draft.title.trim() || saving}
+                onClick={() => save("draft")}
               />
               <Button
                 label="Publish job"
                 variant="primary"
-                isDisabled={!ready}
-                onClick={() => {
-                  toast({ body: `${draft.title} is live. Posting is free.` });
-                  router.push(ROUTES.companyJobs);
-                }}
+                isDisabled={!ready || saving}
+                onClick={() => save("open")}
               />
             </HStack>
           </Stack>

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Badge,
   Button,
   Card,
-  EmptyState,
   Glyph,
   GridColumn,
   GridSystem,
@@ -20,72 +19,97 @@ import {
 } from "@openseat/design-system";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { SectionCard } from "@/components/section-card";
-import {
-  BILLABLE_EVENTS,
-  BILLING,
-  BILLING_STATUS_META,
-  jobTitle,
-  type BillableEvent,
-} from "@/lib/company";
+import { fetchBilling, purchaseBalance } from "@/lib/company/api";
+import { BILLING_STATUS_META, type BillableEvent, type BillingAccount } from "@/lib/company";
 import { formatShortDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 import { SpendSummary } from "../spend-summary";
 
 const CENTS_PER_DOLLAR = 100;
-const CAP_STEP_DOLLARS = 100;
 const DATE_COLUMN_WIDTH = 72;
 const RULES = [
-  "Posting jobs and reviewing applicants is always free.",
-  "You pay only when a candidate attends an interview scheduled here.",
-  "No-shows, failed face checks, and cancellations 24h+ ahead are never billed.",
-  "Billing stops at your monthly cap. Interviews still run.",
+  "Posting jobs and reviewing applicants is free.",
+  "Adding balance here is credited in full. No card is charged.",
+  "Scheduling an interview holds the price from that balance.",
+  "A no-show returns the price. An attended round keeps it.",
 ];
 
-const COLUMNS: TableColumn<BillableEvent>[] = [
-  {
-    key: "date",
-    header: "Date",
-    width: DATE_COLUMN_WIDTH,
-    render: (row) => <Text color="secondary">{formatShortDate(row.date)}</Text>,
-  },
-  {
-    key: "candidate",
-    header: "Interview",
-    render: (row) => (
-      <Stack gap={0}>
-        <Text weight="medium">{row.candidate}</Text>
-        <Text type="supporting" color="secondary">
-          {jobTitle(row.jobId)} · {row.note}
+function columns(currency: string): TableColumn<BillableEvent>[] {
+  return [
+    {
+      key: "date",
+      header: "Date",
+      width: DATE_COLUMN_WIDTH,
+      render: (row) => <Text color="secondary">{formatShortDate(row.date)}</Text>,
+    },
+    {
+      key: "candidate",
+      header: "Interview",
+      render: (row) => (
+        <Stack gap={0}>
+          <Text weight="medium">{row.candidate || "Purchase"}</Text>
+          <Text type="supporting" color="secondary">
+            {row.jobTitle} · {row.note}
+          </Text>
+        </Stack>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => (
+        <Badge
+          label={BILLING_STATUS_META[row.status].label}
+          variant={BILLING_STATUS_META[row.status].badge}
+        />
+      ),
+    },
+    {
+      key: "amountCents",
+      header: "Amount",
+      align: "end",
+      render: (row) => (
+        <Text weight="medium" hasTabularNumbers>
+          {formatCents(row.amountCents, currency)}
         </Text>
-      </Stack>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    render: (row) => (
-      <Badge
-        label={BILLING_STATUS_META[row.status].label}
-        variant={BILLING_STATUS_META[row.status].badge}
-      />
-    ),
-  },
-  {
-    key: "amountCents",
-    header: "Amount",
-    align: "end",
-    render: (row) => (
-      <Text weight="medium" hasTabularNumbers>
-        {formatCents(row.amountCents, BILLING.currency)}
-      </Text>
-    ),
-  },
-];
+      ),
+    },
+  ];
+}
 
-/** Plan, usage, billable events, the monthly cap, and how to pay. */
+/** Prepaid balance: add an amount, see what interviews have used. */
 export function BillingWorkspace() {
   const toast = useToast();
-  const [capDollars, setCapDollars] = useState(BILLING.capCents / CENTS_PER_DOLLAR);
+  const [billing, setBilling] = useState<BillingAccount | null>(null);
+  const [dollars, setDollars] = useState(100);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchBilling()
+      .then((next) => {
+        if (active) setBilling(next);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  if (!billing) return null;
+
+  const add = () => {
+    setPending(true);
+    purchaseBalance(dollars)
+      .then((next) => {
+        setBilling(next);
+        toast({
+          body: `${formatCents(dollars * CENTS_PER_DOLLAR, next.currency)} added to your balance`,
+        });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }))
+      .finally(() => setPending(false));
+  };
 
   return (
     <Stack gap={6}>
@@ -98,18 +122,18 @@ export function BillingWorkspace() {
               </Text>
               <Badge label="Active" variant="success" />
             </HStack>
-            <Heading level={2}>{BILLING.plan}</Heading>
+            <Heading level={2}>{billing.plan}</Heading>
             <Text color="secondary" display="block">
-              {formatCents(BILLING.pricePerInterviewCents, BILLING.currency)} per attended interview
-              · resets {formatShortDate(BILLING.renewsOn)}
+              {formatCents(billing.pricePerInterviewCents, billing.currency)} held per scheduled
+              interview
             </Text>
           </Stack>
           <Stack gap={0} hAlign="end">
             <Heading level={2} type="display-3">
-              {formatCents(BILLING.pricePerInterviewCents, BILLING.currency)}
+              {formatCents(billing.balanceCents, billing.currency)}
             </Heading>
             <Text type="supporting" color="secondary">
-              per interview
+              balance left
             </Text>
           </Stack>
         </HStack>
@@ -118,17 +142,45 @@ export function BillingWorkspace() {
       <GridSystem gap={6} align="start">
         <GridColumn span="full" lg={7}>
           <Stack gap={6}>
-            <SectionCard title="This month">
-              <SpendSummary />
+            <SectionCard title="Balance">
+              <SpendSummary billing={billing} />
             </SectionCard>
             <SettingsGroup
-              title="Billable events"
-              description="Every interview this month and whether it counted."
+              title="Interview charges"
+              description="Each scheduled interview, and any price that was returned."
             >
               <Table
-                caption="Billable events"
-                columns={COLUMNS}
-                rows={BILLABLE_EVENTS}
+                caption="Interview charges"
+                columns={columns(billing.currency)}
+                rows={billing.events}
+                rowKey={(row) => row.id}
+                variant="plain"
+              />
+            </SettingsGroup>
+            <SettingsGroup
+              title="Purchases"
+              description="Amounts added to this company. Each one is credited in full."
+            >
+              <Table
+                caption="Purchases"
+                columns={[
+                  {
+                    key: "date",
+                    header: "Date",
+                    render: (row) => <Text color="secondary">{formatShortDate(row.date)}</Text>,
+                  },
+                  {
+                    key: "amountCents",
+                    header: "Amount",
+                    align: "end",
+                    render: (row) => (
+                      <Text weight="medium" hasTabularNumbers>
+                        {formatCents(row.amountCents, billing.currency)}
+                      </Text>
+                    ),
+                  },
+                ]}
+                rows={billing.purchases}
                 rowKey={(row) => row.id}
                 variant="plain"
               />
@@ -137,57 +189,31 @@ export function BillingWorkspace() {
         </GridColumn>
         <GridColumn span="full" lg={5}>
           <Stack gap={6}>
-            <SectionCard title="Payment method">
-              {BILLING.paymentMethod ? (
-                <Text>
-                  {BILLING.paymentMethod.brand} ending {BILLING.paymentMethod.last4}
-                </Text>
-              ) : (
-                <EmptyState
-                  isCompact
-                  icon={<Glyph name="lock" />}
-                  title="No card on file"
-                  description={`Add one before your ${BILLING.freeInterviewsRemaining} free interviews run out.`}
-                  actions={
-                    <Button
-                      label="Add payment method"
-                      variant="primary"
-                      size="sm"
-                      onClick={() => toast({ body: "Secure checkout isn’t connected yet." })}
-                    />
-                  }
-                />
-              )}
-            </SectionCard>
-
             <SettingsGroup
-              title="Monthly cap"
-              description="Billing stops here. Interviews keep running."
+              title="Add balance"
+              description="Type an amount. It is added immediately. Nothing is sent to a card processor."
               footer={
                 <HStack hAlign="end">
                   <Button
-                    label="Save cap"
+                    label="Add balance"
                     variant="primary"
                     size="sm"
-                    onClick={() =>
-                      toast({
-                        body: `Cap set to ${formatCents(capDollars * CENTS_PER_DOLLAR, BILLING.currency)}`,
-                      })
-                    }
+                    isDisabled={pending || dollars < 1}
+                    onClick={add}
                   />
                 </HStack>
               }
             >
-              <SettingsRow label="Cap" description="In US dollars.">
+              <SettingsRow label="Amount" description="In US dollars.">
                 <NumberInput
-                  label="Monthly cap"
+                  label="Amount to add"
                   isLabelHidden
-                  value={capDollars}
-                  onChange={setCapDollars}
-                  min={0}
-                  step={CAP_STEP_DOLLARS}
+                  value={dollars}
+                  onChange={setDollars}
+                  min={1}
+                  step={1}
                   isIntegerOnly
-                  units={BILLING.currency}
+                  units={billing.currency}
                 />
               </SettingsRow>
             </SettingsGroup>

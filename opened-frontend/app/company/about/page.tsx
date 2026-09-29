@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { Stack } from "@openseat/design-system";
 import { CompanyPageEditor } from "@/components/company/about/company-page-editor";
 import { PageHeader } from "@/components/page-header";
-import { WORKSPACE } from "@/lib/company";
+import { loadSession } from "@/lib/auth/session";
 import { COMPANY_ABOUT_PAGE, ROUTES } from "@/lib/routes";
 import { CandidateViewButton } from "@/components/company/candidate-view-button";
 
 export const metadata: Metadata = { title: COMPANY_ABOUT_PAGE.label };
 
-export default function CompanyAboutPage() {
+export default async function CompanyAboutPage() {
+  const session = await loadSession();
+  if (!session?.company) return null;
   return (
     <Stack gap={6}>
       <PageHeader
@@ -17,11 +19,11 @@ export default function CompanyAboutPage() {
         action={
           <CandidateViewButton
             label="View as candidate"
-            href={ROUTES.companyPublic(WORKSPACE.slug)}
+            href={ROUTES.companyPublic(session.company.id)}
           />
         }
       />
-      <CompanyPageEditor />
+      <CompanyPageEditor company={session.company} />
     </Stack>
   );
 }

@@ -109,6 +109,9 @@ func (s *Store) DeleteCompany(ctx context.Context, companyID string) error {
 	if _, err := s.collection(savedJobsCollection).DeleteMany(ctx, filter); err != nil {
 		return err
 	}
+	if _, err := s.collection(interviewsCollection).DeleteMany(ctx, filter); err != nil {
+		return err
+	}
 	return s.deleteThreads(ctx, filter)
 }
 

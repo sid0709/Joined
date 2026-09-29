@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Badge,
   HStack,
@@ -13,13 +13,14 @@ import {
   useToast,
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
+import { fetchApplicants, fetchJobs, setJobStatus } from "@/lib/company/api";
 import {
-  COMPANY_JOBS,
   JOB_STATUS_META,
   pipelineTotal,
   type CompanyJob,
   type CompanyJobStatus,
 } from "@/lib/company";
+import type { Applicant } from "@/lib/company";
 import { CompanyJobDrawer } from "./company-job-drawer";
 import { CompanyJobTable, type JobAction } from "./company-job-table";
 
@@ -34,7 +35,7 @@ const NEXT_STATUS: Partial<Record<JobAction, CompanyJobStatus>> = {
   publish: "open",
 };
 const DONE_MESSAGE: Partial<Record<JobAction, string>> = {
-  pause: "paused. Candidates can still see it but can’t apply.",
+  pause: "paused. It is hidden from search until you resume it.",
   resume: "is open again.",
   close: "closed. Candidates in progress will be told.",
   publish: "is live.",
@@ -43,10 +44,25 @@ const DONE_MESSAGE: Partial<Record<JobAction, string>> = {
 /** The jobs console: stats, status tabs, search, a table, and a detail drawer. */
 export function CompanyJobsWorkspace() {
   const toast = useToast();
-  const [jobs, setJobs] = useState(COMPANY_JOBS);
+  const [jobs, setJobs] = useState<CompanyJob[]>([]);
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([fetchJobs(), fetchApplicants()])
+      .then(([nextJobs, nextPeople]) => {
+        if (!active) return;
+        setJobs(nextJobs);
+        setApplicants(nextPeople);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
 
   const needle = query.trim().toLowerCase();
   const searched = jobs.filter(
@@ -59,10 +75,12 @@ export function CompanyJobsWorkspace() {
     if (action === "open") return setOpenId(job.id);
     const next = NEXT_STATUS[action];
     if (!next) return;
-    setJobs((current) =>
-      current.map((item) => (item.id === job.id ? { ...item, status: next } : item)),
-    );
-    toast({ body: `${job.title} ${DONE_MESSAGE[action]}` });
+    setJobStatus(job.id, next)
+      .then((saved) => {
+        setJobs((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+        toast({ body: `${job.title} ${DONE_MESSAGE[action]}` });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
 
   return (
@@ -119,6 +137,7 @@ export function CompanyJobsWorkspace() {
       <CompanyJobTable jobs={shown} onAction={act} />
       <CompanyJobDrawer
         job={jobs.find((job) => job.id === openId) ?? null}
+        applicants={applicants}
         onClose={() => setOpenId(null)}
         onAction={act}
       />

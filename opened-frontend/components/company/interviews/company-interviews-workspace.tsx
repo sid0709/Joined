@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
   Card,
@@ -13,12 +13,9 @@ import {
   useToast,
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
-import {
-  BILLING,
-  COMPANY_INTERVIEWS,
-  toCompanyCalendarEvent,
-  type CompanyInterview,
-} from "@/lib/company";
+import { fetchBilling, fetchInterviews, setAttendance } from "@/lib/company/api";
+import { toCompanyCalendarEvent, type CompanyInterview } from "@/lib/company";
+import type { BillingAccount } from "@/lib/company";
 import { daysBetween, formatDay, isSameDay, startOfDay } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 import { CompanyInterviewDrawer } from "./company-interview-drawer";
@@ -31,9 +28,24 @@ const CALENDAR_HOURS: [number, number] = [8, 18];
 /** The team interview calendar with a day panel and attendance that drives billing. */
 export function CompanyInterviewsWorkspace() {
   const toast = useToast();
-  const [items, setItems] = useState(COMPANY_INTERVIEWS);
+  const [items, setItems] = useState<CompanyInterview[]>([]);
+  const [billing, setBilling] = useState<BillingAccount | null>(null);
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([fetchInterviews(), fetchBilling()])
+      .then(([nextItems, nextBilling]) => {
+        if (!active) return;
+        setItems(nextItems);
+        setBilling(nextBilling);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
 
   const now = new Date();
   const thisWeek = items.filter((item) => {
@@ -47,10 +59,22 @@ export function CompanyInterviewsWorkspace() {
     .sort((a, b) => a.start.localeCompare(b.start));
 
   const replace = (next: CompanyInterview, message: string) => {
-    setItems((current) => current.map((item) => (item.id === next.id ? next : item)));
-    setOpenId(null);
-    toast({ body: message });
+    const status = next.status === "no-show" ? "no-show" : "attended";
+    setAttendance(next.id, status)
+      .then((saved) => {
+        setItems((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+        setOpenId(null);
+        toast({ body: message });
+        return fetchBilling();
+      })
+      .then((nextBilling) => {
+        if (nextBilling) setBilling(nextBilling);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
+
+  const price = billing?.pricePerInterviewCents ?? 0;
+  const currency = billing?.currency ?? "USD";
 
   return (
     <Stack gap={6}>
@@ -68,13 +92,13 @@ export function CompanyInterviewsWorkspace() {
           },
           {
             label: "Billable",
-            value: formatCents(attended * BILLING.pricePerInterviewCents, BILLING.currency),
-            hint: `${formatCents(BILLING.pricePerInterviewCents, BILLING.currency)} per attended round`,
+            value: formatCents(billing?.spentCents ?? 0, currency),
+            hint: `${formatCents(price, currency)} held per scheduled round`,
           },
           {
-            label: "Free left",
-            value: String(BILLING.freeInterviewsRemaining),
-            hint: "Used before billing starts",
+            label: "Balance left",
+            value: formatCents(billing?.balanceCents ?? 0, currency),
+            hint: "Returned if they don’t attend",
           },
         ]}
       />
@@ -123,6 +147,8 @@ export function CompanyInterviewsWorkspace() {
       <CompanyInterviewDrawer
         interview={items.find((item) => item.id === openId) ?? null}
         onClose={() => setOpenId(null)}
+        priceCents={price}
+        currency={currency}
         onChange={replace}
       />
     </Stack>

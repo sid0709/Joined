@@ -14,6 +14,7 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/config"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/database"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
@@ -57,6 +58,11 @@ func main() {
 		slog.Error("candidate indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
+	hiring := employer.NewStore(client, cfg.DestDB, store, people, accounts)
+	if err := hiring.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("employer indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
 	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), 2*time.Minute)
 	updated, err := store.BackfillJobProvenance(backfillCtx)
 	cancelBackfill()
@@ -66,7 +72,7 @@ func main() {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
 	scouts := scout.NewStore(client, cfg.DestDB, accounts, store, people, scout.NewHTTPFetcher())
-	accounts.SetUserData(httpapi.NewAccountEraser(people, scouts, store))
+	accounts.SetUserData(httpapi.NewAccountEraser(people, scouts, store, hiring))
 	if err := scouts.EnsureIndexes(context.Background()); err != nil {
 		slog.Error("scout indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
@@ -82,7 +88,7 @@ func main() {
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler: httpapi.New(store, accounts, people, scouts, reader, httpapi.Options{
+		Handler: httpapi.New(store, accounts, people, scouts, hiring, reader, httpapi.Options{
 			Origins:    cfg.AdminOrigins,
 			Frontend:   cfg.FrontendOrigin,
 			AdminToken: cfg.AdminAPIToken,

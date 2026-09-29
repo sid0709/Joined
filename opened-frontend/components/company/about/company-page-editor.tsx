@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Badge,
+  Button,
   GridColumn,
   GridSystem,
   HStack,
@@ -15,12 +15,21 @@ import {
   TextInput,
   Tokenizer,
   createStaticSource,
+  useToast,
   type SearchableItem,
 } from "@openseat/design-system";
 import { CompanyCard } from "@/components/jobs/company-card";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { WORKSPACE, type Workspace } from "@/lib/company";
+import { emptyWorkspace, type Workspace } from "@/lib/company";
+import {
+  fetchCompanyPage,
+  pageToWorkspace,
+  saveCompanyPage,
+  workspaceToPage,
+  type CompanyPage,
+} from "@/lib/company/api";
+import type { AuthCompany } from "@/lib/auth/types";
 
 const TAGLINE_MAX = 90;
 const ABOUT_MAX = 400;
@@ -43,17 +52,44 @@ const toItems = (labels: string[]): SearchableItem[] =>
   labels.map((label) => ({ id: label, label }));
 
 /** Edit the public company page on the left; see the card candidates get on the right. */
-export function CompanyPageEditor() {
-  const [draft, setDraft] = useState<Workspace>(WORKSPACE);
+export function CompanyPageEditor({ company }: { company: AuthCompany }) {
+  const toast = useToast();
+  const [page, setPage] = useState<CompanyPage | null>(null);
+  const [draft, setDraft] = useState<Workspace>(emptyWorkspace(company));
   const benefitSource = useMemo(() => createStaticSource(toItems(BENEFIT_SUGGESTIONS)), []);
   const set =
     <K extends keyof Workspace>(key: K) =>
     (value: Workspace[K]) =>
       setDraft((current) => ({ ...current, [key]: value }));
+
+  useEffect(() => {
+    let active = true;
+    fetchCompanyPage()
+      .then((loaded) => {
+        if (!active) return;
+        setPage(loaded);
+        setDraft(pageToWorkspace(loaded));
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  const save = () => {
+    saveCompanyPage(workspaceToPage(draft, page))
+      .then((saved) => {
+        setPage(saved);
+        setDraft(pageToWorkspace(saved));
+        toast({ body: "Company page published" });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
   const footer = (
     <SaveFooter
       hint="Changes go live on your public page and every job card."
       message="Company page published"
+      action={<Button label="Save" variant="primary" size="sm" onClick={save} />}
     />
   );
 
@@ -82,15 +118,7 @@ export function CompanyPageEditor() {
                 onChange={(value) => set("tagline")(value.slice(0, TAGLINE_MAX))}
               />
             </SettingsRow>
-            <SettingsRow
-              label="Website"
-              description={
-                <HStack gap={2} vAlign="center">
-                  <span>Used to verify your team.</span>
-                  <Badge label="Verified" variant="success" />
-                </HStack>
-              }
-            >
+            <SettingsRow label="Website" description="Shown on your public page.">
               <TextInput
                 label="Website"
                 isLabelHidden

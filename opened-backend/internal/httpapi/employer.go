@@ -1,0 +1,391 @@
+package httpapi
+
+import (
+	"errors"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
+)
+
+func (s *Server) registerEmployer(mux *http.ServeMux) {
+	mux.HandleFunc("GET /v1/company/overview", s.getCompanyOverview)
+	mux.HandleFunc("GET /v1/company/counts", s.getCompanyCounts)
+	mux.HandleFunc("GET /v1/company/jobs", s.getCompanyJobs)
+	mux.HandleFunc("POST /v1/company/jobs", s.postCompanyJob)
+	mux.HandleFunc("PATCH /v1/company/jobs/{id}", s.patchCompanyJob)
+	mux.HandleFunc("GET /v1/company/applicants", s.getCompanyApplicants)
+	mux.HandleFunc("PATCH /v1/company/applicants/{id}", s.patchCompanyApplicant)
+	mux.HandleFunc("GET /v1/company/interviews", s.getCompanyInterviews)
+	mux.HandleFunc("POST /v1/company/interviews", s.postCompanyInterview)
+	mux.HandleFunc("PATCH /v1/company/interviews/{id}", s.patchCompanyInterview)
+	mux.HandleFunc("GET /v1/company/billing", s.getCompanyBilling)
+	mux.HandleFunc("POST /v1/company/billing/purchase", s.postCompanyPurchase)
+	mux.HandleFunc("GET /v1/company/team", s.getCompanyTeam)
+	mux.HandleFunc("POST /v1/company/team", s.postCompanyTeam)
+	mux.HandleFunc("PATCH /v1/company/team/{id}", s.patchCompanyTeam)
+	mux.HandleFunc("DELETE /v1/company/team/{id}", s.deleteCompanyTeam)
+	mux.HandleFunc("POST /v1/company/team/transfer", s.postCompanyTransfer)
+	mux.HandleFunc("GET /v1/company/settings", s.getCompanySettings)
+	mux.HandleFunc("PUT /v1/company/settings", s.putCompanySettings)
+	mux.HandleFunc("GET /v1/company/page", s.getCompanyPage)
+	mux.HandleFunc("PUT /v1/company/page", s.putCompanyPage)
+	mux.HandleFunc("GET /v1/company/profile", s.getHiringProfile)
+	mux.HandleFunc("PUT /v1/company/profile", s.putHiringProfile)
+}
+
+func (s *Server) company(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
+	if s.hiring == nil {
+		writeError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
+		return auth.Session{}, false
+	}
+	return s.requireCompany(w, r)
+}
+
+func (s *Server) getCompanyOverview(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	overview, err := s.hiring.Overview(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, overview)
+}
+
+func (s *Server) getCompanyCounts(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	counts, err := s.hiring.Count(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, counts)
+}
+
+func (s *Server) getCompanyJobs(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	items, err := s.hiring.ListJobs(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"jobs": items})
+}
+
+func (s *Server) postCompanyJob(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.JobInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	job, err := s.hiring.CreateJob(r.Context(), *session.Company, session.User.ID, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, job)
+}
+
+func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input struct {
+		Status string `json:"status"`
+	}
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	job, err := s.hiring.SetJobStatus(r.Context(), *session.Company, session.User.ID, r.PathValue("id"), input.Status, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, job)
+}
+
+func (s *Server) getCompanyApplicants(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	items, err := s.hiring.Applicants(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"applicants": items})
+}
+
+func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.StageInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	person, err := s.hiring.MoveApplicant(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, person)
+}
+
+func (s *Server) getCompanyInterviews(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	items, err := s.hiring.Interviews(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"interviews": items})
+}
+
+func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.ScheduleInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.ScheduleInterview(r.Context(), *session.Company, session.User.Name, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.AttendanceInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.SetAttendance(r.Context(), session.Company.ID, r.PathValue("id"), input.Status, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	billing, err := s.hiring.Billing(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, billing)
+}
+
+func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.PurchaseInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	billing, err := s.hiring.Purchase(r.Context(), session.Company.ID, input.AmountCents, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, billing)
+}
+
+func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	team, err := s.hiring.Team(r.Context(), *session.Company, session.User.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, team)
+}
+
+func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.InviteInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	team, err := s.hiring.Invite(r.Context(), *session.Company, session.User.ID, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, team)
+}
+
+func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.RoleInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	err := s.hiring.SetRole(r.Context(), session.Company.ID, session.User.ID, r.PathValue("id"), input.Role)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) deleteCompanyTeam(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	err := s.hiring.RemoveTeammate(r.Context(), session.Company.ID, session.User.ID, r.PathValue("id"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) postCompanyTransfer(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.TransferInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	err := s.hiring.Transfer(r.Context(), session.Company.ID, session.User.ID, input.UserID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	settings, err := s.hiring.Settings(r.Context(), *session.Company)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, settings)
+}
+
+func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.Settings
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	settings, err := s.hiring.SaveSettings(r.Context(), *session.Company, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, settings)
+}
+
+func (s *Server) getCompanyPage(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	page, err := s.hiring.Page(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) putCompanyPage(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input jobs.CompanyWrite
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	page, err := s.hiring.SavePage(r.Context(), session.Company.ID, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) getHiringProfile(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	profile, err := s.hiring.HiringProfile(r.Context(), session.User)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, profile)
+}
+
+func (s *Server) putHiringProfile(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.HiringProfile
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	profile, err := s.hiring.SaveHiringProfile(r.Context(), session.User, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, profile)
+}
+
+func writeEmployer(w http.ResponseWriter, err error) bool {
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, employer.ErrNotFound):
+		writeError(w, http.StatusNotFound, "not found")
+	case errors.Is(err, employer.ErrInvalidInput), errors.Is(err, auth.ErrInvalidInput):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, employer.ErrInsufficient):
+		writeError(w, http.StatusPaymentRequired, err.Error())
+	case errors.Is(err, employer.ErrConflict), errors.Is(err, auth.ErrHasCompany):
+		writeError(w, http.StatusConflict, err.Error())
+	default:
+		slog.Error("company", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not complete the request")
+	}
+	return false
+}

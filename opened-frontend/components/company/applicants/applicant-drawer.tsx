@@ -17,13 +17,13 @@ import {
   Stack,
   Text,
   TextArea,
+  TextInput,
   Token,
 } from "@openseat/design-system";
 import {
   APPLICANT_STAGES,
   ASSISTED_LABEL,
   STRONG_FIT,
-  jobTitle,
   type Applicant,
   type ApplicantStage,
 } from "@/lib/company";
@@ -39,15 +39,25 @@ export function ApplicantDrawer({
   applicant,
   onClose,
   onChange,
+  onSchedule,
 }: {
   applicant: Applicant | null;
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
+  onSchedule: (
+    applicant: Applicant,
+    slot: { date: string; start: string; end: string; round: string },
+  ) => void;
 }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [date, setDate] = useState("");
+  const [start, setStart] = useState("10:00");
+  const [end, setEnd] = useState("10:45");
+  const [round, setRound] = useState("Round 1");
   if (!applicant) return null;
   const move = (stage: ApplicantStage, message: string) =>
-    onChange({ ...applicant, columnId: stage }, message);
+    onChange({ ...applicant, columnId: stage, notes: notes[applicant.id] }, message);
+  const slotReady = /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}$/.test(start);
 
   return (
     <Drawer
@@ -81,7 +91,8 @@ export function ApplicantDrawer({
             <Button
               label="Schedule interview"
               variant="primary"
-              onClick={() => move("interview", `Sent ${applicant.name} your open slots`)}
+              isDisabled={!slotReady}
+              onClick={() => onSchedule(applicant, { date, start, end, round })}
             />
           </HStack>
         </HStack>
@@ -102,7 +113,7 @@ export function ApplicantDrawer({
 
         <Stack gap={2}>
           <HStack hAlign="between" vAlign="end">
-            <Text type="label">Fit for {jobTitle(applicant.jobId)}</Text>
+            <Text type="label">Fit for {applicant.jobTitle}</Text>
             <Heading level={3} type="display-3">
               {`${applicant.fit}%`}
             </Heading>
@@ -141,6 +152,19 @@ export function ApplicantDrawer({
           title="Contact details stay hidden"
           description="Email and phone unlock once an interview is scheduled here."
         />
+
+        <Stack gap={3}>
+          <Heading level={3}>Schedule</Heading>
+          <Text type="supporting" color="secondary">
+            The interview price is taken from your balance now and returned if they don’t attend.
+          </Text>
+          <TextInput label="Date" value={date} onChange={setDate} placeholder="YYYY-MM-DD" />
+          <HStack gap={3}>
+            <TextInput label="Start" value={start} onChange={setStart} placeholder="10:00" />
+            <TextInput label="End" value={end} onChange={setEnd} placeholder="10:45" />
+          </HStack>
+          <TextInput label="Round" value={round} onChange={setRound} />
+        </Stack>
 
         <Stack gap={4}>
           <Heading level={3}>Team review</Heading>

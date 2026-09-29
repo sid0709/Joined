@@ -140,10 +140,20 @@ type storedSession struct {
 }
 
 type storedMember struct {
-	UserID    string    `bson:"userId"`
-	CompanyID string    `bson:"companyId"`
-	Role      string    `bson:"role"`
-	CreatedAt time.Time `bson:"createdAt"`
+	UserID     string    `bson:"userId"`
+	CompanyID  string    `bson:"companyId"`
+	Role       string    `bson:"role"`
+	HiringRole string    `bson:"hiringRole,omitempty"`
+	CreatedAt  time.Time `bson:"createdAt"`
+}
+
+// Membership is one person's place on a company.
+type Membership struct {
+	UserID     string
+	CompanyID  string
+	Role       string
+	HiringRole string
+	CreatedAt  time.Time
 }
 
 func normalizeSignup(input Signup) (Signup, error) {

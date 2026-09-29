@@ -13,13 +13,7 @@ import {
   Stack,
   Text,
 } from "@openseat/design-system";
-import {
-  BILLING,
-  FACE_CHECK_META,
-  INTERVIEW_STATUS_META,
-  jobTitle,
-  type CompanyInterview,
-} from "@/lib/company";
+import { FACE_CHECK_META, INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";
 import { formatDay, formatTime } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 
@@ -34,10 +28,14 @@ const FORMAT_LABEL: Record<CompanyInterview["format"], string> = {
 /** One round: logistics, panel, and the attendance call that drives billing. */
 export function CompanyInterviewDrawer({
   interview,
+  priceCents,
+  currency,
   onClose,
   onChange,
 }: {
   interview: CompanyInterview | null;
+  priceCents: number;
+  currency: string;
   onClose: () => void;
   onChange: (next: CompanyInterview, message: string) => void;
 }) {
@@ -51,7 +49,7 @@ export function CompanyInterviewDrawer({
       isOpen
       onOpenChange={(open) => (open ? null : onClose())}
       title={interview.candidate}
-      subtitle={`${jobTitle(interview.jobId)} · ${interview.round}`}
+      subtitle={`${interview.jobTitle} · ${interview.round}`}
       headerStart={<Avatar name={interview.candidate} size={AVATAR_SIZE} tooltip={false} />}
       footer={
         isPast ? (
@@ -66,7 +64,7 @@ export function CompanyInterviewDrawer({
               onClick={() =>
                 onChange(
                   { ...interview, status: "no-show", faceCheck: "failed" },
-                  "Marked no-show — not billed",
+                  "Marked no-show — price returned to your balance",
                 )
               }
             />
@@ -80,7 +78,7 @@ export function CompanyInterviewDrawer({
                 onClick={() =>
                   onChange(
                     { ...interview, status: "attended", faceCheck: "passed" },
-                    `Attended — ${formatCents(BILLING.pricePerInterviewCents, BILLING.currency)} billed`,
+                    `Attended — ${formatCents(interview.chargedCents || priceCents, currency)} stays on this round`,
                   )
                 }
               />
@@ -118,12 +116,12 @@ export function CompanyInterviewDrawer({
           status={interview.status === "no-show" ? "warning" : "info"}
           title={
             interview.status === "attended"
-              ? `Billed ${formatCents(BILLING.pricePerInterviewCents, BILLING.currency)}`
+              ? `Held ${formatCents(interview.chargedCents || priceCents, currency)} from your balance`
               : interview.status === "no-show"
-                ? "Not billed"
-                : `${formatCents(BILLING.pricePerInterviewCents, BILLING.currency)} if they attend`
+                ? "Returned to your balance"
+                : `${formatCents(priceCents, currency)} held from your balance`
           }
-          description="No-shows, cancellations more than 24 hours ahead, and failed face checks are never billed."
+          description="A no-show returns the price. The hold stays once they attend."
         />
       </Stack>
     </Drawer>

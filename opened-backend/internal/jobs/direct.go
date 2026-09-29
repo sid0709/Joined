@@ -1,0 +1,72 @@
+package jobs
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+)
+
+const (
+	// DirectSource marks a job a company published from the hiring workspace.
+	DirectSource = "direct"
+	directModel  = "employer"
+	directType   = "direct"
+)
+
+// UpsertDirectJob publishes a company job into search so candidates can apply.
+// The public id is stable across pause and resume.
+func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy string, now time.Time) error {
+	if job.ID == "" || job.CompanyID == "" || job.Title == "" {
+		return ErrInvalidInput
+	}
+	job.Source = directType
+	if job.Skills == nil {
+		job.Skills = []string{}
+	}
+	if job.Responsibilities == nil {
+		job.Responsibilities = []string{}
+	}
+	if job.Requirements == nil {
+		job.Requirements = []string{}
+	}
+	if job.Benefits == nil {
+		job.Benefits = []string{}
+	}
+
+	var existing storedSearchJob
+	err := s.structured().FindOne(ctx, bson.D{{Key: "job.id", Value: job.ID}}).Decode(&existing)
+	id := bson.NewObjectID()
+	posted := now.UTC()
+	if err == nil {
+		id = existing.ID
+		if !existing.PostedAt.IsZero() {
+			posted = existing.PostedAt
+		}
+	} else if !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
+	}
+	return s.saveSearchJob(ctx, storedSearchJob{
+		ID:         id,
+		PostedAt:   posted,
+		AnalyzedAt: now.UTC(),
+		Model:      directModel,
+		CreatedBy:  createdBy,
+		Source:     DirectSource,
+		Job:        job,
+	})
+}
+
+// RemoveDirectJob hides a company job from search. The hiring record stays.
+func (s *Store) RemoveDirectJob(ctx context.Context, publicID string) error {
+	if publicID == "" {
+		return nil
+	}
+	_, err := s.structured().DeleteOne(ctx, bson.D{
+		{Key: "job.id", Value: publicID},
+		{Key: "source", Value: DirectSource},
+	})
+	return err
+}

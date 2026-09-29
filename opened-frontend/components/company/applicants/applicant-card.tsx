@@ -12,7 +12,7 @@ import {
   Text,
   icons,
 } from "@openseat/design-system";
-import { STRONG_FIT, jobTitle, type Applicant } from "@/lib/company";
+import { STRONG_FIT, type Applicant } from "@/lib/company";
 import { relativeDay } from "@/lib/dates";
 
 const AVATAR_SIZE = 36;
@@ -29,7 +29,7 @@ export function ApplicantCard({ applicant, onOpen }: { applicant: Applicant; onO
               {applicant.name}
             </Text>
             <Text type="supporting" color="secondary" maxLines={1}>
-              {jobTitle(applicant.jobId)}
+              {applicant.jobTitle}
             </Text>
           </Stack>
         </HStack>

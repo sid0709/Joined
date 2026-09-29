@@ -14,10 +14,10 @@ import {
   Text,
 } from "@openseat/design-system";
 import {
-  APPLICANTS,
   JOB_STATUS_META,
   POLICY_META,
   STRONG_FIT,
+  type Applicant,
   type CompanyJob,
 } from "@/lib/company";
 import { formatShortDate } from "@/lib/dates";
@@ -32,18 +32,19 @@ const PERSON_SIZE = 32;
 /** One job: funnel, settings, and its strongest candidates. */
 export function CompanyJobDrawer({
   job,
+  applicants,
   onClose,
   onAction,
 }: {
   job: CompanyJob | null;
+  applicants: Applicant[];
   onClose: () => void;
   onAction: (job: CompanyJob, action: JobAction) => void;
 }) {
   if (!job) return null;
   const status = JOB_STATUS_META[job.status];
-  const top = APPLICANTS.filter(
-    (person) => person.jobId === job.id && person.columnId !== "rejected",
-  )
+  const top = applicants
+    .filter((person) => person.jobId === job.id && person.columnId !== "rejected")
     .sort((a, b) => b.fit - a.fit)
     .slice(0, TOP_CANDIDATES);
 

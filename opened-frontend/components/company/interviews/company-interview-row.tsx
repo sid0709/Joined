@@ -1,12 +1,7 @@
 "use client";
 
 import { Avatar, Badge, ClickableCard, HStack, Stack, Text } from "@openseat/design-system";
-import {
-  FACE_CHECK_META,
-  INTERVIEW_STATUS_META,
-  jobTitle,
-  type CompanyInterview,
-} from "@/lib/company";
+import { FACE_CHECK_META, INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";
 import { formatTime } from "@/lib/dates";
 
 const AVATAR_SIZE = 36;
@@ -33,7 +28,7 @@ export function CompanyInterviewRow({
         <Stack gap={1}>
           <Text weight="semibold">{interview.candidate}</Text>
           <Text type="supporting" color="secondary">
-            {jobTitle(interview.jobId)} · {interview.round}
+            {interview.jobTitle} · {interview.round}
           </Text>
           <Text type="supporting" weight="medium">
             {formatTime(interview.start)} – {formatTime(interview.end)}
