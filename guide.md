@@ -23,15 +23,16 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 
 ## Running
 
-| What                         | Command                             | URL                          |
-| ---------------------------- | ----------------------------------- | ---------------------------- |
-| Everything (frontends + API) | `bun run dev`                       | 3000, 3001, 3002, 3010, 8080 |
-| Opened (job platform)        | `bun run dev:opened`                | http://localhost:3002        |
-| OpenSeat app                 | `bun run dev:app`                   | http://localhost:3000        |
-| Design-system showcase       | `bun run dev:theme`                 | http://localhost:3001        |
-| Opened admin                 | `bun run dev:admin`                 | http://localhost:3010        |
-| Opened API                   | `bun run dev:admin-api`             | http://127.0.0.1:8080        |
-| One script in one workspace  | `bun --filter <workspace> <script>` | —                            |
+| What                         | Command                             | URL                   |
+| ---------------------------- | ----------------------------------- | --------------------- |
+| Everything (frontends + API) | `bun run dev`                       | 3000–3003, 3010, 8080 |
+| Opened (job platform)        | `bun run dev:opened`                | http://localhost:3002 |
+| OpenSeat app                 | `bun run dev:app`                   | http://localhost:3000 |
+| Design-system showcase       | `bun run dev:theme`                 | http://localhost:3001 |
+| Opened admin                 | `bun run dev:admin`                 | http://localhost:3010 |
+| Scoutwell                    | `bun run dev:scout`                 | http://localhost:3003 |
+| Opened API                   | `bun run dev:admin-api`             | http://127.0.0.1:8080 |
+| One script in one workspace  | `bun --filter <workspace> <script>` | —                     |
 
 First time, and after `package.json` or `bun.lock` changes:
 

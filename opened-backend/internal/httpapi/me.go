@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -20,7 +20,7 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchProfile(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -36,7 +36,7 @@ func (s *Server) patchProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getSavedJobs(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -48,7 +48,7 @@ func (s *Server) getSavedJobs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putSavedJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -60,7 +60,7 @@ func (s *Server) putSavedJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteSavedJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -72,7 +72,7 @@ func (s *Server) deleteSavedJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getApplications(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -88,7 +88,7 @@ func (s *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postApplication(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -108,7 +108,7 @@ func (s *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchApplication(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -145,7 +145,7 @@ func (s *Server) patchApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteApplication(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -166,7 +166,7 @@ func (s *Server) deleteApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getInterviews(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -178,7 +178,7 @@ func (s *Server) getInterviews(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postInterview(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -194,7 +194,7 @@ func (s *Server) postInterview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchInterview(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}

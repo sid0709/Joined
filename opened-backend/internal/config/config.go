@@ -41,6 +41,7 @@ type Config struct {
 	GoogleClientID      string
 	GoogleClientSecret  string
 	GoogleRedirectURL   string
+	AdminAPIToken       string
 }
 
 func (c Config) SourceName() string {
@@ -72,6 +73,7 @@ func Load() (Config, error) {
 		GoogleClientID:      strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
 		GoogleClientSecret:  strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
 		GoogleRedirectURL:   strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URL")),
+		AdminAPIToken:       strings.TrimSpace(os.Getenv("ADMIN_API_TOKEN")),
 	}
 	if cfg.MongoURI == "" {
 		return Config{}, fmt.Errorf("MONGO_URI is required")

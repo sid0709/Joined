@@ -1,0 +1,34 @@
+{
+  "currency": "USD",
+  "workplace": [
+    { "value": "remote", "label": "Remote" },
+    { "value": "hybrid", "label": "Hybrid" },
+    { "value": "onsite", "label": "On-site" }
+  ],
+  "seniority": [
+    { "value": "Junior", "label": "Junior" },
+    { "value": "Middle", "label": "Middle" },
+    { "value": "Senior", "label": "Senior" },
+    { "value": "Leader", "label": "Lead" },
+    { "value": "Manager", "label": "Manager" }
+  ],
+  "employment": [
+    { "value": "full-time", "label": "Full-time" },
+    { "value": "contract", "label": "Contract" },
+    { "value": "part-time", "label": "Part-time" }
+  ],
+  "payPeriod": [
+    { "value": "year", "label": "Per year" },
+    { "value": "hour", "label": "Per hour" }
+  ],
+  "seniorityAliases": {
+    "entry": "Junior",
+    "junior": "Junior",
+    "mid": "Middle",
+    "middle": "Middle",
+    "senior": "Senior",
+    "lead": "Leader",
+    "leader": "Leader",
+    "manager": "Manager"
+  }
+}

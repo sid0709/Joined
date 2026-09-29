@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) getCalendar(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -20,7 +20,7 @@ func (s *Server) getCalendar(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) startGoogleCalendar(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -47,7 +47,7 @@ func (s *Server) googleCalendarCallback(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) disconnectGoogleCalendar(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -59,7 +59,7 @@ func (s *Server) disconnectGoogleCalendar(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) syncGoogleCalendar(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}

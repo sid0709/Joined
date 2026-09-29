@@ -44,7 +44,10 @@ func (s *Store) Account(ctx context.Context, userID string) (User, time.Time, er
 	if err != nil {
 		return User{}, time.Time{}, err
 	}
-	return User{ID: user.ID, Name: user.Name, Email: user.Email}, user.CreatedAt, nil
+	if err := s.ensureRole(ctx, &user); err != nil {
+		return User{}, time.Time{}, err
+	}
+	return User{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}, user.CreatedAt, nil
 }
 
 func (s *Store) SetName(ctx context.Context, userID, name string) error {
@@ -110,6 +113,7 @@ func (s *Store) Signup(ctx context.Context, input Signup, now time.Time) (string
 		Name:         input.Name,
 		Email:        input.Email,
 		PasswordHash: hash,
+		Role:         input.Mode,
 		CreatedAt:    now.UTC(),
 	})
 	if mongo.IsDuplicateKeyError(err) {
@@ -127,7 +131,7 @@ func (s *Store) Signup(ctx context.Context, input Signup, now time.Time) (string
 	return s.issue(ctx, userID, now)
 }
 
-func (s *Store) Signin(ctx context.Context, email, password string, now time.Time) (string, Session, error) {
+func (s *Store) Signin(ctx context.Context, email, password, audience string, now time.Time) (string, Session, error) {
 	email = normalizeEmail(email)
 	if email == "" || password == "" {
 		return "", Session{}, ErrInvalidLogin
@@ -139,6 +143,12 @@ func (s *Store) Signin(ctx context.Context, email, password string, now time.Tim
 	}
 	if err != nil {
 		return "", Session{}, err
+	}
+	if err := s.ensureRole(ctx, &user); err != nil {
+		return "", Session{}, err
+	}
+	if !AllowsAudience(audience, user.Role) {
+		return "", Session{}, &RoleError{Role: user.Role}
 	}
 	return s.issue(ctx, user.ID, now)
 }
@@ -174,6 +184,9 @@ func (s *Store) AttachCompany(ctx context.Context, token string, choice CompanyC
 	if err != nil {
 		return Session{}, err
 	}
+	if session.User.Role != RoleEmployee {
+		return Session{}, &RoleError{Role: session.User.Role}
+	}
 	if session.Company != nil {
 		return Session{}, ErrHasCompany
 	}
@@ -198,18 +211,27 @@ func (s *Store) DeleteAccount(ctx context.Context, token string, now time.Time) 
 		return err
 	}
 	userID := session.User.ID
-	if s.data != nil {
-		if err := s.data.DeleteUser(ctx, userID); err != nil {
-			return err
-		}
-	}
-
 	var member storedMember
 	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	}
+	ownedCompanyID := ""
 	if err == nil {
+		_, createdBy, companyErr := s.companyByID(ctx, member.CompanyID)
+		if companyErr != nil && !errors.Is(companyErr, ErrNotFound) {
+			return companyErr
+		}
+		if removesCompany(createdBy, userID) {
+			ownedCompanyID = member.CompanyID
+		}
+	}
+	if s.data != nil {
+		if err := s.data.DeleteUser(ctx, userID, ownedCompanyID); err != nil {
+			return err
+		}
+	}
+	if member.UserID != "" {
 		if err := s.removeMembership(ctx, userID, member.CompanyID); err != nil {
 			return err
 		}
@@ -349,7 +371,10 @@ func (s *Store) view(ctx context.Context, userID string) (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
-	session := Session{User: User{ID: user.ID, Name: user.Name, Email: user.Email}}
+	if err := s.ensureRole(ctx, &user); err != nil {
+		return Session{}, err
+	}
+	session := Session{User: User{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}}
 
 	var member storedMember
 	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
@@ -387,6 +412,114 @@ func (s *Store) companyByID(ctx context.Context, id string) (Company, string, er
 	return Company{ID: doc.ID, Name: doc.Name, URL: doc.URL, Logo: doc.Logo}, doc.CreatedBy, nil
 }
 
+const scoutProfilesCollection = "scout_profiles"
+
+// ensureRole fills a role for accounts created before roles were stored.
+// A company membership is a recruiter. A scout profile is a scout. Anyone else
+// is a job hunter. A role that is already set is left alone.
+func (s *Store) ensureRole(ctx context.Context, user *storedUser) error {
+	if user.Role != "" {
+		return nil
+	}
+	role := RoleCandidate
+	err := s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: user.ID}}).Err()
+	switch {
+	case err == nil:
+		role = RoleEmployee
+	case errors.Is(err, mongo.ErrNoDocuments):
+		n, countErr := s.collection(scoutProfilesCollection).CountDocuments(ctx, bson.D{{Key: "userId", Value: user.ID}})
+		if countErr != nil {
+			return countErr
+		}
+		if n > 0 {
+			role = RoleScout
+		}
+	default:
+		return err
+	}
+	_, err = s.collection(usersCollection).UpdateOne(ctx, bson.D{
+		{Key: "id", Value: user.ID},
+		{Key: "$or", Value: bson.A{
+			bson.D{{Key: "role", Value: bson.D{{Key: "$exists", Value: false}}}},
+			bson.D{{Key: "role", Value: ""}},
+		}},
+	}, bson.D{{Key: "$set", Value: bson.D{{Key: "role", Value: role}}}})
+	if err != nil {
+		return err
+	}
+	user.Role = role
+	return nil
+}
+
 func (s *Store) collection(name string) *mongo.Collection {
 	return s.client.Database(s.db).Collection(name)
+}
+
+const userSearchLimit = 200
+
+// Users returns accounts by id; missing ids are left out.
+func (s *Store) Users(ctx context.Context, ids []string) (map[string]User, error) {
+	users := make(map[string]User, len(ids))
+	if len(ids) == 0 {
+		return users, nil
+	}
+	cursor, err := s.collection(usersCollection).Find(ctx, bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}},
+		options.Find().SetProjection(bson.D{{Key: "id", Value: 1}, {Key: "name", Value: 1}, {Key: "email", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var doc storedUser
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		users[doc.ID] = User{ID: doc.ID, Name: doc.Name, Email: doc.Email}
+	}
+	return users, cursor.Err()
+}
+
+// SearchUserIDs finds account ids whose name or email contains query.
+func (s *Store) SearchUserIDs(ctx context.Context, query string) ([]string, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, nil
+	}
+	pattern := bson.D{{Key: "$regex", Value: regexp.QuoteMeta(query)}, {Key: "$options", Value: "i"}}
+	cursor, err := s.collection(usersCollection).Find(ctx, bson.D{{Key: "$or", Value: bson.A{
+		bson.D{{Key: "name", Value: pattern}},
+		bson.D{{Key: "email", Value: pattern}},
+	}}}, options.Find().SetLimit(userSearchLimit).SetProjection(bson.D{{Key: "id", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	ids := []string{}
+	for cursor.Next(ctx) {
+		var doc struct {
+			ID string `bson:"id"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		ids = append(ids, doc.ID)
+	}
+	return ids, cursor.Err()
+}
+
+// SessionUserID resolves a bearer token to its user id with one lookup, for
+// callers that do not need the user's name or company.
+func (s *Store) SessionUserID(ctx context.Context, token string, now time.Time) (string, error) {
+	if token == "" {
+		return "", ErrInvalidLogin
+	}
+	var record storedSession
+	err := s.collection(sessionsCollection).FindOne(ctx, bson.D{{Key: "tokenHash", Value: hashToken(token)}}).Decode(&record)
+	if errors.Is(err, mongo.ErrNoDocuments) || (err == nil && !record.ExpiresAt.After(now)) {
+		return "", ErrInvalidLogin
+	}
+	if err != nil {
+		return "", err
+	}
+	return record.UserID, nil
 }

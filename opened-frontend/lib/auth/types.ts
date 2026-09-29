@@ -1,7 +1,10 @@
+export type AccountRole = "candidate" | "employee" | "scout";
+
 export type AuthUser = {
   id: string;
   name: string;
   email: string;
+  role: AccountRole;
 };
 
 export type AuthCompany = {

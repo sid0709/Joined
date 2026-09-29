@@ -1,8 +1,8 @@
 export const TEMP_JOB_PAGE_SIZES = [25, 50, 100] as const;
 export const TEMP_JOBS_PAGE_SIZE = TEMP_JOB_PAGE_SIZES[0];
 export const MAX_ANALYZE_SELECTION = 100;
-export const SEARCH_DEBOUNCE_MS = 300;
 export const TEMP_JOBS_PATH = "/v1/jobs/temp";
+export const SCOUT_TEMP_JOBS_PATH = "/v1/jobs/scout-temp";
 export const ADMIN_SETTINGS_PATH = "/v1/settings";
 
 export type JobDetails = {

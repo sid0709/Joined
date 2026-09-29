@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { ListSkeleton } from "@/components/list-skeleton";
 import { TempJobsBrowser } from "@/components/jobs/temp-jobs-browser";
 
 export const metadata = {
@@ -7,7 +8,7 @@ export const metadata = {
 
 export default function TempJobsPage() {
   return (
-    <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-surface" />}>
+    <Suspense fallback={<ListSkeleton />}>
       <TempJobsBrowser />
     </Suspense>
   );

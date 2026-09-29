@@ -41,6 +41,46 @@ func TestBuildSearchJobUsesFrontendEnums(t *testing.T) {
 	}
 }
 
+func TestKeepScoutFilledLeavesSalary(t *testing.T) {
+	job := SearchJob{
+		Title:            "Wrong title",
+		Company:          "Wrong co",
+		Location:         "AI city",
+		Workplace:        workplaceOnsite,
+		Pay:              Pay{Min: 1, Max: 2, Currency: "USD", Period: payYear},
+		Seniority:        seniorityJunior,
+		Summary:          "About the role from the model.",
+		Responsibilities: []string{"Ship the product"},
+	}
+	listing := tempListing{
+		Title:           "Senior Software Engineer (Full Stack)",
+		CompanyName:     "Jeenie",
+		CompanyPublicID: "co_1",
+		Source:          ScoutedSource,
+		Equity:          false,
+		Pay:             Pay{Min: 150000, Max: 150000, Currency: "USD", Period: payYear},
+	}
+	listing.Metadata.Details.Location = "Remote"
+	listing.Metadata.Details.Remote = "remote"
+	listing.Metadata.Details.Seniority = "Senior"
+	listing.Metadata.Details.Time = "full-time"
+	listing.Metadata.Details.Salary = "150000-150000 USD year"
+
+	got := keepScoutFilled(job, listing)
+	if got.Title != listing.Title || got.Company != listing.CompanyName || got.CompanyID != listing.CompanyPublicID {
+		t.Fatalf("identity = %+v", got)
+	}
+	if got.Pay != listing.Pay || got.Equity {
+		t.Fatalf("pay overwritten: %+v equity=%v", got.Pay, got.Equity)
+	}
+	if got.Location != "Remote" || got.Workplace != workplaceRemote || got.Seniority != senioritySenior {
+		t.Fatalf("hints overwritten: %+v", got)
+	}
+	if got.Summary != job.Summary || got.Responsibilities[0] != "Ship the product" {
+		t.Fatalf("listing copy dropped: %+v", got)
+	}
+}
+
 func TestNormalizePaySwapsInvertedRange(t *testing.T) {
 	pay := normalizePay(extractedPay{Min: 80, Max: 40, Currency: "dollars", Period: "hour"}, "")
 	if pay.Min != 40 || pay.Max != 80 || pay.Currency != "USD" || pay.Period != "hour" {

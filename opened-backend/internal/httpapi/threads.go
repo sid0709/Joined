@@ -6,7 +6,7 @@ import (
 )
 
 func (s *Server) getMyThreads(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -18,7 +18,7 @@ func (s *Server) getMyThreads(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getMyThread(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -30,7 +30,7 @@ func (s *Server) getMyThread(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postMyMessage(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}
@@ -90,7 +90,7 @@ func (s *Server) postCompanyMessage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getMyUnread(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.requireSession(w, r)
+	session, ok := s.requireCandidate(w, r)
 	if !ok {
 		return
 	}

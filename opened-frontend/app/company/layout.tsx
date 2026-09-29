@@ -13,6 +13,7 @@ import { ROUTES, signInHref } from "@/lib/routes";
 export default async function CompanyLayout({ children }: { children: ReactNode }) {
   const session = await loadSession();
   if (!session) redirect(signInHref(ROUTES.company));
+  if (session.user.role !== "employee") redirect(ROUTES.search);
   if (!session.company) redirect(ROUTES.hiringSetup);
   const unread = await loadCompanyUnread();
   return (

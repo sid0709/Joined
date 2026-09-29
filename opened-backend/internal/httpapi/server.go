@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
 )
 
 const (
@@ -24,20 +25,39 @@ const (
 )
 
 type Server struct {
-	store    *jobs.Store
-	auth     *auth.Store
-	people   *candidate.Store
-	reader   jobs.ModelReader
-	origins  map[string]struct{}
-	frontend string
+	store      *jobs.Store
+	auth       *auth.Store
+	people     *candidate.Store
+	scouts     *scout.Store
+	reader     jobs.ModelReader
+	origins    map[string]struct{}
+	frontend   string
+	adminToken string
 }
 
-func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reader jobs.ModelReader, origins []string, frontend string) http.Handler {
-	allowed := make(map[string]struct{}, len(origins))
-	for _, origin := range origins {
+// Options are the HTTP server's settings.
+type Options struct {
+	Origins  []string
+	Frontend string
+	// AdminToken, when set, is required as a bearer token on staff endpoints.
+	AdminToken string
+}
+
+func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scouts *scout.Store, reader jobs.ModelReader, opts Options) http.Handler {
+	allowed := make(map[string]struct{}, len(opts.Origins))
+	for _, origin := range opts.Origins {
 		allowed[origin] = struct{}{}
 	}
-	server := &Server{store: store, auth: accounts, people: people, reader: reader, origins: allowed, frontend: frontend}
+	server := &Server{
+		store:      store,
+		auth:       accounts,
+		people:     people,
+		scouts:     scouts,
+		reader:     reader,
+		origins:    allowed,
+		frontend:   opts.Frontend,
+		adminToken: opts.AdminToken,
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/auth/signup", server.signup)
 	mux.HandleFunc("POST /v1/auth/signin", server.signin)
@@ -47,20 +67,22 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reade
 	mux.HandleFunc("POST /v1/auth/company", server.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", server.searchCompanies)
 	mux.HandleFunc("GET /health", server.health)
-	mux.HandleFunc("GET /v1/settings", server.settings)
-	mux.HandleFunc("GET /v1/jobs/temp", server.listTempJobs)
-	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.getTempJob)
-	mux.HandleFunc("PATCH /v1/jobs/temp/{id}", server.updateTempJob)
-	mux.HandleFunc("POST /v1/jobs/temp/sync", server.syncTempJobs)
-	mux.HandleFunc("GET /v1/companies", server.listCompanies)
-	mux.HandleFunc("GET /v1/companies/{id}", server.getAdminCompany)
-	mux.HandleFunc("PATCH /v1/companies/{id}", server.updateCompany)
-	mux.HandleFunc("POST /v1/companies/{id}/logo", server.uploadCompanyLogo)
-	mux.HandleFunc("DELETE /v1/companies/{id}/logo", server.deleteCompanyLogo)
-	mux.HandleFunc("GET /v1/jobs", server.listSearchJobs)
-	mux.HandleFunc("POST /v1/jobs/analyze", server.analyzeJob)
-	mux.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
-	mux.HandleFunc("PATCH /v1/jobs/{id}", server.updateSearchJob)
+	mux.HandleFunc("GET /v1/settings", server.admin(server.settings))
+	mux.HandleFunc("GET /v1/jobs/temp", server.admin(server.listTempJobs))
+	mux.HandleFunc("GET /v1/jobs/scout-temp", server.admin(server.listScoutTempJobs))
+	mux.HandleFunc("POST /v1/jobs/scout-temp/analyze", server.admin(server.analyzeScoutJobs))
+	mux.HandleFunc("GET /v1/jobs/temp/{id}", server.admin(server.getTempJob))
+	mux.HandleFunc("PATCH /v1/jobs/temp/{id}", server.admin(server.updateTempJob))
+	mux.HandleFunc("POST /v1/jobs/temp/sync", server.admin(server.syncTempJobs))
+	mux.HandleFunc("GET /v1/companies", server.admin(server.listCompanies))
+	mux.HandleFunc("GET /v1/companies/{id}", server.admin(server.getAdminCompany))
+	mux.HandleFunc("PATCH /v1/companies/{id}", server.admin(server.updateCompany))
+	mux.HandleFunc("POST /v1/companies/{id}/logo", server.admin(server.uploadCompanyLogo))
+	mux.HandleFunc("DELETE /v1/companies/{id}/logo", server.admin(server.deleteCompanyLogo))
+	mux.HandleFunc("GET /v1/jobs", server.admin(server.listSearchJobs))
+	mux.HandleFunc("POST /v1/jobs/analyze", server.admin(server.analyzeJob))
+	mux.HandleFunc("GET /v1/jobs/{id}", server.admin(server.getSearchJob))
+	mux.HandleFunc("PATCH /v1/jobs/{id}", server.admin(server.updateSearchJob))
 	mux.HandleFunc("GET /v1/search/jobs", server.listSearchCatalog)
 	mux.HandleFunc("GET /v1/search/jobs/{id}", server.getSearchCatalogJob)
 	mux.HandleFunc("GET /v1/search/companies/{id}/logo", server.getCompanyLogo)
@@ -90,6 +112,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, reade
 	mux.HandleFunc("GET /v1/company/threads/{id}", server.getCompanyThread)
 	mux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
 	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
+	server.registerScout(mux)
+	server.registerScoutAdmin(mux)
 	return server.withCORS(mux)
 }
 
@@ -126,6 +150,55 @@ func (s *Server) listTempJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) listScoutTempJobs(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+	defer cancel()
+
+	query := r.URL.Query()
+	parsed := jobs.ParseListQuery(query.Get("page"), query.Get("pageSize"), query.Get("q"))
+	parsed.HideAnalyzed = query.Get("hide") == "analyzed"
+	result, err := s.store.ListScoutTemp(ctx, parsed)
+	if err != nil {
+		slog.Error("list scout temp jobs", "error", err)
+		writeError(w, http.StatusInternalServerError, "could not list scout jobs")
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) analyzeScoutJobs(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		TempJobIDs []string `json:"tempJobIds"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAnalyzeBody))
+	if err := decoder.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		writeError(w, http.StatusBadRequest, "invalid analyze request")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
+	defer cancel()
+	batch, err := s.store.AnalyzeScoutSelected(ctx, s.reader, body.TempJobIDs, time.Now())
+	if jobs.IsMissingAPIKey(err) {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		return
+	}
+	if errors.Is(err, jobs.ErrNoSelection) || errors.Is(err, jobs.ErrTooMany) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if errors.Is(err, jobs.ErrAnalyzeInProgress) {
+		writeError(w, http.StatusConflict, err.Error())
+		return
+	}
+	if err != nil {
+		slog.Error("analyze scout jobs", "error", err)
+		writeError(w, http.StatusBadGateway, "could not analyze the job descriptions")
+		return
+	}
+	writeJSON(w, http.StatusOK, batch)
 }
 
 func (s *Server) getTempJob(w http.ResponseWriter, r *http.Request) {
@@ -477,7 +550,8 @@ func (s *Server) withCORS(next http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Vary", "Origin")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, Idempotency-Key, X-Admin-Actor")
+				w.Header().Set("Access-Control-Expose-Headers", "RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After, Location, Idempotent-Replayed")
 			}
 		}
 		if r.Method == http.MethodOptions {

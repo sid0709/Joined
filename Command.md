@@ -10,16 +10,17 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace                 | Path                      | What it is                                                 | Dev port | Root dev script         |
-| ------------------------- | ------------------------- | ---------------------------------------------------------- | -------- | ----------------------- |
-| `opened-frontend`         | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js) | 3002     | `bun run dev:opened`    |
-| `connected-frontend`      | `connected-frontend/`     | OpenSeat web app (Next.js)                                 | 3000     | `bun run dev:app`       |
-| `openseat-theme`          | `openseat-theme/`         | Design-system showcase (Next.js)                           | 3001     | `bun run dev:theme`     |
-| `opened-admin`            | `opened-admin/`           | Opened admin UI (Next.js, not a bun workspace)             | 3010     | `bun run dev:admin`     |
-| `opened-backend`          | `opened-backend/`         | Opened API (Go)                                            | 8080     | `bun run dev:admin-api` |
-| `@openseat/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)       | —        | —                       |
+| Workspace                 | Path                      | What it is                                                   | Dev port | Root dev script         |
+| ------------------------- | ------------------------- | ------------------------------------------------------------ | -------- | ----------------------- |
+| `opened-frontend`         | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:opened`    |
+| `connected-frontend`      | `connected-frontend/`     | OpenSeat web app (Next.js)                                   | 3000     | `bun run dev:app`       |
+| `openseat-theme`          | `openseat-theme/`         | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`     |
+| `opened-admin`            | `opened-admin/`           | Opened admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`     |
+| `scoutwell-frontend`      | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`     |
+| `opened-backend`          | `opened-backend/`         | Opened API (Go)                                              | 8080     | `bun run dev:admin-api` |
+| `@openseat/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                       |
 
-Apps use the design system through the workspace (`"@openseat/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. `opened-admin` and `opened-backend` sit beside those workspaces: the admin app is started with `bun --cwd`, and the API is a Go server.
+Apps use the design system through the workspace (`"@openseat/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. `opened-backend` sits beside those workspaces: it is a Go server. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -226,7 +227,7 @@ bun run start:opened --port 3102
 
 ### Troubleshooting
 
-- **Port already in use** — find the old process and stop it:
+- **Port already in use** — `bun run dev` stops whatever is listening on 3000, 3001, 3002, 3003, 3010, and 8080 before it starts. A single app (`bun run dev:opened` and the others) does not, so stop that listener yourself:
   ```bash
   lsof -iTCP:3002 -sTCP:LISTEN
   ```

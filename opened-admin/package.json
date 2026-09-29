@@ -5,24 +5,28 @@
   "scripts": {
     "dev": "next dev --port 3010",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "next start --port 3010",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
+    "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"
   },
   "dependencies": {
     "@openseat/design-system": "workspace:*",
-    "next": "16.3.6",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "@openseat/job-schema": "workspace:*",
+    "@openseat/scout": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-next": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   },
   "packageManager": "bun@1.4.2",
   "ignoreScripts": [

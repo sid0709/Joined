@@ -1,18 +1,45 @@
 import type { TempJob } from "@/lib/jobs";
 
+const LOCALE = "en";
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
 export function formatDate(value: string | undefined): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat(LOCALE, {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(date);
 }
 
+export function formatDateTime(value: string | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat(LOCALE, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function formatCount(value: number): string {
-  return value.toLocaleString("en");
+  return value.toLocaleString(LOCALE);
+}
+
+/** How long something has waited: "5m", "3h", "2d". */
+export function ageLabel(value: string | null | undefined, now = new Date()): string {
+  if (!value) return "—";
+  const elapsed = now.getTime() - new Date(value).getTime();
+  if (Number.isNaN(elapsed)) return "—";
+  if (elapsed < HOUR) return `${Math.max(0, Math.floor(elapsed / MINUTE))}m`;
+  if (elapsed < DAY) return `${Math.floor(elapsed / HOUR)}h`;
+  return `${Math.floor(elapsed / DAY)}d`;
 }
 
 export function jobLocation(job: TempJob): string {
@@ -20,13 +47,9 @@ export function jobLocation(job: TempJob): string {
   return [details?.location, details?.remote].filter(Boolean).join(" · ");
 }
 
-export function pageWindow(page: number, pageCount: number): number[] {
-  const start = Math.max(1, page - 2);
-  const end = Math.min(pageCount, start + 4);
-  const adjusted = Math.max(1, end - 4);
-  const pages: number[] = [];
-  for (let current = adjusted; current <= end; current += 1) {
-    pages.push(current);
-  }
-  return pages;
+/** A positive whole number from a query value, or the fallback. */
+export function positiveInt(value: string | null | undefined, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+  return parsed;
 }

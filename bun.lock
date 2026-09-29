@@ -41,6 +41,28 @@
         "typescript": "catalog:",
       },
     },
+    "opened-admin": {
+      "name": "opened-admin",
+      "version": "0.1.0",
+      "dependencies": {
+        "@openseat/design-system": "workspace:*",
+        "@openseat/job-schema": "workspace:*",
+        "@openseat/scout": "workspace:*",
+        "next": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "eslint": "catalog:",
+        "eslint-config-next": "catalog:",
+        "tailwindcss": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "opened-frontend": {
       "name": "opened-frontend",
       "version": "0.1.0",
@@ -48,6 +70,7 @@
         "@astryxdesign/core": "catalog:",
         "@astryxdesign/theme-neutral": "catalog:",
         "@openseat/design-system": "workspace:*",
+        "@openseat/job-schema": "workspace:*",
         "@stylexjs/stylex": "catalog:",
         "next": "catalog:",
         "react": "catalog:",
@@ -104,6 +127,45 @@
       "peerDependencies": {
         "react": ">=19",
         "react-dom": ">=19",
+      },
+    },
+    "packages/job-schema": {
+      "name": "@openseat/job-schema",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
+    "packages/scout": {
+      "name": "@openseat/scout",
+      "version": "0.1.0",
+      "dependencies": {
+        "@openseat/design-system": "workspace:*",
+        "@openseat/job-schema": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
+    "scoutwell-frontend": {
+      "name": "scoutwell-frontend",
+      "version": "0.1.0",
+      "dependencies": {
+        "@openseat/design-system": "workspace:*",
+        "@openseat/scout": "workspace:*",
+        "next": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "eslint": "catalog:",
+        "eslint-config-next": "catalog:",
+        "tailwindcss": "catalog:",
+        "typescript": "catalog:",
       },
     },
   },
@@ -500,6 +562,10 @@
     "@nuxtjs/color-mode": ["@nuxtjs/color-mode@4.0.1", "", { "dependencies": { "@nuxt/kit": "^4.4.6", "exsolve": "^1.0.8", "pathe": "^2.0.3", "pkg-types": "^2.3.1", "semver": "^7.8.1" } }, "sha512-eiA7hWXi5zNHaYKyJFCGF6i0wFZtuvR7KDXZ6jiSvwxjCpRFwphrw0MOSmNfArTSSsT1wpW+/2H92cejeVfUlg=="],
 
     "@openseat/design-system": ["@openseat/design-system@workspace:packages/design-system"],
+
+    "@openseat/job-schema": ["@openseat/job-schema@workspace:packages/job-schema"],
+
+    "@openseat/scout": ["@openseat/scout@workspace:packages/scout"],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
@@ -1659,6 +1725,8 @@
 
     "open": ["open@8.4.2", "", { "dependencies": { "define-lazy-prop": "^2.0.0", "is-docker": "^2.1.1", "is-wsl": "^2.2.0" } }, "sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ=="],
 
+    "opened-admin": ["opened-admin@workspace:opened-admin"],
+
     "opened-frontend": ["opened-frontend@workspace:opened-frontend"],
 
     "openseat-theme": ["openseat-theme@workspace:openseat-theme"],
@@ -1836,6 +1904,8 @@
     "sanitize-filename": ["sanitize-filename@1.6.4", "", { "dependencies": { "truncate-utf8-bytes": "^1.0.0" } }, "sha512-9ZyI08PsvdQl2r/bBIGubpVdR3RR9sY6RDiWFPreA21C/EFlQhmgo20UZlNjZMMZNubusLhAQozkA0Od5J21Eg=="],
 
     "scheduler": ["scheduler@0.28.0", "", {}, "sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw=="],
+
+    "scoutwell-frontend": ["scoutwell-frontend@workspace:scoutwell-frontend"],
 
     "scule": ["scule@1.3.0", "", {}, "sha512-6FtHJEvt+pVMIB9IBY+IcCJ6Z5f1iQnytgyfKMhDKgmzYG+TeH/wx1y3l27rshSbLiSanrR9ffZDrEsmjlQF2g=="],
 

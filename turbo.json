@@ -13,6 +13,7 @@
     },
     "build": {
       "dependsOn": ["^build"],
+      "env": ["OPENED_API_URL", "SCOUT_PUBLIC_API_URL", "OPENED_WEB_URL"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     }
   }

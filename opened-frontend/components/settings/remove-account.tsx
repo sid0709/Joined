@@ -25,7 +25,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
   const creator = isCreator && Boolean(companyName);
   const consequences = creator
     ? [
-        `You created ${companyName}. Removing your profile also deletes that company page.`,
+        `You created ${companyName}. The company page, its jobs, and activity on those jobs are deleted.`,
         "Teammates lose access to the company.",
         "This can’t be undone.",
       ]
@@ -36,8 +36,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
           "This can’t be undone.",
         ]
       : [
-          "Your profile, resumes, and saved jobs are deleted.",
-          "Companies keep applications you already sent.",
+          "Your profile, applications, interviews, messages, and saved jobs are deleted.",
           "This can’t be undone.",
         ];
 
@@ -61,7 +60,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
       title="Remove account"
       description={
         creator
-          ? `You created ${companyName}. Removing your profile also deletes that company page.`
+          ? `You created ${companyName}. Removing your profile also deletes that company, its jobs, and activity on those jobs.`
           : "This permanently removes your account."
       }
       footer={
