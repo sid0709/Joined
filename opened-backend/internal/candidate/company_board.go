@@ -111,13 +111,23 @@ func (s *Store) ScheduleForCompany(ctx context.Context, companyID, candidateName
 	}
 	item.CompanyID = companyID
 	item.CompanyStatus = StatusScheduled
+	if input.CompanyStatus != "" {
+		item.CompanyStatus = input.CompanyStatus
+	}
+	if item.SelfSchedule {
+		item.SelfScheduleURL = publicScheduleURL(input.PublicOrigin, item.ID)
+	}
 	item.JobID = jobID
 	item.CandidateName = candidateName
 	item.ChargedCents = chargedCents
 	if _, err := s.collection(interviewsCollection).InsertOne(ctx, item); err != nil {
 		return Interview{}, err
 	}
-	if err := s.forceStage(ctx, app, "interview", "Interview scheduled", now); err != nil {
+	event := "Interview scheduled"
+	if item.CompanyStatus == CompanyStatusAwaiting {
+		event = "Interview times offered"
+	}
+	if err := s.forceStage(ctx, app, "interview", event, now); err != nil {
 		return Interview{}, err
 	}
 	return item, nil
@@ -175,6 +185,27 @@ func (s *Store) listInterviews(ctx context.Context, filter bson.D) ([]Interview,
 		items[i] = normalizeInterview(items[i])
 	}
 	return items, nil
+}
+
+// InterviewForCompany loads one round this company owns.
+func (s *Store) InterviewForCompany(ctx context.Context, companyID, id string) (Interview, error) {
+	return s.interviewForCompany(ctx, companyID, id)
+}
+
+// SaveInterviewForCompany replaces a round this company owns.
+func (s *Store) SaveInterviewForCompany(ctx context.Context, companyID string, item Interview) (Interview, error) {
+	if item.ID == "" || item.CompanyID != companyID {
+		return Interview{}, ErrForbidden
+	}
+	item = normalizeInterview(item)
+	result, err := s.collection(interviewsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: item.ID}, {Key: "companyId", Value: companyID}}, item)
+	if err != nil {
+		return Interview{}, err
+	}
+	if result.MatchedCount == 0 {
+		return Interview{}, ErrNotFound
+	}
+	return item, nil
 }
 
 func (s *Store) interviewForCompany(ctx context.Context, companyID, id string) (Interview, error) {

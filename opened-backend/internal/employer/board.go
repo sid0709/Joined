@@ -146,7 +146,11 @@ func (s *Store) Interviews(ctx context.Context, companyID string) ([]Interview, 
 	return out, nil
 }
 
-func (s *Store) ScheduleInterview(ctx context.Context, company auth.Company, actor string, input ScheduleInput, now time.Time) (Interview, error) {
+func (s *Store) ScheduleInterview(ctx context.Context, company auth.Company, actor string, input ScheduleInput, origin string, now time.Time) (Interview, error) {
+	plan, err := planSchedule(input)
+	if err != nil {
+		return Interview{}, err
+	}
 	app, err := s.people.ApplicationForCompany(ctx, company.ID, input.ApplicationID)
 	if errors.Is(err, candidate.ErrNotFound) {
 		return Interview{}, ErrNotFound
@@ -180,14 +184,21 @@ func (s *Store) ScheduleInterview(ctx context.Context, company auth.Company, act
 	item, err := s.people.ScheduleForCompany(ctx, company.ID, candidateName, app.JobID, InterviewPriceCents, app, candidate.InterviewInput{
 		ApplicationID: app.ID,
 		Round:         round,
-		Date:          input.Date,
-		Start:         input.Start,
-		End:           input.End,
+		Date:          plan.Date,
+		Start:         plan.Start,
+		End:           plan.End,
 		Format:        input.Format,
-		Where:         input.Format,
+		Where:         plan.Where,
 		Interviewers:  panelNames(panel),
-		Status:        candidate.StatusScheduled,
+		Status:        plan.CandidateStatus,
 		Source:        candidate.SourceDirect,
+		MeetingURL:    plan.MeetingURL,
+		ScheduleMode:  plan.Mode,
+		ProposedSlots: plan.ProposedSlots,
+		SelfSchedule:  plan.SelfSchedule,
+		CompanyStatus: plan.CompanyStatus,
+		PublicOrigin:  origin,
+		OpenSlot:      plan.OpenSlot,
 	}, now)
 	if err != nil {
 		_, _ = s.credit(ctx, company.ID, InterviewPriceCents, 0, -InterviewPriceCents, now)
@@ -217,10 +228,53 @@ func (s *Store) ScheduleInterview(ctx context.Context, company auth.Company, act
 	}); err != nil {
 		return Interview{}, err
 	}
-	if err := s.record(ctx, company.ID, "Interview scheduled with "+candidateName, job.Title, "accent", now); err != nil {
+	activity := "Interview scheduled with " + candidateName
+	if plan.CompanyStatus == interviewAwaiting {
+		if plan.SelfSchedule {
+			activity = "Self-schedule link sent to " + candidateName
+		} else {
+			activity = "Times offered to " + candidateName
+		}
+	}
+	if err := s.record(ctx, company.ID, activity, job.Title, "accent", now); err != nil {
 		return Interview{}, err
 	}
 	return viewInterview(item, job.Title), nil
+}
+
+func (s *Store) PatchInterview(ctx context.Context, companyID, id string, input InterviewUpdate, now time.Time) (Interview, error) {
+	current, err := s.people.InterviewForCompany(ctx, companyID, id)
+	if err != nil {
+		if errors.Is(err, candidate.ErrNotFound) {
+			return Interview{}, ErrNotFound
+		}
+		return Interview{}, err
+	}
+	next, attendance, _, err := applyInterviewUpdate(current, input)
+	if err != nil {
+		return Interview{}, err
+	}
+	if attendance == "" || input.Where != nil || input.MeetingURL != nil || input.ProposedSlots != nil || input.Date != nil {
+		saved, err := s.people.SaveInterviewForCompany(ctx, companyID, next)
+		if err != nil {
+			if errors.Is(err, candidate.ErrNotFound) {
+				return Interview{}, ErrNotFound
+			}
+			if errors.Is(err, candidate.ErrForbidden) {
+				return Interview{}, ErrForbidden
+			}
+			return Interview{}, err
+		}
+		current = saved
+	}
+	if attendance != "" {
+		return s.SetAttendance(ctx, companyID, id, attendance, now)
+	}
+	titles, err := s.jobTitles(ctx, companyID)
+	if err != nil {
+		return Interview{}, err
+	}
+	return viewInterview(current, titles[current.JobID]), nil
 }
 
 func (s *Store) SetAttendance(ctx context.Context, companyID, id, status string, now time.Time) (Interview, error) {
@@ -448,22 +502,34 @@ func viewInterview(item candidate.Interview, jobTitle string) Interview {
 	if name == "" {
 		name = "Candidate"
 	}
+	slots := item.ProposedSlots
+	if len(slots) == 0 {
+		slots = nil
+	}
+	selfURL := ""
+	if status == interviewAwaiting {
+		selfURL = strings.TrimSpace(item.SelfScheduleURL)
+	}
 	return Interview{
-		ID:           item.ID,
-		ApplicantID:  item.ApplicationID,
-		Candidate:    name,
-		JobID:        item.JobID,
-		JobTitle:     title,
-		Round:        item.Round,
-		Date:         item.Date,
-		Start:        item.Start,
-		End:          item.End,
-		Format:       item.Format,
-		Interviewers: names,
-		Status:       status,
-		FaceCheck:    face,
-		ChargedCents: item.ChargedCents,
-		Where:        item.Where,
+		ID:              item.ID,
+		ApplicantID:     item.ApplicationID,
+		Candidate:       name,
+		JobID:           item.JobID,
+		JobTitle:        title,
+		Round:           item.Round,
+		Date:            item.Date,
+		Start:           item.Start,
+		End:             item.End,
+		Format:          item.Format,
+		Interviewers:    names,
+		Status:          status,
+		FaceCheck:       face,
+		ChargedCents:    item.ChargedCents,
+		Where:           presentedWhere(item),
+		MeetingURL:      strings.TrimSpace(item.MeetingURL),
+		Mode:            item.ScheduleMode,
+		SelfScheduleURL: selfURL,
+		ProposedSlots:   slots,
 	}
 }
 

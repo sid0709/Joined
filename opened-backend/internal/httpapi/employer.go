@@ -304,7 +304,7 @@ func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	item, err := s.hiring.ScheduleInterview(r.Context(), *session.Company, session.User.Name, input, time.Now())
+	item, err := s.hiring.ScheduleInterview(r.Context(), *session.Company, session.User.Name, input, s.frontend, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -316,11 +316,11 @@ func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var input employer.AttendanceInput
+	var input employer.InterviewUpdate
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	item, err := s.hiring.SetAttendance(r.Context(), session.Company.ID, r.PathValue("id"), input.Status, time.Now())
+	item, err := s.hiring.PatchInterview(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
