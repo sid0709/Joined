@@ -20,8 +20,11 @@ import {
   caseDue,
   caseListQueue,
   caseListStatus,
+  caseQueueLabel,
+  caseRecordQuery,
   casesListQuery,
   casesPath,
+  isCompanyAtsReason,
   readCaseList,
   reasonCodeLabel,
   slaLabel,
@@ -33,7 +36,7 @@ import { ROUTES } from "@/lib/nav";
 import { TRUST_PAGE_SIZE, trustLoadError } from "@/lib/trust";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
-/** Reports and disputes. The cases API may 404 until Einstein locks it. */
+/** Reports, disputes, and fraud flags. A missing cases route stays on the empty state. */
 export function ModerationCaseQueue() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,9 +68,9 @@ export function ModerationCaseQueue() {
       header: "Subject",
       render: (row) => (
         <Stack gap={0.5}>
-          <Text weight="semibold">{row.subjectLabel || row.subjectId || "Untitled"}</Text>
+          <Text weight="semibold">{row.subjectId || "Untitled"}</Text>
           <Text type="supporting" color="secondary">
-            {[row.subjectType, row.subjectId].filter(Boolean).join(" · ") || row.status || "—"}
+            {row.subjectType || row.status || "—"}
           </Text>
         </Stack>
       ),
@@ -75,7 +78,12 @@ export function ModerationCaseQueue() {
     {
       key: "reason",
       header: "Reason",
-      render: (row) => <Text color="secondary">{reasonCodeLabel(row.reasonCode)}</Text>,
+      render: (row) => (
+        <Badge
+          label={reasonCodeLabel(row.reasonCode)}
+          variant={isCompanyAtsReason(row.reasonCode) ? "warning" : "neutral"}
+        />
+      ),
     },
     {
       key: "status",
@@ -93,12 +101,12 @@ export function ModerationCaseQueue() {
   ];
 
   const showTable = Boolean(list?.recognized && list.rows.length);
-  const queueLabel = queue === "disputes" ? "disputes" : "reports";
+  const queueLabel = caseQueueLabel(queue);
   return (
     <Stack gap={5}>
       <PageHeader
         title="Cases"
-        description="Reports are due in 48 hours. Disputes are due in 5 business days. A decision needs a reason."
+        description="Reports and fraud flags are due in 48 hours. Disputes are due in 5 business days. Company hiring reviews watch scam jobs, fake companies, and identity mismatches. A decision needs a reason."
       />
       <TabList
         value={queue}
@@ -121,19 +129,18 @@ export function ModerationCaseQueue() {
           columns={columns}
           rows={list?.rows ?? []}
           rowKey={(row) => row.id}
-          onRowClick={(row) => router.push(ROUTES.moderationCase(row.id))}
+          onRowClick={(row) => {
+            const query = caseRecordQuery(row);
+            router.push(`${ROUTES.moderationCase(row.id)}${query ? `?${query}` : ""}`);
+          }}
         />
       ) : (
         <TrustState
           loading={loading && !result}
           error={loading ? null : message}
           empty={!loading && !message}
-          emptyTitle={status === "open" ? `No open ${queueLabel}` : `No decided ${queueLabel}`}
-          emptyDescription={
-            status === "open"
-              ? "Nothing is waiting in this queue."
-              : "Nothing has been decided in this queue."
-          }
+          emptyTitle={`No ${status} ${queueLabel}`}
+          emptyDescription="Nothing in this queue matches that status."
         />
       )}
       {list?.recognized && list.total > 0 ? (

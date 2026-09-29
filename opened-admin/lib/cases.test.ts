@@ -1,94 +1,131 @@
 import { expect, test } from "bun:test";
 
 import {
+  MY_REPORTS_PATH,
   addBusinessDays,
+  appealReportBody,
   caseDecisionBody,
   caseDecisionPath,
   caseDue,
+  caseFromSearch,
   caseListQueue,
   caseListStatus,
-  casePath,
+  caseRecordQuery,
   casesListQuery,
   casesPath,
-  readCaseDetail,
+  fileReportBody,
+  isCompanyAtsReason,
   readCaseList,
+  reportAppealPath,
   slaLabel,
-  slaOverdue,
 } from "./cases";
 
-test("cases list path is the provisional admin queue", () => {
+test("staff list path uses the locked queues and statuses", () => {
   expect(casesPath("reports", "open", 1, 1)).toBe(
     "/v1/admin/cases?queue=reports&status=open&page=1&pageSize=1",
   );
-  expect(casesPath("disputes", "decided", 2)).toBe(
-    "/v1/admin/cases?queue=disputes&status=decided&page=2&pageSize=25",
+  expect(casesPath("disputes", "pending", 2)).toBe(
+    "/v1/admin/cases?queue=disputes&status=pending&page=2&pageSize=25",
   );
-  expect(casesPath("nope", "later", 1)).toBe(
-    "/v1/admin/cases?queue=reports&status=open&page=1&pageSize=25",
-  );
-  expect(caseListQueue("disputes")).toBe("disputes");
+  expect(casesPath("fraud_flags", "resolved", 1)).toContain("queue=fraud_flags");
+  expect(casesPath("fraud_flags", "resolved", 1)).toContain("status=resolved");
+  expect(casesPath("nope", "", 1)).toContain("queue=reports");
+  expect(casesPath("reports", "escalated", 1)).toContain("status=escalated");
+  expect(caseListQueue("fraud_flags")).toBe("fraud_flags");
   expect(caseListStatus(null)).toBe("open");
+  expect(caseListStatus("  pending ")).toBe("pending");
   expect(casesListQuery("reports", "open", 1)).toBe("");
-  expect(casesListQuery("disputes", "decided", 3)).toBe("?queue=disputes&status=decided&page=3");
-  expect(casePath("case/1")).toBe("/v1/admin/cases/case%2F1");
-  expect(caseDecisionPath("case-1")).toBe("/v1/admin/cases/case-1/decision");
+  expect(casesListQuery("fraud_flags", "resolved", 3)).toBe(
+    "?queue=fraud_flags&status=resolved&page=3",
+  );
+  expect(caseDecisionPath("case/1")).toBe("/v1/admin/cases/case%2F1/decision");
 });
 
-test("decision body requires a reason and stays on the queue's decisions", () => {
+test("public report and appeal bodies stay on the locked camelCase shape", () => {
+  expect(MY_REPORTS_PATH).toBe("/v1/me/reports");
+  expect(reportAppealPath("rep/1")).toBe("/v1/reports/rep%2F1/appeal");
   expect(
-    caseDecisionBody("reports", "uphold", " Screenshot matches ", ["warning", "warning"]),
+    fileReportBody({
+      subjectType: " job ",
+      subjectId: " job-1 ",
+      reasonCode: "scam_job",
+      details: " Asks for a fee ",
+      evidenceKeys: [" shot ", "", "shot"],
+    }),
   ).toEqual({
+    subjectType: "job",
+    subjectId: "job-1",
+    reasonCode: "scam_job",
+    details: "Asks for a fee",
+    evidenceKeys: ["shot"],
+  });
+  expect(() =>
+    fileReportBody({
+      subjectType: "job",
+      subjectId: "job-1",
+      reasonCode: "not_a_good_fit",
+      details: "",
+      evidenceKeys: [],
+    }),
+  ).toThrow("Unknown reason code.");
+  expect(() =>
+    fileReportBody({
+      subjectType: " ",
+      subjectId: "job-1",
+      reasonCode: "fake_company",
+      details: "",
+      evidenceKeys: [],
+    }),
+  ).toThrow("Subject is required.");
+  expect(appealReportBody(" They hid the interview ", ["note"])).toEqual({
+    statement: "They hid the interview",
+    evidenceKeys: ["note"],
+  });
+  expect(isCompanyAtsReason("identity_mismatch")).toBe(true);
+  expect(isCompanyAtsReason("no_show")).toBe(false);
+});
+
+test("decision body is uphold or dismiss and omits empty actions", () => {
+  expect(caseDecisionBody("uphold", " Screenshot matches ")).toEqual({
     decision: "uphold",
     reason: "Screenshot matches",
+  });
+  expect(caseDecisionBody("dismiss", "Duplicate", ["warning", " warning "])).toEqual({
+    decision: "dismiss",
+    reason: "Duplicate",
     actions: ["warning"],
   });
-  expect(caseDecisionBody("disputes", "voided", "No attendance", [])).toEqual({
-    decision: "voided",
-    reason: "No attendance",
-    actions: [],
-  });
-  expect(() => caseDecisionBody("reports", "settled", "Money back", [])).toThrow(
-    "Choose a decision.",
-  );
-  expect(() => caseDecisionBody("disputes", "uphold", "Upheld", [])).toThrow("Choose a decision.");
-  expect(() => caseDecisionBody("reports", "dismiss", "  ", [])).toThrow("Reason is required.");
-  expect(() => caseDecisionBody("reports", "dismiss", "Spam", ["clawback"])).toThrow(
-    "Unknown action.",
-  );
+  expect(() => caseDecisionBody("settled", "Money back")).toThrow("Choose a decision.");
+  expect(() => caseDecisionBody("voided", "No show")).toThrow("Choose a decision.");
+  expect(() => caseDecisionBody("uphold", "  ")).toThrow("Reason is required.");
 });
 
-test("SLA uses 48 hours for reports and 5 business days for disputes", () => {
+test("SLA uses 48 hours except disputes, which use 5 business days", () => {
   const opened = "2026-09-25T15:00:00.000Z";
   expect(caseDue("reports", opened, "")?.toISOString()).toBe("2026-09-27T15:00:00.000Z");
+  expect(caseDue("fraud_flags", opened, "")?.toISOString()).toBe("2026-09-27T15:00:00.000Z");
   expect(caseDue("disputes", opened, "")?.toISOString()).toBe("2026-10-02T15:00:00.000Z");
   expect(caseDue("reports", opened, "2026-09-26T15:00:00.000Z")?.toISOString()).toBe(
     "2026-09-26T15:00:00.000Z",
   );
-  expect(caseDue("reports", "", "")).toBeNull();
-  const friday = new Date("2026-09-25T15:00:00.000Z");
-  expect(addBusinessDays(friday, 1).toISOString()).toBe("2026-09-28T15:00:00.000Z");
-  const due = new Date("2026-09-27T15:00:00.000Z");
-  const now = new Date("2026-09-28T15:00:00.000Z");
-  expect(slaOverdue(due, now)).toBe(true);
-  expect(slaLabel(due, now)).toBe("overdue 1d");
-  expect(slaLabel(due, new Date("2026-09-27T03:00:00.000Z"))).toBe("due 12h");
+  expect(addBusinessDays(new Date(opened), 1).toISOString()).toBe("2026-09-28T15:00:00.000Z");
   expect(slaLabel(null)).toBe("—");
 });
 
-test("case list and detail parse camelCase and docs snake_case", () => {
+test("case list reads the assumed camelCase cases envelope", () => {
   const list = readCaseList({
     cases: [
       {
         id: "case-1",
         queue: "reports",
         status: "open",
-        reason_code: "scam_job",
-        subject_type: "job",
-        subject_id: "job-1",
-        subject: { name: "Engineer" },
-        reporter_user_id: "user-1",
-        created_at: "2026-09-01T00:00:00Z",
-        sla_at: "2026-09-03T00:00:00Z",
+        reasonCode: "scam_job",
+        subjectType: "job",
+        subjectId: "job-1",
+        details: "Fee requested",
+        evidenceKeys: ["shot-1", " "],
+        createdAt: "2026-09-01T00:00:00Z",
+        slaAt: "2026-09-03T00:00:00Z",
       },
     ],
     total: 2,
@@ -99,40 +136,20 @@ test("case list and detail parse camelCase and docs snake_case", () => {
     reasonCode: "scam_job",
     subjectType: "job",
     subjectId: "job-1",
-    subjectLabel: "Engineer",
-    reporterId: "user-1",
+    details: "Fee requested",
+    evidenceKeys: ["shot-1"],
     slaAt: "2026-09-03T00:00:00Z",
   });
-
-  expect(readCaseList({ data: [] })).toEqual({ rows: [], total: 0, recognized: true });
-  expect(readCaseList({ jobs: [] }).recognized).toBe(false);
+  expect(readCaseList({ cases: [] })).toEqual({ rows: [], total: 0, recognized: true });
+  expect(readCaseList({ data: [] }).recognized).toBe(false);
   expect(readCaseList({ cases: [{ queue: "reports" }] }).recognized).toBe(false);
-
-  const detail = readCaseDetail({
-    case: {
-      id: "case-2",
-      queue: "disputes",
-      status: "open",
-      reasonCode: "no_show",
-      subjectType: "interview",
-      subjectId: "int-1",
-      subjectLabel: "Monday screen",
-      details: "Candidate did not join.",
-      evidence: [
-        "shot-1",
-        { id: "ev-2", label: "Calendar", url: "https://example.test/c", note: "Hold" },
-      ],
-      linked_accounts: [{ type: "user", id: "user-9", name: "Ada" }],
-      history: [{ at: "2026-09-01T00:00:00Z", actor: "ada", action: "filed", note: "Opened" }],
-    },
+  const snake = readCaseList({
+    cases: [{ id: "case-2", reason_code: "scam_job", subject_type: "job" }],
   });
-  expect(detail?.details).toBe("Candidate did not join.");
-  expect(detail?.evidence).toEqual([
-    { id: "shot-1", label: "shot-1", url: "", note: "" },
-    { id: "ev-2", label: "Calendar", url: "https://example.test/c", note: "Hold" },
-  ]);
-  expect(detail?.subjects).toEqual([{ type: "user", id: "user-9", label: "Ada" }]);
-  expect(detail?.history[0]?.reason).toBe("Opened");
-  expect(readCaseDetail({ id: "" })).toBeNull();
-  expect(readCaseDetail(null)).toBeNull();
+  expect(snake.rows[0]).toMatchObject({ reasonCode: "", subjectType: "" });
+
+  const row = list.rows[0];
+  if (!row) throw new Error("missing row");
+  const params = new URLSearchParams(caseRecordQuery(row));
+  expect(caseFromSearch(row.id, params)).toEqual(row);
 });

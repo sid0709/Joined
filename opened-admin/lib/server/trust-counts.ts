@@ -1,4 +1,4 @@
-import { casesPath, readCaseList } from "../cases";
+import { CASE_QUEUES, casesPath, readCaseList } from "../cases";
 import {
   VERIFICATION_PENDING_COUNT_PATH,
   directJobsPath,
@@ -27,12 +27,12 @@ async function companyPending() {
   }
 }
 
-/** Open reports plus open disputes. A missing cases route leaves the badge off. */
+/** Open reports, disputes, and fraud flags. A missing cases route leaves the badge off. */
 async function openCases() {
   const totals = await Promise.all(
-    (["reports", "disputes"] as const).map(async (queue) => {
+    CASE_QUEUES.map(async (queue) => {
       try {
-        const list = readCaseList(await adminGet<unknown>(casesPath(queue, "open", 1, 1)));
+        const list = readCaseList(await adminGet<unknown>(casesPath(queue.value, "open", 1, 1)));
         return list.recognized ? list.total : null;
       } catch {
         return null;
