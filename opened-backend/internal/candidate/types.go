@@ -25,6 +25,13 @@ const (
 	StatusCompleted   = "completed"
 	StatusCancelled   = "cancelled"
 
+	// CompanyStatusAwaiting is a company-board status. The candidate list
+	// hides these rounds until a slot is locked.
+	CompanyStatusAwaiting = "awaiting"
+
+	// MaxWhereLen matches opened-frontend hydrateOptionalUrl (500 runes).
+	MaxWhereLen = 500
+
 	OutcomeAdvanced = "advanced"
 	OutcomeRejected = "rejected"
 	OutcomeWaiting  = "waiting"
@@ -170,6 +177,13 @@ type Interviewer struct {
 	Title string `json:"title" bson:"title"`
 }
 
+// ProposedSlot is one offered time while a company round is awaiting a pick.
+type ProposedSlot struct {
+	Date  string `json:"date" bson:"date"`
+	Start string `json:"start" bson:"start"`
+	End   string `json:"end" bson:"end"`
+}
+
 type PrepTask struct {
 	ID    string `json:"id" bson:"id"`
 	Label string `json:"label" bson:"label"`
@@ -201,6 +215,13 @@ type Interview struct {
 	CompanyStatus string        `json:"-" bson:"companyStatus,omitempty"`
 	ChargedCents  int           `json:"-" bson:"chargedCents,omitempty"`
 	CandidateName string        `json:"-" bson:"candidateName,omitempty"`
+	// Company schedule/join fields. Hidden from the candidate payload; the
+	// company API maps them onto CompanyInterview.
+	MeetingURL      string         `json:"-" bson:"meetingUrl,omitempty"`
+	ScheduleMode    string         `json:"-" bson:"mode,omitempty"`
+	ProposedSlots   []ProposedSlot `json:"-" bson:"proposedSlots,omitempty"`
+	SelfSchedule    bool           `json:"-" bson:"selfSchedule,omitempty"`
+	SelfScheduleURL string         `json:"-" bson:"selfScheduleUrl,omitempty"`
 }
 
 type CalendarConnection struct {

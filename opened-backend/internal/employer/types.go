@@ -72,21 +72,25 @@ type Applicant struct {
 }
 
 type Interview struct {
-	ID           string   `json:"id"`
-	ApplicantID  string   `json:"applicantId"`
-	Candidate    string   `json:"candidate"`
-	JobID        string   `json:"jobId"`
-	JobTitle     string   `json:"jobTitle"`
-	Round        string   `json:"round"`
-	Date         string   `json:"date"`
-	Start        string   `json:"start"`
-	End          string   `json:"end"`
-	Format       string   `json:"format"`
-	Interviewers []string `json:"interviewers"`
-	Status       string   `json:"status"`
-	FaceCheck    string   `json:"faceCheck"`
-	ChargedCents int      `json:"chargedCents"`
-	Where        string   `json:"where,omitempty"`
+	ID              string                   `json:"id"`
+	ApplicantID     string                   `json:"applicantId"`
+	Candidate       string                   `json:"candidate"`
+	JobID           string                   `json:"jobId"`
+	JobTitle        string                   `json:"jobTitle"`
+	Round           string                   `json:"round"`
+	Date            string                   `json:"date"`
+	Start           string                   `json:"start"`
+	End             string                   `json:"end"`
+	Format          string                   `json:"format"`
+	Interviewers    []string                 `json:"interviewers"`
+	Status          string                   `json:"status"`
+	FaceCheck       string                   `json:"faceCheck"`
+	ChargedCents    int                      `json:"chargedCents"`
+	Where           string                   `json:"where,omitempty"`
+	MeetingURL      string                   `json:"meetingUrl,omitempty"`
+	Mode            string                   `json:"mode,omitempty"`
+	SelfScheduleURL string                   `json:"selfScheduleUrl,omitempty"`
+	ProposedSlots   []candidate.ProposedSlot `json:"proposedSlots,omitempty"`
 }
 
 type Activity struct {
@@ -198,17 +202,31 @@ type StageInput struct {
 }
 
 type ScheduleInput struct {
-	ApplicationID string   `json:"applicationId"`
-	Round         string   `json:"round"`
-	Date          string   `json:"date"`
-	Start         string   `json:"start"`
-	End           string   `json:"end"`
-	Format        string   `json:"format"`
-	Interviewers  []string `json:"interviewers"`
+	ApplicationID string                   `json:"applicationId"`
+	Round         string                   `json:"round"`
+	Date          string                   `json:"date"`
+	Start         string                   `json:"start"`
+	End           string                   `json:"end"`
+	Format        string                   `json:"format"`
+	Interviewers  []string                 `json:"interviewers"`
+	Where         string                   `json:"where"`
+	MeetingURL    string                   `json:"meetingUrl"`
+	Mode          string                   `json:"mode"`
+	ProposedSlots []candidate.ProposedSlot `json:"proposedSlots"`
+	SelfSchedule  bool                     `json:"selfSchedule"`
 }
 
-type AttendanceInput struct {
-	Status string `json:"status"`
+// InterviewUpdate is PATCH /v1/company/interviews/:id.
+// Status remains attended | no-show. The other fields update join info,
+// re-offer times, or lock an awaiting round.
+type InterviewUpdate struct {
+	Status        *string                   `json:"status"`
+	Where         *string                   `json:"where"`
+	MeetingURL    *string                   `json:"meetingUrl"`
+	ProposedSlots *[]candidate.ProposedSlot `json:"proposedSlots"`
+	Date          *string                   `json:"date"`
+	Start         *string                   `json:"start"`
+	End           *string                   `json:"end"`
 }
 
 type PurchaseInput struct {
