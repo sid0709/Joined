@@ -394,6 +394,7 @@ func (s *Store) view(ctx context.Context, userID string) (Session, error) {
 		return session, nil
 	}
 	company.Role = member.Role
+	company.HiringRole = membershipFrom(member).HiringRole
 	company.IsCreator = removesCompany(createdBy, userID)
 	session.Company = &company
 	return session, nil

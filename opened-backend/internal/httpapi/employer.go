@@ -25,6 +25,8 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /v1/company/jobs/{id}", s.patchCompanyJob)
 	mux.HandleFunc("GET /v1/company/jobs/{id}/pipeline", s.getCompanyPipeline)
 	mux.HandleFunc("PUT /v1/company/jobs/{id}/pipeline", s.putCompanyPipeline)
+	mux.HandleFunc("GET /v1/company/jobs/{id}/access", s.getJobAccess)
+	mux.HandleFunc("PUT /v1/company/jobs/{id}/access", s.putJobAccess)
 	mux.HandleFunc("GET /v1/company/applicants", s.getCompanyApplicants)
 	mux.HandleFunc("PATCH /v1/company/applicants/{id}", s.patchCompanyApplicant)
 	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/approvals", s.postOfferApproval)
@@ -39,6 +41,7 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/company/billing", s.getCompanyBilling)
 	mux.HandleFunc("POST /v1/company/billing/purchase", s.postCompanyPurchase)
 	mux.HandleFunc("GET /v1/company/team", s.getCompanyTeam)
+	mux.HandleFunc("GET /v1/company/team/audit", s.getCompanyAudit)
 	mux.HandleFunc("POST /v1/company/team", s.postCompanyTeam)
 	mux.HandleFunc("PATCH /v1/company/team/{id}", s.patchCompanyTeam)
 	mux.HandleFunc("DELETE /v1/company/team/{id}", s.deleteCompanyTeam)
@@ -63,6 +66,22 @@ func (s *Server) company(w http.ResponseWriter, r *http.Request) (auth.Session, 
 	return s.requireCompany(w, r)
 }
 
+func (s *Server) hiringActor(w http.ResponseWriter, r *http.Request) (auth.Session, employer.Actor, bool) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return auth.Session{}, employer.Actor{}, false
+	}
+	return session, employer.Actor{
+		ID:   session.User.ID,
+		Name: session.User.Name,
+		Role: employer.ActorRole(*session.Company),
+	}, true
+}
+
+func (s *Server) requirePerm(w http.ResponseWriter, actor employer.Actor, permission string) bool {
+	return writeEmployer(w, employer.AuthorizeCompany(actor.Role, permission))
+}
+
 // companyCreator is the person who owns the company page. Linked recruiters run hiring only.
 func (s *Server) companyCreator(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
 	session, ok := s.company(w, r)
@@ -76,13 +95,23 @@ func (s *Server) companyCreator(w http.ResponseWriter, r *http.Request) (auth.Se
 }
 
 func (s *Server) getCompanyOverview(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
 	overview, err := s.hiring.Overview(r.Context(), session.Company.ID)
 	if !writeEmployer(w, err) {
 		return
+	}
+	idx, err := s.hiring.Access(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	overview.Jobs = idx.FilterJobs(actor.ID, actor.Role, overview.Jobs)
+	overview.Applicants = idx.FilterApplicants(actor.ID, actor.Role, overview.Applicants)
+	overview.Interviews = idx.FilterInterviews(actor.ID, actor.Role, overview.Interviews)
+	if !employer.Can(actor.Role, employer.PermBillingView) {
+		overview.Billing = employer.EmptyBilling()
 	}
 	writeJSON(w, http.StatusOK, overview)
 }
@@ -100,25 +129,38 @@ func (s *Server) getCompanyCounts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyJobs(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	idx, err := s.hiring.Access(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	if !idx.CompanyOrGrant(actor.ID, actor.Role, employer.PermJobsView) {
+		writeEmployer(w, employer.Forbidden("Missing permission: "+employer.PermJobsView))
 		return
 	}
 	items, err := s.hiring.ListJobs(r.Context(), session.Company.ID)
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"jobs": items})
+	writeJSON(w, http.StatusOK, map[string]any{"jobs": idx.FilterJobs(actor.ID, actor.Role, items)})
 }
 
 func (s *Server) postCompanyJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
 	var input employer.JobInput
 	if !decodeBody(w, r, &input) {
 		return
+	}
+	for _, permission := range employer.JobCreatePermissions(input.Status) {
+		if !s.requirePerm(w, actor, permission) {
+			return
+		}
 	}
 	job, err := s.hiring.CreateJob(r.Context(), *session.Company, session.User.ID, input, time.Now())
 	if !writeEmployer(w, err) {
@@ -128,8 +170,11 @@ func (s *Server) postCompanyJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeJob(r.Context(), session.Company.ID, actor, r.PathValue("id"), employer.PermJobsView); !writeEmployer(w, err) {
 		return
 	}
 	job, err := s.hiring.GetJob(r.Context(), session.Company.ID, r.PathValue("id"))
@@ -140,12 +185,15 @@ func (s *Server) getCompanyJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putCompanyJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
 	var input employer.JobInput
 	if !decodeBody(w, r, &input) {
+		return
+	}
+	if err := s.hiring.AuthorizeJobUpdate(r.Context(), session.Company.ID, actor, r.PathValue("id"), input.Status); !writeEmployer(w, err) {
 		return
 	}
 	job, err := s.hiring.UpdateJob(r.Context(), *session.Company, session.User.ID, r.PathValue("id"), input, time.Now())
@@ -156,8 +204,11 @@ func (s *Server) putCompanyJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) parseCompanyJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsEdit) {
 		return
 	}
 	var input struct {
@@ -186,8 +237,11 @@ func (s *Server) parseCompanyJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyPipeline(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeJob(r.Context(), session.Company.ID, actor, r.PathValue("id"), employer.PermJobsView); !writeEmployer(w, err) {
 		return
 	}
 	cfg, err := s.hiring.GetPipeline(r.Context(), session.Company.ID, r.PathValue("id"))
@@ -198,8 +252,11 @@ func (s *Server) getCompanyPipeline(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putCompanyPipeline(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeJob(r.Context(), session.Company.ID, actor, r.PathValue("id"), employer.PermJobsEdit); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.PipelinePut
@@ -214,8 +271,11 @@ func (s *Server) putCompanyPipeline(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeJob(r.Context(), session.Company.ID, actor, r.PathValue("id"), employer.PermJobsPublish); !writeEmployer(w, err) {
 		return
 	}
 	var input struct {
@@ -232,19 +292,27 @@ func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyApplicants(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	idx, err := s.hiring.Access(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	if !idx.CompanyOrGrant(actor.ID, actor.Role, employer.PermApplicantsView) {
+		writeEmployer(w, employer.Forbidden("Missing permission: "+employer.PermApplicantsView))
 		return
 	}
 	items, err := s.hiring.Applicants(r.Context(), session.Company.ID)
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"applicants": items})
+	writeJSON(w, http.StatusOK, map[string]any{"applicants": idx.FilterApplicants(actor.ID, actor.Role, items)})
 }
 
 func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
@@ -252,7 +320,14 @@ func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	person, err := s.hiring.MoveApplicant(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	permissions, err := employer.MutationPermissions(input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, permissions...); !writeEmployer(w, err) {
+		return
+	}
+	person, err := s.hiring.MoveApplicant(r.Context(), session.Company.ID, r.PathValue("id"), input, actor, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -260,15 +335,18 @@ func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postOfferApproval(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersDraft); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.ApprovalRequest
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	item, err := s.hiring.RequestOfferApproval(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	item, err := s.hiring.RequestOfferApproval(r.Context(), session.Company.ID, r.PathValue("id"), input, actor, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -276,15 +354,18 @@ func (s *Server) postOfferApproval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchOfferApproval(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersApprove); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.ApprovalDecision
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	item, err := s.hiring.DecideOfferApproval(r.Context(), session.Company.ID, r.PathValue("id"), r.PathValue("approvalId"), session.User.ID, input, time.Now())
+	item, err := s.hiring.DecideOfferApproval(r.Context(), session.Company.ID, r.PathValue("id"), r.PathValue("approvalId"), input, actor, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -292,15 +373,18 @@ func (s *Server) patchOfferApproval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postOfferEsign(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersSend); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.EsignInput
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	item, err := s.hiring.CreateOfferEsign(r.Context(), session.Company.ID, r.PathValue("id"), s.frontend, input, time.Now())
+	item, err := s.hiring.CreateOfferEsign(r.Context(), session.Company.ID, r.PathValue("id"), s.frontend, input, actor, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -308,15 +392,18 @@ func (s *Server) postOfferEsign(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermOffersHire); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.HirePacketInput
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	item, err := s.hiring.CreateHirePacket(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	item, err := s.hiring.CreateHirePacket(r.Context(), session.Company.ID, r.PathValue("id"), input, actor, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -324,8 +411,11 @@ func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicantAny(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermApplicantsView, employer.PermInterviewsScore); !writeEmployer(w, err) {
 		return
 	}
 	items, err := s.hiring.ListScorecards(r.Context(), session.Company.ID, r.PathValue("id"))
@@ -336,8 +426,11 @@ func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) postApplicantScorecard(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermInterviewsScore); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.ScorecardInput
@@ -352,24 +445,39 @@ func (s *Server) postApplicantScorecard(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) getCompanyInterviews(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	idx, err := s.hiring.Access(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	if !idx.CompanyOrGrantAny(actor.ID, actor.Role, employer.PermInterviewsSchedule, employer.PermInterviewsScore) {
+		writeEmployer(w, employer.Forbidden("Missing permission: "+employer.PermInterviewsSchedule))
 		return
 	}
 	items, err := s.hiring.Interviews(r.Context(), session.Company.ID)
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"interviews": items})
+	writeJSON(w, http.StatusOK, map[string]any{"interviews": idx.FilterInterviews(actor.ID, actor.Role, items)})
 }
 
 func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
 	var input employer.ScheduleInput
 	if !decodeBody(w, r, &input) {
+		return
+	}
+	if input.ApplicationID == "" {
+		if !s.requirePerm(w, actor, employer.PermInterviewsSchedule) {
+			return
+		}
+	} else if err := s.hiring.AuthorizeApplicant(r.Context(), session.Company.ID, input.ApplicationID, actor, employer.PermInterviewsSchedule); !writeEmployer(w, err) {
 		return
 	}
 	item, err := s.hiring.ScheduleInterview(r.Context(), *session.Company, session.User.Name, input, s.frontend, time.Now())
@@ -380,8 +488,11 @@ func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if err := s.hiring.AuthorizeInterview(r.Context(), session.Company.ID, r.PathValue("id"), actor, employer.PermInterviewsSchedule); !writeEmployer(w, err) {
 		return
 	}
 	var input employer.InterviewUpdate
@@ -396,8 +507,11 @@ func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermBillingView) {
 		return
 	}
 	billing, err := s.hiring.Billing(r.Context(), session.Company.ID)
@@ -408,15 +522,18 @@ func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermBillingPurchase) {
 		return
 	}
 	var input employer.PurchaseInput
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	billing, err := s.hiring.Purchase(r.Context(), session.Company.ID, input.AmountCents, time.Now())
+	billing, err := s.hiring.Purchase(r.Context(), session.Company.ID, input.AmountCents, actor, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -424,7 +541,7 @@ func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, _, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
@@ -436,7 +553,7 @@ func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
@@ -444,7 +561,7 @@ func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	team, err := s.hiring.Invite(r.Context(), *session.Company, session.User.ID, input, time.Now())
+	team, err := s.hiring.Invite(r.Context(), *session.Company, actor, input, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -452,7 +569,7 @@ func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
@@ -460,7 +577,7 @@ func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	err := s.hiring.SetRole(r.Context(), session.Company.ID, session.User.ID, r.PathValue("id"), input.Role)
+	err := s.hiring.SetRole(r.Context(), session.Company.ID, actor, r.PathValue("id"), input.Role, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -468,11 +585,11 @@ func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
 		return
 	}
-	err := s.hiring.RemoveTeammate(r.Context(), session.Company.ID, session.User.ID, r.PathValue("id"))
+	err := s.hiring.RemoveTeammate(r.Context(), session.Company.ID, actor, r.PathValue("id"), time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -496,8 +613,11 @@ func (s *Server) postCompanyTransfer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermTeamManageRoles) {
 		return
 	}
 	settings, err := s.hiring.Settings(r.Context(), *session.Company)
@@ -508,8 +628,11 @@ func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermTeamManageRoles) {
 		return
 	}
 	var input employer.Settings
@@ -524,8 +647,11 @@ func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsView) {
 		return
 	}
 	teams, err := s.hiring.JobTeams(r.Context(), session.Company.ID)
@@ -536,8 +662,11 @@ func (s *Server) getCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.companyCreator(w, r)
+	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsEdit) {
 		return
 	}
 	var input employer.JobTeamsWrite
@@ -601,6 +730,53 @@ func (s *Server) deleteCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, err := s.hiring.ClearLogo(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) getJobAccess(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	view, err := s.hiring.GetJobAccess(r.Context(), session.Company.ID, actor, r.PathValue("id"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
+}
+
+func (s *Server) putJobAccess(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	var input employer.JobAccessView
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	view, err := s.hiring.SaveJobAccess(r.Context(), session.Company.ID, actor, r.PathValue("id"), input.Assignments, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
+}
+
+func (s *Server) getCompanyAudit(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermAuditView) {
+		return
+	}
+	limit, err := employer.ParseAuditLimit(r.URL.Query().Get("limit"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	page, err := s.hiring.ListAudit(r.Context(), session.Company.ID, r.URL.Query().Get("cursor"), limit)
 	if !writeEmployer(w, err) {
 		return
 	}

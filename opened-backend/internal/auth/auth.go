@@ -94,12 +94,13 @@ type User struct {
 }
 
 type Company struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	URL       string `json:"url,omitempty"`
-	Logo      string `json:"logo,omitempty"`
-	Role      string `json:"role"`
-	IsCreator bool   `json:"isCreator,omitempty"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	URL        string `json:"url,omitempty"`
+	Logo       string `json:"logo,omitempty"`
+	Role       string `json:"role"`
+	HiringRole string `json:"hiringRole,omitempty"`
+	IsCreator  bool   `json:"isCreator,omitempty"`
 }
 
 type Session struct {

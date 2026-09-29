@@ -58,9 +58,13 @@ func (s *Store) Team(ctx context.Context, company auth.Company, userID string) (
 	return Team{Members: out, EmailDomain: emailDomain(company.URL)}, nil
 }
 
-func (s *Store) Invite(ctx context.Context, company auth.Company, actorID string, input InviteInput, now time.Time) (Team, error) {
+func (s *Store) Invite(ctx context.Context, company auth.Company, actor Actor, input InviteInput, now time.Time) (Team, error) {
+	role, err := NormalizeInviteRole(actor.Role, input.Role)
+	if err != nil {
+		return Team{}, err
+	}
 	email := strings.ToLower(strings.TrimSpace(input.Email))
-	if !strings.Contains(email, "@") || !validTeamRole(input.Role) {
+	if !strings.Contains(email, "@") {
 		return Team{}, ErrInvalidInput
 	}
 	domain := emailDomain(company.URL)
@@ -82,10 +86,13 @@ func (s *Store) Invite(ctx context.Context, company auth.Company, actorID string
 		if !errors.Is(memberErr, auth.ErrNotFound) {
 			return Team{}, memberErr
 		}
-		if err := s.accounts.AddMember(ctx, user.ID, company.ID, input.Role, now); err != nil {
+		if err := s.accounts.AddMember(ctx, user.ID, company.ID, role, now); err != nil {
 			return Team{}, err
 		}
-		return s.Team(ctx, company, actorID)
+		if err := s.auditMembership(ctx, company.ID, actor, AuditMemberInvited, user.ID, email, "Invited "+email+" as "+role, "", role, now); err != nil {
+			return Team{}, err
+		}
+		return s.Team(ctx, company, actor.ID)
 	}
 	if !errors.Is(err, auth.ErrNotFound) {
 		return Team{}, err
@@ -95,7 +102,7 @@ func (s *Store) Invite(ctx context.Context, company auth.Company, actorID string
 		return Team{}, err
 	}
 	_, err = s.collection(invitesCollection).InsertOne(ctx, storedInvite{
-		ID: id, CompanyID: company.ID, Email: email, Role: input.Role, CreatedAt: now.UTC(),
+		ID: id, CompanyID: company.ID, Email: email, Role: role, CreatedAt: now.UTC(),
 	})
 	if mongo.IsDuplicateKeyError(err) {
 		return Team{}, ErrConflict
@@ -103,47 +110,64 @@ func (s *Store) Invite(ctx context.Context, company auth.Company, actorID string
 	if err != nil {
 		return Team{}, err
 	}
-	return s.Team(ctx, company, actorID)
+	if err := s.auditMembership(ctx, company.ID, actor, AuditMemberInvited, id, email, "Invited "+email+" as "+role, "", role, now); err != nil {
+		return Team{}, err
+	}
+	return s.Team(ctx, company, actor.ID)
 }
 
-func (s *Store) SetRole(ctx context.Context, companyID, actorID, memberID, role string) error {
-	if memberID == actorID || !validTeamRole(role) {
-		return ErrInvalidInput
-	}
-	updated, err := s.collection(invitesCollection).UpdateOne(ctx, bson.D{{Key: "id", Value: memberID}, {Key: "companyId", Value: companyID}}, bson.D{{Key: "$set", Value: bson.D{{Key: "role", Value: role}}}})
+func (s *Store) SetRole(ctx context.Context, companyID string, actor Actor, memberID, role string, now time.Time) error {
+	current, label, pending, err := s.lookupTeammate(ctx, companyID, memberID)
 	if err != nil {
 		return err
 	}
-	if updated.MatchedCount > 0 {
+	next, err := NormalizeMemberRole(actor.Role, current, memberID == actor.ID, role)
+	if err != nil {
+		return err
+	}
+	if next == current {
 		return nil
 	}
-	if err := s.accounts.SetHiringRole(ctx, companyID, memberID, role); err != nil {
+	if pending {
+		updated, err := s.collection(invitesCollection).UpdateOne(ctx, bson.D{{Key: "id", Value: memberID}, {Key: "companyId", Value: companyID}}, bson.D{{Key: "$set", Value: bson.D{{Key: "role", Value: next}}}})
+		if err != nil {
+			return err
+		}
+		if updated.MatchedCount == 0 {
+			return ErrInvalidInput
+		}
+	} else if err := s.accounts.SetHiringRole(ctx, companyID, memberID, next); err != nil {
 		if errors.Is(err, auth.ErrInvalidInput) || errors.Is(err, auth.ErrNotFound) {
 			return ErrInvalidInput
 		}
 		return err
 	}
-	return nil
+	return s.auditMembership(ctx, companyID, actor, AuditRoleChanged, memberID, label, "Changed role from "+current+" to "+next, current, next, now)
 }
 
-func (s *Store) RemoveTeammate(ctx context.Context, companyID, actorID, memberID string) error {
-	if memberID == actorID {
-		return ErrInvalidInput
-	}
-	result, err := s.collection(invitesCollection).DeleteOne(ctx, bson.D{{Key: "id", Value: memberID}, {Key: "companyId", Value: companyID}})
+func (s *Store) RemoveTeammate(ctx context.Context, companyID string, actor Actor, memberID string, now time.Time) error {
+	current, label, pending, err := s.lookupTeammate(ctx, companyID, memberID)
 	if err != nil {
 		return err
 	}
-	if result.DeletedCount > 0 {
-		return nil
+	if err := AuthorizeRemove(actor.Role, current, memberID == actor.ID); err != nil {
+		return err
 	}
-	if err := s.accounts.RemoveMember(ctx, companyID, memberID); err != nil {
+	if pending {
+		result, err := s.collection(invitesCollection).DeleteOne(ctx, bson.D{{Key: "id", Value: memberID}, {Key: "companyId", Value: companyID}})
+		if err != nil {
+			return err
+		}
+		if result.DeletedCount == 0 {
+			return ErrInvalidInput
+		}
+	} else if err := s.accounts.RemoveMember(ctx, companyID, memberID); err != nil {
 		if errors.Is(err, auth.ErrInvalidInput) || errors.Is(err, auth.ErrNotFound) {
 			return ErrInvalidInput
 		}
 		return err
 	}
-	return nil
+	return s.auditMembership(ctx, companyID, actor, AuditMemberRemoved, memberID, label, "Removed "+labelOr(label, memberID), current, "", now)
 }
 
 func (s *Store) Transfer(ctx context.Context, companyID, fromUser, toUser string) error {
@@ -169,13 +193,58 @@ func (s *Store) invites(ctx context.Context, companyID string) ([]storedInvite, 
 	return docs, nil
 }
 
-func validTeamRole(role string) bool {
-	switch role {
-	case "admin", "recruiter", "viewer":
-		return true
-	default:
-		return false
+func (s *Store) lookupTeammate(ctx context.Context, companyID, memberID string) (role, label string, pending bool, err error) {
+	var invite storedInvite
+	err = s.collection(invitesCollection).FindOne(ctx, bson.D{{Key: "id", Value: memberID}, {Key: "companyId", Value: companyID}}).Decode(&invite)
+	if err == nil {
+		return invite.Role, invite.Email, true, nil
 	}
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return "", "", false, err
+	}
+	member, err := s.accounts.MembershipOf(ctx, memberID)
+	if errors.Is(err, auth.ErrNotFound) {
+		return "", "", false, ErrInvalidInput
+	}
+	if err != nil {
+		return "", "", false, err
+	}
+	if member.CompanyID != companyID {
+		return "", "", false, ErrInvalidInput
+	}
+	users, err := s.accounts.Users(ctx, []string{memberID})
+	if err != nil {
+		return "", "", false, err
+	}
+	label = users[memberID].Email
+	if label == "" {
+		label = users[memberID].Name
+	}
+	return member.HiringRole, label, false, nil
+}
+
+func (s *Store) auditMembership(ctx context.Context, companyID string, actor Actor, action, subjectID, label, summary, beforeRole, afterRole string, now time.Time) error {
+	event := AuditEvent{
+		Action:       action,
+		SubjectType:  subjectMember,
+		SubjectID:    subjectID,
+		SubjectLabel: label,
+		Summary:      summary,
+	}
+	if beforeRole != "" {
+		event.Before = map[string]any{"role": beforeRole}
+	}
+	if afterRole != "" {
+		event.After = map[string]any{"role": afterRole}
+	}
+	return s.writeAudit(ctx, companyID, actor, event, now)
+}
+
+func labelOr(label, fallback string) string {
+	if strings.TrimSpace(label) == "" {
+		return fallback
+	}
+	return label
 }
 
 func emailDomain(raw string) string {

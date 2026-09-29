@@ -31,7 +31,7 @@ func (s *Store) Billing(ctx context.Context, companyID string) (Billing, error) 
 	}, nil
 }
 
-func (s *Store) Purchase(ctx context.Context, companyID string, amountCents int, now time.Time) (Billing, error) {
+func (s *Store) Purchase(ctx context.Context, companyID string, amountCents int, actor Actor, now time.Time) (Billing, error) {
 	if err := validatePurchase(amountCents); err != nil {
 		return Billing{}, err
 	}
@@ -50,6 +50,15 @@ func (s *Store) Purchase(ctx context.Context, companyID string, amountCents int,
 		return Billing{}, err
 	}
 	if err := s.record(ctx, companyID, "Purchase added", "Balance updated", "success", now); err != nil {
+		return Billing{}, err
+	}
+	if err := s.writeAudit(ctx, companyID, actor, AuditEvent{
+		Action:      AuditBillingPurchased,
+		SubjectType: subjectBilling,
+		SubjectID:   companyID,
+		Summary:     "Purchased balance",
+		After:       map[string]any{"amountCents": amountCents},
+	}, now); err != nil {
 		return Billing{}, err
 	}
 	return s.Billing(ctx, companyID)

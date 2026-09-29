@@ -59,6 +59,9 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		{settingsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{profilesCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{scorecardsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "applicantId", Value: 1}, {Key: "submittedAt", Value: -1}}}},
+		{auditCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "at", Value: -1}, {Key: "id", Value: -1}}}},
+		{auditCollection, mongo.IndexModel{Keys: bson.D{{Key: "id", Value: 1}}, Options: options.Index().SetUnique(true)}},
+		{jobAccessCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "jobId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 	}
 	for _, index := range indexes {
 		if _, err := s.collection(index.name).Indexes().CreateOne(ctx, index.model); err != nil {
@@ -74,7 +77,7 @@ func (s *Store) DeleteCompany(ctx context.Context, companyID string) error {
 		return nil
 	}
 	filter := bson.D{{Key: "companyId", Value: companyID}}
-	for _, name := range []string{jobsCollection, jobTeamsCollection, walletsCollection, ledgerCollection, activityCollection, invitesCollection, settingsCollection, scorecardsCollection} {
+	for _, name := range []string{jobsCollection, jobTeamsCollection, walletsCollection, ledgerCollection, activityCollection, invitesCollection, settingsCollection, scorecardsCollection, auditCollection, jobAccessCollection} {
 		if _, err := s.collection(name).DeleteMany(ctx, filter); err != nil {
 			return err
 		}

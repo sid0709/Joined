@@ -44,7 +44,7 @@ func (s *Store) Applicants(ctx context.Context, companyID string) ([]Applicant, 
 	return s.presentApplicants(ctx, companyID, apps)
 }
 
-func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input StageInput, now time.Time) (Applicant, error) {
+func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input StageInput, actor Actor, now time.Time) (Applicant, error) {
 	app, err := s.people.ApplicationForCompany(ctx, companyID, id)
 	if errors.Is(err, candidate.ErrNotFound) {
 		return Applicant{}, ErrNotFound
@@ -109,6 +109,10 @@ func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input S
 		notePtr = &notes
 	}
 	fromColumn := companyStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
+	prevOfferStatus := ""
+	if app.Offer != nil {
+		prevOfferStatus = app.Offer.Status
+	}
 	offer, writeOffer, err := mergeApplicantOffer(app.Offer, input.Offer, input.ColumnID, fromColumn, doc.OfferTemplates, now)
 	if err != nil {
 		return Applicant{}, err
@@ -132,7 +136,61 @@ func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input S
 	if err != nil || len(people) == 0 {
 		return Applicant{}, err
 	}
+	if err := s.auditApplicantChange(ctx, companyID, actor, people[0], fromColumn, input.ColumnID, prevOfferStatus, offer, writeOffer, now); err != nil {
+		return Applicant{}, err
+	}
 	return people[0], nil
+}
+
+func (s *Store) auditApplicantChange(ctx context.Context, companyID string, actor Actor, person Applicant, fromColumn, toColumn, prevOfferStatus string, offer *candidate.OfferRecord, writeOffer bool, now time.Time) error {
+	if toColumn != "" && toColumn != fromColumn {
+		action := AuditStageMoved
+		summary := "Moved applicant to " + toColumn
+		if toColumn == stageHired {
+			action = AuditHireMarked
+			summary = "Marked hired"
+		}
+		if err := s.writeAudit(ctx, companyID, actor, AuditEvent{
+			Action:       action,
+			SubjectType:  subjectApplicant,
+			SubjectID:    person.ID,
+			SubjectLabel: person.Name,
+			Summary:      summary,
+			Before:       map[string]any{"columnId": fromColumn},
+			After:        map[string]any{"columnId": toColumn},
+		}, now); err != nil {
+			return err
+		}
+	}
+	if !writeOffer || offer == nil {
+		return nil
+	}
+	action := offerAuditAction(offer.Status)
+	if action == AuditHireMarked && toColumn == stageHired {
+		return nil
+	}
+	summary := "Updated offer"
+	switch action {
+	case AuditOfferSent:
+		summary = "Sent offer"
+	case AuditOfferApproved:
+		summary = "Approved offer"
+	case AuditHireMarked:
+		summary = "Marked hired"
+	}
+	before := map[string]any{}
+	if prevOfferStatus != "" {
+		before["status"] = prevOfferStatus
+	}
+	return s.writeAudit(ctx, companyID, actor, AuditEvent{
+		Action:       action,
+		SubjectType:  subjectOffer,
+		SubjectID:    person.ID,
+		SubjectLabel: person.Name,
+		Summary:      summary,
+		Before:       before,
+		After:        map[string]any{"status": offer.Status},
+	}, now)
 }
 
 func (s *Store) Interviews(ctx context.Context, companyID string) ([]Interview, error) {

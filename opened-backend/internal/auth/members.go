@@ -11,9 +11,12 @@ import (
 )
 
 const (
-	hiringAdmin     = "admin"
-	hiringRecruiter = "recruiter"
-	hiringViewer    = "viewer"
+	hiringAdmin       = "admin"
+	hiringRecruiter   = "recruiter"
+	hiringViewer      = "viewer"
+	hiringManager     = "hiring_manager"
+	hiringInterviewer = "interviewer"
+	hiringFinance     = "finance"
 )
 
 // UserByEmail finds an account by its sign-in email.
@@ -166,9 +169,12 @@ func membershipFrom(doc storedMember) Membership {
 	}
 }
 
+// validHiringRole is the company hiring role stored on a membership.
+// Owner stays on the creator row and is not assigned here.
+// viewer remains so legacy rows can be rewritten; invite/role-change rejects it.
 func validHiringRole(role string) bool {
 	switch role {
-	case hiringAdmin, hiringRecruiter, hiringViewer:
+	case hiringAdmin, hiringRecruiter, hiringViewer, hiringManager, hiringInterviewer, hiringFinance:
 		return true
 	default:
 		return false
