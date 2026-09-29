@@ -11,7 +11,7 @@ A **bun workspaces monorepo**:
 | Workspace                 | What it is                                         | Run it                                       |
 | ------------------------- | -------------------------------------------------- | -------------------------------------------- |
 | `opened-frontend`         | Opened job platform — candidate and employer modes | `bun run dev:opened` → http://localhost:3002 |
-| `openseat-frontend`       | OpenSeat web app                                   | `bun run dev:app` → http://localhost:3000    |
+| `connected-frontend`      | OpenSeat web app                                   | `bun run dev:app` → http://localhost:3000    |
 | `openseat-theme`          | Design-system showcase                             | `bun run dev:theme` → http://localhost:3001  |
 | `@openseat/design-system` | Shared UI package (`packages/design-system`)       | used by every app                            |
 
@@ -48,5 +48,7 @@ See [Command.md → Dependencies](Command.md#2-dependencies-one-version-one-node
 - **No hardcoding** — colors, spacing, and type come from design tokens; URLs and flags from config.
 - **Shared code goes in `packages/*`**, never copied between apps.
 - **Conventional Commits** — enforced by the `commit-msg` hook.
+
+Day-to-day rules (coding, running, checks, tests, commits, pull requests): [`guide.md`](guide.md).
 
 Details: [`CLAUDE.md`](.claude/CLAUDE.md), [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md), [`docs/CODING_STYLE.md`](docs/CODING_STYLE.md).

@@ -19,7 +19,8 @@ import {
   type GlyphName,
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { APPLICANTS, COMPANY_JOBS, COMPANY_UNREAD_MESSAGES, WORKSPACE } from "@/lib/company";
+import { APPLICANTS, COMPANY_JOBS } from "@/lib/company";
+import type { AuthCompany } from "@/lib/auth/types";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_APPLICANTS_PAGE,
@@ -48,7 +49,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
       { ...COMPANY_JOBS_PAGE, icon: "folder", count: OPEN_JOBS },
       { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: NEW_APPLICANTS },
       { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
-      { ...COMPANY_MESSAGES_PAGE, icon: "mail", count: COMPANY_UNREAD_MESSAGES },
+      { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
     ],
   },
   {
@@ -64,17 +65,29 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
 
 const LINKS = GROUPS.flatMap((group) => group.links);
 
-/** The deepest link that contains the path — /company/jobs/new still lights up Jobs. */
+/**
+ * The deepest link that contains the path — /company/jobs/new still lights up Jobs.
+ * Overview only matches itself, so your own pages (My profile, Account settings)
+ * light up nothing instead of pretending to be the company overview.
+ */
 function activeHref(pathname: string) {
   return LINKS.filter(
-    (link) => pathname === link.href || pathname.startsWith(`${link.href}/`),
+    (link) =>
+      pathname === link.href ||
+      (link.href !== ROUTES.company && pathname.startsWith(`${link.href}/`)),
   ).sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
 /** The company workspace switcher: who you’re hiring for, and where you can go. */
-export function CompanyNav() {
+export function CompanyNav({ company, unread = 0 }: { company: AuthCompany; unread?: number }) {
   const pathname = usePathname();
-  const active = activeHref(pathname) ?? ROUTES.company;
+  const active = activeHref(pathname);
+  const groups = GROUPS.map((group) => ({
+    ...group,
+    links: group.links.map((link) =>
+      link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
+    ),
+  }));
 
   return (
     <>
@@ -83,12 +96,14 @@ export function CompanyNav() {
           <SideNav
             header={
               <HStack gap={3} vAlign="center">
-                <CompanyLogo name={WORKSPACE.name} size={LOGO_SIZE} />
+                <CompanyLogo
+                  name={company.name}
+                  src={company.logo}
+                  companyId={company.id}
+                  size={LOGO_SIZE}
+                />
                 <Stack gap={0.5}>
-                  <HStack gap={1.5} vAlign="center">
-                    <Text weight="semibold">{WORKSPACE.name}</Text>
-                    {WORKSPACE.verified ? <Badge label="Verified" variant="blue" /> : null}
-                  </HStack>
+                  <Text weight="semibold">{company.name}</Text>
                   <Text type="supporting" color="secondary">
                     Hiring workspace
                   </Text>
@@ -96,7 +111,7 @@ export function CompanyNav() {
               </HStack>
             }
           >
-            {GROUPS.map((group) => (
+            {groups.map((group) => (
               <SideNavSection key={group.title} title={group.title}>
                 {group.links.map((link) => (
                   <SideNavItem
@@ -118,7 +133,7 @@ export function CompanyNav() {
         </Sticky>
       </Show>
       <Hide from="lg">
-        <TabList value={active} onChange={() => {}} overflow="scroll" hasDivider>
+        <TabList value={active ?? ""} onChange={() => {}} overflow="scroll" hasDivider>
           {LINKS.map((link) => (
             <Tab key={link.href} value={link.href} label={link.label} href={link.href} />
           ))}

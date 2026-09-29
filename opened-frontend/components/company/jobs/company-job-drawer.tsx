@@ -24,6 +24,7 @@ import { formatShortDate } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 import { PipelineBar } from "../pipeline-bar";
 import type { JobAction } from "./company-job-table";
+import { CandidateViewButton } from "@/components/company/candidate-view-button";
 
 const TOP_CANDIDATES = 3;
 const PERSON_SIZE = 32;
@@ -63,7 +64,7 @@ export function CompanyJobDrawer({
           )}
           <HStack gap={2}>
             {job.jobId ? (
-              <Button label="View posting" variant="secondary" href={ROUTES.job(job.jobId)} />
+              <CandidateViewButton label="View posting" href={ROUTES.job(job.jobId)} />
             ) : null}
             <Button label="Review applicants" variant="primary" href={ROUTES.companyApplicants} />
           </HStack>

@@ -53,3 +53,8 @@ export function formatTime(time: string) {
     minute: "2-digit",
   });
 }
+
+/** The current time as a message timestamp — "3:07 PM". */
+export function formatClock(date: Date) {
+  return date.toLocaleTimeString(LOCALE, { hour: "numeric", minute: "2-digit" });
+}

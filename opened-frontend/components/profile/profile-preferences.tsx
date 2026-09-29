@@ -24,10 +24,12 @@ import {
   SALARY_STEP,
   WORKPLACE_OPTIONS,
   formatSalary,
+  normalizeProfile,
   type Profile,
   type Workplace,
 } from "@/lib/profile";
 import { SectionCard } from "@/components/section-card";
+import { saveProfile } from "@/lib/me/pipeline";
 
 const FIELD_MIN_WIDTH = 240;
 
@@ -40,7 +42,13 @@ type Preferences = Pick<
 >;
 
 /** What you want next: roles, places, pay, and eligibility. */
-export function ProfilePreferences({ profile }: { profile: Profile }) {
+export function ProfilePreferences({
+  profile,
+  onSaved,
+}: {
+  profile: Profile;
+  onSaved: (profile: Profile) => void;
+}) {
   const toast = useToast();
   const roleSource = useMemo(() => createStaticSource(toItems(ROLE_SUGGESTIONS)), []);
   const locationSource = useMemo(() => createStaticSource(toItems(LOCATION_SUGGESTIONS)), []);
@@ -76,7 +84,20 @@ export function ProfilePreferences({ profile }: { profile: Profile }) {
             <Button
               label="Save preferences"
               variant="primary"
-              onClick={() => toast({ body: "Preferences saved" })}
+              clickAction={async () => {
+                const next = normalizeProfile(
+                  await saveProfile({
+                    targetRoles: roles.map((item) => item.label),
+                    locations: locations.map((item) => item.label),
+                    workplace,
+                    salaryFloor: salary,
+                    authorization,
+                    noticePeriod: notice,
+                  }),
+                );
+                onSaved(next);
+                toast({ body: "Preferences saved" });
+              }}
             />
           </HStack>
         </HStack>

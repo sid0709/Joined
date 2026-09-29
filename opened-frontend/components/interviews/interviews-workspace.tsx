@@ -22,14 +22,16 @@ import {
 } from "@openseat/design-system";
 import { StatCard } from "@/components/stat-card";
 import { daysBetween, formatDay, formatTime, isSameDay, startOfDay } from "@/lib/dates";
+import type { Application } from "@/lib/applications";
 import {
-  INTERVIEWS,
   byDateTime,
   isUpcoming,
   toCalendarEvent,
   type Interview,
   type PrepTask,
 } from "@/lib/interviews";
+import { createInterview, updateInterview } from "@/lib/me/pipeline";
+import { toDayString } from "@/lib/me/dates";
 import { AddInterviewDialog } from "./add-interview-dialog";
 import { InterviewDrawer } from "./interview-drawer";
 import { InterviewRow } from "./interview-row";
@@ -46,9 +48,15 @@ function percent(part: number, whole: number) {
 }
 
 /** Interviews: the next one front and center, then a calendar, a list, and history. */
-export function InterviewsWorkspace() {
+export function InterviewsWorkspace({
+  initial,
+  applications,
+}: {
+  initial: Interview[];
+  applications: Application[];
+}) {
   const toast = useToast();
-  const [items, setItems] = useState(INTERVIEWS);
+  const [items, setItems] = useState(initial);
   const [view, setView] = useState<View>("calendar");
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [openId, setOpenId] = useState<string | null>(null);
@@ -68,10 +76,26 @@ export function InterviewsWorkspace() {
     .sort(byDateTime);
   const open = items.find((item) => item.id === openId) ?? null;
 
-  const replace = (next: Interview) =>
+  const replace = (next: Interview) => {
     setItems((current) => current.map((item) => (item.id === next.id ? next : item)));
-  const setPrep = (id: string, prep: PrepTask[]) =>
-    setItems((current) => current.map((item) => (item.id === id ? { ...item, prep } : item)));
+    void updateInterview(next.id, {
+      status: next.status,
+      outcome: next.outcome,
+      selfRating: next.selfRating,
+      notes: next.notes,
+      prep: next.prep,
+    }).catch((error: unknown) => {
+      toast({
+        body: error instanceof Error ? error.message : "Could not save the interview.",
+        type: "error",
+      });
+    });
+  };
+  const setPrep = (id: string, prep: PrepTask[]) => {
+    const current = items.find((item) => item.id === id);
+    if (!current) return;
+    replace({ ...current, prep });
+  };
   const confirm = (item: Interview) => {
     replace({ ...item, status: "scheduled" });
     toast({ body: `Confirmed ${item.company} on ${formatDay(item.date)}` });
@@ -95,9 +119,14 @@ export function InterviewsWorkspace() {
                 label="Not an interview"
                 variant="ghost"
                 size="sm"
-                onClick={() => dismiss(item)}
+                onClick={() => void dismiss(item)}
               />
-              <Button label="Confirm" variant="secondary" size="sm" onClick={() => confirm(item)} />
+              <Button
+                label="Confirm"
+                variant="secondary"
+                size="sm"
+                onClick={() => void confirm(item)}
+              />
             </HStack>
           }
         />
@@ -225,7 +254,17 @@ export function InterviewsWorkspace() {
         isOpen={isAdding}
         onOpenChange={setIsAdding}
         defaultDate={day}
-        onAdd={(interview) => {
+        applications={applications}
+        onAdd={async (input) => {
+          const interview = await createInterview({
+            applicationId: input.applicationId,
+            round: input.round,
+            date: toDayString(input.date),
+            start: input.start,
+            end: input.end,
+            format: input.format,
+            where: input.where,
+          });
           setItems((current) => [...current, interview]);
           setDay(startOfDay(interview.date));
           toast({ body: `Added ${interview.company} on ${formatDay(interview.date)}` });

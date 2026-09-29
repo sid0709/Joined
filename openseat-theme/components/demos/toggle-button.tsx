@@ -27,7 +27,7 @@ export default function ToggleButtonDemo() {
       <Preview
         align="start"
         label="Label and icon"
-        description="A binary on/off control shaped like a Button. The pressed icon swaps in when on."
+        description="Same ink as a button. Pressed turns the surface gray and fills the icon."
       >
         <Row>
           <ToggleButton
@@ -39,7 +39,6 @@ export default function ToggleButtonDemo() {
           <ToggleButton
             label={saved ? "Saved" : "Save"}
             icon={<Icon icon={icons.bookmark} />}
-            pressedIcon={<Icon icon={icons.check} />}
             isPressed={saved}
             onPressedChange={setSaved}
           />

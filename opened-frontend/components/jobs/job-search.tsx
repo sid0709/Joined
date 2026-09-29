@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Card,
@@ -17,18 +18,12 @@ import {
   useMediaQuery,
   useToast,
 } from "@openseat/design-system";
+import { WIDE_PAGE_MAX_WIDTH } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
-import {
-  COMPANIES,
-  JOBS,
-  RECENT_SEARCHES,
-  filterJobs,
-  formatCount,
-  jobById,
-  type Job,
-  type JobFilters,
-} from "@/lib/jobs";
-import { PROFILE } from "@/lib/profile";
+import { RECENT_SEARCHES, filterJobs, formatCount, type Job, type JobFilters } from "@/lib/jobs";
+import type { MatchProfile } from "@/lib/jobs/match";
+import { ROLE_SUGGESTIONS } from "@/lib/profile";
+import { ROUTES } from "@/lib/routes";
 import { JobActiveFilters } from "./job-active-filters";
 import { JobDetailHeader } from "./job-detail-header";
 import { JobDetailBody, JobDetailPane } from "./job-detail-pane";
@@ -40,22 +35,44 @@ import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
 import { useJobSearch } from "./use-job-search";
 
-export const SEARCH_MAX_WIDTH = 1360;
 const RECENT_LIMIT = 4;
 const WIDE_QUERY = `(min-width: ${VIEWPORT_TIERS.lg}px)`;
-
-const TOTALS = {
-  jobs: JOBS.length,
-  companies: COMPANIES.length,
-  hidden: JOBS.filter((job) => job.source === "scouted").length,
-};
 
 /**
  * Find jobs: search, refine, and read a job side by side. On narrow screens
  * the detail opens in a drawer instead of the right-hand pane.
  */
-export function JobSearch({ initialFilters }: { initialFilters: JobFilters }) {
-  const search = useJobSearch(initialFilters);
+export function JobSearch({
+  initialFilters,
+  jobs,
+  loadError,
+  savedIds = [],
+  appliedIds = [],
+  signedIn = false,
+  roleSuggestions = ROLE_SUGGESTIONS,
+  matchProfile,
+}: {
+  initialFilters: JobFilters;
+  jobs: Job[];
+  loadError?: string | null;
+  savedIds?: string[];
+  appliedIds?: string[];
+  signedIn?: boolean;
+  roleSuggestions?: string[];
+  matchProfile?: MatchProfile;
+}) {
+  const router = useRouter();
+  const search = useJobSearch(initialFilters, jobs, {
+    savedIds,
+    appliedIds,
+    signedIn,
+    profile: matchProfile,
+  });
+  const totals = {
+    jobs: jobs.length,
+    companies: new Set(jobs.map((job) => job.companyId).filter(Boolean)).size,
+    hidden: jobs.filter((job) => job.source === "scouted").length,
+  };
   const isWide = useMediaQuery(WIDE_QUERY, true);
   const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -66,13 +83,18 @@ export function JobSearch({ initialFilters }: { initialFilters: JobFilters }) {
 
   const actions = useJobActions({
     isSaved: (id) => search.savedIds.includes(id),
-    toggleSave: search.toggleSave,
+    toggleSave: (id) => void search.toggleSave(id),
     markApplied: search.markApplied,
+    signedIn,
     hide: search.hide,
     unhide: search.unhide,
   });
 
   const { filters, selected } = search;
+
+  useEffect(() => {
+    if (selected?.id) router.prefetch(ROUTES.job(selected.id));
+  }, [router, selected?.id]);
 
   const select = (job: Job) => {
     search.select(job.id);
@@ -84,7 +106,7 @@ export function JobSearch({ initialFilters }: { initialFilters: JobFilters }) {
     selectedId: selected?.id ?? null,
     onSelect: search.select,
     onSave: (id) => {
-      const job = jobById(id);
+      const job = jobs.find((item) => item.id === id);
       if (job) actions.save(job);
     },
     searchRef,
@@ -129,15 +151,15 @@ export function JobSearch({ initialFilters }: { initialFilters: JobFilters }) {
 
   return (
     <Stack hAlign="center">
-      <Stack gap={5} width="100%" maxWidth={SEARCH_MAX_WIDTH}>
+      <Stack gap={5} width="100%" maxWidth={WIDE_PAGE_MAX_WIDTH}>
         <JobSearchBar
           q={filters.q}
           where={filters.where}
           onChange={search.update}
           onSubmit={remember}
           recent={recent}
-          suggestions={PROFILE.targetRoles}
-          totals={TOTALS}
+          suggestions={roleSuggestions.length > 0 ? roleSuggestions : ROLE_SUGGESTIONS}
+          totals={totals}
           alertOn={alertOn}
           onToggleAlert={toggleAlert}
           inputRef={searchRef}
@@ -181,10 +203,19 @@ export function JobSearch({ initialFilters }: { initialFilters: JobFilters }) {
           </GridColumn>
           <GridColumn span="hidden" lg={7}>
             <Sticky fill offset={CONTENT_PADDING}>
-              {selected ? (
+              {loadError ? (
+                <Card variant="muted">
+                  <EmptyState
+                    icon={<Icon icon={icons.list} size="lg" color="secondary" />}
+                    title="Jobs are unavailable"
+                    description={loadError}
+                  />
+                </Card>
+              ) : selected ? (
                 <JobDetailPane
                   key={selected.id}
                   {...detailProps(selected)}
+                  jobs={jobs}
                   showPageLink
                   onSelect={select}
                 />
@@ -237,7 +268,7 @@ export function JobSearch({ initialFilters }: { initialFilters: JobFilters }) {
         {drawerJob ? (
           <Stack gap={6}>
             <JobDetailHeader {...detailProps(drawerJob)} showPageLink />
-            <JobDetailBody job={drawerJob} onSelect={select} />
+            <JobDetailBody job={drawerJob} jobs={jobs} onSelect={select} />
           </Stack>
         ) : null}
       </Drawer>

@@ -1,25 +1,40 @@
+import type { ReactNode } from "react";
 import {
+  Avatar,
+  AvatarGroup,
   Badge,
+  Blockquote,
+  Button,
   Card,
   ClickableCard,
+  Divider,
   EmptyState,
   Glyph,
   GridColumn,
   GridSystem,
   HStack,
   Heading,
+  Link,
   MetadataList,
   MetadataListItem,
   Section,
+  Skeleton,
   Stack,
   Text,
   Token,
 } from "@openseat/design-system";
-import type { CompanyCardExtras } from "@/components/jobs/company-card";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { JobTags } from "@/components/jobs/job-tags";
 import { SectionCard } from "@/components/section-card";
-import { formatCount, formatPay, formatPosted, type CompanyProfile, type Job } from "@/lib/jobs";
+import {
+  formatPay,
+  formatPosted,
+  presentCompany,
+  websiteHref,
+  websiteLabel,
+  type Job,
+  type PublicCompany,
+} from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 
 const LOGO_SIZE = 96;
@@ -29,12 +44,18 @@ function RoleRow({ job }: { job: Job }) {
   return (
     <ClickableCard label={`${job.title} at ${job.company}`} href={ROUTES.job(job.id)} padding={4}>
       <HStack gap={3} vAlign="start">
-        <CompanyLogo name={job.company} size={ROLE_LOGO_SIZE} />
+        <CompanyLogo
+          name={job.company}
+          companyId={job.companyId}
+          src={job.companyLogo}
+          size={ROLE_LOGO_SIZE}
+        />
         <Stack gap={2}>
           <Stack gap={0.5}>
             <Text weight="semibold">{job.title}</Text>
             <Text type="supporting" color="secondary">
-              {job.team} · {job.location} · {formatPosted(job.postedHoursAgo)}
+              {job.team ? `${job.team} · ` : ""}
+              {job.location} · {formatPosted(job.postedHoursAgo)}
             </Text>
           </Stack>
           <JobTags job={job} applied={false} />
@@ -47,36 +68,103 @@ function RoleRow({ job }: { job: Job }) {
   );
 }
 
-/** The public company page: identity up top, open roles, and the facts that matter. */
-export function CompanyProfileView({
-  company,
-  jobs,
+/** A single stat's value: the real figure, or a skeleton while the field is unset. */
+function StatValue({ value }: { value?: ReactNode }) {
+  return value != null && value !== "" ? (
+    <Text weight="semibold">{value}</Text>
+  ) : (
+    <Skeleton width={48} height={18} />
+  );
+}
+
+/** `count` lines of skeleton text, standing in for a paragraph or list not on file yet. */
+function SkeletonLines({
+  count,
+  lastWidth = "70%",
 }: {
-  company: CompanyProfile & CompanyCardExtras;
-  jobs: Job[];
+  count: number;
+  lastWidth?: number | string;
 }) {
+  return (
+    <Stack gap={2}>
+      {Array.from({ length: count }, (_, index) => (
+        <Skeleton
+          key={index}
+          height={14}
+          width={index === count - 1 ? lastWidth : "100%"}
+          index={index}
+        />
+      ))}
+    </Stack>
+  );
+}
+
+function SkeletonTokens({ count = 3 }: { count?: number }) {
+  return (
+    <HStack gap={2} wrap="wrap">
+      {Array.from({ length: count }, (_, index) => (
+        <Skeleton key={index} width={72 + index * 16} height={28} radius="rounded" index={index} />
+      ))}
+    </HStack>
+  );
+}
+
+/** The public company page: identity up top, open roles, and the facts that matter. */
+export function CompanyProfileView({ company, jobs }: { company: PublicCompany; jobs: Job[] }) {
+  const profile = presentCompany(company, jobs);
+  const website = profile.url ? websiteHref(profile.url) : "";
+  const hasValues = profile.values != null && profile.values.length > 0;
+  const hasLeadership = profile.leadership != null && profile.leadership.length > 0;
+  const hasBenefits = profile.benefitCategories != null && profile.benefitCategories.length > 0;
+
   return (
     <Stack gap={6}>
       <Card padding={0} elevation="low">
         <Section variant="muted" dividers={["bottom"]} padding={8}>
-          <HStack gap={5} vAlign="center" wrap="wrap">
-            <CompanyLogo name={company.name} size={LOGO_SIZE} />
-            <Stack gap={2}>
-              <HStack gap={2} vAlign="center" wrap="wrap">
-                <Heading level={1}>{company.name}</Heading>
-                {company.verified ? (
+          <HStack gap={5} vAlign="center" wrap="wrap" hAlign="between">
+            <HStack gap={5} vAlign="center" wrap="wrap">
+              <CompanyLogo
+                name={profile.name}
+                companyId={profile.id}
+                src={profile.logo}
+                hasFile={profile.hasLogoFile}
+                size={LOGO_SIZE}
+              />
+              <Stack gap={2}>
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <Heading level={1}>{profile.name}</Heading>
                   <Badge label="Verified employer" variant="info" icon={<Glyph name="check" />} />
+                </HStack>
+                {profile.tagline ? (
+                  <Text type="large" color="secondary" display="block">
+                    {profile.tagline}
+                  </Text>
                 ) : null}
-              </HStack>
-              {company.tagline ? (
-                <Text type="large" color="secondary" display="block">
-                  {company.tagline}
-                </Text>
-              ) : null}
-              <Text color="secondary" display="block">
-                {company.industry} · {company.size} people · {company.locations}
-              </Text>
-            </Stack>
+                {profile.industry || profile.companyType || profile.size ? (
+                  <Text color="secondary" display="block">
+                    {[
+                      profile.industry,
+                      profile.companyType,
+                      profile.size ? `${profile.size} people` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                ) : (
+                  <Skeleton width={260} height={16} />
+                )}
+                {profile.headquarters || profile.locations ? (
+                  <Text color="secondary" display="block">
+                    {[profile.headquarters, profile.locations].filter(Boolean).join(" · ")}
+                  </Text>
+                ) : (
+                  <Skeleton width={200} height={16} />
+                )}
+              </Stack>
+            </HStack>
+            {website ? (
+              <Button label="Visit website" href={website} target="_blank" variant="secondary" />
+            ) : null}
           </HStack>
         </Section>
         <HStack gap={6} padding={5} paddingInline={8} wrap="wrap">
@@ -90,54 +178,212 @@ export function CompanyProfileView({
             <Text type="supporting" color="secondary">
               Replies in
             </Text>
-            <Text weight="semibold">~{formatCount(company.replyDays, "day")}</Text>
+            <StatValue value={profile.replyDays ? `~${profile.replyDays}d` : undefined} />
           </Stack>
           <Stack gap={0.5}>
             <Text type="supporting" color="secondary">
               Founded
             </Text>
-            <Text weight="semibold">{company.founded}</Text>
+            <StatValue value={profile.founded} />
+          </Stack>
+          <Stack gap={0.5}>
+            <Text type="supporting" color="secondary">
+              Headquarters
+            </Text>
+            <StatValue value={profile.headquarters} />
           </Stack>
         </HStack>
       </Card>
 
       <GridSystem gap={6} align="start">
         <GridColumn span="full" lg={8}>
-          <Stack gap={4}>
-            <Heading level={2}>Open roles</Heading>
-            {jobs.length > 0 ? (
-              jobs.map((job) => <RoleRow key={job.id} job={job} />)
-            ) : (
-              <Card padding={6}>
-                <EmptyState
-                  title="No open roles right now"
-                  description={`${company.name} isn’t hiring at the moment.`}
-                />
-              </Card>
-            )}
+          <Stack gap={6}>
+            <SectionCard title="Mission" description={`Why ${profile.name} exists`}>
+              {profile.mission ? (
+                <Blockquote cite={`— ${profile.name} team`}>{profile.mission}</Blockquote>
+              ) : (
+                <SkeletonLines count={2} />
+              )}
+            </SectionCard>
+
+            <SectionCard title="Values & culture">
+              {hasValues ? (
+                <GridSystem gap={4}>
+                  {profile.values?.map((value) => (
+                    <GridColumn key={value.title} span="full" md={4}>
+                      <Stack gap={2}>
+                        <HStack gap={2} vAlign="center">
+                          <Glyph name={value.icon} />
+                          <Text weight="semibold">{value.title}</Text>
+                        </HStack>
+                        <Text type="supporting" color="secondary" display="block">
+                          {value.description}
+                        </Text>
+                      </Stack>
+                    </GridColumn>
+                  ))}
+                </GridSystem>
+              ) : (
+                <GridSystem gap={4}>
+                  {[0, 1, 2].map((index) => (
+                    <GridColumn key={index} span="full" md={4}>
+                      <Stack gap={2}>
+                        <Skeleton width={24} height={24} radius="rounded" index={index} />
+                        <Skeleton width="60%" height={16} index={index} />
+                        <SkeletonLines count={1} />
+                      </Stack>
+                    </GridColumn>
+                  ))}
+                </GridSystem>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title="Open roles"
+              description={`${jobs.length} open at ${profile.name} right now`}
+            >
+              <Stack gap={4}>
+                {jobs.length > 0 ? (
+                  jobs.map((job) => <RoleRow key={job.id} job={job} />)
+                ) : (
+                  <EmptyState
+                    title="No open roles right now"
+                    description={`${profile.name} isn’t hiring at the moment.`}
+                  />
+                )}
+              </Stack>
+            </SectionCard>
           </Stack>
         </GridColumn>
         <GridColumn span="full" lg={4}>
           <Stack gap={6}>
-            <SectionCard title={`About ${company.name}`}>
+            <SectionCard title={`About ${profile.name}`}>
               <Stack gap={4}>
-                <Text display="block">{company.about}</Text>
+                <Text display="block">{profile.about}</Text>
                 <MetadataList>
-                  <MetadataListItem label="Industry">{company.industry}</MetadataListItem>
-                  <MetadataListItem label="Size">{company.size}</MetadataListItem>
-                  <MetadataListItem label="Offices">{company.locations}</MetadataListItem>
+                  <MetadataListItem label="Industry">
+                    <StatValue value={profile.industry} />
+                  </MetadataListItem>
+                  <MetadataListItem label="Company type">
+                    <StatValue value={profile.companyType} />
+                  </MetadataListItem>
+                  <MetadataListItem label="Size">
+                    <StatValue value={profile.size} />
+                  </MetadataListItem>
+                  <MetadataListItem label="Headquarters">
+                    <StatValue value={profile.headquarters} />
+                  </MetadataListItem>
+                  <MetadataListItem label="Offices">
+                    <StatValue value={profile.locations} />
+                  </MetadataListItem>
+                  <MetadataListItem label="Founded">
+                    <StatValue value={profile.founded} />
+                  </MetadataListItem>
+                  {website ? (
+                    <MetadataListItem label="Website">
+                      <Link href={website} target="_blank">
+                        {websiteLabel(profile.url ?? "")}
+                      </Link>
+                    </MetadataListItem>
+                  ) : null}
                 </MetadataList>
               </Stack>
             </SectionCard>
-            {company.perks && company.perks.length > 0 ? (
-              <SectionCard title="Perks">
+
+            <SectionCard title="Specialties">
+              {profile.specialties && profile.specialties.length > 0 ? (
                 <HStack gap={2} wrap="wrap">
-                  {company.perks.map((perk) => (
-                    <Token key={perk} label={perk} size="sm" />
+                  {profile.specialties.map((specialty) => (
+                    <Token key={specialty} label={specialty} size="sm" color="blue" />
                   ))}
                 </HStack>
-              </SectionCard>
-            ) : null}
+              ) : (
+                <SkeletonTokens />
+              )}
+            </SectionCard>
+
+            <SectionCard title="Tech stack">
+              {profile.techStack && profile.techStack.length > 0 ? (
+                <HStack gap={2} wrap="wrap">
+                  {profile.techStack.map((tech) => (
+                    <Token key={tech} label={tech} size="sm" />
+                  ))}
+                </HStack>
+              ) : (
+                <SkeletonTokens count={4} />
+              )}
+            </SectionCard>
+
+            <SectionCard title="Leadership">
+              {hasLeadership ? (
+                <Stack gap={4}>
+                  <AvatarGroup size="md">
+                    {profile.leadership?.map((leader) => (
+                      <Avatar
+                        key={leader.name}
+                        name={leader.name}
+                        tooltip={`${leader.name}, ${leader.title}`}
+                      />
+                    ))}
+                  </AvatarGroup>
+                  <Stack gap={3}>
+                    {profile.leadership?.map((leader) => (
+                      <HStack key={leader.name} gap={3} vAlign="center">
+                        <Avatar name={leader.name} size="sm" />
+                        <Stack gap={0}>
+                          <Text weight="medium">{leader.name}</Text>
+                          <Text type="supporting" color="secondary">
+                            {leader.title}
+                          </Text>
+                        </Stack>
+                      </HStack>
+                    ))}
+                  </Stack>
+                </Stack>
+              ) : (
+                <Stack gap={3}>
+                  {[0, 1, 2].map((index) => (
+                    <HStack key={index} gap={3} vAlign="center">
+                      <Skeleton width={36} height={36} radius="rounded" index={index} />
+                      <Stack gap={1}>
+                        <Skeleton width={120} height={14} index={index} />
+                        <Skeleton width={90} height={12} index={index} />
+                      </Stack>
+                    </HStack>
+                  ))}
+                </Stack>
+              )}
+            </SectionCard>
+
+            <SectionCard title="Benefits & Perks">
+              {hasBenefits ? (
+                <Stack gap={4}>
+                  {profile.benefitCategories?.map((category, index) => (
+                    <Stack gap={2} key={category.label}>
+                      {index > 0 ? <Divider /> : null}
+                      <Text weight="semibold">{category.label}</Text>
+                      <Stack gap={1}>
+                        {category.items.map((item) => (
+                          <Text key={item} type="supporting" color="secondary" display="block">
+                            {item}
+                          </Text>
+                        ))}
+                      </Stack>
+                    </Stack>
+                  ))}
+                </Stack>
+              ) : (
+                <Stack gap={4}>
+                  {[0, 1].map((index) => (
+                    <Stack gap={2} key={index}>
+                      {index > 0 ? <Divider /> : null}
+                      <Skeleton width={110} height={14} index={index} />
+                      <SkeletonLines count={2} />
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
+            </SectionCard>
           </Stack>
         </GridColumn>
       </GridSystem>

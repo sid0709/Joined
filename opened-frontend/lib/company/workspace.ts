@@ -8,7 +8,7 @@ export type Workspace = CompanyProfile & {
   tagline: string;
   website: string;
   verified: boolean;
-  perks: string[];
+  benefits: string[];
 };
 
 const BASE = companyBySlug(WORKSPACE_SLUG) as CompanyProfile;
@@ -18,7 +18,7 @@ export const WORKSPACE: Workspace = {
   tagline: "Design and data teams, embedded in the products people use every day.",
   website: "northwind.example",
   verified: true,
-  perks: [
+  benefits: [
     "Hybrid, 2 days in office",
     "Learning budget $2,000/yr",
     "16 weeks parental leave",

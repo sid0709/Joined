@@ -14,8 +14,8 @@ import {
   TimeField,
 } from "@openseat/design-system";
 import { FormDialog } from "@/components/form-dialog";
-import { APPLICATIONS } from "@/lib/applications";
-import { FORMAT_LABEL, type Interview, type InterviewFormat } from "@/lib/interviews";
+import { type Application } from "@/lib/applications";
+import { FORMAT_LABEL, type InterviewFormat } from "@/lib/interviews";
 
 const FORMATS = Object.keys(FORMAT_LABEL) as InterviewFormat[];
 const DURATIONS = [30, 45, 60, 90, 120];
@@ -23,16 +23,6 @@ const DEFAULT_DURATION = 45;
 const DEFAULT_START = "10:00";
 const MINUTES_PER_HOUR = 60;
 const FIELD_MIN_WIDTH = 160;
-const DEFAULT_PREP_LABELS = [
-  "Research the company and product",
-  "Prepare three impact stories",
-  "Write questions for them",
-];
-
-const APPLICATION_OPTIONS = APPLICATIONS.filter((app) => app.columnId !== "closed").map((app) => ({
-  value: app.id,
-  label: `${app.title} · ${app.company}`,
-}));
 
 function addMinutes(time: string, minutes: number) {
   const [hours, mins] = time.split(":").map(Number);
@@ -46,14 +36,27 @@ export function AddInterviewDialog({
   isOpen,
   onOpenChange,
   defaultDate,
+  applications,
   onAdd,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   defaultDate: Date;
-  onAdd: (interview: Interview) => void;
+  applications: Application[];
+  onAdd: (input: {
+    applicationId: string;
+    round: string;
+    date: Date;
+    start: string;
+    end: string;
+    format: InterviewFormat;
+    where: string;
+  }) => Promise<void> | void;
 }) {
-  const [applicationId, setApplicationId] = useState(APPLICATION_OPTIONS[0]?.value ?? "");
+  const options = applications
+    .filter((app) => app.columnId !== "closed" && app.columnId !== "saved")
+    .map((app) => ({ value: app.id, label: `${app.title} · ${app.company}` }));
+  const [applicationId, setApplicationId] = useState(options[0]?.value ?? "");
   const [round, setRound] = useState("");
   const [date, setDate] = useState<Date | null>(defaultDate);
   const [start, setStart] = useState(DEFAULT_START);
@@ -61,29 +64,16 @@ export function AddInterviewDialog({
   const [format, setFormat] = useState<InterviewFormat>("video");
   const [where, setWhere] = useState("");
 
-  const submit = () => {
-    const application = APPLICATIONS.find((app) => app.id === applicationId);
-    if (!application || !date) return;
-    const id = `int-${Date.now()}`;
-    onAdd({
-      id,
+  const submit = async () => {
+    if (!applicationId || !date) return;
+    await onAdd({
       applicationId,
-      company: application.company,
-      role: application.title,
       round: round.trim(),
       date,
       start,
       end: addMinutes(start, Number(duration)),
       format,
       where: where.trim() || FORMAT_LABEL[format],
-      interviewers: [],
-      status: "scheduled",
-      source: "manual",
-      prep: DEFAULT_PREP_LABELS.map((label, index) => ({
-        id: `${id}-${index}`,
-        label,
-        done: false,
-      })),
     });
     setRound("");
     setWhere("");
@@ -103,7 +93,7 @@ export function AddInterviewDialog({
       <FormLayout>
         <Selector
           label="Application"
-          options={APPLICATION_OPTIONS}
+          options={options}
           value={applicationId}
           onChange={setApplicationId}
         />

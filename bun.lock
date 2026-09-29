@@ -21,14 +21,11 @@
         "typescript-eslint": "catalog:",
       },
     },
-    "opened-frontend": {
-      "name": "opened-frontend",
+    "connected-frontend": {
+      "name": "connected-frontend",
       "version": "0.1.0",
       "dependencies": {
-        "@astryxdesign/core": "catalog:",
-        "@astryxdesign/theme-neutral": "catalog:",
         "@openseat/design-system": "workspace:*",
-        "@stylexjs/stylex": "catalog:",
         "next": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
@@ -44,11 +41,14 @@
         "typescript": "catalog:",
       },
     },
-    "openseat-frontend": {
-      "name": "openseat-frontend",
+    "opened-frontend": {
+      "name": "opened-frontend",
       "version": "0.1.0",
       "dependencies": {
+        "@astryxdesign/core": "catalog:",
+        "@astryxdesign/theme-neutral": "catalog:",
         "@openseat/design-system": "workspace:*",
+        "@stylexjs/stylex": "catalog:",
         "next": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
@@ -989,6 +989,8 @@
 
     "configstore": ["configstore@5.0.1", "", { "dependencies": { "dot-prop": "^5.2.0", "graceful-fs": "^4.1.2", "make-dir": "^3.0.0", "unique-string": "^2.0.0", "write-file-atomic": "^3.0.0", "xdg-basedir": "^4.0.0" } }, "sha512-aMKprgk5YhBNyH25hj8wGt2+D52Sw1DRRIzqBwLp2Ya9mFmY8KPvvtvmna8SxVR9JMZ4kzMD68N22vlaRpkeFA=="],
 
+    "connected-frontend": ["connected-frontend@workspace:connected-frontend"],
+
     "consola": ["consola@3.4.2", "", {}, "sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA=="],
 
     "conventional-changelog-angular": ["conventional-changelog-angular@9.4.0", "", { "dependencies": { "@conventional-changelog/template": "^1.4.0" } }, "sha512-HdxRxuS8bBXVIuo4V82gvSwAXT0vYQUizrjs/izmPg5JdDstr8v8I5hduGL3iQbG+o310dUDxC4+LetuS5hu9w=="],
@@ -1658,8 +1660,6 @@
     "open": ["open@8.4.2", "", { "dependencies": { "define-lazy-prop": "^2.0.0", "is-docker": "^2.1.1", "is-wsl": "^2.2.0" } }, "sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ=="],
 
     "opened-frontend": ["opened-frontend@workspace:opened-frontend"],
-
-    "openseat-frontend": ["openseat-frontend@workspace:openseat-frontend"],
 
     "openseat-theme": ["openseat-theme@workspace:openseat-theme"],
 

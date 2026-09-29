@@ -4,7 +4,7 @@
     {
       "name": "next-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "openseat-frontend", "dev"],
+      "runtimeArgs": ["run", "--cwd", "connected-frontend", "dev"],
       "port": 3000
     },
     {
@@ -18,6 +18,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "opened-frontend", "dev"],
       "port": 3002
+    },
+    {
+      "name": "opened-admin-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "opened-admin", "dev"],
+      "port": 3010
     }
   ]
 }

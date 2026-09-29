@@ -1,0 +1,25 @@
+---
+description: HARD STOP — never start main servers, never CDP, never mock-up testing
+alwaysApply: true
+---
+
+# HARD STOP: no servers, no CDP, no mock testing
+
+The human runs the apps. The agent only edits code.
+
+## Never start servers
+
+Do not start, restart, background, or kill the main processes from the terminal:
+
+- API: `go run ./cmd/server`, anything listening on 8080
+- Admin, frontend, theme: `bun run dev`, `next dev`, `next start`
+
+Do not `kill` listeners to “replace” a server. If a server is down, say so and stop. Do not wait on health checks or poll `/v1/*` as a substitute for running the app.
+
+## Never CDP or browser automation
+
+Do not use browser tools, Chrome DevTools Protocol, snapshots, screenshots, lock/unlock, or click/type/fill in a page to verify work.
+
+## Never mock-up testing
+
+Do not drive the UI as a fake user. Do not open localhost in a browser, walk through drawers, or “verify” layouts and autofill in a session. Unit tests of code you changed are fine. Shipping the code is enough.

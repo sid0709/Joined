@@ -1,6 +1,7 @@
 import { COMPANIES, JOBS } from "./data";
 
 export * from "./types";
+export * from "./company";
 export * from "./format";
 export * from "./match";
 export * from "./my-match";
@@ -22,6 +23,6 @@ export function companyBySlug(slug: string) {
   return COMPANIES.find((company) => company.slug === slug);
 }
 
-export function jobsForCompany(slug: string) {
-  return JOBS.filter((job) => job.companySlug === slug);
+export function jobsForCompany(id: string) {
+  return JOBS.filter((job) => job.companyId === id);
 }

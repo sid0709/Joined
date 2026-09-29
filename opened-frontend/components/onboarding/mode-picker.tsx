@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Card,
   Center,
@@ -15,7 +16,7 @@ import {
   Text,
   type GlyphName,
 } from "@openseat/design-system";
-import { BRAND, type WorkspaceMode } from "@/lib/routes";
+import { BRAND, HIRING_SIGN_UP_HREF, ROUTES, type WorkspaceMode } from "@/lib/routes";
 import {
   getServerWorkspaceMode,
   readStoredWorkspaceMode,
@@ -65,7 +66,19 @@ const PATHS: Path[] = [
 ];
 
 /** A one-time fork on first visit (no mode cookie yet): candidate or employer decides which mode opens. */
+const AUTH_PATHS = [ROUTES.signIn, ROUTES.signUp, ROUTES.hiringSetup];
+
+/**
+ * Public, shareable pages — a job or company link can land here straight from a
+ * search engine or a shared URL, so the mode fork must not block them the way it
+ * blocks the app shell. Anyone can read these, signed in or not, like LinkedIn's
+ * public job and company pages.
+ */
+const PUBLIC_PATH_PREFIXES = ["/jobs/", "/companies/"];
+
 export function ModePicker() {
+  const pathname = usePathname();
+  const router = useRouter();
   const switchMode = useSwitchMode();
   // "unresolved" (SSR / first client render) reads as already-chosen, so nobody sees a flash
   // of the picker before React can check localStorage; a genuine `null` opens it for real.
@@ -75,10 +88,18 @@ export function ModePicker() {
     getServerWorkspaceMode,
   );
   const [dismissed, setDismissed] = useState(false);
-  const isOpen = storedMode === null && !dismissed;
+  const onAuthPath = AUTH_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+  const onPublicPath = PUBLIC_PATH_PREFIXES.some((path) => pathname.startsWith(path));
+  const isOpen = storedMode === null && !dismissed && !onAuthPath && !onPublicPath;
 
   const choose = (path: Path) => {
     setDismissed(true);
+    if (path.mode === "company") {
+      router.push(HIRING_SIGN_UP_HREF);
+      return;
+    }
     switchMode(path.mode);
   };
 
@@ -100,7 +121,8 @@ export function ModePicker() {
               How will you use {BRAND}?
             </Heading>
             <Text color="secondary" justify="center" display="block">
-              Pick one to get started. You can switch anytime from your account menu.
+              Pick one to get started. Candidates search and apply; employees get a hiring
+              workspace.
             </Text>
           </Stack>
 
