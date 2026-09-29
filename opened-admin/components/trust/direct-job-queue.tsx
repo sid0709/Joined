@@ -1,43 +1,26 @@
 "use client";
 
-import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Badge,
-  PageHeader,
-  Stack,
-  Tab,
-  TabList,
-  Table,
-  Text,
-  type TableColumn,
-} from "@openseat/design-system";
+import { Badge, PageHeader, Stack, Table, Text, type TableColumn } from "@openseat/design-system";
 import { UrlPager } from "@/components/scouting/url-pager";
 import { TrustState } from "@/components/trust/trust-state";
 import { ageLabel, positiveInt } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import {
-  DIRECT_JOB_PENDING,
-  DIRECT_JOB_STATUSES,
   TRUST_PAGE_SIZE,
-  directJobListQuery,
-  directJobStatus,
   directJobsPath,
   readDirectJobList,
   trustLoadError,
-  type DirectJob,
+  type AdminDirectJob,
 } from "@/lib/trust";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
-/** Direct jobs sitting in pending_review, separate from the jobs CMS. */
+/** Direct jobs in pending_review, separate from the jobs CMS. */
 export function DirectJobQueue() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const status = directJobStatus(searchParams.get("status"));
   const page = positiveInt(searchParams.get("page"), 1);
-  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(
-    directJobsPath(status, page),
-  );
+  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(directJobsPath(page));
   const list = result ? readDirectJobList(result) : null;
   const message =
     list && !list.recognized
@@ -46,12 +29,7 @@ export function DirectJobQueue() {
         ? trustLoadError(errorStatus, error)
         : null;
 
-  const go = useCallback(
-    (next: string) => router.push(`${ROUTES.directReview}${directJobListQuery(next, 1)}`),
-    [router],
-  );
-
-  const columns: TableColumn<DirectJob>[] = [
+  const columns: TableColumn<AdminDirectJob>[] = [
     {
       key: "title",
       header: "Job",
@@ -59,7 +37,7 @@ export function DirectJobQueue() {
         <Stack gap={0.5}>
           <Text weight="semibold">{row.title}</Text>
           <Text type="supporting" color="secondary">
-            {row.status || "—"}
+            {row.location || row.status}
           </Text>
         </Stack>
       ),
@@ -77,7 +55,7 @@ export function DirectJobQueue() {
     {
       key: "age",
       header: "Posted",
-      render: (row) => <Text color="secondary">{ageLabel(row.postedAt)}</Text>,
+      render: (row) => <Text color="secondary">{ageLabel(row.postedAt || row.createdAt)}</Text>,
     },
   ];
 
@@ -86,40 +64,37 @@ export function DirectJobQueue() {
     <Stack gap={5}>
       <PageHeader
         title="Direct review"
-        description="Company-posted jobs with source direct and status pending review. Approving makes a job active."
+        description="Company-posted jobs in pending review. Approving publishes the job. Reject chooses removed or draft."
       />
-      <TabList
-        value={status || "all"}
-        onChange={(value) => go(value === "all" ? "" : value)}
-        hasDivider
-        overflow="scroll"
-      >
-        {DIRECT_JOB_STATUSES.map((item) => (
-          <Tab key={item.value || "all"} value={item.value || "all"} label={item.label} />
-        ))}
-      </TabList>
       {showTable ? (
         <Table
           caption="Direct jobs pending review"
           columns={columns}
           rows={list?.rows ?? []}
           rowKey={(row) => row.id}
-          onRowClick={(row) => router.push(ROUTES.directJob(row.id))}
+          onRowClick={(row) => {
+            const params = new URLSearchParams();
+            if (row.title) params.set("title", row.title);
+            if (row.companyId) params.set("companyId", row.companyId);
+            if (row.companyName) params.set("companyName", row.companyName);
+            if (row.status) params.set("status", row.status);
+            if (row.location) params.set("location", row.location);
+            if (row.postedAt) params.set("postedAt", row.postedAt);
+            if (row.createdAt) params.set("createdAt", row.createdAt);
+            const query = params.toString();
+            router.push(query ? `${ROUTES.directJob(row.id)}?${query}` : ROUTES.directJob(row.id));
+          }}
         />
       ) : (
         <TrustState
           loading={loading && !result}
           error={loading ? null : message}
           empty={!loading && !message}
-          emptyTitle={
-            status === DIRECT_JOB_PENDING ? "No direct jobs waiting" : "No direct jobs match"
-          }
-          emptyDescription={
-            status === DIRECT_JOB_PENDING ? "Nothing is in pending review." : "Try another status."
-          }
+          emptyTitle="No direct jobs waiting"
+          emptyDescription="Nothing is in pending review."
         />
       )}
-      {list?.recognized && list.total > 0 ? (
+      {list?.recognized && list.total > TRUST_PAGE_SIZE ? (
         <UrlPager page={page} pageSize={TRUST_PAGE_SIZE} total={list.total} />
       ) : null}
     </Stack>

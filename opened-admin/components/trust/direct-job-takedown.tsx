@@ -5,9 +5,9 @@ import { Button, SectionCard, Stack, useToast } from "@openseat/design-system";
 import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";
 import { ROUTES } from "@/lib/nav";
-import { jobTakedownBody, jobTakedownPath, type JobTakedownDecision } from "@/lib/trust";
+import { jobReviewBody, jobReviewPath, jobTakedownBody, jobTakedownPath } from "@/lib/trust";
 
-/** Reversible take-down for a direct job already in the jobs browser. */
+/** Take a direct job out of the pool. Restore is a review approve. */
 export function DirectJobTakedown({ jobId }: { jobId: string }) {
   const toast = useToast();
   const [pending, setPending] = useState(false);
@@ -17,12 +17,13 @@ export function DirectJobTakedown({ jobId }: { jobId: string }) {
     setPending(true);
     setError("");
     try {
-      const body = jobTakedownBody(decision as JobTakedownDecision, reason);
-      await adminSend(jobTakedownPath(jobId), "POST", body);
-      toast({
-        body:
-          body.decision === "takedown" ? "Job removed from the pool." : "Job restored to active.",
-      });
+      if (decision === "restore") {
+        await adminSend(jobReviewPath(jobId), "POST", jobReviewBody("approve", reason));
+        toast({ body: "Job approved back into the pool." });
+      } else {
+        await adminSend(jobTakedownPath(jobId), "POST", jobTakedownBody(reason));
+        toast({ body: "Job removed from the pool." });
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not update the job.");
     } finally {
@@ -33,12 +34,12 @@ export function DirectJobTakedown({ jobId }: { jobId: string }) {
   return (
     <SectionCard
       title="Trust take-down"
-      description="Direct jobs only. Take the listing out of the pool, or restore it. A reason is required."
+      description="Direct jobs only. Take-down requires a reason and sets the job to removed. Restore approves it again."
       action={<Button label="Open direct review" variant="ghost" href={ROUTES.directJob(jobId)} />}
     >
       <Stack gap={3}>
         <ReasonActions
-          description="Take down sets disposition removed. Restore sets disposition active."
+          description="Take down posts the reason only. Restore posts a review approve."
           actions={[
             { id: "takedown", label: "Take down", variant: "destructive" },
             { id: "restore", label: "Restore", variant: "secondary" },

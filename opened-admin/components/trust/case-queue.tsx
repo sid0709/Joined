@@ -17,57 +17,58 @@ import { TrustState } from "@/components/trust/trust-state";
 import { ageLabel, positiveInt } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import {
-  CASE_STATUSES,
   TRUST_PAGE_SIZE,
-  caseListQuery,
-  caseStatus,
+  VERIFICATION_PENDING,
+  VERIFICATION_STATUSES,
   claimMethodLabel,
-  companyCasesPath,
-  readCaseList,
+  readVerificationList,
   trustLoadError,
-  type TrustCase,
+  verificationListQuery,
+  verificationListStatus,
+  verificationsPath,
+  type VerificationRow,
 } from "@/lib/trust";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
-/** Pending company verification and claim cases. */
+/** Pending company verification and claim requests. */
 export function CompanyCaseQueue() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const status = caseStatus(searchParams.get("status"));
+  const status = verificationListStatus(searchParams.get("status"));
   const page = positiveInt(searchParams.get("page"), 1);
   const { result, loading, error, errorStatus } = useAdminQuery<unknown>(
-    companyCasesPath(status, page),
+    verificationsPath(status, page),
   );
-  const list = result ? readCaseList(result) : null;
+  const list = result ? readVerificationList(result) : null;
   const message =
     list && !list.recognized
-      ? "The API responded, but not with a case list."
+      ? "The API responded, but not with a verification list."
       : error
         ? trustLoadError(errorStatus, error)
         : null;
 
   const go = useCallback(
-    (next: string) => router.push(`${ROUTES.companyVerification}${caseListQuery(next, 1)}`),
+    (next: string) => router.push(`${ROUTES.companyVerification}${verificationListQuery(next, 1)}`),
     [router],
   );
 
-  const columns: TableColumn<TrustCase>[] = [
+  const columns: TableColumn<VerificationRow>[] = [
     {
       key: "company",
       header: "Company",
       render: (row) => (
         <Stack gap={0.5}>
-          <Text weight="semibold">{row.title}</Text>
+          <Text weight="semibold">{row.companyName || "Untitled"}</Text>
           <Text type="supporting" color="secondary">
-            {row.company?.status || row.status}
+            {row.requestedBy || row.status}
           </Text>
         </Stack>
       ),
     },
     {
       key: "domain",
-      header: "Domain",
-      render: (row) => <Text color="secondary">{row.domain || "—"}</Text>,
+      header: "Domains",
+      render: (row) => <Text color="secondary">{row.domains.join(", ") || "—"}</Text>,
     },
     {
       key: "method",
@@ -78,12 +79,12 @@ export function CompanyCaseQueue() {
       key: "members",
       header: "Members",
       align: "end",
-      render: (row) => <Text hasTabularNumbers>{String(row.members.length)}</Text>,
+      render: (row) => <Text hasTabularNumbers>{String(row.memberCount)}</Text>,
     },
     {
       key: "age",
       header: "Waiting",
-      render: (row) => <Badge label={ageLabel(row.createdAt)} variant="neutral" />,
+      render: (row) => <Badge label={ageLabel(row.slaAt || row.createdAt)} variant="neutral" />,
     },
   ];
 
@@ -92,34 +93,31 @@ export function CompanyCaseQueue() {
     <Stack gap={5}>
       <PageHeader
         title="Company claims"
-        description="Verification and claim cases waiting on staff. Approve, reject, or suspend with a reason."
+        description="Verification and claim requests. Approve, reject, or suspend with a reason."
       />
-      <TabList
-        value={status || "all"}
-        onChange={(value) => go(value === "all" ? "" : value)}
-        hasDivider
-        overflow="scroll"
-      >
-        {CASE_STATUSES.map((item) => (
-          <Tab key={item.value || "all"} value={item.value || "all"} label={item.label} />
+      <TabList value={status} onChange={go} hasDivider overflow="scroll">
+        {VERIFICATION_STATUSES.map((item) => (
+          <Tab key={item.value} value={item.value} label={item.label} />
         ))}
       </TabList>
       {showTable ? (
         <Table
-          caption="Company verification cases"
+          caption="Company verifications"
           columns={columns}
           rows={list?.rows ?? []}
           rowKey={(row) => row.id}
-          onRowClick={(row) => router.push(ROUTES.companyCase(row.id))}
+          onRowClick={(row) => router.push(ROUTES.companyCase(row.companyId))}
         />
       ) : (
         <TrustState
           loading={loading && !result}
           error={loading ? null : message}
           empty={!loading && !message}
-          emptyTitle={status === "pending" ? "No claims waiting" : "No cases match"}
+          emptyTitle={status === VERIFICATION_PENDING ? "No claims waiting" : "No claims match"}
           emptyDescription={
-            status === "pending" ? "Nothing is waiting on verification." : "Try another status."
+            status === VERIFICATION_PENDING
+              ? "Nothing is waiting on verification."
+              : "Try another status."
           }
         />
       )}

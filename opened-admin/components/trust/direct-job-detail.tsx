@@ -1,19 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Badge,
   Button,
-  CodeBlock,
-  Collapsible,
-  EmptyState,
   HStack,
   MetadataList,
   MetadataListItem,
   PageHeader,
   SectionCard,
-  Skeleton,
   Stack,
   useToast,
 } from "@openseat/design-system";
@@ -23,28 +19,23 @@ import { formatDateTime } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import {
   JOB_REJECT_DISPOSITIONS,
-  directJobPath,
   jobReviewBody,
   jobReviewPath,
-  readDirectJobDetail,
-  trustLoadError,
+  readReviewedJob,
+  type AdminDirectJob,
   type JobReviewDecision,
 } from "@/lib/trust";
-import { useAdminQuery } from "@/lib/use-admin-query";
 
-const RAW_MAX_HEIGHT = 320;
-
-/** Review one direct job: approve to active, or reject to removed or draft. */
+/** Review one direct job. There is no get-by-id; the queue passes the row for display. */
 export function DirectJobDetail({ id }: { id: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
-  const { result, loading, error, errorStatus, reload } = useAdminQuery<unknown>(directJobPath(id));
-  const job = result ? readDirectJobDetail(result) : null;
+  const [reviewed, setReviewed] = useState<AdminDirectJob | null>(null);
   const [disposition, setDisposition] = useState("");
   const [pending, setPending] = useState(false);
   const [decisionError, setDecisionError] = useState("");
-  const message =
-    result && !job ? "The API responded, but not with a job." : trustLoadError(errorStatus, error);
+  const job = reviewed ?? jobFromQuery(id, searchParams);
 
   async function decide(decision: string, reason: string) {
     setPending(true);
@@ -55,11 +46,15 @@ export function DirectJobDetail({ id }: { id: string }) {
         reason,
         decision === "reject" ? disposition : undefined,
       );
-      await adminSend(jobReviewPath(id), "POST", body);
+      const updated = readReviewedJob(await adminSend<unknown>(jobReviewPath(id), "POST", body));
+      if (updated) setReviewed(updated);
+      const status = updated?.status;
       toast({
-        body: decision === "approve" ? "Job set to active." : `Job set to ${body.disposition}.`,
+        body:
+          decision === "approve"
+            ? `Job approved${status ? ` (${status})` : ""}.`
+            : `Job set to ${body.decision === "reject" ? body.rejectDisposition : "rejected"}.`,
       });
-      reload();
       router.refresh();
     } catch (cause) {
       setDecisionError(cause instanceof Error ? cause.message : "Could not save the decision.");
@@ -71,67 +66,67 @@ export function DirectJobDetail({ id }: { id: string }) {
   return (
     <Stack gap={5}>
       <PageHeader
-        title={job?.title ?? "Direct job"}
-        description="Approve publishes the job as active. Reject requires an explicit removed or draft disposition."
+        title={job.title || "Direct job"}
+        description="Approve publishes the job. Reject requires an explicit removed or draft disposition."
         action={<Button label="Back to queue" variant="ghost" href={ROUTES.directReview} />}
       />
-      {loading && !result ? <Skeleton width="100%" height={160} /> : null}
-      {!loading && !job ? (
-        <EmptyState isCompact title="Job unavailable" description={message || "Could not load."} />
-      ) : null}
-      {job ? (
-        <Stack gap={5}>
-          <SectionCard title="Listing">
-            <Stack gap={4}>
-              <HStack gap={2}>
-                <Badge label={job.source || "direct"} variant="green" />
-                <Badge label={job.status || "unknown"} variant="warning" />
-              </HStack>
-              <MetadataList columns={2}>
-                <MetadataListItem label="Company">
-                  {job.companyId ? (
-                    <Button
-                      label={job.companyName || job.companyId}
-                      variant="ghost"
-                      href={`${ROUTES.companies}?company=${encodeURIComponent(job.companyId)}`}
-                    />
-                  ) : (
-                    job.companyName || "—"
-                  )}
-                </MetadataListItem>
-                <MetadataListItem label="Posted">{formatDateTime(job.postedAt)}</MetadataListItem>
-                <MetadataListItem label="Apply link">{job.applyUrl || "—"}</MetadataListItem>
-                <MetadataListItem label="Job id">{job.id}</MetadataListItem>
-              </MetadataList>
-            </Stack>
-          </SectionCard>
-          <SectionCard
-            title="Decision"
-            description="A reason is required before approve or reject."
-          >
-            <ReasonActions
-              description="Approve sets disposition active. Reject stays disabled until you choose removed or draft."
-              actions={[
-                { id: "approve", label: "Approve", variant: "primary" },
-                { id: "reject", label: "Reject", variant: "destructive", needsDisposition: true },
-              ]}
-              dispositions={[...JOB_REJECT_DISPOSITIONS]}
-              disposition={disposition}
-              onDisposition={setDisposition}
-              pending={pending}
-              error={decisionError}
-              onSubmit={(actionId, reason) => void decide(actionId, reason)}
-            />
-          </SectionCard>
-          <Collapsible trigger="Raw job">
-            <CodeBlock
-              code={JSON.stringify(result, null, 2)}
-              language="json"
-              maxHeight={RAW_MAX_HEIGHT}
-            />
-          </Collapsible>
+      <SectionCard title="Listing">
+        <Stack gap={4}>
+          <HStack gap={2}>
+            <Badge label={job.source || "direct"} variant="green" />
+            <Badge label={job.status || "pending_review"} variant="warning" />
+          </HStack>
+          <MetadataList columns={2}>
+            <MetadataListItem label="Company">
+              {job.companyId ? (
+                <Button
+                  label={job.companyName || job.companyId}
+                  variant="ghost"
+                  href={ROUTES.companyCase(job.companyId)}
+                />
+              ) : (
+                job.companyName || "—"
+              )}
+            </MetadataListItem>
+            <MetadataListItem label="Location">{job.location || "—"}</MetadataListItem>
+            <MetadataListItem label="Posted">{formatDateTime(job.postedAt)}</MetadataListItem>
+            <MetadataListItem label="Created">{formatDateTime(job.createdAt)}</MetadataListItem>
+            <MetadataListItem label="Job id">{job.id}</MetadataListItem>
+          </MetadataList>
         </Stack>
-      ) : null}
+      </SectionCard>
+      <SectionCard
+        title="Decision"
+        description="A reason is required. Reject also needs an explicit removed or draft disposition."
+      >
+        <ReasonActions
+          description="Approve leaves rejectDisposition off the body. Reject sends rejectDisposition."
+          actions={[
+            { id: "approve", label: "Approve", variant: "primary" },
+            { id: "reject", label: "Reject", variant: "destructive", needsDisposition: true },
+          ]}
+          dispositions={[...JOB_REJECT_DISPOSITIONS]}
+          disposition={disposition}
+          onDisposition={setDisposition}
+          pending={pending}
+          error={decisionError}
+          onSubmit={(actionId, reason) => void decide(actionId, reason)}
+        />
+      </SectionCard>
     </Stack>
   );
+}
+
+function jobFromQuery(id: string, params: { get(name: string): string | null }): AdminDirectJob {
+  return {
+    id,
+    title: params.get("title") ?? "",
+    companyId: params.get("companyId") ?? "",
+    companyName: params.get("companyName") ?? "",
+    source: "direct",
+    status: params.get("status") ?? "pending_review",
+    postedAt: params.get("postedAt") ?? "",
+    createdAt: params.get("createdAt") ?? "",
+    location: params.get("location") ?? "",
+  };
 }

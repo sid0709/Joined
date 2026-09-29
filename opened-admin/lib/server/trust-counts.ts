@@ -1,27 +1,33 @@
 import { adminGet } from "./api";
 import {
-  CASE_STATUS_PENDING,
-  DIRECT_JOB_PENDING,
-  companyCasesPath,
+  VERIFICATION_PENDING_COUNT_PATH,
   directJobsPath,
-  readCaseList,
   readDirectJobList,
-  type ReadList,
+  readPendingCount,
   type TrustNavCounts,
 } from "../trust";
 
 /** Pending totals for the shell badges. A missing endpoint leaves the badge off. */
 export async function trustNavCounts(): Promise<TrustNavCounts> {
   const [companyVerification, directReview] = await Promise.all([
-    pendingTotal(companyCasesPath(CASE_STATUS_PENDING, 1, 1), readCaseList),
-    pendingTotal(directJobsPath(DIRECT_JOB_PENDING, 1, 1), readDirectJobList),
+    companyPending(),
+    directPending(),
   ]);
   return { companyVerification, directReview };
 }
 
-async function pendingTotal(path: string, read: (body: unknown) => ReadList<unknown>) {
+async function companyPending() {
   try {
-    const list = read(await adminGet<unknown>(path));
+    const pending = readPendingCount(await adminGet<unknown>(VERIFICATION_PENDING_COUNT_PATH));
+    return pending ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function directPending() {
+  try {
+    const list = readDirectJobList(await adminGet<unknown>(directJobsPath(1, 1)));
     return list.recognized ? list.total : undefined;
   } catch {
     return undefined;
