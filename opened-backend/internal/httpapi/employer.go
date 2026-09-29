@@ -51,6 +51,12 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/company/settings", s.putCompanySettings)
 	mux.HandleFunc("GET /v1/company/job-teams", s.getCompanyJobTeams)
 	mux.HandleFunc("PUT /v1/company/job-teams", s.putCompanyJobTeams)
+	mux.HandleFunc("GET /v1/company/job-templates", s.getCompanyJobTemplates)
+	mux.HandleFunc("PUT /v1/company/job-templates", s.putCompanyJobTemplates)
+	mux.HandleFunc("GET /v1/company/departments", s.getCompanyDepartments)
+	mux.HandleFunc("PUT /v1/company/departments", s.putCompanyDepartments)
+	mux.HandleFunc("GET /v1/company/office-locations", s.getCompanyOfficeLocations)
+	mux.HandleFunc("PUT /v1/company/office-locations", s.putCompanyOfficeLocations)
 	mux.HandleFunc("GET /v1/company/page", s.getCompanyPage)
 	mux.HandleFunc("PUT /v1/company/page", s.putCompanyPage)
 	mux.HandleFunc("POST /v1/company/page/logo", s.postCompanyPageLogo)
@@ -276,16 +282,15 @@ func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// Close and reopen change whether the role is on the market, so this stays jobs.publish.
 	if err := s.hiring.AuthorizeJob(r.Context(), session.Company.ID, actor, r.PathValue("id"), employer.PermJobsPublish); !writeEmployer(w, err) {
 		return
 	}
-	var input struct {
-		Status string `json:"status"`
-	}
+	var input employer.JobStatusPatch
 	if !decodeBody(w, r, &input) {
 		return
 	}
-	job, err := s.hiring.SetJobStatus(r.Context(), *session.Company, session.User.ID, r.PathValue("id"), input.Status, time.Now())
+	job, err := s.hiring.SetJobStatus(r.Context(), *session.Company, session.User.ID, r.PathValue("id"), input, time.Now())
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -679,6 +684,108 @@ func (s *Server) putCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, teams)
+}
+
+func (s *Server) getCompanyJobTemplates(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsView) {
+		return
+	}
+	templates, err := s.hiring.JobTemplates(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, templates)
+}
+
+func (s *Server) putCompanyJobTemplates(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsEdit) {
+		return
+	}
+	var input employer.JobTemplatesWrite
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	templates, err := s.hiring.SaveJobTemplates(r.Context(), session.Company.ID, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, templates)
+}
+
+func (s *Server) getCompanyDepartments(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsView) {
+		return
+	}
+	departments, err := s.hiring.Departments(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, departments)
+}
+
+func (s *Server) putCompanyDepartments(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsEdit) {
+		return
+	}
+	var input employer.DepartmentsWrite
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	departments, err := s.hiring.SaveDepartments(r.Context(), session.Company.ID, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, departments)
+}
+
+func (s *Server) getCompanyOfficeLocations(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsView) {
+		return
+	}
+	locations, err := s.hiring.OfficeLocations(r.Context(), session.Company.ID)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, locations)
+}
+
+func (s *Server) putCompanyOfficeLocations(w http.ResponseWriter, r *http.Request) {
+	session, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermJobsEdit) {
+		return
+	}
+	var input employer.OfficeLocationsWrite
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	locations, err := s.hiring.SaveOfficeLocations(r.Context(), session.Company.ID, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, locations)
 }
 
 func (s *Server) getCompanyPage(w http.ResponseWriter, r *http.Request) {

@@ -16,14 +16,19 @@ type Pipeline struct {
 }
 
 type Job struct {
-	ID                 string                    `json:"id"`
-	JobID              string                    `json:"jobId,omitempty"`
-	Title              string                    `json:"title"`
-	Team               string                    `json:"team"`
+	ID    string `json:"id"`
+	JobID string `json:"jobId,omitempty"`
+	Title string `json:"title"`
+	Team  string `json:"team"`
+	// Department mirrors Team. The hiring record stores the label on team.
+	Department         string                    `json:"department,omitempty"`
 	Location           string                    `json:"location"`
 	Workplace          string                    `json:"workplace"`
 	Seniority          string                    `json:"seniority"`
 	Status             string                    `json:"status"`
+	ClosedAt           *time.Time                `json:"closedAt,omitempty"`
+	CloseReason        string                    `json:"closeReason,omitempty"`
+	NotifyOnClose      *bool                     `json:"notifyOnClose,omitempty"`
 	PostedOn           time.Time                 `json:"postedOn"`
 	Views              int                       `json:"views"`
 	Pipeline           Pipeline                  `json:"pipeline"`
@@ -175,6 +180,72 @@ type JobTeamsWrite struct {
 type TeamRename struct {
 	From string `json:"from"`
 	To   string `json:"to"`
+}
+
+// Departments is GET/PUT /v1/company/departments.
+// It is the job-teams catalog. Teams is the same list under the older name.
+// CompanyJob.team remains the persisted department label.
+type Departments struct {
+	Departments []string `json:"departments"`
+	Teams       []string `json:"teams"`
+}
+
+// DepartmentsWrite accepts departments, or teams when departments is omitted.
+type DepartmentsWrite struct {
+	Departments []string    `json:"departments"`
+	Teams       []string    `json:"teams"`
+	Rename      *TeamRename `json:"rename"`
+}
+
+// OfficeLocations is GET/PUT /v1/company/office-locations.
+// The catalog only seeds the location picker. Job.location stays free text.
+type OfficeLocations struct {
+	Locations []string `json:"locations"`
+}
+
+type OfficeLocationsWrite struct {
+	Locations []string    `json:"locations"`
+	Rename    *TeamRename `json:"rename"`
+}
+
+// JobTemplate is a reusable job draft. Field names match layer-a.ts.
+type JobTemplate struct {
+	ID                 string                   `json:"id" bson:"id"`
+	Name               string                   `json:"name" bson:"name"`
+	Title              string                   `json:"title" bson:"title"`
+	Team               string                   `json:"team" bson:"team"`
+	Department         string                   `json:"department,omitempty" bson:"department,omitempty"`
+	Seniority          string                   `json:"seniority" bson:"seniority"`
+	Location           string                   `json:"location" bson:"location"`
+	Workplace          string                   `json:"workplace" bson:"workplace"`
+	PayMin             int                      `json:"payMin" bson:"payMin"`
+	PayMax             int                      `json:"payMax" bson:"payMax"`
+	Currency           string                   `json:"currency" bson:"currency"`
+	Visa               bool                     `json:"visa" bson:"visa"`
+	Summary            string                   `json:"summary" bson:"summary"`
+	Skills             []string                 `json:"skills" bson:"skills"`
+	Responsibilities   []string                 `json:"responsibilities" bson:"responsibilities"`
+	Requirements       []string                 `json:"requirements" bson:"requirements"`
+	Description        string                   `json:"description" bson:"description"`
+	ScreeningQuestions []jobs.ScreeningQuestion `json:"screeningQuestions" bson:"screeningQuestions"`
+	UpdatedAt          time.Time                `json:"updatedAt" bson:"updatedAt"`
+}
+
+// JobTemplates is GET/PUT /v1/company/job-templates.
+type JobTemplates struct {
+	Templates []JobTemplate `json:"templates"`
+}
+
+type JobTemplatesWrite struct {
+	Templates []JobTemplate `json:"templates"`
+}
+
+// JobStatusPatch is PATCH /v1/company/jobs/:id.
+// Status open on a closed job reopens it. NotifyOnClose defaults to true on close.
+type JobStatusPatch struct {
+	Status        string `json:"status"`
+	CloseReason   string `json:"closeReason"`
+	NotifyOnClose *bool  `json:"notifyOnClose"`
 }
 
 type JobInput struct {

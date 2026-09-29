@@ -28,6 +28,9 @@ const (
 
 	minDailyCap = 1
 	maxDailyCap = 100
+
+	// maxCloseReason matches MAX_CLOSE_REASON in opened-frontend/lib/layer-a.ts.
+	maxCloseReason = 200
 )
 
 func (s *Store) ListJobs(ctx context.Context, companyID string) ([]Job, error) {
@@ -141,31 +144,22 @@ func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id 
 	return viewJob(doc, pipelines[doc.ID]), nil
 }
 
-func (s *Store) SetJobStatus(ctx context.Context, company auth.Company, userID, id, status string, now time.Time) (Job, error) {
+func (s *Store) SetJobStatus(ctx context.Context, company auth.Company, userID, id string, input JobStatusPatch, now time.Time) (Job, error) {
 	doc, err := s.job(ctx, company.ID, id)
 	if err != nil {
 		return Job{}, err
 	}
-	if !validStatus(status) || status == doc.Status {
-		return Job{}, ErrInvalidInput
+	doc, err = applyJobStatus(doc, input, now)
+	if err != nil {
+		return Job{}, err
 	}
-	if doc.Status == statusClosed || doc.Status == statusRemoved {
-		return Job{}, ErrConflict
-	}
-	if status == statusOpen {
-		if err := readyToPublish(doc); err != nil {
-			return Job{}, err
-		}
+	if doc.Status == statusOpen {
 		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-	} else {
-		if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
-			return Job{}, err
-		}
-		doc.Status = status
+	} else if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
+		return Job{}, err
 	}
-	doc.UpdatedAt = now.UTC()
 	if _, err := s.collection(jobsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "companyId", Value: company.ID}}, doc); err != nil {
 		return Job{}, err
 	}
@@ -325,6 +319,40 @@ func searchJob(doc storedJob, companyName string) jobs.SearchJob {
 	}
 }
 
+// applyJobStatus checks a status change and stamps close or reopen fields.
+// Opening a closed job clears closedAt and closeReason. NotifyOnClose defaults
+// to true when the job becomes closed. Publish approval still happens in the store.
+func applyJobStatus(doc storedJob, input JobStatusPatch, now time.Time) (storedJob, error) {
+	status := strings.TrimSpace(input.Status)
+	if !validStatus(status) || status == doc.Status {
+		return storedJob{}, ErrInvalidInput
+	}
+	if doc.Status == statusRemoved || (doc.Status == statusClosed && status != statusOpen) {
+		return storedJob{}, ErrConflict
+	}
+	if status == statusOpen {
+		if err := readyToPublish(doc); err != nil {
+			return storedJob{}, err
+		}
+	}
+	if status == statusClosed {
+		doc.ClosedAt = now.UTC()
+		doc.CloseReason = clip(input.CloseReason, maxCloseReason)
+		notify := true
+		if input.NotifyOnClose != nil {
+			notify = *input.NotifyOnClose
+		}
+		doc.NotifyOnClose = &notify
+	} else {
+		doc.ClosedAt = time.Time{}
+		doc.CloseReason = ""
+		doc.NotifyOnClose = nil
+	}
+	doc.Status = status
+	doc.UpdatedAt = now.UTC()
+	return doc, nil
+}
+
 func viewJob(doc storedJob, pipeline Pipeline) Job {
 	posted := doc.PostedAt
 	if posted.IsZero() {
@@ -334,6 +362,7 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 		ID:                 doc.ID,
 		Title:              doc.Title,
 		Team:               doc.Team,
+		Department:         doc.Team,
 		Location:           doc.Location,
 		Workplace:          doc.Workplace,
 		Seniority:          doc.Seniority,
@@ -361,6 +390,17 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 	}
 	if doc.Status == statusOpen {
 		job.JobID = doc.ID
+	}
+	if doc.Status == statusClosed {
+		if !doc.ClosedAt.IsZero() {
+			closedAt := doc.ClosedAt.UTC()
+			job.ClosedAt = &closedAt
+		}
+		job.CloseReason = doc.CloseReason
+		if doc.NotifyOnClose != nil {
+			notify := *doc.NotifyOnClose
+			job.NotifyOnClose = &notify
+		}
 	}
 	return job
 }

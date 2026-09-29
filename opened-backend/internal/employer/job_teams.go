@@ -11,7 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-const maxJobTeams = 40
+const (
+	// maxJobTeams matches MAX_DEPARTMENTS in opened-frontend/lib/layer-a.ts.
+	// /v1/company/departments is this catalog: teams is the alias field name.
+	maxJobTeams  = 40
+	maxTeamRunes = 80
+)
 
 func (s *Store) JobTeams(ctx context.Context, companyID string) (JobTeams, error) {
 	stored, err := s.storedJobTeams(ctx, companyID)
@@ -26,12 +31,12 @@ func (s *Store) JobTeams(ctx context.Context, companyID string) (JobTeams, error
 }
 
 func (s *Store) SaveJobTeams(ctx context.Context, companyID string, input JobTeamsWrite) (JobTeams, error) {
-	teams := compactList(input.Teams, maxJobTeams, 80)
+	teams := compactList(input.Teams, maxJobTeams, maxTeamRunes)
 	from := ""
 	to := ""
 	if input.Rename != nil {
-		from = clip(input.Rename.From, 80)
-		to = clip(input.Rename.To, 80)
+		from = clip(input.Rename.From, maxTeamRunes)
+		to = clip(input.Rename.To, maxTeamRunes)
 		if from == "" || to == "" {
 			return JobTeams{}, ErrInvalidInput
 		}
@@ -49,8 +54,44 @@ func (s *Store) SaveJobTeams(ctx context.Context, companyID string, input JobTea
 	return s.JobTeams(ctx, companyID)
 }
 
+// Departments reads the job-teams catalog and returns it under both names.
+func (s *Store) Departments(ctx context.Context, companyID string) (Departments, error) {
+	teams, err := s.JobTeams(ctx, companyID)
+	if err != nil {
+		return Departments{}, err
+	}
+	names := listOrEmpty(teams.Teams)
+	return Departments{Departments: names, Teams: names}, nil
+}
+
+// SaveDepartments writes the job-teams catalog.
+// A body may send departments or, when that field is omitted, teams.
+// Rename updates CompanyJob.team, which is the stored department label.
+func (s *Store) SaveDepartments(ctx context.Context, companyID string, input DepartmentsWrite) (Departments, error) {
+	names, err := departmentNames(input)
+	if err != nil {
+		return Departments{}, err
+	}
+	teams, err := s.SaveJobTeams(ctx, companyID, JobTeamsWrite{Teams: names, Rename: input.Rename})
+	if err != nil {
+		return Departments{}, err
+	}
+	saved := listOrEmpty(teams.Teams)
+	return Departments{Departments: saved, Teams: saved}, nil
+}
+
+func departmentNames(input DepartmentsWrite) ([]string, error) {
+	if input.Departments != nil {
+		return input.Departments, nil
+	}
+	if input.Teams != nil {
+		return input.Teams, nil
+	}
+	return nil, ErrInvalidInput
+}
+
 func (s *Store) ensureTeam(ctx context.Context, companyID, name string) error {
-	name = clip(name, 80)
+	name = clip(name, maxTeamRunes)
 	if name == "" {
 		return nil
 	}
@@ -116,7 +157,7 @@ func (s *Store) renameJobTeam(ctx context.Context, companyID, from, to string) e
 }
 
 func mergeTeams(lists ...[]string) []string {
-	return compactList(flatten(lists), maxJobTeams, 80)
+	return compactList(flatten(lists), maxJobTeams, maxTeamRunes)
 }
 
 func flatten(lists [][]string) []string {
@@ -135,18 +176,22 @@ func flatten(lists [][]string) []string {
 }
 
 func replaceTeam(teams []string, from, to string) []string {
-	out := make([]string, 0, len(teams)+1)
+	return replaceLabel(teams, from, to, maxJobTeams, maxTeamRunes)
+}
+
+func replaceLabel(items []string, from, to string, limit, itemRunes int) []string {
+	out := make([]string, 0, len(items)+1)
 	found := false
-	for _, team := range teams {
-		if strings.EqualFold(team, from) {
+	for _, item := range items {
+		if strings.EqualFold(item, from) {
 			out = append(out, to)
 			found = true
 			continue
 		}
-		out = append(out, team)
+		out = append(out, item)
 	}
 	if !found {
 		out = append(out, to)
 	}
-	return compactList(out, maxJobTeams, 80)
+	return compactList(out, limit, itemRunes)
 }

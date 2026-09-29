@@ -452,7 +452,8 @@ func (s *Server) getSearchCompany(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not load company")
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	query := r.URL.Query()
+	writeJSON(w, http.StatusOK, page.Filtered(query.Get("department"), query.Get("location")))
 }
 
 func (s *Server) listSearchJobs(w http.ResponseWriter, r *http.Request) {

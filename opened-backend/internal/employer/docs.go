@@ -34,6 +34,9 @@ type storedJob struct {
 	Policy             string                    `bson:"policy"`
 	DailyCap           int                       `bson:"dailyCap,omitempty"`
 	Status             string                    `bson:"status"`
+	ClosedAt           time.Time                 `bson:"closedAt,omitempty"`
+	CloseReason        string                    `bson:"closeReason,omitempty"`
+	NotifyOnClose      *bool                     `bson:"notifyOnClose,omitempty"`
 	Views              int                       `bson:"views"`
 	CreatedAt          time.Time                 `bson:"createdAt"`
 	UpdatedAt          time.Time                 `bson:"updatedAt"`
@@ -43,6 +46,16 @@ type storedJob struct {
 type storedJobTeams struct {
 	CompanyID string   `bson:"companyId"`
 	Teams     []string `bson:"teams"`
+}
+
+type storedJobTemplates struct {
+	CompanyID string        `bson:"companyId"`
+	Templates []JobTemplate `bson:"templates"`
+}
+
+type storedOfficeLocations struct {
+	CompanyID string   `bson:"companyId"`
+	Locations []string `bson:"locations"`
 }
 
 type storedWallet struct {
