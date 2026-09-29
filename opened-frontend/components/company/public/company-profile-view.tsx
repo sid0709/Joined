@@ -299,18 +299,6 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
               )}
             </SectionCard>
 
-            <SectionCard title="Tech stack">
-              {profile.techStack && profile.techStack.length > 0 ? (
-                <HStack gap={2} wrap="wrap">
-                  {profile.techStack.map((tech) => (
-                    <Token key={tech} label={tech} size="sm" />
-                  ))}
-                </HStack>
-              ) : (
-                <SkeletonTokens count={4} />
-              )}
-            </SectionCard>
-
             <SectionCard title="Benefits & Perks">
               {hasBenefits ? (
                 <Stack gap={4}>

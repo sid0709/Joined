@@ -2,7 +2,6 @@ import type { Job, PublicCompany } from "./types";
 import type { GlyphName } from "@openseat/design-system";
 
 const OFFICE_LIMIT = 3;
-const SKILLS_LIMIT = 6;
 const VALUE_ICONS: GlyphName[] = [
   "heart",
   "star",
@@ -22,8 +21,8 @@ export type BenefitCategory = { label: string; items: string[] };
 /**
  * The public company profile. Fields saved on the company record come through as-is.
  * Anything still unset stays `undefined` so the page can render a skeleton instead of
- * inventing a fact. Offices and tech stack still come from this company's live jobs
- * unless offices were saved on the company.
+ * inventing a fact. Offices still come from this company's live jobs unless offices
+ * were saved on the company.
  */
 export type PresentedCompany = {
   id: string;
@@ -49,8 +48,6 @@ export type PresentedCompany = {
   /** Flat list of benefit and perk items, for cards. */
   benefits?: string[];
   hasLogoFile?: boolean;
-  /** Job skills, deduped — real, derived from this company's live postings. */
-  techStack?: string[];
 };
 
 export function companyFromJob(job: Job): PublicCompany | null {
@@ -99,7 +96,6 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
     0,
     OFFICE_LIMIT,
   );
-  const skills = [...new Set(companyJobs.flatMap((job) => job.skills))].slice(0, SKILLS_LIMIT);
 
   const savedLocations = text(company.locations);
   const values = company.values
@@ -142,7 +138,6 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
       benefitCategories && benefitCategories.length > 0 ? benefitCategories : undefined,
     benefits: benefits && benefits.length > 0 ? benefits : undefined,
     hasLogoFile: company.hasLogoFile || undefined,
-    techStack: skills.length > 0 ? skills : undefined,
   };
 }
 
