@@ -37,6 +37,8 @@ import {
 } from "@/lib/company";
 import { ApplicantCard } from "./applicant-card";
 import { ApplicantDrawer, type ApplicantScheduleRequest } from "./applicant-drawer";
+import type { OfferActionResult } from "@/components/company/offer/offer-panel";
+import { applyOfferStatus, buildOfferPatch } from "@/lib/offer-hire";
 
 const COLUMN_WIDTH = 240;
 const PERCENT = 100;
@@ -101,6 +103,7 @@ export function ApplicantsWorkspace() {
   const feedbackGate = activeJob?.feedbackGate ?? DEFAULT_FEEDBACK_GATE;
   const scorecardTemplate = activeJob?.scorecardTemplate ?? null;
   const interviewGuide = activeJob?.interviewGuide ?? null;
+  const offerTemplates = activeJob?.offerTemplates ?? [];
 
   const needle = query.trim().toLowerCase();
   const tagOptions = [
@@ -125,12 +128,32 @@ export function ApplicantsWorkspace() {
   );
 
   const replace = (next: Applicant, message?: string) => {
-    moveApplicant(next.id, next.columnId, next.notes, next.rating, next.tags, next.interviewerIds)
+    const offerPatch = next.offer ? buildOfferPatch(next.offer) : undefined;
+    // When advancing straight to hired without OfferPanel, stamp accepted.
+    const patchedOffer =
+      next.columnId === "hired" && next.offer && next.offer.status !== "accepted"
+        ? buildOfferPatch(applyOfferStatus(next.offer, "accepted"))
+        : next.columnId === "hired" && !next.offer
+          ? buildOfferPatch(applyOfferStatus(undefined, "accepted"))
+          : offerPatch;
+    moveApplicant(
+      next.id,
+      next.columnId,
+      next.notes,
+      next.rating,
+      next.tags,
+      next.interviewerIds,
+      patchedOffer,
+    )
       .then((saved) => {
         setPeople((current) =>
           current.map((person) =>
             person.id === saved.id
-              ? { ...saved, interviewerIds: next.interviewerIds ?? saved.interviewerIds }
+              ? {
+                  ...saved,
+                  interviewerIds: next.interviewerIds ?? saved.interviewerIds,
+                  offer: next.offer ?? saved.offer,
+                }
               : person,
           ),
         );
@@ -140,6 +163,29 @@ export function ApplicantsWorkspace() {
         }
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
+
+  const applyOffer = (result: OfferActionResult) => {
+    const nextColumn = result.columnId ?? result.applicant.columnId;
+    // Hired moves still respect the feedback gate via replace → tryMove is drawer-side;
+    // here OfferPanel already decided status — persist offer + optional column.
+    if (result.columnId && result.columnId !== result.applicant.columnId) {
+      const gate = feedbackGate;
+      const check = canAdvanceStage({
+        fromStage: result.applicant.columnId,
+        toStage: result.columnId,
+        notes: result.applicant.notes,
+        rating: result.applicant.rating,
+        hasScorecard: scorecards.some((item) => item.applicantId === result.applicant.id),
+        gate,
+        customStages: activeJob?.customStages,
+      });
+      if (!check.ok) {
+        toast({ body: check.reason, type: "error" });
+        return;
+      }
+    }
+    replace({ ...result.applicant, columnId: nextColumn, offer: result.offer }, result.message);
   };
 
   const schedule = (person: Applicant, slot: ApplicantScheduleRequest) => {
@@ -256,14 +302,35 @@ export function ApplicantsWorkspace() {
               toast({ body: check.reason, type: "error" });
               return;
             }
-            setPeople([...hidden, ...next]);
-            moveApplicant(moved.id, move.to.columnId as ApplicantStage)
+            const toStage = move.to.columnId as ApplicantStage;
+            let stampOffer = moved.offer;
+            let offerPatch = undefined as ReturnType<typeof buildOfferPatch> | undefined;
+            if (toStage === "offer" && !stampOffer) {
+              stampOffer = applyOfferStatus(undefined, "draft");
+              offerPatch = buildOfferPatch(stampOffer);
+            } else if (toStage === "hired") {
+              stampOffer = applyOfferStatus(stampOffer, "accepted");
+              offerPatch = buildOfferPatch(stampOffer);
+            } else if (stampOffer) {
+              offerPatch = buildOfferPatch(stampOffer);
+            }
+            setPeople([
+              ...hidden,
+              ...next.map((person) =>
+                person.id === moved.id ? { ...person, offer: stampOffer ?? person.offer } : person,
+              ),
+            ]);
+            moveApplicant(moved.id, toStage, undefined, undefined, undefined, undefined, offerPatch)
               .then((saved) => {
                 setPeople((current) =>
-                  current.map((person) => (person.id === saved.id ? saved : person)),
+                  current.map((person) =>
+                    person.id === saved.id
+                      ? { ...saved, offer: stampOffer ?? saved.offer }
+                      : person,
+                  ),
                 );
                 toast({
-                  body: `Moved to ${APPLICANT_STAGE_BY_ID[move.to.columnId as ApplicantStage].title}`,
+                  body: `Moved to ${APPLICANT_STAGE_BY_ID[toStage].title}`,
                 });
               })
               .catch((error: Error) => {
@@ -291,6 +358,7 @@ export function ApplicantsWorkspace() {
         interviewGuide={interviewGuide}
         feedbackGate={feedbackGate}
         scorecards={scorecards}
+        offerTemplates={offerTemplates}
         onScorecard={(submission) => {
           setScorecards((current) => [submission, ...current]);
           toast({ body: "Scorecard saved locally — Einstein persist pending." });
@@ -298,6 +366,7 @@ export function ApplicantsWorkspace() {
         onClose={() => setOpenId(null)}
         onChange={replace}
         onSchedule={schedule}
+        onOffer={applyOffer}
       />
     </Stack>
   );

@@ -29,7 +29,7 @@
  * GET /v1/company/applicants/:id/scorecards
  *   ScorecardSubmission[]
  *
- * Out of scope here: SSO, Scoutwell, schedule/Join deep (D), offers (E).
+ * Out of scope here: SSO, Scoutwell, schedule/Join deep (D). Offers: see offer-hire.ts.
  */
 
 import type { ApplicantStage } from "@/lib/company/applicants";

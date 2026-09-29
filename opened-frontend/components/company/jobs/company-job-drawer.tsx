@@ -27,11 +27,13 @@ import {
   type InterviewGuide,
   type PipelineStageDef,
   type ScorecardTemplate,
+  type OfferTemplate,
 } from "@/lib/company";
 import { CustomStagesEditor } from "@/components/company/pipeline/custom-stages-editor";
 import { FeedbackGateEditor } from "@/components/company/pipeline/feedback-gate";
 import { InterviewGuideShell } from "@/components/company/pipeline/interview-guide-shell";
 import { ScorecardTemplateEditor } from "@/components/company/pipeline/scorecard-shell";
+import { OfferTemplateEditor } from "@/components/company/offer/offer-template-editor";
 import { formatShortDate } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 import { PipelineBar } from "../pipeline-bar";
@@ -58,6 +60,7 @@ export function CompanyJobDrawer({
   const [scorecardTemplate, setScorecardTemplate] =
     useState<ScorecardTemplate>(newScorecardTemplate());
   const [interviewGuide, setInterviewGuide] = useState<InterviewGuide>(newInterviewGuide());
+  const [offerTemplates, setOfferTemplates] = useState<OfferTemplate[]>([]);
 
   useEffect(() => {
     if (!job) return;
@@ -65,6 +68,7 @@ export function CompanyJobDrawer({
     setFeedbackGate(job.feedbackGate ?? DEFAULT_FEEDBACK_GATE);
     setScorecardTemplate(job.scorecardTemplate ?? newScorecardTemplate());
     setInterviewGuide(job.interviewGuide ?? newInterviewGuide());
+    setOfferTemplates(job.offerTemplates ?? []);
   }, [job]);
 
   if (!job) return null;
@@ -147,8 +151,13 @@ export function CompanyJobDrawer({
           <Heading level={3}>Interview guide</Heading>
           <InterviewGuideShell value={interviewGuide} onChange={setInterviewGuide} />
         </Stack>
+        <Stack gap={3}>
+          <Heading level={3}>Offer templates</Heading>
+          <OfferTemplateEditor value={offerTemplates} onChange={setOfferTemplates} />
+        </Stack>
         <Text type="supporting" color="secondary">
-          Pipeline eval settings stay local until Einstein lands PUT /v1/company/jobs/:id/pipeline.
+          Pipeline eval and offer template settings stay local until Einstein lands PUT
+          /v1/company/jobs/:id/pipeline (and offerTemplates on the job).
         </Text>
 
         <Divider />

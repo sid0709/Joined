@@ -31,7 +31,7 @@
  *   dayEnd, interviewLength, buffer, timeZone — used client-side to
  *   propose slots until Einstein owns calendar free/busy.
  *
- * Out of scope here: offers (E), RBAC (F), analytics (G), SSO, Scoutwell.
+ * Out of scope here: RBAC (F), analytics (G), SSO, Scoutwell. Offers: see offer-hire.ts.
  */
 
 import type { HiringProfile } from "@/lib/company/me";

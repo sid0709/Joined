@@ -37,6 +37,8 @@ export type Applicant = {
   userId?: string;
   /** Team member ids assigned to interview this candidate (Layer C). */
   interviewerIds?: string[];
+  /** Offer / hire record when Einstein returns it (Layer E). */
+  offer?: import("@/lib/offer-hire").OfferRecord;
 };
 
 export const APPLICANT_STAGES: { id: ApplicantStage; title: string; badge: BadgeVariant }[] = [

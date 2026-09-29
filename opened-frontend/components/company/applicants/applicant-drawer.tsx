@@ -49,6 +49,8 @@ import { formatShortDate } from "@/lib/dates";
 import { formatCount } from "@/lib/jobs";
 import { DEFAULT_FEEDBACK_GATE, type FeedbackGateConfig } from "@/lib/pipeline-eval";
 import type { ScheduleMode, ProposedSlot } from "@/lib/schedule-join";
+import type { OfferTemplate } from "@/lib/offer-hire";
+import { OfferPanel, type OfferActionResult } from "@/components/company/offer/offer-panel";
 
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
@@ -78,10 +80,12 @@ export function ApplicantDrawer({
   interviewGuide,
   feedbackGate,
   scorecards,
+  offerTemplates,
   onScorecard,
   onClose,
   onChange,
   onSchedule,
+  onOffer,
 }: {
   applicant: Applicant | null;
   allApplicants: Applicant[];
@@ -91,10 +95,12 @@ export function ApplicantDrawer({
   interviewGuide: InterviewGuide | null;
   feedbackGate: FeedbackGateConfig;
   scorecards: ScorecardSubmission[];
+  offerTemplates: OfferTemplate[];
   onScorecard: (submission: ScorecardSubmission) => void;
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
   onSchedule: (applicant: Applicant, slot: ApplicantScheduleRequest) => void;
+  onOffer: (result: OfferActionResult) => void;
 }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<ScheduleDraft>(emptyScheduleDraft());
@@ -185,18 +191,33 @@ export function ApplicantDrawer({
               variant="secondary"
               onClick={() => move("screening", `${applicant.name} shortlisted`)}
             />
-            <Button
-              label={
-                draft.mode === "propose"
-                  ? "Offer times"
-                  : draft.mode === "self_schedule"
-                    ? "Send self-schedule"
-                    : "Schedule interview"
-              }
-              variant="primary"
-              isDisabled={!slotReady}
-              onClick={submitSchedule}
-            />
+            {applicant.columnId === "interview" || applicant.columnId === "screening" ? (
+              <Button
+                label="Move to offer"
+                variant="secondary"
+                onClick={() => move("offer", `${applicant.name} moved to offer`)}
+              />
+            ) : null}
+            {applicant.columnId === "offer" ? (
+              <Button
+                label="Mark hired"
+                variant="primary"
+                onClick={() => move("hired", `${applicant.name} hired`)}
+              />
+            ) : (
+              <Button
+                label={
+                  draft.mode === "propose"
+                    ? "Offer times"
+                    : draft.mode === "self_schedule"
+                      ? "Send self-schedule"
+                      : "Schedule interview"
+                }
+                variant="primary"
+                isDisabled={!slotReady}
+                onClick={submitSchedule}
+              />
+            )}
           </HStack>
         </HStack>
       }
@@ -330,6 +351,13 @@ export function ApplicantDrawer({
           applicantId={applicant.id}
           existing={applicantScorecards}
           onSubmit={onScorecard}
+        />
+
+        <OfferPanel
+          applicant={applicant}
+          templates={offerTemplates}
+          teamMembers={teamMembers}
+          onApply={onOffer}
         />
 
         <Stack gap={4}>

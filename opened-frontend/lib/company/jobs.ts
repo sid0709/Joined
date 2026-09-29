@@ -40,6 +40,8 @@ export type CompanyJob = {
   feedbackGate?: import("@/lib/pipeline-eval").FeedbackGateConfig;
   scorecardTemplate?: import("@/lib/pipeline-eval").ScorecardTemplate;
   interviewGuide?: import("@/lib/pipeline-eval").InterviewGuide;
+  /** Layer E — reusable offer letter templates when Einstein returns them. */
+  offerTemplates?: import("@/lib/offer-hire").OfferTemplate[];
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {

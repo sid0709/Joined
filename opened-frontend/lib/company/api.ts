@@ -18,6 +18,7 @@ import {
   hydrateProposedSlots,
   type SchedulePayload,
 } from "@/lib/schedule-join";
+import { hydrateOfferRecord, hydrateOfferTemplates, type OfferPatch } from "@/lib/offer-hire";
 import type { TeamMember, TeamRole } from "./team";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
@@ -102,6 +103,7 @@ function hydrateJob(job: ApiJob): CompanyJob {
     feedbackGate: job.feedbackGate ? hydrateFeedbackGate(job.feedbackGate) : undefined,
     scorecardTemplate: hydrateScorecardTemplate(job.scorecardTemplate) ?? undefined,
     interviewGuide: hydrateInterviewGuide(job.interviewGuide) ?? undefined,
+    offerTemplates: hydrateOfferTemplates(job.offerTemplates),
   };
 }
 
@@ -120,6 +122,7 @@ function hydrateApplicant(person: ApiApplicant): Applicant {
     interviewerIds: Array.isArray(person.interviewerIds)
       ? person.interviewerIds.map(String).filter(Boolean)
       : undefined,
+    offer: hydrateOfferRecord(person.offer),
   };
 }
 
@@ -244,6 +247,7 @@ export function moveApplicant(
   rating?: number,
   tags?: string[],
   interviewerIds?: string[],
+  offer?: OfferPatch,
 ) {
   return companySend<ApiApplicant>(`/applicants/${id}`, "PATCH", {
     columnId,
@@ -252,6 +256,8 @@ export function moveApplicant(
     tags: tags ?? undefined,
     // TODO(einstein): accept interviewerIds on PATCH /v1/company/applicants/:id
     interviewerIds: interviewerIds ?? undefined,
+    // TODO(einstein): persist OfferPatch on PATCH /v1/company/applicants/:id
+    offer: offer ?? undefined,
   }).then(hydrateApplicant);
 }
 
