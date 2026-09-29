@@ -25,7 +25,7 @@ func (c jobsCatalog) Lookup(ctx context.Context, jobID string) (candidate.Listin
 		}
 		return candidate.Listing{}, err
 	}
-	return candidate.FromSearchJob(
+	listing := candidate.FromSearchJob(
 		job.ID,
 		job.Title,
 		job.Company,
@@ -37,5 +37,7 @@ func (c jobsCatalog) Lookup(ctx context.Context, jobID string) (candidate.Listin
 		job.Pay.Max,
 		job.Pay.Currency,
 		job.Pay.Period,
-	), nil
+	)
+	listing.ScreeningQuestions = job.ScreeningQuestions
+	return listing, nil
 }

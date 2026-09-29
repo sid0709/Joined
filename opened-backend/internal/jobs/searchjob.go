@@ -39,27 +39,28 @@ const (
 // SearchJob is the record Opened job search reads.
 // Field names match opened-frontend/lib/jobs/types.ts.
 type SearchJob struct {
-	ID               string   `json:"id" bson:"id"`
-	Title            string   `json:"title" bson:"title"`
-	Company          string   `json:"company" bson:"company"`
-	CompanyID        string   `json:"companyId" bson:"companyId"`
-	Location         string   `json:"location" bson:"location"`
-	Workplace        string   `json:"workplace" bson:"workplace"`
-	Pay              Pay      `json:"pay" bson:"pay"`
-	Equity           bool     `json:"equity" bson:"equity"`
-	Seniority        string   `json:"seniority" bson:"seniority"`
-	Employment       string   `json:"employment" bson:"employment"`
-	PostedHoursAgo   int      `json:"postedHoursAgo" bson:"postedHoursAgo"`
-	Source           string   `json:"source" bson:"source"`
-	Visa             bool     `json:"visa" bson:"visa"`
-	Applicants       int      `json:"applicants" bson:"applicants"`
-	Team             string   `json:"team" bson:"team"`
-	Skills           []string `json:"skills" bson:"skills"`
-	Summary          string   `json:"summary" bson:"summary"`
-	Responsibilities []string `json:"responsibilities" bson:"responsibilities"`
-	Requirements     []string `json:"requirements" bson:"requirements"`
-	Benefits         []string `json:"benefits" bson:"benefits"`
-	Description      string   `json:"description,omitempty" bson:"description,omitempty"`
+	ID                 string              `json:"id" bson:"id"`
+	Title              string              `json:"title" bson:"title"`
+	Company            string              `json:"company" bson:"company"`
+	CompanyID          string              `json:"companyId" bson:"companyId"`
+	Location           string              `json:"location" bson:"location"`
+	Workplace          string              `json:"workplace" bson:"workplace"`
+	Pay                Pay                 `json:"pay" bson:"pay"`
+	Equity             bool                `json:"equity" bson:"equity"`
+	Seniority          string              `json:"seniority" bson:"seniority"`
+	Employment         string              `json:"employment" bson:"employment"`
+	PostedHoursAgo     int                 `json:"postedHoursAgo" bson:"postedHoursAgo"`
+	Source             string              `json:"source" bson:"source"`
+	Visa               bool                `json:"visa" bson:"visa"`
+	Applicants         int                 `json:"applicants" bson:"applicants"`
+	Team               string              `json:"team" bson:"team"`
+	Skills             []string            `json:"skills" bson:"skills"`
+	Summary            string              `json:"summary" bson:"summary"`
+	Responsibilities   []string            `json:"responsibilities" bson:"responsibilities"`
+	Requirements       []string            `json:"requirements" bson:"requirements"`
+	Benefits           []string            `json:"benefits" bson:"benefits"`
+	Description        string              `json:"description,omitempty" bson:"description,omitempty"`
+	ScreeningQuestions []ScreeningQuestion `json:"screeningQuestions" bson:"screeningQuestions,omitempty"`
 }
 
 type Pay struct {

@@ -1,6 +1,10 @@
 package employer
 
-import "github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
+import (
+	"strings"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
+)
 
 const (
 	stageNew       = "new"
@@ -34,6 +38,47 @@ func companyStage(columnID, stored, closedReason string) string {
 	default:
 		return stageNew
 	}
+}
+
+const (
+	maxApplicantTags = 12
+	maxTagRunes      = 40
+)
+
+// applicantPatch maps a company column onto the candidate board.
+// A tags-only patch leaves the stage alone; a missing column with no tags is invalid.
+func applicantPatch(columnID string, hasTags bool) (column, reason, companyStage string, ok bool) {
+	if columnID == "" {
+		return "", "", "", hasTags
+	}
+	column, reason, ok = candidateStage(columnID)
+	if !ok {
+		return "", "", "", false
+	}
+	return column, reason, columnID, true
+}
+
+func normalizeTags(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if len([]rune(value)) > maxTagRunes {
+			value = string([]rune(value)[:maxTagRunes])
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+		if len(out) == maxApplicantTags {
+			break
+		}
+	}
+	return out
 }
 
 func candidateStage(company string) (columnID, closedReason string, ok bool) {

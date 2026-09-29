@@ -22,26 +22,27 @@ type JobQuery struct {
 }
 
 type hiringJob struct {
-	ID               string    `bson:"id"`
-	CompanyID        string    `bson:"companyId"`
-	CreatedBy        string    `bson:"createdBy"`
-	Title            string    `bson:"title"`
-	Team             string    `bson:"team"`
-	Seniority        string    `bson:"seniority"`
-	Location         string    `bson:"location"`
-	Workplace        string    `bson:"workplace"`
-	PayMin           int       `bson:"payMin"`
-	PayMax           int       `bson:"payMax"`
-	Currency         string    `bson:"currency"`
-	Visa             bool      `bson:"visa"`
-	Summary          string    `bson:"summary"`
-	Skills           []string  `bson:"skills"`
-	Responsibilities []string  `bson:"responsibilities"`
-	Requirements     []string  `bson:"requirements"`
-	Description      string    `bson:"description"`
-	Status           string    `bson:"status"`
-	CreatedAt        time.Time `bson:"createdAt"`
-	PostedAt         time.Time `bson:"postedAt,omitempty"`
+	ID                 string                   `bson:"id"`
+	CompanyID          string                   `bson:"companyId"`
+	CreatedBy          string                   `bson:"createdBy"`
+	Title              string                   `bson:"title"`
+	Team               string                   `bson:"team"`
+	Seniority          string                   `bson:"seniority"`
+	Location           string                   `bson:"location"`
+	Workplace          string                   `bson:"workplace"`
+	PayMin             int                      `bson:"payMin"`
+	PayMax             int                      `bson:"payMax"`
+	Currency           string                   `bson:"currency"`
+	Visa               bool                     `bson:"visa"`
+	Summary            string                   `bson:"summary"`
+	Skills             []string                 `bson:"skills"`
+	Responsibilities   []string                 `bson:"responsibilities"`
+	Requirements       []string                 `bson:"requirements"`
+	Description        string                   `bson:"description"`
+	ScreeningQuestions []jobs.ScreeningQuestion `bson:"screeningQuestions,omitempty"`
+	Status             string                   `bson:"status"`
+	CreatedAt          time.Time                `bson:"createdAt"`
+	PostedAt           time.Time                `bson:"postedAt,omitempty"`
 }
 
 // ListDirectJobs returns hiring jobs. source=direct is this collection; any other source is empty.
@@ -223,25 +224,33 @@ func viewDirectJob(doc hiringJob, companyName string) DirectJob {
 
 func searchJob(doc hiringJob, companyName string) jobs.SearchJob {
 	return jobs.SearchJob{
-		ID:               doc.ID,
-		Title:            doc.Title,
-		Company:          companyName,
-		CompanyID:        doc.CompanyID,
-		Location:         doc.Location,
-		Workplace:        doc.Workplace,
-		Pay:              jobs.Pay{Min: doc.PayMin, Max: doc.PayMax, Currency: jobschema.CanonicalCurrency(doc.Currency), Period: jobschema.PayYear},
-		Seniority:        doc.Seniority,
-		Employment:       jobschema.EmploymentFullTime,
-		Source:           jobs.DirectSource,
-		Visa:             doc.Visa,
-		Team:             doc.Team,
-		Skills:           listOrEmpty(doc.Skills),
-		Summary:          doc.Summary,
-		Responsibilities: listOrEmpty(doc.Responsibilities),
-		Requirements:     listOrEmpty(doc.Requirements),
-		Benefits:         []string{},
-		Description:      doc.Description,
+		ID:                 doc.ID,
+		Title:              doc.Title,
+		Company:            companyName,
+		CompanyID:          doc.CompanyID,
+		Location:           doc.Location,
+		Workplace:          doc.Workplace,
+		Pay:                jobs.Pay{Min: doc.PayMin, Max: doc.PayMax, Currency: jobschema.CanonicalCurrency(doc.Currency), Period: jobschema.PayYear},
+		Seniority:          doc.Seniority,
+		Employment:         jobschema.EmploymentFullTime,
+		Source:             jobs.DirectSource,
+		Visa:               doc.Visa,
+		Team:               doc.Team,
+		Skills:             listOrEmpty(doc.Skills),
+		Summary:            doc.Summary,
+		Responsibilities:   listOrEmpty(doc.Responsibilities),
+		Requirements:       listOrEmpty(doc.Requirements),
+		Benefits:           []string{},
+		Description:        doc.Description,
+		ScreeningQuestions: questionsOrEmpty(doc.ScreeningQuestions),
 	}
+}
+
+func questionsOrEmpty(items []jobs.ScreeningQuestion) []jobs.ScreeningQuestion {
+	if items == nil {
+		return []jobs.ScreeningQuestion{}
+	}
+	return items
 }
 
 func listOrEmpty(values []string) []string {

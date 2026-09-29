@@ -3,6 +3,8 @@ package candidate
 import (
 	"context"
 	"time"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 )
 
 const (
@@ -114,25 +116,39 @@ type ApplicationEvent struct {
 }
 
 type Application struct {
-	ID           string             `json:"id" bson:"id"`
-	ColumnID     string             `json:"columnId" bson:"columnId"`
-	UserID       string             `json:"-" bson:"userId"`
-	JobID        string             `json:"jobId" bson:"jobId"`
-	CompanyID    string             `json:"companyId,omitempty" bson:"companyId,omitempty"`
-	Title        string             `json:"title" bson:"title"`
-	Company      string             `json:"company" bson:"company"`
-	Location     string             `json:"location" bson:"location"`
-	Salary       string             `json:"salary" bson:"salary"`
-	Source       string             `json:"source" bson:"source"`
-	Resume       string             `json:"resume" bson:"resume"`
-	Match        int                `json:"match" bson:"match"`
-	Updated      time.Time          `json:"updated" bson:"updated"`
-	NextStep     string             `json:"nextStep,omitempty" bson:"nextStep,omitempty"`
-	ClosedReason string             `json:"closedReason,omitempty" bson:"closedReason,omitempty"`
-	Activity     []ApplicationEvent `json:"activity" bson:"activity"`
-	CompanyStage string             `json:"-" bson:"companyStage,omitempty"`
-	Rating       int                `json:"-" bson:"rating,omitempty"`
-	CompanyNotes string             `json:"-" bson:"companyNotes,omitempty"`
+	ID               string             `json:"id" bson:"id"`
+	ColumnID         string             `json:"columnId" bson:"columnId"`
+	UserID           string             `json:"-" bson:"userId"`
+	JobID            string             `json:"jobId" bson:"jobId"`
+	CompanyID        string             `json:"companyId,omitempty" bson:"companyId,omitempty"`
+	Title            string             `json:"title" bson:"title"`
+	Company          string             `json:"company" bson:"company"`
+	Location         string             `json:"location" bson:"location"`
+	Salary           string             `json:"salary" bson:"salary"`
+	Source           string             `json:"source" bson:"source"`
+	Resume           string             `json:"resume" bson:"resume"`
+	Match            int                `json:"match" bson:"match"`
+	Updated          time.Time          `json:"updated" bson:"updated"`
+	NextStep         string             `json:"nextStep,omitempty" bson:"nextStep,omitempty"`
+	ClosedReason     string             `json:"closedReason,omitempty" bson:"closedReason,omitempty"`
+	Activity         []ApplicationEvent `json:"activity" bson:"activity"`
+	ScreeningAnswers []ScreeningAnswer  `json:"screeningAnswers" bson:"screeningAnswers,omitempty"`
+	ReferralSource   string             `json:"referralSource,omitempty" bson:"referralSource,omitempty"`
+	ConsentAt        time.Time          `json:"consentAt,omitempty" bson:"consentAt,omitempty"`
+	ConsentVersion   string             `json:"consentVersion,omitempty" bson:"consentVersion,omitempty"`
+	CompanyStage     string             `json:"-" bson:"companyStage,omitempty"`
+	Rating           int                `json:"-" bson:"rating,omitempty"`
+	CompanyNotes     string             `json:"-" bson:"companyNotes,omitempty"`
+	Tags             []string           `json:"-" bson:"tags,omitempty"`
+}
+
+// ScreeningAnswer is one reply on an application.
+// JSON matches intake.ts: questionId, prompt, value, knockedOut?.
+type ScreeningAnswer struct {
+	QuestionID string `json:"questionId" bson:"questionId"`
+	Prompt     string `json:"prompt" bson:"prompt"`
+	Value      string `json:"value" bson:"value"`
+	KnockedOut bool   `json:"knockedOut,omitempty" bson:"knockedOut,omitempty"`
 }
 
 type SavedJob struct {
@@ -263,13 +279,14 @@ type storedRead struct {
 }
 
 type Listing struct {
-	ID        string
-	Title     string
-	Company   string
-	CompanyID string
-	Location  string
-	Salary    string
-	Source    string
+	ID                 string
+	Title              string
+	Company            string
+	CompanyID          string
+	Location           string
+	Salary             string
+	Source             string
+	ScreeningQuestions []jobs.ScreeningQuestion
 }
 
 type Catalog interface {

@@ -502,6 +502,9 @@ func (doc storedSearchJob) view(now time.Time) SearchRecord {
 	job.Responsibilities = cleanList(job.Responsibilities, maxBullets)
 	job.Requirements = cleanList(job.Requirements, maxBullets)
 	job.Benefits = cleanList(job.Benefits, maxBullets)
+	if job.ScreeningQuestions == nil {
+		job.ScreeningQuestions = []ScreeningQuestion{}
+	}
 	return SearchRecord{
 		Job:           job,
 		TempJobID:     doc.TempJobID,

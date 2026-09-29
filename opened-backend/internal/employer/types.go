@@ -1,6 +1,11 @@
 package employer
 
-import "time"
+import (
+	"time"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
+)
 
 type Pipeline struct {
 	New       int `json:"new"`
@@ -10,48 +15,55 @@ type Pipeline struct {
 }
 
 type Job struct {
-	ID               string    `json:"id"`
-	JobID            string    `json:"jobId,omitempty"`
-	Title            string    `json:"title"`
-	Team             string    `json:"team"`
-	Location         string    `json:"location"`
-	Workplace        string    `json:"workplace"`
-	Seniority        string    `json:"seniority"`
-	Status           string    `json:"status"`
-	PostedOn         time.Time `json:"postedOn"`
-	Views            int       `json:"views"`
-	Pipeline         Pipeline  `json:"pipeline"`
-	Policy           string    `json:"policy"`
-	DailyCap         int       `json:"dailyCap,omitempty"`
-	PayMin           int       `json:"payMin"`
-	PayMax           int       `json:"payMax"`
-	Currency         string    `json:"currency"`
-	Visa             bool      `json:"visa"`
-	Summary          string    `json:"summary"`
-	Skills           []string  `json:"skills"`
-	Responsibilities []string  `json:"responsibilities"`
-	Requirements     []string  `json:"requirements"`
-	Description      string    `json:"description"`
+	ID                 string                   `json:"id"`
+	JobID              string                   `json:"jobId,omitempty"`
+	Title              string                   `json:"title"`
+	Team               string                   `json:"team"`
+	Location           string                   `json:"location"`
+	Workplace          string                   `json:"workplace"`
+	Seniority          string                   `json:"seniority"`
+	Status             string                   `json:"status"`
+	PostedOn           time.Time                `json:"postedOn"`
+	Views              int                      `json:"views"`
+	Pipeline           Pipeline                 `json:"pipeline"`
+	Policy             string                   `json:"policy"`
+	DailyCap           int                      `json:"dailyCap,omitempty"`
+	PayMin             int                      `json:"payMin"`
+	PayMax             int                      `json:"payMax"`
+	Currency           string                   `json:"currency"`
+	Visa               bool                     `json:"visa"`
+	Summary            string                   `json:"summary"`
+	Skills             []string                 `json:"skills"`
+	Responsibilities   []string                 `json:"responsibilities"`
+	Requirements       []string                 `json:"requirements"`
+	Description        string                   `json:"description"`
+	ScreeningQuestions []jobs.ScreeningQuestion `json:"screeningQuestions"`
 }
 
 type Applicant struct {
-	ID              string    `json:"id"`
-	ColumnID        string    `json:"columnId"`
-	Name            string    `json:"name"`
-	Headline        string    `json:"headline"`
-	Location        string    `json:"location"`
-	JobID           string    `json:"jobId"`
-	JobTitle        string    `json:"jobTitle"`
-	Fit             int       `json:"fit"`
-	Verified        bool      `json:"verified"`
-	Assisted        string    `json:"assisted"`
-	Resume          string    `json:"resume"`
-	AppliedOn       time.Time `json:"appliedOn"`
-	ExperienceYears int       `json:"experienceYears"`
-	LastCompany     string    `json:"lastCompany"`
-	Skills          []string  `json:"skills"`
-	Rating          int       `json:"rating,omitempty"`
-	Notes           string    `json:"notes,omitempty"`
+	ID               string                      `json:"id"`
+	ColumnID         string                      `json:"columnId"`
+	Name             string                      `json:"name"`
+	Headline         string                      `json:"headline"`
+	Location         string                      `json:"location"`
+	JobID            string                      `json:"jobId"`
+	JobTitle         string                      `json:"jobTitle"`
+	Fit              int                         `json:"fit"`
+	Verified         bool                        `json:"verified"`
+	Assisted         string                      `json:"assisted"`
+	Resume           string                      `json:"resume"`
+	AppliedOn        time.Time                   `json:"appliedOn"`
+	ExperienceYears  int                         `json:"experienceYears"`
+	LastCompany      string                      `json:"lastCompany"`
+	Skills           []string                    `json:"skills"`
+	Rating           int                         `json:"rating,omitempty"`
+	Notes            string                      `json:"notes,omitempty"`
+	Tags             []string                    `json:"tags"`
+	UserID           string                      `json:"userId,omitempty"`
+	ScreeningAnswers []candidate.ScreeningAnswer `json:"screeningAnswers"`
+	ReferralSource   string                      `json:"referralSource,omitempty"`
+	ConsentAt        time.Time                   `json:"consentAt,omitempty"`
+	ConsentVersion   string                      `json:"consentVersion,omitempty"`
 }
 
 type Interview struct {
@@ -152,29 +164,31 @@ type TeamRename struct {
 }
 
 type JobInput struct {
-	Title            string   `json:"title"`
-	Team             string   `json:"team"`
-	Seniority        string   `json:"seniority"`
-	Location         string   `json:"location"`
-	Workplace        string   `json:"workplace"`
-	PayMin           int      `json:"payMin"`
-	PayMax           int      `json:"payMax"`
-	Currency         string   `json:"currency"`
-	Visa             bool     `json:"visa"`
-	Summary          string   `json:"summary"`
-	Skills           []string `json:"skills"`
-	Responsibilities []string `json:"responsibilities"`
-	Requirements     []string `json:"requirements"`
-	Description      string   `json:"description"`
-	Policy           string   `json:"policy"`
-	DailyCap         int      `json:"dailyCap"`
-	Status           string   `json:"status"`
+	Title              string                   `json:"title"`
+	Team               string                   `json:"team"`
+	Seniority          string                   `json:"seniority"`
+	Location           string                   `json:"location"`
+	Workplace          string                   `json:"workplace"`
+	PayMin             int                      `json:"payMin"`
+	PayMax             int                      `json:"payMax"`
+	Currency           string                   `json:"currency"`
+	Visa               bool                     `json:"visa"`
+	Summary            string                   `json:"summary"`
+	Skills             []string                 `json:"skills"`
+	Responsibilities   []string                 `json:"responsibilities"`
+	Requirements       []string                 `json:"requirements"`
+	Description        string                   `json:"description"`
+	ScreeningQuestions []jobs.ScreeningQuestion `json:"screeningQuestions"`
+	Policy             string                   `json:"policy"`
+	DailyCap           int                      `json:"dailyCap"`
+	Status             string                   `json:"status"`
 }
 
 type StageInput struct {
-	ColumnID string `json:"columnId"`
-	Notes    string `json:"notes"`
-	Rating   *int   `json:"rating"`
+	ColumnID string    `json:"columnId"`
+	Notes    string    `json:"notes"`
+	Rating   *int      `json:"rating"`
+	Tags     *[]string `json:"tags"`
 }
 
 type ScheduleInput struct {

@@ -1,6 +1,81 @@
 package candidate
 
-import "testing"
+import (
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
+)
+
+func TestBuildApplicationStoresIntake(t *testing.T) {
+	when := time.Date(2026, 9, 29, 17, 0, 0, 0, time.FixedZone("EDT", -4*60*60))
+	questions := []jobs.ScreeningQuestion{{
+		ID: "q1", Prompt: "Authorized?", Kind: jobs.ScreeningYesNo, Required: true, KnockoutAnswer: jobs.KnockoutNo,
+	}}
+	app, err := buildApplication("user-1", ApplyInput{
+		Title:          "Designer",
+		Company:        "Acme",
+		ReferralSource: " linkedin ",
+		ConsentVersion: "opened-apply-v1",
+		ConsentAt:      when,
+		ScreeningAnswers: []ScreeningAnswer{
+			{QuestionID: " q1 ", Prompt: "stale", Value: " no "},
+			{QuestionID: "q2", Prompt: "Years with Go", Value: "Five years"},
+		},
+	}, questions, when)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if app.UserID != "user-1" || app.ReferralSource != "linkedin" || app.ConsentVersion != "opened-apply-v1" {
+		t.Fatalf("intake = %+v", app)
+	}
+	if !app.ConsentAt.Equal(when.UTC()) {
+		t.Fatalf("consentAt = %s", app.ConsentAt)
+	}
+	if len(app.ScreeningAnswers) != 2 || app.ScreeningAnswers[0].QuestionID != "q1" || app.ScreeningAnswers[0].Value != "no" {
+		t.Fatalf("answers = %+v", app.ScreeningAnswers)
+	}
+	if app.ScreeningAnswers[0].Prompt != "Authorized?" || !app.ScreeningAnswers[0].KnockedOut {
+		t.Fatalf("knockout = %+v", app.ScreeningAnswers[0])
+	}
+	if app.ScreeningAnswers[1].Prompt != "Years with Go" || app.ScreeningAnswers[1].KnockedOut {
+		t.Fatalf("second = %+v", app.ScreeningAnswers[1])
+	}
+
+	_, err = buildApplication("user-1", ApplyInput{
+		Title:            "Designer",
+		Company:          "Acme",
+		ConsentAt:        when,
+		ScreeningAnswers: []ScreeningAnswer{{QuestionID: "", Value: "yes"}},
+	}, nil, when)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("blank id err = %v", err)
+	}
+	_, err = buildApplication("user-1", ApplyInput{
+		Title:   "Designer",
+		Company: "Acme",
+		ScreeningAnswers: []ScreeningAnswer{
+			{QuestionID: "q1", Value: "yes"},
+		},
+	}, questions, when)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("missing consent err = %v", err)
+	}
+	_, err = buildApplication("user-1", ApplyInput{
+		Title:     "Designer",
+		Company:   "Acme",
+		ConsentAt: when,
+	}, questions, when)
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("missing answer err = %v", err)
+	}
+
+	manual, err := buildApplication("user-1", ApplyInput{Title: "Designer", Company: "Acme"}, nil, when)
+	if err != nil || manual.ConsentVersion != "" || len(manual.ScreeningAnswers) != 0 || !manual.ConsentAt.IsZero() {
+		t.Fatalf("manual = %+v %v", manual, err)
+	}
+}
 
 func TestBoardItemsKeepsSavedOffApplications(t *testing.T) {
 	apps := []Application{{ID: "a1", JobID: "job-1", ColumnID: StageApplied, Title: "Designer"}}

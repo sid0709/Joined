@@ -45,16 +45,21 @@ func (s *Store) Applicants(ctx context.Context, companyID string) ([]Applicant, 
 }
 
 func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input StageInput, now time.Time) (Applicant, error) {
-	column, reason, ok := candidateStage(input.ColumnID)
+	column, reason, companyStage, ok := applicantPatch(input.ColumnID, input.Tags != nil)
 	if !ok {
 		return Applicant{}, ErrInvalidInput
+	}
+	var tags *[]string
+	if input.Tags != nil {
+		normalized := normalizeTags(*input.Tags)
+		tags = &normalized
 	}
 	notes := input.Notes
 	var notePtr *string
 	if notes != "" {
 		notePtr = &notes
 	}
-	app, err := s.people.SetCompanyStage(ctx, companyID, id, column, input.ColumnID, reason, notePtr, input.Rating, now)
+	app, err := s.people.SetCompanyStage(ctx, companyID, id, column, companyStage, reason, notePtr, input.Rating, tags, now)
 	if errors.Is(err, candidate.ErrNotFound) {
 		return Applicant{}, ErrNotFound
 	}
@@ -64,8 +69,10 @@ func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input S
 	if err != nil {
 		return Applicant{}, err
 	}
-	if err := s.record(ctx, companyID, app.Title, input.ColumnID, "accent", now); err != nil {
-		return Applicant{}, err
+	if input.ColumnID != "" {
+		if err := s.record(ctx, companyID, app.Title, input.ColumnID, "accent", now); err != nil {
+			return Applicant{}, err
+		}
 	}
 	people, err := s.presentApplicants(ctx, companyID, []candidate.Application{app})
 	if err != nil || len(people) == 0 {
@@ -338,24 +345,37 @@ func viewApplicant(app candidate.Application, user auth.User, profile candidate.
 		jobTitle = app.Title
 	}
 	return Applicant{
-		ID:              app.ID,
-		ColumnID:        companyStage(app.ColumnID, app.CompanyStage, app.ClosedReason),
-		Name:            name,
-		Headline:        profile.Headline,
-		Location:        firstText(profile.Location, app.Location),
-		JobID:           app.JobID,
-		JobTitle:        jobTitle,
-		Fit:             app.Match,
-		Verified:        false,
-		Assisted:        assistedFrom(app.Source),
-		Resume:          app.Resume,
-		AppliedOn:       applied,
-		ExperienceYears: 0,
-		LastCompany:     last,
-		Skills:          skills,
-		Rating:          app.Rating,
-		Notes:           app.CompanyNotes,
+		ID:               app.ID,
+		ColumnID:         companyStage(app.ColumnID, app.CompanyStage, app.ClosedReason),
+		Name:             name,
+		Headline:         profile.Headline,
+		Location:         firstText(profile.Location, app.Location),
+		JobID:            app.JobID,
+		JobTitle:         jobTitle,
+		Fit:              app.Match,
+		Verified:         false,
+		Assisted:         assistedFrom(app.Source),
+		Resume:           app.Resume,
+		AppliedOn:        applied,
+		ExperienceYears:  0,
+		LastCompany:      last,
+		Skills:           skills,
+		Rating:           app.Rating,
+		Notes:            app.CompanyNotes,
+		Tags:             listOrEmpty(app.Tags),
+		UserID:           app.UserID,
+		ScreeningAnswers: answersOrEmpty(app.ScreeningAnswers),
+		ReferralSource:   app.ReferralSource,
+		ConsentAt:        app.ConsentAt,
+		ConsentVersion:   app.ConsentVersion,
 	}
+}
+
+func answersOrEmpty(items []candidate.ScreeningAnswer) []candidate.ScreeningAnswer {
+	if items == nil {
+		return []candidate.ScreeningAnswer{}
+	}
+	return items
 }
 
 func viewInterview(item candidate.Interview, jobTitle string) Interview {

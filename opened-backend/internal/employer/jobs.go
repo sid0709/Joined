@@ -230,26 +230,31 @@ func normalizeJob(input JobInput, now time.Time) (storedJob, error) {
 		return storedJob{}, ErrInvalidInput
 	}
 	skills := compactList(input.Skills, 12, 40)
+	questions, err := jobs.NormalizeScreeningQuestions(input.ScreeningQuestions)
+	if err != nil {
+		return storedJob{}, ErrInvalidInput
+	}
 	doc := storedJob{
-		Title:            title,
-		Team:             clip(input.Team, 80),
-		Seniority:        seniority,
-		Location:         clip(input.Location, 120),
-		Workplace:        workplace,
-		PayMin:           input.PayMin,
-		PayMax:           input.PayMax,
-		Currency:         jobschema.CanonicalCurrency(input.Currency),
-		Visa:             input.Visa,
-		Summary:          clip(input.Summary, 2000),
-		Skills:           skills,
-		Responsibilities: compactList(input.Responsibilities, 6, 120),
-		Requirements:     compactList(input.Requirements, 6, 120),
-		Description:      clip(input.Description, 12000),
-		Policy:           policy,
-		DailyCap:         dailyCap,
-		Status:           status,
-		CreatedAt:        now.UTC(),
-		UpdatedAt:        now.UTC(),
+		Title:              title,
+		Team:               clip(input.Team, 80),
+		Seniority:          seniority,
+		Location:           clip(input.Location, 120),
+		Workplace:          workplace,
+		PayMin:             input.PayMin,
+		PayMax:             input.PayMax,
+		Currency:           jobschema.CanonicalCurrency(input.Currency),
+		Visa:               input.Visa,
+		Summary:            clip(input.Summary, 2000),
+		Skills:             skills,
+		Responsibilities:   compactList(input.Responsibilities, 6, 120),
+		Requirements:       compactList(input.Requirements, 6, 120),
+		Description:        clip(input.Description, 12000),
+		ScreeningQuestions: questions,
+		Policy:             policy,
+		DailyCap:           dailyCap,
+		Status:             status,
+		CreatedAt:          now.UTC(),
+		UpdatedAt:          now.UTC(),
 	}
 	if status == statusOpen {
 		if err := readyToPublish(doc); err != nil {
@@ -287,24 +292,25 @@ func (s *Store) publishDirect(ctx context.Context, company auth.Company, userID 
 
 func searchJob(doc storedJob, companyName string) jobs.SearchJob {
 	return jobs.SearchJob{
-		ID:               doc.ID,
-		Title:            doc.Title,
-		Company:          companyName,
-		CompanyID:        doc.CompanyID,
-		Location:         doc.Location,
-		Workplace:        doc.Workplace,
-		Pay:              jobs.Pay{Min: doc.PayMin, Max: doc.PayMax, Currency: jobschema.CanonicalCurrency(doc.Currency), Period: jobschema.PayYear},
-		Seniority:        doc.Seniority,
-		Employment:       jobschema.EmploymentFullTime,
-		Source:           "direct",
-		Visa:             doc.Visa,
-		Team:             doc.Team,
-		Skills:           listOrEmpty(doc.Skills),
-		Summary:          doc.Summary,
-		Responsibilities: listOrEmpty(doc.Responsibilities),
-		Requirements:     listOrEmpty(doc.Requirements),
-		Benefits:         []string{},
-		Description:      doc.Description,
+		ID:                 doc.ID,
+		Title:              doc.Title,
+		Company:            companyName,
+		CompanyID:          doc.CompanyID,
+		Location:           doc.Location,
+		Workplace:          doc.Workplace,
+		Pay:                jobs.Pay{Min: doc.PayMin, Max: doc.PayMax, Currency: jobschema.CanonicalCurrency(doc.Currency), Period: jobschema.PayYear},
+		Seniority:          doc.Seniority,
+		Employment:         jobschema.EmploymentFullTime,
+		Source:             "direct",
+		Visa:               doc.Visa,
+		Team:               doc.Team,
+		Skills:             listOrEmpty(doc.Skills),
+		Summary:            doc.Summary,
+		Responsibilities:   listOrEmpty(doc.Responsibilities),
+		Requirements:       listOrEmpty(doc.Requirements),
+		Benefits:           []string{},
+		Description:        doc.Description,
+		ScreeningQuestions: questionsOrEmpty(doc.ScreeningQuestions),
 	}
 }
 
@@ -314,27 +320,28 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 		posted = doc.CreatedAt
 	}
 	job := Job{
-		ID:               doc.ID,
-		Title:            doc.Title,
-		Team:             doc.Team,
-		Location:         doc.Location,
-		Workplace:        doc.Workplace,
-		Seniority:        doc.Seniority,
-		Status:           doc.Status,
-		PostedOn:         posted,
-		Views:            doc.Views,
-		Pipeline:         pipeline,
-		Policy:           doc.Policy,
-		DailyCap:         doc.DailyCap,
-		PayMin:           doc.PayMin,
-		PayMax:           doc.PayMax,
-		Currency:         jobschema.CanonicalCurrency(doc.Currency),
-		Visa:             doc.Visa,
-		Summary:          doc.Summary,
-		Skills:           listOrEmpty(doc.Skills),
-		Responsibilities: listOrEmpty(doc.Responsibilities),
-		Requirements:     listOrEmpty(doc.Requirements),
-		Description:      doc.Description,
+		ID:                 doc.ID,
+		Title:              doc.Title,
+		Team:               doc.Team,
+		Location:           doc.Location,
+		Workplace:          doc.Workplace,
+		Seniority:          doc.Seniority,
+		Status:             doc.Status,
+		PostedOn:           posted,
+		Views:              doc.Views,
+		Pipeline:           pipeline,
+		Policy:             doc.Policy,
+		DailyCap:           doc.DailyCap,
+		PayMin:             doc.PayMin,
+		PayMax:             doc.PayMax,
+		Currency:           jobschema.CanonicalCurrency(doc.Currency),
+		Visa:               doc.Visa,
+		Summary:            doc.Summary,
+		Skills:             listOrEmpty(doc.Skills),
+		Responsibilities:   listOrEmpty(doc.Responsibilities),
+		Requirements:       listOrEmpty(doc.Requirements),
+		Description:        doc.Description,
+		ScreeningQuestions: questionsOrEmpty(doc.ScreeningQuestions),
 	}
 	if doc.Status == statusOpen {
 		job.JobID = doc.ID
@@ -420,6 +427,13 @@ func listOrEmpty(values []string) []string {
 		return []string{}
 	}
 	return values
+}
+
+func questionsOrEmpty(items []jobs.ScreeningQuestion) []jobs.ScreeningQuestion {
+	if items == nil {
+		return []jobs.ScreeningQuestion{}
+	}
+	return items
 }
 
 func clip(value string, limit int) string {

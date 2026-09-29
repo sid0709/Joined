@@ -47,7 +47,7 @@ func (s *Store) ApplicationForCompany(ctx context.Context, companyID, id string)
 }
 
 // SetCompanyStage records the hiring stage and mirrors it onto the candidate board.
-func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, companyStage, closedReason string, notes *string, rating *int, now time.Time) (Application, error) {
+func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, companyStage, closedReason string, notes *string, rating *int, tags *[]string, now time.Time) (Application, error) {
 	app, err := s.ApplicationForCompany(ctx, companyID, id)
 	if err != nil {
 		return Application{}, err
@@ -59,7 +59,9 @@ func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, co
 	if companyStage != "" {
 		app.CompanyStage = companyStage
 	}
-	app.ClosedReason = closedReason
+	if columnID != "" {
+		app.ClosedReason = closedReason
+	}
 	if notes != nil {
 		app.CompanyNotes = clip(*notes, 2000)
 	}
@@ -68,6 +70,9 @@ func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, co
 			return Application{}, ErrInvalidInput
 		}
 		app.Rating = *rating
+	}
+	if tags != nil {
+		app.Tags = *tags
 	}
 	app.Updated = now.UTC()
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "companyId", Value: companyID}}, app)
