@@ -2,6 +2,7 @@
 
 import {
   Badge,
+  Banner,
   Button,
   Glyph,
   GridColumn,
@@ -15,16 +16,22 @@ import { DEFAULT_CURRENCY } from "@openseat/job-schema";
 import {
   CHANNEL_LABEL,
   SUBMISSION_STATUS,
+  ApiError,
   type AdminSubmissionDetail,
   type Submission,
   type SubmissionInput,
 } from "@openseat/scout";
 import { useState, type ReactNode } from "react";
 
+import { ReviewCompanyCard } from "./company-card";
+import { ListingPreview } from "./listing-preview";
 import { DecisionPanel } from "./decision-panel";
 import { JobEditor } from "./job-editor";
 
+import { adminSend } from "@/lib/api";
 import { ROUTES } from "@/lib/nav";
+import { SEARCH_JOBS_PATH, type SearchRecord } from "@/lib/search-job";
+import { useAdminQuery } from "@/lib/use-admin-query";
 
 /** The editable job fields, seeded from what the scout sent. */
 export function inputFrom(sub: Submission): SubmissionInput {
@@ -58,6 +65,7 @@ function dirty(a: SubmissionInput, b: SubmissionInput) {
 export function ReviewWorkspace({
   detail,
   jobHref,
+  openedOrigin,
   checks,
   related,
   scout,
@@ -65,6 +73,7 @@ export function ReviewWorkspace({
 }: {
   detail: AdminSubmissionDetail;
   jobHref: string;
+  openedOrigin?: string;
   checks: ReactNode;
   related: ReactNode;
   scout: ReactNode;
@@ -73,9 +82,37 @@ export function ReviewWorkspace({
   const sub = detail.submission;
   const original = inputFrom(sub);
   const [draft, setDraft] = useState<SubmissionInput>(original);
+  const [analyzed, setAnalyzed] = useState<SearchRecord | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState("");
+  const savedJob = useAdminQuery<SearchRecord>(
+    sub.job_id ? `${SEARCH_JOBS_PATH}/${encodeURIComponent(sub.job_id)}` : "",
+  );
+  const listing = analyzed ?? (sub.job_id ? savedJob.result : null);
+  const liveHref =
+    jobHref ||
+    (openedOrigin && listing?.job.id && !sub.expired ? `${openedOrigin}/jobs/${listing.job.id}` : "");
   const editable =
     sub.status === "needs_review" || sub.status === "rejected" || sub.status === "duplicate";
   const status = SUBMISSION_STATUS[sub.status];
+
+  async function analyze() {
+    setAnalyzeError("");
+    setAnalyzing(true);
+    try {
+      const body = await adminSend<{ submission: Submission; record: SearchRecord }>(
+        `/v1/admin/scout/submissions/${sub.id}/analyze`,
+        "POST",
+        { edits: dirty(draft, original) ? draft : undefined },
+      );
+      setAnalyzed(body.record);
+      setDraft(inputFrom(body.submission));
+    } catch (err) {
+      setAnalyzeError(err instanceof ApiError ? err.message : "Could not analyze the job.");
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   return (
     <Stack gap={5}>
@@ -117,12 +154,12 @@ export function ReviewWorkspace({
               href={sub.url}
               target="_blank"
             />
-            {jobHref ? (
+            {liveHref ? (
               <Button
                 label="View on Opened"
                 variant="secondary"
                 size="sm"
-                href={jobHref}
+                href={liveHref}
                 target="_blank"
               />
             ) : null}
@@ -133,6 +170,8 @@ export function ReviewWorkspace({
         <GridColumn span="full" lg={8}>
           <Stack gap={6}>
             {checks}
+            <ReviewCompanyCard companyId={draft.company_id} companyName={draft.company_name} />
+            {analyzeError ? <Banner status="error" title={analyzeError} /> : null}
             <JobEditor
               submission={sub}
               value={draft}
@@ -140,7 +179,10 @@ export function ReviewWorkspace({
               isEditable={editable}
               isDirty={dirty(draft, original)}
               onReset={() => setDraft(original)}
+              onAnalyze={analyze}
+              analyzing={analyzing}
             />
+            {listing?.job ? <ListingPreview job={listing.job} /> : null}
             {related}
           </Stack>
         </GridColumn>

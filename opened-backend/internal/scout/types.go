@@ -219,6 +219,7 @@ type Submission struct {
 	SpotCheck       bool          `json:"spot_check,omitempty" bson:"spotCheck,omitempty"`
 	JobID           string        `json:"job_id,omitempty" bson:"jobId,omitempty"`
 	JobRef          string        `json:"-" bson:"jobRef,omitempty"`
+	TempJobID       string        `json:"temp_job_id,omitempty" bson:"tempJobId,omitempty"`
 	ReviewedBy      string        `json:"reviewed_by,omitempty" bson:"reviewedBy,omitempty"`
 	ReviewedAt      *time.Time    `json:"reviewed_at,omitempty" bson:"reviewedAt,omitempty"`
 	ReviewNote      string        `json:"review_note,omitempty" bson:"reviewNote,omitempty"`

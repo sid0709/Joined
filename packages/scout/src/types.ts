@@ -78,6 +78,7 @@ export type Submission = {
   on_major_boards: boolean;
   spot_check?: boolean;
   job_id?: string;
+  temp_job_id?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   review_note?: string;

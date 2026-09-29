@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -496,6 +497,44 @@ func (s *Store) applyEdits(ctx context.Context, sub Submission, edits Submission
 		return Submission{}, err
 	}
 	return s.submission(ctx, sub.ID)
+}
+
+// Analyze runs the job extractor on a submission and stores the search record.
+func (s *Store) Analyze(ctx context.Context, id, actor string, edits *SubmissionInput, now time.Time, run func(jobs.ScoutedListing, string) (jobs.SearchRecord, error)) (Submission, jobs.SearchRecord, error) {
+	sub, err := s.submission(ctx, id)
+	if err != nil {
+		return Submission{}, jobs.SearchRecord{}, err
+	}
+	if edits != nil {
+		sub, err = s.applyEdits(ctx, sub, *edits)
+		if err != nil {
+			return Submission{}, jobs.SearchRecord{}, err
+		}
+	}
+	if run == nil {
+		return Submission{}, jobs.SearchRecord{}, errors.New("analyze is not configured")
+	}
+	record, err := run(stagedListing(sub), sub.TempJobID)
+	if err != nil {
+		return Submission{}, jobs.SearchRecord{}, err
+	}
+	set := bson.D{
+		{Key: "jobId", Value: record.Job.ID},
+		{Key: "jobRef", Value: record.TempJobID},
+		{Key: "updatedAt", Value: now.UTC()},
+	}
+	if record.TempJobID != "" && sub.TempJobID == "" {
+		set = append(set, bson.E{Key: "tempJobId", Value: record.TempJobID})
+	}
+	if _, err := s.collection(submissionsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: sub.ObjectID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
+		return Submission{}, jobs.SearchRecord{}, err
+	}
+	s.audit(ctx, "submission.analyze", "scout_submission", sub.ID, actor, record.Model)
+	sub, err = s.submission(ctx, id)
+	if err != nil {
+		return Submission{}, jobs.SearchRecord{}, err
+	}
+	return sub, record, nil
 }
 
 // revoke takes a published job back out of the pool and claws back every
