@@ -13,19 +13,11 @@ func TestListingPublicKeepsLegacyRowsVisible(t *testing.T) {
 	}
 }
 
-func TestListingStatusForTrust(t *testing.T) {
-	if ListingStatusForTrust(TrustVerified) != ListingActive {
-		t.Fatal("verified companies publish active listings")
+func TestEffectiveVerification(t *testing.T) {
+	if EffectiveVerification("") != VerificationUnclaimed {
+		t.Fatal("missing status is unclaimed")
 	}
-	for _, trust := range []string{"", TrustUnclaimed, TrustClaimed, TrustSuspended} {
-		if ListingStatusForTrust(trust) != ListingPendingReview {
-			t.Fatalf("%q should publish pending_review", trust)
-		}
-	}
-}
-
-func TestEffectiveTrust(t *testing.T) {
-	if EffectiveTrust("") != TrustUnclaimed || EffectiveTrust(TrustClaimed) != TrustClaimed {
-		t.Fatal("effective trust")
+	if EffectiveVerification(VerificationApproved) != VerificationApproved {
+		t.Fatal("approved stays approved")
 	}
 }

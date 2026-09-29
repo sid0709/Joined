@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -14,24 +13,22 @@ import (
 )
 
 type companyDoc struct {
-	ID          string `bson:"id"`
-	CompanyName string `bson:"companyName"`
-	CompanyURL  string `bson:"companyUrl"`
-	CompanyLogo string `bson:"companyLogo"`
+	ID          string    `bson:"id"`
+	CompanyName string    `bson:"companyName"`
+	CompanyURL  string    `bson:"companyUrl"`
+	CreatedAt   time.Time `bson:"createdAt"`
 	Overrides   struct {
 		Name *string `bson:"name,omitempty"`
 		URL  *string `bson:"url,omitempty"`
-		Logo *string `bson:"logo,omitempty"`
 	} `bson:"overrides"`
-	TrustStatus      string    `bson:"trustStatus"`
-	Claimed          bool      `bson:"claimed"`
-	ClaimMethod      string    `bson:"claimMethod"`
-	ClaimStatus      string    `bson:"claimStatus"`
-	ClaimedBy        string    `bson:"claimedBy"`
-	Domains          []string  `bson:"domains"`
-	VerificationNote string    `bson:"verificationNote"`
-	VerifiedAt       time.Time `bson:"verifiedAt"`
-	TrustUpdatedAt   time.Time `bson:"trustUpdatedAt"`
+	VerificationStatus string    `bson:"verificationStatus"`
+	Claimed            bool      `bson:"claimed"`
+	ClaimMethod        string    `bson:"claimMethod"`
+	ClaimedBy          string    `bson:"claimedBy"`
+	Domains            []string  `bson:"domains"`
+	VerificationID     string    `bson:"verificationId"`
+	VerifiedAt         time.Time `bson:"verifiedAt"`
+	SuspendedAt        time.Time `bson:"suspendedAt"`
 }
 
 func (doc companyDoc) name() string {
@@ -42,61 +39,108 @@ func (doc companyDoc) name() string {
 }
 
 func (doc companyDoc) url() string {
-	if doc.Overrides.URL != nil {
+	if doc.Overrides.URL != nil && strings.TrimSpace(*doc.Overrides.URL) != "" {
 		return strings.TrimSpace(*doc.Overrides.URL)
 	}
 	return strings.TrimSpace(doc.CompanyURL)
 }
 
-func (doc companyDoc) logo() string {
-	if doc.Overrides.Logo != nil {
-		return strings.TrimSpace(*doc.Overrides.Logo)
-	}
-	return strings.TrimSpace(doc.CompanyLogo)
+type storedVerification struct {
+	ID          bson.ObjectID `bson:"_id,omitempty"`
+	CompanyID   string        `bson:"companyId"`
+	ClaimMethod string        `bson:"claimMethod"`
+	RequestedBy string        `bson:"requestedBy"`
+	Domains     []string      `bson:"domains"`
+	Status      string        `bson:"status"`
+	CreatedAt   time.Time     `bson:"createdAt"`
+	SLAAt       time.Time     `bson:"slaAt,omitempty"`
+	DecidedAt   time.Time     `bson:"decidedAt,omitempty"`
+	Reason      string        `bson:"reason,omitempty"`
 }
 
-// CompanyQuery filters the staff company list.
-type CompanyQuery struct {
+type memberDoc struct {
+	UserID     string `bson:"userId"`
+	Role       string `bson:"role"`
+	HiringRole string `bson:"hiringRole"`
+}
+
+type userDoc struct {
+	ID    string `bson:"id"`
+	Name  string `bson:"name"`
+	Email string `bson:"email"`
+}
+
+// VerificationQuery is GET /v1/admin/companies/verifications.
+type VerificationQuery struct {
 	Status   string
-	Q        string
 	Page     int64
 	PageSize int64
 }
 
-// ListCompanies returns companies for the verification queue.
-func (s *Store) ListCompanies(ctx context.Context, query CompanyQuery) (Page[CompanySummary], error) {
+// ListVerifications returns the company verification queue.
+func (s *Store) ListVerifications(ctx context.Context, query VerificationQuery) (VerificationList, error) {
 	page, size := pageBounds(query.Page, query.PageSize)
-	trust, err := trustFilter(query.Status)
+	filter, err := verificationFilter(query.Status)
 	if err != nil {
-		return Page[CompanySummary]{}, err
+		return VerificationList{}, err
 	}
-	filter := andFilter(trust, nameFilter(query.Q))
-	total, err := s.companiesColl().CountDocuments(ctx, filter)
+	total, err := s.verifications().CountDocuments(ctx, filter)
 	if err != nil {
-		return Page[CompanySummary]{}, err
+		return VerificationList{}, err
 	}
 	opts := options.Find().
 		SetSkip((page - 1) * size).
 		SetLimit(size).
-		SetSort(bson.D{{Key: "trustUpdatedAt", Value: -1}, {Key: "companyName", Value: 1}}).
-		SetProjection(bson.D{{Key: "jobIds", Value: 0}, {Key: "logoFile", Value: 0}})
-	cursor, err := s.companiesColl().Find(ctx, filter, opts)
+		SetSort(bson.D{{Key: "createdAt", Value: 1}})
+	cursor, err := s.verifications().Find(ctx, filter, opts)
 	if err != nil {
-		return Page[CompanySummary]{}, err
+		return VerificationList{}, err
 	}
 	defer cursor.Close(ctx)
-	var docs []companyDoc
+	docs := []storedVerification{}
 	if err := cursor.All(ctx, &docs); err != nil {
-		return Page[CompanySummary]{}, err
+		return VerificationList{}, err
 	}
-	rows := make([]CompanySummary, 0, len(docs))
+	ids := make([]string, len(docs))
+	for i, doc := range docs {
+		ids[i] = doc.CompanyID
+	}
+	names, err := s.companyNames(ctx, ids)
+	if err != nil {
+		return VerificationList{}, err
+	}
+	counts, err := s.memberCounts(ctx, ids)
+	if err != nil {
+		return VerificationList{}, err
+	}
+	rows := make([]Verification, 0, len(docs))
 	for _, doc := range docs {
-		rows = append(rows, doc.summary(nil))
+		rows = append(rows, Verification{
+			ID:          doc.ID.Hex(),
+			CompanyID:   doc.CompanyID,
+			CompanyName: names[doc.CompanyID],
+			ClaimMethod: doc.ClaimMethod,
+			RequestedBy: doc.RequestedBy,
+			Domains:     stringsOrEmpty(doc.Domains),
+			MemberCount: counts[doc.CompanyID],
+			Status:      doc.Status,
+			CreatedAt:   doc.CreatedAt,
+			SLAAt:       timePtr(doc.SLAAt),
+		})
 	}
-	return Page[CompanySummary]{Data: rows, Total: total, Page: page, PageSize: size}, nil
+	return VerificationList{Data: rows, Total: total, Next: nextPage(page, size, total)}, nil
 }
 
-// Company loads one company with members, domains, cases, and the audit trail.
+// PendingVerifications counts company verifications still waiting.
+func (s *Store) PendingVerifications(ctx context.Context) (PendingCount, error) {
+	n, err := s.verifications().CountDocuments(ctx, bson.D{{Key: "status", Value: jobs.VerificationPending}})
+	if err != nil {
+		return PendingCount{}, err
+	}
+	return PendingCount{Pending: n}, nil
+}
+
+// Company loads one company for staff review.
 func (s *Store) Company(ctx context.Context, id string) (CompanyDetail, error) {
 	doc, err := s.company(ctx, id)
 	if err != nil {
@@ -105,34 +149,74 @@ func (s *Store) Company(ctx context.Context, id string) (CompanyDetail, error) {
 	return s.detail(ctx, doc)
 }
 
-// DecideCompany approves, rejects, or suspends a company and records the actor.
-func (s *Store) DecideCompany(ctx context.Context, id, actor string, input CompanyDecision, now time.Time) (CompanyDetail, error) {
+// VerifyCompany approves, rejects, or suspends a company and records the actor.
+// It does not change the company's jobs.
+func (s *Store) VerifyCompany(ctx context.Context, id, actor string, input CompanyVerify, now time.Time) (VerifyResult, error) {
 	if err := input.Normalize(); err != nil {
-		return CompanyDetail{}, err
+		return VerifyResult{}, err
 	}
 	doc, err := s.company(ctx, id)
 	if err != nil {
-		return CompanyDetail{}, err
+		return VerifyResult{}, err
 	}
-	return s.applyCompany(ctx, doc, actor, input, now)
+	next, err := NextVerification(doc.VerificationStatus, input.Decision)
+	if err != nil {
+		return VerifyResult{}, err
+	}
+	now = now.UTC()
+	verificationID, err := s.syncVerification(ctx, doc, next, input.Reason, now)
+	if err != nil {
+		return VerifyResult{}, err
+	}
+	set := bson.D{
+		{Key: "verificationStatus", Value: next},
+		{Key: "verificationId", Value: verificationID},
+	}
+	update := bson.D{{Key: "$set", Value: set}}
+	switch next {
+	case jobs.VerificationApproved:
+		set = append(set, bson.E{Key: "verifiedAt", Value: now}, bson.E{Key: "claimed", Value: true})
+		update = bson.D{
+			{Key: "$set", Value: set},
+			{Key: "$unset", Value: bson.D{{Key: "suspendedAt", Value: ""}}},
+		}
+	case jobs.VerificationSuspended:
+		set = append(set, bson.E{Key: "suspendedAt", Value: now})
+		update = bson.D{{Key: "$set", Value: set}}
+	}
+	if _, err := s.companiesColl().UpdateOne(ctx, bson.D{{Key: "id", Value: id}}, update); err != nil {
+		return VerifyResult{}, err
+	}
+	auditID, err := s.audit(ctx, "company.verify."+input.Decision, subjectCompany, id, actor, input.Reason, now)
+	if err != nil {
+		return VerifyResult{}, err
+	}
+	detail, err := s.Company(ctx, id)
+	if err != nil {
+		return VerifyResult{}, err
+	}
+	return VerifyResult{Company: detail, AuditID: auditID}, nil
 }
 
-// NoteCompanyCreated files the verification case for a company page the owner just created.
+// NoteCompanyCreated opens the verification queue row for a company page the owner just created.
 func (s *Store) NoteCompanyCreated(ctx context.Context, companyID, userID, website string, now time.Time) error {
-	if strings.TrimSpace(companyID) == "" {
+	companyID = strings.TrimSpace(companyID)
+	if companyID == "" {
 		return nil
 	}
 	doc, err := s.company(ctx, companyID)
 	if err != nil {
 		return err
 	}
-	if jobs.EffectiveTrust(doc.TrustStatus) == jobs.TrustVerified {
+	if jobs.EffectiveVerification(doc.VerificationStatus) == jobs.VerificationApproved {
 		return nil
 	}
+	now = now.UTC()
 	host := websiteHost(website)
 	if host == "" {
 		host = websiteHost(doc.url())
 	}
+	domains := cleanDomains(append(doc.Domains, host))
 	if host != "" {
 		if _, err := s.companiesColl().UpdateOne(ctx, bson.D{{Key: "id", Value: companyID}}, bson.D{
 			{Key: "$addToSet", Value: bson.D{{Key: "domains", Value: host}}},
@@ -140,209 +224,288 @@ func (s *Store) NoteCompanyCreated(ctx context.Context, companyID, userID, websi
 			return err
 		}
 	}
-	domains := cleanDomains(append(doc.Domains, host))
-	note := "Owner created the company page"
-	opened, created, err := s.openCase(ctx, OpenCase{
-		CompanyID:   companyID,
-		Method:      jobs.ClaimManual,
-		Domains:     domains,
-		Note:        note,
-		RequestedBy: userID,
-	}, now)
-	if err != nil {
+	var existing storedVerification
+	err = s.verifications().FindOne(ctx, bson.D{
+		{Key: "companyId", Value: companyID},
+		{Key: "status", Value: jobs.VerificationPending},
+	}).Decode(&existing)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	}
-	if created {
-		s.audit(ctx, "company.case.opened", subjectCompany, companyID, userID, note, now.UTC())
-		s.audit(ctx, "case.opened", subjectCase, opened.ID.Hex(), userID, note, now.UTC())
+	method := doc.ClaimMethod
+	if method == "" {
+		method = jobs.ClaimManual
 	}
-	return nil
-}
-
-func (s *Store) applyCompany(ctx context.Context, doc companyDoc, actor string, input CompanyDecision, now time.Time) (CompanyDetail, error) {
-	trust := jobs.EffectiveTrust(doc.TrustStatus)
-	nextTrust, nextClaim, err := NextCompanyTrust(trust, doc.ClaimStatus, input.Decision)
-	noChange := errors.Is(err, ErrNoChange)
-	if err != nil && !noChange {
-		return CompanyDetail{}, err
+	record := storedVerification{
+		ID:          bson.NewObjectID(),
+		CompanyID:   companyID,
+		ClaimMethod: method,
+		RequestedBy: userID,
+		Domains:     domains,
+		Status:      jobs.VerificationPending,
+		CreatedAt:   now,
+		SLAAt:       now.Add(verificationSLA),
 	}
-	now = now.UTC()
-	if !noChange {
-		method := doc.ClaimMethod
-		if input.ClaimMethod != "" {
-			method = input.ClaimMethod
-		}
-		claimed := doc.Claimed
-		switch input.Decision {
-		case DecisionApprove:
-			claimed = true
-		case DecisionReject:
-			claimed = false
-		}
-		set := bson.D{
-			{Key: "trustStatus", Value: nextTrust},
-			{Key: "claimStatus", Value: nextClaim},
-			{Key: "claimed", Value: claimed},
-			{Key: "claimMethod", Value: method},
-			{Key: "verificationNote", Value: input.Reason},
-			{Key: "trustUpdatedAt", Value: now},
-		}
-		if input.Decision == DecisionApprove {
-			set = append(set, bson.E{Key: "verifiedAt", Value: now})
-		}
-		if _, err := s.companiesColl().UpdateOne(ctx, bson.D{{Key: "id", Value: doc.ID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
-			return CompanyDetail{}, err
-		}
+	if _, err := s.verifications().InsertOne(ctx, record); err != nil {
+		return err
 	}
-	switch input.Decision {
-	case DecisionApprove:
-		if err := s.releaseCompanyListings(ctx, doc.ID, actor, input.Reason, now); err != nil {
-			return CompanyDetail{}, err
-		}
-	case DecisionSuspend:
-		if err := s.suspendCompanyListings(ctx, doc.ID, actor, input.Reason, now); err != nil {
-			return CompanyDetail{}, err
-		}
-	}
-	if err := s.closeOpenCases(ctx, doc.ID, input.Decision, input.Reason, actor, now); err != nil {
-		return CompanyDetail{}, err
-	}
-	if !noChange {
-		s.audit(ctx, "company.verification."+input.Decision, subjectCompany, doc.ID, actor, input.Reason, now)
-	}
-	return s.Company(ctx, doc.ID)
+	_, err = s.companiesColl().UpdateOne(ctx, bson.D{{Key: "id", Value: companyID}}, bson.D{{Key: "$set", Value: bson.D{
+		{Key: "verificationStatus", Value: jobs.VerificationPending},
+		{Key: "claimed", Value: true},
+		{Key: "claimMethod", Value: method},
+		{Key: "claimedBy", Value: userID},
+		{Key: "verificationId", Value: record.ID.Hex()},
+		{Key: "domains", Value: domains},
+	}}})
+	return err
 }
 
 func (s *Store) company(ctx context.Context, id string) (companyDoc, error) {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return companyDoc{}, ErrNotFound
-	}
 	var doc companyDoc
-	err := s.companiesColl().FindOne(ctx, bson.D{{Key: "id", Value: id}}).Decode(&doc)
-	if errors.Is(err, mongo.ErrNoDocuments) || doc.ID == "" {
+	err := s.companiesColl().FindOne(ctx, bson.D{{Key: "id", Value: id}}, options.FindOne().SetProjection(bson.D{
+		{Key: "jobIds", Value: 0},
+		{Key: "logoFile", Value: 0},
+	})).Decode(&doc)
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return companyDoc{}, ErrNotFound
 	}
-	if err != nil {
-		return companyDoc{}, err
-	}
-	return doc, nil
+	return doc, err
 }
 
 func (s *Store) detail(ctx context.Context, doc companyDoc) (CompanyDetail, error) {
-	members, err := s.members(ctx, doc.ID)
+	status := jobs.EffectiveVerification(doc.VerificationStatus)
+	members, err := s.membersOf(ctx, doc.ID)
 	if err != nil {
 		return CompanyDetail{}, err
 	}
-	cases, err := s.casesForCompany(ctx, doc.ID)
+	audit, err := s.auditTrail(ctx, doc.ID)
 	if err != nil {
 		return CompanyDetail{}, err
 	}
-	trail, err := s.auditTrail(ctx, doc.ID)
-	if err != nil {
-		return CompanyDetail{}, err
+	detail := CompanyDetail{
+		ID:                 doc.ID,
+		CompanyName:        doc.name(),
+		CompanyURL:         doc.url(),
+		Domains:            stringsOrEmpty(cleanDomains(doc.Domains)),
+		Members:            members,
+		ClaimMethod:        doc.ClaimMethod,
+		Claimed:            doc.Claimed,
+		VerificationStatus: status,
+		VerifiedAt:         timePtr(doc.VerifiedAt),
+		SuspendedAt:        timePtr(doc.SuspendedAt),
+		Audit:              audit,
 	}
-	extra, err := s.settingDomains(ctx, doc)
-	if err != nil {
-		return CompanyDetail{}, err
+	if status == jobs.VerificationPending {
+		claim, err := s.pendingClaim(ctx, doc)
+		if err != nil {
+			return CompanyDetail{}, err
+		}
+		detail.PendingClaim = claim
 	}
-	summary := doc.summary(extra)
-	return CompanyDetail{
-		CompanySummary: summary,
-		Logo:           doc.logo(),
-		ClaimedBy:      doc.ClaimedBy,
-		Note:           doc.VerificationNote,
-		VerifiedAt:     doc.VerifiedAt,
-		Members:        members,
-		Cases:          cases,
-		Audit:          trail,
+	return detail, nil
+}
+
+func (s *Store) pendingClaim(ctx context.Context, doc companyDoc) (*PendingClaim, error) {
+	var record storedVerification
+	err := s.verifications().FindOne(ctx, bson.D{
+		{Key: "companyId", Value: doc.ID},
+		{Key: "status", Value: jobs.VerificationPending},
+	}, options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}})).Decode(&record)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		created := doc.CreatedAt
+		claim := PendingClaim{
+			ClaimMethod: doc.ClaimMethod,
+			RequestedBy: doc.ClaimedBy,
+			Domains:     stringsOrEmpty(cleanDomains(doc.Domains)),
+			Status:      jobs.VerificationPending,
+			CreatedAt:   created,
+			SLAAt:       timePtr(created.Add(verificationSLA)),
+		}
+		if created.IsZero() {
+			claim.SLAAt = nil
+		}
+		return &claim, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &PendingClaim{
+		ID:          record.ID.Hex(),
+		ClaimMethod: record.ClaimMethod,
+		RequestedBy: record.RequestedBy,
+		Domains:     stringsOrEmpty(record.Domains),
+		Status:      record.Status,
+		CreatedAt:   record.CreatedAt,
+		SLAAt:       timePtr(record.SLAAt),
 	}, nil
 }
 
-func (doc companyDoc) summary(extra []string) CompanySummary {
-	trust := jobs.EffectiveTrust(doc.TrustStatus)
-	names := cleanDomains(append(append([]string{}, doc.Domains...), extra...))
-	if host := websiteHost(doc.url()); host != "" {
-		names = cleanDomains(append([]string{host}, names...))
+func (s *Store) syncVerification(ctx context.Context, doc companyDoc, status, reason string, now time.Time) (string, error) {
+	set := bson.D{
+		{Key: "status", Value: status},
+		{Key: "decidedAt", Value: now},
+		{Key: "reason", Value: reason},
 	}
-	domains := make([]Domain, 0, len(names))
-	verified := trust == jobs.TrustVerified
-	for _, name := range names {
-		domains = append(domains, Domain{Name: name, Verified: verified})
+	result, err := s.verifications().UpdateMany(ctx, bson.D{{Key: "companyId", Value: doc.ID}}, bson.D{{Key: "$set", Value: set}})
+	if err != nil {
+		return "", err
 	}
-	return CompanySummary{
-		ID:          doc.ID,
-		Name:        doc.name(),
-		URL:         doc.url(),
-		Verified:    verified,
-		TrustStatus: trust,
-		Claimed:     doc.Claimed,
-		ClaimMethod: doc.ClaimMethod,
-		ClaimStatus: doc.ClaimStatus,
-		Domains:     domains,
-		UpdatedAt:   doc.TrustUpdatedAt,
+	if result.MatchedCount > 0 {
+		var latest storedVerification
+		err := s.verifications().FindOne(ctx, bson.D{{Key: "companyId", Value: doc.ID}}, options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}})).Decode(&latest)
+		if err != nil {
+			return "", err
+		}
+		return latest.ID.Hex(), nil
 	}
+	method := doc.ClaimMethod
+	if method == "" {
+		method = jobs.ClaimManual
+	}
+	record := storedVerification{
+		ID:          bson.NewObjectID(),
+		CompanyID:   doc.ID,
+		ClaimMethod: method,
+		RequestedBy: doc.ClaimedBy,
+		Domains:     cleanDomains(doc.Domains),
+		Status:      status,
+		CreatedAt:   now,
+		DecidedAt:   now,
+		Reason:      reason,
+	}
+	if _, err := s.verifications().InsertOne(ctx, record); err != nil {
+		return "", err
+	}
+	return record.ID.Hex(), nil
 }
 
-func (s *Store) members(ctx context.Context, companyID string) ([]Member, error) {
-	if s.accounts == nil {
+func (s *Store) companyNames(ctx context.Context, ids []string) (map[string]string, error) {
+	out := map[string]string{}
+	ids = uniqueIDs(ids)
+	if len(ids) == 0 {
+		return out, nil
+	}
+	cursor, err := s.companiesColl().Find(ctx, bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}}, options.Find().SetProjection(bson.D{
+		{Key: "id", Value: 1},
+		{Key: "companyName", Value: 1},
+		{Key: "overrides.name", Value: 1},
+	}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var docs []companyDoc
+	if err := cursor.All(ctx, &docs); err != nil {
+		return nil, err
+	}
+	for _, doc := range docs {
+		out[doc.ID] = doc.name()
+	}
+	return out, nil
+}
+
+func (s *Store) memberCounts(ctx context.Context, ids []string) (map[string]int64, error) {
+	out := map[string]int64{}
+	ids = uniqueIDs(ids)
+	if len(ids) == 0 {
+		return out, nil
+	}
+	cursor, err := s.members().Aggregate(ctx, mongo.Pipeline{
+		bson.D{{Key: "$match", Value: bson.D{{Key: "companyId", Value: bson.D{{Key: "$in", Value: ids}}}}}},
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$companyId"},
+			{Key: "n", Value: bson.D{{Key: "$sum", Value: 1}}},
+		}}},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var rows []struct {
+		ID string `bson:"_id"`
+		N  int64  `bson:"n"`
+	}
+	if err := cursor.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		out[row.ID] = row.N
+	}
+	return out, nil
+}
+
+func (s *Store) membersOf(ctx context.Context, companyID string) ([]Member, error) {
+	cursor, err := s.members().Find(ctx, bson.D{{Key: "companyId", Value: companyID}}, options.Find().SetSort(bson.D{{Key: "createdAt", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	docs := []memberDoc{}
+	if err := cursor.All(ctx, &docs); err != nil {
+		return nil, err
+	}
+	if len(docs) == 0 {
 		return []Member{}, nil
 	}
-	rows, err := s.accounts.CompanyMembers(ctx, companyID)
+	ids := make([]string, len(docs))
+	for i, doc := range docs {
+		ids[i] = doc.UserID
+	}
+	people, err := s.userNames(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]string, 0, len(rows))
-	for _, row := range rows {
-		ids = append(ids, row.UserID)
-	}
-	users, err := s.accounts.Users(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]Member, 0, len(rows))
-	for _, row := range rows {
-		user := users[row.UserID]
+	out := make([]Member, 0, len(docs))
+	for _, doc := range docs {
+		person := people[doc.UserID]
+		role := doc.HiringRole
+		if role == "" {
+			role = doc.Role
+		}
 		out = append(out, Member{
-			UserID:     row.UserID,
-			Name:       user.Name,
-			Email:      user.Email,
-			Role:       row.Role,
-			HiringRole: row.HiringRole,
+			UserID:     doc.UserID,
+			Name:       person.Name,
+			Email:      person.Email,
+			Role:       role,
+			HiringRole: doc.HiringRole,
 		})
 	}
 	return out, nil
 }
 
-func (s *Store) settingDomains(ctx context.Context, doc companyDoc) ([]string, error) {
-	if s.hiring == nil {
-		return nil, nil
-	}
-	settings, err := s.hiring.Settings(ctx, auth.Company{ID: doc.ID, URL: doc.url()})
+func (s *Store) userNames(ctx context.Context, ids []string) (map[string]userDoc, error) {
+	out := map[string]userDoc{}
+	cursor, err := s.users().Find(ctx, bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}}, options.Find().SetProjection(bson.D{
+		{Key: "id", Value: 1},
+		{Key: "name", Value: 1},
+		{Key: "email", Value: 1},
+	}))
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(settings.Domains))
-	for _, domain := range settings.Domains {
-		names = append(names, domain.Name)
+	defer cursor.Close(ctx)
+	var docs []userDoc
+	if err := cursor.All(ctx, &docs); err != nil {
+		return nil, err
 	}
-	return names, nil
+	for _, doc := range docs {
+		out[doc.ID] = doc
+	}
+	return out, nil
 }
 
-func trustFilter(status string) (bson.D, error) {
+func verificationFilter(status string) (bson.D, error) {
 	status = strings.TrimSpace(status)
+	if status == "" {
+		return bson.D{}, nil
+	}
 	switch status {
-	case "":
-		return nil, nil
-	case jobs.TrustUnclaimed:
-		return bson.D{{Key: "$or", Value: bson.A{
-			bson.D{{Key: "trustStatus", Value: jobs.TrustUnclaimed}},
-			bson.D{{Key: "trustStatus", Value: ""}},
-			bson.D{{Key: "trustStatus", Value: bson.D{{Key: "$exists", Value: false}}}},
-		}}}, nil
-	case jobs.TrustClaimed, jobs.TrustVerified, jobs.TrustSuspended:
-		return bson.D{{Key: "trustStatus", Value: status}}, nil
+	case jobs.VerificationPending, jobs.VerificationApproved, jobs.VerificationRejected, jobs.VerificationSuspended:
+		return bson.D{{Key: "status", Value: status}}, nil
 	default:
-		return nil, &ValidationError{Fields: []FieldError{{Field: "status", Detail: "use unclaimed, claimed, verified, or suspended"}}}
+		return nil, &ValidationError{Fields: []FieldError{{Field: "status", Detail: "use pending, approved, rejected, or suspended"}}}
 	}
 }

@@ -23,7 +23,6 @@ type storedJob struct {
 	Policy           string    `bson:"policy"`
 	DailyCap         int       `bson:"dailyCap,omitempty"`
 	Status           string    `bson:"status"`
-	ReviewStatus     string    `bson:"reviewStatus,omitempty"`
 	Views            int       `bson:"views"`
 	CreatedAt        time.Time `bson:"createdAt"`
 	UpdatedAt        time.Time `bson:"updatedAt"`

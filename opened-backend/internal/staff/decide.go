@@ -11,36 +11,29 @@ const (
 	DecisionApprove = "approve"
 	DecisionReject  = "reject"
 	DecisionSuspend = "suspend"
-
-	maxNote = 1000
 )
 
-// CompanyDecision is a staff call on a company claim or verification.
-type CompanyDecision struct {
-	Decision    string `json:"decision"`
-	Reason      string `json:"reason"`
-	ClaimMethod string `json:"claim_method"`
+// CompanyVerify is POST /v1/admin/companies/{id}/verify.
+type CompanyVerify struct {
+	Decision string `json:"decision"`
+	Reason   string `json:"reason"`
 }
 
-// Normalize checks the decision body and trims it.
-func (d *CompanyDecision) Normalize() error {
+// Normalize checks the decision and requires a reason for every decision.
+func (d *CompanyVerify) Normalize() error {
 	d.Decision = strings.TrimSpace(d.Decision)
 	d.Reason = strings.TrimSpace(d.Reason)
-	d.ClaimMethod = strings.TrimSpace(d.ClaimMethod)
 	var fields []FieldError
 	switch d.Decision {
 	case DecisionApprove, DecisionReject, DecisionSuspend:
 	default:
 		fields = append(fields, FieldError{Field: "decision", Detail: "use approve, reject, or suspend"})
 	}
-	if reasonRequired(d.Decision) && d.Reason == "" {
+	if d.Reason == "" {
 		fields = append(fields, FieldError{Field: "reason", Detail: "a reason is required"})
 	}
 	if utf8.RuneCountInString(d.Reason) > maxNote {
 		fields = append(fields, FieldError{Field: "reason", Detail: "reason is too long"})
-	}
-	if d.ClaimMethod != "" && !validClaimMethod(d.ClaimMethod) {
-		fields = append(fields, FieldError{Field: "claim_method", Detail: "use domain_email, dns_txt, or manual"})
 	}
 	if len(fields) > 0 {
 		return &ValidationError{Fields: fields}
@@ -48,67 +41,54 @@ func (d *CompanyDecision) Normalize() error {
 	return nil
 }
 
-// NextCompanyTrust is the company trust and claim status after a decision.
-// ErrNoChange means the company is already there. ErrConflict means the decision is not allowed.
-func NextCompanyTrust(trust, claimStatus, decision string) (string, string, error) {
-	trust = jobs.EffectiveTrust(trust)
+// NextVerification is the company verificationStatus after a decision.
+// ErrConflict means the decision does not change the company.
+func NextVerification(status, decision string) (string, error) {
+	status = jobs.EffectiveVerification(status)
 	switch decision {
 	case DecisionApprove:
-		if trust == jobs.TrustVerified {
-			return jobs.TrustVerified, jobs.ClaimApproved, ErrNoChange
+		if status == jobs.VerificationApproved {
+			return "", ErrConflict
 		}
-		return jobs.TrustVerified, jobs.ClaimApproved, nil
+		return jobs.VerificationApproved, nil
 	case DecisionReject:
-		if trust == jobs.TrustVerified || trust == jobs.TrustSuspended {
-			return "", "", ErrConflict
+		switch status {
+		case jobs.VerificationApproved, jobs.VerificationSuspended, jobs.VerificationRejected:
+			return "", ErrConflict
+		default:
+			return jobs.VerificationRejected, nil
 		}
-		if trust == jobs.TrustUnclaimed && claimStatus == jobs.ClaimRejected {
-			return "", "", ErrConflict
-		}
-		return jobs.TrustUnclaimed, jobs.ClaimRejected, nil
 	case DecisionSuspend:
-		if trust == jobs.TrustSuspended {
-			if claimStatus == "" {
-				claimStatus = jobs.ClaimPending
-			}
-			return jobs.TrustSuspended, claimStatus, ErrNoChange
+		if status == jobs.VerificationSuspended {
+			return "", ErrConflict
 		}
-		if claimStatus == "" {
-			claimStatus = jobs.ClaimPending
-		}
-		return jobs.TrustSuspended, claimStatus, nil
+		return jobs.VerificationSuspended, nil
 	default:
-		return "", "", ErrConflict
+		return "", ErrConflict
 	}
 }
 
-// ListingState is the public status of one direct job.
-type ListingState struct {
-	Status   string
-	Previous string
-	Cause    string
-}
-
-// JobReview is a staff call on a direct job in pending_review.
+// JobReview is POST /v1/admin/jobs/{id}/review.
 type JobReview struct {
-	Decision string `json:"decision"`
-	Status   string `json:"status"`
-	Reason   string `json:"reason"`
+	Decision          string `json:"decision"`
+	Reason            string `json:"reason,omitempty"`
+	RejectDisposition string `json:"rejectDisposition,omitempty"`
 }
 
-// Normalize checks an approve or reject body.
+// Normalize checks approve or reject. Reason is optional.
+// rejectDisposition must be removed or draft when it is set.
 func (d *JobReview) Normalize() error {
 	d.Decision = strings.TrimSpace(d.Decision)
-	d.Status = strings.TrimSpace(d.Status)
 	d.Reason = strings.TrimSpace(d.Reason)
+	d.RejectDisposition = strings.TrimSpace(d.RejectDisposition)
 	var fields []FieldError
 	switch d.Decision {
 	case DecisionApprove, DecisionReject:
 	default:
 		fields = append(fields, FieldError{Field: "decision", Detail: "use approve or reject"})
 	}
-	if d.Decision == DecisionReject && d.Reason == "" {
-		fields = append(fields, FieldError{Field: "reason", Detail: "a reason is required"})
+	if d.RejectDisposition != "" && d.RejectDisposition != jobs.JobRemoved && d.RejectDisposition != jobs.JobDraft {
+		fields = append(fields, FieldError{Field: "rejectDisposition", Detail: "use removed or draft"})
 	}
 	if utf8.RuneCountInString(d.Reason) > maxNote {
 		fields = append(fields, FieldError{Field: "reason", Detail: "reason is too long"})
@@ -119,63 +99,47 @@ func (d *JobReview) Normalize() error {
 	return nil
 }
 
-// ReviewListing applies approve (pending_review → active) or reject (→ removed or draft).
-func ReviewListing(state ListingState, decision, rejectStatus string) (ListingState, error) {
+// ReviewJob applies approve (pending_review or removed → open) or reject (pending_review → removed or draft).
+// An empty disposition rejects to removed.
+func ReviewJob(status, decision, disposition string) (string, error) {
 	switch decision {
 	case DecisionApprove:
-		if state.Status != jobs.ListingPendingReview {
-			return ListingState{}, ErrConflict
+		if status != jobs.JobPendingReview && status != jobs.JobRemoved {
+			return "", ErrConflict
 		}
-		return ListingState{Status: jobs.ListingActive}, nil
+		return jobs.JobOpen, nil
 	case DecisionReject:
-		if state.Status != jobs.ListingPendingReview {
-			return ListingState{}, ErrConflict
+		if status != jobs.JobPendingReview {
+			return "", ErrConflict
 		}
-		if rejectStatus != jobs.ListingRemoved && rejectStatus != jobs.ListingDraft {
-			return ListingState{}, &ValidationError{Fields: []FieldError{{Field: "status", Detail: "use removed or draft"}}}
+		if disposition == "" {
+			disposition = jobs.JobRemoved
 		}
-		next := ListingState{Status: rejectStatus, Previous: jobs.ListingPendingReview}
-		if rejectStatus == jobs.ListingRemoved {
-			next.Cause = jobs.TakedownStaff
+		if disposition != jobs.JobRemoved && disposition != jobs.JobDraft {
+			return "", &ValidationError{Fields: []FieldError{{Field: "rejectDisposition", Detail: "use removed or draft"}}}
 		}
-		return next, nil
+		return disposition, nil
 	default:
-		return ListingState{}, ErrConflict
+		return "", ErrConflict
 	}
 }
 
-// TakedownListing hides a live direct job. RestoreListing puts it back.
-func TakedownListing(state ListingState) (ListingState, error) {
-	if !jobs.ListingPublic(state.Status) {
-		return ListingState{}, ErrConflict
-	}
-	prev := state.Status
-	if prev == "" {
-		prev = jobs.ListingActive
-	}
-	return ListingState{Status: jobs.ListingRemoved, Previous: prev, Cause: jobs.TakedownStaff}, nil
-}
-
-// RestoreListing undoes a takedown or a reject-to-removed.
-func RestoreListing(state ListingState) (ListingState, error) {
-	if state.Status != jobs.ListingRemoved {
-		return ListingState{}, ErrConflict
-	}
-	next := state.Previous
-	switch next {
-	case jobs.ListingActive, jobs.ListingPendingReview, jobs.ListingDraft:
+// TakedownJob hides an open or pending_review direct job. Approve puts a removed job back.
+func TakedownJob(status string) (string, error) {
+	switch status {
+	case jobs.JobOpen, jobs.JobPendingReview:
+		return jobs.JobRemoved, nil
 	default:
-		next = jobs.ListingActive
+		return "", ErrConflict
 	}
-	return ListingState{Status: next}, nil
 }
 
-// Note is a reason on takedown or restore.
-type Note struct {
+// Takedown is POST /v1/admin/jobs/{id}/takedown.
+type Takedown struct {
 	Reason string `json:"reason"`
 }
 
-// NormalizeReason requires a reason, for takedown.
+// NormalizeReason trims a reason and optionally requires it.
 func NormalizeReason(reason string, required bool) (string, error) {
 	reason = strings.TrimSpace(reason)
 	var fields []FieldError
@@ -189,17 +153,4 @@ func NormalizeReason(reason string, required bool) (string, error) {
 		return "", &ValidationError{Fields: fields}
 	}
 	return reason, nil
-}
-
-func reasonRequired(decision string) bool {
-	return decision == DecisionReject || decision == DecisionSuspend
-}
-
-func validClaimMethod(method string) bool {
-	switch method {
-	case jobs.ClaimDomainEmail, jobs.ClaimDNSTXT, jobs.ClaimManual:
-		return true
-	default:
-		return false
-	}
 }

@@ -54,17 +54,17 @@ type CompanyPage struct {
 }
 
 type storedCompany struct {
-	ID          string           `bson:"id"`
-	SourceID    string           `bson:"sourceId"`
-	CompanyName string           `bson:"companyName"`
-	CompanyURL  string           `bson:"companyUrl"`
-	CompanyKey  string           `bson:"companyKey"`
-	CompanyLogo string           `bson:"companyLogo"`
-	JobCount    int64            `bson:"jobCount"`
-	JobIDs      []string         `bson:"jobIds"`
-	Overrides   companyOverrides `bson:"overrides,omitempty"`
-	LogoFile    logoFile         `bson:"logoFile,omitempty"`
-	TrustStatus string           `bson:"trustStatus,omitempty"`
+	ID                 string           `bson:"id"`
+	SourceID           string           `bson:"sourceId"`
+	CompanyName        string           `bson:"companyName"`
+	CompanyURL         string           `bson:"companyUrl"`
+	CompanyKey         string           `bson:"companyKey"`
+	CompanyLogo        string           `bson:"companyLogo"`
+	JobCount           int64            `bson:"jobCount"`
+	JobIDs             []string         `bson:"jobIds"`
+	Overrides          companyOverrides `bson:"overrides,omitempty"`
+	LogoFile           logoFile         `bson:"logoFile,omitempty"`
+	VerificationStatus string           `bson:"verificationStatus,omitempty"`
 }
 
 type athensCompany struct {

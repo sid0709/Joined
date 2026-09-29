@@ -17,12 +17,11 @@ const (
 )
 
 // UpsertDirectJob publishes a company job into search so candidates can apply.
-// The public id is stable across pause and resume. The returned listing status
-// is active for a verified company and pending_review otherwise. A staff or
-// suspension takedown is kept until staff restore it.
-func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy string, now time.Time) (string, error) {
+// The public id is stable across pause and resume. Callers decide when a job
+// is allowed to be public; this write always leaves a visible search row.
+func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy string, now time.Time) error {
 	if job.ID == "" || job.CompanyID == "" || job.Title == "" {
-		return "", ErrInvalidInput
+		return ErrInvalidInput
 	}
 	job.Source = directType
 	if job.Skills == nil {
@@ -49,34 +48,18 @@ func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy st
 			posted = existing.PostedAt
 		}
 	} else if !errors.Is(err, mongo.ErrNoDocuments) {
-		return "", err
-	}
-	trust, err := s.companyTrustStatus(ctx, job.CompanyID)
-	if err != nil {
-		return "", err
+		return err
 	}
 	doc := storedSearchJob{
-		ID:            id,
-		PostedAt:      posted,
-		AnalyzedAt:    now.UTC(),
-		Model:         directModel,
-		CreatedBy:     createdBy,
-		Source:        DirectSource,
-		ListingStatus: ListingStatusForTrust(trust),
-		Job:           job,
+		ID:         id,
+		PostedAt:   posted,
+		AnalyzedAt: now.UTC(),
+		Model:      directModel,
+		CreatedBy:  createdBy,
+		Source:     DirectSource,
+		Job:        job,
 	}
-	if found && heldDown(existing) {
-		doc.ListingStatus = ListingRemoved
-		doc.PreviousListingStatus = existing.PreviousListingStatus
-		doc.TakedownCause = existing.TakedownCause
-		doc.ReviewNote = existing.ReviewNote
-		doc.ReviewedBy = existing.ReviewedBy
-		doc.ReviewedAt = existing.ReviewedAt
-	}
-	if err := s.saveSearchJob(ctx, doc); err != nil {
-		return "", err
-	}
-	return doc.ListingStatus, nil
+	return s.saveSearchJob(ctx, doc)
 }
 
 // RenameDirectTeam updates the team name on this company's published jobs.

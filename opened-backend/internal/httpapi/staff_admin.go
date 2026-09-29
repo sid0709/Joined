@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
@@ -13,18 +14,13 @@ import (
 )
 
 func (s *Server) registerStaffAdmin(mux *http.ServeMux) {
-	mux.HandleFunc("GET /v1/admin/companies", s.admin(s.adminCompanies))
+	mux.HandleFunc("GET /v1/admin/companies/verifications", s.admin(s.adminVerifications))
+	mux.HandleFunc("GET /v1/admin/companies/verifications/pending-count", s.admin(s.adminVerificationCount))
 	mux.HandleFunc("GET /v1/admin/companies/{id}", s.admin(s.adminCompany))
-	mux.HandleFunc("POST /v1/admin/companies/{id}/decision", s.admin(s.adminCompanyDecision))
-	mux.HandleFunc("GET /v1/admin/cases", s.admin(s.adminCases))
-	mux.HandleFunc("POST /v1/admin/cases", s.admin(s.adminOpenCase))
-	mux.HandleFunc("GET /v1/admin/cases/{id}", s.admin(s.adminCase))
-	mux.HandleFunc("POST /v1/admin/cases/{id}/decision", s.admin(s.adminCaseDecision))
+	mux.HandleFunc("POST /v1/admin/companies/{id}/verify", s.admin(s.adminVerifyCompany))
 	mux.HandleFunc("GET /v1/admin/jobs", s.admin(s.adminDirectJobs))
-	mux.HandleFunc("GET /v1/admin/jobs/{id}", s.admin(s.adminDirectJob))
 	mux.HandleFunc("POST /v1/admin/jobs/{id}/review", s.admin(s.adminReviewJob))
 	mux.HandleFunc("POST /v1/admin/jobs/{id}/takedown", s.admin(s.adminTakedownJob))
-	mux.HandleFunc("POST /v1/admin/jobs/{id}/restore", s.admin(s.adminRestoreJob))
 }
 
 func (s *Server) noteNewCompany(ctx context.Context, session auth.Session) {
@@ -32,19 +28,24 @@ func (s *Server) noteNewCompany(ctx context.Context, session auth.Session) {
 		return
 	}
 	if err := s.staff.NoteCompanyCreated(ctx, session.Company.ID, session.User.ID, session.Company.URL, time.Now()); err != nil {
-		slog.Error("company verification case", "company", session.Company.ID, "error", err)
+		slog.Error("company verification", "company", session.Company.ID, "error", err)
 	}
 }
 
-func (s *Server) adminCompanies(w http.ResponseWriter, r *http.Request) {
+func staffPageQuery(r *http.Request) (int64, int64) {
+	query := r.URL.Query()
+	page, _ := strconv.ParseInt(query.Get("page"), 10, 64)
+	size, _ := strconv.ParseInt(query.Get("pageSize"), 10, 64)
+	return page, size
+}
+
+func (s *Server) adminVerifications(w http.ResponseWriter, r *http.Request) {
 	if !s.staffReady(w) {
 		return
 	}
-	page, size := pageQuery(r)
-	query := r.URL.Query()
-	list, err := s.staff.ListCompanies(r.Context(), staff.CompanyQuery{
-		Status:   query.Get("status"),
-		Q:        query.Get("q"),
+	page, size := staffPageQuery(r)
+	list, err := s.staff.ListVerifications(r.Context(), staff.VerificationQuery{
+		Status:   r.URL.Query().Get("status"),
 		Page:     page,
 		PageSize: size,
 	})
@@ -52,6 +53,17 @@ func (s *Server) adminCompanies(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
+}
+
+func (s *Server) adminVerificationCount(w http.ResponseWriter, r *http.Request) {
+	if !s.staffReady(w) {
+		return
+	}
+	count, err := s.staff.PendingVerifications(r.Context())
+	if !writeStaff(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, count)
 }
 
 func (s *Server) adminCompany(w http.ResponseWriter, r *http.Request) {
@@ -65,8 +77,8 @@ func (s *Server) adminCompany(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, detail)
 }
 
-func (s *Server) adminCompanyDecision(w http.ResponseWriter, r *http.Request) {
-	var input staff.CompanyDecision
+func (s *Server) adminVerifyCompany(w http.ResponseWriter, r *http.Request) {
+	var input staff.CompanyVerify
 	if !decodeScout(w, r, maxWriteBody, &input) {
 		return
 	}
@@ -76,89 +88,22 @@ func (s *Server) adminCompanyDecision(w http.ResponseWriter, r *http.Request) {
 	if !s.staffReady(w) {
 		return
 	}
-	detail, err := s.staff.DecideCompany(r.Context(), r.PathValue("id"), adminActor(r), input, time.Now())
+	result, err := s.staff.VerifyCompany(r.Context(), r.PathValue("id"), adminActor(r), input, time.Now())
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, detail)
-}
-
-func (s *Server) adminCases(w http.ResponseWriter, r *http.Request) {
-	if !s.staffReady(w) {
-		return
-	}
-	page, size := pageQuery(r)
-	query := r.URL.Query()
-	list, err := s.staff.ListCases(r.Context(), staff.CaseQuery{
-		Queue:    query.Get("queue"),
-		Status:   query.Get("status"),
-		Page:     page,
-		PageSize: size,
-	})
-	if !writeStaff(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusOK, list)
-}
-
-func (s *Server) adminOpenCase(w http.ResponseWriter, r *http.Request) {
-	var input staff.OpenCase
-	if !decodeScout(w, r, maxWriteBody, &input) {
-		return
-	}
-	if !s.staffReady(w) {
-		return
-	}
-	item, created, err := s.staff.OpenCase(r.Context(), adminActor(r), input, time.Now())
-	if !writeStaff(w, err) {
-		return
-	}
-	status := http.StatusOK
-	if created {
-		status = http.StatusCreated
-	}
-	writeJSON(w, status, item)
-}
-
-func (s *Server) adminCase(w http.ResponseWriter, r *http.Request) {
-	if !s.staffReady(w) {
-		return
-	}
-	item, err := s.staff.Case(r.Context(), r.PathValue("id"))
-	if !writeStaff(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusOK, item)
-}
-
-func (s *Server) adminCaseDecision(w http.ResponseWriter, r *http.Request) {
-	var input staff.CompanyDecision
-	if !decodeScout(w, r, maxWriteBody, &input) {
-		return
-	}
-	if err := input.Normalize(); !writeStaff(w, err) {
-		return
-	}
-	if !s.staffReady(w) {
-		return
-	}
-	item, err := s.staff.DecideCase(r.Context(), r.PathValue("id"), adminActor(r), input, time.Now())
-	if !writeStaff(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusOK, item)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) adminDirectJobs(w http.ResponseWriter, r *http.Request) {
 	if !s.staffReady(w) {
 		return
 	}
-	page, size := pageQuery(r)
+	page, size := staffPageQuery(r)
 	query := r.URL.Query()
 	list, err := s.staff.ListDirectJobs(r.Context(), staff.JobQuery{
 		Source:   query.Get("source"),
 		Status:   query.Get("status"),
-		Q:        query.Get("q"),
 		Page:     page,
 		PageSize: size,
 	})
@@ -166,17 +111,6 @@ func (s *Server) adminDirectJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
-}
-
-func (s *Server) adminDirectJob(w http.ResponseWriter, r *http.Request) {
-	if !s.staffReady(w) {
-		return
-	}
-	job, err := s.staff.DirectJob(r.Context(), r.PathValue("id"))
-	if !writeStaff(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusOK, job)
 }
 
 func (s *Server) adminReviewJob(w http.ResponseWriter, r *http.Request) {
@@ -190,49 +124,29 @@ func (s *Server) adminReviewJob(w http.ResponseWriter, r *http.Request) {
 	if !s.staffReady(w) {
 		return
 	}
-	job, err := s.staff.ReviewDirectJob(r.Context(), r.PathValue("id"), adminActor(r), input, time.Now())
+	result, err := s.staff.ReviewDirectJob(r.Context(), r.PathValue("id"), adminActor(r), input, time.Now())
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) adminTakedownJob(w http.ResponseWriter, r *http.Request) {
-	var input staff.Note
+	var input staff.Takedown
 	if !decodeScout(w, r, maxWriteBody, &input) {
 		return
 	}
-	reason, err := staff.NormalizeReason(input.Reason, true)
-	if !writeStaff(w, err) {
+	if _, err := staff.NormalizeReason(input.Reason, true); !writeStaff(w, err) {
 		return
 	}
 	if !s.staffReady(w) {
 		return
 	}
-	job, err := s.staff.TakedownDirectJob(r.Context(), r.PathValue("id"), adminActor(r), reason, time.Now())
+	result, err := s.staff.TakedownDirectJob(r.Context(), r.PathValue("id"), adminActor(r), input.Reason, time.Now())
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
-}
-
-func (s *Server) adminRestoreJob(w http.ResponseWriter, r *http.Request) {
-	var input staff.Note
-	if !decodeScout(w, r, maxWriteBody, &input) {
-		return
-	}
-	reason, err := staff.NormalizeReason(input.Reason, false)
-	if !writeStaff(w, err) {
-		return
-	}
-	if !s.staffReady(w) {
-		return
-	}
-	job, err := s.staff.RestoreDirectJob(r.Context(), r.PathValue("id"), adminActor(r), reason, time.Now())
-	if !writeStaff(w, err) {
-		return
-	}
-	writeJSON(w, http.StatusOK, job)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) staffReady(w http.ResponseWriter) bool {

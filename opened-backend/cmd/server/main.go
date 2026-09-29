@@ -81,7 +81,7 @@ func main() {
 		slog.Info("drop company leadership", "companies", dropped)
 	}
 	scouts := scout.NewStore(client, cfg.DestDB, accounts, store, people, scout.NewHTTPFetcher())
-	moderation := staff.NewStore(client, cfg.DestDB, cfg.CompaniesCollection, cfg.JobsCollection, accounts, hiring)
+	moderation := staff.NewStore(client, cfg.DestDB, cfg.CompaniesCollection, store)
 	if err := moderation.EnsureIndexes(context.Background()); err != nil {
 		slog.Error("staff indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)

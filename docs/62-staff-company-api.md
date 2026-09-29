@@ -1,184 +1,208 @@
 # 62 — Staff company verification and direct-job review
 
-**Service:** `opened-backend` · **App:** `opened-admin`
+**Service:** `opened-backend` · **App:** `opened-admin` (Roosebelt)
 
-Staff routes use the same guard as scout admin. When `ADMIN_API_TOKEN` is set, send `Authorization: Bearer <token>`. Every mutation stores the caller from `X-Admin-Actor` (printable, max 80 characters; missing header is recorded as `admin`) on the `admin_audit` collection.
+Staff routes use the same guard as scout admin: `Server.admin()`. When `ADMIN_API_TOKEN` is set, send `Authorization: Bearer <token>`. Every mutation stores the caller from `X-Admin-Actor` (printable, max 80 characters; missing header is recorded as `admin`) on `admin_audit`, with the same BSON field names as scout (`action`, `subjectType`, `subjectId`, `actor`, `note`, `at`). The response `auditId` is that document's hex `_id`. A failed audit insert fails the request.
 
-Errors use the scout admin problem shape (`application/problem+json`): `422 validation_failed` with `errors[]`, `401 unauthorized`, `404 not_found`, `409 conflict`.
+JSON on these routes is camelCase. Errors use the scout admin problem shape (`application/problem+json`): `422 validation_failed` with `errors[]`, `401`, `404 not_found`, `409 conflict`, `503` when staff review is not configured.
 
-Lists use offset pages: `?page=&page_size=` (default 25, max 100) and return `{ "data": [], "total": 0, "page": 1, "page_size": 25 }`.
+Lists take `page` and `pageSize` (default 25, max 100). `next` is the next page number when `page * pageSize < total`, and is omitted on the last page.
+
+This is the staff surface to scaffold. There is no `/v1/admin/cases` route and no separate restore route.
 
 ## Company verification
 
-Trust status on the company document: `unclaimed`, `claimed`, `verified`, `suspended`. A new company page created by its owner starts as `claimed` / `claim_status: pending` / `claim_method: manual` and opens a `company_verification` case (SLA 48h).
+`verificationStatus` on the company document is `unclaimed`, `pending`, `approved`, `rejected`, or `suspended`. A missing value is `unclaimed` (scout-created companies, `claimed: false`). A company page created by its owner starts as `pending`, `claimed: true`, `claimMethod: manual`, and opens a `company_verifications` row (SLA 48 hours from `createdAt`).
 
-`verified` is true only when `trust_status` is `verified`. Public company JSON gains an optional `verified` boolean. Older rows with no trust status are `unclaimed`.
+Public company JSON `verified` is true only when `verificationStatus` is `approved`.
 
 ```
-GET  /v1/admin/companies?status=&q=&page=&page_size=
+GET  /v1/admin/companies/verifications?status=pending|approved|rejected|suspended&page=&pageSize=
+GET  /v1/admin/companies/verifications/pending-count
 GET  /v1/admin/companies/{id}
-POST /v1/admin/companies/{id}/decision
+POST /v1/admin/companies/{id}/verify
 ```
 
-`status` is `unclaimed`, `claimed`, `verified`, or `suspended`. Omit it to list every company.
+`status` filters the queue. Omit it to list every verification record.
 
-Decision body:
+List response:
 
 ```json
 {
-  "decision": "approve",
-  "reason": "Work email is on the company domain",
-  "claim_method": "domain_email"
+  "data": [
+    {
+      "id": "674c1f0e5b2a4e18d0a1c001",
+      "companyId": "co_123",
+      "companyName": "Northwind",
+      "claimMethod": "manual",
+      "requestedBy": "user_123",
+      "domains": ["northwind.example"],
+      "memberCount": 2,
+      "status": "pending",
+      "createdAt": "2026-09-29T17:00:00Z",
+      "slaAt": "2026-10-01T17:00:00Z"
+    }
+  ],
+  "total": 1,
+  "next": 2
 }
 ```
 
-`decision` is `approve`, `reject`, or `suspend`. `reason` is required for reject and suspend. `claim_method` is optional: `domain_email`, `dns_txt`, or `manual`.
+`id` is the verification record. `slaAt` is omitted when it was not set. `domains` is always an array.
 
-| Decision | From                          | Result                                                                                                                                       |
-| -------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| approve  | unclaimed, claimed, suspended | `trust_status: verified`, `claim_status: approved`, `claimed: true`. Pending direct jobs become `active`. Suspension takedowns are restored. |
-| reject   | unclaimed, claimed            | `trust_status: unclaimed`, `claim_status: rejected`, `claimed: false`.                                                                       |
-| suspend  | unclaimed, claimed, verified  | `trust_status: suspended`. Live direct jobs are hidden (`listing_status: removed`) until a later approve.                                    |
+Pending count:
 
-Rejecting a verified or suspended company is `409`. Approving a company that is already verified, or suspending one that is already suspended, is idempotent: the side effects run again and the response is the company.
+```json
+{ "pending": 3 }
+```
 
-`GET /v1/admin/companies/{id}`:
+Company detail:
 
 ```json
 {
-  "id": "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30",
-  "name": "Acme",
-  "url": "https://acme.com",
-  "verified": true,
-  "trust_status": "verified",
-  "claimed": true,
-  "claim_method": "domain_email",
-  "claim_status": "approved",
-  "claimed_by": "user id",
-  "domains": [{ "name": "acme.com", "verified": true }],
-  "note": "Work email is on the company domain",
-  "verified_at": "2026-09-29T17:00:00Z",
-  "updated_at": "2026-09-29T17:00:00Z",
+  "id": "co_123",
+  "companyName": "Northwind",
+  "companyUrl": "https://northwind.example",
+  "domains": ["northwind.example"],
   "members": [
     {
-      "user_id": "user id",
-      "name": "Ada",
-      "email": "ada@acme.com",
-      "role": "owner"
+      "userId": "user_123",
+      "name": "Ada Lovelace",
+      "email": "ada@northwind.example",
+      "role": "owner",
+      "hiringRole": "owner"
     }
   ],
-  "cases": [],
+  "claimMethod": "manual",
+  "claimed": true,
+  "verificationStatus": "pending",
+  "pendingClaim": {
+    "id": "674c1f0e5b2a4e18d0a1c001",
+    "claimMethod": "manual",
+    "requestedBy": "user_123",
+    "domains": ["northwind.example"],
+    "status": "pending",
+    "createdAt": "2026-09-29T17:00:00Z",
+    "slaAt": "2026-10-01T17:00:00Z"
+  },
+  "verifiedAt": "2026-09-29T18:00:00Z",
+  "suspendedAt": "2026-09-29T19:00:00Z",
   "audit": [
     {
-      "action": "company.verification.approve",
-      "subject_type": "company",
-      "subject_id": "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30",
-      "actor": "admin console",
+      "action": "company.verify.approve",
+      "subjectType": "company",
+      "subjectId": "co_123",
+      "actor": "roosebelt",
       "note": "Work email is on the company domain",
-      "at": "2026-09-29T17:00:00Z"
+      "at": "2026-09-29T18:00:00Z"
     }
   ]
 }
 ```
 
-List rows are the same company fields without `logo`, `claimed_by`, `note`, `verified_at`, `members`, `cases`, and `audit`. Domain `verified` is true only when the company itself is verified.
+`pendingClaim` is present only while `verificationStatus` is `pending`. `verifiedAt`, `suspendedAt`, `companyUrl`, and `audit` are omitted when empty. `claimMethod` is `domain_email`, `dns_txt`, or `manual`.
 
-## Cases
+Verify body. `reason` is required for approve, reject, and suspend.
 
-```
-GET  /v1/admin/cases?queue=company_verification&status=open&page=&page_size=
-POST /v1/admin/cases
-GET  /v1/admin/cases/{id}
-POST /v1/admin/cases/{id}/decision
+```json
+{ "decision": "approve", "reason": "Work email is on the company domain" }
 ```
 
-`queue` defaults to `company_verification`. `status` is `open` or `decided`.
+`decision` is `approve`, `reject`, or `suspend`.
 
-Open body:
+| Decision | From                                    | Result                                                                            |
+| -------- | --------------------------------------- | --------------------------------------------------------------------------------- |
+| approve  | unclaimed, pending, rejected, suspended | `verificationStatus: approved`, `verifiedAt` set, `claimed: true`                 |
+| reject   | unclaimed, pending                      | `verificationStatus: rejected`. Already approved, rejected, or suspended is `409` |
+| suspend  | unclaimed, pending, approved, rejected  | `verificationStatus: suspended`, `suspendedAt` set. Already suspended is `409`    |
+
+Approving a company that is already approved is `409`. Verify does not publish or hide jobs.
+
+Response:
 
 ```json
 {
-  "company_id": "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30",
-  "method": "dns_txt",
-  "domains": ["acme.com"],
-  "note": "TXT record seen",
-  "requested_by": "user id"
+  "company": {},
+  "auditId": "674c1f0e5b2a4e18d0a1c0aa"
 }
 ```
 
-`method` defaults to `manual`. If an open case already exists for that company, the response is `200` and that case. A new case is `201`.
+`company` is the detail shape above.
 
-Decision body matches the company decision. It updates the company, closes the open case, and audits both `company.verification.<decision>` and `case.decision.<decision>`.
+## Direct-job pending review
 
-```json
-{
-  "id": "66f0c2e5a1b2c3d4e5f60718",
-  "queue": "company_verification",
-  "status": "open",
-  "company_id": "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30",
-  "company_name": "Acme",
-  "method": "dns_txt",
-  "domains": ["acme.com"],
-  "note": "TXT record seen",
-  "requested_by": "user id",
-  "sla_due_at": "2026-10-01T17:00:00Z",
-  "created_at": "2026-09-29T17:00:00Z"
-}
-```
+Hiring jobs live on `company_jobs`. Status is `open`, `paused`, `draft`, `closed`, `pending_review`, or `removed`. Employers can set `open`, `paused`, `draft`, `closed`, or `pending_review`. `removed` is staff-only; an employer edit or status change of a removed job is `409`.
 
-Empty strings and zero timestamps are omitted. After a decision the case adds `decision`, `reason`, `decided_by`, and `decided_at`.
-
-## Direct jobs in review
-
-Unverified companies still publish from the hiring workspace (`status: open`). The search listing is `pending_review` and is left out of public search and the public company page. Verified companies publish `active`. A staff takedown stays hidden if the employer edits the job, until staff restore it.
-
-The hiring job gains an optional `reviewStatus` (`pending_review`, `active`, `removed`, `draft`). Existing clients that only read `status` are unchanged.
+An employer request to publish (`open`) calls `UpsertDirectJob` only when `verificationStatus` is `approved`, and the hiring status stays `open`. Otherwise the hiring status becomes `pending_review` and `RemoveDirectJob` drops any public row. Staff approve publishes even when the company is not approved.
 
 ```
-GET  /v1/admin/jobs?source=direct&status=pending_review&q=&page=&page_size=
-GET  /v1/admin/jobs/{id}
+GET  /v1/admin/jobs?source=direct&status=pending_review&page=&pageSize=
 POST /v1/admin/jobs/{id}/review
 POST /v1/admin/jobs/{id}/takedown
-POST /v1/admin/jobs/{id}/restore
 ```
 
-`source` must be `direct` (the default). `status` defaults to `pending_review`. Use `active`, `removed`, `draft`, or `all`. `active` includes older direct rows that have no listing status.
+`source` other than `direct` returns an empty list. Omit `status` to list every hiring job.
 
-Review body:
-
-```json
-{ "decision": "approve", "reason": "Company is verified" }
-```
-
-```json
-{ "decision": "reject", "status": "draft", "reason": "Salary looks fraudulent" }
-```
-
-| Call             | From                                      | To                                                                                                                                                          |
-| ---------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| review `approve` | `pending_review`                          | `active` (hiring job `open`)                                                                                                                                |
-| review `reject`  | `pending_review`                          | `removed` or `draft` (`status` is required). `draft` returns the hiring job to draft so they can edit and submit again. `removed` stays down until restore. |
-| takedown         | `active` (or a legacy row with no status) | `removed`. Body: `{ "reason": "..." }` (required).                                                                                                          |
-| restore          | `removed`                                 | the previous status, or `active` when there is none. Body: `{ "reason": "..." }` (optional).                                                                |
+List response:
 
 ```json
 {
-  "id": "public job id",
-  "source": "direct",
-  "listing_status": "pending_review",
-  "title": "Product designer",
-  "company": "Acme",
-  "company_id": "9c0e1a55-2b7d-4f3a-9d11-6a4c8e2b7d30",
-  "location": "Chicago, IL",
-  "workplace": "hybrid",
-  "summary": "Shape the product.",
-  "reviewed_by": "admin console",
-  "reviewed_at": "2026-09-29T17:00:00Z",
-  "posted_at": "2026-09-29T17:00:00Z",
-  "audit": []
+  "jobs": [
+    {
+      "id": "job_123",
+      "title": "Product Engineer",
+      "companyId": "co_123",
+      "companyName": "Northwind",
+      "source": "direct",
+      "status": "pending_review",
+      "postedAt": "2026-09-29T17:00:00Z",
+      "createdAt": "2026-09-29T16:00:00Z",
+      "location": "Chicago, IL"
+    }
+  ],
+  "total": 1,
+  "next": 2
 }
 ```
 
-`audit` is present on `GET /v1/admin/jobs/{id}` only. `takedown_cause` is `staff` or `suspend`.
+`postedAt` and `location` are omitted when empty.
 
-Audit actions: `company.verification.approve|reject|suspend`, `company.case.opened`, `case.opened`, `case.decision.approve|reject|suspend`, `job.review.approve|reject`, `job.takedown`, `job.restore`.
+Review body. `reason` is optional. `rejectDisposition` is optional and defaults to `removed`.
+
+```json
+{ "decision": "reject", "reason": "Duplicate of an open role", "rejectDisposition": "draft" }
+```
+
+| Decision | From                    | Result                                                                |
+| -------- | ----------------------- | --------------------------------------------------------------------- |
+| approve  | pending_review, removed | status `open`, `UpsertDirectJob`. Approving `removed` is the restore. |
+| reject   | pending_review          | status `removed` or `draft` (`rejectDisposition`), `RemoveDirectJob`  |
+
+Any other status is `409`.
+
+Takedown body. `reason` is required.
+
+```json
+{ "reason": "Listing does not match the company" }
+```
+
+Takedown from `open` or `pending_review` sets status `removed`, calls `RemoveDirectJob`, and writes an audit row. Other statuses are `409`. A later review `approve` sets the job back to `open` and calls `UpsertDirectJob`.
+
+Review and takedown both respond:
+
+```json
+{
+  "job": {
+    "id": "job_123",
+    "title": "Product Engineer",
+    "companyId": "co_123",
+    "companyName": "Northwind",
+    "source": "direct",
+    "status": "open",
+    "postedAt": "2026-09-29T18:00:00Z",
+    "createdAt": "2026-09-29T16:00:00Z",
+    "location": "Chicago, IL"
+  },
+  "auditId": "674c1f0e5b2a4e18d0a1c0bb"
+}
+```

@@ -346,10 +346,9 @@ func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice,
 			{Key: "jobIds", Value: bson.A{}},
 			{Key: "createdBy", Value: userID},
 			{Key: "createdAt", Value: now.UTC()},
-			{Key: "trustStatus", Value: jobs.TrustClaimed},
+			{Key: "verificationStatus", Value: jobs.VerificationPending},
 			{Key: "claimed", Value: true},
 			{Key: "claimMethod", Value: jobs.ClaimManual},
-			{Key: "claimStatus", Value: jobs.ClaimPending},
 			{Key: "claimedBy", Value: userID},
 		})
 		if err != nil {

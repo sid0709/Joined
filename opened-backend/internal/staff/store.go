@@ -2,52 +2,38 @@ package staff
 
 import (
 	"context"
-	"log/slog"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-const (
-	casesCollection = "moderation_cases"
-	auditCollection = "admin_audit"
-)
-
-// Store is staff moderation for company verification and direct-job review.
+// Store is staff review for company verification and direct jobs.
 type Store struct {
 	client    *mongo.Client
 	db        string
 	companies string
-	search    string
-	accounts  *auth.Store
-	hiring    *employer.Store
+	listings  *jobs.Store
 }
 
-func NewStore(client *mongo.Client, db, companies, searchJobs string, accounts *auth.Store, hiring *employer.Store) *Store {
-	return &Store{client: client, db: db, companies: companies, search: searchJobs, accounts: accounts, hiring: hiring}
+func NewStore(client *mongo.Client, db, companies string, listings *jobs.Store) *Store {
+	return &Store{client: client, db: db, companies: companies, listings: listings}
 }
 
 func (s *Store) EnsureIndexes(ctx context.Context) error {
-	if _, err := s.cases().Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "queue", Value: 1}, {Key: "status", Value: 1}, {Key: "createdAt", Value: 1}}},
+	if _, err := s.verifications().Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "status", Value: 1}, {Key: "createdAt", Value: 1}}},
 		{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "status", Value: 1}}},
 	}); err != nil {
 		return err
 	}
-	if _, err := s.searchJobs().Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{{Key: "source", Value: 1}, {Key: "listingStatus", Value: 1}, {Key: "postedAt", Value: -1}},
-	}); err != nil {
-		return err
-	}
 	_, err := s.companiesColl().Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{{Key: "trustStatus", Value: 1}},
+		Keys: bson.D{{Key: "verificationStatus", Value: 1}},
 	})
 	return err
 }
@@ -56,34 +42,50 @@ func (s *Store) companiesColl() *mongo.Collection {
 	return s.client.Database(s.db).Collection(s.companies)
 }
 
-func (s *Store) searchJobs() *mongo.Collection {
-	return s.client.Database(s.db).Collection(s.search)
-}
-
-func (s *Store) cases() *mongo.Collection {
-	return s.client.Database(s.db).Collection(casesCollection)
+func (s *Store) verifications() *mongo.Collection {
+	return s.client.Database(s.db).Collection(verificationsCollection)
 }
 
 func (s *Store) hiringJobs() *mongo.Collection {
 	return s.client.Database(s.db).Collection(employer.HiringJobsCollection)
 }
 
+func (s *Store) members() *mongo.Collection {
+	return s.client.Database(s.db).Collection(membersCollection)
+}
+
+func (s *Store) users() *mongo.Collection {
+	return s.client.Database(s.db).Collection(usersCollection)
+}
+
 func (s *Store) auditColl() *mongo.Collection {
 	return s.client.Database(s.db).Collection(auditCollection)
 }
 
-func (s *Store) audit(ctx context.Context, action, subjectType, subjectID, actor, note string, now time.Time) {
-	_, err := s.auditColl().InsertOne(ctx, AuditEntry{
+type storedAudit struct {
+	ID          bson.ObjectID `bson:"_id,omitempty"`
+	Action      string        `bson:"action"`
+	SubjectType string        `bson:"subjectType"`
+	SubjectID   string        `bson:"subjectId"`
+	Actor       string        `bson:"actor"`
+	Note        string        `bson:"note,omitempty"`
+	At          time.Time     `bson:"at"`
+}
+
+func (s *Store) audit(ctx context.Context, action, subjectType, subjectID, actor, note string, now time.Time) (string, error) {
+	doc := storedAudit{
+		ID:          bson.NewObjectID(),
 		Action:      action,
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		Actor:       actor,
 		Note:        note,
 		At:          now.UTC(),
-	})
-	if err != nil {
-		slog.Error("audit", "action", action, "subject", subjectID, "error", err)
 	}
+	if _, err := s.auditColl().InsertOne(ctx, doc); err != nil {
+		return "", err
+	}
+	return doc.ID.Hex(), nil
 }
 
 func (s *Store) auditTrail(ctx context.Context, subjectID string) ([]AuditEntry, error) {
@@ -93,11 +95,25 @@ func (s *Store) auditTrail(ctx context.Context, subjectID string) ([]AuditEntry,
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	rows := []AuditEntry{}
-	if err := cursor.All(ctx, &rows); err != nil {
+	var docs []storedAudit
+	if err := cursor.All(ctx, &docs); err != nil {
 		return nil, err
 	}
-	return rows, nil
+	if len(docs) == 0 {
+		return nil, nil
+	}
+	out := make([]AuditEntry, len(docs))
+	for i, doc := range docs {
+		out[i] = AuditEntry{
+			Action:      doc.Action,
+			SubjectType: doc.SubjectType,
+			SubjectID:   doc.SubjectID,
+			Actor:       doc.Actor,
+			Note:        doc.Note,
+			At:          doc.At,
+		}
+	}
+	return out, nil
 }
 
 func websiteHost(raw string) string {
@@ -139,32 +155,18 @@ func cleanDomains(values []string) []string {
 	return out
 }
 
-func nameFilter(q string) bson.D {
-	q = strings.TrimSpace(q)
-	if q == "" {
-		return nil
-	}
-	regex := bson.D{{Key: "$regex", Value: regexp.QuoteMeta(q)}, {Key: "$options", Value: "i"}}
-	return bson.D{{Key: "$or", Value: bson.A{
-		bson.D{{Key: "companyName", Value: regex}},
-		bson.D{{Key: "overrides.name", Value: regex}},
-	}}}
-}
-
-func andFilter(parts ...bson.D) bson.D {
-	clauses := bson.A{}
-	for _, part := range parts {
-		if len(part) == 0 {
+func uniqueIDs(ids []string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if id == "" {
 			continue
 		}
-		clauses = append(clauses, part)
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
 	}
-	switch len(clauses) {
-	case 0:
-		return bson.D{}
-	case 1:
-		return clauses[0].(bson.D)
-	default:
-		return bson.D{{Key: "$and", Value: clauses}}
-	}
+	return out
 }

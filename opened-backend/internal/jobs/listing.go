@@ -9,8 +9,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// Public listing statuses for a direct job (docs/03). Empty means the job was
-// published before review existed and stays visible.
+// Public listing statuses for a direct search row. Empty means the job was
+// published before review existed and stays visible. Hiring-job status lives
+// on company_jobs; these values only hide a search row that still carries one.
 const (
 	ListingPendingReview = "pending_review"
 	ListingActive        = "active"
@@ -18,12 +19,13 @@ const (
 	ListingDraft         = "draft"
 )
 
-// Company trust statuses (docs/03). Empty is treated as unclaimed.
+// Company verification statuses. Empty is treated as unclaimed.
 const (
-	TrustUnclaimed = "unclaimed"
-	TrustClaimed   = "claimed"
-	TrustVerified  = "verified"
-	TrustSuspended = "suspended"
+	VerificationUnclaimed = "unclaimed"
+	VerificationPending   = "pending"
+	VerificationApproved  = "approved"
+	VerificationRejected  = "rejected"
+	VerificationSuspended = "suspended"
 )
 
 // Claim methods (docs/03 company_claims).
@@ -33,17 +35,14 @@ const (
 	ClaimManual      = "manual"
 )
 
-// Claim record statuses.
+// Hiring-job statuses on company_jobs. removed is staff-only.
 const (
-	ClaimPending  = "pending"
-	ClaimApproved = "approved"
-	ClaimRejected = "rejected"
-)
-
-// Why a direct listing was taken out of search. Employer edits must not put it back.
-const (
-	TakedownStaff   = "staff"
-	TakedownSuspend = "suspend"
+	JobOpen          = "open"
+	JobPaused        = "paused"
+	JobDraft         = "draft"
+	JobClosed        = "closed"
+	JobPendingReview = "pending_review"
+	JobRemoved       = "removed"
 )
 
 // ListingPublic reports whether candidates can see a search listing.
@@ -57,19 +56,10 @@ func ListingPublic(status string) bool {
 	}
 }
 
-// ListingStatusForTrust is the listing status a company gets when it publishes.
-// Only a verified company goes live; everyone else waits in pending_review.
-func ListingStatusForTrust(trust string) string {
-	if trust == TrustVerified {
-		return ListingActive
-	}
-	return ListingPendingReview
-}
-
-// EffectiveTrust maps a missing status to unclaimed.
-func EffectiveTrust(status string) string {
+// EffectiveVerification maps a missing status to unclaimed.
+func EffectiveVerification(status string) string {
 	if status == "" {
-		return TrustUnclaimed
+		return VerificationUnclaimed
 	}
 	return status
 }
@@ -84,24 +74,21 @@ func publicCompanyJobs(companyID string) bson.D {
 	return append(bson.D{{Key: "job.companyId", Value: companyID}}, filter...)
 }
 
-func (s *Store) companyTrustStatus(ctx context.Context, id string) (string, error) {
+// CompanyApproved reports whether the company may publish a direct job live.
+// A missing company is not approved.
+func (s *Store) CompanyApproved(ctx context.Context, id string) (bool, error) {
 	if id == "" {
-		return "", nil
+		return false, nil
 	}
 	var doc struct {
-		TrustStatus string `bson:"trustStatus"`
+		VerificationStatus string `bson:"verificationStatus"`
 	}
-	err := s.companies().FindOne(ctx, bson.D{{Key: "id", Value: id}}, options.FindOne().SetProjection(bson.D{{Key: "trustStatus", Value: 1}})).Decode(&doc)
+	err := s.companies().FindOne(ctx, bson.D{{Key: "id", Value: id}}, options.FindOne().SetProjection(bson.D{{Key: "verificationStatus", Value: 1}})).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return "", nil
+		return false, nil
 	}
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return doc.TrustStatus, nil
-}
-
-// heldDown reports a staff or suspension takedown that publishing must not undo.
-func heldDown(doc storedSearchJob) bool {
-	return doc.ListingStatus == ListingRemoved && (doc.TakedownCause == TakedownStaff || doc.TakedownCause == TakedownSuspend)
+	return doc.VerificationStatus == VerificationApproved, nil
 }
