@@ -40,3 +40,7 @@ export function companySend<T>(path: string, method: string, body?: unknown) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
+
+export function companySendForm<T>(path: string, method: string, body: FormData) {
+  return request<T>(`/api/company${path}`, { method, body });
+}

@@ -30,6 +30,10 @@ export type CompanyCardExtras = {
   logo?: string;
   id?: string;
   hasLogoFile?: boolean;
+  /** Bumps the saved-logo request after an upload. */
+  logoVersion?: number;
+  /** Local file or unsaved URL, shown instead of the saved logo. */
+  logoSrc?: string;
 };
 
 /** The identity and stats a card can show. Any fact not yet on file renders a skeleton. */
@@ -86,6 +90,8 @@ export function CompanyCard({
             src={company.logo}
             hasFile={company.hasLogoFile}
             size={LOGO_SIZE}
+            version={company.logoVersion}
+            srcOverride={company.logoSrc}
           />
           <Stack gap={0.5}>
             <HStack gap={2} vAlign="center" wrap="wrap">

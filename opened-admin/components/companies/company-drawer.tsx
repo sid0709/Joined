@@ -41,7 +41,6 @@ import {
   companyWriteFrom,
   type AdminCompany,
   type BenefitCategory,
-  type CompanyLeader,
   type CompanyValue,
   type CompanyWrite,
 } from "@/lib/company";
@@ -288,7 +287,6 @@ function CompanyDetail({
             </Group>
 
             <ValuesField values={draft.values} onChange={set("values")} />
-            <LeadersField leaders={draft.leadership} onChange={set("leadership")} />
             <BenefitsField
               key={`benefits-${version}`}
               groups={draft.benefitCategories}
@@ -486,52 +484,6 @@ function ValuesField({
             </HStack>
           </Stack>
         </Card>
-      ))}
-    </Group>
-  );
-}
-
-function LeadersField({
-  leaders,
-  onChange,
-}: {
-  leaders: CompanyLeader[];
-  onChange: (leaders: CompanyLeader[]) => void;
-}) {
-  const update = (index: number, patch: Partial<CompanyLeader>) =>
-    onChange(leaders.map((leader, item) => (item === index ? { ...leader, ...patch } : leader)));
-  return (
-    <Group
-      title="Leadership"
-      action={
-        <Button
-          label="Add person"
-          variant="ghost"
-          size="sm"
-          clickAction={() => onChange([...leaders, { name: "", title: "" }])}
-        />
-      }
-    >
-      {leaders.length === 0 ? <Text color="secondary">None yet.</Text> : null}
-      {leaders.map((leader, index) => (
-        <HStack key={index} gap={3} vAlign="end" wrap="wrap">
-          <TextInput
-            label="Name"
-            value={leader.name}
-            onChange={(name) => update(index, { name })}
-          />
-          <TextInput
-            label="Title"
-            value={leader.title}
-            onChange={(title) => update(index, { title })}
-          />
-          <Button
-            label="Remove"
-            variant="ghost"
-            size="sm"
-            clickAction={() => onChange(leaders.filter((_, item) => item !== index))}
-          />
-        </HStack>
       ))}
     </Group>
   );

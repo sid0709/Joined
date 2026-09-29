@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 import {
-  Avatar,
-  AvatarGroup,
   Badge,
   Blockquote,
   Button,
@@ -114,7 +112,6 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
   const profile = presentCompany(company, jobs);
   const website = profile.url ? websiteHref(profile.url) : "";
   const hasValues = profile.values != null && profile.values.length > 0;
-  const hasLeadership = profile.leadership != null && profile.leadership.length > 0;
   const hasBenefits = profile.benefitCategories != null && profile.benefitCategories.length > 0;
 
   return (
@@ -311,47 +308,6 @@ export function CompanyProfileView({ company, jobs }: { company: PublicCompany; 
                 </HStack>
               ) : (
                 <SkeletonTokens count={4} />
-              )}
-            </SectionCard>
-
-            <SectionCard title="Leadership">
-              {hasLeadership ? (
-                <Stack gap={4}>
-                  <AvatarGroup size="md">
-                    {profile.leadership?.map((leader) => (
-                      <Avatar
-                        key={leader.name}
-                        name={leader.name}
-                        tooltip={`${leader.name}, ${leader.title}`}
-                      />
-                    ))}
-                  </AvatarGroup>
-                  <Stack gap={3}>
-                    {profile.leadership?.map((leader) => (
-                      <HStack key={leader.name} gap={3} vAlign="center">
-                        <Avatar name={leader.name} size="sm" />
-                        <Stack gap={0}>
-                          <Text weight="medium">{leader.name}</Text>
-                          <Text type="supporting" color="secondary">
-                            {leader.title}
-                          </Text>
-                        </Stack>
-                      </HStack>
-                    ))}
-                  </Stack>
-                </Stack>
-              ) : (
-                <Stack gap={3}>
-                  {[0, 1, 2].map((index) => (
-                    <HStack key={index} gap={3} vAlign="center">
-                      <Skeleton width={36} height={36} radius="rounded" index={index} />
-                      <Stack gap={1}>
-                        <Skeleton width={120} height={14} index={index} />
-                        <Skeleton width={90} height={12} index={index} />
-                      </Stack>
-                    </HStack>
-                  ))}
-                </Stack>
               )}
             </SectionCard>
 

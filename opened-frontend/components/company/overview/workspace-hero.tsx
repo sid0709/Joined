@@ -1,6 +1,7 @@
 import { Card, HStack, Heading, Stack, Text } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
+import { companyRoleLabel } from "@/lib/company/access";
 import { ROUTES } from "@/lib/routes";
 import { CandidateViewButton } from "@/components/company/candidate-view-button";
 
@@ -24,7 +25,9 @@ export function WorkspaceHero({ greeting, company }: { greeting: string; company
             </Text>
             <Heading level={1}>{company.name}</Heading>
             <Text color="secondary" display="block">
-              {company.url || "Hiring workspace"}
+              {company.url
+                ? `${companyRoleLabel(company)} · ${company.url}`
+                : companyRoleLabel(company)}
             </Text>
           </Stack>
         </HStack>

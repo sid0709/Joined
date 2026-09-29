@@ -31,6 +31,7 @@ function tasks(
   interviews: CompanyInterview[],
   jobs: CompanyJob[],
   billing: BillingAccount,
+  canAddBalance: boolean,
 ): Task[] {
   const fresh = applicants.filter((person) => person.columnId === "new");
   const awaiting = interviews.filter((interview) => interview.status === "awaiting");
@@ -66,15 +67,29 @@ function tasks(
       href: ROUTES.companyJobs,
     }),
   );
-  if (billing.balanceCents < billing.pricePerInterviewCents)
-    list.push({
-      id: "billing",
-      icon: "lock",
-      title: "Add purchase balance",
-      detail: `${formatCents(billing.balanceCents, billing.currency)} left. An interview costs ${formatCents(billing.pricePerInterviewCents, billing.currency)}.`,
-      action: "Add",
-      href: ROUTES.companyBilling,
-    });
+  if (billing.balanceCents < billing.pricePerInterviewCents) {
+    const left = formatCents(billing.balanceCents, billing.currency);
+    const price = formatCents(billing.pricePerInterviewCents, billing.currency);
+    list.push(
+      canAddBalance
+        ? {
+            id: "billing",
+            icon: "lock",
+            title: "Add purchase balance",
+            detail: `${left} left. An interview costs ${price}.`,
+            action: "Add",
+            href: ROUTES.companyBilling,
+          }
+        : {
+            id: "billing",
+            icon: "lock",
+            title: "Purchase balance is low",
+            detail: `${left} left. An interview costs ${price}. The company creator adds balance.`,
+            action: "",
+            href: "",
+          },
+    );
+  }
   return list;
 }
 
@@ -84,13 +99,15 @@ export function NeedsAttention({
   interviews,
   jobs,
   billing,
+  canAddBalance,
 }: {
   applicants: Applicant[];
   interviews: CompanyInterview[];
   jobs: CompanyJob[];
   billing: BillingAccount;
+  canAddBalance: boolean;
 }) {
-  const items = tasks(applicants, interviews, jobs, billing);
+  const items = tasks(applicants, interviews, jobs, billing, canAddBalance);
   return (
     <SectionCard
       title="Needs your attention"
@@ -127,7 +144,9 @@ export function NeedsAttention({
                     </Text>
                   </Stack>
                 </HStack>
-                <Button label={task.action} variant="ghost" size="sm" href={task.href} />
+                {task.href ? (
+                  <Button label={task.action} variant="ghost" size="sm" href={task.href} />
+                ) : null}
               </HStack>
             </Stack>
           ))}

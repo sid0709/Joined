@@ -1,4 +1,4 @@
-export * from "./workspace";
+export * from "./page";
 export * from "./jobs";
 export * from "./applicants";
 export * from "./interviews";

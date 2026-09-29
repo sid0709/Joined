@@ -1,8 +1,10 @@
 package employer
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 )
 
@@ -25,6 +27,15 @@ func TestCandidateStage(t *testing.T) {
 	}
 	if _, _, ok := candidateStage("nope"); ok {
 		t.Fatal("unknown stage accepted")
+	}
+}
+
+func TestRequireCreator(t *testing.T) {
+	if err := RequireCreator(auth.Company{IsCreator: true}); err != nil {
+		t.Fatal(err)
+	}
+	if err := RequireCreator(auth.Company{}); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("member: %v", err)
 	}
 }
 

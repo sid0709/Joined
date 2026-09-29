@@ -1,4 +1,4 @@
-import { companyGet, companySend } from "@/lib/me/client";
+import { companyGet, companySend, companySendForm } from "@/lib/me/client";
 import { parseISODate } from "@/lib/dates";
 import type { ActivityItem } from "./activity";
 import type { Applicant, ApplicantStage, AssistedBy } from "./applicants";
@@ -6,7 +6,7 @@ import type { BillingAccount, BillableEvent, Purchase } from "./billing";
 import type { CompanyInterview, CompanyInterviewStatus, FaceCheck } from "./interviews";
 import type { AssistedPolicy, CompanyJob, CompanyJobStatus, PipelineCounts } from "./jobs";
 import type { TeamMember, TeamRole } from "./team";
-import type { Workspace } from "./workspace";
+import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
 
 const CENTS_PER_DOLLAR = 100;

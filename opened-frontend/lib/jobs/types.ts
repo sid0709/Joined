@@ -62,7 +62,6 @@ export type PublicCompany = {
   specialties?: string[];
   mission?: string;
   values?: { icon: string; title: string; description: string }[];
-  leadership?: { name: string; title: string }[];
   benefitCategories?: { label: string; items: string[] }[];
   hasLogoFile?: boolean;
 };

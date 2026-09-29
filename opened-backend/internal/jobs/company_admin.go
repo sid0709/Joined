@@ -152,6 +152,19 @@ func (s *Store) storedCompanyByID(ctx context.Context, id string) (storedCompany
 	return doc, nil
 }
 
+// DropCompanyLeadership removes the retired leadership list from every company profile.
+func (s *Store) DropCompanyLeadership(ctx context.Context) (int64, error) {
+	result, err := s.companies().UpdateMany(ctx, bson.D{
+		{Key: "overrides.profile.leadership", Value: bson.D{{Key: "$exists", Value: true}}},
+	}, bson.D{
+		{Key: "$unset", Value: bson.D{{Key: "overrides.profile.leadership", Value: ""}}},
+	})
+	if err != nil {
+		return 0, err
+	}
+	return result.ModifiedCount, nil
+}
+
 func companyFilter(q string) bson.D {
 	pattern := searchPattern(q)
 	if pattern == "" {

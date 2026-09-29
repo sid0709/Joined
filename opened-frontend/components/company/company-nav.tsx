@@ -20,6 +20,7 @@ import {
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
+import { canManageCompany, companyRoleLabel } from "@/lib/company/access";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_APPLICANTS_PAGE,
@@ -38,7 +39,19 @@ const LOGO_SIZE = 40;
 
 type NavLink = PageLink & { icon: GlyphName; count?: number };
 
-function groups(openJobs: number, newApplicants: number): { title: string; links: NavLink[] }[] {
+function groups(
+  openJobs: number,
+  newApplicants: number,
+  manageCompany: boolean,
+): { title: string; links: NavLink[] }[] {
+  const company: NavLink[] = [{ ...COMPANY_ABOUT_PAGE, icon: "seat" }];
+  if (manageCompany) {
+    company.push(
+      { ...COMPANY_TEAM_PAGE, icon: "users" },
+      { ...COMPANY_BILLING_PAGE, icon: "file" },
+      { ...COMPANY_SETTINGS_PAGE, icon: "settings" },
+    );
+  }
   return [
     {
       title: "Hiring",
@@ -50,15 +63,7 @@ function groups(openJobs: number, newApplicants: number): { title: string; links
         { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
       ],
     },
-    {
-      title: "Company",
-      links: [
-        { ...COMPANY_ABOUT_PAGE, icon: "seat" },
-        { ...COMPANY_TEAM_PAGE, icon: "users" },
-        { ...COMPANY_BILLING_PAGE, icon: "file" },
-        { ...COMPANY_SETTINGS_PAGE, icon: "settings" },
-      ],
-    },
+    { title: "Company", links: company },
   ];
 }
 
@@ -90,9 +95,10 @@ export function CompanyNav({
   newApplicants?: number;
 }) {
   const pathname = usePathname();
-  const links = groups(openJobs, newApplicants).flatMap((group) => group.links);
+  const manageCompany = canManageCompany(company);
+  const links = groups(openJobs, newApplicants, manageCompany).flatMap((group) => group.links);
   const active = activeHref(pathname, links);
-  const sections = groups(openJobs, newApplicants).map((group) => ({
+  const sections = groups(openJobs, newApplicants, manageCompany).map((group) => ({
     ...group,
     links: group.links.map((link) =>
       link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
@@ -115,7 +121,7 @@ export function CompanyNav({
                 <Stack gap={0.5}>
                   <Text weight="semibold">{company.name}</Text>
                   <Text type="supporting" color="secondary">
-                    Hiring workspace
+                    {companyRoleLabel(company)}
                   </Text>
                 </Stack>
               </HStack>

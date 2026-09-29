@@ -33,6 +33,8 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/company/settings", s.putCompanySettings)
 	mux.HandleFunc("GET /v1/company/page", s.getCompanyPage)
 	mux.HandleFunc("PUT /v1/company/page", s.putCompanyPage)
+	mux.HandleFunc("POST /v1/company/page/logo", s.postCompanyPageLogo)
+	mux.HandleFunc("DELETE /v1/company/page/logo", s.deleteCompanyPageLogo)
 	mux.HandleFunc("GET /v1/company/profile", s.getHiringProfile)
 	mux.HandleFunc("PUT /v1/company/profile", s.putHiringProfile)
 }
@@ -43,6 +45,18 @@ func (s *Server) company(w http.ResponseWriter, r *http.Request) (auth.Session, 
 		return auth.Session{}, false
 	}
 	return s.requireCompany(w, r)
+}
+
+// companyCreator is the person who owns the company page. Linked recruiters run hiring only.
+func (s *Server) companyCreator(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return auth.Session{}, false
+	}
+	if !writeEmployer(w, employer.RequireCreator(*session.Company)) {
+		return auth.Session{}, false
+	}
+	return session, true
 }
 
 func (s *Server) getCompanyOverview(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +202,7 @@ func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -200,7 +214,7 @@ func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -216,7 +230,7 @@ func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -228,7 +242,7 @@ func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -244,7 +258,7 @@ func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -260,7 +274,7 @@ func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteCompanyTeam(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -272,7 +286,7 @@ func (s *Server) deleteCompanyTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) postCompanyTransfer(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -288,7 +302,7 @@ func (s *Server) postCompanyTransfer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -300,7 +314,7 @@ func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -328,7 +342,7 @@ func (s *Server) getCompanyPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) putCompanyPage(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.company(w, r)
+	session, ok := s.companyCreator(w, r)
 	if !ok {
 		return
 	}
@@ -337,6 +351,34 @@ func (s *Server) putCompanyPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page, err := s.hiring.SavePage(r.Context(), session.Company.ID, input)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) postCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.companyCreator(w, r)
+	if !ok {
+		return
+	}
+	data, contentType, ok := readLogoUpload(w, r)
+	if !ok {
+		return
+	}
+	page, err := s.hiring.SaveLogo(r.Context(), session.Company.ID, contentType, data)
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, page)
+}
+
+func (s *Server) deleteCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.companyCreator(w, r)
+	if !ok {
+		return
+	}
+	page, err := s.hiring.ClearLogo(r.Context(), session.Company.ID)
 	if !writeEmployer(w, err) {
 		return
 	}
@@ -381,6 +423,8 @@ func writeEmployer(w http.ResponseWriter, err error) bool {
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, employer.ErrInsufficient):
 		writeError(w, http.StatusPaymentRequired, err.Error())
+	case errors.Is(err, employer.ErrForbidden):
+		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, employer.ErrConflict), errors.Is(err, auth.ErrHasCompany):
 		writeError(w, http.StatusConflict, err.Error())
 	default:

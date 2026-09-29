@@ -18,6 +18,7 @@ import { SpendSummary } from "@/components/company/spend-summary";
 import { SectionCard } from "@/components/section-card";
 import { StatGrid } from "@/components/stat-card";
 import { fetchOverview, type CompanyOverview } from "@/lib/company/api";
+import { canManageCompany } from "@/lib/company/access";
 import { pipelineTotal } from "@/lib/company";
 import type { AuthCompany } from "@/lib/auth/types";
 import { daysBetween, formatAgo } from "@/lib/dates";
@@ -90,6 +91,8 @@ export function CompanyHome({ greeting, company }: { greeting: string; company: 
   }
   if (!overview) return null;
 
+  const manageCompany = canManageCompany(company);
+
   return (
     <Stack gap={6}>
       <WorkspaceHero greeting={greeting} company={company} />
@@ -102,6 +105,7 @@ export function CompanyHome({ greeting, company }: { greeting: string; company: 
               interviews={overview.interviews}
               jobs={overview.jobs}
               billing={overview.billing}
+              canAddBalance={manageCompany}
             />
             <JobsPipeline jobs={overview.jobs} />
           </Stack>
@@ -112,13 +116,15 @@ export function CompanyHome({ greeting, company }: { greeting: string; company: 
             <SectionCard
               title="Balance"
               action={
-                <Button
-                  label="Billing"
-                  variant="ghost"
-                  size="sm"
-                  href={ROUTES.companyBilling}
-                  icon={<Glyph name="arrowRight" />}
-                />
+                manageCompany ? (
+                  <Button
+                    label="Billing"
+                    variant="ghost"
+                    size="sm"
+                    href={ROUTES.companyBilling}
+                    icon={<Glyph name="arrowRight" />}
+                  />
+                ) : undefined
               }
             >
               <SpendSummary billing={overview.billing} />

@@ -16,7 +16,7 @@ export async function forwardOpened(request: Request, apiPath: string): Promise<
   const response = await fetch(dest, {
     method,
     headers,
-    body: hasBody ? await request.text() : undefined,
+    body: hasBody ? await request.arrayBuffer() : undefined,
     cache: "no-store",
     redirect: "manual",
   });

@@ -315,26 +315,34 @@ func (s *Server) updateCompany(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, company)
 }
 
-func (s *Server) uploadCompanyLogo(w http.ResponseWriter, r *http.Request) {
+func readLogoUpload(w http.ResponseWriter, r *http.Request) ([]byte, string, bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, jobs.MaxLogoBytes+64<<10)
 	if err := r.ParseMultipartForm(jobs.MaxLogoBytes); err != nil {
 		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
-		return
+		return nil, "", false
 	}
 	file, _, err := r.FormFile("logo")
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "choose a logo image")
-		return
+		return nil, "", false
 	}
 	defer file.Close()
 	data, err := io.ReadAll(io.LimitReader(file, jobs.MaxLogoBytes+1))
 	if err != nil || len(data) > jobs.MaxLogoBytes {
 		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
-		return
+		return nil, "", false
 	}
 	contentType := jobs.LogoContentType(data)
 	if contentType == "" {
 		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
+		return nil, "", false
+	}
+	return data, contentType, true
+}
+
+func (s *Server) uploadCompanyLogo(w http.ResponseWriter, r *http.Request) {
+	data, contentType, ok := readLogoUpload(w, r)
+	if !ok {
 		return
 	}
 

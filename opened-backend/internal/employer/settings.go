@@ -74,13 +74,27 @@ func (s *Store) Page(ctx context.Context, companyID string) (jobs.AdminCompany, 
 
 func (s *Store) SavePage(ctx context.Context, companyID string, input jobs.CompanyWrite) (jobs.AdminCompany, error) {
 	page, err := s.jobs.UpdateCompany(ctx, companyID, input)
+	return employerCompany(page, err)
+}
+
+func (s *Store) SaveLogo(ctx context.Context, companyID, contentType string, data []byte) (jobs.AdminCompany, error) {
+	page, err := s.jobs.SaveCompanyLogo(ctx, companyID, contentType, data)
+	return employerCompany(page, err)
+}
+
+func (s *Store) ClearLogo(ctx context.Context, companyID string) (jobs.AdminCompany, error) {
+	page, err := s.jobs.ClearCompanyLogo(ctx, companyID)
+	return employerCompany(page, err)
+}
+
+func employerCompany(page jobs.AdminCompany, err error) (jobs.AdminCompany, error) {
 	if errors.Is(err, jobs.ErrNotFound) {
 		return jobs.AdminCompany{}, ErrNotFound
 	}
-	if err != nil {
+	if errors.Is(err, jobs.ErrInvalidInput) {
 		return jobs.AdminCompany{}, ErrInvalidInput
 	}
-	return page, nil
+	return page, err
 }
 
 func defaultSettings(website string) Settings {

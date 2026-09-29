@@ -38,7 +38,6 @@ type PublicCompany struct {
 	Specialties       []string          `json:"specialties,omitempty"`
 	Mission           string            `json:"mission,omitempty"`
 	Values            []companyValue    `json:"values,omitempty"`
-	Leadership        []companyLeader   `json:"leadership,omitempty"`
 	BenefitCategories []benefitCategory `json:"benefitCategories,omitempty"`
 	HasLogoFile       bool              `json:"hasLogoFile,omitempty"`
 }
