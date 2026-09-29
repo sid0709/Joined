@@ -86,6 +86,7 @@ export function ApplicantDrawer({
   canMove = true,
   canHire = true,
   canSchedule = true,
+  canScore = true,
   hiringProfile,
   scorecardTemplate,
   interviewGuide,
@@ -109,6 +110,8 @@ export function ApplicantDrawer({
   canHire?: boolean;
   /** Soft gate — interviews.schedule. */
   canSchedule?: boolean;
+  /** Soft gate — interviews.score (scorecard submit). */
+  canScore?: boolean;
   hiringProfile: HiringProfile | null;
   scorecardTemplate: ScorecardTemplate | null;
   interviewGuide: InterviewGuide | null;
@@ -410,6 +413,8 @@ export function ApplicantDrawer({
           template={scorecardTemplate}
           applicantId={applicant.id}
           existing={applicantScorecards}
+          canScore={canScore}
+          scoreDenial={denialReason(actorRole, "interviews.score")}
           onSubmit={onScorecard}
         />
 

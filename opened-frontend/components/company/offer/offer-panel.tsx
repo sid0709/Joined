@@ -122,12 +122,14 @@ export function OfferPanel({
   const canHire = canPermission(actorRole, "offers.hire");
   // Einstein enforces offers.* server-side (403). Soft gates hide unavailable CTAs.
 
+  /* eslint-disable react-hooks/set-state-in-effect -- remount-equivalent reset on applicant/offer change */
   useEffect(() => {
     setDraft(emptyOfferDraft(applicant.offer));
     setActionError(null);
     setApprovalNote(applicant.offer?.approval?.note ?? "");
     setApproverIds(applicant.offer?.approval?.approverIds ?? []);
   }, [applicant.id, applicant.offer]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const templateOptions = useMemo(
     () => [
@@ -300,7 +302,11 @@ export function OfferPanel({
   };
 
   const setPacketStatus = (packetStatus: "ready" | "sent") => {
-    // ready/sent checklist polish is still FE-local — Einstein hire-packet POST drafts only.
+    // ready/sent is FE-local on top of hire-packet POST — no item PATCH from Einstein yet.
+    if (!canHire) {
+      setActionError(denialReason(actorRole, "offers.hire"));
+      return;
+    }
     const next = markHirePacketStatus(withComp(draft), packetStatus, {
       handoffTarget: draft.offer.hirePacket?.handoffTarget,
       ownerNote: draft.offer.hirePacket?.ownerNote ?? draft.offer.notes,
@@ -330,17 +336,45 @@ export function OfferPanel({
   };
 
   const markEsignSigned = () => {
-    // Candidate sign-page UX is still FE-later; employer can mark signed locally.
+    // Candidate sign-page UX is still FE-later; employer can mark signed locally (no countersign BE).
+    if (!canSendOffer) {
+      setActionError(denialReason(actorRole, "offers.send"));
+      return;
+    }
+    if (!draft.offer.esign || draft.offer.esign.status === "none") {
+      setActionError("Create a sign link before marking signed.");
+      return;
+    }
     const next: OfferRecord = {
       ...withComp(draft),
       esign: {
-        ...(draft.offer.esign ?? { status: "pending" }),
+        ...draft.offer.esign,
         status: "signed",
         signedAt: new Date().toISOString(),
       },
     };
     setDraft((current) => ({ ...current, offer: next }));
     emit(next, `${applicant.name} marked as signed (first-party)`);
+  };
+
+  const markEsignDeclined = () => {
+    if (!canSendOffer) {
+      setActionError(denialReason(actorRole, "offers.send"));
+      return;
+    }
+    if (!draft.offer.esign || draft.offer.esign.status === "none") {
+      setActionError("Create a sign link before marking declined.");
+      return;
+    }
+    const next: OfferRecord = {
+      ...withComp(draft),
+      esign: {
+        ...draft.offer.esign,
+        status: "declined",
+      },
+    };
+    setDraft((current) => ({ ...current, offer: next }));
+    emit(next, `${applicant.name} declined e-sign`);
   };
 
   const generateHirePacket = () => {
@@ -362,6 +396,11 @@ export function OfferPanel({
   };
 
   const toggleChecklistItem = (id: string) => {
+    // Checklist toggles are FE-local until Einstein hire-packet item PATCH lands.
+    if (!canHire) {
+      setActionError(denialReason(actorRole, "offers.hire"));
+      return;
+    }
     const packet = draft.offer.hirePacket;
     if (!packet) return;
     const checklist = packet.checklist.map((item) =>
@@ -638,7 +677,8 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">E-sign (first-party)</Text>
         <Text type="supporting" color="secondary">
-          OpenSeat-hosted sign link only. DocuSign and other connectors are out of scope.
+          OpenSeat-hosted sign link only. DocuSign is out of scope. Mark signed / declined is
+          employer-local until candidate countersign lands.
         </Text>
         {draft.offer.esign && draft.offer.esign.status !== "none" ? (
           <Badge label={draft.offer.esign.status} variant="info" />
@@ -655,21 +695,21 @@ export function OfferPanel({
             onClick={startEsign}
             isDisabled={busy || !canSendOffer}
           />
-          <Button label="Mark signed" variant="ghost" onClick={markEsignSigned} />
+          <Button
+            label="Mark signed"
+            variant="ghost"
+            onClick={markEsignSigned}
+            isDisabled={
+              busy || !canSendOffer || !draft.offer.esign || draft.offer.esign.status === "none"
+            }
+          />
           <Button
             label="Mark e-sign declined"
             variant="ghost"
-            onClick={() => {
-              const next: OfferRecord = {
-                ...withComp(draft),
-                esign: {
-                  ...(draft.offer.esign ?? { status: "pending" }),
-                  status: "declined",
-                },
-              };
-              setDraft((current) => ({ ...current, offer: next }));
-              emit(next, `${applicant.name} declined e-sign`);
-            }}
+            onClick={markEsignDeclined}
+            isDisabled={
+              busy || !canSendOffer || !draft.offer.esign || draft.offer.esign.status === "none"
+            }
           />
         </HStack>
       </Stack>
@@ -677,7 +717,8 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">Hire packet / onboarding handoff</Text>
         <Text type="supporting" color="secondary">
-          Light checklist stub — not full HRIS onboarding.
+          Light checklist stub — not full HRIS onboarding. Ready / sent / checklist toggles stay
+          local until Einstein hire-packet item PATCH lands; Generate still posts a draft.
         </Text>
         <HStack gap={2} wrap="wrap">
           <Button
@@ -708,6 +749,7 @@ export function OfferPanel({
                 label={item.label}
                 value={item.status === "done"}
                 onChange={() => toggleChecklistItem(item.id)}
+                isDisabled={!canHire}
               />
             ))}
             <TextInput
@@ -722,6 +764,7 @@ export function OfferPanel({
                 })
               }
               placeholder="hr@company.com or #onboarding"
+              isDisabled={!canHire}
             />
             <TextArea
               label="Owner note for HR"
@@ -736,6 +779,7 @@ export function OfferPanel({
               }
               rows={2}
               placeholder="Start date flexibility, equipment, buddy assignment…"
+              isDisabled={!canHire}
             />
             <Button
               label="Save handoff notes"

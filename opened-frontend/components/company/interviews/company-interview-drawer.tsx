@@ -61,6 +61,8 @@ export function CompanyInterviewDrawer({
   scorecards,
   canSchedule = true,
   scheduleDenial = "",
+  canScore = true,
+  scoreDenial = "",
   onScorecard,
   onClose,
   onChange,
@@ -77,6 +79,9 @@ export function CompanyInterviewDrawer({
   /** Soft gate — interviews.schedule for lock / re-offer. */
   canSchedule?: boolean;
   scheduleDenial?: string;
+  /** Soft gate — interviews.score for scorecard submit. */
+  canScore?: boolean;
+  scoreDenial?: string;
   onScorecard?: (input: ScorecardSubmissionInput) => void | Promise<void>;
   onClose: () => void;
   onChange: (next: CompanyInterview, message: string) => void;
@@ -340,6 +345,8 @@ export function CompanyInterviewDrawer({
                 template={scorecardTemplate}
                 applicantId={interview.applicantId}
                 existing={applicantScorecards}
+                canScore={canScore}
+                scoreDenial={scoreDenial}
                 onSubmit={onScorecard ?? (async () => undefined)}
               />
             ) : null}

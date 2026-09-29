@@ -22,6 +22,7 @@ import {
   fetchTeam,
   moveApplicant,
   scheduleInterview,
+  scorecardErrorMessage,
   stageMoveErrorMessage,
   submitApplicantScorecard,
 } from "@/lib/company/api";
@@ -62,7 +63,9 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
   const canMoveApplicants = canPermission(actorRole, "applicants.move");
   const canHire = canPermission(actorRole, "offers.hire");
   const canSchedule = canPermission(actorRole, "interviews.schedule");
-  // Einstein: stage moves need applicants.move; hired needs offers.hire; schedule needs interviews.schedule.
+  const canScore = canPermission(actorRole, "interviews.score");
+  // Einstein: stage moves need applicants.move; hired needs offers.hire;
+  // schedule needs interviews.schedule; scorecards need interviews.score.
   const [people, setPeople] = useState<Applicant[]>([]);
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
   const [jobOptions, setJobOptions] = useState([{ value: ALL_JOBS, label: "All jobs" }]);
@@ -438,6 +441,7 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
         canMove={canMoveApplicants}
         canHire={canHire}
         canSchedule={canSchedule}
+        canScore={canScore}
         hiringProfile={hiringProfile}
         scorecardTemplate={scorecardTemplate}
         interviewGuide={interviewGuide}
@@ -447,13 +451,17 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
         offerTemplates={offerTemplates}
         onScorecard={async (input: ScorecardSubmissionInput) => {
           if (!openApplicant) return;
+          if (!canScore) {
+            toast({ body: denialReason(actorRole, "interviews.score"), type: "error" });
+            throw new Error(denialReason(actorRole, "interviews.score"));
+          }
           try {
             const saved = await submitApplicantScorecard(openApplicant.id, input);
             setScorecards((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
             toast({ body: "Scorecard submitted." });
           } catch (error) {
             toast({
-              body: error instanceof Error ? error.message : "Could not submit scorecard.",
+              body: scorecardErrorMessage(error, actorRole),
               type: "error",
             });
             throw error;

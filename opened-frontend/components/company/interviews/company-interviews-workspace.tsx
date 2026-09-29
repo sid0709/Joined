@@ -25,6 +25,7 @@ import {
   lockInterviewSlot,
   reofferInterviewSlots,
   setAttendance,
+  scorecardErrorMessage,
   submitApplicantScorecard,
 } from "@/lib/company/api";
 import type { ProposedSlot } from "@/lib/schedule-join";
@@ -52,7 +53,8 @@ const CALENDAR_HOURS: [number, number] = [8, 18];
 export function CompanyInterviewsWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
   const canSchedule = canPermission(actorRole, "interviews.schedule");
-  // Einstein: lock / re-offer / create need interviews.schedule (score is separate).
+  const canScore = canPermission(actorRole, "interviews.score");
+  // Einstein: lock / re-offer / create need interviews.schedule; scorecards need interviews.score.
   const [items, setItems] = useState<CompanyInterview[]>([]);
   const [billing, setBilling] = useState<BillingAccount | null>(null);
   const [hiringProfile, setHiringProfile] = useState<HiringProfile | null>(null);
@@ -302,8 +304,14 @@ export function CompanyInterviewsWorkspace({ actorRole = null }: { actorRole?: T
         scorecards={scorecards}
         canSchedule={canSchedule}
         scheduleDenial={denialReason(actorRole, "interviews.schedule")}
+        canScore={canScore}
+        scoreDenial={denialReason(actorRole, "interviews.score")}
         onScorecard={async (input: ScorecardSubmissionInput) => {
           if (!openInterview?.applicantId) return;
+          if (!canScore) {
+            toast({ body: denialReason(actorRole, "interviews.score"), type: "error" });
+            throw new Error(denialReason(actorRole, "interviews.score"));
+          }
           try {
             const saved = await submitApplicantScorecard(openInterview.applicantId, {
               ...input,
@@ -313,7 +321,7 @@ export function CompanyInterviewsWorkspace({ actorRole = null }: { actorRole?: T
             toast({ body: "Scorecard submitted." });
           } catch (error) {
             toast({
-              body: error instanceof Error ? error.message : "Could not submit scorecard.",
+              body: scorecardErrorMessage(error, actorRole),
               type: "error",
             });
             throw error;

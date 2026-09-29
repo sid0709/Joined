@@ -46,6 +46,7 @@ import {
 } from "@/lib/offer-hire";
 import type { TeamMember, TeamRole } from "./team";
 import {
+  denialReason,
   hydrateAuditEvent,
   hydrateJobAccess,
   normalizeTeamRole,
@@ -440,6 +441,19 @@ export function stageMoveErrorMessage(error: unknown): string {
   return "Could not move this candidate.";
 }
 
+/** Toast copy for scorecard POST failures — keep 403/400 visible (interviews.score). */
+export function scorecardErrorMessage(error: unknown, actorRole?: TeamRole | null): string {
+  if (isForbiddenError(error) || isBadRequestError(error)) {
+    return (
+      error.message ||
+      denialReason(actorRole, "interviews.score") ||
+      "You cannot submit this scorecard."
+    );
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "Could not submit scorecard.";
+}
+
 export function fetchApplicants() {
   return companyGet<{ applicants: ApiApplicant[] }>("/applicants").then((body) =>
     body.applicants.map(hydrateApplicant),
@@ -532,8 +546,11 @@ export function createHirePacket(applicantId: string, body?: HirePacketInput) {
   });
 }
 
-/** Toast copy for offer/hire API failures. */
+/** Toast copy for offer/hire API failures — keep 403/400 visible. */
 export function offerHireErrorMessage(error: unknown): string {
+  if (isForbiddenError(error) || isBadRequestError(error)) {
+    return error.message || "You cannot update this offer.";
+  }
   if (error instanceof Error && error.message) return error.message;
   return "Could not update this offer.";
 }

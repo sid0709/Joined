@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Banner,
   Button,
   Heading,
   HStack,
@@ -96,11 +97,16 @@ export function ScorecardSubmitShell({
   template,
   applicantId,
   existing,
+  canScore = true,
+  scoreDenial = "",
   onSubmit,
 }: {
   template: ScorecardTemplate | null;
   applicantId: string;
   existing: ScorecardSubmission[];
+  /** Soft gate — interviews.score. */
+  canScore?: boolean;
+  scoreDenial?: string;
   onSubmit: (input: ScorecardSubmissionInput) => void | Promise<void>;
 }) {
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -128,6 +134,9 @@ export function ScorecardSubmitShell({
   return (
     <Stack gap={3}>
       <Heading level={3}>{template.name}</Heading>
+      {!canScore && scoreDenial ? (
+        <Banner status="warning" title="Cannot submit scorecard" description={scoreDenial} />
+      ) : null}
       {latest ? (
         <Text type="supporting" color="secondary">
           Last submitted {new Date(latest.submittedAt).toLocaleString()}. Submitting again adds
@@ -149,6 +158,7 @@ export function ScorecardSubmitShell({
             min={0}
             max={criterion.maxScore}
             isIntegerOnly
+            isDisabled={!canScore}
           />
           <TextArea
             label={`${criterion.label} note`}
@@ -157,6 +167,7 @@ export function ScorecardSubmitShell({
             onChange={(note) => setNotes((current) => ({ ...current, [criterion.id]: note }))}
             rows={NOTE_ROWS}
             placeholder="Optional note"
+            isDisabled={!canScore}
           />
         </Stack>
       ))}
@@ -164,8 +175,9 @@ export function ScorecardSubmitShell({
         label={busy ? "Submitting…" : "Submit scorecard"}
         variant="secondary"
         size="sm"
-        isDisabled={!ready || busy}
+        isDisabled={!ready || busy || !canScore}
         onClick={() => {
+          if (!canScore) return;
           const payload: ScorecardScore[] = template.criteria.map((criterion) => ({
             criterionId: criterion.id,
             score: scores[criterion.id] ?? 0,
