@@ -76,6 +76,15 @@ func TestNormalizeJobStoresAssistedPolicy(t *testing.T) {
 	}
 }
 
+func TestWorkspaceStatusAllowsPendingReview(t *testing.T) {
+	if !validStatus(statusPendingReview) {
+		t.Fatal("pending_review is a workspace status")
+	}
+	if validStatus(statusRemoved) {
+		t.Fatal("removed is staff-only")
+	}
+}
+
 func TestReplaceTeamRenamesAndDedupes(t *testing.T) {
 	got := replaceTeam([]string{"Design", "Data"}, "Data", "Analytics")
 	if len(got) != 2 || got[0] != "Design" || got[1] != "Analytics" {

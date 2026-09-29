@@ -12,13 +12,14 @@ import (
 )
 
 type SearchRecord struct {
-	Job        SearchJob `json:"job"`
-	TempJobID  string    `json:"tempJobId"`
-	ApplyLink  string    `json:"applyLink"`
-	AnalyzedAt time.Time `json:"analyzedAt"`
-	Model      string    `json:"model"`
-	CreatedBy  string    `json:"createdBy,omitempty"`
-	Source     string    `json:"source,omitempty"`
+	Job           SearchJob `json:"job"`
+	TempJobID     string    `json:"tempJobId"`
+	ApplyLink     string    `json:"applyLink"`
+	AnalyzedAt    time.Time `json:"analyzedAt"`
+	Model         string    `json:"model"`
+	CreatedBy     string    `json:"createdBy,omitempty"`
+	Source        string    `json:"source,omitempty"`
+	ListingStatus string    `json:"listingStatus,omitempty"`
 }
 
 type SearchList struct {
@@ -30,16 +31,22 @@ type SearchList struct {
 }
 
 type storedSearchJob struct {
-	ID         bson.ObjectID `bson:"_id"`
-	TempJobID  string        `bson:"tempJobId"`
-	PostedAt   time.Time     `bson:"postedAt"`
-	ApplyLink  string        `bson:"applyLink"`
-	AnalyzedAt time.Time     `bson:"analyzedAt"`
-	Model      string        `bson:"model"`
-	CreatedBy  string        `bson:"createdBy,omitempty"`
-	Source     string        `bson:"source,omitempty"`
-	SourceRef  string        `bson:"sourceRef,omitempty"`
-	Job        SearchJob     `bson:"job"`
+	ID                    bson.ObjectID `bson:"_id"`
+	TempJobID             string        `bson:"tempJobId"`
+	PostedAt              time.Time     `bson:"postedAt"`
+	ApplyLink             string        `bson:"applyLink"`
+	AnalyzedAt            time.Time     `bson:"analyzedAt"`
+	Model                 string        `bson:"model"`
+	CreatedBy             string        `bson:"createdBy,omitempty"`
+	Source                string        `bson:"source,omitempty"`
+	SourceRef             string        `bson:"sourceRef,omitempty"`
+	ListingStatus         string        `bson:"listingStatus,omitempty"`
+	PreviousListingStatus string        `bson:"previousListingStatus,omitempty"`
+	TakedownCause         string        `bson:"takedownCause,omitempty"`
+	ReviewNote            string        `bson:"reviewNote,omitempty"`
+	ReviewedBy            string        `bson:"reviewedBy,omitempty"`
+	ReviewedAt            time.Time     `bson:"reviewedAt,omitempty"`
+	Job                   SearchJob     `bson:"job"`
 }
 
 type tempListing struct {
@@ -97,14 +104,15 @@ func CatalogJob(record SearchRecord) catalogJob {
 
 func (s *Store) ListCatalog(ctx context.Context, now time.Time) (SearchCatalog, error) {
 	coll := s.structured()
-	total, err := coll.CountDocuments(ctx, bson.D{})
+	filter := publicListingFilter()
+	total, err := coll.CountDocuments(ctx, filter)
 	if err != nil {
 		return SearchCatalog{}, err
 	}
 	opts := options.Find().
 		SetLimit(maxSearchCatalog).
 		SetSort(bson.D{{Key: "analyzedAt", Value: -1}, {Key: "_id", Value: -1}})
-	cursor, err := coll.Find(ctx, bson.D{}, opts)
+	cursor, err := coll.Find(ctx, filter, opts)
 	if err != nil {
 		return SearchCatalog{}, err
 	}
@@ -495,13 +503,14 @@ func (doc storedSearchJob) view(now time.Time) SearchRecord {
 	job.Requirements = cleanList(job.Requirements, maxBullets)
 	job.Benefits = cleanList(job.Benefits, maxBullets)
 	return SearchRecord{
-		Job:        job,
-		TempJobID:  doc.TempJobID,
-		ApplyLink:  doc.ApplyLink,
-		AnalyzedAt: doc.AnalyzedAt,
-		Model:      doc.Model,
-		CreatedBy:  doc.CreatedBy,
-		Source:     doc.Source,
+		Job:           job,
+		TempJobID:     doc.TempJobID,
+		ApplyLink:     doc.ApplyLink,
+		AnalyzedAt:    doc.AnalyzedAt,
+		Model:         doc.Model,
+		CreatedBy:     doc.CreatedBy,
+		Source:        doc.Source,
+		ListingStatus: doc.ListingStatus,
 	}
 }
 

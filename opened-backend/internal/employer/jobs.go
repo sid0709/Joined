@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	statusOpen   = "open"
-	statusPaused = "paused"
-	statusDraft  = "draft"
-	statusClosed = "closed"
+	statusOpen          = "open"
+	statusPaused        = "paused"
+	statusDraft         = "draft"
+	statusClosed        = "closed"
+	statusPendingReview = "pending_review"
+	statusRemoved       = "removed"
 
 	policyAccept = "accept"
 	policyCap    = "cap"
@@ -69,20 +71,14 @@ func (s *Store) CreateJob(ctx context.Context, company auth.Company, userID stri
 	doc.CompanyID = company.ID
 	doc.CreatedBy = userID
 	if doc.Status == statusOpen {
-		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-		doc.PostedAt = now.UTC()
 	}
 	if _, err := s.collection(jobsCollection).InsertOne(ctx, doc); err != nil {
 		return Job{}, err
 	}
-	verb := "saved a draft"
-	tone := "neutral"
-	if doc.Status == statusOpen {
-		verb = "published"
-		tone = "success"
-	}
+	verb, tone := activityForStatus(doc.Status)
 	if err := s.record(ctx, company.ID, doc.Title+" "+verb, doc.Location, tone, now); err != nil {
 		return Job{}, err
 	}
@@ -97,7 +93,7 @@ func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id 
 	if err != nil {
 		return Job{}, err
 	}
-	if existing.Status == statusClosed {
+	if existing.Status == statusClosed || existing.Status == statusRemoved {
 		return Job{}, ErrConflict
 	}
 	doc, err := normalizeJob(input, now)
@@ -112,16 +108,11 @@ func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id 
 	doc.PostedAt = existing.PostedAt
 	doc.UpdatedAt = now.UTC()
 	if doc.Status == statusOpen {
-		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-		if doc.PostedAt.IsZero() {
-			doc.PostedAt = now.UTC()
-		}
-	} else if existing.Status == statusOpen {
-		if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
-			return Job{}, err
-		}
+	} else if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
+		return Job{}, err
 	}
 	if _, err := s.collection(jobsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "companyId", Value: company.ID}}, doc); err != nil {
 		return Job{}, err
@@ -147,28 +138,27 @@ func (s *Store) SetJobStatus(ctx context.Context, company auth.Company, userID, 
 	if !validStatus(status) || status == doc.Status {
 		return Job{}, ErrInvalidInput
 	}
-	if doc.Status == statusClosed {
+	if doc.Status == statusClosed || doc.Status == statusRemoved {
 		return Job{}, ErrConflict
 	}
 	if status == statusOpen {
 		if err := readyToPublish(doc); err != nil {
 			return Job{}, err
 		}
-		if err := s.jobs.UpsertDirectJob(ctx, searchJob(doc, company.Name), userID, now); err != nil {
+		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
 		}
-		if doc.PostedAt.IsZero() {
-			doc.PostedAt = now.UTC()
+	} else {
+		if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
+			return Job{}, err
 		}
-	} else if err := s.jobs.RemoveDirectJob(ctx, doc.ID); err != nil {
-		return Job{}, err
+		doc.Status = status
 	}
-	doc.Status = status
 	doc.UpdatedAt = now.UTC()
 	if _, err := s.collection(jobsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "companyId", Value: company.ID}}, doc); err != nil {
 		return Job{}, err
 	}
-	if err := s.record(ctx, company.ID, doc.Title+" is "+status, "", toneForStatus(status), now); err != nil {
+	if err := s.record(ctx, company.ID, doc.Title+" is "+activityLabel(doc.Status), "", toneForStatus(doc.Status), now); err != nil {
 		return Job{}, err
 	}
 	pipelines, err := s.pipelines(ctx, company.ID)
@@ -276,6 +266,25 @@ func readyToPublish(doc storedJob) error {
 	return nil
 }
 
+func (s *Store) publishDirect(ctx context.Context, company auth.Company, userID string, doc *storedJob, now time.Time) error {
+	approved, err := s.jobs.CompanyApproved(ctx, company.ID)
+	if err != nil {
+		return err
+	}
+	if !approved {
+		doc.Status = statusPendingReview
+		return s.jobs.RemoveDirectJob(ctx, doc.ID)
+	}
+	if err := s.jobs.UpsertDirectJob(ctx, searchJob(*doc, company.Name), userID, now); err != nil {
+		return err
+	}
+	doc.Status = statusOpen
+	if doc.PostedAt.IsZero() {
+		doc.PostedAt = now.UTC()
+	}
+	return nil
+}
+
 func searchJob(doc storedJob, companyName string) jobs.SearchJob {
 	return jobs.SearchJob{
 		ID:               doc.ID,
@@ -335,18 +344,36 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 
 func validStatus(status string) bool {
 	switch status {
-	case statusOpen, statusPaused, statusDraft, statusClosed:
+	case statusOpen, statusPaused, statusDraft, statusClosed, statusPendingReview:
 		return true
 	default:
 		return false
 	}
 }
 
+func activityForStatus(status string) (string, string) {
+	switch status {
+	case statusOpen:
+		return "published", "success"
+	case statusPendingReview:
+		return "is awaiting review", "neutral"
+	default:
+		return "saved a draft", "neutral"
+	}
+}
+
+func activityLabel(status string) string {
+	if status == statusPendingReview {
+		return "awaiting review"
+	}
+	return status
+}
+
 func toneForStatus(status string) string {
 	switch status {
 	case statusOpen:
 		return "success"
-	case statusPaused, statusClosed:
+	case statusPaused, statusClosed, statusRemoved:
 		return "warning"
 	default:
 		return "neutral"

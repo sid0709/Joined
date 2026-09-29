@@ -15,16 +15,19 @@ import (
 )
 
 const (
-	jobsCollection     = "company_jobs"
-	jobTeamsCollection = "company_job_teams"
-	walletsCollection  = "company_wallets"
-	ledgerCollection   = "company_ledger"
-	activityCollection = "company_activity"
-	invitesCollection  = "company_invites"
-	settingsCollection = "company_settings"
-	profilesCollection = "hiring_profiles"
-	activityLimit      = 12
-	weekDays           = 7
+	jobsCollection = "company_jobs"
+
+	// HiringJobsCollection is the workspace copy of a company's jobs.
+	HiringJobsCollection = jobsCollection
+	jobTeamsCollection   = "company_job_teams"
+	walletsCollection    = "company_wallets"
+	ledgerCollection     = "company_ledger"
+	activityCollection   = "company_activity"
+	invitesCollection    = "company_invites"
+	settingsCollection   = "company_settings"
+	profilesCollection   = "hiring_profiles"
+	activityLimit        = 12
+	weekDays             = 7
 )
 
 // Store is the hiring workspace: jobs, prepaid balance, and the people on them.

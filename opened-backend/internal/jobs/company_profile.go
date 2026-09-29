@@ -171,6 +171,7 @@ func (doc storedCompany) publicCompany() PublicCompany {
 		Values:            nilValues(profile.Values),
 		BenefitCategories: nilBenefits(foldPerks(profile.BenefitCategories, profile.Perks)),
 		HasLogoFile:       doc.hasLogoFile(),
+		Verified:          doc.VerificationStatus == VerificationApproved,
 	}
 }
 

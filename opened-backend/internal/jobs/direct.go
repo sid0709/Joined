@@ -17,7 +17,8 @@ const (
 )
 
 // UpsertDirectJob publishes a company job into search so candidates can apply.
-// The public id is stable across pause and resume.
+// The public id is stable across pause and resume. Callers decide when a job
+// is allowed to be public; this write always leaves a visible search row.
 func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy string, now time.Time) error {
 	if job.ID == "" || job.CompanyID == "" || job.Title == "" {
 		return ErrInvalidInput
@@ -38,9 +39,10 @@ func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy st
 
 	var existing storedSearchJob
 	err := s.structured().FindOne(ctx, bson.D{{Key: "job.id", Value: job.ID}}).Decode(&existing)
+	found := err == nil
 	id := bson.NewObjectID()
 	posted := now.UTC()
-	if err == nil {
+	if found {
 		id = existing.ID
 		if !existing.PostedAt.IsZero() {
 			posted = existing.PostedAt
@@ -48,7 +50,7 @@ func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy st
 	} else if !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	}
-	return s.saveSearchJob(ctx, storedSearchJob{
+	doc := storedSearchJob{
 		ID:         id,
 		PostedAt:   posted,
 		AnalyzedAt: now.UTC(),
@@ -56,7 +58,8 @@ func (s *Store) UpsertDirectJob(ctx context.Context, job SearchJob, createdBy st
 		CreatedBy:  createdBy,
 		Source:     DirectSource,
 		Job:        job,
-	})
+	}
+	return s.saveSearchJob(ctx, doc)
 }
 
 // RenameDirectTeam updates the team name on this company's published jobs.
