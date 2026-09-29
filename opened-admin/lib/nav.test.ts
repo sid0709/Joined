@@ -14,6 +14,7 @@ test("the deepest matching link is active", () => {
   expect(activeHref("/trust/company-verification/case-1")).toBe(ROUTES.companyVerification);
   expect(activeHref("/trust/cases")).toBe(ROUTES.cases);
   expect(activeHref("/trust/cases/case-1")).toBe(ROUTES.cases);
+  expect(activeHref("/ops")).toBe(ROUTES.retentionOps);
   expect(activeHref("/elsewhere")).toBeUndefined();
 });
 

@@ -17,6 +17,7 @@ export const ROUTES = {
   companyCase: (id: string) => `/trust/company-verification/${id}`,
   cases: "/trust/cases",
   moderationCase: (id: string) => `/trust/cases/${id}`,
+  retentionOps: "/ops",
 } as const;
 
 export type NavLink = {
@@ -56,6 +57,10 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
       },
       { href: ROUTES.cases, label: "Cases", icon: "bell", badge: "cases" },
     ],
+  },
+  {
+    title: "Ops",
+    links: [{ href: ROUTES.retentionOps, label: "Retention", icon: "lock" }],
   },
   {
     title: "Directory",
