@@ -32,7 +32,7 @@
  *   body: HirePacketInput
  *   response: HirePacket  // light onboarding handoff stub, not full HRIS
  *
- * Out of scope here: DocuSign, SSO, RBAC (F), analytics (G), Scoutwell, admin.
+ * Out of scope here: DocuSign, SSO, analytics (G), Scoutwell, admin. RBAC: lib/rbac.ts.
  */
 
 import { formatISODate } from "@/lib/dates";

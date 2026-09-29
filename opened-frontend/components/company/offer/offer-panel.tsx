@@ -19,6 +19,7 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import type { Applicant, TeamMember } from "@/lib/company";
+import { canPermission, currentMemberRole, denialReason } from "@/lib/rbac";
 import { EsignShare } from "@/components/company/offer/esign-share";
 import { formatCents } from "@/lib/money";
 import { formatShortDate } from "@/lib/dates";
@@ -105,6 +106,13 @@ export function OfferPanel({
   const [approverIds, setApproverIds] = useState<string[]>(
     () => applicant.offer?.approval?.approverIds ?? [],
   );
+
+  const actorRole = currentMemberRole(teamMembers);
+  const canDraftOffer = canPermission(actorRole, "offers.draft");
+  const canSendOffer = canPermission(actorRole, "offers.send");
+  const canApproveOffer = canPermission(actorRole, "offers.approve");
+  const canHire = canPermission(actorRole, "offers.hire");
+  // TODO(einstein): enforce offers.* on offer/hire mutations server-side.
 
   useEffect(() => {
     setDraft(emptyOfferDraft(applicant.offer));
@@ -363,6 +371,14 @@ export function OfferPanel({
         <Banner status="error" title="Offer blocked" description={actionError} />
       ) : null}
 
+      {!canDraftOffer && !canSendOffer && !canHire && !canApproveOffer ? (
+        <Banner
+          status="warning"
+          title="View only"
+          description={denialReason(actorRole, "offers.draft")}
+        />
+      ) : null}
+
       <Selector
         label="Template"
         options={templateOptions}
@@ -472,7 +488,12 @@ export function OfferPanel({
           rows={NOTE_ROWS}
           placeholder="Relocation, visa, competing offer, negotiation notes…"
         />
-        <Button label="Save offer details" variant="secondary" onClick={saveComp} />
+        <Button
+          label="Save offer details"
+          variant="secondary"
+          onClick={saveComp}
+          isDisabled={!canDraftOffer}
+        />
         {draft.offer.comp?.baseSalaryCents !== undefined ? (
           <Text type="supporting" color="secondary">
             Base {formatCents(draft.offer.comp.baseSalaryCents, draft.offer.comp.currency || "USD")}
@@ -490,6 +511,7 @@ export function OfferPanel({
           <Button
             label="Mark sent"
             variant="secondary"
+            isDisabled={!canSendOffer}
             onClick={() => transition("sent", `Offer sent to ${applicant.name}`)}
           />
           <Button
@@ -502,7 +524,7 @@ export function OfferPanel({
             variant="ghost"
             onClick={() => transition("declined", `${applicant.name} declined the offer`)}
           />
-          <Button label="Mark hired" variant="primary" onClick={markHired} />
+          <Button label="Mark hired" variant="primary" onClick={markHired} isDisabled={!canHire} />
         </HStack>
       </Stack>
 
@@ -545,9 +567,24 @@ export function OfferPanel({
           </HStack>
         ) : null}
         <HStack gap={2} wrap="wrap">
-          <Button label="Request approval" variant="secondary" onClick={requestApproval} />
-          <Button label="Mark approved" variant="secondary" onClick={markApproved} />
-          <Button label="Reject approval" variant="ghost" onClick={markRejectedApproval} />
+          <Button
+            label="Request approval"
+            variant="secondary"
+            onClick={requestApproval}
+            isDisabled={!canDraftOffer}
+          />
+          <Button
+            label="Mark approved"
+            variant="secondary"
+            onClick={markApproved}
+            isDisabled={!canApproveOffer}
+          />
+          <Button
+            label="Reject approval"
+            variant="ghost"
+            onClick={markRejectedApproval}
+            isDisabled={!canApproveOffer}
+          />
         </HStack>
       </Stack>
 
@@ -565,7 +602,12 @@ export function OfferPanel({
           candidate={applicant.name}
         />
         <HStack gap={2} wrap="wrap">
-          <Button label="Create sign link" variant="secondary" onClick={startEsign} />
+          <Button
+            label="Create sign link"
+            variant="secondary"
+            onClick={startEsign}
+            isDisabled={!canSendOffer}
+          />
           <Button label="Mark signed" variant="ghost" onClick={markEsignSigned} />
           <Button
             label="Mark e-sign declined"
@@ -591,9 +633,24 @@ export function OfferPanel({
           Light checklist stub — not full HRIS onboarding.
         </Text>
         <HStack gap={2} wrap="wrap">
-          <Button label="Generate hire packet" variant="secondary" onClick={generateHirePacket} />
-          <Button label="Mark ready" variant="secondary" onClick={() => setPacketStatus("ready")} />
-          <Button label="Mark sent to HR" variant="ghost" onClick={() => setPacketStatus("sent")} />
+          <Button
+            label="Generate hire packet"
+            variant="secondary"
+            onClick={generateHirePacket}
+            isDisabled={!canHire && !canDraftOffer}
+          />
+          <Button
+            label="Mark ready"
+            variant="secondary"
+            onClick={() => setPacketStatus("ready")}
+            isDisabled={!canHire}
+          />
+          <Button
+            label="Mark sent to HR"
+            variant="ghost"
+            onClick={() => setPacketStatus("sent")}
+            isDisabled={!canHire}
+          />
         </HStack>
         {draft.offer.hirePacket && draft.offer.hirePacket.status !== "none" ? (
           <Stack gap={2}>

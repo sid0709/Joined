@@ -75,3 +75,22 @@ export {
   type OfferEsign,
   type HirePacket,
 } from "@/lib/offer-hire";
+
+export {
+  PERMISSION_META,
+  PERMISSION_DOMAINS,
+  inviteRoleOptions,
+  editableRoleOptions,
+  canInviteWithRole,
+  canSetMemberRole,
+  toLegacyApiRole,
+  hydrateAuditEvent,
+  hydrateJobAccess,
+  type Permission,
+  type PermissionDomain,
+  type JobAccessAssignment,
+  type JobAccessDocument,
+  type AuditEvent,
+  type AuditAction,
+  type AuditListResponse,
+} from "@/lib/rbac";

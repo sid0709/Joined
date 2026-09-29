@@ -19,7 +19,8 @@ import {
 } from "@openseat/design-system";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { SectionCard } from "@/components/section-card";
-import { fetchBilling, purchaseBalance } from "@/lib/company/api";
+import { fetchBilling, fetchTeam, purchaseBalance } from "@/lib/company/api";
+import { canPermission, currentMemberRole, denialReason, type TeamRole } from "@/lib/rbac";
 import { BILLING_STATUS_META, type BillableEvent, type BillingAccount } from "@/lib/company";
 import { formatShortDate } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
@@ -83,12 +84,15 @@ export function BillingWorkspace() {
   const [billing, setBilling] = useState<BillingAccount | null>(null);
   const [dollars, setDollars] = useState(100);
   const [pending, setPending] = useState(false);
+  const [actorRole, setActorRole] = useState<TeamRole | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetchBilling()
-      .then((next) => {
-        if (active) setBilling(next);
+    Promise.all([fetchBilling(), fetchTeam()])
+      .then(([next, team]) => {
+        if (!active) return;
+        setBilling(next);
+        setActorRole(currentMemberRole(team.members));
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
     return () => {
@@ -98,7 +102,26 @@ export function BillingWorkspace() {
 
   if (!billing) return null;
 
+  const canViewBilling = canPermission(actorRole, "billing.view");
+  const canPurchase = canPermission(actorRole, "billing.purchase");
+  // TODO(einstein): enforce billing.* on /billing and /billing/purchase.
+
+  if (!canViewBilling) {
+    return (
+      <Stack gap={4}>
+        <Text type="supporting" color="secondary">
+          {denialReason(actorRole, "billing.view")}
+        </Text>
+      </Stack>
+    );
+  }
+
   const add = () => {
+    if (!canPurchase) {
+      toast({ body: denialReason(actorRole, "billing.purchase"), type: "error" });
+      return;
+    }
+
     setPending(true);
     purchaseBalance(dollars)
       .then((next) => {
@@ -191,14 +214,18 @@ export function BillingWorkspace() {
           <Stack gap={6}>
             <SettingsGroup
               title="Add balance"
-              description="Type an amount. It is added immediately. Nothing is sent to a card processor."
+              description={
+                canPurchase
+                  ? "Type an amount. It is added immediately. Nothing is sent to a card processor."
+                  : denialReason(actorRole, "billing.purchase")
+              }
               footer={
                 <HStack hAlign="end">
                   <Button
                     label="Add balance"
                     variant="primary"
                     size="sm"
-                    isDisabled={pending || dollars < 1}
+                    isDisabled={pending || dollars < 1 || !canPurchase}
                     onClick={add}
                   />
                 </HStack>

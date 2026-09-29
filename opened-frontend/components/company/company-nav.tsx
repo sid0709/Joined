@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Badge,
@@ -21,6 +22,8 @@ import {
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
 import { canManageCompany, companyRoleLabel } from "@/lib/company/access";
+import { fetchTeam } from "@/lib/company/api";
+import { ROLE_META, canPermission, currentMemberRole, type TeamRole } from "@/lib/rbac";
 import {
   COMPANY_ABOUT_PAGE,
   COMPANY_APPLICANTS_PAGE,
@@ -42,16 +45,14 @@ type NavLink = PageLink & { icon: GlyphName; count?: number };
 function groups(
   openJobs: number,
   newApplicants: number,
-  manageCompany: boolean,
+  showTeam: boolean,
+  showBilling: boolean,
+  showSettings: boolean,
 ): { title: string; links: NavLink[] }[] {
   const company: NavLink[] = [{ ...COMPANY_ABOUT_PAGE, icon: "seat" }];
-  if (manageCompany) {
-    company.push(
-      { ...COMPANY_TEAM_PAGE, icon: "users" },
-      { ...COMPANY_BILLING_PAGE, icon: "file" },
-      { ...COMPANY_SETTINGS_PAGE, icon: "settings" },
-    );
-  }
+  if (showTeam) company.push({ ...COMPANY_TEAM_PAGE, icon: "users" });
+  if (showBilling) company.push({ ...COMPANY_BILLING_PAGE, icon: "file" });
+  if (showSettings) company.push({ ...COMPANY_SETTINGS_PAGE, icon: "settings" });
   return [
     {
       title: "Hiring",
@@ -96,14 +97,42 @@ export function CompanyNav({
 }) {
   const pathname = usePathname();
   const manageCompany = canManageCompany(company);
-  const links = groups(openJobs, newApplicants, manageCompany).flatMap((group) => group.links);
+  const [hiringRole, setHiringRole] = useState<TeamRole | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchTeam()
+      .then((team) => {
+        if (active) setHiringRole(currentMemberRole(team.members));
+      })
+      .catch(() => {
+        /* soft — nav still works for creator */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const showTeam =
+    manageCompany ||
+    canPermission(hiringRole, "team.invite") ||
+    canPermission(hiringRole, "team.manage_roles") ||
+    canPermission(hiringRole, "audit.view");
+  const showBilling = manageCompany || canPermission(hiringRole, "billing.view");
+  const showSettings = manageCompany || canPermission(hiringRole, "team.manage_roles");
+
+  const links = groups(openJobs, newApplicants, showTeam, showBilling, showSettings).flatMap(
+    (group) => group.links,
+  );
   const active = activeHref(pathname, links);
-  const sections = groups(openJobs, newApplicants, manageCompany).map((group) => ({
-    ...group,
-    links: group.links.map((link) =>
-      link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
-    ),
-  }));
+  const sections = groups(openJobs, newApplicants, showTeam, showBilling, showSettings).map(
+    (group) => ({
+      ...group,
+      links: group.links.map((link) =>
+        link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
+      ),
+    }),
+  );
 
   return (
     <>
@@ -121,7 +150,7 @@ export function CompanyNav({
                 <Stack gap={0.5}>
                   <Text weight="semibold">{company.name}</Text>
                   <Text type="supporting" color="secondary">
-                    {companyRoleLabel(company)}
+                    {hiringRole ? ROLE_META[hiringRole].label : companyRoleLabel(company)}
                   </Text>
                 </Stack>
               </HStack>

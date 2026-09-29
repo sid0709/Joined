@@ -31,6 +31,14 @@ import {
   type OfferPatch,
 } from "@/lib/offer-hire";
 import type { TeamMember, TeamRole } from "./team";
+import {
+  hydrateAuditEvent,
+  hydrateJobAccess,
+  normalizeTeamRole,
+  type AuditEvent,
+  type AuditListResponse,
+  type JobAccessAssignment,
+} from "@/lib/rbac";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
 
@@ -92,6 +100,17 @@ export type CompanySettings = {
 };
 
 type TeamResponse = { members: TeamMember[]; emailDomain: string };
+
+function hydrateTeamMember(member: TeamMember): TeamMember {
+  return { ...member, role: normalizeTeamRole(member.role) };
+}
+
+function hydrateTeam(body: TeamResponse): TeamResponse {
+  return {
+    emailDomain: body.emailDomain ?? "",
+    members: (body.members ?? []).map(hydrateTeamMember),
+  };
+}
 
 function hydrateJob(job: ApiJob): CompanyJob {
   return {
@@ -367,14 +386,17 @@ export function purchaseBalance(dollars: number) {
 }
 
 export function fetchTeam() {
-  return companyGet<TeamResponse>("/team");
+  return companyGet<TeamResponse>("/team").then(hydrateTeam);
 }
 
 export function inviteTeammate(email: string, role: TeamRole) {
-  return companySend<TeamResponse>("/team", "POST", { email, role });
+  // Einstein should accept hiring_manager / interviewer / finance directly.
+  // TODO(einstein): enforce team.invite server-side; reject unknown roles with 400.
+  return companySend<TeamResponse>("/team", "POST", { email, role }).then(hydrateTeam);
 }
 
 export function setTeammateRole(id: string, role: TeamRole) {
+  // TODO(einstein): enforce team.manage_roles; append audit role.changed.
   return companySend<{ ok: boolean }>(`/team/${id}`, "PATCH", { role });
 }
 
@@ -418,4 +440,35 @@ export function fetchHiringProfile() {
 
 export function saveHiringProfile(input: HiringProfile & { name: string }) {
   return companySend<HiringProfile & { name: string }>("/profile", "PUT", input);
+}
+
+/** Company audit trail — Einstein GET scaffold. Soft-fails empty. */
+export function fetchTeamAudit(params?: { cursor?: string; limit?: number }) {
+  const query = new URLSearchParams();
+  if (params?.cursor) query.set("cursor", params.cursor);
+  if (params?.limit) query.set("limit", String(params.limit));
+  const suffix = query.size ? `?${query}` : "";
+  return companyGet<AuditListResponse>(`/team/audit${suffix}`)
+    .then((body) => ({
+      events: (body.events ?? []).map((event) => hydrateAuditEvent(event)),
+      nextCursor: body.nextCursor,
+    }))
+    .catch(() => ({ events: [] as AuditEvent[], nextCursor: undefined }));
+}
+
+/** Per-job access overrides — Einstein GET scaffold. Soft-fails empty. */
+export function fetchJobAccess(jobId: string) {
+  return companyGet<{ assignments?: JobAccessAssignment[] }>(`/jobs/${jobId}/access`)
+    .then((body) => hydrateJobAccess(jobId, body))
+    .catch(() => hydrateJobAccess(jobId, { assignments: [] }));
+}
+
+/** Persist per-job access — Einstein PUT scaffold. Soft-fails local echo. */
+export function saveJobAccess(jobId: string, assignments: JobAccessAssignment[]) {
+  // TODO(einstein): enforce jobs.edit / team.manage_roles; append job_access.updated.
+  return companySend<{ assignments?: JobAccessAssignment[] }>(`/jobs/${jobId}/access`, "PUT", {
+    assignments,
+  })
+    .then((body) => hydrateJobAccess(jobId, body))
+    .catch(() => hydrateJobAccess(jobId, { assignments }));
 }
