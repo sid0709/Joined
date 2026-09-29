@@ -22,9 +22,12 @@ import {
   fetchHiringProfile,
   fetchInterviews,
   fetchJobs,
+  lockInterviewSlot,
+  reofferInterviewSlots,
   setAttendance,
   submitApplicantScorecard,
 } from "@/lib/company/api";
+import type { ProposedSlot } from "@/lib/schedule-join";
 import {
   toCompanyCalendarEvent,
   type BillingAccount,
@@ -126,6 +129,30 @@ export function CompanyInterviewsWorkspace() {
       })
       .then((nextBilling) => {
         if (nextBilling) setBilling(nextBilling);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
+
+  const lockSlot = (slot: ProposedSlot) => {
+    if (!openInterview) return;
+    lockInterviewSlot(openInterview.id, slot)
+      .then((saved) => {
+        setItems((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+        setOpenId(saved.id);
+        toast({ body: `Locked ${slot.date} ${slot.start}–${slot.end} for ${saved.candidate}.` });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
+
+  const reofferSlots = (slots: ProposedSlot[]) => {
+    if (!openInterview) return;
+    reofferInterviewSlots(openInterview.id, slots)
+      .then((saved) => {
+        setItems((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+        setOpenId(saved.id);
+        toast({
+          body: `Re-offered ${slots.length} time${slots.length === 1 ? "" : "s"} to ${saved.candidate}.`,
+        });
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
@@ -242,6 +269,7 @@ export function CompanyInterviewsWorkspace() {
         priceCents={price}
         currency={currency}
         meetingLink={hiringProfile?.meetingLink}
+        hiringProfile={hiringProfile}
         scorecardTemplate={scorecardTemplate}
         scorecards={scorecards}
         onScorecard={async (input: ScorecardSubmissionInput) => {
@@ -262,6 +290,8 @@ export function CompanyInterviewsWorkspace() {
           }
         }}
         onChange={replace}
+        onLockSlot={lockSlot}
+        onReofferSlots={reofferSlots}
       />
     </Stack>
   );

@@ -174,8 +174,8 @@ export function SchedulePanel({
       {draft.mode === "propose" ? (
         <Stack gap={3}>
           <Text type="supporting" color="secondary">
-            Offer up to {MAX_PROPOSED_SLOTS} times. Einstein should create an awaiting interview
-            with these proposedSlots (see lib/schedule-join.ts).
+            Offer up to {MAX_PROPOSED_SLOTS} times. The round stays awaiting until the candidate (or
+            you) locks one of these slots.
           </Text>
           {suggested.length === 0 ? (
             <Banner
@@ -216,8 +216,8 @@ export function SchedulePanel({
         <Stack gap={3}>
           <SelfScheduleShare />
           <Text type="supporting" color="secondary">
-            Scheduling with self-schedule will ask Einstein for an awaiting interview and a minted
-            link. Until then, pick a concrete time or propose slots.
+            Creates an awaiting round and mints a self-schedule link you can copy and share after
+            scheduling. The candidate picks a time; you can also lock a slot later from Interviews.
           </Text>
           <TextInput label="Round" value={draft.round} onChange={(round) => set("round", round)} />
         </Stack>
@@ -238,7 +238,7 @@ export function emptyScheduleDraft(): ScheduleDraft {
   };
 }
 
-/** Whether the primary Schedule CTA can fire against today’s company interview API. */
+/** Whether the primary Schedule CTA can fire against the company interview API. */
 export function scheduleDraftReady(draft: ScheduleDraft): boolean {
   if (draft.mode === "fixed") {
     return /^\d{4}-\d{2}-\d{2}$/.test(draft.date) && /^\d{2}:\d{2}$/.test(draft.start);
@@ -246,6 +246,6 @@ export function scheduleDraftReady(draft: ScheduleDraft): boolean {
   if (draft.mode === "propose") {
     return draft.proposedSlots.length > 0;
   }
-  // Self-schedule needs Einstein mint; keep CTA disabled until a fixed/propose path exists.
-  return false;
+  // Self-schedule posts an awaiting round; BE mints selfScheduleUrl for share/copy.
+  return draft.round.trim().length > 0;
 }

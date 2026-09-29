@@ -252,7 +252,7 @@ export function ApplicantsWorkspace() {
       proposedSlots: slot.mode === "propose" ? slot.proposedSlots : undefined,
       selfSchedule: slot.mode === "self_schedule",
     })
-      .then(() => {
+      .then((created) => {
         setPeople((current) =>
           current.map((item) =>
             item.id === person.id
@@ -262,8 +262,12 @@ export function ApplicantsWorkspace() {
         );
         const body =
           slot.mode === "propose"
-            ? `Offered times to ${person.name}. Einstein should mark the round awaiting until they pick.`
-            : `Scheduled ${person.name}. The interview price was taken from your balance.`;
+            ? `Offered times to ${person.name}. Round is awaiting until a slot is locked.`
+            : slot.mode === "self_schedule"
+              ? created.selfScheduleUrl
+                ? `Self-schedule link ready for ${person.name}. Copy it from Interviews.`
+                : `Self-schedule sent to ${person.name}. Round is awaiting a pick.`
+              : `Scheduled ${person.name}. The interview price was taken from your balance.`;
         toast({ body });
         setOpenId(null);
       })

@@ -1,7 +1,5 @@
 /**
- * Layer D — Schedule & Join (scaffold) shapes.
- *
- * Einstein contract (persist + return these fields; UI scaffolds against them):
+ * Layer D — Schedule & Join shapes (wired to Einstein company interviews API).
  *
  * POST /v1/company/interviews
  *   Existing: applicationId, round, date, start, end, format, interviewers[]
@@ -10,28 +8,24 @@
  *   body.mode?: "fixed" | "propose" | "self_schedule"
  *   body.proposedSlots?: ProposedSlot[]  // when mode=propose; status → awaiting
  *   body.selfSchedule?: boolean      // when true, create awaiting + selfScheduleUrl
- *   When mode is propose/self_schedule and no fixed slot is locked yet,
- *   response.status should be "awaiting". Fixed schedule remains "scheduled".
+ *   Propose / self_schedule → status "awaiting". Fixed → "scheduled".
+ *   selfScheduleUrl = {FRONTEND_ORIGIN}/schedule/{interviewId}
  *
  * GET /v1/company/interviews (and overview)
- *   CompanyInterview.where?: string          // join URL or onsite/phone detail
- *   CompanyInterview.meetingUrl?: string     // if distinct from where
- *   CompanyInterview.selfScheduleUrl?: string
- *   CompanyInterview.proposedSlots?: ProposedSlot[]
+ *   where, meetingUrl, mode, selfScheduleUrl, proposedSlots
  *
  * PATCH /v1/company/interviews/:id
- *   Existing attendance: { status: "attended" | "no-show" }
- *   Also accept (scaffold):
- *     body.where / body.meetingUrl
- *     body.proposedSlots (employer re-offers times while awaiting)
- *     body.date/start/end when locking a slot from awaiting → scheduled
+ *   { status: "attended" | "no-show" }
+ *   where / meetingUrl
+ *   proposedSlots (employer re-offers while awaiting)
+ *   date+start+end locks awaiting → scheduled
  *
  * GET /v1/company/profile
- *   HiringProfile already returns meetingLink, interviewDays, dayStart,
- *   dayEnd, interviewLength, buffer, timeZone — used client-side to
- *   propose slots until Einstein owns calendar free/busy.
+ *   HiringProfile meetingLink / interviewDays / dayStart / dayEnd /
+ *   interviewLength / buffer / timeZone — client proposes slots (no free/busy yet).
  *
- * Out of scope here: SSO, Scoutwell. RBAC: lib/rbac.ts. Analytics: lib/analytics.ts. Offers: offer-hire.ts.
+ * Public /schedule/:id candidate accept is still a FE stub (no candidate accept API).
+ * Out of scope: free/busy, SSO, Scoutwell, offers (offer-hire.ts).
  */
 
 import type { HiringProfile } from "@/lib/company/me";
@@ -53,7 +47,7 @@ export type SchedulePayload = {
   end: string;
   format: "video" | "onsite" | "phone";
   interviewers?: string[];
-  /** Join URL or location; Einstein should persist on interview.where. */
+  /** Join URL or location; persisted on interview.where. */
   where?: string;
   meetingUrl?: string;
   mode?: ScheduleMode;
@@ -177,7 +171,7 @@ export function hydrateOptionalUrl(raw: string | undefined | null): string | und
   return trimmed.length > 0 ? trimmed.slice(0, 500) : undefined;
 }
 
-/** Scaffold self-schedule URL when Einstein has not minted one yet. */
+/** Scaffold self-schedule URL when the API has not minted one yet. */
 export function scaffoldSelfScheduleUrl(interviewId: string, origin?: string): string {
   const base =
     origin || (typeof window !== "undefined" ? window.location.origin : "https://openseat.app");

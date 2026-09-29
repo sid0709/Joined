@@ -1,5 +1,5 @@
 import { companyGet, companySend, companySendForm } from "@/lib/me/client";
-import { parseISODate } from "@/lib/dates";
+import { parseISODate, startOfDay } from "@/lib/dates";
 import { DEFAULT_CURRENCY } from "@openseat/job-schema";
 import type { ActivityItem } from "./activity";
 import type { Applicant, ApplicantColumnId, AssistedBy } from "./applicants";
@@ -23,6 +23,8 @@ import { CompanyRequestError, isConflictError } from "@/lib/me/client";
 import {
   hydrateOptionalUrl,
   hydrateProposedSlots,
+  type ProposedSlot,
+  type ScheduleMode,
   type SchedulePayload,
 } from "@/lib/schedule-join";
 import {
@@ -172,14 +174,26 @@ function hydrateApplicant(person: ApiApplicant): Applicant {
   };
 }
 
+function hydrateInterviewDate(raw: string | undefined): Date {
+  if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return parseISODate(raw);
+  // Awaiting rounds have no locked day yet — keep them off the day calendar.
+  return startOfDay(new Date(0));
+}
+
+function hydrateScheduleMode(raw: string | undefined | null): ScheduleMode | undefined {
+  if (raw === "fixed" || raw === "propose" || raw === "self_schedule") return raw;
+  return undefined;
+}
+
 function hydrateInterview(item: ApiInterview): CompanyInterview {
   return {
     ...item,
-    date: parseISODate(item.date),
+    date: hydrateInterviewDate(item.date),
     interviewers: item.interviewers ?? [],
     jobTitle: item.jobTitle || "—",
     where: hydrateOptionalUrl(item.where),
     meetingUrl: hydrateOptionalUrl(item.meetingUrl),
+    mode: hydrateScheduleMode(item.mode),
     selfScheduleUrl: hydrateOptionalUrl(item.selfScheduleUrl),
     proposedSlots: hydrateProposedSlots(item.proposedSlots),
   };
@@ -542,7 +556,6 @@ export function scheduleInterview(input: SchedulePayload) {
     end: input.end,
     format: input.format,
     interviewers: input.interviewers,
-    // TODO(einstein): persist where / meetingUrl / mode / proposedSlots / selfSchedule
     where: input.where ?? input.meetingUrl,
     meetingUrl: input.meetingUrl ?? input.where,
     mode: input.mode,
@@ -551,8 +564,35 @@ export function scheduleInterview(input: SchedulePayload) {
   }).then(hydrateInterview);
 }
 
+/** PATCH /v1/company/interviews/:id — attendance, join fields, re-offer, or lock slot. */
+export type InterviewPatch = {
+  status?: "attended" | "no-show";
+  where?: string;
+  meetingUrl?: string;
+  proposedSlots?: ProposedSlot[];
+  date?: string;
+  start?: string;
+  end?: string;
+};
+
+export function patchInterview(id: string, patch: InterviewPatch) {
+  return companySend<ApiInterview>(`/interviews/${encodeURIComponent(id)}`, "PATCH", patch).then(
+    hydrateInterview,
+  );
+}
+
 export function setAttendance(id: string, status: "attended" | "no-show") {
-  return companySend<ApiInterview>(`/interviews/${id}`, "PATCH", { status }).then(hydrateInterview);
+  return patchInterview(id, { status });
+}
+
+/** Lock awaiting → scheduled with a concrete date/start/end. */
+export function lockInterviewSlot(id: string, slot: ProposedSlot) {
+  return patchInterview(id, { date: slot.date, start: slot.start, end: slot.end });
+}
+
+/** Re-offer proposedSlots while the round is still awaiting. */
+export function reofferInterviewSlots(id: string, proposedSlots: ProposedSlot[]) {
+  return patchInterview(id, { proposedSlots });
 }
 
 export function fetchBilling() {

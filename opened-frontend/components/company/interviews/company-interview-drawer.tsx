@@ -19,7 +19,12 @@ import {
 } from "@openseat/design-system";
 import { SelfScheduleShare } from "@/components/company/interviews/self-schedule-share";
 import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
-import { FACE_CHECK_META, INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";
+import {
+  FACE_CHECK_META,
+  INTERVIEW_STATUS_META,
+  type CompanyInterview,
+  type HiringProfile,
+} from "@/lib/company";
 import type {
   ScorecardSubmission,
   ScorecardSubmissionInput,
@@ -27,7 +32,14 @@ import type {
 } from "@/lib/pipeline-eval";
 import { formatDay, formatTime } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
-import { openJoinUrl, resolveJoinUrl, slotLabel, type ProposedSlot } from "@/lib/schedule-join";
+import {
+  MAX_PROPOSED_SLOTS,
+  openJoinUrl,
+  proposeSlotsFromAvailability,
+  resolveJoinUrl,
+  slotLabel,
+  type ProposedSlot,
+} from "@/lib/schedule-join";
 
 const AVATAR_SIZE = 48;
 const PANEL_SIZE = 32;
@@ -44,21 +56,27 @@ export function CompanyInterviewDrawer({
   priceCents,
   currency,
   meetingLink,
+  hiringProfile,
   scorecardTemplate,
   scorecards,
   onScorecard,
   onClose,
   onChange,
+  onLockSlot,
+  onReofferSlots,
 }: {
   interview: CompanyInterview | null;
   priceCents: number;
   currency: string;
   meetingLink?: string | null;
+  hiringProfile?: HiringProfile | null;
   scorecardTemplate?: ScorecardTemplate | null;
   scorecards?: ScorecardSubmission[];
   onScorecard?: (input: ScorecardSubmissionInput) => void | Promise<void>;
   onClose: () => void;
   onChange: (next: CompanyInterview, message: string) => void;
+  onLockSlot?: (slot: ProposedSlot) => void;
+  onReofferSlots?: (slots: ProposedSlot[]) => void;
 }) {
   const toast = useToast();
   const [feedbackPrompt, setFeedbackPrompt] = useState(false);
@@ -92,7 +110,7 @@ export function CompanyInterviewDrawer({
   const join = () => {
     if (!joinUrl) {
       toast({
-        body: "No meeting link yet. Add one on your hiring profile or wait for Einstein to return meetingUrl.",
+        body: "No meeting link yet. Add one on your hiring profile or set meetingUrl on this round.",
         type: "error",
       });
       return;
@@ -228,17 +246,51 @@ export function CompanyInterviewDrawer({
             {(interview.proposedSlots ?? []).length > 0 ? (
               <Stack gap={2}>
                 {(interview.proposedSlots as ProposedSlot[]).map((slot) => (
-                  <Text key={slotLabel(slot)} weight="medium">
-                    {slotLabel(slot)}
-                  </Text>
+                  <HStack
+                    key={slotLabel(slot)}
+                    gap={2}
+                    vAlign="center"
+                    hAlign="between"
+                    wrap="wrap"
+                  >
+                    <Text weight="medium">{slotLabel(slot)}</Text>
+                    {onLockSlot ? (
+                      <Button
+                        label="Lock this time"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onLockSlot(slot)}
+                      />
+                    ) : null}
+                  </HStack>
                 ))}
               </Stack>
             ) : (
               <Text type="supporting" color="secondary">
-                No proposedSlots on this interview yet. Einstein should return them when mode is
-                propose.
+                No proposed times yet. Re-offer from your availability, or share the self-schedule
+                link.
               </Text>
             )}
+            {onReofferSlots && hiringProfile ? (
+              <Button
+                label="Re-offer from availability"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const slots = proposeSlotsFromAvailability(hiringProfile, {
+                    count: MAX_PROPOSED_SLOTS,
+                  });
+                  if (slots.length === 0) {
+                    toast({
+                      body: "No availability slots on your hiring profile yet.",
+                      type: "error",
+                    });
+                    return;
+                  }
+                  onReofferSlots(slots);
+                }}
+              />
+            ) : null}
             <SelfScheduleShare
               interviewId={interview.id}
               url={interview.selfScheduleUrl}

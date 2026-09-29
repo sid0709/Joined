@@ -25,7 +25,9 @@ export function SelfScheduleShare({
     try {
       await navigator.clipboard.writeText(display);
       toast({
-        body: live ? "Self-schedule link copied." : "Scaffold link copied — Einstein mint pending.",
+        body: live
+          ? "Self-schedule link copied."
+          : "Scaffold link copied — mint appears after self-schedule create.",
       });
     } catch {
       toast({ body: "Could not copy link.", type: "error" });
@@ -38,7 +40,11 @@ export function SelfScheduleShare({
         <Banner
           status="info"
           title="Self-schedule link not minted yet"
-          description="UI is ready. Einstein should return selfScheduleUrl on awaiting interviews (see lib/schedule-join.ts)."
+          description={
+            interviewId
+              ? "This awaiting round has no selfScheduleUrl yet. Re-open after scheduling with self-schedule mode, or copy the scaffold path below."
+              : "After you send self-schedule, the API returns a minted link to copy and share."
+          }
         />
       ) : null}
       <Text type="supporting" color="secondary">

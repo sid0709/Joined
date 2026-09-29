@@ -27,6 +27,7 @@ export const ROUTES = {
   companyProfile: "/company/profile",
   companyAccount: "/company/account",
   companyMessages: "/company/messages",
+  schedule: (id: string) => `/schedule/${encodeURIComponent(id)}`,
 } as const;
 
 /** Sign in, then come back to `path`. */
