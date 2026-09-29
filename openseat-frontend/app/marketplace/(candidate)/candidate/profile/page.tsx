@@ -1,5 +1,5 @@
-import { CandidateProfileForm } from "@/src/candidate/components/CandidateProfileForm";
+import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
 
 export default function CandidateProfilePage() {
-  return <CandidateProfileForm />;
+  return <BidderWorkflowView view="profile" />;
 }

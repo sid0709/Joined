@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
 
 export default function CandidateDashboardPage() {
-  redirect("/marketplace/candidate/bids");
+  return <BidderWorkflowView view="dashboard" />;
 }

@@ -1,5 +1,5 @@
-import { MarketplaceJobsView } from "@/src/shared/components/MarketplaceJobsView";
+import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
 
 export default function MarketplaceJobsPage() {
-  return <MarketplaceJobsView />;
+  return <BidderWorkflowView view="marketplace" />;
 }

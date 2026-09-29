@@ -11,13 +11,14 @@ type MarketplaceRole = "Candidate" | "Client";
 
 const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string }[]> = {
   Candidate: [
-    { label: "Onboarding", href: "/marketplace/candidate/onboarding" },
-    { label: "My Bids", href: "/marketplace/candidate/bids" },
+    { label: "Dashboard", href: "/marketplace/candidate/dashboard" },
+    { label: "Task Marketplace", href: "/marketplace/jobs" },
+    { label: "My Interests", href: "/marketplace/candidate/bids" },
     { label: "Invitations", href: "/marketplace/candidate/invitations" },
-    { label: "Performance", href: "/marketplace/candidate/performance" },
     { label: "Active Work", href: "/marketplace/candidate/work" },
     { label: "Messages", href: "/marketplace/messages" },
     { label: "Earnings", href: "/marketplace/candidate/earnings" },
+    { label: "Performance", href: "/marketplace/candidate/performance" },
     { label: "Profile", href: "/marketplace/candidate/profile" },
   ],
   Client: [

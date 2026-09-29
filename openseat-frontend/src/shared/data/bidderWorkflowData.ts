@@ -1,0 +1,242 @@
+import type {
+  BidderAssignment,
+  BidderConversation,
+  BidderTask,
+} from "@/src/shared/types/bidder-workflow";
+
+export const BIDDER_TASKS: BidderTask[] = [
+  {
+    id: "task-aurora-ops",
+    ownerName: "Aurora Talent Partners",
+    ownerInitials: "AT",
+    title: "Product and operations application coverage",
+    kind: "Permanent contact",
+    status: "Connected",
+    description:
+      "Long-term collaboration for a reliable bidder who can manage daily application volume across product, operations, and program roles.",
+    postedAt: "Posted 2 days ago",
+    availability: "20 links per day",
+    payRange: "$0.80–$1.35 per link",
+    dailyTarget: "10–20 links/day",
+    packages: [
+      {
+        id: "greenhouse",
+        name: "Greenhouse starter batch",
+        ats: "Greenhouse",
+        linkCount: 24,
+        ratePerLink: "$0.80",
+        difficulty: "Easy",
+      },
+      {
+        id: "workday",
+        name: "Workday standard batch",
+        ats: "Workday",
+        linkCount: 18,
+        ratePerLink: "$1.35",
+        difficulty: "Standard",
+      },
+    ],
+    requirements: [
+      "Use the assigned resume version",
+      "Record confirmation evidence",
+      "Ask before answering eligibility questions",
+    ],
+    qualityExpectation: "95%+ QA pass rate and same-day progress updates",
+  },
+  {
+    id: "task-northstar-tech",
+    ownerName: "Northstar Recruiting Co.",
+    ownerInitials: "NR",
+    title: "Senior technical application batch",
+    kind: "One-time package",
+    status: "Interest sent",
+    description:
+      "A focused batch of senior engineering roles with careful technical profile matching and complete submission evidence.",
+    postedAt: "Posted yesterday",
+    availability: "12 links total",
+    payRange: "$1.50–$1.85 per link",
+    dailyTarget: "4–6 links/day",
+    packages: [
+      {
+        id: "icims",
+        name: "iCIMS specialist batch",
+        ats: "iCIMS",
+        linkCount: 12,
+        ratePerLink: "$1.85",
+        difficulty: "Advanced",
+      },
+    ],
+    requirements: [
+      "Backend or platform experience",
+      "Available for a 3-day batch",
+      "Communicate blockers in chat",
+    ],
+    qualityExpectation: "No duplicate submissions and 100% evidence coverage",
+  },
+  {
+    id: "task-cobalt-customer",
+    ownerName: "Cobalt Career Studio",
+    ownerInitials: "CC",
+    title: "Customer success and account management",
+    kind: "One-time package",
+    status: "Open",
+    description:
+      "Help a growing job-hunting operation submit customer success applications from a curated package of company links.",
+    postedAt: "Posted 5 hours ago",
+    availability: "16 links total",
+    payRange: "$0.90–$1.20 per link",
+    dailyTarget: "6 links/day",
+    packages: [
+      {
+        id: "ashby",
+        name: "Ashby customer success",
+        ats: "Ashby",
+        linkCount: 16,
+        ratePerLink: "$1.20",
+        difficulty: "Standard",
+      },
+    ],
+    requirements: [
+      "Customer-facing experience",
+      "Strong written communication",
+      "Work independently",
+    ],
+    qualityExpectation: "Accurate answers and a clear daily summary",
+  },
+  {
+    id: "task-vertex-finance",
+    ownerName: "Vertex Search Group",
+    ownerInitials: "VS",
+    title: "Finance and strategy overflow",
+    kind: "Permanent contact",
+    status: "Open",
+    description:
+      "Build a dependable relationship with a job hunter supporting finance, strategy, and business operations searches.",
+    postedAt: "Posted 1 day ago",
+    availability: "10 links per day",
+    payRange: "$1.10–$1.60 per link",
+    dailyTarget: "5–10 links/day",
+    packages: [
+      {
+        id: "workday-finance",
+        name: "Workday finance roles",
+        ats: "Workday",
+        linkCount: 20,
+        ratePerLink: "$1.60",
+        difficulty: "Standard",
+      },
+    ],
+    requirements: [
+      "Finance or strategy profile familiarity",
+      "Consistent weekday availability",
+      "Follow package-specific instructions",
+    ],
+    qualityExpectation: "97%+ relevant-match rate",
+  },
+];
+
+export const BIDDER_ASSIGNMENTS: BidderAssignment[] = [
+  {
+    id: "assignment-aurora-01",
+    taskId: "task-aurora-ops",
+    taskTitle: "Product and operations application coverage",
+    ownerName: "Aurora Talent Partners",
+    packageName: "Greenhouse starter batch",
+    ratePerLink: "$0.80",
+    assignedDate: "Sep 26, 2026",
+    dailyTarget: 10,
+    totalEarned: "$42.40",
+    pendingEarned: "$8.80",
+    links: [
+      {
+        id: "link-meta",
+        company: "Meta",
+        title: "Technical Program Manager, Integrity Operations",
+        ats: "Greenhouse",
+        deadline: "Sep 29",
+        status: "QA passed",
+        feedback: "Strong evidence. Keep using the approved operations resume.",
+      },
+      {
+        id: "link-uber",
+        company: "Uber",
+        title: "Operations Strategy Manager",
+        ats: "Greenhouse",
+        deadline: "Sep 30",
+        status: "Submitted",
+      },
+      {
+        id: "link-capital-one",
+        company: "Capital One",
+        title: "Product Operations Lead",
+        ats: "Greenhouse",
+        deadline: "Oct 1",
+        status: "In progress",
+      },
+      {
+        id: "link-google",
+        company: "Google",
+        title: "Product Manager, Workspace",
+        ats: "Greenhouse",
+        deadline: "Oct 2",
+        status: "Needs fix",
+        feedback: "Please answer the location question using the job hunter's saved guidance.",
+      },
+      {
+        id: "link-airbnb",
+        company: "Airbnb",
+        title: "Senior Program Manager",
+        ats: "Greenhouse",
+        deadline: "Oct 3",
+        status: "Assigned",
+      },
+    ],
+  },
+];
+
+export const BIDDER_CONVERSATIONS: BidderConversation[] = [
+  {
+    id: "conversation-aurora",
+    taskId: "task-aurora-ops",
+    taskTitle: "Product and operations application coverage",
+    ownerName: "Aurora Talent Partners",
+    ownerInitials: "AT",
+    unread: 2,
+    messages: [
+      {
+        id: "msg-1",
+        sender: "jobhunter",
+        body: "Welcome. I assigned the Greenhouse starter batch to you. Please keep the daily target at 10 links.",
+        time: "Today, 8:32 AM",
+      },
+      {
+        id: "msg-2",
+        sender: "bidder",
+        body: "Thanks. I will send a progress summary after the first five applications.",
+        time: "Today, 8:46 AM",
+      },
+      {
+        id: "msg-3",
+        sender: "jobhunter",
+        body: "Please flag any relocation or eligibility question before submitting.",
+        time: "Today, 9:02 AM",
+      },
+    ],
+  },
+  {
+    id: "conversation-northstar",
+    taskId: "task-northstar-tech",
+    taskTitle: "Senior technical application batch",
+    ownerName: "Northstar Recruiting Co.",
+    ownerInitials: "NR",
+    unread: 0,
+    messages: [
+      {
+        id: "msg-4",
+        sender: "bidder",
+        body: "I reviewed the iCIMS package and can start as soon as you approve the connection.",
+        time: "Yesterday",
+      },
+    ],
+  },
+];

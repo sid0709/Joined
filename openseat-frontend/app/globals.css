@@ -8,6 +8,182 @@ body {
   color: var(--color-text-primary);
 }
 
+.os-page-body {
+  width: min(100%, 84rem);
+  max-width: 84rem;
+  margin-inline: auto;
+}
+
+.bidder-hero {
+  width: 100%;
+  max-width: none;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background:
+    radial-gradient(60rem 18rem at 100% -40%, var(--color-accent-muted), transparent 70%),
+    var(--color-background-surface);
+  box-shadow: var(--elevation-1, var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%)));
+}
+
+.bidder-hero .label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+}
+.bidder-hero .label::before {
+  content: "";
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+.bidder-hero h1 {
+  margin-block: var(--space-2) var(--space-1);
+  letter-spacing: -0.03em;
+}
+.bidder-hero p {
+  max-width: 54rem;
+  margin: 0;
+}
+.bidder-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.bidder-kpi-grid > * {
+  min-height: 8rem;
+  border-top: 3px solid var(--color-accent);
+  border-radius: var(--radius-container);
+  transition:
+    transform var(--duration-slow, 160ms) var(--ease-standard, ease),
+    box-shadow var(--duration-slow, 160ms) var(--ease-standard, ease);
+}
+.bidder-kpi-grid > *:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-2, var(--shadow-md, 0 8px 20px rgb(0 0 0 / 8%)));
+}
+
+.bidder-task-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+.bidder-task-grid > * {
+  min-width: 0;
+  border-radius: var(--radius-container);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+.bidder-task-grid > *:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-2, var(--shadow-md, 0 8px 20px rgb(0 0 0 / 8%)));
+}
+.bidder-feature-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.bidder-task-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-block: var(--space-5);
+}
+.bidder-task-facts span {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+}
+.bidder-task-facts small {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+.bidder-progress {
+  height: 0.5rem;
+  margin-block: var(--space-4);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-background-muted);
+}
+.bidder-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+.bidder-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.bidder-flow span {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+.bidder-flow strong {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+}
+.bidder-link-list {
+  display: grid;
+  gap: var(--space-3);
+}
+.bidder-link-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+.bidder-link-row:hover {
+  border-color: var(--color-border-emphasized);
+  background: var(--color-background-surface);
+}
+.bidder-feedback {
+  margin-block: var(--space-2) 0;
+  color: var(--color-warning);
+}
+
+@media (max-width: 64rem) {
+  .bidder-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bidder-task-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 48rem) {
+  .bidder-task-facts,
+  .bidder-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bidder-feature-card,
+  .bidder-link-row {
+    flex-direction: column;
+  }
+}
+
 .os-nav {
   display: flex;
   align-items: center;
