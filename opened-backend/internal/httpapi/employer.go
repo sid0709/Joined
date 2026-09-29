@@ -23,8 +23,12 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/company/jobs/{id}", s.getCompanyJob)
 	mux.HandleFunc("PUT /v1/company/jobs/{id}", s.putCompanyJob)
 	mux.HandleFunc("PATCH /v1/company/jobs/{id}", s.patchCompanyJob)
+	mux.HandleFunc("GET /v1/company/jobs/{id}/pipeline", s.getCompanyPipeline)
+	mux.HandleFunc("PUT /v1/company/jobs/{id}/pipeline", s.putCompanyPipeline)
 	mux.HandleFunc("GET /v1/company/applicants", s.getCompanyApplicants)
 	mux.HandleFunc("PATCH /v1/company/applicants/{id}", s.patchCompanyApplicant)
+	mux.HandleFunc("GET /v1/company/applicants/{id}/scorecards", s.getApplicantScorecards)
+	mux.HandleFunc("POST /v1/company/applicants/{id}/scorecards", s.postApplicantScorecard)
 	mux.HandleFunc("GET /v1/company/interviews", s.getCompanyInterviews)
 	mux.HandleFunc("POST /v1/company/interviews", s.postCompanyInterview)
 	mux.HandleFunc("PATCH /v1/company/interviews/{id}", s.patchCompanyInterview)
@@ -177,6 +181,34 @@ func (s *Server) parseCompanyJob(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, draft)
 }
 
+func (s *Server) getCompanyPipeline(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	cfg, err := s.hiring.GetPipeline(r.Context(), session.Company.ID, r.PathValue("id"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, cfg)
+}
+
+func (s *Server) putCompanyPipeline(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.PipelinePut
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	cfg, err := s.hiring.SavePipeline(r.Context(), session.Company.ID, r.PathValue("id"), input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, cfg)
+}
+
 func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.company(w, r)
 	if !ok {
@@ -221,6 +253,34 @@ func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, person)
+}
+
+func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	items, err := s.hiring.ListScorecards(r.Context(), session.Company.ID, r.PathValue("id"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+func (s *Server) postApplicantScorecard(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.company(w, r)
+	if !ok {
+		return
+	}
+	var input employer.ScorecardInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.AddScorecard(r.Context(), session.Company.ID, r.PathValue("id"), session.User.ID, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) getCompanyInterviews(w http.ResponseWriter, r *http.Request) {

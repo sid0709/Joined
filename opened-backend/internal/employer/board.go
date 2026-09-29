@@ -45,21 +45,70 @@ func (s *Store) Applicants(ctx context.Context, companyID string) ([]Applicant, 
 }
 
 func (s *Store) MoveApplicant(ctx context.Context, companyID, id string, input StageInput, now time.Time) (Applicant, error) {
-	column, reason, companyStage, ok := applicantPatch(input.ColumnID, input.Tags != nil)
+	app, err := s.people.ApplicationForCompany(ctx, companyID, id)
+	if errors.Is(err, candidate.ErrNotFound) {
+		return Applicant{}, ErrNotFound
+	}
+	if err != nil {
+		return Applicant{}, err
+	}
+	doc, err := s.job(ctx, companyID, app.JobID)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return Applicant{}, err
+	}
+	if errors.Is(err, ErrNotFound) {
+		doc = storedJob{}
+	}
+	hasSide := input.Tags != nil || input.InterviewerIDs != nil || input.Rating != nil || strings.TrimSpace(input.Notes) != ""
+	column, reason, nextStage, ok := applicantPatch(input.ColumnID, stageSet(doc.CustomStages), hasSide)
 	if !ok {
 		return Applicant{}, ErrInvalidInput
+	}
+	if input.ColumnID != "" {
+		from := companyStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
+		notes := app.CompanyNotes
+		if strings.TrimSpace(input.Notes) != "" {
+			notes = input.Notes
+		}
+		rating := app.Rating
+		if input.Rating != nil {
+			rating = *input.Rating
+		}
+		gate := gateOrEmpty(doc.FeedbackGate)
+		hasCard := false
+		if advanceNeedsScorecard(from, input.ColumnID, gate, doc.CustomStages) {
+			hasCard, err = s.applicantHasScorecard(ctx, companyID, app.ID)
+			if err != nil {
+				return Applicant{}, err
+			}
+		}
+		if err := feedbackGate(advanceCheck{
+			from: from, to: input.ColumnID, notes: notes, rating: rating,
+			hasScorecard: hasCard, gate: gate, custom: doc.CustomStages,
+		}); err != nil {
+			return Applicant{}, err
+		}
+		if nextStage != "" && !fixedCompanyStage(nextStage) && app.ColumnID == candidate.StageClosed {
+			column = candidate.StageInterview
+			reason = ""
+		}
 	}
 	var tags *[]string
 	if input.Tags != nil {
 		normalized := normalizeTags(*input.Tags)
 		tags = &normalized
 	}
+	var interviewerIDs *[]string
+	if input.InterviewerIDs != nil {
+		normalized := normalizeInterviewerIDs(*input.InterviewerIDs)
+		interviewerIDs = &normalized
+	}
 	notes := input.Notes
 	var notePtr *string
 	if notes != "" {
 		notePtr = &notes
 	}
-	app, err := s.people.SetCompanyStage(ctx, companyID, id, column, companyStage, reason, notePtr, input.Rating, tags, now)
+	app, err = s.people.SetCompanyStage(ctx, companyID, id, column, nextStage, reason, notePtr, input.Rating, tags, interviewerIDs, now)
 	if errors.Is(err, candidate.ErrNotFound) {
 		return Applicant{}, ErrNotFound
 	}
@@ -363,6 +412,7 @@ func viewApplicant(app candidate.Application, user auth.User, profile candidate.
 		Rating:           app.Rating,
 		Notes:            app.CompanyNotes,
 		Tags:             listOrEmpty(app.Tags),
+		InterviewerIDs:   app.InterviewerIDs,
 		UserID:           app.UserID,
 		ScreeningAnswers: answersOrEmpty(app.ScreeningAnswers),
 		ReferralSource:   app.ReferralSource,

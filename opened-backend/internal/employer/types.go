@@ -38,6 +38,10 @@ type Job struct {
 	Requirements       []string                 `json:"requirements"`
 	Description        string                   `json:"description"`
 	ScreeningQuestions []jobs.ScreeningQuestion `json:"screeningQuestions"`
+	CustomStages       []PipelineStageDef       `json:"customStages,omitempty"`
+	FeedbackGate       *FeedbackGateConfig      `json:"feedbackGate,omitempty"`
+	ScorecardTemplate  *ScorecardTemplate       `json:"scorecardTemplate,omitempty"`
+	InterviewGuide     *InterviewGuide          `json:"interviewGuide,omitempty"`
 }
 
 type Applicant struct {
@@ -59,6 +63,7 @@ type Applicant struct {
 	Rating           int                         `json:"rating,omitempty"`
 	Notes            string                      `json:"notes,omitempty"`
 	Tags             []string                    `json:"tags"`
+	InterviewerIDs   []string                    `json:"interviewerIds,omitempty"`
 	UserID           string                      `json:"userId,omitempty"`
 	ScreeningAnswers []candidate.ScreeningAnswer `json:"screeningAnswers"`
 	ReferralSource   string                      `json:"referralSource,omitempty"`
@@ -185,10 +190,11 @@ type JobInput struct {
 }
 
 type StageInput struct {
-	ColumnID string    `json:"columnId"`
-	Notes    string    `json:"notes"`
-	Rating   *int      `json:"rating"`
-	Tags     *[]string `json:"tags"`
+	ColumnID       string    `json:"columnId"`
+	Notes          string    `json:"notes"`
+	Rating         *int      `json:"rating"`
+	Tags           *[]string `json:"tags"`
+	InterviewerIDs *[]string `json:"interviewerIds"`
 }
 
 type ScheduleInput struct {

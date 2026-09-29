@@ -107,6 +107,7 @@ func (s *Store) UpdateJob(ctx context.Context, company auth.Company, userID, id 
 	doc.Views = existing.Views
 	doc.PostedAt = existing.PostedAt
 	doc.UpdatedAt = now.UTC()
+	doc = carryPipeline(doc, existing)
 	if doc.Status == statusOpen {
 		if err := s.publishDirect(ctx, company, userID, &doc, now); err != nil {
 			return Job{}, err
@@ -342,6 +343,10 @@ func viewJob(doc storedJob, pipeline Pipeline) Job {
 		Requirements:       listOrEmpty(doc.Requirements),
 		Description:        doc.Description,
 		ScreeningQuestions: questionsOrEmpty(doc.ScreeningQuestions),
+		CustomStages:       doc.CustomStages,
+		FeedbackGate:       doc.FeedbackGate,
+		ScorecardTemplate:  doc.ScorecardTemplate,
+		InterviewGuide:     doc.InterviewGuide,
 	}
 	if doc.Status == statusOpen {
 		job.JobID = doc.ID

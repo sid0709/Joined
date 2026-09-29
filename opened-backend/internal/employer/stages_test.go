@@ -18,22 +18,33 @@ func TestCompanyStage(t *testing.T) {
 	if got := companyStage(candidate.StageClosed, stageOffer, reasonRejected); got != stageOffer {
 		t.Fatalf("stored stage wins, got %s", got)
 	}
+	if got := companyStage(candidate.StageInterview, "phone-screen", ""); got != "phone-screen" {
+		t.Fatalf("custom stage = %s", got)
+	}
 }
 
 func TestApplicantPatchAcceptsTagsWithoutColumn(t *testing.T) {
-	column, _, stage, ok := applicantPatch("", true)
+	column, _, stage, ok := applicantPatch("", nil, true)
 	if !ok || column != "" || stage != "" {
 		t.Fatalf("tags only = %s %s %v", column, stage, ok)
 	}
-	if _, _, _, ok := applicantPatch("", false); ok {
+	if _, _, _, ok := applicantPatch("", nil, false); ok {
 		t.Fatal("empty patch accepted")
 	}
-	if _, _, _, ok := applicantPatch("nope", true); ok {
+	if _, _, _, ok := applicantPatch("nope", nil, true); ok {
 		t.Fatal("bad column accepted")
 	}
-	column, reason, stage, ok := applicantPatch(stageHired, true)
+	column, reason, stage, ok := applicantPatch(stageHired, nil, true)
 	if !ok || column != candidate.StageClosed || reason != reasonHired || stage != stageHired {
 		t.Fatalf("hired = %s %s %s %v", column, reason, stage, ok)
+	}
+	custom := map[string]struct{}{"phone-screen": {}}
+	column, reason, stage, ok = applicantPatch("phone-screen", custom, false)
+	if !ok || column != "" || reason != "" || stage != "phone-screen" {
+		t.Fatalf("custom = %s %s %s %v", column, reason, stage, ok)
+	}
+	if _, _, _, ok := applicantPatch("phone-screen", nil, false); ok {
+		t.Fatal("unknown custom stage accepted")
 	}
 }
 

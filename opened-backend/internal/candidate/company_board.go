@@ -47,17 +47,25 @@ func (s *Store) ApplicationForCompany(ctx context.Context, companyID, id string)
 }
 
 // SetCompanyStage records the hiring stage and mirrors it onto the candidate board.
-func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, companyStage, closedReason string, notes *string, rating *int, tags *[]string, now time.Time) (Application, error) {
+func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, companyStage, closedReason string, notes *string, rating *int, tags *[]string, interviewerIDs *[]string, now time.Time) (Application, error) {
 	app, err := s.ApplicationForCompany(ctx, companyID, id)
 	if err != nil {
 		return Application{}, err
 	}
-	if columnID != "" && app.ColumnID != columnID {
+	columnChanged := columnID != "" && app.ColumnID != columnID
+	stageChanged := companyStage != "" && app.CompanyStage != companyStage
+	if columnChanged {
 		app.ColumnID = columnID
-		app.Activity = prependEvent(app.Activity, "Moved to "+companyStage, now)
 	}
 	if companyStage != "" {
 		app.CompanyStage = companyStage
+	}
+	if columnChanged || stageChanged {
+		label := companyStage
+		if label == "" {
+			label = columnID
+		}
+		app.Activity = prependEvent(app.Activity, "Moved to "+label, now)
 	}
 	if columnID != "" {
 		app.ClosedReason = closedReason
@@ -73,6 +81,9 @@ func (s *Store) SetCompanyStage(ctx context.Context, companyID, id, columnID, co
 	}
 	if tags != nil {
 		app.Tags = *tags
+	}
+	if interviewerIDs != nil {
+		app.InterviewerIDs = *interviewerIDs
 	}
 	app.Updated = now.UTC()
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "companyId", Value: companyID}}, app)

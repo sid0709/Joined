@@ -25,6 +25,10 @@ type storedJob struct {
 	Requirements       []string                 `bson:"requirements"`
 	Description        string                   `bson:"description"`
 	ScreeningQuestions []jobs.ScreeningQuestion `bson:"screeningQuestions,omitempty"`
+	CustomStages       []PipelineStageDef       `bson:"customStages,omitempty"`
+	FeedbackGate       *FeedbackGateConfig      `bson:"feedbackGate,omitempty"`
+	ScorecardTemplate  *ScorecardTemplate       `bson:"scorecardTemplate,omitempty"`
+	InterviewGuide     *InterviewGuide          `bson:"interviewGuide,omitempty"`
 	Policy             string                   `bson:"policy"`
 	DailyCap           int                      `bson:"dailyCap,omitempty"`
 	Status             string                   `bson:"status"`

@@ -23,6 +23,9 @@ func companyStage(columnID, stored, closedReason string) string {
 	case stageNew, stageScreening, stageInterview, stageOffer, stageHired, stageRejected:
 		return stored
 	}
+	if slugSafe(stored) {
+		return stored
+	}
 	switch columnID {
 	case candidate.StageScreening:
 		return stageScreening
@@ -46,16 +49,28 @@ const (
 )
 
 // applicantPatch maps a company column onto the candidate board.
-// A tags-only patch leaves the stage alone; a missing column with no tags is invalid.
-func applicantPatch(columnID string, hasTags bool) (column, reason, companyStage string, ok bool) {
+// A side-field patch (tags, notes, rating, interviewers) may omit the column.
+// Custom stages stay on the company board and do not rewrite the candidate column.
+func applicantPatch(columnID string, custom map[string]struct{}, hasSide bool) (column, reason, companyStage string, ok bool) {
 	if columnID == "" {
-		return "", "", "", hasTags
+		return "", "", "", hasSide
 	}
-	column, reason, ok = candidateStage(columnID)
-	if !ok {
-		return "", "", "", false
+	if column, reason, ok = candidateStage(columnID); ok {
+		return column, reason, columnID, true
 	}
-	return column, reason, columnID, true
+	if _, ok := custom[columnID]; ok {
+		return "", "", columnID, true
+	}
+	return "", "", "", false
+}
+
+func fixedCompanyStage(id string) bool {
+	switch id {
+	case stageNew, stageScreening, stageInterview, stageOffer, stageHired, stageRejected:
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeTags(values []string) []string {

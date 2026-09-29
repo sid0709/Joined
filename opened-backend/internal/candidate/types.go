@@ -140,6 +140,7 @@ type Application struct {
 	Rating           int                `json:"-" bson:"rating,omitempty"`
 	CompanyNotes     string             `json:"-" bson:"companyNotes,omitempty"`
 	Tags             []string           `json:"-" bson:"tags,omitempty"`
+	InterviewerIDs   []string           `json:"-" bson:"interviewerIds,omitempty"`
 }
 
 // ScreeningAnswer is one reply on an application.
