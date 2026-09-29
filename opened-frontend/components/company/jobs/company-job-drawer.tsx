@@ -68,9 +68,9 @@ export function CompanyJobDrawer({
     pipeline: JobPipelineConfig,
     offerTemplates?: OfferTemplate[],
   ) => void;
-  /** Soft gate — jobs.edit (pause / edit). */
+  /** Soft gate — jobs.edit (edit draft fields). */
   canEdit?: boolean;
-  /** Soft gate — jobs.publish (resume / reopen / close). */
+  /** Soft gate — jobs.publish (pause / resume / reopen / close). */
   canPublish?: boolean;
 }) {
   if (!job) return null;
@@ -88,7 +88,7 @@ export function CompanyJobDrawer({
       subtitle={`${job.department || job.team} · ${job.location}`}
       footer={
         <HStack gap={2} hAlign="between" wrap="wrap">
-          {job.status === "open" && canEdit ? (
+          {job.status === "open" && canPublish ? (
             <Button label="Pause job" variant="ghost" onClick={() => onAction(job, "pause")} />
           ) : job.status === "paused" && canPublish ? (
             <Button label="Resume job" variant="ghost" onClick={() => onAction(job, "resume")} />

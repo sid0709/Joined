@@ -29,15 +29,14 @@ export type JobAction = "open" | "pause" | "resume" | "close" | "publish" | "reo
 function actionsFor(
   job: CompanyJob,
   onAction: (job: CompanyJob, action: JobAction) => void,
-  canEdit: boolean,
   canPublish: boolean,
 ): DropdownMenuOption[] {
   const act = (action: JobAction) => () => onAction(job, action);
-  // Einstein: pause stays jobs.edit; close/reopen/publish/resume need jobs.publish (PATCH).
+  // Einstein PATCH /jobs/:id requires jobs.publish for every status change (pause/resume/close/reopen/publish).
   return [
     { label: "View details", onClick: act("open") },
     { type: "divider" },
-    ...(job.status === "open" && canEdit ? [{ label: "Pause", onClick: act("pause") }] : []),
+    ...(job.status === "open" && canPublish ? [{ label: "Pause", onClick: act("pause") }] : []),
     ...(job.status === "paused" && canPublish ? [{ label: "Resume", onClick: act("resume") }] : []),
     ...(job.status === "draft" && canPublish
       ? [{ label: "Publish", onClick: act("publish") }]
@@ -55,14 +54,13 @@ function actionsFor(
 export function CompanyJobTable({
   jobs,
   onAction,
-  canEdit = true,
   canPublish = true,
 }: {
   jobs: CompanyJob[];
   onAction: (job: CompanyJob, action: JobAction) => void;
-  /** Soft gate — jobs.edit (pause). */
+  /** Accepted for callers; pause soft-gate uses canPublish (BE PATCH). */
   canEdit?: boolean;
-  /** Soft gate — jobs.publish (publish / resume / close / reopen). */
+  /** Soft gate — jobs.publish (pause / publish / resume / close / reopen). */
   canPublish?: boolean;
 }) {
   const now = new Date();
@@ -149,7 +147,7 @@ export function CompanyJobTable({
           <MoreMenu
             label={`Actions for ${row.title}`}
             size="sm"
-            items={actionsFor(row, onAction, canEdit, canPublish)}
+            items={actionsFor(row, onAction, canPublish)}
           />
         </span>
       ),

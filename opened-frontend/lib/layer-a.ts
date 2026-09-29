@@ -24,7 +24,7 @@
  * PATCH /v1/company/jobs/:id
  *   { status, closeReason?, notifyOnClose? }
  *   notifyOnClose defaults true on close. status "open" on closed = reopen
- *   (clears close fields). Close/reopen needs jobs.publish.
+ *   (clears close fields). Pause/close/reopen/publish need jobs.publish (PATCH).
  *
  * Public careers (light):
  *   GET /v1/search/companies/:id?department=&location=

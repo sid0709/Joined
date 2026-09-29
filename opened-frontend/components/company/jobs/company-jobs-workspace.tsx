@@ -60,7 +60,7 @@ export function CompanyJobsWorkspace({ actorRole = null }: { actorRole?: TeamRol
   const toast = useToast();
   const canEditJobs = canPermission(actorRole, "jobs.edit");
   const canPublishJobs = canPermission(actorRole, "jobs.publish");
-  // Einstein AuthorizeJobUpdate: jobs.edit always; jobs.publish when opening to market.
+  // Einstein PATCH /jobs/:id requires jobs.publish for status (pause/close/resume/reopen/publish).
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
@@ -103,14 +103,9 @@ export function CompanyJobsWorkspace({ actorRole = null }: { actorRole?: TeamRol
   ) => {
     const next = NEXT_STATUS[action];
     if (!next) return;
-    // Einstein PATCH /jobs/:id requires jobs.publish for close and reopen (status open/closed).
-    if (next === "open" || next === "closed") {
-      if (!canPublishJobs) {
-        toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
-        return;
-      }
-    } else if (!canEditJobs) {
-      toast({ body: denialReason(actorRole, "jobs.edit"), type: "error" });
+    // Einstein PATCH /jobs/:id requires jobs.publish for every status change, including pause.
+    if (!canPublishJobs) {
+      toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
       return;
     }
     setJobStatus(job.id, next, options)

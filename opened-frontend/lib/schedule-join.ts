@@ -25,7 +25,8 @@
  *
  * GET  /v1/schedule/:key
  * POST /v1/schedule/:key/accept   { date, start, end }
- *   Public. key is the self-schedule token, or a legacy interview id.
+ *   Public (wired in lib/schedule-public.ts + /schedule/:id).
+ *   key is the self-schedule token, or a legacy interview id.
  *   Accept locks awaiting → scheduled. When proposedSlots is non-empty the
  *   slot must be one of them. The same slot again is idempotent. A different
  *   slot after lock is 409. An expired awaiting link is 410.
