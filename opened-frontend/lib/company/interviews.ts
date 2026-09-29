@@ -1,4 +1,5 @@
 import type { BadgeVariant, CalendarEvent, CalendarTone } from "@openseat/design-system";
+import type { ProposedSlot } from "@/lib/schedule-join";
 
 /** Hiring workspace — interviews this company scheduled. */
 
@@ -20,7 +21,14 @@ export type CompanyInterview = {
   faceCheck: FaceCheck;
   jobTitle: string;
   chargedCents: number;
+  /** Join URL, phone, or onsite address. Backend field `where`. */
   where?: string;
+  /** Preferred video join URL when distinct from where (Einstein scaffold). */
+  meetingUrl?: string;
+  /** Candidate self-schedule link while status is awaiting (Einstein scaffold). */
+  selfScheduleUrl?: string;
+  /** Slots offered while awaiting a pick (Einstein scaffold). */
+  proposedSlots?: ProposedSlot[];
 };
 
 export const INTERVIEW_STATUS_META: Record<

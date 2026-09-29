@@ -13,6 +13,11 @@ import {
   hydrateInterviewGuide,
   hydrateScorecardTemplate,
 } from "@/lib/pipeline-eval";
+import {
+  hydrateOptionalUrl,
+  hydrateProposedSlots,
+  type SchedulePayload,
+} from "@/lib/schedule-join";
 import type { TeamMember, TeamRole } from "./team";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
@@ -124,6 +129,10 @@ function hydrateInterview(item: ApiInterview): CompanyInterview {
     date: parseISODate(item.date),
     interviewers: item.interviewers ?? [],
     jobTitle: item.jobTitle || "—",
+    where: hydrateOptionalUrl(item.where),
+    meetingUrl: hydrateOptionalUrl(item.meetingUrl),
+    selfScheduleUrl: hydrateOptionalUrl(item.selfScheduleUrl),
+    proposedSlots: hydrateProposedSlots(item.proposedSlots),
   };
 }
 
@@ -252,15 +261,22 @@ export function fetchInterviews() {
   );
 }
 
-export function scheduleInterview(input: {
-  applicationId: string;
-  round: string;
-  date: string;
-  start: string;
-  end: string;
-  format: CompanyInterview["format"];
-}) {
-  return companySend<ApiInterview>("/interviews", "POST", input).then(hydrateInterview);
+export function scheduleInterview(input: SchedulePayload) {
+  return companySend<ApiInterview>("/interviews", "POST", {
+    applicationId: input.applicationId,
+    round: input.round,
+    date: input.date,
+    start: input.start,
+    end: input.end,
+    format: input.format,
+    interviewers: input.interviewers,
+    // TODO(einstein): persist where / meetingUrl / mode / proposedSlots / selfSchedule
+    where: input.where ?? input.meetingUrl,
+    meetingUrl: input.meetingUrl ?? input.where,
+    mode: input.mode,
+    proposedSlots: input.proposedSlots,
+    selfSchedule: input.selfSchedule,
+  }).then(hydrateInterview);
 }
 
 export function setAttendance(id: string, status: "attended" | "no-show") {
