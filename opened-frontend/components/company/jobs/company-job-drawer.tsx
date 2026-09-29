@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -14,12 +15,23 @@ import {
   Text,
 } from "@openseat/design-system";
 import {
+  DEFAULT_FEEDBACK_GATE,
   JOB_STATUS_META,
   POLICY_META,
   STRONG_FIT,
+  newInterviewGuide,
+  newScorecardTemplate,
   type Applicant,
   type CompanyJob,
+  type FeedbackGateConfig,
+  type InterviewGuide,
+  type PipelineStageDef,
+  type ScorecardTemplate,
 } from "@/lib/company";
+import { CustomStagesEditor } from "@/components/company/pipeline/custom-stages-editor";
+import { FeedbackGateEditor } from "@/components/company/pipeline/feedback-gate";
+import { InterviewGuideShell } from "@/components/company/pipeline/interview-guide-shell";
+import { ScorecardTemplateEditor } from "@/components/company/pipeline/scorecard-shell";
 import { formatShortDate } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 import { PipelineBar } from "../pipeline-bar";
@@ -41,6 +53,20 @@ export function CompanyJobDrawer({
   onClose: () => void;
   onAction: (job: CompanyJob, action: JobAction) => void;
 }) {
+  const [customStages, setCustomStages] = useState<PipelineStageDef[]>([]);
+  const [feedbackGate, setFeedbackGate] = useState<FeedbackGateConfig>(DEFAULT_FEEDBACK_GATE);
+  const [scorecardTemplate, setScorecardTemplate] =
+    useState<ScorecardTemplate>(newScorecardTemplate());
+  const [interviewGuide, setInterviewGuide] = useState<InterviewGuide>(newInterviewGuide());
+
+  useEffect(() => {
+    if (!job) return;
+    setCustomStages(job.customStages ?? []);
+    setFeedbackGate(job.feedbackGate ?? DEFAULT_FEEDBACK_GATE);
+    setScorecardTemplate(job.scorecardTemplate ?? newScorecardTemplate());
+    setInterviewGuide(job.interviewGuide ?? newInterviewGuide());
+  }, [job]);
+
   if (!job) return null;
   const status = JOB_STATUS_META[job.status];
   const top = applicants
@@ -99,6 +125,31 @@ export function CompanyJobDrawer({
             {(job.screeningQuestions ?? []).length || "None"}
           </MetadataListItem>
         </MetadataList>
+
+        <Divider />
+
+        <Stack gap={3}>
+          <Heading level={3}>Custom stages</Heading>
+          <CustomStagesEditor value={customStages} onChange={setCustomStages} />
+        </Stack>
+
+        <Stack gap={3}>
+          <Heading level={3}>Feedback gate</Heading>
+          <FeedbackGateEditor value={feedbackGate} onChange={setFeedbackGate} />
+        </Stack>
+
+        <Stack gap={3}>
+          <Heading level={3}>Scorecard template</Heading>
+          <ScorecardTemplateEditor value={scorecardTemplate} onChange={setScorecardTemplate} />
+        </Stack>
+
+        <Stack gap={3}>
+          <Heading level={3}>Interview guide</Heading>
+          <InterviewGuideShell value={interviewGuide} onChange={setInterviewGuide} />
+        </Stack>
+        <Text type="supporting" color="secondary">
+          Pipeline eval settings stay local until Einstein lands PUT /v1/company/jobs/:id/pipeline.
+        </Text>
 
         <Divider />
 

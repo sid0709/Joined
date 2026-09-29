@@ -31,9 +31,18 @@ import {
   findDuplicateApplicants,
   type Applicant,
   type ApplicantStage,
+  type InterviewGuide,
+  type ScorecardSubmission,
+  type ScorecardTemplate,
+  type TeamMember,
 } from "@/lib/company";
+import { FeedbackGateBanner, canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
+import { InterviewGuideView } from "@/components/company/pipeline/interview-guide-shell";
+import { InterviewerAssign } from "@/components/company/pipeline/interviewer-assign";
+import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
 import { formatShortDate } from "@/lib/dates";
 import { formatCount } from "@/lib/jobs";
+import { DEFAULT_FEEDBACK_GATE, type FeedbackGateConfig } from "@/lib/pipeline-eval";
 
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
@@ -46,12 +55,24 @@ const REFERRAL_LABEL = Object.fromEntries(
 export function ApplicantDrawer({
   applicant,
   allApplicants,
+  teamMembers,
+  scorecardTemplate,
+  interviewGuide,
+  feedbackGate,
+  scorecards,
+  onScorecard,
   onClose,
   onChange,
   onSchedule,
 }: {
   applicant: Applicant | null;
   allApplicants: Applicant[];
+  teamMembers: TeamMember[];
+  scorecardTemplate: ScorecardTemplate | null;
+  interviewGuide: InterviewGuide | null;
+  feedbackGate: FeedbackGateConfig;
+  scorecards: ScorecardSubmission[];
+  onScorecard: (submission: ScorecardSubmission) => void;
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
   onSchedule: (
@@ -69,13 +90,29 @@ export function ApplicantDrawer({
     [],
   );
 
+  const [gateError, setGateError] = useState<ReturnType<typeof canAdvanceStage> | null>(null);
+
   if (!applicant) return null;
 
-  const move = (stage: ApplicantStage, message: string) =>
-    onChange(
-      { ...applicant, columnId: stage, notes: notes[applicant.id] ?? applicant.notes },
-      message,
-    );
+  const applicantScorecards = scorecards.filter((item) => item.applicantId === applicant.id);
+  const tryMove = (stage: ApplicantStage, message?: string) => {
+    const nextNotes = notes[applicant.id] ?? applicant.notes;
+    const check = canAdvanceStage({
+      fromStage: applicant.columnId,
+      toStage: stage,
+      notes: nextNotes,
+      rating: applicant.rating,
+      hasScorecard: applicantScorecards.length > 0,
+      gate: feedbackGate ?? DEFAULT_FEEDBACK_GATE,
+    });
+    if (!check.ok) {
+      setGateError(check);
+      return;
+    }
+    setGateError(null);
+    onChange({ ...applicant, columnId: stage, notes: nextNotes }, message);
+  };
+  const move = (stage: ApplicantStage, message: string) => tryMove(stage, message);
   const slotReady = /^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{2}:\d{2}$/.test(start);
   const duplicates = findDuplicateApplicants(applicant, allApplicants);
   const answers = applicant.screeningAnswers ?? [];
@@ -241,8 +278,30 @@ export function ApplicantDrawer({
           <TextInput label="Round" value={round} onChange={setRound} />
         </Stack>
 
+        <Stack gap={3}>
+          <Heading level={3}>Interviewers</Heading>
+          <InterviewerAssign
+            members={teamMembers}
+            value={applicant.interviewerIds ?? []}
+            onChange={(interviewerIds) => onChange({ ...applicant, interviewerIds })}
+          />
+        </Stack>
+
+        <Stack gap={3}>
+          <Heading level={3}>Interview guide</Heading>
+          <InterviewGuideView guide={interviewGuide} />
+        </Stack>
+
+        <ScorecardSubmitShell
+          template={scorecardTemplate}
+          applicantId={applicant.id}
+          existing={applicantScorecards}
+          onSubmit={onScorecard}
+        />
+
         <Stack gap={4}>
           <Heading level={3}>Team review</Heading>
+          <FeedbackGateBanner result={gateError} />
           <Rating
             value={applicant.rating ?? 0}
             onChange={(rating) => onChange({ ...applicant, rating })}
@@ -252,7 +311,7 @@ export function ApplicantDrawer({
             label="Stage"
             options={STAGE_OPTIONS}
             value={applicant.columnId}
-            onChange={(value) => onChange({ ...applicant, columnId: value as ApplicantStage })}
+            onChange={(value) => tryMove(value as ApplicantStage)}
           />
           <TextArea
             label="Notes for the team"

@@ -35,6 +35,8 @@ export type Applicant = {
   consentVersion?: string;
   /** Opaque seeker id when Einstein exposes it — preferred for dupe detection. */
   userId?: string;
+  /** Team member ids assigned to interview this candidate (Layer C). */
+  interviewerIds?: string[];
 };
 
 export const APPLICANT_STAGES: { id: ApplicantStage; title: string; badge: BadgeVariant }[] = [

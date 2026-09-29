@@ -35,6 +35,11 @@ export type CompanyJob = {
   description: string;
   /** Knockout / screening questions shown on apply. */
   screeningQuestions?: import("@/lib/intake").ScreeningQuestion[];
+  /** Layer C — custom stages / eval config when Einstein returns them. */
+  customStages?: import("@/lib/pipeline-eval").PipelineStageDef[];
+  feedbackGate?: import("@/lib/pipeline-eval").FeedbackGateConfig;
+  scorecardTemplate?: import("@/lib/pipeline-eval").ScorecardTemplate;
+  interviewGuide?: import("@/lib/pipeline-eval").InterviewGuide;
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {

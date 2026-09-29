@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   HStack,
   Icon,
@@ -13,13 +13,24 @@ import {
   useToast,
 } from "@openseat/design-system";
 import { StatGrid } from "@/components/stat-card";
-import { fetchApplicants, fetchJobs, moveApplicant, scheduleInterview } from "@/lib/company/api";
+import { canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
+import {
+  fetchApplicants,
+  fetchJobs,
+  fetchTeam,
+  moveApplicant,
+  scheduleInterview,
+} from "@/lib/company/api";
 import {
   APPLICANT_COLUMNS,
   APPLICANT_STAGE_BY_ID,
+  DEFAULT_FEEDBACK_GATE,
   STRONG_FIT,
   type Applicant,
   type ApplicantStage,
+  type CompanyJob,
+  type ScorecardSubmission,
+  type TeamMember,
 } from "@/lib/company";
 import { ApplicantCard } from "./applicant-card";
 import { ApplicantDrawer } from "./applicant-drawer";
@@ -34,31 +45,51 @@ const ALL_TAGS = "all";
 export function ApplicantsWorkspace() {
   const toast = useToast();
   const [people, setPeople] = useState<Applicant[]>([]);
+  const [jobs, setJobs] = useState<CompanyJob[]>([]);
   const [jobOptions, setJobOptions] = useState([{ value: ALL_JOBS, label: "All jobs" }]);
   const [jobId, setJobId] = useState(ALL_JOBS);
   const [query, setQuery] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState(ALL_TAGS);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [scorecards, setScorecards] = useState<ScorecardSubmission[]>([]);
 
   useEffect(() => {
     let active = true;
     Promise.all([fetchApplicants(), fetchJobs()])
-      .then(([nextPeople, jobs]) => {
+      .then(([nextPeople, nextJobs]) => {
         if (!active) return;
         setPeople(nextPeople);
+        setJobs(nextJobs);
         setJobOptions([
           { value: ALL_JOBS, label: "All jobs" },
-          ...jobs
+          ...nextJobs
             .filter((job) => job.status !== "draft")
             .map((job) => ({ value: job.id, label: job.title })),
         ]);
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    fetchTeam()
+      .then((team) => {
+        if (active) setTeamMembers(team.members ?? []);
+      })
+      .catch(() => {
+        /* Interviewer assign degrades without team; applicants still load. */
+      });
     return () => {
       active = false;
     };
   }, [toast]);
+
+  const openApplicant = people.find((person) => person.id === openId) ?? null;
+  const activeJob = useMemo(() => {
+    const id = openApplicant?.jobId ?? (jobId !== ALL_JOBS ? jobId : null);
+    return jobs.find((job) => job.id === id) ?? null;
+  }, [jobs, openApplicant, jobId]);
+  const feedbackGate = activeJob?.feedbackGate ?? DEFAULT_FEEDBACK_GATE;
+  const scorecardTemplate = activeJob?.scorecardTemplate ?? null;
+  const interviewGuide = activeJob?.interviewGuide ?? null;
 
   const needle = query.trim().toLowerCase();
   const tagOptions = [
@@ -83,9 +114,15 @@ export function ApplicantsWorkspace() {
   );
 
   const replace = (next: Applicant, message?: string) => {
-    moveApplicant(next.id, next.columnId, next.notes, next.rating, next.tags)
+    moveApplicant(next.id, next.columnId, next.notes, next.rating, next.tags, next.interviewerIds)
       .then((saved) => {
-        setPeople((current) => current.map((person) => (person.id === saved.id ? saved : person)));
+        setPeople((current) =>
+          current.map((person) =>
+            person.id === saved.id
+              ? { ...saved, interviewerIds: next.interviewerIds ?? saved.interviewerIds }
+              : person,
+          ),
+        );
         if (message) {
           toast({ body: message });
           setOpenId(null);
@@ -180,8 +217,23 @@ export function ApplicantsWorkspace() {
             (person) => !visible.some((shown) => shown.id === person.id),
           );
           const moved = next.find((person) => person.id === move.itemId);
-          setPeople([...hidden, ...next]);
           if (move.from.columnId !== move.to.columnId && moved) {
+            const job = jobs.find((item) => item.id === moved.jobId);
+            const gate = job?.feedbackGate ?? DEFAULT_FEEDBACK_GATE;
+            const check = canAdvanceStage({
+              fromStage: move.from.columnId,
+              toStage: move.to.columnId,
+              notes: moved.notes,
+              rating: moved.rating,
+              hasScorecard: scorecards.some((item) => item.applicantId === moved.id),
+              gate,
+              customStages: job?.customStages,
+            });
+            if (!check.ok) {
+              toast({ body: check.reason, type: "error" });
+              return;
+            }
+            setPeople([...hidden, ...next]);
             moveApplicant(moved.id, move.to.columnId as ApplicantStage)
               .then((saved) => {
                 setPeople((current) =>
@@ -195,7 +247,9 @@ export function ApplicantsWorkspace() {
                 setPeople(people);
                 toast({ body: error.message, type: "error" });
               });
+            return;
           }
+          setPeople([...hidden, ...next]);
         }}
         getItemLabel={(person) => `${person.name}, ${person.fit}% fit`}
         renderItem={(person) => (
@@ -206,8 +260,17 @@ export function ApplicantsWorkspace() {
       />
 
       <ApplicantDrawer
-        applicant={people.find((person) => person.id === openId) ?? null}
+        applicant={openApplicant}
         allApplicants={people}
+        teamMembers={teamMembers}
+        scorecardTemplate={scorecardTemplate}
+        interviewGuide={interviewGuide}
+        feedbackGate={feedbackGate}
+        scorecards={scorecards}
+        onScorecard={(submission) => {
+          setScorecards((current) => [submission, ...current]);
+          toast({ body: "Scorecard saved locally — Einstein persist pending." });
+        }}
         onClose={() => setOpenId(null)}
         onChange={replace}
         onSchedule={schedule}

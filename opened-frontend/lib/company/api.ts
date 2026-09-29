@@ -7,6 +7,12 @@ import type { BillingAccount, BillableEvent, Purchase } from "./billing";
 import type { CompanyInterview, CompanyInterviewStatus, FaceCheck } from "./interviews";
 import type { AssistedPolicy, CompanyJob, CompanyJobStatus, PipelineCounts } from "./jobs";
 import { hydrateScreeningAnswers, hydrateScreeningQuestions, hydrateTags } from "@/lib/intake";
+import {
+  hydrateCustomStages,
+  hydrateFeedbackGate,
+  hydrateInterviewGuide,
+  hydrateScorecardTemplate,
+} from "@/lib/pipeline-eval";
 import type { TeamMember, TeamRole } from "./team";
 import type { CompanyPage, CompanyPageWrite } from "./page";
 import type { HiringProfile } from "./me";
@@ -87,6 +93,10 @@ function hydrateJob(job: ApiJob): CompanyJob {
     seniority: job.seniority ?? "Middle",
     jobId: job.jobId || (job.status === "open" ? job.id : undefined),
     screeningQuestions: hydrateScreeningQuestions(job.screeningQuestions),
+    customStages: hydrateCustomStages(job.customStages),
+    feedbackGate: job.feedbackGate ? hydrateFeedbackGate(job.feedbackGate) : undefined,
+    scorecardTemplate: hydrateScorecardTemplate(job.scorecardTemplate) ?? undefined,
+    interviewGuide: hydrateInterviewGuide(job.interviewGuide) ?? undefined,
   };
 }
 
@@ -102,6 +112,9 @@ function hydrateApplicant(person: ApiApplicant): Applicant {
     consentAt: person.consentAt || undefined,
     consentVersion: person.consentVersion || undefined,
     userId: person.userId || undefined,
+    interviewerIds: Array.isArray(person.interviewerIds)
+      ? person.interviewerIds.map(String).filter(Boolean)
+      : undefined,
   };
 }
 
@@ -221,12 +234,15 @@ export function moveApplicant(
   notes?: string,
   rating?: number,
   tags?: string[],
+  interviewerIds?: string[],
 ) {
   return companySend<ApiApplicant>(`/applicants/${id}`, "PATCH", {
     columnId,
     notes: notes ?? "",
     rating,
     tags: tags ?? undefined,
+    // TODO(einstein): accept interviewerIds on PATCH /v1/company/applicants/:id
+    interviewerIds: interviewerIds ?? undefined,
   }).then(hydrateApplicant);
 }
 
