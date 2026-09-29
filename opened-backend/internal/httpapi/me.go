@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
 )
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +143,42 @@ func (s *Server) patchApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, app)
+}
+
+func (s *Server) getMyOfferEsign(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.requireCandidate(w, r)
+	if !ok {
+		return
+	}
+	if s.hiring == nil {
+		writeError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
+		return
+	}
+	item, err := s.hiring.CandidateOfferEsign(r.Context(), session.User.ID, r.PathValue("id"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+func (s *Server) postMyOfferEsign(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.requireCandidate(w, r)
+	if !ok {
+		return
+	}
+	if s.hiring == nil {
+		writeError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
+		return
+	}
+	var input employer.EsignMarkInput
+	if !decodeBody(w, r, &input) {
+		return
+	}
+	item, err := s.hiring.CandidateMarkOfferEsign(r.Context(), session.User.ID, r.PathValue("id"), session.User.Name, input, time.Now())
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) deleteApplication(w http.ResponseWriter, r *http.Request) {

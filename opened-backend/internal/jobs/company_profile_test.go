@@ -57,7 +57,6 @@ func TestOverridesFromCleansProfile(t *testing.T) {
 			{Icon: "nope", Title: " Craft ", Description: " Make it well "},
 			{Title: ""},
 		},
-		Leadership:        []companyLeader{{Name: "Ada", Title: "CEO"}},
 		BenefitCategories: []benefitCategory{{Label: "Health", Items: []string{"Medical"}}},
 	})
 	if err != nil {
@@ -72,7 +71,7 @@ func TestOverridesFromCleansProfile(t *testing.T) {
 	if len(got.Profile.Values) != 1 || got.Profile.Values[0].Icon != "star" || got.Profile.Values[0].Title != "Craft" {
 		t.Fatalf("values = %+v", got.Profile.Values)
 	}
-	if len(got.Profile.Leadership) != 1 || len(got.Profile.BenefitCategories) != 1 {
+	if len(got.Profile.BenefitCategories) != 1 {
 		t.Fatalf("groups = %+v", got.Profile)
 	}
 	if len(got.Profile.Perks) != 0 {

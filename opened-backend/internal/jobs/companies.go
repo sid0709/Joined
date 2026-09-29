@@ -38,9 +38,9 @@ type PublicCompany struct {
 	Specialties       []string          `json:"specialties,omitempty"`
 	Mission           string            `json:"mission,omitempty"`
 	Values            []companyValue    `json:"values,omitempty"`
-	Leadership        []companyLeader   `json:"leadership,omitempty"`
 	BenefitCategories []benefitCategory `json:"benefitCategories,omitempty"`
 	HasLogoFile       bool              `json:"hasLogoFile,omitempty"`
+	Verified          bool              `json:"verified,omitempty"`
 }
 
 type logoFile struct {
@@ -54,16 +54,17 @@ type CompanyPage struct {
 }
 
 type storedCompany struct {
-	ID          string           `bson:"id"`
-	SourceID    string           `bson:"sourceId"`
-	CompanyName string           `bson:"companyName"`
-	CompanyURL  string           `bson:"companyUrl"`
-	CompanyKey  string           `bson:"companyKey"`
-	CompanyLogo string           `bson:"companyLogo"`
-	JobCount    int64            `bson:"jobCount"`
-	JobIDs      []string         `bson:"jobIds"`
-	Overrides   companyOverrides `bson:"overrides,omitempty"`
-	LogoFile    logoFile         `bson:"logoFile,omitempty"`
+	ID                 string           `bson:"id"`
+	SourceID           string           `bson:"sourceId"`
+	CompanyName        string           `bson:"companyName"`
+	CompanyURL         string           `bson:"companyUrl"`
+	CompanyKey         string           `bson:"companyKey"`
+	CompanyLogo        string           `bson:"companyLogo"`
+	JobCount           int64            `bson:"jobCount"`
+	JobIDs             []string         `bson:"jobIds"`
+	Overrides          companyOverrides `bson:"overrides,omitempty"`
+	LogoFile           logoFile         `bson:"logoFile,omitempty"`
+	VerificationStatus string           `bson:"verificationStatus,omitempty"`
 }
 
 type athensCompany struct {
@@ -196,7 +197,7 @@ func (s *Store) jobsForCompany(ctx context.Context, companyID string, now time.T
 	opts := options.Find().
 		SetLimit(maxSearchCatalog).
 		SetSort(bson.D{{Key: "analyzedAt", Value: -1}, {Key: "_id", Value: -1}})
-	cursor, err := s.structured().Find(ctx, bson.D{{Key: "job.companyId", Value: companyID}}, opts)
+	cursor, err := s.structured().Find(ctx, publicCompanyJobs(companyID), opts)
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +355,9 @@ func (s *Store) GetCatalogJob(ctx context.Context, id string, now time.Time) (ca
 	record, err := s.GetSearch(ctx, id, now)
 	if err != nil {
 		return catalogJob{}, err
+	}
+	if !ListingPublic(record.ListingStatus) {
+		return catalogJob{}, ErrNotFound
 	}
 	jobs, err := s.enrichCompanies(ctx, []catalogJob{CatalogJob(record)})
 	if err != nil || len(jobs) == 0 {

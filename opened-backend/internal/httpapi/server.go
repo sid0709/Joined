@@ -11,8 +11,10 @@ import (
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/staff"
 )
 
 const (
@@ -29,6 +31,8 @@ type Server struct {
 	auth       *auth.Store
 	people     *candidate.Store
 	scouts     *scout.Store
+	hiring     *employer.Store
+	staff      staff.API
 	reader     jobs.ModelReader
 	origins    map[string]struct{}
 	frontend   string
@@ -43,7 +47,7 @@ type Options struct {
 	AdminToken string
 }
 
-func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scouts *scout.Store, reader jobs.ModelReader, opts Options) http.Handler {
+func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scouts *scout.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
 	allowed := make(map[string]struct{}, len(opts.Origins))
 	for _, origin := range opts.Origins {
 		allowed[origin] = struct{}{}
@@ -53,6 +57,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 		auth:       accounts,
 		people:     people,
 		scouts:     scouts,
+		hiring:     hiring,
+		staff:      moderation,
 		reader:     reader,
 		origins:    allowed,
 		frontend:   opts.Frontend,
@@ -67,6 +73,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("POST /v1/auth/company", server.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", server.searchCompanies)
 	mux.HandleFunc("GET /health", server.health)
+	mux.HandleFunc("GET /v1/schedule/{key}", server.getPublicSchedule)
+	mux.HandleFunc("POST /v1/schedule/{key}/accept", server.acceptPublicSchedule)
 	mux.HandleFunc("GET /v1/settings", server.admin(server.settings))
 	mux.HandleFunc("GET /v1/jobs/temp", server.admin(server.listTempJobs))
 	mux.HandleFunc("GET /v1/jobs/scout-temp", server.admin(server.listScoutTempJobs))
@@ -95,6 +103,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("GET /v1/me/applications", server.getApplications)
 	mux.HandleFunc("POST /v1/me/applications", server.postApplication)
 	mux.HandleFunc("PATCH /v1/me/applications/{id}", server.patchApplication)
+	mux.HandleFunc("GET /v1/me/applications/{id}/offer/esign", server.getMyOfferEsign)
+	mux.HandleFunc("POST /v1/me/applications/{id}/offer/esign", server.postMyOfferEsign)
 	mux.HandleFunc("DELETE /v1/me/applications/{id}", server.deleteApplication)
 	mux.HandleFunc("GET /v1/me/interviews", server.getInterviews)
 	mux.HandleFunc("POST /v1/me/interviews", server.postInterview)
@@ -112,8 +122,10 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("GET /v1/company/threads/{id}", server.getCompanyThread)
 	mux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
 	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
+	server.registerEmployer(mux)
 	server.registerScout(mux)
 	server.registerScoutAdmin(mux)
+	server.registerStaffAdmin(mux)
 	return server.withCORS(mux)
 }
 
@@ -311,26 +323,34 @@ func (s *Server) updateCompany(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, company)
 }
 
-func (s *Server) uploadCompanyLogo(w http.ResponseWriter, r *http.Request) {
+func readLogoUpload(w http.ResponseWriter, r *http.Request) ([]byte, string, bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, jobs.MaxLogoBytes+64<<10)
 	if err := r.ParseMultipartForm(jobs.MaxLogoBytes); err != nil {
 		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
-		return
+		return nil, "", false
 	}
 	file, _, err := r.FormFile("logo")
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "choose a logo image")
-		return
+		return nil, "", false
 	}
 	defer file.Close()
 	data, err := io.ReadAll(io.LimitReader(file, jobs.MaxLogoBytes+1))
 	if err != nil || len(data) > jobs.MaxLogoBytes {
 		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
-		return
+		return nil, "", false
 	}
 	contentType := jobs.LogoContentType(data)
 	if contentType == "" {
 		writeError(w, http.StatusBadRequest, "logo must be a PNG, JPEG, WebP, or GIF under 2 MB")
+		return nil, "", false
+	}
+	return data, contentType, true
+}
+
+func (s *Server) uploadCompanyLogo(w http.ResponseWriter, r *http.Request) {
+	data, contentType, ok := readLogoUpload(w, r)
+	if !ok {
 		return
 	}
 
@@ -436,7 +456,8 @@ func (s *Server) getSearchCompany(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not load company")
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	query := r.URL.Query()
+	writeJSON(w, http.StatusOK, page.Filtered(query.Get("department"), query.Get("location")))
 }
 
 func (s *Server) listSearchJobs(w http.ResponseWriter, r *http.Request) {

@@ -3,7 +3,7 @@ import { adminApiUrl, adminHeaders } from "@/lib/server/env";
 type Ctx = { params: Promise<{ path: string[] }> };
 
 /** Request headers the browser may pass through. */
-const FORWARDED_REQUEST = ["Content-Type", "Accept"];
+const FORWARDED_REQUEST = ["Content-Type", "Accept", "Idempotency-Key"];
 /** Response headers the browser needs, including image types for logos. */
 const FORWARDED_RESPONSE = ["Content-Type", "Cache-Control"];
 

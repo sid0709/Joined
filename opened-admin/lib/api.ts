@@ -14,15 +14,19 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
-/** Sends JSON and parses the JSON answer. */
+/** Sends JSON and parses the JSON answer. Extra headers (e.g. Idempotency-Key) are forwarded. */
 export function adminSend<T>(
   path: string,
   method: "POST" | "PATCH" | "PUT" | "DELETE",
   body?: unknown,
+  headers?: Record<string, string>,
 ) {
   return adminFetch<T>(path, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: {
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...headers,
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }

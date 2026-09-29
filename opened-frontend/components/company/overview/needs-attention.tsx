@@ -2,6 +2,7 @@ import {
   Button,
   Card,
   Divider,
+  EmptyState,
   Glyph,
   HStack,
   Stack,
@@ -9,8 +10,9 @@ import {
   type GlyphName,
 } from "@openseat/design-system";
 import { SectionCard } from "@/components/section-card";
-import { APPLICANTS, BILLING, COMPANY_INTERVIEWS, COMPANY_JOBS } from "@/lib/company";
+import type { Applicant, BillingAccount, CompanyInterview, CompanyJob } from "@/lib/company";
 import { formatCount } from "@/lib/jobs";
+import { formatCents } from "@/lib/money";
 import { ROUTES } from "@/lib/routes";
 
 type Task = {
@@ -24,10 +26,16 @@ type Task = {
 
 const ICON_TILE = 36;
 
-function tasks(): Task[] {
-  const fresh = APPLICANTS.filter((person) => person.columnId === "new");
-  const awaiting = COMPANY_INTERVIEWS.filter((interview) => interview.status === "awaiting");
-  const paused = COMPANY_JOBS.filter((job) => job.status === "paused");
+function tasks(
+  applicants: Applicant[],
+  interviews: CompanyInterview[],
+  jobs: CompanyJob[],
+  billing: BillingAccount,
+  canAddBalance: boolean,
+): Task[] {
+  const fresh = applicants.filter((person) => person.columnId === "new");
+  const awaiting = interviews.filter((interview) => interview.status === "awaiting");
+  const paused = jobs.filter((job) => job.status === "paused");
   const list: Task[] = [];
 
   if (fresh.length > 0)
@@ -35,20 +43,26 @@ function tasks(): Task[] {
       id: "review",
       icon: "users",
       title: `Review ${formatCount(fresh.length, "new applicant")}`,
-      detail: `${fresh.filter((person) => person.verified).length} verified · newest ${fresh[0].name}`,
+      detail: `Newest ${fresh[0].name}`,
       action: "Review",
       href: ROUTES.companyApplicants,
     });
-  awaiting.forEach((interview) =>
+  awaiting.forEach((interview) => {
+    const offered = interview.proposedSlots?.length ?? 0;
+    const detail = interview.selfScheduleUrl
+      ? `${interview.round} · self-schedule ready`
+      : offered > 0
+        ? `${interview.round} · ${offered} time${offered === 1 ? "" : "s"} offered`
+        : `${interview.round} · offer times or share a self-schedule link`;
     list.push({
       id: interview.id,
       icon: "calendar",
       title: `${interview.candidate} is waiting for a slot`,
-      detail: interview.round,
+      detail,
       action: "Offer times",
       href: ROUTES.companyInterviews,
-    }),
-  );
+    });
+  });
   paused.forEach((job) =>
     list.push({
       id: job.id,
@@ -59,51 +73,91 @@ function tasks(): Task[] {
       href: ROUTES.companyJobs,
     }),
   );
-  if (!BILLING.paymentMethod)
-    list.push({
-      id: "billing",
-      icon: "lock",
-      title: "Add a payment method",
-      detail: `${BILLING.freeInterviewsRemaining} free interviews left before billing starts.`,
-      action: "Add",
-      href: ROUTES.companyBilling,
-    });
+  if (billing.balanceCents < billing.pricePerInterviewCents) {
+    const left = formatCents(billing.balanceCents, billing.currency);
+    const price = formatCents(billing.pricePerInterviewCents, billing.currency);
+    list.push(
+      canAddBalance
+        ? {
+            id: "billing",
+            icon: "lock",
+            title: "Add purchase balance",
+            detail: `${left} left. An interview costs ${price}.`,
+            action: "Add",
+            href: ROUTES.companyBilling,
+          }
+        : {
+            id: "billing",
+            icon: "lock",
+            title: "Purchase balance is low",
+            detail: `${left} left. An interview costs ${price}. The company creator adds balance.`,
+            action: "",
+            href: "",
+          },
+    );
+  }
   return list;
 }
 
 /** The short list of things only a person can unblock. */
-export function NeedsAttention() {
-  const items = tasks();
+export function NeedsAttention({
+  applicants,
+  interviews,
+  jobs,
+  billing,
+  canAddBalance,
+}: {
+  applicants: Applicant[];
+  interviews: CompanyInterview[];
+  jobs: CompanyJob[];
+  billing: BillingAccount;
+  canAddBalance: boolean;
+}) {
+  const items = tasks(applicants, interviews, jobs, billing, canAddBalance);
   return (
     <SectionCard
       title="Needs your attention"
-      description={`${formatCount(items.length, "item")} waiting on your team.`}
+      description={
+        items.length === 0
+          ? "Nothing is waiting on your team."
+          : `${formatCount(items.length, "item")} waiting on your team.`
+      }
     >
-      <Stack gap={4}>
-        {items.map((task, index) => (
-          <Stack key={task.id} gap={4}>
-            {index > 0 ? <Divider /> : null}
-            <HStack hAlign="between" vAlign="center" gap={3}>
-              <HStack gap={3} vAlign="center">
-                <Card variant="blue" padding={0} width={ICON_TILE} height={ICON_TILE}>
-                  <Stack hAlign="center" vAlign="center" height="100%">
-                    <Text color="accent">
-                      <Glyph name={task.icon} />
+      {items.length === 0 ? (
+        <EmptyState
+          isCompact
+          title="You’re caught up"
+          description="New applicants, awaiting slots, and low balance show up here."
+        />
+      ) : (
+        <Stack gap={4}>
+          {items.map((task, index) => (
+            <Stack key={task.id} gap={4}>
+              {index > 0 ? <Divider /> : null}
+              <HStack hAlign="between" vAlign="center" gap={3}>
+                <HStack gap={3} vAlign="center">
+                  <Card variant="blue" padding={0} width={ICON_TILE} height={ICON_TILE}>
+                    <Stack hAlign="center" vAlign="center" height="100%">
+                      <Text color="accent">
+                        <Glyph name={task.icon} />
+                      </Text>
+                    </Stack>
+                  </Card>
+                  <Stack gap={0.5}>
+                    <Text weight="medium">{task.title}</Text>
+                    <Text type="supporting" color="secondary">
+                      {task.detail}
                     </Text>
                   </Stack>
-                </Card>
-                <Stack gap={0.5}>
-                  <Text weight="medium">{task.title}</Text>
-                  <Text type="supporting" color="secondary">
-                    {task.detail}
-                  </Text>
-                </Stack>
+                </HStack>
+                {task.href ? (
+                  <Button label={task.action} variant="ghost" size="sm" href={task.href} />
+                ) : null}
               </HStack>
-              <Button label={task.action} variant="ghost" size="sm" href={task.href} />
-            </HStack>
-          </Stack>
-        ))}
-      </Stack>
+            </Stack>
+          ))}
+        </Stack>
+      )}
     </SectionCard>
   );
 }

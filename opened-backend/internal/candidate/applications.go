@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -18,16 +19,20 @@ var applicationStages = map[string]struct{}{
 }
 
 type ApplyInput struct {
-	JobID        string `json:"jobId"`
-	Title        string `json:"title"`
-	Company      string `json:"company"`
-	Location     string `json:"location"`
-	Salary       string `json:"salary"`
-	Source       string `json:"source"`
-	Resume       string `json:"resume"`
-	Stage        string `json:"columnId"`
-	Note         string `json:"note"`
-	ClosedReason string `json:"closedReason"`
+	JobID            string            `json:"jobId"`
+	Title            string            `json:"title"`
+	Company          string            `json:"company"`
+	Location         string            `json:"location"`
+	Salary           string            `json:"salary"`
+	Source           string            `json:"source"`
+	Resume           string            `json:"resume"`
+	Stage            string            `json:"columnId"`
+	Note             string            `json:"note"`
+	ClosedReason     string            `json:"closedReason"`
+	ScreeningAnswers []ScreeningAnswer `json:"screeningAnswers"`
+	ReferralSource   string            `json:"referralSource"`
+	ConsentAt        time.Time         `json:"consentAt,omitempty"`
+	ConsentVersion   string            `json:"consentVersion"`
 }
 
 func (s *Store) ListBoard(ctx context.Context, userID string) ([]Application, error) {
@@ -57,15 +62,21 @@ func (s *Store) AppliedJobIDs(ctx context.Context, userID string) ([]string, err
 }
 
 func (s *Store) Apply(ctx context.Context, userID string, input ApplyInput, now time.Time) (Application, error) {
-	app, err := buildApplication(userID, input, now)
-	if err != nil {
-		return Application{}, err
-	}
-	if input.JobID != "" {
-		listing, err := s.listing(ctx, input.JobID)
+	var listing Listing
+	var questions []jobs.ScreeningQuestion
+	if strings.TrimSpace(input.JobID) != "" {
+		found, err := s.listing(ctx, input.JobID)
 		if err != nil {
 			return Application{}, err
 		}
+		listing = found
+		questions = found.ScreeningQuestions
+	}
+	app, err := buildApplication(userID, input, questions, now)
+	if err != nil {
+		return Application{}, err
+	}
+	if strings.TrimSpace(input.JobID) != "" {
 		app.JobID = listing.ID
 		app.CompanyID = listing.CompanyID
 		app.Title = listing.Title
@@ -111,6 +122,7 @@ func (s *Store) PatchApplication(ctx context.Context, userID, id string, patch A
 	if err != nil {
 		return Application{}, err
 	}
+	prevStage := CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
 	if patch.ColumnID != nil {
 		stage := *patch.ColumnID
 		if _, ok := applicationStages[stage]; !ok {
@@ -133,6 +145,7 @@ func (s *Store) PatchApplication(ctx context.Context, userID, id string, patch A
 	if patch.NextStep != nil {
 		app.NextStep = clip(*patch.NextStep, 120)
 	}
+	recordStageEntry(&app, prevStage, CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	app.Updated = now.UTC()
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}, {Key: "userId", Value: userID}}, app)
 	if err != nil {
@@ -174,6 +187,15 @@ func (s *Store) listApplications(ctx context.Context, userID string) ([]Applicat
 	return items, nil
 }
 
+// ApplicationForUser loads one application owned by this candidate.
+// A different user's id is not found.
+func (s *Store) ApplicationForUser(ctx context.Context, userID, id string) (Application, error) {
+	if strings.TrimSpace(userID) == "" || strings.TrimSpace(id) == "" {
+		return Application{}, ErrNotFound
+	}
+	return s.applicationByID(ctx, userID, id)
+}
+
 func (s *Store) applicationByID(ctx context.Context, userID, id string) (Application, error) {
 	var app Application
 	err := s.collection(applicationsCollection).FindOne(ctx, bson.D{{Key: "id", Value: id}, {Key: "userId", Value: userID}}).Decode(&app)
@@ -203,6 +225,7 @@ func (s *Store) setApplicationStage(ctx context.Context, userID, id, stage, even
 	if err != nil {
 		return err
 	}
+	prevStage := CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason)
 	if app.ColumnID == StageOffer || app.ColumnID == StageClosed {
 		if stage == StageInterview {
 			return nil
@@ -219,11 +242,12 @@ func (s *Store) setApplicationStage(ctx context.Context, userID, id, stage, even
 	if stage != StageClosed {
 		app.ClosedReason = ""
 	}
+	recordStageEntry(&app, prevStage, CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	_, err = s.collection(applicationsCollection).ReplaceOne(ctx, bson.D{{Key: "id", Value: app.ID}}, app)
 	return err
 }
 
-func buildApplication(userID string, input ApplyInput, now time.Time) (Application, error) {
+func buildApplication(userID string, input ApplyInput, questions []jobs.ScreeningQuestion, now time.Time) (Application, error) {
 	stage := input.Stage
 	if stage == "" || stage == StageSaved {
 		stage = StageApplied
@@ -249,19 +273,19 @@ func buildApplication(userID string, input ApplyInput, now time.Time) (Applicati
 		label = "Added to tracker"
 	}
 	app := Application{
-		ID:        id,
-		ColumnID:  stage,
-		UserID:    userID,
-		JobID:     strings.TrimSpace(input.JobID),
-		Title:     title,
-		Company:   company,
-		Location:  clip(input.Location, 80),
-		Salary:    clip(input.Salary, 40),
-		Source:    applicationSource(input.Source),
-		Resume:    resume,
-		Match:     0,
-		Updated:   now.UTC(),
-		Activity:  []ApplicationEvent{{ID: id + "-applied", Label: label, Date: now.UTC()}},
+		ID:       id,
+		ColumnID: stage,
+		UserID:   userID,
+		JobID:    strings.TrimSpace(input.JobID),
+		Title:    title,
+		Company:  company,
+		Location: clip(input.Location, 80),
+		Salary:   clip(input.Salary, 40),
+		Source:   applicationSource(input.Source),
+		Resume:   resume,
+		Match:    0,
+		Updated:  now.UTC(),
+		Activity: []ApplicationEvent{{ID: id + "-applied", Label: label, Date: now.UTC()}},
 	}
 	if input.Note != "" {
 		app.Activity = prependEvent(app.Activity, "Note sent with application", now)
@@ -272,12 +296,110 @@ func buildApplication(userID string, input ApplyInput, now time.Time) (Applicati
 			app.ClosedReason = "No response"
 		}
 	}
+	answers, referral, version, consent, err := normalizeIntake(input, questions)
+	if err != nil {
+		return Application{}, err
+	}
+	app.ScreeningAnswers = answers
+	app.ReferralSource = referral
+	app.ConsentVersion = version
+	app.ConsentAt = consent
+	recordStageEntry(&app, "", CompanyBoardStage(app.ColumnID, app.CompanyStage, app.ClosedReason), now)
 	return normalizeApplication(app), nil
+}
+
+const (
+	// maxScreeningAnswers and maxAnswerRunes match intake.ts (8 questions, 280 chars).
+	maxScreeningAnswers = 8
+	maxAnswerRunes      = 280
+	maxReferralSource   = 40
+	maxConsentVersion   = 40
+	maxQuestionID       = 80
+	maxAnswerPrompt     = 500
+)
+
+func normalizeIntake(input ApplyInput, questions []jobs.ScreeningQuestion) ([]ScreeningAnswer, string, string, time.Time, error) {
+	if len(input.ScreeningAnswers) > maxScreeningAnswers {
+		return nil, "", "", time.Time{}, ErrInvalidInput
+	}
+	referral := clip(input.ReferralSource, maxReferralSource)
+	version := clip(input.ConsentVersion, maxConsentVersion)
+	var consent time.Time
+	if !input.ConsentAt.IsZero() {
+		consent = input.ConsentAt.UTC()
+	}
+	byQuestion := make(map[string]jobs.ScreeningQuestion, len(questions))
+	needsConsent := input.ScreeningAnswers != nil || referral != "" || version != ""
+	for _, question := range questions {
+		byQuestion[question.ID] = question
+		if question.Required {
+			needsConsent = true
+		}
+	}
+	if needsConsent && consent.IsZero() {
+		return nil, "", "", time.Time{}, ErrInvalidInput
+	}
+
+	answers := make([]ScreeningAnswer, 0, len(input.ScreeningAnswers))
+	seen := map[string]struct{}{}
+	for _, item := range input.ScreeningAnswers {
+		id := strings.TrimSpace(item.QuestionID)
+		if id == "" || len([]rune(id)) > maxQuestionID {
+			return nil, "", "", time.Time{}, ErrInvalidInput
+		}
+		if _, ok := seen[id]; ok {
+			return nil, "", "", time.Time{}, ErrInvalidInput
+		}
+		seen[id] = struct{}{}
+		value := clip(item.Value, maxAnswerRunes)
+		prompt := clip(item.Prompt, maxAnswerPrompt)
+		knockedOut := item.KnockedOut
+		if question, ok := byQuestion[id]; ok {
+			if question.Prompt != "" {
+				prompt = question.Prompt
+			}
+			knockedOut = answerKnocksOut(question, value)
+		}
+		answers = append(answers, ScreeningAnswer{
+			QuestionID: id,
+			Prompt:     prompt,
+			Value:      value,
+			KnockedOut: knockedOut,
+		})
+	}
+	for _, question := range questions {
+		if !question.Required {
+			continue
+		}
+		if _, ok := seen[question.ID]; !ok {
+			return nil, "", "", time.Time{}, ErrInvalidInput
+		}
+		for _, item := range answers {
+			if item.QuestionID == question.ID && item.Value == "" {
+				return nil, "", "", time.Time{}, ErrInvalidInput
+			}
+		}
+	}
+	return answers, referral, version, consent, nil
+}
+
+func answerKnocksOut(question jobs.ScreeningQuestion, value string) bool {
+	expected := strings.TrimSpace(question.KnockoutAnswer)
+	if expected == "" {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(value), expected)
 }
 
 func normalizeApplication(app Application) Application {
 	if app.Activity == nil {
 		app.Activity = []ApplicationEvent{}
+	}
+	if app.ScreeningAnswers == nil {
+		app.ScreeningAnswers = []ScreeningAnswer{}
+	}
+	if app.Tags == nil {
+		app.Tags = []string{}
 	}
 	return app
 }
@@ -304,7 +426,7 @@ func BoardItems(apps []Application, saved []SavedJob) []Application {
 		if _, ok := applied[item.JobID]; ok {
 			continue
 		}
-		out = append(out, savedAsApplication(item))
+		out = append(out, normalizeApplication(savedAsApplication(item)))
 	}
 	return out
 }

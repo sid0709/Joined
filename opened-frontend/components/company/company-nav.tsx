@@ -19,10 +19,12 @@ import {
   type GlyphName,
 } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { APPLICANTS, COMPANY_JOBS } from "@/lib/company";
 import type { AuthCompany } from "@/lib/auth/types";
+import { companyRoleLabel, sessionHiringRole } from "@/lib/company/access";
+import { canPermission } from "@/lib/rbac";
 import {
   COMPANY_ABOUT_PAGE,
+  COMPANY_ANALYTICS_PAGE,
   COMPANY_APPLICANTS_PAGE,
   COMPANY_BILLING_PAGE,
   COMPANY_HOME_PAGE,
@@ -36,53 +38,90 @@ import {
 } from "@/lib/routes";
 
 const LOGO_SIZE = 40;
-const OPEN_JOBS = COMPANY_JOBS.filter((job) => job.status === "open").length;
-const NEW_APPLICANTS = APPLICANTS.filter((person) => person.columnId === "new").length;
 
 type NavLink = PageLink & { icon: GlyphName; count?: number };
 
-const GROUPS: { title: string; links: NavLink[] }[] = [
-  {
-    title: "Hiring",
-    links: [
-      { ...COMPANY_HOME_PAGE, icon: "home" },
-      { ...COMPANY_JOBS_PAGE, icon: "folder", count: OPEN_JOBS },
-      { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: NEW_APPLICANTS },
-      { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
-      { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { ...COMPANY_ABOUT_PAGE, icon: "seat" },
-      { ...COMPANY_TEAM_PAGE, icon: "users" },
-      { ...COMPANY_BILLING_PAGE, icon: "file" },
-      { ...COMPANY_SETTINGS_PAGE, icon: "settings" },
-    ],
-  },
-];
-
-const LINKS = GROUPS.flatMap((group) => group.links);
+function groups(
+  openJobs: number,
+  newApplicants: number,
+  showTeam: boolean,
+  showBilling: boolean,
+  showSettings: boolean,
+  showAnalytics: boolean,
+): { title: string; links: NavLink[] }[] {
+  const company: NavLink[] = [{ ...COMPANY_ABOUT_PAGE, icon: "seat" }];
+  if (showTeam) company.push({ ...COMPANY_TEAM_PAGE, icon: "users" });
+  if (showBilling) company.push({ ...COMPANY_BILLING_PAGE, icon: "file" });
+  if (showSettings) company.push({ ...COMPANY_SETTINGS_PAGE, icon: "settings" });
+  const hiring: NavLink[] = [
+    { ...COMPANY_HOME_PAGE, icon: "home" },
+    { ...COMPANY_JOBS_PAGE, icon: "folder", count: openJobs || undefined },
+    { ...COMPANY_APPLICANTS_PAGE, icon: "users", count: newApplicants || undefined },
+    { ...COMPANY_INTERVIEWS_PAGE, icon: "calendar" },
+    { ...COMPANY_MESSAGES_PAGE, icon: "mail" },
+  ];
+  if (showAnalytics) hiring.push({ ...COMPANY_ANALYTICS_PAGE, icon: "grid" });
+  return [
+    { title: "Hiring", links: hiring },
+    { title: "Company", links: company },
+  ];
+}
 
 /**
  * The deepest link that contains the path — /company/jobs/new still lights up Jobs.
  * Overview only matches itself, so your own pages (My profile, Account settings)
  * light up nothing instead of pretending to be the company overview.
  */
-function activeHref(pathname: string) {
-  return LINKS.filter(
-    (link) =>
-      pathname === link.href ||
-      (link.href !== ROUTES.company && pathname.startsWith(`${link.href}/`)),
-  ).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+function activeHref(pathname: string, links: NavLink[]) {
+  return links
+    .filter(
+      (link) =>
+        pathname === link.href ||
+        (link.href !== ROUTES.company && pathname.startsWith(`${link.href}/`)),
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
 /** The company workspace switcher: who you’re hiring for, and where you can go. */
-export function CompanyNav({ company, unread = 0 }: { company: AuthCompany; unread?: number }) {
+export function CompanyNav({
+  company,
+  unread = 0,
+  openJobs = 0,
+  newApplicants = 0,
+}: {
+  company: AuthCompany;
+  unread?: number;
+  openJobs?: number;
+  newApplicants?: number;
+}) {
   const pathname = usePathname();
-  const active = activeHref(pathname);
-  const groups = GROUPS.map((group) => ({
+  const hiringRole = sessionHiringRole(company);
+
+  const showTeam =
+    canPermission(hiringRole, "team.invite") ||
+    canPermission(hiringRole, "team.manage_roles") ||
+    canPermission(hiringRole, "audit.view");
+  const showBilling = canPermission(hiringRole, "billing.view");
+  const showSettings = canPermission(hiringRole, "team.manage_roles");
+  const showAnalytics = canPermission(hiringRole, "analytics.view");
+
+  const links = groups(
+    openJobs,
+    newApplicants,
+    showTeam,
+    showBilling,
+    showSettings,
+    showAnalytics,
+  ).flatMap((group) => group.links);
+  const active = activeHref(pathname, links);
+  const sections = groups(
+    openJobs,
+    newApplicants,
+    showTeam,
+    showBilling,
+    showSettings,
+    showAnalytics,
+  ).map((group) => ({
     ...group,
     links: group.links.map((link) =>
       link.href === ROUTES.companyMessages ? { ...link, count: unread || undefined } : link,
@@ -105,13 +144,13 @@ export function CompanyNav({ company, unread = 0 }: { company: AuthCompany; unre
                 <Stack gap={0.5}>
                   <Text weight="semibold">{company.name}</Text>
                   <Text type="supporting" color="secondary">
-                    Hiring workspace
+                    {companyRoleLabel(company)}
                   </Text>
                 </Stack>
               </HStack>
             }
           >
-            {groups.map((group) => (
+            {sections.map((group) => (
               <SideNavSection key={group.title} title={group.title}>
                 {group.links.map((link) => (
                   <SideNavItem
@@ -134,7 +173,7 @@ export function CompanyNav({ company, unread = 0 }: { company: AuthCompany; unre
       </Show>
       <Hide from="lg">
         <TabList value={active ?? ""} onChange={() => {}} overflow="scroll" hasDivider>
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <Tab key={link.href} value={link.href} label={link.label} href={link.href} />
           ))}
         </TabList>

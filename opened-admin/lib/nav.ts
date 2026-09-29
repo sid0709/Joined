@@ -10,14 +10,25 @@ export const ROUTES = {
   jobs: "/jobs",
   tempJobs: "/jobs/temp",
   scoutJobs: "/jobs/scout",
+  directReview: "/jobs/direct-review",
+  directJob: (id: string) => `/jobs/direct-review/${id}`,
   companies: "/companies",
+  companyVerification: "/trust/company-verification",
+  companyCase: (id: string) => `/trust/company-verification/${id}`,
+  cases: "/trust/cases",
+  createCase: "/trust/cases/new",
+  moderationCase: (id: string) => `/trust/cases/${id}`,
+  reports: "/trust/reports",
+  fileReport: "/trust/reports/new",
+  report: (id: string) => `/trust/reports/${id}`,
+  retentionOps: "/ops",
 } as const;
 
 export type NavLink = {
   href: string;
   label: string;
   icon: GlyphName;
-  badge?: "queue" | "payouts" | "verifications";
+  badge?: "queue" | "payouts" | "verifications" | "companyVerification" | "directReview" | "cases";
 };
 
 export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
@@ -36,7 +47,26 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
       { href: ROUTES.jobs, label: "Jobs", icon: "folder" },
       { href: ROUTES.tempJobs, label: "Temp", icon: "archive" },
       { href: ROUTES.scoutJobs, label: "Scout jobs", icon: "star" },
+      { href: ROUTES.directReview, label: "Direct review", icon: "clock", badge: "directReview" },
     ],
+  },
+  {
+    title: "Trust",
+    links: [
+      {
+        href: ROUTES.companyVerification,
+        label: "Company claims",
+        icon: "check",
+        badge: "companyVerification",
+      },
+      { href: ROUTES.cases, label: "Cases", icon: "bell", badge: "cases" },
+      { href: ROUTES.reports, label: "Reports", icon: "chat" },
+      { href: ROUTES.createCase, label: "Create case", icon: "plus" },
+    ],
+  },
+  {
+    title: "Ops",
+    links: [{ href: ROUTES.retentionOps, label: "Retention", icon: "lock" }],
   },
   {
     title: "Directory",

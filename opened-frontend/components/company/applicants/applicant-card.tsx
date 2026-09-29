@@ -12,7 +12,8 @@ import {
   Text,
   icons,
 } from "@openseat/design-system";
-import { STRONG_FIT, jobTitle, type Applicant } from "@/lib/company";
+import { STRONG_FIT, type Applicant } from "@/lib/company";
+import { OFFER_STATUS_LABEL } from "@/lib/offer-hire";
 import { relativeDay } from "@/lib/dates";
 
 const AVATAR_SIZE = 36;
@@ -29,7 +30,7 @@ export function ApplicantCard({ applicant, onOpen }: { applicant: Applicant; onO
               {applicant.name}
             </Text>
             <Text type="supporting" color="secondary" maxLines={1}>
-              {jobTitle(applicant.jobId)}
+              {applicant.jobTitle}
             </Text>
           </Stack>
         </HStack>
@@ -45,6 +46,21 @@ export function ApplicantCard({ applicant, onOpen }: { applicant: Applicant; onO
             <Badge label="Unverified" variant="warning" />
           )}
           {applicant.assisted !== "direct" ? <Badge label="Assisted" variant="purple" /> : null}
+          {applicant.offer && (applicant.columnId === "offer" || applicant.columnId === "hired") ? (
+            <Badge
+              label={OFFER_STATUS_LABEL[applicant.offer.status]}
+              variant={
+                applicant.offer.status === "accepted" || applicant.offer.status === "sent"
+                  ? "success"
+                  : applicant.offer.status === "declined"
+                    ? "error"
+                    : "warning"
+              }
+            />
+          ) : null}
+          {(applicant.tags ?? []).slice(0, 2).map((tag) => (
+            <Badge key={tag} label={tag} variant="neutral" />
+          ))}
         </HStack>
 
         <HStack hAlign="between" vAlign="center">

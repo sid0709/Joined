@@ -5,6 +5,8 @@ export {
   SENIORITY_OPTIONS,
   WORKPLACE_LABEL,
   WORKPLACE_OPTIONS,
+  CURRENCY_OPTIONS,
+  DEFAULT_CURRENCY,
 } from "@openseat/job-schema";
 
 import type { Job, JobSource, Pay } from "./types";

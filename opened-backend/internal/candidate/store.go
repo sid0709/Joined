@@ -48,7 +48,9 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		{profilesCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{savedJobsCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "jobId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{applicationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "jobId", Value: 1}}, Options: options.Index().SetUnique(true)}},
+		{applicationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "companyId", Value: 1}, {Key: "jobId", Value: 1}}}},
 		{interviewsCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "googleEventId", Value: 1}}, Options: options.Index().SetUnique(true).SetSparse(true)}},
+		{interviewsCollection, mongo.IndexModel{Keys: bson.D{{Key: "selfScheduleToken", Value: 1}}, Options: options.Index().SetUnique(true).SetSparse(true)}},
 		{calendarCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{oauthStatesCollection, mongo.IndexModel{Keys: bson.D{{Key: "state", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{threadsCollection, mongo.IndexModel{Keys: bson.D{{Key: "applicationId", Value: 1}}, Options: options.Index().SetUnique(true)}},
@@ -107,6 +109,9 @@ func (s *Store) DeleteCompany(ctx context.Context, companyID string) error {
 		return err
 	}
 	if _, err := s.collection(savedJobsCollection).DeleteMany(ctx, filter); err != nil {
+		return err
+	}
+	if _, err := s.collection(interviewsCollection).DeleteMany(ctx, filter); err != nil {
 		return err
 	}
 	return s.deleteThreads(ctx, filter)

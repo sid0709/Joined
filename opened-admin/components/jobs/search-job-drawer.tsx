@@ -28,6 +28,7 @@ import {
   WORKPLACE_OPTIONS,
 } from "@openseat/job-schema";
 import { ListField } from "@/components/list-field";
+import { DirectJobTakedown } from "@/components/trust/direct-job-takedown";
 import { adminFetch, adminSend } from "@/lib/api";
 import { formatCount } from "@/lib/format";
 import {
@@ -145,6 +146,9 @@ function SearchJobDetail({
         {!draft && !error ? <Skeleton width="100%" height={LOADING_HEIGHT} /> : null}
         {draft && record ? (
           <Stack gap={5}>
+            {record.job.source === "direct" || record.source === "direct" ? (
+              <DirectJobTakedown jobId={record.job.id} />
+            ) : null}
             <MetadataList columns={2}>
               <MetadataListItem label="Source">
                 {record.source || record.job.source}

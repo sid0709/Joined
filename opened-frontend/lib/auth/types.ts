@@ -13,6 +13,8 @@ export type AuthCompany = {
   url?: string;
   logo?: string;
   role: "owner" | "member";
+  /** Company hiring RBAC role from session (Einstein). Creator is treated as owner. */
+  hiringRole?: string;
   /** True when this person created the company page. */
   isCreator?: boolean;
 };

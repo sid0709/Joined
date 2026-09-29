@@ -2,6 +2,7 @@ package candidate
 
 import (
 	"context"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -13,6 +14,9 @@ import (
 var (
 	timePattern = regexp.MustCompile(`^\d{2}:\d{2}$`)
 	datePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
+	// selfSchedulePath is the candidate page in opened-frontend schedule-join.ts.
+	selfSchedulePath = "/schedule/"
 )
 
 var defaultPrepLabels = []string{
@@ -23,17 +27,25 @@ var defaultPrepLabels = []string{
 }
 
 type InterviewInput struct {
-	ApplicationID string        `json:"applicationId"`
-	Round         string        `json:"round"`
-	Date          string        `json:"date"`
-	Start         string        `json:"start"`
-	End           string        `json:"end"`
-	Format        string        `json:"format"`
-	Where         string        `json:"where"`
-	Interviewers  []Interviewer `json:"interviewers"`
-	Status        string        `json:"status"`
-	Source        string        `json:"source"`
-	Prep          []PrepTask    `json:"prep"`
+	ApplicationID string         `json:"applicationId"`
+	Round         string         `json:"round"`
+	Date          string         `json:"date"`
+	Start         string         `json:"start"`
+	End           string         `json:"end"`
+	Format        string         `json:"format"`
+	Where         string         `json:"where"`
+	Interviewers  []Interviewer  `json:"interviewers"`
+	Status        string         `json:"status"`
+	Source        string         `json:"source"`
+	Prep          []PrepTask     `json:"prep"`
+	MeetingURL    string         `json:"-"`
+	ScheduleMode  string         `json:"-"`
+	ProposedSlots []ProposedSlot `json:"-"`
+	SelfSchedule  bool           `json:"-"`
+	CompanyStatus string         `json:"-"`
+	PublicOrigin  string         `json:"-"`
+	// OpenSlot allows a round with no locked date (propose / self-schedule).
+	OpenSlot bool `json:"-"`
 }
 
 type InterviewPatch struct {
@@ -48,7 +60,11 @@ type InterviewPatch struct {
 }
 
 func (s *Store) ListInterviews(ctx context.Context, userID string) ([]Interview, error) {
-	cursor, err := s.collection(interviewsCollection).Find(ctx, bson.D{{Key: "userId", Value: userID}}, options.Find().SetSort(bson.D{{Key: "date", Value: 1}, {Key: "start", Value: 1}}))
+	filter := bson.D{
+		{Key: "userId", Value: userID},
+		{Key: "companyStatus", Value: bson.D{{Key: "$ne", Value: CompanyStatusAwaiting}}},
+	}
+	cursor, err := s.collection(interviewsCollection).Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "date", Value: 1}, {Key: "start", Value: 1}}))
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +163,7 @@ func (s *Store) PatchInterview(ctx context.Context, userID, id string, patch Int
 		item.Round = clip(*patch.Round, 80)
 	}
 	if patch.Where != nil {
-		item.Where = clip(*patch.Where, 200)
+		item.Where = clip(*patch.Where, MaxWhereLen)
 	}
 	if patch.Interviewers != nil {
 		item.Interviewers = *patch.Interviewers
@@ -174,15 +190,12 @@ func (s *Store) interviewByID(ctx context.Context, userID, id string) (Interview
 
 func buildInterview(userID string, app Application, input InterviewInput, now time.Time) (Interview, error) {
 	round := clip(input.Round, 80)
-	if round == "" || !datePattern.MatchString(input.Date) || !timePattern.MatchString(input.Start) {
+	if round == "" {
 		return Interview{}, ErrInvalidInput
 	}
-	end := input.End
-	if end == "" {
-		end = input.Start
-	}
-	if !timePattern.MatchString(end) {
-		return Interview{}, ErrInvalidInput
+	date, start, end, err := slotTimes(input)
+	if err != nil {
+		return Interview{}, err
 	}
 	format := input.Format
 	if format == "" {
@@ -212,7 +225,7 @@ func buildInterview(userID string, app Application, input InterviewInput, now ti
 	if len(prep) == 0 {
 		prep = defaultPrep(id)
 	}
-	where := clip(input.Where, 200)
+	where := clip(input.Where, MaxWhereLen)
 	if where == "" {
 		where = format
 	}
@@ -228,8 +241,8 @@ func buildInterview(userID string, app Application, input InterviewInput, now ti
 		Company:       app.Company,
 		Role:          app.Title,
 		Round:         round,
-		Date:          input.Date,
-		Start:         input.Start,
+		Date:          date,
+		Start:         start,
 		End:           end,
 		Format:        format,
 		Where:         where,
@@ -237,7 +250,57 @@ func buildInterview(userID string, app Application, input InterviewInput, now ti
 		Status:        status,
 		Source:        source,
 		Prep:          prep,
+		MeetingURL:    clip(input.MeetingURL, MaxWhereLen),
+		ScheduleMode:  input.ScheduleMode,
+		ProposedSlots: input.ProposedSlots,
+		SelfSchedule:  input.SelfSchedule,
 	}, nil
+}
+
+func slotTimes(input InterviewInput) (date, start, end string, err error) {
+	date = strings.TrimSpace(input.Date)
+	start = strings.TrimSpace(input.Start)
+	end = strings.TrimSpace(input.End)
+	if input.OpenSlot {
+		if date != "" && !datePattern.MatchString(date) {
+			return "", "", "", ErrInvalidInput
+		}
+		if start != "" && !timePattern.MatchString(start) {
+			return "", "", "", ErrInvalidInput
+		}
+		if end == "" {
+			end = start
+		}
+		if end != "" && !timePattern.MatchString(end) {
+			return "", "", "", ErrInvalidInput
+		}
+		if date == "" {
+			return "", "", "", nil
+		}
+		return date, start, end, nil
+	}
+	if !datePattern.MatchString(date) || !timePattern.MatchString(start) {
+		return "", "", "", ErrInvalidInput
+	}
+	if end == "" {
+		end = start
+	}
+	if !timePattern.MatchString(end) {
+		return "", "", "", ErrInvalidInput
+	}
+	return date, start, end, nil
+}
+
+// publicScheduleURL is the link employers share while a round is awaiting.
+// Origin comes from FRONTEND_ORIGIN. key is the self-schedule token.
+// Legacy callers may still pass an interview id; that path keeps resolving.
+func publicScheduleURL(origin, key string) string {
+	origin = strings.TrimRight(strings.TrimSpace(origin), "/")
+	key = strings.TrimSpace(key)
+	if origin == "" || key == "" {
+		return ""
+	}
+	return origin + selfSchedulePath + url.PathEscape(key)
 }
 
 func defaultPrep(id string) []PrepTask {

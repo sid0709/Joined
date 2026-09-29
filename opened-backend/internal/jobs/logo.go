@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	// MaxLogoBytes is the largest logo an admin can upload.
+	// MaxLogoBytes is the largest logo a company page can store.
 	MaxLogoBytes     = 2 << 20
 	logoFetchTimeout = 8 * time.Second
 	logoUserAgent    = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"

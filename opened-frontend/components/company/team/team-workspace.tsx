@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Badge,
+  Banner,
   Button,
   Grid,
   HStack,
@@ -17,53 +18,114 @@ import {
   type TableColumn,
 } from "@openseat/design-system";
 import { SettingsGroup } from "@/components/settings-group";
-import { ROLE_META, TEAM, TEAM_EMAIL_DOMAIN, type TeamMember, type TeamRole } from "@/lib/company";
+import { AuditTrailPanel } from "@/components/company/team/audit-trail-panel";
+import { JobAccessPanel } from "@/components/company/team/job-access-panel";
+import { RolePermissionMatrix } from "@/components/company/team/role-permission-matrix";
+import { fetchTeam, inviteTeammate, removeTeammate, setTeammateRole } from "@/lib/company/api";
+import {
+  ROLE_META,
+  canInviteWithRole,
+  canPermission,
+  canSetMemberRole,
+  currentMemberRole,
+  denialReason,
+  editableRoleOptions,
+  inviteRoleOptions,
+  normalizeTeamRole,
+  type TeamMember,
+  type TeamRole,
+} from "@/lib/rbac";
 
 const AVATAR_SIZE = 36;
-const ROLE_WIDTH = 160;
+const ROLE_WIDTH = 200;
 const INVITE_MIN_WIDTH = 200;
-const ROLES = Object.keys(ROLE_META) as TeamRole[];
-const INVITABLE = ROLES.filter((role) => role !== "owner").map((role) => ({
-  value: role,
-  label: ROLE_META[role].label,
-}));
-const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: ROLE_META[role].label }));
 
-/** Members with editable roles, a domain-checked invite form, and what each role can do. */
-export function TeamWorkspace() {
+/** Members with editable roles, permission matrix, per-job access, and audit trail. */
+export function TeamWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
-  const [members, setMembers] = useState(TEAM);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [domain, setDomain] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamRole>("recruiter");
 
+  useEffect(() => {
+    let active = true;
+    fetchTeam()
+      .then((team) => {
+        if (!active) return;
+        setMembers(
+          team.members.map((member) => ({ ...member, role: normalizeTeamRole(member.role) })),
+        );
+        setDomain(team.emailDomain);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  // Prefer session hiringRole; fall back to the you-row on the team list.
+  const actor = actorRole ?? currentMemberRole(members);
+  const canInvite = canPermission(actor, "team.invite");
+  const canManageRoles = canPermission(actor, "team.manage_roles");
+  const canViewAudit = canPermission(actor, "audit.view");
+  const canEditJobAccess =
+    canPermission(actor, "jobs.edit") || canPermission(actor, "team.manage_roles");
+
+  const inviteOptions = useMemo(() => inviteRoleOptions(actor), [actor]);
+  const roleOptions = useMemo(() => editableRoleOptions(actor), [actor]);
+
+  const suffix = domain ? `@${domain}` : "";
   const address = email.trim().toLowerCase();
-  const wrongDomain = address.length > 0 && !address.endsWith(TEAM_EMAIL_DOMAIN);
+  const wrongDomain = suffix.length > 0 && address.length > 0 && !address.endsWith(suffix);
   const exists = members.some((member) => member.email === address);
+  const inviteCheck = canInviteWithRole(actor, role);
 
   const invite = () => {
-    setMembers((current) => [
-      ...current,
-      {
-        id: `t-${address}`,
-        name: address,
-        email: address,
-        role,
-        lastActive: "Invited just now",
-        isPending: true,
-      },
-    ]);
-    setEmail("");
-    toast({ body: `Invite sent to ${address}` });
+    const check = canInviteWithRole(actor, role);
+    if (!check.ok) {
+      toast({ body: check.reason ?? "Cannot invite", type: "error" });
+      return;
+    }
+    inviteTeammate(address, role)
+      .then((team) => {
+        setMembers(
+          team.members.map((member) => ({ ...member, role: normalizeTeamRole(member.role) })),
+        );
+        setEmail("");
+        toast({ body: `Invite saved for ${address}` });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
-  const update = (id: string, patch: Partial<TeamMember>) =>
-    setMembers((current) =>
-      current.map((member) => (member.id === id ? { ...member, ...patch } : member)),
-    );
+
+  const update = (member: TeamMember, nextRole: TeamRole) => {
+    const check = canSetMemberRole(actor, member, nextRole);
+    if (!check.ok) {
+      toast({ body: check.reason ?? "Cannot change role", type: "error" });
+      return;
+    }
+    setTeammateRole(member.id, nextRole)
+      .then(() => {
+        setMembers((current) =>
+          current.map((row) => (row.id === member.id ? { ...row, role: nextRole } : row)),
+        );
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
+
   const remove = (member: TeamMember) => {
-    setMembers((current) => current.filter((item) => item.id !== member.id));
-    toast({
-      body: member.isPending ? `Invite to ${member.email} cancelled` : `${member.name} removed`,
-    });
+    if (!canManageRoles) {
+      toast({ body: denialReason(actor, "team.manage_roles"), type: "error" });
+      return;
+    }
+    removeTeammate(member.id)
+      .then(() => {
+        setMembers((current) => current.filter((item) => item.id !== member.id));
+        toast({
+          body: member.isPending ? `Invite to ${member.email} cancelled` : `${member.name} removed`,
+        });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
   };
 
   const columns: TableColumn<TeamMember>[] = [
@@ -91,16 +153,21 @@ export function TeamWorkspace() {
       header: "Role",
       width: ROLE_WIDTH,
       render: (row) =>
-        row.role === "owner" ? (
-          <Text weight="medium">{ROLE_META.owner.label}</Text>
+        row.role === "owner" || !canManageRoles ? (
+          <Stack gap={0}>
+            <Text weight="medium">{ROLE_META[row.role].label}</Text>
+            <Text type="supporting" color="secondary">
+              {ROLE_META[row.role].hint}
+            </Text>
+          </Stack>
         ) : (
           <Selector
             label={`Role for ${row.name}`}
             isLabelHidden
             size="sm"
-            options={ROLE_OPTIONS.filter((option) => option.value !== "owner")}
-            value={row.role}
-            onChange={(value) => update(row.id, { role: value as TeamRole })}
+            options={roleOptions}
+            value={row.role === "viewer" ? "interviewer" : row.role}
+            onChange={(value) => update(row, value as TeamRole)}
           />
         ),
     },
@@ -118,7 +185,7 @@ export function TeamWorkspace() {
       header: "",
       align: "end",
       render: (row) =>
-        row.isYou || row.role === "owner" ? null : (
+        row.isYou || row.role === "owner" || !canManageRoles ? null : (
           <MoreMenu
             label={`Actions for ${row.name}`}
             size="sm"
@@ -127,7 +194,7 @@ export function TeamWorkspace() {
                 ? [
                     {
                       label: "Resend invite",
-                      onClick: () => toast({ body: `Invite resent to ${row.email}` }),
+                      onClick: () => toast({ body: `${row.email} is still pending` }),
                     },
                   ]
                 : []),
@@ -144,35 +211,56 @@ export function TeamWorkspace() {
 
   return (
     <Stack gap={6}>
+      {actor ? (
+        <Banner
+          status="info"
+          title={`Signed in as ${ROLE_META[actor].label}`}
+          description={ROLE_META[actor].description}
+        />
+      ) : null}
+
       <SettingsGroup
         title="Invite teammates"
-        description={`Anyone with a ${TEAM_EMAIL_DOMAIN} address.`}
+        description={
+          suffix
+            ? `Anyone with a ${suffix} address. Pick a role — Hiring manager, Interviewer, and Finance are Einstein roles.`
+            : "Anyone you invite. Add a website to limit this to your domain."
+        }
       >
-        <Grid columns={{ minWidth: INVITE_MIN_WIDTH, repeat: "fit" }} gap={3} align="end">
-          <TextInput
-            label="Work email"
-            value={email}
-            onChange={setEmail}
-            placeholder={`name${TEAM_EMAIL_DOMAIN}`}
-            status={
-              wrongDomain
-                ? { type: "error", message: `Use a ${TEAM_EMAIL_DOMAIN} address.` }
-                : undefined
-            }
-          />
-          <Selector
-            label="Role"
-            options={INVITABLE}
-            value={role}
-            onChange={(value) => setRole(value as TeamRole)}
-          />
-          <Button
-            label="Send invite"
-            variant="primary"
-            isDisabled={!address || wrongDomain || exists}
-            onClick={invite}
-          />
-        </Grid>
+        {!canInvite ? (
+          <Text type="supporting" color="secondary">
+            {denialReason(actor, "team.invite")}
+          </Text>
+        ) : (
+          <Grid columns={{ minWidth: INVITE_MIN_WIDTH, repeat: "fit" }} gap={3} align="end">
+            <TextInput
+              label="Work email"
+              value={email}
+              onChange={setEmail}
+              placeholder={suffix ? `name${suffix}` : "name@company.com"}
+              status={
+                wrongDomain ? { type: "error", message: `Use a ${suffix} address.` } : undefined
+              }
+            />
+            <Selector
+              label="Role"
+              options={inviteOptions}
+              value={role}
+              onChange={(value) => setRole(value as TeamRole)}
+            />
+            <Button
+              label="Send invite"
+              variant="primary"
+              isDisabled={!address || wrongDomain || exists || !inviteCheck.ok}
+              onClick={invite}
+            />
+          </Grid>
+        )}
+        {canInvite && inviteOptions.length > 0 ? (
+          <Text type="supporting" color="secondary">
+            {ROLE_META[role].description}
+          </Text>
+        ) : null}
       </SettingsGroup>
 
       <SettingsGroup
@@ -188,15 +276,25 @@ export function TeamWorkspace() {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="What each role can do">
-        {ROLES.map((key) => (
-          <HStack key={key} hAlign="between" vAlign="center" gap={3} wrap="wrap">
-            <Text weight="semibold">{ROLE_META[key].label}</Text>
-            <Text type="supporting" color="secondary">
-              {ROLE_META[key].description}
-            </Text>
-          </HStack>
-        ))}
+      <SettingsGroup
+        title="Permission matrix"
+        description="What each role can do across jobs, applicants, interviews, offers, billing, and team."
+      >
+        <RolePermissionMatrix />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Per-job access"
+        description="Optional overrides when someone should only act on specific reqs."
+      >
+        <JobAccessPanel members={members} canEdit={canEditJobAccess} />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Audit trail"
+        description="Who changed roles, stages, offers, hires, billing, and job access."
+      >
+        <AuditTrailPanel canView={canViewAudit} />
       </SettingsGroup>
     </Stack>
   );

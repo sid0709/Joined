@@ -1,8 +1,7 @@
-import type { BadgeVariant } from "@openseat/design-system";
-import { daysFromToday } from "@/lib/dates";
-import type { Workplace } from "@/lib/jobs";
+/** Hiring workspace — jobs the signed-in company has posted. */
 
-/** Hiring workspace — jobs. Sample data until the API lands. */
+import type { BadgeVariant } from "@openseat/design-system";
+import type { Seniority, Workplace } from "@/lib/jobs";
 
 export type CompanyJobStatus = "open" | "paused" | "draft" | "closed";
 export type AssistedPolicy = "accept" | "cap" | "direct";
@@ -15,8 +14,11 @@ export type CompanyJob = {
   jobId?: string;
   title: string;
   team: string;
+  /** Optional department label; mirrors team when Einstein has no separate field. */
+  department?: string;
   location: string;
   workplace: Workplace;
+  seniority: Seniority;
   status: CompanyJobStatus;
   postedOn: Date;
   views: number;
@@ -24,6 +26,30 @@ export type CompanyJob = {
   policy: AssistedPolicy;
   /** Assisted applications allowed per day when the policy is "cap". */
   dailyCap?: number;
+  payMin: number;
+  payMax: number;
+  currency: string;
+  visa: boolean;
+  summary: string;
+  skills: string[];
+  responsibilities: string[];
+  requirements: string[];
+  description: string;
+  /** Knockout / screening questions shown on apply. */
+  screeningQuestions?: import("@/lib/intake").ScreeningQuestion[];
+  /** Layer C — custom stages / eval config when Einstein returns them. */
+  customStages?: import("@/lib/pipeline-eval").PipelineStageDef[];
+  feedbackGate?: import("@/lib/pipeline-eval").FeedbackGateConfig;
+  scorecardTemplate?: import("@/lib/pipeline-eval").ScorecardTemplate;
+  interviewGuide?: import("@/lib/pipeline-eval").InterviewGuide;
+  /** Layer E — reusable offer letter templates when Einstein returns them. */
+  offerTemplates?: import("@/lib/offer-hire").OfferTemplate[];
+  /** ISO when the job was closed (Layer A). */
+  closedAt?: string;
+  /** Short note set on close (Layer A). */
+  closeReason?: string;
+  /** Close asked to notify open applicants in-app. Delivery is best-effort. */
+  notifyOnClose?: boolean;
 };
 
 export const JOB_STATUS_META: Record<CompanyJobStatus, { label: string; badge: BadgeVariant }> = {
@@ -42,6 +68,14 @@ export const POLICY_META: Record<AssistedPolicy, { label: string; description: s
   direct: { label: "Direct only", description: "Only people who apply themselves." },
 };
 
+export const ASSISTED_POLICIES = Object.keys(POLICY_META) as AssistedPolicy[];
+
+/** Company and job default when a daily cap has not been set. */
+export const DEFAULT_DAILY_CAP = 5;
+
+/** Matches the hiring settings API, which stores caps from 1 through 100. */
+export const MAX_DAILY_CAP = 100;
+
 export const PIPELINE_STAGES: { key: keyof PipelineCounts; label: string }[] = [
   { key: "new", label: "New" },
   { key: "screening", label: "Screening" },
@@ -49,86 +83,5 @@ export const PIPELINE_STAGES: { key: keyof PipelineCounts; label: string }[] = [
   { key: "offer", label: "Offer" },
 ];
 
-export const COMPANY_JOBS: CompanyJob[] = [
-  {
-    id: "cj-1",
-    jobId: "product-designer-northwind",
-    title: "Product Designer",
-    team: "Design",
-    location: "Chicago",
-    workplace: "hybrid",
-    status: "open",
-    postedOn: daysFromToday(-12),
-    views: 1_284,
-    pipeline: { new: 7, screening: 5, interview: 3, offer: 1 },
-    policy: "accept",
-  },
-  {
-    id: "cj-2",
-    jobId: "data-analyst-northwind",
-    title: "Data Analyst",
-    team: "Data",
-    location: "New York",
-    workplace: "hybrid",
-    status: "open",
-    postedOn: daysFromToday(-6),
-    views: 642,
-    pipeline: { new: 5, screening: 3, interview: 1, offer: 0 },
-    policy: "cap",
-    dailyCap: 5,
-  },
-  {
-    id: "cj-3",
-    title: "Senior UX Researcher",
-    team: "Design",
-    location: "Remote",
-    workplace: "remote",
-    status: "open",
-    postedOn: daysFromToday(-2),
-    views: 211,
-    pipeline: { new: 4, screening: 0, interview: 0, offer: 0 },
-    policy: "direct",
-  },
-  {
-    id: "cj-4",
-    title: "Support Lead",
-    team: "Operations",
-    location: "Remote",
-    workplace: "remote",
-    status: "paused",
-    postedOn: daysFromToday(-30),
-    views: 903,
-    pipeline: { new: 0, screening: 2, interview: 2, offer: 0 },
-    policy: "direct",
-  },
-  {
-    id: "cj-5",
-    title: "Design Systems Engineer",
-    team: "Design",
-    location: "Chicago",
-    workplace: "hybrid",
-    status: "draft",
-    postedOn: daysFromToday(-1),
-    views: 0,
-    pipeline: { new: 0, screening: 0, interview: 0, offer: 0 },
-    policy: "accept",
-  },
-  {
-    id: "cj-6",
-    title: "Office Coordinator",
-    team: "Operations",
-    location: "Chicago",
-    workplace: "onsite",
-    status: "closed",
-    postedOn: daysFromToday(-64),
-    views: 2_310,
-    pipeline: { new: 0, screening: 0, interview: 0, offer: 1 },
-    policy: "direct",
-  },
-];
-
 export const pipelineTotal = (pipeline: PipelineCounts) =>
   pipeline.new + pipeline.screening + pipeline.interview + pipeline.offer;
-
-export const jobTitle = (jobId: string) =>
-  COMPANY_JOBS.find((job) => job.id === jobId)?.title ?? "—";

@@ -16,15 +16,19 @@ export const ROUTES = {
   company: "/company",
   companyJobs: "/company/jobs",
   companyJobNew: "/company/jobs/new",
+  companyJobEdit: (id: string) => `/company/jobs/${encodeURIComponent(id)}/edit`,
   companyApplicants: "/company/applicants",
   companyInterviews: "/company/interviews",
   companyAbout: "/company/about",
   companyTeam: "/company/team",
   companyBilling: "/company/billing",
+  companyAnalytics: "/company/analytics",
   companySettings: "/company/settings",
   companyProfile: "/company/profile",
   companyAccount: "/company/account",
   companyMessages: "/company/messages",
+  schedule: (id: string) => `/schedule/${encodeURIComponent(id)}`,
+  offerSign: (applicantId: string) => `/offer/sign/${encodeURIComponent(applicantId)}`,
 } as const;
 
 /** Sign in, then come back to `path`. */
@@ -99,6 +103,12 @@ export const COMPANY_INTERVIEWS_PAGE: PageLink = {
   href: ROUTES.companyInterviews,
   label: "Interviews",
   description: "Scheduled rounds, attendance, and face check.",
+};
+
+export const COMPANY_ANALYTICS_PAGE: PageLink = {
+  href: ROUTES.companyAnalytics,
+  label: "Analytics",
+  description: "Funnel conversion, source mix, time-in-stage, and attendance.",
 };
 
 export const COMPANY_ABOUT_PAGE: PageLink = {

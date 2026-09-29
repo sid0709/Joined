@@ -38,9 +38,11 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 	if body.Company != nil {
 		input.Company = &auth.CompanyChoice{ID: body.Company.ID, Name: body.Company.Name, URL: body.Company.URL}
 	}
-	s.writeAuth(w, func() (string, auth.Session, error) {
-		return s.auth.Signup(r.Context(), input, time.Now())
-	})
+	token, session, err := s.auth.Signup(r.Context(), input, time.Now())
+	if err == nil && body.Company != nil && strings.TrimSpace(body.Company.ID) == "" {
+		s.noteNewCompany(r.Context(), session)
+	}
+	writeAuthResult(w, token, session, err)
 }
 
 func (s *Server) signin(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +113,9 @@ func (s *Server) attachCompany(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, auth.ErrInvalidLogin) {
 		writeError(w, http.StatusUnauthorized, "sign in required")
 		return
+	}
+	if err == nil && strings.TrimSpace(body.ID) == "" {
+		s.noteNewCompany(r.Context(), session)
 	}
 	writeAuthResult(w, "", session, err)
 }

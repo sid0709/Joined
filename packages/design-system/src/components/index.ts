@@ -127,6 +127,7 @@ export { TimeInput } from "./TimeInput";
 export type { TimeInputProps, TimeInputVariant, HourCycle, MinuteStep } from "./TimeInput";
 
 export { CitySelector } from "./CitySelector";
+export { LocationSelector } from "./LocationSelector";
 export { StateSelector } from "./StateSelector";
 export { AddressSelector } from "./AddressSelector";
 export {

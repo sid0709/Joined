@@ -156,7 +156,7 @@ func (s *Store) viewThread(ctx context.Context, doc storedThread, userID, compan
 	presented := make([]Message, 0, len(messages))
 	unread := 0
 	for _, msg := range messages {
-		if msg.CreatedAt.After(readAt) && msg.AuthorID != userID && msg.From != AuthorEvent {
+		if messageUnread(msg, userID, companyID, readAt) {
 			unread++
 		}
 		presented = append(presented, presentMessage(msg, userID, companyID, now))
@@ -222,6 +222,18 @@ func (s *Store) markRead(ctx context.Context, threadID, userID string, now time.
 		{Key: "userId", Value: userID},
 	}, bson.D{{Key: "$set", Value: storedRead{ThreadID: threadID, UserID: userID, ReadAt: now.UTC()}}}, options.UpdateOne().SetUpsert(true))
 	return err
+}
+
+// messageUnread is a candidate inbox badge. Ordinary events stay quiet.
+// A notice event badges the candidate only; the hiring team does not see it as unread.
+func messageUnread(msg Message, userID, companyID string, readAt time.Time) bool {
+	if !msg.CreatedAt.After(readAt) || msg.AuthorID == userID {
+		return false
+	}
+	if msg.From == AuthorEvent {
+		return msg.Notice && companyID == ""
+	}
+	return true
 }
 
 func threadVisibleTo(doc storedThread, userID, companyID string) bool {

@@ -1,5 +1,6 @@
 {
   "currency": "USD",
+  "currencies": ["USD", "EUR", "GBP", "CAD"],
   "workplace": [
     { "value": "remote", "label": "Remote" },
     { "value": "hybrid", "label": "Hybrid" },

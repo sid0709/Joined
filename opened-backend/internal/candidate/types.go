@@ -3,25 +3,34 @@ package candidate
 import (
 	"context"
 	"time"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 )
 
 const (
-	StageSaved      = "saved"
-	StageApplied    = "applied"
-	StageScreening  = "screening"
-	StageInterview  = "interview"
-	StageOffer      = "offer"
-	StageClosed     = "closed"
+	StageSaved     = "saved"
+	StageApplied   = "applied"
+	StageScreening = "screening"
+	StageInterview = "interview"
+	StageOffer     = "offer"
+	StageClosed    = "closed"
 
-	SourceDirect    = "direct"
-	SourceScouted   = "scouted"
-	SourceManual    = "manual"
-	SourceCalendar  = "calendar"
+	SourceDirect   = "direct"
+	SourceScouted  = "scouted"
+	SourceManual   = "manual"
+	SourceCalendar = "calendar"
 
 	StatusScheduled   = "scheduled"
 	StatusUnconfirmed = "unconfirmed"
 	StatusCompleted   = "completed"
 	StatusCancelled   = "cancelled"
+
+	// CompanyStatusAwaiting is a company-board status. The candidate list
+	// hides these rounds until a slot is locked.
+	CompanyStatusAwaiting = "awaiting"
+
+	// MaxWhereLen matches opened-frontend hydrateOptionalUrl (500 runes).
+	MaxWhereLen = 500
 
 	OutcomeAdvanced = "advanced"
 	OutcomeRejected = "rejected"
@@ -31,8 +40,8 @@ const (
 	AuthorCompany   = "company"
 	AuthorEvent     = "event"
 
-	DefaultResume   = "General"
-	DefaultCurrency = "USD"
+	DefaultResume    = "General"
+	DefaultCurrency  = "USD"
 	DefaultWorkplace = "hybrid"
 )
 
@@ -54,9 +63,9 @@ type ExperienceItem struct {
 }
 
 type Visibility struct {
-	OpenToWork        bool `json:"openToWork" bson:"openToWork"`
-	RecruiterSearch   bool `json:"recruiterSearch" bson:"recruiterSearch"`
-	HideFromEmployer  bool `json:"hideFromEmployer" bson:"hideFromEmployer"`
+	OpenToWork       bool `json:"openToWork" bson:"openToWork"`
+	RecruiterSearch  bool `json:"recruiterSearch" bson:"recruiterSearch"`
+	HideFromEmployer bool `json:"hideFromEmployer" bson:"hideFromEmployer"`
 }
 
 type Status struct {
@@ -65,46 +74,46 @@ type Status struct {
 }
 
 type Profile struct {
-	Name         string           `json:"name"`
-	Email        string           `json:"email"`
-	Phone        string           `json:"phone" bson:"phone"`
-	Headline     string           `json:"headline" bson:"headline"`
-	Location     string           `json:"location" bson:"location"`
-	HomeAddress  HomeAddress      `json:"homeAddress" bson:"homeAddress"`
-	About        string           `json:"about" bson:"about"`
-	MemberSince  string           `json:"memberSince" bson:"-"`
-	Status       Status           `json:"status" bson:"status"`
-	TargetRoles  []string         `json:"targetRoles" bson:"targetRoles"`
-	Locations    []string         `json:"locations" bson:"locations"`
-	Workplace    string           `json:"workplace" bson:"workplace"`
-	SalaryFloor  int              `json:"salaryFloor" bson:"salaryFloor"`
-	Currency     string           `json:"currency" bson:"currency"`
-	Authorization string          `json:"authorization" bson:"authorization"`
-	NoticePeriod string           `json:"noticePeriod" bson:"noticePeriod"`
-	Skills       []string         `json:"skills" bson:"skills"`
-	Experience   []ExperienceItem `json:"experience" bson:"experience"`
-	Visibility   Visibility       `json:"visibility" bson:"visibility"`
+	Name          string           `json:"name"`
+	Email         string           `json:"email"`
+	Phone         string           `json:"phone" bson:"phone"`
+	Headline      string           `json:"headline" bson:"headline"`
+	Location      string           `json:"location" bson:"location"`
+	HomeAddress   HomeAddress      `json:"homeAddress" bson:"homeAddress"`
+	About         string           `json:"about" bson:"about"`
+	MemberSince   string           `json:"memberSince" bson:"-"`
+	Status        Status           `json:"status" bson:"status"`
+	TargetRoles   []string         `json:"targetRoles" bson:"targetRoles"`
+	Locations     []string         `json:"locations" bson:"locations"`
+	Workplace     string           `json:"workplace" bson:"workplace"`
+	SalaryFloor   int              `json:"salaryFloor" bson:"salaryFloor"`
+	Currency      string           `json:"currency" bson:"currency"`
+	Authorization string           `json:"authorization" bson:"authorization"`
+	NoticePeriod  string           `json:"noticePeriod" bson:"noticePeriod"`
+	Skills        []string         `json:"skills" bson:"skills"`
+	Experience    []ExperienceItem `json:"experience" bson:"experience"`
+	Visibility    Visibility       `json:"visibility" bson:"visibility"`
 }
 
 type storedProfile struct {
-	UserID       string           `bson:"userId"`
-	Phone        string           `bson:"phone"`
-	Headline     string           `bson:"headline"`
-	Location     string           `bson:"location"`
-	HomeAddress  HomeAddress      `bson:"homeAddress"`
-	About        string           `bson:"about"`
-	Status       Status           `bson:"status"`
-	TargetRoles  []string         `bson:"targetRoles"`
-	Locations    []string         `bson:"locations"`
-	Workplace    string           `bson:"workplace"`
-	SalaryFloor  int              `bson:"salaryFloor"`
-	Currency     string           `bson:"currency"`
-	Authorization string          `bson:"authorization"`
-	NoticePeriod string           `bson:"noticePeriod"`
-	Skills       []string         `bson:"skills"`
-	Experience   []ExperienceItem `bson:"experience"`
-	Visibility   Visibility       `bson:"visibility"`
-	UpdatedAt    time.Time        `bson:"updatedAt"`
+	UserID        string           `bson:"userId"`
+	Phone         string           `bson:"phone"`
+	Headline      string           `bson:"headline"`
+	Location      string           `bson:"location"`
+	HomeAddress   HomeAddress      `bson:"homeAddress"`
+	About         string           `bson:"about"`
+	Status        Status           `bson:"status"`
+	TargetRoles   []string         `bson:"targetRoles"`
+	Locations     []string         `bson:"locations"`
+	Workplace     string           `bson:"workplace"`
+	SalaryFloor   int              `bson:"salaryFloor"`
+	Currency      string           `bson:"currency"`
+	Authorization string           `bson:"authorization"`
+	NoticePeriod  string           `bson:"noticePeriod"`
+	Skills        []string         `bson:"skills"`
+	Experience    []ExperienceItem `bson:"experience"`
+	Visibility    Visibility       `bson:"visibility"`
+	UpdatedAt     time.Time        `bson:"updatedAt"`
 }
 
 type ApplicationEvent struct {
@@ -114,22 +123,53 @@ type ApplicationEvent struct {
 }
 
 type Application struct {
-	ID           string             `json:"id" bson:"id"`
-	ColumnID     string             `json:"columnId" bson:"columnId"`
-	UserID       string             `json:"-" bson:"userId"`
-	JobID        string             `json:"jobId" bson:"jobId"`
-	CompanyID    string             `json:"companyId,omitempty" bson:"companyId,omitempty"`
-	Title        string             `json:"title" bson:"title"`
-	Company      string             `json:"company" bson:"company"`
-	Location     string             `json:"location" bson:"location"`
-	Salary       string             `json:"salary" bson:"salary"`
-	Source       string             `json:"source" bson:"source"`
-	Resume       string             `json:"resume" bson:"resume"`
-	Match        int                `json:"match" bson:"match"`
-	Updated      time.Time          `json:"updated" bson:"updated"`
-	NextStep     string             `json:"nextStep,omitempty" bson:"nextStep,omitempty"`
-	ClosedReason string             `json:"closedReason,omitempty" bson:"closedReason,omitempty"`
-	Activity     []ApplicationEvent `json:"activity" bson:"activity"`
+	ID               string             `json:"id" bson:"id"`
+	ColumnID         string             `json:"columnId" bson:"columnId"`
+	UserID           string             `json:"-" bson:"userId"`
+	JobID            string             `json:"jobId" bson:"jobId"`
+	CompanyID        string             `json:"companyId,omitempty" bson:"companyId,omitempty"`
+	Title            string             `json:"title" bson:"title"`
+	Company          string             `json:"company" bson:"company"`
+	Location         string             `json:"location" bson:"location"`
+	Salary           string             `json:"salary" bson:"salary"`
+	Source           string             `json:"source" bson:"source"`
+	Resume           string             `json:"resume" bson:"resume"`
+	Match            int                `json:"match" bson:"match"`
+	Updated          time.Time          `json:"updated" bson:"updated"`
+	NextStep         string             `json:"nextStep,omitempty" bson:"nextStep,omitempty"`
+	ClosedReason     string             `json:"closedReason,omitempty" bson:"closedReason,omitempty"`
+	Activity         []ApplicationEvent `json:"activity" bson:"activity"`
+	ScreeningAnswers []ScreeningAnswer  `json:"screeningAnswers" bson:"screeningAnswers,omitempty"`
+	ReferralSource   string             `json:"referralSource,omitempty" bson:"referralSource,omitempty"`
+	ConsentAt        time.Time          `json:"consentAt,omitempty" bson:"consentAt,omitempty"`
+	ConsentVersion   string             `json:"consentVersion,omitempty" bson:"consentVersion,omitempty"`
+	CompanyStage     string             `json:"-" bson:"companyStage,omitempty"`
+	Rating           int                `json:"-" bson:"rating,omitempty"`
+	CompanyNotes     string             `json:"-" bson:"companyNotes,omitempty"`
+	Tags             []string           `json:"-" bson:"tags,omitempty"`
+	InterviewerIDs   []string           `json:"-" bson:"interviewerIds,omitempty"`
+	// Offer is employer-only. Candidate payloads keep json:"-".
+	Offer *OfferRecord `json:"-" bson:"offer,omitempty"`
+	// StageEnteredAt is when the company column last changed.
+	// StageHistory is each company column and when it was entered.
+	// Candidate JSON hides both; the hiring board returns them.
+	StageEnteredAt time.Time    `json:"-" bson:"stageEnteredAt,omitempty"`
+	StageHistory   []StageVisit `json:"-" bson:"stageHistory,omitempty"`
+}
+
+// StageVisit is one company-board column and the time it was entered.
+type StageVisit struct {
+	Stage     string    `json:"stage" bson:"stage"`
+	EnteredAt time.Time `json:"enteredAt" bson:"enteredAt"`
+}
+
+// ScreeningAnswer is one reply on an application.
+// JSON matches intake.ts: questionId, prompt, value, knockedOut?.
+type ScreeningAnswer struct {
+	QuestionID string `json:"questionId" bson:"questionId"`
+	Prompt     string `json:"prompt" bson:"prompt"`
+	Value      string `json:"value" bson:"value"`
+	KnockedOut bool   `json:"knockedOut,omitempty" bson:"knockedOut,omitempty"`
 }
 
 type SavedJob struct {
@@ -150,6 +190,13 @@ type Interviewer struct {
 	Title string `json:"title" bson:"title"`
 }
 
+// ProposedSlot is one offered time while a company round is awaiting a pick.
+type ProposedSlot struct {
+	Date  string `json:"date" bson:"date"`
+	Start string `json:"start" bson:"start"`
+	End   string `json:"end" bson:"end"`
+}
+
 type PrepTask struct {
 	ID    string `json:"id" bson:"id"`
 	Label string `json:"label" bson:"label"`
@@ -157,25 +204,60 @@ type PrepTask struct {
 }
 
 type Interview struct {
-	ID            string       `json:"id" bson:"id"`
-	UserID        string       `json:"-" bson:"userId"`
-	ApplicationID string       `json:"applicationId" bson:"applicationId"`
-	Company       string       `json:"company" bson:"company"`
-	Role          string       `json:"role" bson:"role"`
-	Round         string       `json:"round" bson:"round"`
-	Date          string       `json:"date" bson:"date"`
-	Start         string       `json:"start" bson:"start"`
-	End           string       `json:"end" bson:"end"`
-	Format        string       `json:"format" bson:"format"`
-	Where         string       `json:"where" bson:"where"`
+	ID            string        `json:"id" bson:"id"`
+	UserID        string        `json:"-" bson:"userId"`
+	ApplicationID string        `json:"applicationId" bson:"applicationId"`
+	Company       string        `json:"company" bson:"company"`
+	Role          string        `json:"role" bson:"role"`
+	Round         string        `json:"round" bson:"round"`
+	Date          string        `json:"date" bson:"date"`
+	Start         string        `json:"start" bson:"start"`
+	End           string        `json:"end" bson:"end"`
+	Format        string        `json:"format" bson:"format"`
+	Where         string        `json:"where" bson:"where"`
 	Interviewers  []Interviewer `json:"interviewers" bson:"interviewers"`
-	Status        string       `json:"status" bson:"status"`
-	Source        string       `json:"source" bson:"source"`
-	Prep          []PrepTask   `json:"prep" bson:"prep"`
-	Outcome       string       `json:"outcome,omitempty" bson:"outcome,omitempty"`
-	SelfRating    int          `json:"selfRating,omitempty" bson:"selfRating,omitempty"`
-	Notes         string       `json:"notes,omitempty" bson:"notes,omitempty"`
-	GoogleEventID string       `json:"googleEventId,omitempty" bson:"googleEventId,omitempty"`
+	Status        string        `json:"status" bson:"status"`
+	Source        string        `json:"source" bson:"source"`
+	Prep          []PrepTask    `json:"prep" bson:"prep"`
+	Outcome       string        `json:"outcome,omitempty" bson:"outcome,omitempty"`
+	SelfRating    int           `json:"selfRating,omitempty" bson:"selfRating,omitempty"`
+	Notes         string        `json:"notes,omitempty" bson:"notes,omitempty"`
+	GoogleEventID string        `json:"googleEventId,omitempty" bson:"googleEventId,omitempty"`
+	CompanyID     string        `json:"-" bson:"companyId,omitempty"`
+	JobID         string        `json:"-" bson:"jobId,omitempty"`
+	CompanyStatus string        `json:"-" bson:"companyStatus,omitempty"`
+	ChargedCents  int           `json:"-" bson:"chargedCents,omitempty"`
+	CandidateName string        `json:"-" bson:"candidateName,omitempty"`
+	// Company schedule/join fields. Hidden from the candidate payload; the
+	// company API maps them onto CompanyInterview.
+	MeetingURL      string         `json:"-" bson:"meetingUrl,omitempty"`
+	ScheduleMode    string         `json:"-" bson:"mode,omitempty"`
+	ProposedSlots   []ProposedSlot `json:"-" bson:"proposedSlots,omitempty"`
+	SelfSchedule    bool           `json:"-" bson:"selfSchedule,omitempty"`
+	SelfScheduleURL string         `json:"-" bson:"selfScheduleUrl,omitempty"`
+	// SelfScheduleToken is the unguessable public /schedule/{token} key.
+	// Interview id URLs keep resolving for links already shared.
+	SelfScheduleToken string `json:"-" bson:"selfScheduleToken,omitempty"`
+	// SelfScheduleExpiresAt is when an awaiting link stops accepting a slot.
+	// The zero value means the link does not expire.
+	SelfScheduleExpiresAt time.Time `json:"-" bson:"selfScheduleExpiresAt,omitempty"`
+}
+
+// PublicSchedule is the candidate self-schedule page. It omits candidate identity.
+type PublicSchedule struct {
+	Company       string         `json:"company"`
+	Role          string         `json:"role"`
+	Round         string         `json:"round"`
+	Format        string         `json:"format"`
+	Where         string         `json:"where,omitempty"`
+	MeetingURL    string         `json:"meetingUrl,omitempty"`
+	Status        string         `json:"status"`
+	Mode          string         `json:"mode,omitempty"`
+	ProposedSlots []ProposedSlot `json:"proposedSlots,omitempty"`
+	Date          string         `json:"date,omitempty"`
+	Start         string         `json:"start,omitempty"`
+	End           string         `json:"end,omitempty"`
+	ExpiresAt     *time.Time     `json:"expiresAt,omitempty"`
 }
 
 type CalendarConnection struct {
@@ -194,20 +276,20 @@ type CalEvent struct {
 }
 
 type Thread struct {
-	ID              string    `json:"id" bson:"id"`
-	ApplicationID   string    `json:"applicationId" bson:"applicationId"`
-	CandidateUserID string    `json:"-" bson:"candidateUserId"`
-	CompanyID       string    `json:"-" bson:"companyId"`
-	CandidateName   string    `json:"-" bson:"candidateName"`
-	CompanyName     string    `json:"-" bson:"companyName"`
-	JobTitle        string    `json:"-" bson:"jobTitle"`
-	JobID           string    `json:"-" bson:"jobId"`
-	Location        string    `json:"-" bson:"location"`
-	Kind            string    `json:"kind" bson:"-"`
-	Title           string    `json:"title" bson:"-"`
-	Subtitle        string    `json:"subtitle" bson:"-"`
-	Stage           string    `json:"stage,omitempty" bson:"-"`
-	Unread          int       `json:"unread" bson:"-"`
+	ID              string         `json:"id" bson:"id"`
+	ApplicationID   string         `json:"applicationId" bson:"applicationId"`
+	CandidateUserID string         `json:"-" bson:"candidateUserId"`
+	CompanyID       string         `json:"-" bson:"companyId"`
+	CandidateName   string         `json:"-" bson:"candidateName"`
+	CompanyName     string         `json:"-" bson:"companyName"`
+	JobTitle        string         `json:"-" bson:"jobTitle"`
+	JobID           string         `json:"-" bson:"jobId"`
+	Location        string         `json:"-" bson:"location"`
+	Kind            string         `json:"kind" bson:"-"`
+	Title           string         `json:"title" bson:"-"`
+	Subtitle        string         `json:"subtitle" bson:"-"`
+	Stage           string         `json:"stage,omitempty" bson:"-"`
+	Unread          int            `json:"unread" bson:"-"`
 	Details         []ThreadDetail `json:"details" bson:"-"`
 	Links           []ThreadLink   `json:"links" bson:"-"`
 	Messages        []Message      `json:"messages" bson:"-"`
@@ -237,11 +319,14 @@ type storedThread struct {
 }
 
 type Message struct {
-	ID        string    `json:"id" bson:"id"`
-	ThreadID  string    `json:"-" bson:"threadId"`
-	From      string    `json:"from" bson:"from"`
-	AuthorID  string    `json:"-" bson:"authorId"`
-	Text      string    `json:"text" bson:"text"`
+	ID       string `json:"id" bson:"id"`
+	ThreadID string `json:"-" bson:"threadId"`
+	From     string `json:"from" bson:"from"`
+	AuthorID string `json:"-" bson:"authorId"`
+	Text     string `json:"text" bson:"text"`
+	// Notice marks a system line that should badge the candidate inbox.
+	// Hiring-team unread ignores it, the same as other events.
+	Notice    bool      `json:"-" bson:"notice,omitempty"`
 	Day       string    `json:"day" bson:"-"`
 	Time      string    `json:"time" bson:"-"`
 	Status    string    `json:"status,omitempty" bson:"-"`
@@ -255,13 +340,14 @@ type storedRead struct {
 }
 
 type Listing struct {
-	ID        string
-	Title     string
-	Company   string
-	CompanyID string
-	Location  string
-	Salary    string
-	Source    string
+	ID                 string
+	Title              string
+	Company            string
+	CompanyID          string
+	Location           string
+	Salary             string
+	Source             string
+	ScreeningQuestions []jobs.ScreeningQuestion
 }
 
 type Catalog interface {

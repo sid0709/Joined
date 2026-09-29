@@ -14,10 +14,12 @@ import (
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/config"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/database"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/openai"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/staff"
 )
 
 const (
@@ -57,6 +59,11 @@ func main() {
 		slog.Error("candidate indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
+	hiring := employer.NewStore(client, cfg.DestDB, store, people, accounts)
+	if err := hiring.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("employer indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
 	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), 2*time.Minute)
 	updated, err := store.BackfillJobProvenance(backfillCtx)
 	cancelBackfill()
@@ -65,8 +72,21 @@ func main() {
 	} else {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
+	dropCtx, cancelDrop := context.WithTimeout(context.Background(), 30*time.Second)
+	dropped, err := store.DropCompanyLeadership(dropCtx)
+	cancelDrop()
+	if err != nil {
+		slog.Error("drop company leadership", "error", config.Redact(err, cfg.MongoURI))
+	} else if dropped > 0 {
+		slog.Info("drop company leadership", "companies", dropped)
+	}
 	scouts := scout.NewStore(client, cfg.DestDB, accounts, store, people, scout.NewHTTPFetcher())
-	accounts.SetUserData(httpapi.NewAccountEraser(people, scouts, store))
+	moderation := staff.NewStore(client, cfg.DestDB, cfg.CompaniesCollection, store)
+	if err := moderation.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("staff indexes", "error", config.Redact(err, cfg.MongoURI))
+		os.Exit(1)
+	}
+	accounts.SetUserData(httpapi.NewAccountEraser(people, scouts, store, hiring))
 	if err := scouts.EnsureIndexes(context.Background()); err != nil {
 		slog.Error("scout indexes", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
@@ -82,7 +102,7 @@ func main() {
 	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler: httpapi.New(store, accounts, people, scouts, reader, httpapi.Options{
+		Handler: httpapi.New(store, accounts, people, scouts, hiring, moderation, reader, httpapi.Options{
 			Origins:    cfg.AdminOrigins,
 			Frontend:   cfg.FrontendOrigin,
 			AdminToken: cfg.AdminAPIToken,

@@ -1,13 +1,11 @@
 import { HStack, Heading, ProgressBar, Stack, Text } from "@openseat/design-system";
-import { BILLING } from "@/lib/company";
+import type { BillingAccount } from "@/lib/company";
 import { formatCents } from "@/lib/money";
 
-const WARN_SHARE = 0.8;
-
-/** Spend against the monthly cap, and free interviews left. Shared by Overview and Billing. */
-export function SpendSummary() {
-  const nearCap = BILLING.spendCents >= BILLING.capCents * WARN_SHARE;
-  const freeUsed = BILLING.freeInterviewsTotal - BILLING.freeInterviewsRemaining;
+/** Remaining purchase balance, and how much interviews have used. */
+export function SpendSummary({ billing }: { billing: BillingAccount }) {
+  const purchased = billing.purchasedCents;
+  const remaining = billing.balanceCents;
 
   return (
     <Stack gap={5}>
@@ -15,41 +13,32 @@ export function SpendSummary() {
         <HStack hAlign="between" vAlign="end">
           <Stack gap={0.5}>
             <Text type="supporting" color="secondary">
-              Spent this month
+              Balance left
             </Text>
             <Heading level={3} type="display-3">
-              {formatCents(BILLING.spendCents, BILLING.currency)}
+              {formatCents(remaining, billing.currency)}
             </Heading>
           </Stack>
           <Text type="supporting" color="secondary">
-            of {formatCents(BILLING.capCents, BILLING.currency)} cap
+            of {formatCents(purchased, billing.currency)} purchased
           </Text>
         </HStack>
         <ProgressBar
-          label="Spend against cap"
+          label="Balance remaining"
           isLabelHidden
-          value={BILLING.spendCents}
-          max={BILLING.capCents}
-          variant={nearCap ? "warning" : "accent"}
+          value={remaining}
+          max={Math.max(purchased, 1)}
+          variant={remaining === 0 ? "warning" : "accent"}
         />
       </Stack>
-      <Stack gap={2}>
-        <HStack hAlign="between">
-          <Text type="supporting" color="secondary">
-            Free interviews
-          </Text>
-          <Text type="supporting" weight="semibold" hasTabularNumbers>
-            {BILLING.freeInterviewsRemaining} of {BILLING.freeInterviewsTotal} left
-          </Text>
-        </HStack>
-        <ProgressBar
-          label="Free interviews used"
-          isLabelHidden
-          value={freeUsed}
-          max={BILLING.freeInterviewsTotal}
-          variant="success"
-        />
-      </Stack>
+      <HStack hAlign="between">
+        <Text type="supporting" color="secondary">
+          Used on interviews
+        </Text>
+        <Text type="supporting" weight="semibold" hasTabularNumbers>
+          {formatCents(billing.spentCents, billing.currency)}
+        </Text>
+      </HStack>
     </Stack>
   );
 }
