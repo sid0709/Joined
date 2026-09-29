@@ -13,6 +13,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/auth"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const (
@@ -42,6 +43,7 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/scout/submissions", s.scoutSubmit)
 	mux.HandleFunc("POST /v1/scout/submissions/batch", s.scoutSubmitBatch)
 	mux.HandleFunc("POST /v1/scout/submissions/precheck", s.scoutPrecheck)
+	mux.HandleFunc("POST /v1/scout/submissions/matches", s.scoutMatches)
 	mux.HandleFunc("GET /v1/scout/submissions", s.scoutListSubmissions)
 	mux.HandleFunc("GET /v1/scout/submissions/{id}", s.scoutGetSubmission)
 	mux.HandleFunc("GET /v1/scout/earnings", s.scoutEarnings)
@@ -329,6 +331,25 @@ func (s *Server) scoutPrecheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) scoutMatches(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.scoutActor(w, r, sessionOrKey); !ok {
+		return
+	}
+	var input scout.MatchQuery
+	if !decodeScout(w, r, maxWriteBody, &input) {
+		return
+	}
+	matches, err := s.scouts.FindMatches(r.Context(), input, bson.ObjectID{})
+	if err != nil {
+		writeScoutError(w, err)
+		return
+	}
+	if matches == nil {
+		matches = []scout.Match{}
+	}
+	writeJSON(w, http.StatusOK, scout.MatchResult{Matches: matches})
 }
 
 func (s *Server) scoutListSubmissions(w http.ResponseWriter, r *http.Request) {

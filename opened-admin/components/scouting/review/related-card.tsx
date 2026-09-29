@@ -1,5 +1,6 @@
 import { Badge, Banner, List, ListItem, SectionCard, Stack, Text } from "@openseat/design-system";
 import { SUBMISSION_STATUS, type AdminSubmissionDetail, type Submission } from "@openseat/scout";
+
 import { ageLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 
@@ -26,7 +27,7 @@ export function RelatedCard({ detail }: { detail: AdminSubmissionDetail }) {
   return (
     <SectionCard
       title="Context"
-      description="Duplicates are decided by the first approved submission."
+      description="Possible duplicates of this link or company and title."
     >
       <Stack gap={4}>
         {duplicate ? (
@@ -40,7 +41,7 @@ export function RelatedCard({ detail }: { detail: AdminSubmissionDetail }) {
           <Text weight="semibold">Same link or role</Text>
           {detail.related.length === 0 ? (
             <Text type="supporting" color="secondary" display="block">
-              No other submission shares this link, company, title, and location.
+              No other submission shares this link or this company and title.
             </Text>
           ) : (
             <List density="compact">

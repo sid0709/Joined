@@ -164,22 +164,22 @@ type Check struct {
 
 // SubmissionInput is what a scout (web form or API client) sends.
 type SubmissionInput struct {
-	URL           string   `json:"url"`
-	CompanyName   string   `json:"company_name"`
-	Title         string   `json:"title"`
-	LocationText  string   `json:"location_text"`
-	CompanyID     string   `json:"company_id"`
-	Workplace     string   `json:"workplace"`
-	Employment    string   `json:"employment"`
-	Seniority     string   `json:"seniority"`
-	Pay           Pay      `json:"pay"`
-	Equity        bool     `json:"equity"`
-	SalaryText    string   `json:"salary"`
-	Summary       string   `json:"summary"`
-	Tags          []string `json:"tags"`
-	Skills        []string `json:"skills"`
-	OnMajorBoards bool     `json:"on_major_boards"`
-	ExternalRef   string   `json:"external_ref"`
+	URL               string   `json:"url"`
+	CompanyName       string   `json:"company_name"`
+	Title             string   `json:"title"`
+	LocationText      string   `json:"location_text"`
+	CompanyID         string   `json:"company_id"`
+	Workplace         string   `json:"workplace"`
+	Employment        string   `json:"employment"`
+	Seniority         string   `json:"seniority"`
+	Pay               Pay      `json:"pay"`
+	Equity            bool     `json:"equity"`
+	SalaryText        string   `json:"salary"`
+	Summary           string   `json:"summary"`
+	Tags              []string `json:"tags"`
+	Skills            []string `json:"skills"`
+	NotDuplicateClaim bool     `json:"not_duplicate_claim"`
+	ExternalRef       string   `json:"external_ref"`
 }
 
 // Submission is a scout's job link and everything the pipeline learned about it.
@@ -214,8 +214,9 @@ type Submission struct {
 	RejectionReason string        `json:"rejection_reason,omitempty" bson:"rejectionReason,omitempty"`
 	Checks          []Check       `json:"auto_check_results" bson:"checks"`
 	DuplicateOf     string        `json:"duplicate_of,omitempty" bson:"duplicateOf,omitempty"`
+	DuplicateClaim  bool          `json:"duplicate_claim,omitempty" bson:"duplicateClaim,omitempty"`
+	Matches         []Match       `json:"matches,omitempty" bson:"matches,omitempty"`
 	HiddenJob       bool          `json:"hidden_job" bson:"hiddenJob"`
-	OnMajorBoards   bool          `json:"on_major_boards" bson:"onMajorBoards"`
 	SpotCheck       bool          `json:"spot_check,omitempty" bson:"spotCheck,omitempty"`
 	JobID           string        `json:"job_id,omitempty" bson:"jobId,omitempty"`
 	JobRef          string        `json:"-" bson:"jobRef,omitempty"`
@@ -350,6 +351,9 @@ func (s *Submission) fill() {
 	}
 	if s.Checks == nil {
 		s.Checks = []Check{}
+	}
+	if s.Matches == nil {
+		s.Matches = []Match{}
 	}
 	if canonical, ok := jobschema.CanonicalSeniority(s.Seniority); ok {
 		s.Seniority = canonical

@@ -21,17 +21,28 @@ import {
   type Submission,
   type SubmissionInput,
 } from "@openseat/scout";
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
 import { ReviewCompanyCard } from "./company-card";
-import { ListingPreview } from "./listing-preview";
 import { DecisionPanel } from "./decision-panel";
 import { JobEditor } from "./job-editor";
+import { ListingPreview } from "./listing-preview";
+import { MatchesReview } from "./matches-review";
 
 import { adminSend } from "@/lib/api";
 import { ROUTES } from "@/lib/nav";
 import { SEARCH_JOBS_PATH, type SearchRecord } from "@/lib/search-job";
 import { useAdminQuery } from "@/lib/use-admin-query";
+
+type DuplicateHit = { job_id: string; title: string; company: string; reason: string };
+type TitleCandidate = { job_id: string; title: string; company: string };
+type AnalyzeResponse = {
+  submission: Submission;
+  record?: SearchRecord;
+  duplicate?: DuplicateHit;
+  top_k?: TitleCandidate[];
+};
 
 /** The editable job fields, seeded from what the scout sent. */
 export function inputFrom(sub: Submission): SubmissionInput {
@@ -50,7 +61,6 @@ export function inputFrom(sub: Submission): SubmissionInput {
     summary: sub.summary,
     tags: sub.tags,
     skills: sub.skills,
-    on_major_boards: sub.on_major_boards,
   };
 }
 
@@ -79,10 +89,13 @@ export function ReviewWorkspace({
   scout: ReactNode;
   history: ReactNode;
 }) {
+  const router = useRouter();
   const sub = detail.submission;
   const original = inputFrom(sub);
   const [draft, setDraft] = useState<SubmissionInput>(original);
   const [analyzed, setAnalyzed] = useState<SearchRecord | null>(null);
+  const [duplicate, setDuplicate] = useState<DuplicateHit | null>(null);
+  const [topK, setTopK] = useState<TitleCandidate[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
   const savedJob = useAdminQuery<SearchRecord>(
@@ -91,22 +104,31 @@ export function ReviewWorkspace({
   const listing = analyzed ?? (sub.job_id ? savedJob.result : null);
   const liveHref =
     jobHref ||
-    (openedOrigin && listing?.job.id && !sub.expired ? `${openedOrigin}/jobs/${listing.job.id}` : "");
+    (openedOrigin && listing?.job.id && !sub.expired
+      ? `${openedOrigin}/jobs/${listing.job.id}`
+      : "");
   const editable =
     sub.status === "needs_review" || sub.status === "rejected" || sub.status === "duplicate";
   const status = SUBMISSION_STATUS[sub.status];
 
-  async function analyze() {
+  async function analyze(continueExtract = false) {
     setAnalyzeError("");
     setAnalyzing(true);
     try {
-      const body = await adminSend<{ submission: Submission; record: SearchRecord }>(
+      const body = await adminSend<AnalyzeResponse>(
         `/v1/admin/scout/submissions/${sub.id}/analyze`,
         "POST",
-        { edits: dirty(draft, original) ? draft : undefined },
+        { edits: dirty(draft, original) ? draft : undefined, continue_extract: continueExtract },
       );
-      setAnalyzed(body.record);
       setDraft(inputFrom(body.submission));
+      setTopK(body.top_k ?? []);
+      if (body.duplicate) {
+        setDuplicate(body.duplicate);
+        setAnalyzed(null);
+        return;
+      }
+      setDuplicate(null);
+      if (body.record) setAnalyzed(body.record);
     } catch (err) {
       setAnalyzeError(err instanceof ApiError ? err.message : "Could not analyze the job.");
     } finally {
@@ -170,8 +192,62 @@ export function ReviewWorkspace({
         <GridColumn span="full" lg={8}>
           <Stack gap={6}>
             {checks}
+            <MatchesReview submission={sub} />
             <ReviewCompanyCard companyId={draft.company_id} companyName={draft.company_name} />
             {analyzeError ? <Banner status="error" title={analyzeError} /> : null}
+            {duplicate ? (
+              <Stack gap={3}>
+                <Banner
+                  status="warning"
+                  title={`Likely duplicate of “${duplicate.title}” at ${duplicate.company}`}
+                  description={duplicate.reason || "The model thinks this is the same opening."}
+                />
+                <HStack gap={2} wrap="wrap">
+                  <Button
+                    label="Reject as duplicate"
+                    variant="destructive"
+                    size="sm"
+                    clickAction={async () => {
+                      try {
+                        await adminSend(`/v1/admin/scout/submissions/${sub.id}/review`, "POST", {
+                          decision: "duplicate",
+                          duplicate_of: `job ${duplicate.job_id}`,
+                        });
+                        router.refresh();
+                      } catch (err) {
+                        setAnalyzeError(
+                          err instanceof ApiError ? err.message : "Could not mark this duplicate.",
+                        );
+                      }
+                    }}
+                  />
+                  <Button
+                    label="Continue extract"
+                    variant="secondary"
+                    size="sm"
+                    clickAction={() => {
+                      void analyze(true);
+                    }}
+                    isDisabled={analyzing}
+                  />
+                  {duplicate.job_id ? (
+                    <Button
+                      label="Open existing listing"
+                      variant="ghost"
+                      size="sm"
+                      href={`${ROUTES.jobs}?job=${duplicate.job_id}`}
+                    />
+                  ) : null}
+                </HStack>
+              </Stack>
+            ) : null}
+            {topK.length > 0 && !duplicate ? (
+              <Banner
+                status="info"
+                title="Title matches checked"
+                description={topK.map((item) => item.title).join(" · ")}
+              />
+            ) : null}
             <JobEditor
               submission={sub}
               value={draft}
@@ -179,7 +255,9 @@ export function ReviewWorkspace({
               isEditable={editable}
               isDirty={dirty(draft, original)}
               onReset={() => setDraft(original)}
-              onAnalyze={analyze}
+              onAnalyze={() => {
+                void analyze(false);
+              }}
               analyzing={analyzing}
             />
             {listing?.job ? <ListingPreview job={listing.job} /> : null}

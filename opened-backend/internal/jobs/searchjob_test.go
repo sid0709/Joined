@@ -43,13 +43,13 @@ func TestBuildSearchJobUsesFrontendEnums(t *testing.T) {
 
 func TestKeepScoutFilledLeavesSalary(t *testing.T) {
 	job := SearchJob{
-		Title:     "Wrong title",
-		Company:   "Wrong co",
-		Location:  "AI city",
-		Workplace: workplaceOnsite,
-		Pay:       Pay{Min: 1, Max: 2, Currency: "USD", Period: payYear},
-		Seniority: seniorityJunior,
-		Summary:   "About the role from the model.",
+		Title:            "Wrong title",
+		Company:          "Wrong co",
+		Location:         "AI city",
+		Workplace:        workplaceOnsite,
+		Pay:              Pay{Min: 1, Max: 2, Currency: "USD", Period: payYear},
+		Seniority:        seniorityJunior,
+		Summary:          "About the role from the model.",
 		Responsibilities: []string{"Ship the product"},
 	}
 	listing := tempListing{
