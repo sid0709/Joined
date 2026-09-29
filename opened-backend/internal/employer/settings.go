@@ -118,7 +118,7 @@ func normalizeSettings(input Settings, website string) Settings {
 	if input.Policy == policyAccept || input.Policy == policyCap || input.Policy == policyDirect {
 		next.Policy = input.Policy
 	}
-	if input.DailyCap > 0 && input.DailyCap <= 100 {
+	if input.DailyCap >= minDailyCap && input.DailyCap <= maxDailyCap {
 		next.DailyCap = input.DailyCap
 	}
 	next.FaceCheck = input.FaceCheck

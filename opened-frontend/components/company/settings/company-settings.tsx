@@ -19,13 +19,16 @@ import {
 } from "@openseat/design-system";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { POLICY_META, type AssistedPolicy } from "@/lib/company";
+import {
+  ASSISTED_POLICIES,
+  DEFAULT_DAILY_CAP,
+  POLICY_META,
+  type AssistedPolicy,
+} from "@/lib/company";
 import { fetchSettings, fetchTeam, saveSettings, transferOwnership } from "@/lib/company/api";
 import type { AuthSession } from "@/lib/auth/types";
 import { RemoveAccount } from "@/components/settings/remove-account";
 
-const POLICIES = Object.keys(POLICY_META) as AssistedPolicy[];
-const DEFAULT_DAILY_CAP = 5;
 const DIGESTS = [
   { value: "instant", label: "Instant" },
   { value: "daily", label: "Daily" },
@@ -163,7 +166,7 @@ export function CompanySettings({ session }: { session: AuthSession }) {
           value={policy}
           onChange={(value) => setPolicy(value as AssistedPolicy)}
         >
-          {POLICIES.map((value) => (
+          {ASSISTED_POLICIES.map((value) => (
             <RadioListItem
               key={value}
               value={value}

@@ -51,6 +51,14 @@ export const POLICY_META: Record<AssistedPolicy, { label: string; description: s
   direct: { label: "Direct only", description: "Only people who apply themselves." },
 };
 
+export const ASSISTED_POLICIES = Object.keys(POLICY_META) as AssistedPolicy[];
+
+/** Company and job default when a daily cap has not been set. */
+export const DEFAULT_DAILY_CAP = 5;
+
+/** Matches the hiring settings API, which stores caps from 1 through 100. */
+export const MAX_DAILY_CAP = 100;
+
 export const PIPELINE_STAGES: { key: keyof PipelineCounts; label: string }[] = [
   { key: "new", label: "New" },
   { key: "screening", label: "Screening" },

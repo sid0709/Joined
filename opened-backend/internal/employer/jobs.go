@@ -23,6 +23,9 @@ const (
 	policyAccept = "accept"
 	policyCap    = "cap"
 	policyDirect = "direct"
+
+	minDailyCap = 1
+	maxDailyCap = 100
 )
 
 func (s *Store) ListJobs(ctx context.Context, companyID string) ([]Job, error) {
@@ -216,6 +219,12 @@ func normalizeJob(input JobInput, now time.Time) (storedJob, error) {
 	if policy != policyAccept && policy != policyCap && policy != policyDirect {
 		return storedJob{}, ErrInvalidInput
 	}
+	dailyCap := 0
+	if input.DailyCap >= minDailyCap && input.DailyCap <= maxDailyCap {
+		dailyCap = input.DailyCap
+	} else if policy == policyCap {
+		return storedJob{}, ErrInvalidInput
+	}
 	workplace := input.Workplace
 	if workplace == "" {
 		workplace = jobschema.WorkplaceHybrid
@@ -246,8 +255,8 @@ func normalizeJob(input JobInput, now time.Time) (storedJob, error) {
 		Responsibilities: compactList(input.Responsibilities, 6, 120),
 		Requirements:     compactList(input.Requirements, 6, 120),
 		Description:      clip(input.Description, 12000),
-		Policy:           policyAccept,
-		DailyCap:         0,
+		Policy:           policy,
+		DailyCap:         dailyCap,
 		Status:           status,
 		CreatedAt:        now.UTC(),
 		UpdatedAt:        now.UTC(),
