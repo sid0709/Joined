@@ -2,7 +2,7 @@
 
 import { Calendar } from "@openseat/design-system";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { Interview } from "@/src/client/types/hunter";
 
@@ -38,17 +38,20 @@ export function InterviewsView() {
   const [outcomeFor, setOutcomeFor] = useState<Interview | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const nameOf = (interview: Interview) => {
-    const inquiry = inquiries.find((item) => item.id === interview.inquiryId);
-    return inquiry ? (bidderById(inquiry.bidderId)?.name ?? "Bidder") : "Bidder";
-  };
+  const nameOf = useCallback(
+    (interview: Interview) => {
+      const inquiry = inquiries.find((item) => item.id === interview.inquiryId);
+      return inquiry ? (bidderById(inquiry.bidderId)?.name ?? "Bidder") : "Bidder";
+    },
+    [bidderById, inquiries],
+  );
   const events = useMemo(
     () =>
       interviews
         .filter((item) => item.status !== "cancelled")
         .map((item) => toEvent(item, `${nameOf(item)} · interview`)),
-    [interviews, inquiries],
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+    [interviews, nameOf],
+  );
   const selectedYmd = ymdFromDate(selected);
   const dayList = interviews
     .filter((item) => item.date === selectedYmd && item.status !== "cancelled")
