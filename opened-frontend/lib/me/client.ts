@@ -3,11 +3,14 @@ export const MESSAGE_POLL_MS = 4000;
 /** Company/me API failure with HTTP status (409 feedback gate, etc.). */
 export class CompanyRequestError extends Error {
   status: number;
+  /** Stable API code when the body includes one (free/busy not-ready). */
+  code?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "CompanyRequestError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -29,13 +32,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const text = await response.text();
   if (!response.ok) {
     let message = "Request failed";
+    let code: string | undefined;
     try {
-      const body = JSON.parse(text) as { error?: string };
+      const body = JSON.parse(text) as { error?: string; code?: string };
       if (body.error) message = body.error;
+      if (body.code) code = body.code;
     } catch {
       /* keep default */
     }
-    throw new CompanyRequestError(message, response.status);
+    throw new CompanyRequestError(message, response.status, code);
   }
   return text ? (JSON.parse(text) as T) : (undefined as T);
 }

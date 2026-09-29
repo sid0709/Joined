@@ -40,6 +40,7 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/company/applicants/{id}/scorecards", s.getApplicantScorecards)
 	mux.HandleFunc("POST /v1/company/applicants/{id}/scorecards", s.postApplicantScorecard)
 	mux.HandleFunc("GET /v1/company/interviews", s.getCompanyInterviews)
+	mux.HandleFunc("GET /v1/company/interviews/free-busy", s.getCompanyInterviewFreeBusy)
 	mux.HandleFunc("POST /v1/company/interviews", s.postCompanyInterview)
 	mux.HandleFunc("PATCH /v1/company/interviews/{id}", s.patchCompanyInterview)
 	mux.HandleFunc("GET /v1/company/billing", s.getCompanyBilling)
@@ -530,6 +531,24 @@ func (s *Server) getCompanyInterviews(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"interviews": idx.FilterInterviews(actor.ID, actor.Role, items)})
 }
 
+// getCompanyInterviewFreeBusy is GET /v1/company/interviews/free-busy.
+// Interviewer calendar-connect does not exist, so a valid range is 503
+// free_busy_not_ready. Do not read the candidate Google calendar.
+func (s *Server) getCompanyInterviewFreeBusy(w http.ResponseWriter, r *http.Request) {
+	_, actor, ok := s.hiringActor(w, r)
+	if !ok {
+		return
+	}
+	if !s.requirePerm(w, actor, employer.PermInterviewsSchedule) {
+		return
+	}
+	blocks, err := employer.FreeBusy(r.URL.Query().Get("from"), r.URL.Query().Get("to"))
+	if !writeEmployer(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
+}
+
 func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
 	session, actor, ok := s.hiringActor(w, r)
 	if !ok {
@@ -993,6 +1012,12 @@ func writeEmployer(w http.ResponseWriter, err error) bool {
 		writeError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, employer.ErrConflict), errors.Is(err, auth.ErrHasCompany):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, employer.ErrFreeBusyNotReady):
+		// 503 + code, not the generic 500 crash body.
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"error": err.Error(),
+			"code":  employer.FreeBusyNotReadyCode,
+		})
 	default:
 		slog.Error("company", "error", err)
 		writeError(w, http.StatusInternalServerError, "could not complete the request")

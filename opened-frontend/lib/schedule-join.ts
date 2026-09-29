@@ -37,18 +37,22 @@
  *   HiringProfile meetingLink / interviewDays / dayStart / dayEnd /
  *   interviewLength / buffer / timeZone — client proposes slots.
  *
- * Free/busy is not implemented. Next contract:
- *   GET /v1/company/interviews/free-busy?from=YYYY-MM-DD&to=YYYY-MM-DD
+ * GET /v1/company/interviews/free-busy?from=YYYY-MM-DD&to=YYYY-MM-DD
  *   Auth: company session, interviews.schedule
  *   200 { blocks: [{ date, start, end }] } busy intervals in the hiring
- *   profile time zone, from the interviewer's calendar (not connected).
- *   Do not use the candidate Google calendar connection, and do not serve
- *   hiring-profile hours as free/busy.
+ *   profile time zone. Not served until interviewer calendar-connect exists.
+ *   Do not use the candidate Google calendar (/v1/me/calendar/google/*),
+ *   and do not serve hiring-profile hours as free/busy.
+ *   400 { error } when from/to are missing, not YYYY-MM-DD, or from is after to.
+ *   503 { error, code: "free_busy_not_ready" } until interviewer calendars
+ *   are connected. Match code (or status 503 plus that error string).
+ *   A hard crash is 500 { error: "could not complete the request" } with no code.
  * Out of scope: SSO, Scoutwell, offers (offer-hire.ts).
  */
 
 import type { HiringProfile } from "@/lib/company/me";
 import { formatISODate, startOfDay } from "@/lib/dates";
+import { CompanyRequestError } from "@/lib/me/client";
 
 export type ScheduleMode = "fixed" | "propose" | "self_schedule";
 
@@ -82,6 +86,18 @@ export type JoinableInterview = {
 
 export const MAX_PROPOSED_SLOTS = 5;
 export const DEFAULT_SLOT_HORIZON_DAYS = 14;
+
+/** JSON code on GET /v1/company/interviews/free-busy while calendars are disconnected. */
+export const FREE_BUSY_NOT_READY = "free_busy_not_ready";
+
+/** True when free/busy answered 503 because interviewer calendar-connect is missing. */
+export function isFreeBusyNotReady(error: unknown): error is CompanyRequestError {
+  return (
+    error instanceof CompanyRequestError &&
+    error.status === 503 &&
+    error.code === FREE_BUSY_NOT_READY
+  );
+}
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
