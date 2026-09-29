@@ -2,7 +2,7 @@
 
 **Service:** `opened-backend` (`internal/scout`, `internal/httpapi/scout*.go`) · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`opened-admin`)
 
-One protocol for every way a job enters the pool from a scout: the Scoutwell web form, a partner's sourcing pipeline, and bulk uploads all call the same endpoints and go through the same checks, levels, and rewards (see [13-platform-scout.md](13-platform-scout.md)). Conventions follow [60-api-conventions.md](60-api-conventions.md).
+One protocol for every way a job enters the pool from a scout: the Scoutwell web form, a partner's sourcing pipeline, and bulk uploads all call the same endpoints and go through the same checks, levels, and rewards (see [13-scout-mode.md](13-scout-mode.md)). Conventions follow [60-api-conventions.md](60-api-conventions.md).
 
 ## Authentication
 
@@ -15,6 +15,7 @@ Every `/v1/scout/*` call except `GET /v1/scout/meta` needs `Authorization: Beare
 
 - Keys are created and revoked in Scoutwell → **API access**. The secret is shown once; the API stores only its SHA-256.
 - A key acts as the scout who created it: same level, daily limit, and rewards.
+- Keys are for **job supply only**. They cannot apply to jobs or read candidate data; applications are human-only ([22](22-no-bot-applications.md)). Rewards follow [13](13-scout-mode.md#how-scouts-earn): Premium pool share, $1 external first-interview bonus, company conversion bonus — never per submission.
 - The scout must have accepted the scout terms; otherwise every create answers `403 terms_required`.
 
 ## Endpoints

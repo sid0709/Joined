@@ -1,60 +1,79 @@
 # 70 — Roadmap
 
-![Go-to-market](assets/go-to-market.png)
+Go-to-market: **win seekers first, then companies.** Companies register only after they have seen our candidates in their own interview loops.
 
-## Where we are
+```mermaid
+flowchart LR
+  P1[Phase 1 · Now<br/>Job site live] --> P2[Phase 2 · Months 1–6<br/>Launch Hire in one niche<br/>Scout opens months 4–6]
+  P2 --> P3[Phase 3 · Months 6–12<br/>Pull companies in]
+  P3 --> P4[Phase 4 · Year 2+<br/>Direct supply]
+```
 
-- ✅ Job site live (job hunter + company modes, aggregation).
-- ✅ **Phase 1 validated** (3+ months, ~100 internal users): human bidders + AI agent, split by form complexity, ~10 interviews/week per combined setup, job hunter clicks submit, hybrid QA.
+## Where we are (September 2026)
 
-## Build window (target: 2 months build, launch in month 3)
+- ✅ **Jobs is live:** job search for seekers and job posting for companies, with a large aggregated job pool.
+- ✅ **Scout is built** (Scoutwell, scout API, admin review queue): [13](13-scout-mode.md), [61](61-scout-api.md). Rewards are recorded by staff until interview tracking emits `interview.settled`.
+- 🚧 **Hire (ATS + AI interview assistant)** is next: build in 2 months, launch in month 3.
+- ⛔ **Connect (bidders and AI auto-apply) is retired.** The earlier Phase 1 experiment is not part of the product; applications are human-only ([22](22-no-bot-applications.md)).
 
-### Milestone A — Foundation (weeks 1–3)
+## Phase 1 — Now: job site live
 
-- Monorepo + CI, api-gateway, shared types/events, outbox ([02-architecture.md](02-architecture.md))
-- Identity: SSO across apps, modes, tier 1–2 verification, risk scoring v1, delegation agreements ([10](10-identity-and-accounts.md))
-- Migrate Phase 1 data (clients, applications, bid logs) into the new schema ([03](03-data-model.md))
-- Ledger + Stripe integration skeleton ([31](31-payments-wallet-escrow.md))
+OpenSeat Jobs runs today with job seekers, companies and a large job pool. Migrate existing job-site accounts to the new identity model without re-registration ([10](10-identity-and-accounts.md)).
 
-### Milestone B — Connect productized (weeks 3–6)
+## Phase 2 — Months 1–6: launch Hire in one niche
 
-- Client onboarding, Jobs tab, top-N / shortlist / rules assignment, approvals, tracker ([20](20-connect-client.md))
-- Bidder workspace with automated bid logs, resume-upload check, QA sampling, piece-rate earnings ([21](21-connect-bidder.md))
-- AI agent: orchestrator, Greenhouse + Ashby + Lever adapters, fabrication guard, extension submit handoff ([22](22-ai-agent.md))
-- Router bulk vs complex ([14](14-job-pool-and-matching.md))
-- Interview tracking: calendar (Google, Microsoft) + email forwarding, confirmation, holds ([30](30-interview-tracking.md))
-- Client per-interview billing + plans; weekly payouts ([31](31-payments-wallet-escrow.md))
+### Build window (2 months)
 
-### Milestone C — Trust + admin (weeks 5–8)
+**Milestone A — Foundation (weeks 1–3)**
 
-- Reports, rule engine v1, link analysis, moderation queues ([32](32-trust-and-safety.md), [40](40-admin-console.md))
+- Identity: SSO across apps, roles, tier 1–2 verification, risk scoring v1, automation detection ([10](10-identity-and-accounts.md), [22](22-no-bot-applications.md))
+- Source stamps and the apply-token flow on candidate apply ([20](20-hire-ats.md))
+- Ledger + Stripe skeleton: company card authorization, Premium subscription ([31](31-payments-wallet-escrow.md))
+- Monorepo, CI, api-gateway, shared types/events, outbox ([02](02-architecture.md))
+
+**Milestone B — Hire (weeks 3–7)**
+
+- ATS: job posts, career page and company apply link, pipeline, stages, scorecards, offers ([20](20-hire-ats.md))
+- Calendar connections (Google, Outlook) for every user; detection; two-sided classification; source-stamp tie-break ([30](30-interview-tracking.md))
+- Fee authorization, settlement, stage lock; seeker free credits and $2 fee ([31](31-payments-wallet-escrow.md))
+- AI interview assistant: recording consent, transcript, analysis, HR notes ([21](21-hire-ai-interview-assistant.md))
+
+**Milestone C — Trust + admin (weeks 5–8)**
+
+- Reports, rule engine v1 (classification mismatch, bot rules), link analysis, moderation queues ([32](32-trust-and-safety.md), [40](40-admin-console.md))
 - Notifications and messaging ([33](33-messaging-and-notifications.md))
-- Legal review: terms, delegation agreement, privacy, report system ([90](90-compliance-privacy-security.md))
-- OAuth verification (Google/Microsoft) submitted early — it gates public launch
+- Legal review: terms per role, recording consent, AI-in-hiring, fees ([90](90-compliance-privacy-security.md))
+- Google/Microsoft OAuth verification submitted early — it gates public launch
 
-### Launch (month 3) — controlled external cohort
+### Launch (month 3)
 
-- External clients in **one niche** (industry/region) + vetted bidders.
-- Publish interview-rate results.
+- Launch **Hire in one niche**: companies already posting on Jobs move their hiring in.
+- Publish interview rates.
 
-## Phase 2 — Pull companies in (months 4–6)
+### Months 4–6: Scout opens
 
-- Scout mode with auto checks and levels ([13](13-platform-scout.md))
-- Auto-generated company pages with activity stats; claim flow ([12](12-platform-company.md))
-- Evidence-based company outreach; staffing agency pilot
-- On-platform scheduling + face check (free for claimed companies)
-- ATS job-board partner programs → more direct jobs
+- Scout opens to the public; Premium ($20/mo) seekers see hidden jobs first ([13](13-scout-mode.md)).
+- Automate the scout economics: interview bonus ($1) and Premium pool allocation.
+- Scouts add whole career pages and ATS boards so supply compounds.
 
-## Phase 3 — Two-sided revenue (months 6–12)
+## Phase 3 — Months 6–12: pull companies in
 
-- Company pay-per-interview billing, Growth plan, spend caps
-- Scout conversion rewards
-- Bidder marketplace model (if chosen) with levels and take rate
-- Second niche expansion
-- Verified interview hosting, Enterprise tier, public API
+- Company pages show how many OpenSeat candidates the company interviewed ([12](12-hire-company-mode.md)).
+- Company claims the page, registers, and pays $20 per found candidate and $5 per own applicant.
+- Company conversion bonus for scouts.
+- Second niche.
 
-## Later
+## Phase 4 — Year 2+: direct supply
 
-- Reusable verified candidate credential
-- Interview prep add-on (before/after interviews)
-- More ATS adapters for the agent; learning-based routing
+- Direct posts replace aggregated jobs; per-source kill switch and under 20% of interviews from third-party boards before scaling.
+- Enterprise plans, API and verified interview hosting.
+
+## Milestones for the first 18 months (targets, to confirm)
+
+- Hire launched in the first niche in month 3.
+- 1,000 Premium seekers and a published interview rate.
+- First 30 paying companies.
+- Every interview confirmed from two calendars.
+- About $0.8M revenue in Year 1 (base).
+
+Key metrics: interview rate, company registration rate, paid interviews per company ([80](80-metrics-and-analytics.md)).

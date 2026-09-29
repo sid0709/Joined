@@ -4,27 +4,28 @@
 
 ## Messaging
 
-- Threads are always attached to a context: `engagement` (client ↔ bidder), `application` (company ↔ candidate, direct jobs), `case` (user ↔ support/moderation).
-- No free-form DMs between strangers. Company ↔ candidate messaging opens when the candidate applies to a direct job.
+- Threads are always attached to a context: `application` (company ↔ candidate), `case` (user ↔ support/moderation).
+- No free-form DMs between strangers. Company ↔ candidate messaging opens when the candidate applies to the company's job on OpenSeat.
 - Attachments: PDF, DOCX, PNG, JPG ≤ 10 MB, virus-scanned before delivery.
 - Safety: scan messages for off-platform payment/contact requests (Telegram, WhatsApp, crypto, "pay for training") → warning banner + trust flag; block sending of links to known scam domains.
 - Retention: 2 years after context closes, then deleted (configurable per law).
 
 ## Notifications
 
-| Type                                 | Default channels | Timing                |
-| ------------------------------------ | ---------------- | --------------------- |
-| Client: question waiting             | push, email      | immediate             |
-| Client: AI submits waiting           | push             | after 12 h            |
-| Client: interview detected — confirm | push, email      | after event end + 1 h |
-| Client: weekly summary               | email            | Monday                |
-| Company: new applicants              | email digest     | daily                 |
-| Company: interview tomorrow          | email            | 24 h before           |
-| Company: spend cap 80% / 100%        | email            | on threshold          |
-| Bidder: new work / QA failed         | push             | immediate             |
-| Scout: submission decision           | in-app, email    | immediate             |
-| Everyone: payout sent                | email            | on payout             |
-| Everyone: report about you           | email            | immediate             |
+| Type                                                                     | Default channels | Timing                     |
+| ------------------------------------------------------------------------ | ---------------- | -------------------------- |
+| Candidate: interview detected — classify it                              | push, email      | after event end + 1 h      |
+| Candidate: classification conflict (stamp decided)                       | email            | on resolution              |
+| Candidate: free credits used / low                                       | in-app           | on threshold               |
+| Candidate: weekly summary                                                | email            | Monday                     |
+| Company: new applicants                                                  | email digest     | daily                      |
+| Company: interview tomorrow                                              | email            | 24 h before                |
+| Company: classify interview / fee authorized / fee failed (stage locked) | email, in-app    | immediate                  |
+| Company: AI notes ready                                                  | in-app, email    | on `assistant.notes.ready` |
+| Scout: submission decision                                               | in-app, email    | immediate                  |
+| Scout: interview bonus / pool share earned                               | in-app           | on settlement / month end  |
+| Everyone: payout sent                                                    | email            | on payout                  |
+| Everyone: report about you                                               | email            | immediate                  |
 
 - Users control channels per type (except security and legal notices).
 - Quiet hours respected per user time zone for push.

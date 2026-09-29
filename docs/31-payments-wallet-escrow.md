@@ -1,10 +1,10 @@
-# 31 — Payments, Wallet, Escrow and Payouts
+# 31 — Payments, Credits, Fees and Payouts
 
-**Service:** `payments` (restricted ownership) · **Rail:** Stripe (Billing for charges, Connect for payouts)
+**Service:** `payments` (restricted ownership) · **Rail:** Stripe (Billing for subscriptions and cards, Connect for payouts)
 
 ## Purpose
 
-Move money correctly for four payer/payee types (clients, companies, bidders, scouts) based on confirmed interviews and plans, with an auditable internal ledger.
+Move money correctly for three parties (companies, seekers, scouts) based on confirmed interviews and subscriptions, with an auditable internal ledger.
 
 ## Principles
 
@@ -13,51 +13,49 @@ Move money correctly for four payer/payee types (clients, companies, bidders, sc
 - Append-only: corrections are new reversing transactions, never edits.
 - Every money-creating operation takes an `Idempotency-Key` and a `reference_type/reference_id` (e.g. `interview_event/<id>`), unique per transaction type.
 - Prices come from versioned `price_books` — never hard-coded.
+- **Fees are per interview, per candidate, per job; billable only for interview numbers 1–3; only for registered companies.**
 
 ## Accounts
 
-| Account                                  | Owner                     | Purpose                                                         |
-| ---------------------------------------- | ------------------------- | --------------------------------------------------------------- |
-| `client:wallet`                          | client                    | Prepaid balance / plan credits                                  |
-| `client:escrow`                          | client (held by platform) | Funds reserved for an engagement                                |
-| `company:receivable`                     | company                   | Interview fees owed (invoiced monthly or charged per event)     |
-| `bidder:payable_held` → `bidder:payable` | bidder                    | Earnings in hold, then releasable                               |
-| `scout:payable_held` → `scout:payable`   | scout                     | Rewards in hold, then releasable                                |
-| `platform:revenue:*`                     | platform                  | By stream: client_interview, company_interview, plan, take_rate |
-| `platform:cost:*`                        | platform                  | piece_rate, scout_rewards, idv, agent_compute (cost tracking)   |
-| `stripe:clearing`                        | platform                  | Cash in/out through Stripe                                      |
+| Account                                | Owner    | Purpose                                                         |
+| -------------------------------------- | -------- | --------------------------------------------------------------- |
+| `seeker:wallet`                        | seeker   | Card on file, Premium billing, interview credits (non-monetary) |
+| `company:receivable`                   | company  | Interview fees authorized/owed                                  |
+| `scout:payable_held` → `scout:payable` | scout    | Rewards in hold, then releasable                                |
+| `platform:revenue:*`                   | platform | By stream: premium, company_interview, seeker_interview         |
+| `platform:cost:*`                      | platform | scout_pool, scout_bonus, assistant_compute, idv, payment_fees   |
+| `stripe:clearing`                      | platform | Cash in/out through Stripe                                      |
 
 ## Flows
 
-### 1. Client plan subscription
+### 1. Premium subscription ($20/mo)
 
-Stripe Billing subscription → on `invoice.paid`: debit `stripe:clearing`, credit `platform:revenue:plan` (or `client:wallet` for credit-based plans).
+Stripe Billing subscription → on `invoice.paid`: debit `stripe:clearing`, credit `platform:revenue:premium`. The **scout pool** is then accrued: 20% of the payment moves to `platform:cost:scout_pool` and is allocated at month end across the distinct hidden jobs that user applied to that month ([13](13-scout-mode.md)). If the user applied to no hidden job, the pool amount stays as platform revenue.
 
-### 2. Client per-interview fee (on `interview.confirmed`)
+### 2. Company interview fee (on `interview.confirmed`)
 
-- Charge `client_interview` price (price book; proposed **$4**, see [50-pricing-and-revenue.md](50-pricing-and-revenue.md)).
-- If wallet/escrow balance covers it: debit `client:wallet`, credit `platform:revenue:client_interview`.
-- Else charge card on file (off-session) → via `stripe:clearing`.
-- On dispute voided → reversing transaction and refund.
+- Skip if company not registered, interview number ≥ 4, or classification is `not_interview`.
+- Price from price book: **$5** if `internal`, **$20** if `external`.
+- **Authorize** the company's card (hold) → `interview.fee_authorized`; on failure → `interview.fee_failed` (stage lock, retry schedule).
+- Accrue to `company:receivable`; **capture on settlement** (`interview.settled`) after the interview date and hold with no open dispute.
+- No free credits or free-first-interviews for companies.
 
-### 3. Company per-interview fee (direct jobs, on `interview.confirmed` with attendance)
+### 3. Seeker interview fee (internal interviews only)
 
-- Price by seniority/round (price book; proposed **$30** flat to start, cap 3 rounds per candidate per job).
-- Skip if within free-interview allowance (new claims: first 10).
-- Accrue to `company:receivable`; monthly invoice (Free/Growth) or per-event charge (config). Respect monthly spend cap.
+- Skip if classification is `external` (**$0**), interview number ≥ 4, or the company is not registered.
+- If the seeker has credits left this month (3–5 granted, config): consume one credit, charge **$0**.
+- Else charge **$2** to the card on file at settlement.
 
-### 4. Bidder earnings
+### 4. Scout rewards
 
-- **Piece rate (managed):** on `application.qa_passed` → debit `platform:cost:piece_rate`, credit `bidder:payable_held` (Phase 1: $0.05/bid). Release weekly.
-- **Marketplace:** base fee from client escrow released weekly for delivered qualified applications; per-interview fee on `interview.confirmed` → `bidder:payable_held`, released on `interview.settled`. Platform fee by level is credited to `platform:revenue:take_rate`.
+- **Interview bonus:** on `interview.settled` where classification is external, interview number is 1, and the job is scouted → debit `platform:cost:scout_bonus`, credit `scout:payable_held` **$1**.
+- **Pool share:** month-end allocation credited to `scout:payable_held` ([13](13-scout-mode.md)).
+- **Conversion bonus:** when a scouted company registers and its first fee settles.
+- Release after the scout hold (default 14 days).
 
-### 5. Scout rewards
+### 5. Payouts
 
-On `interview.settled` for a scouted job → debit `platform:cost:scout_rewards`, credit `scout:payable_held`; release after scout hold (14 days). Conversion rewards computed monthly from the company's paid interviews.
-
-### 6. Payouts
-
-- Weekly batch: for each payee with `payable ≥ $25` and verified payout account (Stripe Connect Express) and tax info → create transfer, move `payable → stripe:clearing`.
+- Weekly batch: for each scout with `payable ≥ $25`, a verified payout account (Stripe Connect Express) and tax info → create transfer, move `payable → stripe:clearing`.
 - Payout blocked if: account restricted, open fraud flag, or risk ≥ 60.
 
 ```mermaid
@@ -65,35 +63,34 @@ sequenceDiagram
   participant T as tracking
   participant P as payments
   participant S as Stripe
-  T->>P: interview.confirmed
+  T->>P: interview.confirmed {classification, number, company registered?}
   P->>P: price lookup (price_book)
-  P->>S: charge client (if no wallet balance)
-  P->>P: ledger: client fee → revenue
-  P->>P: ledger: company fee → receivable (direct job)
-  P->>P: ledger: bidder/scout → payable_held
-  T->>P: interview.settled (after hold)
+  P->>S: authorize company card
+  P->>P: ledger: company fee → receivable (held)
+  P->>P: seeker credit or $2 (internal only)
+  P->>P: scout $1 bonus → payable_held (external, #1, scouted)
+  T->>P: interview.settled (date passed, no dispute)
+  P->>S: capture company fee (and seeker fee if any)
   P->>P: payable_held → payable
   P->>S: weekly transfers (payouts)
 ```
 
 ## Refunds and reversals
 
-| Case                                 | Action                                                                           |
-| ------------------------------------ | -------------------------------------------------------------------------------- |
-| Interview voided after dispute       | Reverse client and company fees; reverse held bidder/scout amounts               |
-| No-show confirmed                    | No company fee; client fee per policy (default: no charge)                       |
-| Payout already made and later voided | Negative balance on payee; recovered from future earnings; repeated → trust case |
-| Chargeback                           | Freeze client account; reverse; trust case                                       |
-
-## Pro guarantee
-
-Human Pro clients with tracking connected who get **zero confirmed interviews in the first 30 days** receive a credit (default 50% of base fee) to their wallet. Implemented as a scheduled check per engagement.
+| Case                                 | Action                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Interview voided after dispute       | Release the authorization or refund; reverse seeker fee and credit; reverse scout amounts |
+| Candidate no-show / cancelled        | No company fee, no seeker fee; credit restored                                            |
+| Reclassified after dispute           | Re-price ($5↔$20), adjust seeker fee, and reverse or add the scout bonus                  |
+| Bot application found                | Void any unsettled fee tied to that application                                           |
+| Payout already made and later voided | Negative balance on payee; recovered from future earnings; repeated → trust case          |
+| Chargeback                           | Freeze the payer account; reverse; trust case                                             |
 
 ## API
 
 ```
-GET  /v1/me/wallet                      -> balances by account kind
-POST /v1/me/wallet/top-up               {amount_cents} -> checkout session
+GET  /v1/me/wallet                      -> premium status, credits, payment method, transactions
+POST /v1/me/payment-method              (Stripe SetupIntent)
 GET  /v1/me/transactions?cursor=
 GET  /v1/me/payouts                     POST /v1/me/payout-account (Stripe onboarding link)
 GET  /v1/companies/{id}/invoices
@@ -104,16 +101,20 @@ POST /v1/admin/adjustments              {account, amount, reason}   (dual approv
 
 ## Background jobs
 
-- `payments.settle` hourly (hold → payable)
+- `payments.settle` hourly (authorized → captured, held → payable)
+- `payments.retry_authorizations` (failed fee authorizations, backoff)
+- `payments.scout_pool` monthly (allocate Premium 20% pool)
+- `payments.credits.grant` monthly (seeker free credits)
 - `payments.payouts` weekly (Monday 09:00 UTC)
-- `payments.invoices` monthly
+- `payments.invoices` monthly (per-company summary of fees)
 - `payments.reconcile` daily: Stripe balance transactions ↔ ledger; mismatches open an alert
-- `payments.guarantee` daily
 
 ## Acceptance criteria
 
 - Replaying the same `interview.confirmed` event 5 times creates exactly one set of ledger transactions.
 - Sum of all ledger entries is zero at all times (checked in CI against a seeded scenario and nightly in prod).
-- A company with a $500 cap is never charged above $500 in a month.
+- An internal interview yields a $5 company fee; an external one $20; the 4th interview for the same candidate and job yields $0 on both sides.
+- An external interview never charges the seeker; an internal interview charges $2 only after credits are used.
+- Company fees are captured only after the interview date passes with no dispute.
 - Payouts never include amounts still in hold.
 - Every manual adjustment has two distinct admin approvals and an audit log entry.

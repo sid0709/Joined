@@ -5,50 +5,53 @@ Logical model grouped by owning service. Column types are PostgreSQL. Every tabl
 ```mermaid
 erDiagram
   USER ||--o| JOB_HUNTER_PROFILE : has
-  USER ||--o| BIDDER_PROFILE : has
   USER ||--o{ COMPANY_MEMBER : belongs
   COMPANY ||--o{ COMPANY_MEMBER : has
   COMPANY ||--o{ JOB : posts
+  COMPANY ||--o{ PIPELINE : defines
   USER ||--o{ SCOUT_SUBMISSION : submits
   SCOUT_SUBMISSION ||--o| JOB : creates
   JOB_HUNTER_PROFILE ||--o{ RESUME_VERSION : owns
-  USER ||--o{ ENGAGEMENT : "client of"
-  ENGAGEMENT ||--o{ ASSIGNMENT : contains
-  ASSIGNMENT ||--o{ APPLICATION : contains
   JOB ||--o{ APPLICATION : receives
-  APPLICATION ||--o{ BID_LOG : has
+  USER ||--o{ APPLICATION : "applies (in person)"
+  APPLICATION ||--|| SOURCE_STAMP : "stamped at apply click"
+  APPLICATION ||--o{ STAGE_MOVE : moves
   APPLICATION ||--o{ INTERVIEW_EVENT : leads_to
+  INTERVIEW_EVENT ||--o{ CLASSIFICATION : "classified by both sides"
+  INTERVIEW_EVENT ||--o| INTERVIEW_NOTES : "AI assistant"
+  INTERVIEW_EVENT ||--o{ SCORECARD : has
   INTERVIEW_EVENT ||--o{ LEDGER_ENTRY : triggers
+  USER ||--o{ SUBSCRIPTION : "Premium"
 ```
 
 ## identity
 
 ### users
 
-| column            | type                                         | notes                              |
-| ----------------- | -------------------------------------------- | ---------------------------------- |
-| id                | uuid pk                                      | UUIDv7                             |
-| email             | citext unique                                | verified flag separate             |
-| email_verified_at | timestamptz                                  |                                    |
-| phone 🔒          | text                                         | E.164                              |
-| phone_verified_at | timestamptz                                  |                                    |
-| display_name      | text                                         |                                    |
-| time_zone         | text                                         | IANA                               |
-| locale            | text                                         |                                    |
-| status            | enum `active, restricted, suspended, closed` |                                    |
-| verification_tier | smallint                                     | 0–3, see identity doc              |
-| risk_score        | smallint                                     | 0–100, cached from risk engine     |
-| role              | enum `job_hunter, recruiter, scout`          | One per account. Chosen at signup. |
+| column            | type                                         | notes                                                             |
+| ----------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| id                | uuid pk                                      | UUIDv7                                                            |
+| email             | citext unique                                | verified flag separate                                            |
+| email_verified_at | timestamptz                                  |                                                                   |
+| phone 🔒          | text                                         | E.164                                                             |
+| phone_verified_at | timestamptz                                  |                                                                   |
+| display_name      | text                                         |                                                                   |
+| time_zone         | text                                         | IANA                                                              |
+| locale            | text                                         |                                                                   |
+| status            | enum `active, restricted, suspended, closed` |                                                                   |
+| verification_tier | smallint                                     | 0–3, see identity doc                                             |
+| risk_score        | smallint                                     | 0–100, cached from risk engine                                    |
+| role              | enum `job_hunter, recruiter, scout`          | One per account. Chosen at signup. `job_hunter` = Candidate mode. |
 
 ### role data
 
 The login row stays in `users`. Each role keeps its own fields, and an account has only one of them:
 
-| Role       | Record                             | Holds                                                            |
-| ---------- | ---------------------------------- | ---------------------------------------------------------------- |
-| Job hunter | `job_hunter_profiles`              | Headline, target roles, salary floor, skills, work authorization |
-| Recruiter  | `company_members` plus `companies` | The person (`user_id`, role) and the company page they belong to |
-| Scout      | `scout_profiles`                   | Level, terms, legal name, country, tax last four, payout method  |
+| Role      | Record                             | Holds                                                            |
+| --------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Candidate | `job_hunter_profiles`              | Headline, target roles, salary floor, skills, work authorization |
+| Recruiter | `company_members` plus `companies` | The person (`user_id`, role) and the company page they belong to |
+| Scout     | `scout_profiles`                   | Level, terms, legal name, country, tax last four, payout method  |
 
 ### identity_verifications
 
@@ -56,18 +59,17 @@ The login row stays in `users`. Each role keeps its own fields, and an account h
 
 ### devices
 
-`id`, `user_id`, `fingerprint_hash`, `first_seen_at`, `last_seen_at`, `ip_last`, `asn`, `is_vpn bool`, `risk_flags jsonb`.
+`id`, `user_id`, `fingerprint_hash`, `first_seen_at`, `last_seen_at`, `ip_last`, `asn`, `is_vpn bool`, `automation_signals jsonb` (headless, webdriver, synthetic input, known auto-apply extension), `risk_flags jsonb`.
 
-### delegation_agreements
+### automation_detections
 
-Records that a client authorized a specific bidder (or the agent) to act for them.
-`id`, `client_user_id`, `actor_type enum(bidder, agent)`, `actor_user_id nullable`, `engagement_id`, `scope jsonb` (allowed actions), `signed_at`, `revoked_at`, `document_version`.
+`id`, `user_id`, `device_id`, `surface enum(apply, search, signup, scout_web)`, `signals jsonb`, `score smallint`, `action enum(challenge, block_apply, restrict, case)`, `occurred_at`. See [22-no-bot-applications.md](22-no-bot-applications.md).
 
 ## jobs
 
 ### companies
 
-`id`, `name`, `slug unique`, `primary_domain`, `domains text[]`, `ats_type enum(greenhouse, lever, ashby, workday, smartrecruiters, icims, custom, unknown)`, `ats_board_token`, `status enum(unclaimed, claimed, verified, suspended)`, `claimed_by_company_account_id`, `registry_ref`, `logo_url`, `size_band`, `industry`.
+`id`, `name`, `slug unique`, `primary_domain`, `domains text[]`, `ats_type enum(greenhouse, lever, ashby, workday, smartrecruiters, icims, custom, unknown)`, `ats_board_token`, `status enum(unclaimed, claimed, verified, suspended)`, `registered_at timestamptz nullable` (terms accepted + payment method; interview fees accrue only after this), `claimed_by_company_account_id`, `scouted_by_user_id nullable` (for the conversion bonus), `registry_ref`, `logo_url`, `size_band`, `industry`, `career_page_slug`.
 
 ### company_members
 
@@ -75,31 +77,32 @@ Records that a client authorized a specific bidder (or the agent) to act for the
 
 ### jobs
 
-| column                                       | type                                                                   | notes                                                  |
-| -------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------ |
-| id                                           | uuid pk                                                                |                                                        |
-| company_id                                   | uuid fk                                                                |                                                        |
-| source                                       | enum `direct, aggregated, scouted`                                     | Drives company billing                                 |
-| source_ref                                   | text                                                                   | feed id, scout submission id, or null                  |
-| title                                        | text                                                                   |                                                        |
-| normalized_title                             | text                                                                   | For dedupe/matching                                    |
-| seniority                                    | enum `intern, entry, mid, senior, lead, executive`                     |                                                        |
-| employment_type                              | enum `full_time, part_time, contract, temporary, internship`           |                                                        |
-| location_type                                | enum `onsite, hybrid, remote`                                          |                                                        |
-| locations                                    | jsonb                                                                  | `[{city, region, country, lat, lng}]`                  |
-| salary_min_cents / salary_max_cents          | bigint                                                                 | nullable                                               |
-| salary_currency                              | char(3)                                                                |                                                        |
-| summary                                      | text                                                                   | **Our own structured summary**, not copied description |
-| requirements                                 | jsonb                                                                  | skills, years, certifications                          |
-| official_apply_url                           | text                                                                   | Required                                               |
-| apply_form_complexity                        | enum `bulk, complex, unknown`                                          | From matching/router                                   |
-| visa_sponsorship                             | enum `yes, no, unknown`                                                |                                                        |
-| assisted_applications_policy                 | enum `accept, cap, direct_only`                                        | Direct jobs only; default `accept`                     |
-| assisted_daily_cap                           | int                                                                    | When policy = cap                                      |
-| status                                       | enum `draft, pending_review, active, paused, expired, closed, removed` |                                                        |
-| posted_at, expires_at, last_verified_open_at | timestamptz                                                            |                                                        |
-| dedupe_key                                   | text                                                                   | hash(company, normalized title, location, url)         |
-| quality_score                                | smallint                                                               | 0–100                                                  |
+| column                                       | type                                                                   | notes                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| id                                           | uuid pk                                                                |                                                         |
+| company_id                                   | uuid fk                                                                |                                                         |
+| source                                       | enum `direct, aggregated, scouted`                                     | Where the job came from (not the fee; see source stamp) |
+| source_ref                                   | text                                                                   | feed id, scout submission id, or null                   |
+| title                                        | text                                                                   |                                                         |
+| normalized_title                             | text                                                                   | For dedupe/matching                                     |
+| seniority                                    | enum `intern, entry, mid, senior, lead, executive`                     |                                                         |
+| employment_type                              | enum `full_time, part_time, contract, temporary, internship`           |                                                         |
+| location_type                                | enum `onsite, hybrid, remote`                                          |                                                         |
+| locations                                    | jsonb                                                                  | `[{city, region, country, lat, lng}]`                   |
+| salary_min_cents / salary_max_cents          | bigint                                                                 | nullable                                                |
+| salary_currency                              | char(3)                                                                |                                                         |
+| summary                                      | text                                                                   | **Our own structured summary**, not copied description  |
+| requirements                                 | jsonb                                                                  | skills, years, certifications                           |
+| official_apply_url                           | text                                                                   | Required                                                |
+| visa_sponsorship                             | enum `yes, no, unknown`                                                |                                                         |
+| is_hidden                                    | bool                                                                   | Scouted and not on major boards; Premium-first          |
+| hidden_ended_at                              | timestamptz                                                            | Set when the job appears publicly                       |
+| owner_scout_user_id                          | uuid nullable                                                          | First approved scout; earns pool share and bonus        |
+| pipeline_id                                  | uuid nullable                                                          | ATS pipeline (direct jobs of registered companies)      |
+| status                                       | enum `draft, pending_review, active, paused, expired, closed, removed` |                                                         |
+| posted_at, expires_at, last_verified_open_at | timestamptz                                                            |                                                         |
+| dedupe_key                                   | text                                                                   | hash(company, normalized title, location, url)          |
+| quality_score                                | smallint                                                               | 0–100                                                   |
 
 Indexes: `(status, posted_at desc)`, `(company_id, status)`, `dedupe_key unique where status in active states`, GIN on `requirements`.
 
@@ -115,110 +118,60 @@ Indexes: `(status, posted_at desc)`, `(company_id, status)`, `dedupe_key unique 
 
 ### fit_scores
 
-`client_user_id`, `job_id`, `score smallint`, `reasons jsonb`, `model_version`, `computed_at`. PK `(client_user_id, job_id)`.
+`candidate_user_id`, `job_id`, `score smallint`, `reasons jsonb`, `model_version`, `computed_at`. PK `(candidate_user_id, job_id)`. Used for recommendations and applicant sorting only; never to apply automatically.
 
-### routing_decisions
-
-`job_id`, `route enum(agent, human)`, `reason`, `ats_type`, `form_signature_hash`, `decided_at`, `overridden_by`.
-
-## marketplace
+## ats
 
 ### job_hunter_profiles
 
-`user_id pk`, `headline`, `target_roles text[]`, `locations jsonb`, `remote_pref`, `salary_floor_cents`, `salary_currency`, `work_authorization jsonb 🔒`, `do_not_apply_companies uuid[]`, `preferences jsonb`.
+`user_id pk`, `headline`, `target_roles text[]`, `locations jsonb`, `remote_pref`, `salary_floor_cents`, `salary_currency`, `work_authorization jsonb 🔒`, `preferences jsonb`.
 
 ### resume_versions
 
-`id`, `owner_user_id`, `label`, `file_key` (S3), `file_sha256`, `parsed jsonb`, `is_default bool`, `approved_by_owner_at`, `derived_from_id nullable`, `created_by_user_id` (owner, bidder, or agent).
-
-### bidder_profiles
-
-`user_id pk`, `level enum(new, rising, top, elite)`, `specialties text[]`, `languages text[]`, `regions text[]`, `bio`, `compensation_model enum(piece_rate, marketplace)`, `piece_rate_cents`, `packages jsonb`, `daily_quota`, `status enum(onboarding, active, paused, suspended)`, `skills_test_score`, stats columns (`apps_30d`, `interviews_30d`, `interview_rate_30d numeric`, `not_relevant_rate_30d numeric`, `retention_rate numeric`).
-
-### engagements
-
-A contract between a client and a provider (bidder or agent).
-`id`, `client_user_id`, `provider_type enum(bidder, agent)`, `bidder_user_id nullable`, `plan_code`, `status enum(pending_payment, active, paused, ended, disputed)`, `approval_mode enum(approve_each, auto_within_rules)`, `rules jsonb` (roles, locations, salary floor, min fit, exclusions, weekly target), `starts_at`, `ends_at`, `delegation_agreement_id`.
-
-### assignments
-
-`id`, `engagement_id`, `created_by_user_id`, `selection_method enum(manual, top_n, shortlist, rules)`, `target_count`, `deadline_at`, `resume_version_id`, `allow_tailoring bool`, `notes`, `status enum(open, in_progress, completed, cancelled)`.
+`id`, `owner_user_id`, `label`, `file_key` (S3), `file_sha256`, `parsed jsonb`, `is_default bool`. Created and edited by the owner only.
 
 ### applications
 
-| column                  | type                                         | notes                               |
-| ----------------------- | -------------------------------------------- | ----------------------------------- |
-| id                      | uuid pk                                      |                                     |
-| assignment_id           | uuid fk                                      |                                     |
-| client_user_id          | uuid                                         | denormalized for queries            |
-| job_id                  | uuid fk                                      |                                     |
-| actor_type              | enum `bidder, agent, self`                   |                                     |
-| actor_user_id           | uuid nullable                                |                                     |
-| route                   | enum `agent, human`                          |                                     |
-| status                  | enum (see state machine)                     |                                     |
-| resume_version_id       | uuid                                         | assigned                            |
-| uploaded_resume_sha256  | text                                         | captured at submission              |
-| resume_check            | enum `pending, match, mismatch, unavailable` |                                     |
-| client_note             | text                                         |                                     |
-| screening_questions     | jsonb                                        | Q&A, with `answered_by`             |
-| submitted_at            | timestamptz                                  |                                     |
-| submission_evidence_key | text                                         | screenshot / confirmation email ref |
-| assisted_label          | bool                                         | true unless `self`                  |
-| fit_score_at_assign     | smallint                                     |                                     |
-| company_feedback        | enum `none, not_relevant, good_fit`          |                                     |
-| failure_reason          | text                                         |                                     |
+| column            | type                                                                        | notes                                                           |
+| ----------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| id                | uuid pk                                                                     |                                                                 |
+| candidate_user_id | uuid                                                                        |                                                                 |
+| job_id            | uuid fk                                                                     |                                                                 |
+| company_id        | uuid fk                                                                     | denormalized                                                    |
+| channel           | enum `company_link, career_page, openseat_jobs, scout_hidden, off_platform` | How the candidate reached the apply form                        |
+| source            | enum `internal, external`                                                   | Copied from the source stamp; never edited                      |
+| resume_version_id | uuid                                                                        |                                                                 |
+| answers           | jsonb                                                                       | Screening questions                                             |
+| stage_id          | uuid fk                                                                     | Current pipeline stage                                          |
+| stage_locked      | bool                                                                        | True while an interview fee is unpaid ("no fee, no next stage") |
+| status            | enum `applied, in_review, interviewing, offer, hired, rejected, withdrawn`  |                                                                 |
+| human_attestation | jsonb                                                                       | Session id, device id, risk score, challenge result at submit   |
+| submitted_at      | timestamptz                                                                 |                                                                 |
 
-Unique: `(client_user_id, job_id)` — a client never applies twice to the same job.
+Unique: `(candidate_user_id, job_id)` — one application per candidate per job.
 
-**Application state machine**
+### source_stamps
 
-```mermaid
-stateDiagram-v2
-  [*] --> queued
-  queued --> preparing: agent/bidder picks up
-  preparing --> awaiting_client_approval: approve_each
-  preparing --> awaiting_client_submit: agent route
-  preparing --> submitting: human route + auto
-  awaiting_client_approval --> submitting: approved (human)
-  awaiting_client_approval --> awaiting_client_submit: approved (agent)
-  awaiting_client_approval --> skipped: client rejects
-  awaiting_client_submit --> submitted: client clicked submit
-  submitting --> submitted
-  preparing --> needs_client_input: screening question
-  needs_client_input --> preparing
-  preparing --> failed: form error / job closed
-  submitted --> qa_passed: resume check match + log complete
-  submitted --> qa_failed: mismatch / missing evidence
-  qa_passed --> interviewing: interview detected+confirmed
-  qa_passed --> rejected_by_company
-  qa_passed --> no_response: 30 days no signal
-  interviewing --> offer
-  interviewing --> rejected_by_company
-  queued --> expired: job closed before start
-```
+Append-only first-touch record written on the apply click.
+`id`, `application_id unique`, `candidate_user_id`, `job_id`, `company_id`, `source enum(internal, external)`, `channel`, `referrer_url`, `link_token` (company link or scout job id), `session_id`, `occurred_at`. **Never updated.** It is the tie-breaker for classification disputes ([30](30-interview-tracking.md)).
 
-### bid_logs
+### pipelines / stages / stage_moves
 
-Append-only record of work on an application.
-`id`, `application_id`, `actor_user_id`, `action enum(opened, filled, uploaded_resume, answered_question, submitted, captured_confirmation, note)`, `payload jsonb`, `occurred_at`.
+`pipelines(id, company_id, name, is_default)`, `stages(id, pipeline_id, position, kind enum(applied, screen, interview, offer, hired, rejected), name)`, `stage_moves(id, application_id, from_stage_id, to_stage_id, moved_by_user_id, blocked_reason nullable, occurred_at)` — append-only.
 
-### qa_reviews
+### scorecards
 
-`id`, `application_id`, `reviewer_type enum(auto, human)`, `result enum(pass, fail)`, `reasons text[]`, `reviewed_at`.
+`id`, `interview_event_id`, `interviewer_user_id`, `criteria jsonb` (criterion → rating, evidence), `recommendation enum(strong_no, no, yes, strong_yes)`, `ai_draft_id nullable`, `submitted_at`. Submitted by a human; AI drafts are suggestions.
 
-### quotas
+### offers
 
-`subject_type enum(bidder, agent)`, `subject_id`, `client_user_id nullable`, `period_date date`, `limit int`, `used int`. PK `(subject_type, subject_id, client_user_id, period_date)`.
+`id`, `application_id`, `status enum(draft, sent, accepted, declined, withdrawn)`, `terms jsonb 🔒`, `sent_at`, `decided_at`.
 
-## agent
+## assistant
 
-### agent_runs
+### interview_recordings / transcripts / interview_notes
 
-`id`, `assignment_id`, `started_at`, `finished_at`, `status enum(running, completed, failed, cancelled)`, `jobs_attempted`, `jobs_prepared`, `jobs_failed`, `compute_cost_cents`, `worker_id`, `model_versions jsonb`.
-
-### agent_prepared_payloads
-
-`id`, `application_id`, `ats_type`, `form_fields jsonb` (field → value), `attachments jsonb` (S3 keys), `tailoring_diff jsonb`, `fabrication_check enum(pass, flagged)`, `expires_at`, `handoff_status enum(ready, opened, submitted, abandoned, expired)`.
+`interview_recordings(id, interview_event_id, storage_key, consent jsonb` (who consented, when, jurisdiction rule applied)`, duration_s, deleted_at)`, `transcripts(id, recording_id, language, segments jsonb, model_version)`, `interview_notes(id, interview_event_id, summary, analysis jsonb, scorecard_draft jsonb, model_version, cost_cents, visible_to_candidate bool default false)`. See [21-hire-ai-interview-assistant.md](21-hire-ai-interview-assistant.md).
 
 ## tracking
 
@@ -228,44 +181,54 @@ Append-only record of work on an application.
 
 ### interview_events
 
-| column                          | type                                        | notes                                      |
-| ------------------------------- | ------------------------------------------- | ------------------------------------------ |
-| id                              | uuid pk                                     |                                            |
-| candidate_user_id               | uuid                                        |                                            |
-| job_id                          | uuid nullable                               | resolved match                             |
-| company_id                      | uuid nullable                               |                                            |
-| application_id                  | uuid nullable                               |                                            |
-| round_number                    | smallint                                    | 1 = first interview for this candidate+job |
-| source                          | enum `calendar, email, on_platform, manual` |                                            |
-| source_ref                      | text                                        | provider event/message id (dedupe)         |
-| scheduled_start / scheduled_end | timestamptz                                 |                                            |
-| organizer_domain                | text                                        |                                            |
-| match_confidence                | smallint                                    | 0–100                                      |
-| status                          | enum (see state machine)                    |                                            |
-| confirmed_at, confirmed_by      |                                             |                                            |
-| hold_until                      | timestamptz                                 |                                            |
-| dispute_id                      | uuid nullable                               |                                            |
+| column                          | type                                              | notes                                                       |
+| ------------------------------- | ------------------------------------------------- | ----------------------------------------------------------- |
+| id                              | uuid pk                                           |                                                             |
+| candidate_user_id               | uuid                                              |                                                             |
+| job_id                          | uuid nullable                                     | resolved match                                              |
+| company_id                      | uuid nullable                                     |                                                             |
+| application_id                  | uuid nullable                                     |                                                             |
+| interview_number                | smallint                                          | 1 = first interview for this candidate+job; billable if ≤ 3 |
+| source                          | enum `calendar, email, on_platform, manual`       | how it was detected                                         |
+| source_refs                     | jsonb                                             | provider event ids from **each** side's calendar (dedupe)   |
+| seen_on_candidate_calendar      | bool                                              |                                                             |
+| seen_on_company_calendar        | bool                                              |                                                             |
+| scheduled_start / scheduled_end | timestamptz                                       |                                                             |
+| organizer_domain                | text                                              |                                                             |
+| match_confidence                | smallint                                          | 0–100                                                       |
+| candidate_classification        | enum `internal, external, not_interview` nullable |                                                             |
+| company_classification          | enum `internal, external, not_interview` nullable |                                                             |
+| resolved_classification         | enum `internal, external`                         | agreed answer, or the source stamp on conflict              |
+| resolved_by                     | enum `agreement, source_stamp, moderator`         |                                                             |
+| billable                        | bool                                              | registered company AND number ≤ 3 AND not voided            |
+| status                          | enum (see state machine)                          |                                                             |
+| confirmed_at                    | timestamptz                                       |                                                             |
+| hold_until                      | timestamptz                                       | interview date + hold period                                |
+| dispute_id                      | uuid nullable                                     |                                                             |
 
 **Interview state machine**
 
 ```mermaid
 stateDiagram-v2
   [*] --> detected
-  detected --> pending_confirmation: confidence ≥ threshold or manual
+  detected --> scheduled: matched to an application
   detected --> discarded: low confidence / not an interview
-  pending_confirmation --> confirmed: client confirms after scheduled_end
-  pending_confirmation --> cancelled: event cancelled
-  pending_confirmation --> no_show: candidate did not attend
-  confirmed --> held
-  held --> settled: hold_until passed, no dispute
-  held --> disputed
+  scheduled --> awaiting_classification: company registered
+  awaiting_classification --> confirmed: both calendars + both classifications (or stamp resolves conflict)
+  scheduled --> cancelled
+  confirmed --> fee_authorized: company card authorized
+  confirmed --> fee_failed: authorization failed → stage lock
+  fee_failed --> fee_authorized: company pays
+  fee_authorized --> settled: date passed + hold, no dispute
+  fee_authorized --> disputed
   disputed --> settled: resolved valid
   disputed --> voided: resolved invalid
+  scheduled --> unbilled: company not registered (record kept)
 ```
 
-### interview_schedules (on-platform, direct jobs)
+### interview_schedules (on-platform)
 
-`id`, `company_id`, `job_id`, `candidate_user_id`, `slots jsonb`, `selected_slot`, `video_room_ref`, `face_check_status enum(pending, passed, failed, skipped)`, `status`.
+`id`, `company_id`, `job_id`, `candidate_user_id`, `slots jsonb`, `selected_slot`, `video_room_ref`, `face_check_status enum(pending, passed, failed, skipped)`, `recording_consent jsonb`, `status`.
 
 ## payments
 
@@ -273,7 +236,7 @@ See [31-payments-wallet-escrow.md](31-payments-wallet-escrow.md) for rules.
 
 ### ledger_accounts
 
-`id`, `owner_type enum(user, company, platform, escrow, stripe_clearing, tax)`, `owner_id`, `currency`, `kind enum(wallet, receivable, payable, revenue, escrow, fees)`.
+`id`, `owner_type enum(user, company, platform, stripe_clearing, tax)`, `owner_id`, `currency`, `kind enum(wallet, receivable, payable, revenue, cost, fees)`.
 
 ### ledger_transactions / ledger_entries
 
@@ -281,7 +244,20 @@ Double-entry. `ledger_transactions(id, type, reference_type, reference_id, idemp
 
 ### price_books
 
-`id`, `code`, `applies_to enum(company_interview, client_interview, plan, scout_reward, bidder_piece_rate)`, `rules jsonb` (by seniority, round, region), `currency`, `effective_from`, `effective_to`.
+`id`, `code`, `applies_to enum(company_interview, seeker_interview, premium, scout_pool, scout_interview_bonus, scout_conversion_bonus, seeker_free_credits)`, `rules jsonb` (by classification, interview number, region), `currency`, `effective_from`, `effective_to`.
+
+### seeker_credits
+
+`user_id`, `period_month date`, `granted smallint` (3–5, config), `used smallint`. PK `(user_id, period_month)`.
+
+### subscriptions
+
+`id`, `user_id`, `plan enum(premium)`, `status`, `stripe_ref`, `current_period_start`, `current_period_end`.
+
+### scout_pool_allocations
+
+Monthly split of 20% of each Premium payment across the distinct hidden jobs that user applied to that month.
+`id`, `subscription_payment_id`, `premium_user_id`, `job_id`, `scout_user_id`, `amount_cents`, `period_month`.
 
 ### invoices, charges, payouts
 

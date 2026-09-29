@@ -5,7 +5,8 @@
 - Base path `/v1`. Breaking changes → `/v2`; additive changes allowed in place.
 - JSON, `snake_case` fields, UTF-8. Money: `{ "amount_cents": 400, "currency": "USD" }`. Times: ISO 8601 UTC.
 - Auth: `Authorization: Bearer <access_token>`. Role-scoped endpoints check `users.role`. An account has one role.
-- **Idempotency:** `Idempotency-Key` header required on POSTs that create applications, assignments, charges, payouts, reports. Keys stored 24 h; same key + same body → same response; same key + different body → 409.
+- **No application-submission API.** Applications are accepted only from first-party human web sessions ([22](22-no-bot-applications.md)). Scout API keys can only create submissions and read scout data ([61](61-scout-api.md)).
+- **Idempotency:** `Idempotency-Key` header required on POSTs that create applications, charges, payouts, reports, scout submissions. Keys stored 24 h; same key + same body → same response; same key + different body → 409.
 - **Pagination:** cursor-based: `?cursor=&limit=` (max 100) → `{ "data": [...], "next_cursor": "…" }`.
 - **Filtering/sorting:** explicit query params per endpoint; `sort=-created_at`.
 - **Errors:** RFC 9457 problem details:
@@ -13,15 +14,15 @@
 ```json
 {
   "type": "https://docs.<domain>/errors/quota_exceeded",
-  "title": "Daily quota exceeded",
+  "title": "Daily submission limit exceeded",
   "status": 429,
   "code": "quota_exceeded",
-  "detail": "Client daily cap of 100 applications reached.",
+  "detail": "Daily scout submission limit of 50 reached.",
   "trace_id": "01J…"
 }
 ```
 
-Common codes: `validation_failed` (422), `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `quota_exceeded` (429), `verification_required` (403, with `required_tier`), `rate_limited` (429 with `Retry-After`).
+Common codes: `validation_failed` (422), `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `quota_exceeded` (429), `verification_required` (403, with `required_tier`), `rate_limited` (429 with `Retry-After`), `human_required` (403), `automation_detected` (403), `stage_locked` (409).
 
 - **Rate limits:** per user and per IP; headers `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`.
 - **OpenAPI:** each service publishes `openapi.yaml`; gateway aggregates; `packages/sdk` generated in CI. Contract tests fail the build on breaking changes.
@@ -32,7 +33,7 @@ Stripe, IDV vendor, Google/Microsoft calendar, inbound email. Verify signatures;
 
 ## Webhooks (outbound, later: companies/partners)
 
-Signed with HMAC-SHA256 (`X-Signature`, `X-Timestamp`), retries with exponential backoff for 24 h, event types mirror internal events that are safe to expose (`application.received`, `interview.scheduled`).
+Signed with HMAC-SHA256 (`X-Signature`, `X-Timestamp`), retries with exponential backoff for 24 h, event types mirror internal events that are safe to expose (`application.received`, `interview.scheduled`, `interview.confirmed`).
 
 ## Events
 
@@ -56,23 +57,22 @@ Envelope (all events):
 
 ### Event catalog (core)
 
-| Event                                                        | Producer    | Key data                                            |
-| ------------------------------------------------------------ | ----------- | --------------------------------------------------- |
-| `user.verified`                                              | identity    | user_id, tier                                       |
-| `delegation.signed` / `.revoked`                             | identity    | client_user_id, actor                               |
-| `job.published` / `.expired` / `.merged`                     | jobs        | job_id, source, company_id                          |
-| `scout.submission.approved`                                  | jobs        | submission_id, job_id, scout_user_id                |
-| `company.claimed`                                            | jobs        | company_id                                          |
-| `fit.computed`                                               | matching    | client_user_id, job_id, score                       |
-| `route.decided`                                              | matching    | job_id, route                                       |
-| `assignment.created`                                         | marketplace | assignment_id, engagement_id, count                 |
-| `application.submitted`                                      | marketplace | application_id, actor_type, job_id, client_user_id  |
-| `application.qa_passed` / `.qa_failed`                       | marketplace | application_id, reasons                             |
-| `agent.application.prepared`                                 | agent       | application_id, payload_id                          |
-| `company.feedback.not_relevant`                              | jobs        | application_id, actor                               |
-| `interview.detected` / `.confirmed` / `.settled` / `.voided` | tracking    | interview_id, application_id, job_id, round, source |
-| `charge.succeeded` / `payout.released`                       | payments    | amounts, references                                 |
-| `report.upheld` / `fraud.flagged`                            | trust       | subject, reason                                     |
+| Event                                                                        | Producer  | Key data                                                              |
+| ---------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------- |
+| `user.verified`                                                              | identity  | user_id, tier                                                         |
+| `automation.detected`                                                        | identity  | user_id, surface, action                                              |
+| `job.published` / `.expired` / `.merged` / `.hidden_ended`                   | jobs      | job_id, source, company_id                                            |
+| `scout.submission.approved`                                                  | jobs      | submission_id, job_id, scout_user_id                                  |
+| `company.claimed` / `company.registered`                                     | jobs      | company_id                                                            |
+| `fit.computed`                                                               | matching  | candidate_user_id, job_id, score                                      |
+| `application.submitted`                                                      | ats       | application_id, job_id, candidate_user_id, source (internal/external) |
+| `application.stage_changed` / `.stage_locked` / `.stage_unlocked`            | ats       | application_id, stage_id                                              |
+| `interview.detected` / `.classified` / `.confirmed` / `.settled` / `.voided` | tracking  | interview_id, application_id, job_id, number, classification          |
+| `interview.fee_authorized` / `.fee_failed`                                   | payments  | interview_id, amount, payer                                           |
+| `assistant.notes.ready`                                                      | assistant | interview_id, notes_id                                                |
+| `subscription.paid`                                                          | payments  | user_id, amount                                                       |
+| `charge.succeeded` / `payout.released`                                       | payments  | amounts, references                                                   |
+| `report.upheld` / `fraud.flagged`                                            | trust     | subject, reason                                                       |
 
 ## Observability
 
