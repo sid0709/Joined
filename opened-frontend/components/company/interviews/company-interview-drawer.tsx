@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   AvatarGroup,
@@ -59,6 +59,11 @@ export function CompanyInterviewDrawer({
   const toast = useToast();
   const [feedbackPrompt, setFeedbackPrompt] = useState(false);
   const [quickNotes, setQuickNotes] = useState("");
+
+  useEffect(() => {
+    setFeedbackPrompt(false);
+    setQuickNotes("");
+  }, [interview?.id]);
 
   if (!interview) return null;
   const status = INTERVIEW_STATUS_META[interview.status];
@@ -250,19 +255,25 @@ export function CompanyInterviewDrawer({
           />
         ) : null}
 
-        {(feedbackPrompt || interview.status === "attended") && scorecardTemplate && onScorecard ? (
+        {feedbackPrompt || interview.status === "attended" ? (
           <Stack gap={3}>
             <Banner
               status="info"
               title="How did it go?"
-              description="Submit a scorecard while the round is fresh. Required when this job’s feedback gate asks for one."
+              description={
+                scorecardTemplate
+                  ? "Submit a scorecard while the round is fresh. Required when this job’s feedback gate asks for one."
+                  : "Leave a quick note while the round is fresh. Add a scorecard template on the job to capture criteria."
+              }
             />
-            <ScorecardSubmitShell
-              template={scorecardTemplate}
-              applicantId={interview.applicantId}
-              existing={applicantScorecards}
-              onSubmit={onScorecard}
-            />
+            {scorecardTemplate && onScorecard ? (
+              <ScorecardSubmitShell
+                template={scorecardTemplate}
+                applicantId={interview.applicantId}
+                existing={applicantScorecards}
+                onSubmit={onScorecard}
+              />
+            ) : null}
             <TextArea
               label="Quick notes"
               value={quickNotes}

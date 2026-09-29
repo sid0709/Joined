@@ -20,10 +20,17 @@ import {
   fetchBilling,
   fetchHiringProfile,
   fetchInterviews,
+  fetchJobs,
   setAttendance,
 } from "@/lib/company/api";
-import { toCompanyCalendarEvent, type CompanyInterview, type HiringProfile } from "@/lib/company";
-import type { BillingAccount } from "@/lib/company";
+import {
+  toCompanyCalendarEvent,
+  type BillingAccount,
+  type CompanyInterview,
+  type CompanyJob,
+  type HiringProfile,
+  type ScorecardSubmission,
+} from "@/lib/company";
 import { daysBetween, formatDay, isSameDay, startOfDay } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 import { CompanyInterviewDrawer } from "./company-interview-drawer";
@@ -39,16 +46,19 @@ export function CompanyInterviewsWorkspace() {
   const [items, setItems] = useState<CompanyInterview[]>([]);
   const [billing, setBilling] = useState<BillingAccount | null>(null);
   const [hiringProfile, setHiringProfile] = useState<HiringProfile | null>(null);
+  const [jobs, setJobs] = useState<CompanyJob[]>([]);
+  const [scorecards, setScorecards] = useState<ScorecardSubmission[]>([]);
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchInterviews(), fetchBilling()])
-      .then(([nextItems, nextBilling]) => {
+    Promise.all([fetchInterviews(), fetchBilling(), fetchJobs()])
+      .then(([nextItems, nextBilling, nextJobs]) => {
         if (!active) return;
         setItems(nextItems);
         setBilling(nextBilling);
+        setJobs(nextJobs);
       })
       .catch((error: Error) => toast({ body: error.message, type: "error" }));
     fetchHiringProfile()
@@ -99,6 +109,9 @@ export function CompanyInterviewsWorkspace() {
 
   const price = billing?.pricePerInterviewCents ?? 0;
   const currency = billing?.currency ?? "USD";
+  const openInterview = items.find((item) => item.id === openId) ?? null;
+  const scorecardTemplate =
+    jobs.find((job) => job.id === openInterview?.jobId)?.scorecardTemplate ?? null;
 
   return (
     <Stack gap={6}>
@@ -201,11 +214,17 @@ export function CompanyInterviewsWorkspace() {
       </GridSystem>
 
       <CompanyInterviewDrawer
-        interview={items.find((item) => item.id === openId) ?? null}
+        interview={openInterview}
         onClose={() => setOpenId(null)}
         priceCents={price}
         currency={currency}
         meetingLink={hiringProfile?.meetingLink}
+        scorecardTemplate={scorecardTemplate}
+        scorecards={scorecards}
+        onScorecard={(submission) => {
+          setScorecards((current) => [submission, ...current]);
+          toast({ body: "Scorecard saved locally — Einstein persist pending." });
+        }}
         onChange={replace}
       />
     </Stack>

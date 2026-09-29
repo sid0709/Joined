@@ -31,7 +31,13 @@ export function CompanyInterviewRow({
             {interview.jobTitle} · {interview.round}
           </Text>
           <Text type="supporting" weight="medium">
-            {formatTime(interview.start)} – {formatTime(interview.end)}
+            {interview.status === "awaiting"
+              ? interview.proposedSlots && interview.proposedSlots.length > 0
+                ? `${interview.proposedSlots.length} time${interview.proposedSlots.length === 1 ? "" : "s"} offered · slot not locked`
+                : interview.selfScheduleUrl
+                  ? "Self-schedule ready · slot not locked"
+                  : "Waiting on candidate · slot not locked"
+              : `${formatTime(interview.start)} – ${formatTime(interview.end)}`}
           </Text>
           <HStack gap={1.5} wrap="wrap">
             <Badge label={status.label} variant={status.badge} />
