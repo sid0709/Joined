@@ -6,6 +6,7 @@ import { ReactNode, useEffect } from "react";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
 import { AppShell, NavItem } from "@/src/shared/marketplace-ui";
+import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 type MarketplaceRole = "Candidate" | "Client";
 
@@ -20,14 +21,15 @@ const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string }[]> = {
     { label: "Profile", href: "/marketplace/candidate/profile" },
   ],
   Client: [
-    { label: "Add Job Link", href: "/marketplace/client/jobs/new" },
-    { label: "Job Pool", href: "/marketplace/client/jobs" },
-    { label: "Bidders", href: "/marketplace/client/bidders" },
-    { label: "Interview Calendar", href: "/marketplace/client/calendar" },
-    { label: "Applications", href: "/marketplace/client/applications" },
-    { label: "Managed Bidders", href: "/marketplace/client/work" },
-    { label: "Payments", href: "/marketplace/client/payments" },
-    { label: "Profile", href: "/marketplace/client/profile" },
+    { label: "Dashboard", href: HUNTER_ROUTES.dashboard },
+    { label: "Tasks", href: HUNTER_ROUTES.tasks },
+    { label: "Bidders", href: HUNTER_ROUTES.bidders },
+    { label: "Interviews", href: HUNTER_ROUTES.interviews },
+    { label: "Job Pool", href: HUNTER_ROUTES.pool },
+    { label: "Monitoring", href: HUNTER_ROUTES.monitoring },
+    { label: "Messages", href: HUNTER_ROUTES.messages },
+    { label: "Billing", href: HUNTER_ROUTES.billing },
+    { label: "Profile", href: HUNTER_ROUTES.profile },
   ],
 };
 
@@ -60,7 +62,7 @@ function RoleGuard({ role, children }: { role: MarketplaceRole; children: ReactN
       router.replace(
         currentUser.role === "Candidate"
           ? "/marketplace/candidate/dashboard"
-          : "/marketplace/client/dashboard",
+          : HUNTER_ROUTES.dashboard,
       );
     }
   }, [currentUser, isMounted, role, router]);
@@ -86,13 +88,12 @@ export function MarketplaceShell({
     <RoleGuard role={role}>
       <AppShell
         nav={{
-          brand: "OpenSeat Marketplace",
+          brand: role === "Client" ? "OpenSeat Job Hunter" : "OpenSeat Bidder",
           items,
           cta: "Log Out",
           onCtaClick: logoutUser,
           initials: initialsFor(currentUser?.fullName),
-          userHref:
-            role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/profile",
+          userHref: role === "Candidate" ? "/marketplace/candidate/profile" : HUNTER_ROUTES.profile,
           showAvatar: true,
           showThemeToggle: true,
         }}

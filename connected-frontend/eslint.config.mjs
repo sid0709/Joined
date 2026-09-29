@@ -4,9 +4,13 @@ import nextTs from "eslint-config-next/typescript";
 
 import sharedLintConfig from "../eslint.shared.mjs";
 
+const nextConfig = nextVitals.filter((config) => {
+  const candidate = config;
+  return candidate.name !== "next/typescript" && !candidate.plugins?.["react-hooks"];
+});
+
 const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
+  ...nextConfig,
   ...sharedLintConfig,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
   {

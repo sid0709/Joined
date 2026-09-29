@@ -212,6 +212,16 @@
   --meta-blue-800: var(--color-blue-800);
   --meta-blue-900: var(--color-blue-900);
   --meta-blue-950: var(--color-blue-950);
+
+  /* Data visualization series — fills for charts, meters and status marks. */
+  --color-chart-accent: light-dark(#1877f2, #4599ff);
+  --color-chart-accent-soft: light-dark(#9ec2ff, #1f4f94);
+  --color-chart-positive: light-dark(#1a8a3a, #4bb56a);
+  --color-chart-caution: light-dark(#d99a00, #f0b429);
+  --color-chart-critical: light-dark(#c5311f, #f07167);
+  --color-chart-violet: light-dark(#6b4fd8, #a08cf2);
+  --color-chart-neutral: light-dark(#b4bac4, #5a5e66);
+  --color-chart-grid: light-dark(#0000000f, #ffffff14);
 }
 
 [data-theme="light"] {

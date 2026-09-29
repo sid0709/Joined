@@ -1,9 +1,9 @@
-import { MarketplaceShell } from "@/src/shared/components/MarketplaceShell";
-
 import type { Metadata } from "next";
 
+import { MarketplaceShell } from "@/src/shared/components/MarketplaceShell";
+
 export const metadata: Metadata = {
-  title: "Client Workspace",
+  title: "Job Hunter Workspace",
 };
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {

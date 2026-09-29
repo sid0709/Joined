@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { DashboardView } from "@/src/client/components/dashboard/DashboardView";
 
 export default function ClientDashboardPage() {
-  redirect("/marketplace/client/jobs");
+  return <DashboardView />;
 }
