@@ -29,16 +29,23 @@ export type JobAction = "open" | "pause" | "resume" | "close" | "publish" | "reo
 function actionsFor(
   job: CompanyJob,
   onAction: (job: CompanyJob, action: JobAction) => void,
+  canEdit: boolean,
+  canPublish: boolean,
 ): DropdownMenuOption[] {
   const act = (action: JobAction) => () => onAction(job, action);
+  // Einstein AuthorizeJobUpdate: jobs.edit always; jobs.publish when opening to market.
   return [
     { label: "View details", onClick: act("open") },
     { type: "divider" },
-    ...(job.status === "open" ? [{ label: "Pause", onClick: act("pause") }] : []),
-    ...(job.status === "paused" ? [{ label: "Resume", onClick: act("resume") }] : []),
-    ...(job.status === "draft" ? [{ label: "Publish", onClick: act("publish") }] : []),
-    ...(job.status === "closed" ? [{ label: "Reopen job", onClick: act("reopen") }] : []),
-    ...(job.status !== "closed"
+    ...(job.status === "open" && canEdit ? [{ label: "Pause", onClick: act("pause") }] : []),
+    ...(job.status === "paused" && canPublish ? [{ label: "Resume", onClick: act("resume") }] : []),
+    ...(job.status === "draft" && canPublish
+      ? [{ label: "Publish", onClick: act("publish") }]
+      : []),
+    ...(job.status === "closed" && canPublish
+      ? [{ label: "Reopen job", onClick: act("reopen") }]
+      : []),
+    ...(job.status !== "closed" && canEdit
       ? [{ label: "Close & archive", variant: "destructive" as const, onClick: act("close") }]
       : []),
   ];
@@ -48,9 +55,15 @@ function actionsFor(
 export function CompanyJobTable({
   jobs,
   onAction,
+  canEdit = true,
+  canPublish = true,
 }: {
   jobs: CompanyJob[];
   onAction: (job: CompanyJob, action: JobAction) => void;
+  /** Soft gate — jobs.edit (pause / close). */
+  canEdit?: boolean;
+  /** Soft gate — jobs.publish (publish / resume / reopen → open). */
+  canPublish?: boolean;
 }) {
   const now = new Date();
   const columns: TableColumn<CompanyJob>[] = [
@@ -136,7 +149,7 @@ export function CompanyJobTable({
           <MoreMenu
             label={`Actions for ${row.title}`}
             size="sm"
-            items={actionsFor(row, onAction)}
+            items={actionsFor(row, onAction, canEdit, canPublish)}
           />
         </span>
       ),

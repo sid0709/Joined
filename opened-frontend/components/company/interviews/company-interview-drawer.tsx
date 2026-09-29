@@ -59,6 +59,8 @@ export function CompanyInterviewDrawer({
   hiringProfile,
   scorecardTemplate,
   scorecards,
+  canSchedule = true,
+  scheduleDenial = "",
   onScorecard,
   onClose,
   onChange,
@@ -72,6 +74,9 @@ export function CompanyInterviewDrawer({
   hiringProfile?: HiringProfile | null;
   scorecardTemplate?: ScorecardTemplate | null;
   scorecards?: ScorecardSubmission[];
+  /** Soft gate — interviews.schedule for lock / re-offer. */
+  canSchedule?: boolean;
+  scheduleDenial?: string;
   onScorecard?: (input: ScorecardSubmissionInput) => void | Promise<void>;
   onClose: () => void;
   onChange: (next: CompanyInterview, message: string) => void;
@@ -259,6 +264,7 @@ export function CompanyInterviewDrawer({
                         label="Lock this time"
                         variant="secondary"
                         size="sm"
+                        isDisabled={!canSchedule}
                         onClick={() => onLockSlot(slot)}
                       />
                     ) : null}
@@ -271,11 +277,15 @@ export function CompanyInterviewDrawer({
                 link.
               </Text>
             )}
+            {!canSchedule && scheduleDenial ? (
+              <Banner status="warning" title="Cannot schedule" description={scheduleDenial} />
+            ) : null}
             {onReofferSlots && hiringProfile ? (
               <Button
                 label="Re-offer from availability"
                 variant="secondary"
                 size="sm"
+                isDisabled={!canSchedule}
                 onClick={() => {
                   const slots = proposeSlotsFromAvailability(hiringProfile, {
                     count: MAX_PROPOSED_SLOTS,

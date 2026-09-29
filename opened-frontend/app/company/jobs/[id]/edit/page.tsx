@@ -3,7 +3,7 @@ import { Stack } from "@openseat/design-system";
 import { JobPostEditor } from "@/components/company/post-job/job-post-editor";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";
-import { canManageCompany } from "@/lib/company/access";
+import { canManageCompany, sessionHiringRole } from "@/lib/company/access";
 
 export const metadata: Metadata = { title: "Edit job" };
 
@@ -20,6 +20,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
       <JobPostEditor
         company={session.company}
         canEditTeams={canManageCompany(session.company)}
+        actorRole={sessionHiringRole(session.company)}
         jobId={id}
       />
     </Stack>

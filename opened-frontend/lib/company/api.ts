@@ -19,7 +19,12 @@ import {
   type ScorecardSubmission,
   type ScorecardSubmissionInput,
 } from "@/lib/pipeline-eval";
-import { CompanyRequestError, isConflictError } from "@/lib/me/client";
+import {
+  CompanyRequestError,
+  isBadRequestError,
+  isConflictError,
+  isForbiddenError,
+} from "@/lib/me/client";
 import {
   hydrateOptionalUrl,
   hydrateProposedSlots,
@@ -462,10 +467,13 @@ export function submitApplicantScorecard(applicantId: string, input: ScorecardSu
   });
 }
 
-/** Toast copy for stage-move failures — keep 409 gate reasons visible. */
+/** Toast copy for stage-move failures — keep 409 gate reasons and 403/400 visible. */
 export function stageMoveErrorMessage(error: unknown): string {
   if (isConflictError(error)) {
     return error.message || "Feedback required before advancing this candidate.";
+  }
+  if (isForbiddenError(error) || isBadRequestError(error)) {
+    return error.message || "You cannot move this candidate.";
   }
   if (error instanceof Error && error.message) return error.message;
   return "Could not move this candidate.";

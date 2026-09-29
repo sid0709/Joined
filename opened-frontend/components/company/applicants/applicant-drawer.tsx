@@ -58,6 +58,7 @@ import {
 import type { ScheduleMode, ProposedSlot } from "@/lib/schedule-join";
 import type { OfferTemplate } from "@/lib/offer-hire";
 import { OfferPanel, type OfferActionResult } from "@/components/company/offer/offer-panel";
+import { denialReason } from "@/lib/rbac";
 
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
@@ -82,6 +83,9 @@ export function ApplicantDrawer({
   allApplicants,
   teamMembers,
   actorRole = null,
+  canMove = true,
+  canHire = true,
+  canSchedule = true,
   hiringProfile,
   scorecardTemplate,
   interviewGuide,
@@ -99,6 +103,12 @@ export function ApplicantDrawer({
   allApplicants: Applicant[];
   teamMembers: TeamMember[];
   actorRole?: TeamRole | null;
+  /** Soft gate — applicants.move (stage CTAs). */
+  canMove?: boolean;
+  /** Soft gate — offers.hire (mark hired). */
+  canHire?: boolean;
+  /** Soft gate — interviews.schedule. */
+  canSchedule?: boolean;
   hiringProfile: HiringProfile | null;
   scorecardTemplate: ScorecardTemplate | null;
   interviewGuide: InterviewGuide | null;
@@ -139,6 +149,13 @@ export function ApplicantDrawer({
     label: stage.title,
   }));
   const tryMove = (stage: ApplicantColumnId, message?: string) => {
+    if (stage === "hired" ? !canHire : !canMove) {
+      setGateError({
+        ok: false,
+        reason: denialReason(actorRole, stage === "hired" ? "offers.hire" : "applicants.move"),
+      });
+      return;
+    }
     const nextNotes = notes[applicant.id] ?? applicant.notes;
     const check = canAdvanceStage({
       fromStage: applicant.columnId,
@@ -164,6 +181,13 @@ export function ApplicantDrawer({
   const tags = (applicant.tags ?? []).map((label) => ({ id: label, label }));
 
   const submitSchedule = () => {
+    if (!canSchedule) {
+      setGateError({
+        ok: false,
+        reason: denialReason(actorRole, "interviews.schedule"),
+      });
+      return;
+    }
     const names = draft.interviewerIds
       .map((id) => teamMembers.find((member) => member.id === id)?.name)
       .filter((name): name is string => Boolean(name));
@@ -192,12 +216,14 @@ export function ApplicantDrawer({
             <Button
               label="Reject"
               variant="ghost"
+              isDisabled={!canMove}
               onClick={() => move("rejected", `${applicant.name} rejected`)}
             />
             {applicant.assisted !== "direct" ? (
               <Button
                 label="Not relevant"
                 variant="ghost"
+                isDisabled={!canMove}
                 onClick={() => move("rejected", "Marked not relevant — not billed")}
               />
             ) : null}
@@ -206,12 +232,14 @@ export function ApplicantDrawer({
             <Button
               label="Shortlist"
               variant="secondary"
+              isDisabled={!canMove}
               onClick={() => move("screening", `${applicant.name} shortlisted`)}
             />
             {applicant.columnId === "interview" || applicant.columnId === "screening" ? (
               <Button
                 label="Move to offer"
                 variant="secondary"
+                isDisabled={!canMove}
                 onClick={() => move("offer", `${applicant.name} moved to offer`)}
               />
             ) : null}
@@ -219,6 +247,7 @@ export function ApplicantDrawer({
               <Button
                 label="Mark hired"
                 variant="primary"
+                isDisabled={!canHire}
                 onClick={() => move("hired", `${applicant.name} hired`)}
               />
             ) : (
@@ -231,7 +260,7 @@ export function ApplicantDrawer({
                       : "Schedule interview"
                 }
                 variant="primary"
-                isDisabled={!slotReady}
+                isDisabled={!slotReady || !canSchedule}
                 onClick={submitSchedule}
               />
             )}
@@ -352,6 +381,13 @@ export function ApplicantDrawer({
           description="Email and phone unlock once an interview is scheduled here."
         />
 
+        {!canSchedule ? (
+          <Banner
+            status="warning"
+            title="Cannot schedule"
+            description={denialReason(actorRole, "interviews.schedule")}
+          />
+        ) : null}
         <SchedulePanel
           hiringProfile={hiringProfile}
           teamMembers={teamMembers}
@@ -387,6 +423,13 @@ export function ApplicantDrawer({
 
         <Stack gap={4}>
           <Heading level={3}>Team review</Heading>
+          {!canMove && !canHire ? (
+            <Banner
+              status="warning"
+              title="Cannot move stages"
+              description={denialReason(actorRole, "applicants.move")}
+            />
+          ) : null}
           <FeedbackGateBanner result={gateError} />
           <Rating
             value={applicant.rating ?? 0}
@@ -398,6 +441,7 @@ export function ApplicantDrawer({
             options={stageOptions}
             value={applicant.columnId}
             onChange={(value) => tryMove(value)}
+            isDisabled={!canMove && !canHire}
           />
           <TextArea
             label="Notes for the team"

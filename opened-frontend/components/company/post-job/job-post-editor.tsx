@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Banner,
   Button,
   CheckboxInput,
   Glyph,
@@ -44,6 +45,8 @@ import type { CompanyJob } from "@/lib/company";
 import { hydrateScreeningQuestions, type ScreeningQuestion } from "@/lib/intake";
 import type { JobTemplateDraft } from "@/lib/layer-a";
 import type { AuthCompany } from "@/lib/auth/types";
+import { isBadRequestError, isForbiddenError } from "@/lib/me/client";
+import { canPermission, denialReason, type TeamRole } from "@/lib/rbac";
 import {
   CURRENCY_OPTIONS,
   DEFAULT_CURRENCY,
@@ -191,13 +194,19 @@ export function JobPostEditor({
   company,
   canEditTeams,
   jobId,
+  actorRole = null,
 }: {
   company: AuthCompany;
   canEditTeams: boolean;
   jobId?: string;
+  /** Session hiringRole for soft publish/edit gates. */
+  actorRole?: TeamRole | null;
 }) {
   const toast = useToast();
   const router = useRouter();
+  const canEditJobs = canPermission(actorRole, "jobs.edit");
+  const canPublishJobs = canPermission(actorRole, "jobs.publish");
+  // Einstein: create/update needs jobs.edit; opening to market also needs jobs.publish.
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [teams, setTeams] = useState<string[]>([]);
   const [offices, setOffices] = useState<string[]>([]);
@@ -326,6 +335,15 @@ export function JobPostEditor({
   });
 
   const save = (nextStatus: "draft" | "open" | "paused") => {
+    if (!canEditJobs) {
+      toast({ body: denialReason(actorRole, "jobs.edit"), type: "error" });
+      return;
+    }
+    // Mirror AuthorizeJobUpdate / JobCreatePermissions: publish only when opening to market.
+    if (nextStatus === "open" && status !== "open" && !canPublishJobs) {
+      toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
+      return;
+    }
     setSaving(true);
     const send = jobId ? updateJob(jobId, payload(nextStatus)) : createJob(payload(nextStatus));
     send
@@ -340,7 +358,15 @@ export function JobPostEditor({
         });
         router.push(ROUTES.companyJobs);
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }))
+      .catch((error: unknown) => {
+        const message =
+          isForbiddenError(error) || isBadRequestError(error)
+            ? error.message || "You cannot save this job."
+            : error instanceof Error && error.message
+              ? error.message
+              : "Could not save this job.";
+        toast({ body: message, type: "error" });
+      })
       .finally(() => setSaving(false));
   };
 
@@ -587,12 +613,26 @@ export function JobPostEditor({
                 ))}
               </Stack>
             </Stack>
+            {!canEditJobs ? (
+              <Banner
+                status="warning"
+                title="View only"
+                description={denialReason(actorRole, "jobs.edit")}
+              />
+            ) : null}
+            {!canPublishJobs && canEditJobs ? (
+              <Banner
+                status="info"
+                title="Cannot publish"
+                description={denialReason(actorRole, "jobs.publish")}
+              />
+            ) : null}
             <HStack gap={2}>
               {status === "open" ? (
                 <Button
                   label="Save"
                   variant="primary"
-                  isDisabled={!ready || saving}
+                  isDisabled={!ready || saving || !canEditJobs}
                   onClick={() => save("open")}
                 />
               ) : (
@@ -600,13 +640,13 @@ export function JobPostEditor({
                   <Button
                     label="Save draft"
                     variant="secondary"
-                    isDisabled={!draft.title.trim() || saving}
+                    isDisabled={!draft.title.trim() || saving || !canEditJobs}
                     onClick={() => save(status === "paused" ? "paused" : "draft")}
                   />
                   <Button
                     label="Publish job"
                     variant="primary"
-                    isDisabled={!ready || saving}
+                    isDisabled={!ready || saving || !canEditJobs || !canPublishJobs}
                     onClick={() => save("open")}
                   />
                 </>

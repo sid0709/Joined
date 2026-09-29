@@ -3,7 +3,7 @@ import { Stack } from "@openseat/design-system";
 import { JobPostEditor } from "@/components/company/post-job/job-post-editor";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";
-import { canManageCompany } from "@/lib/company/access";
+import { canManageCompany, sessionHiringRole } from "@/lib/company/access";
 
 export const metadata: Metadata = { title: "Post a job" };
 
@@ -16,7 +16,11 @@ export default async function NewJobPage() {
         title="Post a job"
         description="Posting is free. Scheduling an interview spends your purchase balance, and a no-show returns it."
       />
-      <JobPostEditor company={session.company} canEditTeams={canManageCompany(session.company)} />
+      <JobPostEditor
+        company={session.company}
+        canEditTeams={canManageCompany(session.company)}
+        actorRole={sessionHiringRole(session.company)}
+      />
     </Stack>
   );
 }

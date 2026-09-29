@@ -56,6 +56,8 @@ export function CompanyJobDrawer({
   onClose,
   onAction,
   onPipelineSaved,
+  canEdit = true,
+  canPublish = true,
 }: {
   job: CompanyJob | null;
   applicants: Applicant[];
@@ -66,6 +68,10 @@ export function CompanyJobDrawer({
     pipeline: JobPipelineConfig,
     offerTemplates?: OfferTemplate[],
   ) => void;
+  /** Soft gate — jobs.edit (pause / close). */
+  canEdit?: boolean;
+  /** Soft gate — jobs.publish (resume / reopen → open). */
+  canPublish?: boolean;
 }) {
   if (!job) return null;
   const status = JOB_STATUS_META[job.status];
@@ -82,20 +88,20 @@ export function CompanyJobDrawer({
       subtitle={`${job.department || job.team} · ${job.location}`}
       footer={
         <HStack gap={2} hAlign="between" wrap="wrap">
-          {job.status === "open" ? (
+          {job.status === "open" && canEdit ? (
             <Button label="Pause job" variant="ghost" onClick={() => onAction(job, "pause")} />
-          ) : job.status === "paused" ? (
+          ) : job.status === "paused" && canPublish ? (
             <Button label="Resume job" variant="ghost" onClick={() => onAction(job, "resume")} />
-          ) : job.status === "closed" ? (
+          ) : job.status === "closed" && canPublish ? (
             <Button label="Reopen job" variant="ghost" onClick={() => onAction(job, "reopen")} />
           ) : (
             <span />
           )}
           <HStack gap={2}>
-            {job.status !== "closed" ? (
+            {job.status !== "closed" && canEdit ? (
               <Button label="Edit" variant="secondary" href={ROUTES.companyJobEdit(job.id)} />
             ) : null}
-            {job.status !== "closed" && job.status !== "draft" ? (
+            {job.status !== "closed" && job.status !== "draft" && canEdit ? (
               <Button
                 label="Close & archive"
                 variant="secondary"

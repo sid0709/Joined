@@ -47,6 +47,8 @@ import { ApplicantCard } from "./applicant-card";
 import { ApplicantDrawer, type ApplicantScheduleRequest } from "./applicant-drawer";
 import type { OfferActionResult } from "@/components/company/offer/offer-panel";
 import { applyOfferStatus, buildOfferPatch, defaultOfferTemplates } from "@/lib/offer-hire";
+import { isBadRequestError, isForbiddenError } from "@/lib/me/client";
+import { canPermission, denialReason } from "@/lib/rbac";
 
 const COLUMN_WIDTH = 240;
 const PERCENT = 100;
@@ -57,6 +59,10 @@ const ALL_TAGS = "all";
 /** The hiring pipeline: filter, drag candidates between stages, open one to decide. */
 export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
+  const canMoveApplicants = canPermission(actorRole, "applicants.move");
+  const canHire = canPermission(actorRole, "offers.hire");
+  const canSchedule = canPermission(actorRole, "interviews.schedule");
+  // Einstein: stage moves need applicants.move; hired needs offers.hire; schedule needs interviews.schedule.
   const [people, setPeople] = useState<Applicant[]>([]);
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
   const [jobOptions, setJobOptions] = useState([{ value: ALL_JOBS, label: "All jobs" }]);
@@ -173,6 +179,14 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
   );
 
   const replace = (next: Applicant, message?: string) => {
+    const prior = people.find((person) => person.id === next.id);
+    if (prior && prior.columnId !== next.columnId) {
+      const needed = next.columnId === "hired" ? "offers.hire" : "applicants.move";
+      if (!canPermission(actorRole, needed)) {
+        toast({ body: denialReason(actorRole, needed), type: "error" });
+        return;
+      }
+    }
     const offerPatch = next.offer ? buildOfferPatch(next.offer) : undefined;
     // When advancing straight to hired without OfferPanel, stamp accepted.
     const patchedOffer =
@@ -234,6 +248,10 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
   };
 
   const schedule = (person: Applicant, slot: ApplicantScheduleRequest) => {
+    if (!canSchedule) {
+      toast({ body: denialReason(actorRole, "interviews.schedule"), type: "error" });
+      return;
+    }
     const meetingUrl = hiringProfile?.meetingLink?.trim() || undefined;
     const primary =
       slot.mode === "propose" && slot.proposedSlots[0]
@@ -272,7 +290,15 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
         toast({ body });
         setOpenId(null);
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+      .catch((error: unknown) => {
+        const message =
+          isForbiddenError(error) || isBadRequestError(error)
+            ? error.message || denialReason(actorRole, "interviews.schedule")
+            : error instanceof Error && error.message
+              ? error.message
+              : "Could not schedule this interview.";
+        toast({ body: message, type: "error" });
+      });
   };
 
   return (
@@ -336,6 +362,12 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
           );
           const moved = next.find((person) => person.id === move.itemId);
           if (move.from.columnId !== move.to.columnId && moved) {
+            const toStage = move.to.columnId as ApplicantColumnId;
+            const needed = toStage === "hired" ? "offers.hire" : "applicants.move";
+            if (!canPermission(actorRole, needed)) {
+              toast({ body: denialReason(actorRole, needed), type: "error" });
+              return;
+            }
             const job = jobs.find((item) => item.id === moved.jobId);
             const gate = job?.feedbackGate ?? DEFAULT_FEEDBACK_GATE;
             const check = canAdvanceStage({
@@ -351,7 +383,6 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
               toast({ body: check.reason, type: "error" });
               return;
             }
-            const toStage = move.to.columnId as ApplicantColumnId;
             const jobCustom = job?.customStages;
             let stampOffer = moved.offer;
             let offerPatch = undefined as ReturnType<typeof buildOfferPatch> | undefined;
@@ -404,6 +435,9 @@ export function ApplicantsWorkspace({ actorRole = null }: { actorRole?: TeamRole
         allApplicants={people}
         teamMembers={teamMembers}
         actorRole={actorRole}
+        canMove={canMoveApplicants}
+        canHire={canHire}
+        canSchedule={canSchedule}
         hiringProfile={hiringProfile}
         scorecardTemplate={scorecardTemplate}
         interviewGuide={interviewGuide}

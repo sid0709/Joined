@@ -23,6 +23,8 @@ import {
   type CompanyJobStatus,
 } from "@/lib/company";
 import type { Applicant } from "@/lib/company";
+import { isBadRequestError, isForbiddenError } from "@/lib/me/client";
+import { canPermission, denialReason, type TeamRole } from "@/lib/rbac";
 import { CompanyJobDrawer } from "./company-job-drawer";
 import { CompanyJobTable, type JobAction } from "./company-job-table";
 
@@ -45,9 +47,20 @@ const DONE_MESSAGE: Partial<Record<JobAction, string>> = {
   reopen: "reopened and is live again.",
 };
 
+function jobStatusErrorMessage(error: unknown): string {
+  if (isForbiddenError(error) || isBadRequestError(error)) {
+    return error.message || "You cannot change this job's status.";
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "Could not update job status.";
+}
+
 /** The jobs console: stats, status tabs, search, a table, and a detail drawer. */
-export function CompanyJobsWorkspace() {
+export function CompanyJobsWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
+  const canEditJobs = canPermission(actorRole, "jobs.edit");
+  const canPublishJobs = canPermission(actorRole, "jobs.publish");
+  // Einstein AuthorizeJobUpdate: jobs.edit always; jobs.publish when opening to market.
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
@@ -90,12 +103,20 @@ export function CompanyJobsWorkspace() {
   ) => {
     const next = NEXT_STATUS[action];
     if (!next) return;
+    if (!canEditJobs) {
+      toast({ body: denialReason(actorRole, "jobs.edit"), type: "error" });
+      return;
+    }
+    if (next === "open" && !canPublishJobs) {
+      toast({ body: denialReason(actorRole, "jobs.publish"), type: "error" });
+      return;
+    }
     setJobStatus(job.id, next, options)
       .then((saved) => {
         setJobs((current) => current.map((item) => (item.id === saved.id ? saved : item)));
         toast({ body: `${job.title} ${DONE_MESSAGE[action]}` });
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+      .catch((error: unknown) => toast({ body: jobStatusErrorMessage(error), type: "error" }));
   };
 
   const act = (job: CompanyJob, action: JobAction) => {
@@ -175,12 +196,19 @@ export function CompanyJobsWorkspace() {
         </Text>
       ) : null}
 
-      <CompanyJobTable jobs={shown} onAction={act} />
+      <CompanyJobTable
+        jobs={shown}
+        onAction={act}
+        canEdit={canEditJobs}
+        canPublish={canPublishJobs}
+      />
       <CompanyJobDrawer
         job={jobs.find((job) => job.id === openId) ?? null}
         applicants={applicants}
         onClose={() => setOpenId(null)}
         onAction={act}
+        canEdit={canEditJobs}
+        canPublish={canPublishJobs}
         onPipelineSaved={(jobId, pipeline, templates) => {
           setJobs((current) =>
             current.map((job) =>
@@ -217,13 +245,18 @@ export function CompanyJobsWorkspace() {
           if (!closing) return;
           setClosingBusy(true);
           const job = closing;
+          if (!canEditJobs) {
+            toast({ body: denialReason(actorRole, "jobs.edit"), type: "error" });
+            setClosingBusy(false);
+            return;
+          }
           setJobStatus(job.id, "closed", { notifyOnClose: true })
             .then((saved) => {
               setJobs((current) => current.map((item) => (item.id === saved.id ? saved : item)));
               toast({ body: `${job.title} ${DONE_MESSAGE.close}` });
               setClosing(null);
             })
-            .catch((error: Error) => toast({ body: error.message, type: "error" }))
+            .catch((error: unknown) => toast({ body: jobStatusErrorMessage(error), type: "error" }))
             .finally(() => setClosingBusy(false));
         }}
       />

@@ -38,7 +38,9 @@ import {
   type ScorecardSubmissionInput,
 } from "@/lib/company";
 import { daysBetween, formatDay, isSameDay, startOfDay } from "@/lib/dates";
+import { isBadRequestError, isForbiddenError } from "@/lib/me/client";
 import { formatCents } from "@/lib/money";
+import { canPermission, denialReason, type TeamRole } from "@/lib/rbac";
 import { CompanyInterviewDrawer } from "./company-interview-drawer";
 import { CompanyInterviewRow } from "./company-interview-row";
 
@@ -47,8 +49,10 @@ const PERCENT = 100;
 const CALENDAR_HOURS: [number, number] = [8, 18];
 
 /** The team interview calendar with a day panel and attendance that drives billing. */
-export function CompanyInterviewsWorkspace() {
+export function CompanyInterviewsWorkspace({ actorRole = null }: { actorRole?: TeamRole | null }) {
   const toast = useToast();
+  const canSchedule = canPermission(actorRole, "interviews.schedule");
+  // Einstein: lock / re-offer / create need interviews.schedule (score is separate).
   const [items, setItems] = useState<CompanyInterview[]>([]);
   const [billing, setBilling] = useState<BillingAccount | null>(null);
   const [hiringProfile, setHiringProfile] = useState<HiringProfile | null>(null);
@@ -135,17 +139,33 @@ export function CompanyInterviewsWorkspace() {
 
   const lockSlot = (slot: ProposedSlot) => {
     if (!openInterview) return;
+    if (!canSchedule) {
+      toast({ body: denialReason(actorRole, "interviews.schedule"), type: "error" });
+      return;
+    }
     lockInterviewSlot(openInterview.id, slot)
       .then((saved) => {
         setItems((current) => current.map((item) => (item.id === saved.id ? saved : item)));
         setOpenId(saved.id);
         toast({ body: `Locked ${slot.date} ${slot.start}–${slot.end} for ${saved.candidate}.` });
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+      .catch((error: unknown) => {
+        const message =
+          isForbiddenError(error) || isBadRequestError(error)
+            ? error.message || denialReason(actorRole, "interviews.schedule")
+            : error instanceof Error && error.message
+              ? error.message
+              : "Could not update this interview.";
+        toast({ body: message, type: "error" });
+      });
   };
 
   const reofferSlots = (slots: ProposedSlot[]) => {
     if (!openInterview) return;
+    if (!canSchedule) {
+      toast({ body: denialReason(actorRole, "interviews.schedule"), type: "error" });
+      return;
+    }
     reofferInterviewSlots(openInterview.id, slots)
       .then((saved) => {
         setItems((current) => current.map((item) => (item.id === saved.id ? saved : item)));
@@ -154,7 +174,15 @@ export function CompanyInterviewsWorkspace() {
           body: `Re-offered ${slots.length} time${slots.length === 1 ? "" : "s"} to ${saved.candidate}.`,
         });
       })
-      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+      .catch((error: unknown) => {
+        const message =
+          isForbiddenError(error) || isBadRequestError(error)
+            ? error.message || denialReason(actorRole, "interviews.schedule")
+            : error instanceof Error && error.message
+              ? error.message
+              : "Could not update this interview.";
+        toast({ body: message, type: "error" });
+      });
   };
 
   const price = billing?.pricePerInterviewCents ?? 0;
@@ -272,6 +300,8 @@ export function CompanyInterviewsWorkspace() {
         hiringProfile={hiringProfile}
         scorecardTemplate={scorecardTemplate}
         scorecards={scorecards}
+        canSchedule={canSchedule}
+        scheduleDenial={denialReason(actorRole, "interviews.schedule")}
         onScorecard={async (input: ScorecardSubmissionInput) => {
           if (!openInterview?.applicantId) return;
           try {
