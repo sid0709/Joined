@@ -23,7 +23,10 @@ import {
   createHirePacket,
   createOfferEsign,
   decideOfferApproval,
+  markOfferEsign,
   offerHireErrorMessage,
+  patchHirePacketItem,
+  patchHirePacketStatus,
   requestOfferApproval,
 } from "@/lib/company/api";
 import { canPermission, currentMemberRole, denialReason, type TeamRole } from "@/lib/rbac";
@@ -38,7 +41,6 @@ import {
   centsToDollarsInput,
   dollarsToCents,
   emptyOffer,
-  markHirePacketStatus,
   newHirePacket,
   offerReadyToHire,
   renderOfferBody,
@@ -302,22 +304,29 @@ export function OfferPanel({
   };
 
   const setPacketStatus = (packetStatus: "ready" | "sent") => {
-    // ready/sent stays local until this handler calls patchHirePacketStatus (offers.hire).
     if (!canHire) {
       setActionError(denialReason(actorRole, "offers.hire"));
       return;
     }
-    const next = markHirePacketStatus(withComp(draft), packetStatus, {
+    setActionError(null);
+    setBusy(true);
+    patchHirePacketStatus(applicant.id, {
+      status: packetStatus,
       handoffTarget: draft.offer.hirePacket?.handoffTarget,
       ownerNote: draft.offer.hirePacket?.ownerNote ?? draft.offer.notes,
-    });
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(
-      next,
-      packetStatus === "sent"
-        ? `Hire packet sent for ${applicant.name}`
-        : `Hire packet marked ready for ${applicant.name}`,
-    );
+    })
+      .then((packet) => {
+        const next: OfferRecord = { ...withComp(draft), hirePacket: packet };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(
+          next,
+          packetStatus === "sent"
+            ? `Hire packet sent for ${applicant.name}`
+            : `Hire packet marked ready for ${applicant.name}`,
+        );
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const startEsign = () => {
@@ -336,8 +345,6 @@ export function OfferPanel({
   };
 
   const markEsignSigned = () => {
-    // Candidate countersign is POST /v1/me/applications/:id/offer/esign.
-    // Employer mark stays local until this handler calls markOfferEsign (offers.send).
     if (!canSendOffer) {
       setActionError(denialReason(actorRole, "offers.send"));
       return;
@@ -346,16 +353,16 @@ export function OfferPanel({
       setActionError("Create a sign link before marking signed.");
       return;
     }
-    const next: OfferRecord = {
-      ...withComp(draft),
-      esign: {
-        ...draft.offer.esign,
-        status: "signed",
-        signedAt: new Date().toISOString(),
-      },
-    };
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `${applicant.name} marked as signed (first-party)`);
+    setActionError(null);
+    setBusy(true);
+    markOfferEsign(applicant.id, { status: "signed" })
+      .then((esign) => {
+        const next: OfferRecord = { ...withComp(draft), esign };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `${applicant.name} marked as signed (first-party)`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const markEsignDeclined = () => {
@@ -367,15 +374,16 @@ export function OfferPanel({
       setActionError("Create a sign link before marking declined.");
       return;
     }
-    const next: OfferRecord = {
-      ...withComp(draft),
-      esign: {
-        ...draft.offer.esign,
-        status: "declined",
-      },
-    };
-    setDraft((current) => ({ ...current, offer: next }));
-    emit(next, `${applicant.name} declined e-sign`);
+    setActionError(null);
+    setBusy(true);
+    markOfferEsign(applicant.id, { status: "declined" })
+      .then((esign) => {
+        const next: OfferRecord = { ...withComp(draft), esign };
+        setDraft((current) => ({ ...current, offer: next }));
+        emit(next, `${applicant.name} declined e-sign`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const generateHirePacket = () => {
@@ -397,19 +405,28 @@ export function OfferPanel({
   };
 
   const toggleChecklistItem = (id: string) => {
-    // Checklist toggles stay local until this handler calls patchHirePacketItem (offers.hire).
     if (!canHire) {
       setActionError(denialReason(actorRole, "offers.hire"));
       return;
     }
     const packet = draft.offer.hirePacket;
-    if (!packet) return;
-    const checklist = packet.checklist.map((item) =>
-      item.id === id
-        ? { ...item, status: item.status === "done" ? ("todo" as const) : ("done" as const) }
-        : item,
-    );
-    setOffer({ hirePacket: { ...packet, checklist } });
+    if (!packet || packet.status === "none") {
+      setActionError("Generate a hire packet before updating the checklist.");
+      return;
+    }
+    const current = packet.checklist.find((item) => item.id === id);
+    if (!current) return;
+    const nextStatus = current.status === "done" ? ("todo" as const) : ("done" as const);
+    setActionError(null);
+    setBusy(true);
+    patchHirePacketItem(applicant.id, id, { status: nextStatus })
+      .then((nextPacket) => {
+        const next: OfferRecord = { ...withComp(draft), hirePacket: nextPacket };
+        setDraft((currentDraft) => ({ ...currentDraft, offer: next }));
+        emit(next, `Checklist updated for ${applicant.name}`);
+      })
+      .catch((error: unknown) => setActionError(offerHireErrorMessage(error)))
+      .finally(() => setBusy(false));
   };
 
   const markHired = () => {
@@ -450,8 +467,8 @@ export function OfferPanel({
       </HStack>
 
       <Text type="supporting" color="secondary">
-        Track sent / accepted / declined, capture comp, and hand off a light hire packet. Einstein
-        persists these fields when the offer endpoints land.
+        Track sent / accepted / declined, capture comp, and hand off a light hire packet. E-sign
+        marks and hire-packet ready / sent / checklist persist through company APIs.
       </Text>
 
       {actionError ? (
@@ -678,8 +695,8 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">E-sign (first-party)</Text>
         <Text type="supporting" color="secondary">
-          OpenSeat-hosted sign link only. DocuSign is out of scope. Mark signed / declined on
-          this screen is still local.
+          OpenSeat-hosted sign link only. DocuSign is out of scope. Mark signed / declined posts to
+          the employer e-sign mark endpoint (offers.send).
         </Text>
         {draft.offer.esign && draft.offer.esign.status !== "none" ? (
           <Badge label={draft.offer.esign.status} variant="info" />
@@ -718,8 +735,8 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">Hire packet / onboarding handoff</Text>
         <Text type="supporting" color="secondary">
-          Light checklist stub — not full HRIS onboarding. Ready / sent / checklist toggles on
-          this screen are still local. Generate posts a draft.
+          Light checklist stub — not full HRIS onboarding. Ready / sent / checklist toggles post to
+          hire-packet endpoints (offers.hire). Generate posts a draft.
         </Text>
         <HStack gap={2} wrap="wrap">
           <Button
@@ -732,13 +749,13 @@ export function OfferPanel({
             label="Mark ready"
             variant="secondary"
             onClick={() => setPacketStatus("ready")}
-            isDisabled={!canHire}
+            isDisabled={busy || !canHire}
           />
           <Button
             label="Mark sent to HR"
             variant="ghost"
             onClick={() => setPacketStatus("sent")}
-            isDisabled={!canHire}
+            isDisabled={busy || !canHire}
           />
         </HStack>
         {draft.offer.hirePacket && draft.offer.hirePacket.status !== "none" ? (
@@ -750,7 +767,7 @@ export function OfferPanel({
                 label={item.label}
                 value={item.status === "done"}
                 onChange={() => toggleChecklistItem(item.id)}
-                isDisabled={!canHire}
+                isDisabled={busy || !canHire}
               />
             ))}
             <TextInput
