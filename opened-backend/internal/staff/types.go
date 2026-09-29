@@ -14,16 +14,23 @@ const (
 
 	subjectCompany = "company"
 	subjectJob     = "direct_job"
+	subjectCase    = "case"
+	subjectReport  = "report"
 
 	verificationsCollection = "company_verifications"
 	auditCollection         = "admin_audit"
 	membersCollection       = "company_members"
 	usersCollection         = "users"
+	casesCollection         = "moderation_cases"
+	reportsCollection       = "reports"
+	reportClaimsCollection  = "report_idempotency"
 )
 
 var (
-	ErrNotFound = errors.New("not found")
-	ErrConflict = errors.New("that decision is not available")
+	ErrNotFound            = errors.New("not found")
+	ErrConflict            = errors.New("that decision is not available")
+	ErrIdempotency         = errors.New("Idempotency-Key was already used with a different request body")
+	ErrIdempotencyInFlight = errors.New("a request with this Idempotency-Key is still in progress")
 )
 
 // FieldError is one invalid input, in the same shape as the scout admin API.

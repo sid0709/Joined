@@ -8,7 +8,7 @@ JSON on these routes is camelCase. Errors use the scout admin problem shape (`ap
 
 Lists take `page` and `pageSize` (default 25, max 100). `next` is the next page number when `page * pageSize < total`, and is omitted on the last page.
 
-This is the staff surface to scaffold. There is no `/v1/admin/cases` route and no separate restore route.
+Company verification and direct-job review are below. Cases and reports follow them. There is no separate restore route. Legal retention holds are not a staff route.
 
 ## Company verification
 
@@ -206,3 +206,131 @@ Review and takedown both respond:
   "auditId": "674c1f0e5b2a4e18d0a1c0bb"
 }
 ```
+
+## Cases and reports
+
+Staff trust cases are the moderation queues the admin console already calls. JSON is camelCase, the same as the other staff routes. docs/32 writes these fields in snake_case; that document is the product contract, and this section is the wire the admin app uses.
+
+Auth is the staff guard above. Mutations write `admin_audit` and return `auditId`. Lists use `page` and `pageSize`. `next` is omitted on the last page.
+
+Queues are `reports`, `disputes`, and `fraud_flags`. Status values the console sends are `open`, `pending`, and `resolved`. A list filter uses whatever string was sent. An empty queue or status lists every value. There is no get-by-id. The console keeps the list row and posts the decision.
+
+`reasonCode` is only `no_show`, `identity_mismatch`, `proxy_interviewer`, `fake_credentials`, `abusive_behavior`, `scam_job`, `fake_company`, `fabricated_application`, `payment_request`, or `other_with_evidence`. `not_a_good_fit` is `422`.
+
+SLA is set on create: 48 hours for reports and fraud flags, 5 business days for disputes. Decision is `uphold` or `dismiss` for every queue, including disputes. Interview settlement (`settled` / `voided`) is not this route.
+
+Reporter weight, link analysis, the enforcement ladder, and domain events are not part of this slice. `GET /v1/me/reports` is the subject's own list in docs/32 and is not a staff route. Staff list filed reports with `GET /v1/reports`.
+
+```
+GET  /v1/admin/cases?queue=reports|disputes|fraud_flags&status=&page=&pageSize=
+POST /v1/admin/cases
+POST /v1/admin/cases/{id}/decision
+GET  /v1/reports?status=&page=&pageSize=
+POST /v1/reports
+POST /v1/reports/{id}/appeal
+```
+
+`POST /v1/reports` requires `Idempotency-Key` (1 to 255 characters). The same actor, key, and raw body replays the first response for 24 hours and sets `Idempotent-Replayed: true`. The same key with a different body is `409 idempotency_key_reused`.
+
+Open a case:
+
+```json
+{
+  "queue": "disputes",
+  "reasonCode": "no_show",
+  "subjectType": "interview",
+  "subjectId": "iv_1",
+  "details": "Candidate did not attend",
+  "evidenceKeys": []
+}
+```
+
+`201` response:
+
+```json
+{
+  "case": {
+    "id": "674c1f0e5b2a4e18d0a1c010",
+    "queue": "disputes",
+    "status": "open",
+    "reasonCode": "no_show",
+    "subjectType": "interview",
+    "subjectId": "iv_1",
+    "details": "Candidate did not attend",
+    "evidenceKeys": [],
+    "createdAt": "2026-09-29T17:00:00Z",
+    "slaAt": "2026-10-06T17:00:00Z",
+    "decision": ""
+  },
+  "auditId": "674c1f0e5b2a4e18d0a1c0aa"
+}
+```
+
+List. `cases` holds the same case object. `next` is present only when another page exists.
+
+```json
+{
+  "cases": [],
+  "total": 0
+}
+```
+
+`cases` is always an array. `evidenceKeys` is always an array. `decision` is an empty string until a decision is stored. `slaAt` is always set.
+
+Decision body. `reason` is required. `actions` is optional and omitted when empty. Action codes are not a fixed set.
+
+```json
+{ "decision": "uphold", "reason": "Screenshot matches", "actions": ["warning"] }
+```
+
+`200` response is `{ "case": {}, "auditId": "" }`. The case `status` is `resolved`. `decidedBy` is the `X-Admin-Actor` value, `decisionReason` is the reason, and `decisionEvidenceKeys` is a copy of `evidenceKeys` at decision time. A resolved case is `409`. An unknown id is `404`.
+
+File a report. This also opens a `reports` case. `details` may be empty.
+
+```json
+{
+  "subjectType": "job",
+  "subjectId": "job_1",
+  "reasonCode": "scam_job",
+  "details": "Asks for a fee",
+  "evidenceKeys": ["shot"]
+}
+```
+
+`201` response:
+
+```json
+{
+  "report": {
+    "id": "674c1f0e5b2a4e18d0a1c020",
+    "subjectType": "job",
+    "subjectId": "job_1",
+    "reasonCode": "scam_job",
+    "details": "Asks for a fee",
+    "evidenceKeys": ["shot"],
+    "status": "open",
+    "caseId": "674c1f0e5b2a4e18d0a1c010",
+    "createdAt": "2026-09-29T17:00:00Z"
+  },
+  "auditId": "674c1f0e5b2a4e18d0a1c0bb"
+}
+```
+
+Staff report list. `reports` holds the same report object.
+
+```json
+{
+  "reports": [],
+  "total": 0
+}
+```
+
+Appeal within 7 days of `createdAt`. The report and its case become `pending`. The statement is appended to the case `details` so the console's list row shows it. Appeal evidence keys are added to the case. A second appeal, a resolved report, or a late appeal is `409`.
+
+```json
+{ "statement": "It was a real job", "evidenceKeys": ["note"] }
+```
+
+`200` response is `{ "report": {}, "auditId": "" }`. `report.appeal` is `{ "statement", "evidenceKeys", "at" }`. Deciding the linked case sets the report `status` to `resolved` and `resolution` to `uphold` or `dismiss`.
+
+Audit actions are `case.open`, `case.decision.uphold`, `case.decision.dismiss`, `report.file`, and `report.appeal`. `subjectType` is `case` or `report`.

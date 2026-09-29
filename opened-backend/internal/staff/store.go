@@ -32,10 +32,12 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
-	_, err := s.companiesColl().Indexes().CreateOne(ctx, mongo.IndexModel{
+	if _, err := s.companiesColl().Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{{Key: "verificationStatus", Value: 1}},
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	return s.ensureTrustIndexes(ctx)
 }
 
 func (s *Store) companiesColl() *mongo.Collection {

@@ -32,7 +32,7 @@ type Server struct {
 	people     *candidate.Store
 	scouts     *scout.Store
 	hiring     *employer.Store
-	staff      *staff.Store
+	staff      staff.API
 	reader     jobs.ModelReader
 	origins    map[string]struct{}
 	frontend   string
@@ -47,7 +47,7 @@ type Options struct {
 	AdminToken string
 }
 
-func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scouts *scout.Store, hiring *employer.Store, moderation *staff.Store, reader jobs.ModelReader, opts Options) http.Handler {
+func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scouts *scout.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
 	allowed := make(map[string]struct{}, len(opts.Origins))
 	for _, origin := range opts.Origins {
 		allowed[origin] = struct{}{}

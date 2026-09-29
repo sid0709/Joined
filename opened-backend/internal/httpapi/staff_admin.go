@@ -14,6 +14,12 @@ import (
 )
 
 func (s *Server) registerStaffAdmin(mux *http.ServeMux) {
+	mux.HandleFunc("GET /v1/admin/cases", s.admin(s.adminCases))
+	mux.HandleFunc("POST /v1/admin/cases", s.admin(s.adminOpenCase))
+	mux.HandleFunc("POST /v1/admin/cases/{id}/decision", s.admin(s.adminDecideCase))
+	mux.HandleFunc("GET /v1/reports", s.admin(s.adminReports))
+	mux.HandleFunc("POST /v1/reports", s.admin(s.adminFileReport))
+	mux.HandleFunc("POST /v1/reports/{id}/appeal", s.admin(s.adminAppealReport))
 	mux.HandleFunc("GET /v1/admin/companies/verifications", s.admin(s.adminVerifications))
 	mux.HandleFunc("GET /v1/admin/companies/verifications/pending-count", s.admin(s.adminVerificationCount))
 	mux.HandleFunc("GET /v1/admin/companies/{id}", s.admin(s.adminCompany))
@@ -172,6 +178,10 @@ func staffProblem(err error) problem {
 		p := newProblem(http.StatusUnprocessableEntity, "validation_failed", "One or more fields are invalid.")
 		p.Errors = scoutFields(fields.Fields)
 		return p
+	case errors.Is(err, staff.ErrIdempotency):
+		return newProblem(http.StatusConflict, "idempotency_key_reused", err.Error())
+	case errors.Is(err, staff.ErrIdempotencyInFlight):
+		return newProblem(http.StatusConflict, "idempotency_in_progress", err.Error())
 	case errors.Is(err, staff.ErrNotFound):
 		return newProblem(http.StatusNotFound, "not_found", "Not found.")
 	case errors.Is(err, staff.ErrConflict):
