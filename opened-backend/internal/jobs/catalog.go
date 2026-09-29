@@ -54,6 +54,10 @@ type tempListing struct {
 	Source          string        `bson:"source"`
 	SourceRef       string        `bson:"sourceRef,omitempty"`
 	CompanyPublicID string        `bson:"companyPublicId,omitempty"`
+	Skills          []string      `bson:"skills,omitempty"`
+	Tags            []string      `bson:"tags,omitempty"`
+	Equity          bool          `bson:"equity,omitempty"`
+	Pay             Pay           `bson:"pay,omitempty"`
 	Metadata        struct {
 		Details struct {
 			Location  string `bson:"location"`

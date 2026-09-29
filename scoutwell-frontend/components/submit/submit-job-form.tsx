@@ -13,7 +13,6 @@ import {
   Selector,
   Stack,
   Sticky,
-  Switch,
   Text,
   TextArea,
   TextInput,
@@ -42,7 +41,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CompanyField, type CompanyChoice } from "./company-field";
+import { MatchesCard } from "./matches-card";
 import { PrecheckCard } from "./precheck-card";
+import { useMatches } from "./use-matches";
 import { usePrecheck } from "./use-precheck";
 
 import { FullText } from "@/components/full-text";
@@ -68,7 +69,6 @@ type Form = {
   payPeriod: PayPeriod;
   equity: boolean;
   summary: string;
-  onMajorBoards: boolean;
 };
 
 const EMPTY: Form = {
@@ -84,7 +84,6 @@ const EMPTY: Form = {
   payPeriod: "year",
   equity: false,
   summary: "",
-  onMajorBoards: false,
 };
 
 export function SubmitJobForm({
@@ -102,13 +101,24 @@ export function SubmitJobForm({
   const [error, setError] = useState<ApiError | null>(null);
   // One key per attempt: a retry after a network blip can never create two submissions.
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const [notDuplicateClaim, setNotDuplicateClaim] = useState(false);
   const precheck = usePrecheck(form.url);
+  const matches = useMatches(
+    form.url,
+    form.company?.id ?? "",
+    form.company?.name ?? "",
+    form.title,
+  );
+  const matchList = matches.phase === "done" ? matches.matches : [];
 
   const set =
     <K extends keyof Form>(key: K) =>
     (value: Form[K]) => {
       setForm((current) => ({ ...current, [key]: value }));
       setIdempotencyKey(crypto.randomUUID());
+      if (key === "url" || key === "company" || key === "title") {
+        setNotDuplicateClaim(false);
+      }
     };
   const status = (field: string) => {
     const message = error?.field(field);
@@ -118,9 +128,8 @@ export function SubmitJobForm({
   const summaryLength = form.summary.trim().length;
   const payInvalid = !form.equity && form.payMax > 0 && form.payMin > form.payMax;
   const payReady = form.equity || (form.payMin > 0 && form.payMax > 0 && !payInvalid);
-  const blocked =
-    precheck.phase === "done" &&
-    (!precheck.result.official || Boolean(precheck.result.duplicate_of));
+  const blocked = precheck.phase === "done" && !precheck.result.official;
+  const needsClaim = matchList.length > 0;
   const ready =
     Boolean(
       form.url.trim() &&
@@ -133,7 +142,8 @@ export function SubmitJobForm({
     payReady &&
     summaryLength >= limits.min_summary_chars &&
     summaryLength <= limits.max_summary_chars &&
-    quota.remaining > 0;
+    quota.remaining > 0 &&
+    (!needsClaim || notDuplicateClaim);
 
   const setEquity = (equity: boolean) => {
     setForm((current) => ({
@@ -171,7 +181,7 @@ export function SubmitJobForm({
           summary: form.summary,
           tags: [],
           skills: [],
-          on_major_boards: form.onMajorBoards,
+          not_duplicate_claim: needsClaim ? notDuplicateClaim : false,
         },
         { "Idempotency-Key": idempotencyKey },
       );
@@ -216,21 +226,9 @@ export function SubmitJobForm({
                 status={
                   status("url") ??
                   (blocked
-                    ? {
-                        type: "error",
-                        message:
-                          precheck.phase === "done" && precheck.result.duplicate_of
-                            ? "This job is already in the pool."
-                            : "This is not an official source.",
-                      }
+                    ? { type: "error", message: "This is not an official source." }
                     : undefined)
                 }
-              />
-              <Switch
-                label="Also posted on LinkedIn or Indeed"
-                description="Allowed, but the job skips the hidden-job badge and earns a smaller approval credit."
-                value={form.onMajorBoards}
-                onChange={set("onMajorBoards")}
               />
             </SectionCard>
 
@@ -393,6 +391,14 @@ export function SubmitJobForm({
           <Sticky offset={4}>
             <Stack gap={6}>
               <PrecheckCard state={precheck} />
+              <MatchesCard
+                state={matches}
+                claimed={notDuplicateClaim}
+                onClaim={(value) => {
+                  setNotDuplicateClaim(value);
+                  setIdempotencyKey(crypto.randomUUID());
+                }}
+              />
               <SectionCard title="What gets approved">
                 <List density="compact">
                   <ListItem
@@ -404,10 +410,11 @@ export function SubmitJobForm({
                     }
                   />
                   <ListItem
-                    label="New to the pool"
+                    label="Possible matches reviewed"
                     description={
                       <FullText>
-                        The first approved submission owns a job; later ones are duplicates.
+                        Existing jobs with this link or company and title are shown. You can claim
+                        yours is distinct; staff decide.
                       </FullText>
                     }
                   />

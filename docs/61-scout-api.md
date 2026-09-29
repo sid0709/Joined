@@ -26,7 +26,8 @@ Every `/v1/scout/*` call except `GET /v1/scout/meta` needs `Authorization: Beare
 | `GET`  | `/v1/scout/stats`                              | Level, quality metrics, balance, today's quota, unread notifications.                |
 | `GET`  | `/v1/scout/companies?q=`                       | Find a company already in the pool, to send its `company_id`.                        |
 | `POST` | `/v1/scout/companies`                          | Create an unclaimed company (`{legal_name, url}` or multipart with `logo`).          |
-| `POST` | `/v1/scout/submissions/precheck`               | `{url}` → reachable, official, still open, duplicate. Stores nothing.                |
+| `POST` | `/v1/scout/submissions/precheck`               | `{url}` → reachable, official, still open. Stores nothing.                           |
+| `POST` | `/v1/scout/submissions/matches`                | `{url, company_id?, company_name, title}` → existing jobs (link or company+title).   |
 | `POST` | `/v1/scout/submissions`                        | Submit one job. `201` with the submission in status `submitted`.                     |
 | `POST` | `/v1/scout/submissions/batch`                  | `{submissions: [...]}`, up to `limits.max_batch`. `207` with a result per item.      |
 | `GET`  | `/v1/scout/submissions`                        | Newest first. Filters: `status`, `external_ref`, `updated_since`, `cursor`, `limit`. |
@@ -50,7 +51,7 @@ Every `/v1/scout/*` call except `GET /v1/scout/meta` needs `Authorization: Beare
 | `workplace`, `employment` | Required enums from `meta.limits`.                                                                                                                                                             |
 | `seniority`               | Optional enum from `meta.limits`; inferred from the title when omitted.                                                                                                                        |
 | `tags`, `skills`          | Optional; up to `limits.max_tags` / `limits.max_skills`. The Scoutwell form does not collect them. Tag `visa` marks sponsorship.                                                               |
-| `on_major_boards`         | `true` when the job is also on LinkedIn or Indeed (no hidden-job badge, smaller approval credit).                                                                                              |
+| `not_duplicate_claim`     | Required when matches exist. The scout claims this listing is distinct; staff review the claim.                                                                                                |
 | `external_ref`            | Optional partner id, unique per scout. Reuse answers `409` with `existing_id`.                                                                                                                 |
 
 ## Lifecycle
@@ -59,8 +60,7 @@ Every `/v1/scout/*` call except `GET /v1/scout/meta` needs `Authorization: Beare
 flowchart LR
   S[submitted] --> C[auto_checking]
   C -->|job board, closed, scam, 404| R[rejected]
-  C -->|approved link already in pool| D[duplicate]
-  C -->|probation, soft flags, spot check| Q[needs_review]
+  C -->|possible match, probation, soft flags, spot check| Q[needs_review]
   C -->|trusted/expert, clean| A[approved → temp_scout_jobs]
   Q -->|moderator| A
   Q -->|moderator| R
@@ -70,7 +70,7 @@ flowchart LR
 
 - Checks run in the background, normally within seconds (60 s timeout, 2 retries; restarts resume unfinished checks).
 - A submission is stored in `temp_scout_jobs` as soon as it is created. Staff analyze it from Admin → Scout jobs; that writes the search record into `jobs` with `source: "scoutwell"`. Approval does not publish it.
-- The first approved submission of a link owns it; other pending submissions of the same link become `duplicate`.
+- A match on apply link or company+title is shown to the scout and stored on the submission. It never auto-sets status `duplicate`. The scout must send `not_duplicate_claim` when matches exist; staff then approve, reject, or mark duplicate.
 
 ## Staying in sync
 

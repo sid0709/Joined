@@ -69,11 +69,11 @@ func TestRecomputeLevelDemotes(t *testing.T) {
 }
 
 func TestRewards(t *testing.T) {
-	if got := ApprovalReward(LevelProbation, false).AmountCents; got != 0 {
+	if got := ApprovalReward(LevelProbation).AmountCents; got != 0 {
 		t.Fatalf("probation approval = %d", got)
 	}
-	if got := ApprovalReward(LevelTrusted, true).AmountCents; got != 75 {
-		t.Fatalf("trusted on major boards = %d", got)
+	if got := ApprovalReward(LevelTrusted).AmountCents; got != 150 {
+		t.Fatalf("trusted approval = %d", got)
 	}
 	if got := InterviewReward(LevelExpert, SenioritySenior).AmountCents; got != 1875 {
 		t.Fatalf("expert senior interview = %d", got)

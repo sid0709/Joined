@@ -95,7 +95,6 @@ export default async function EarningsPage({ searchParams }: { searchParams: Sea
             <MetadataList columns="single">
               <MetadataListItem label="Approval (your level)">
                 {formatMoney(stats.level.approval_reward)}
-                {` · ${formatRate(rewards.major_board_approval_share)} if also on major boards`}
               </MetadataListItem>
               {SENIORITIES.map((level) => (
                 <MetadataListItem key={level} label={`${SENIORITY_LABEL[level]} role`}>

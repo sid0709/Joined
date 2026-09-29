@@ -76,10 +76,11 @@ func TestEvaluateSpotChecksExperts(t *testing.T) {
 	}
 }
 
-func TestEvaluateMarksDuplicates(t *testing.T) {
+func TestEvaluateReviewsLinkMatchesWithoutAutoRejecting(t *testing.T) {
 	f := facts(t, "https://boards.greenhouse.io/stripe/jobs/1", LevelExpert, Page{Status: 200, Text: openPage})
 	f.Duplicate = "submission 64f"
-	if d := Evaluate(f); d.Status != StatusDuplicate || d.RejectionCode != ReasonDuplicate {
+	d := Evaluate(f)
+	if d.Status != StatusNeedsReview || d.RejectionCode != "" || outcome(d, CheckDuplicate) != OutcomeReview || !d.HiddenJob {
 		t.Fatalf("decision = %+v", d)
 	}
 }
@@ -151,11 +152,9 @@ func TestEvaluateReviewsCopiedSummary(t *testing.T) {
 	}
 }
 
-func TestEvaluateFlagsMajorBoardsWithoutBlocking(t *testing.T) {
-	f := facts(t, "https://boards.greenhouse.io/stripe/jobs/1", LevelTrusted, Page{Status: 200, Text: openPage})
-	f.Input.OnMajorBoards = true
-	d := Evaluate(f)
-	if d.Status != StatusApproved || d.HiddenJob || !d.OnMajorBoards || outcome(d, CheckMajorBoards) != OutcomeFlag {
+func TestEvaluateKeepsScoutedJobsHidden(t *testing.T) {
+	d := Evaluate(facts(t, "https://boards.greenhouse.io/stripe/jobs/1", LevelTrusted, Page{Status: 200, Text: openPage}))
+	if d.Status != StatusApproved || !d.HiddenJob {
 		t.Fatalf("decision = %+v", d)
 	}
 }

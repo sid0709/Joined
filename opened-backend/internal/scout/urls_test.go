@@ -96,9 +96,28 @@ func TestCompanyMatches(t *testing.T) {
 }
 
 func TestDedupeKeyIgnoresPunctuationAndCase(t *testing.T) {
-	a := DedupeKey("Acme, Inc.", "Senior  Engineer", "Remote (US)")
-	b := DedupeKey("acme inc", "senior engineer", "remote us")
+	a := DedupeKey("", "Acme, Inc.", "Senior  Engineer")
+	b := DedupeKey("", "acme inc", "senior engineer")
 	if a != b {
 		t.Fatalf("%q != %q", a, b)
+	}
+	if a != "acme-inc|senior-engineer" {
+		t.Fatalf("key = %q", a)
+	}
+}
+
+func TestDedupeKeyPrefersCompanyID(t *testing.T) {
+	a := DedupeKey("co_1", "Acme", "Engineer")
+	b := DedupeKey("co_1", "ACME Inc", "engineer")
+	if a != b || a != "co_1|engineer" {
+		t.Fatalf("%q != %q", a, b)
+	}
+}
+
+func TestDedupeKeyIgnoresLocation(t *testing.T) {
+	remote := DedupeKey("", "Acme", "Engineer")
+	onsite := DedupeKey("", "Acme", "Engineer")
+	if remote != onsite {
+		t.Fatalf("%q != %q", remote, onsite)
 	}
 }

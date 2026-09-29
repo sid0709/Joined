@@ -127,6 +127,59 @@ func buildSearchJob(id, companyID, title, company string, posted time.Time, now 
 	return job
 }
 
+// keepScoutFilled leaves salary and other scout-entered facts on the record.
+// The model still writes About / What you'll do / requirements / benefits.
+func keepScoutFilled(job SearchJob, listing tempListing) SearchJob {
+	if listing.Source != ScoutedSource && listing.CompanyPublicID == "" {
+		return job
+	}
+	details := listing.Metadata.Details
+	if loc := strings.TrimSpace(details.Location); loc != "" {
+		job.Location = loc
+	}
+	if hint := strings.TrimSpace(details.Remote); hint != "" {
+		job.Workplace = oneOf(hint, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceFromHint(hint))
+	}
+	if hint := strings.TrimSpace(details.Seniority); hint != "" {
+		job.Seniority = oneOf(hint, []string{seniorityJunior, seniorityMiddle, senioritySenior, seniorityLeader, seniorityManager}, seniorityFromHint(hint))
+	}
+	if hint := strings.TrimSpace(details.Time); hint != "" {
+		job.Employment = oneOf(hint, []string{employmentFullTime, employmentContract, employmentPartTime}, employmentFromHint(hint))
+	}
+	if listing.Equity || strings.EqualFold(strings.TrimSpace(details.Salary), "equity") {
+		job.Equity = true
+		job.Pay = Pay{Currency: jobschema.CurrencyUSD, Period: payYear}
+	} else if listing.Pay.Min > 0 || listing.Pay.Max > 0 {
+		job.Pay = listing.Pay
+		job.Equity = false
+	} else if parsed, ok := ParsePayText(details.Salary); ok {
+		job.Pay = parsed
+		job.Equity = false
+	}
+	if listing.CompanyPublicID != "" {
+		job.CompanyID = listing.CompanyPublicID
+	}
+	if name := strings.TrimSpace(listing.CompanyName); name != "" {
+		job.Company = name
+	}
+	if title := strings.TrimSpace(listing.Title); title != "" {
+		job.Title = title
+	}
+	if skills := cleanList(listing.Skills, maxSkills); len(skills) > 0 {
+		job.Skills = skills
+	}
+	for _, tag := range listing.Tags {
+		if strings.EqualFold(strings.TrimSpace(tag), tagVisa) {
+			job.Visa = true
+			break
+		}
+	}
+	if listing.Source != "" {
+		job.Source = listing.Source
+	}
+	return job
+}
+
 func hoursSince(posted, now time.Time) int {
 	if posted.IsZero() || now.Before(posted) {
 		return 0

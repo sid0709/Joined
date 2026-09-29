@@ -260,8 +260,13 @@ export function ApiDocs({ baseUrl, meta }: { baseUrl: string; meta: Meta }) {
             }
           />
           <ListItem
-            label="on_major_boards"
-            description={<FullText>true when the job is also on LinkedIn or Indeed.</FullText>}
+            label="not_duplicate_claim"
+            description={
+              <FullText>
+                Required when matches exist for this link or company and title. Confirms the scout
+                claims this is a distinct job.
+              </FullText>
+            }
           />
         </List>
       </SectionCard>

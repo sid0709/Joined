@@ -41,7 +41,7 @@ export type SubmissionInput = {
   summary: string;
   tags: string[];
   skills: string[];
-  on_major_boards: boolean;
+  not_duplicate_claim?: boolean;
   external_ref?: string;
 };
 
@@ -74,10 +74,12 @@ export type Submission = {
   rejection_reason?: string;
   auto_check_results: Check[];
   duplicate_of?: string;
+  duplicate_claim?: boolean;
+  matches?: JobMatch[];
   hidden_job: boolean;
-  on_major_boards: boolean;
   spot_check?: boolean;
   job_id?: string;
+  temp_job_id?: string;
   reviewed_by?: string;
   reviewed_at?: string;
   review_note?: string;
@@ -206,7 +208,6 @@ export type RewardTable = {
   min_payout: Money;
   interview_by_seniority: Record<Seniority, Money>;
   hire_by_seniority: Record<Seniority, Money>;
-  major_board_approval_share: number;
   conversion_share: number;
 };
 
@@ -287,7 +288,25 @@ export type Precheck = {
   http_status?: number;
   official: boolean;
   still_open: boolean | null;
-  duplicate_of?: string;
+  reason: string;
+};
+
+export type MatchKind = "link" | "company_title";
+
+export type JobMatch = {
+  kind: MatchKind;
+  job_id?: string;
+  submission_id?: string;
+  title: string;
+  company: string;
+  apply_link: string;
+};
+
+export type MatchResult = { matches: JobMatch[] };
+
+export type MatchCompare = {
+  match: JobMatch;
+  same_position: boolean;
   reason: string;
 };
 

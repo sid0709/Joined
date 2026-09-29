@@ -1,12 +1,16 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/subtle"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
 )
 
@@ -22,6 +26,8 @@ func (s *Server) registerScoutAdmin(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/admin/scout/submissions", s.admin(s.adminScoutSubmissions))
 	mux.HandleFunc("GET /v1/admin/scout/submissions/{id}", s.admin(s.adminScoutSubmission))
 	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/review", s.admin(s.adminScoutReview))
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/analyze", s.admin(s.adminScoutAnalyze))
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/compare-matches", s.admin(s.adminScoutCompareMatches))
 	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/expire", s.admin(s.adminScoutExpire))
 	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/outcomes", s.admin(s.adminScoutOutcome))
 	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/recheck", s.admin(s.adminScoutRecheck))
@@ -118,6 +124,57 @@ func (s *Server) adminScoutReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, sub)
+}
+
+func (s *Server) adminScoutAnalyze(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Edits           *scout.SubmissionInput `json:"edits"`
+		ContinueExtract bool                   `json:"continue_extract"`
+	}
+	if !decodeScout(w, r, maxWriteBody, &body) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
+	defer cancel()
+	now := time.Now()
+	sub, result, err := s.scouts.Analyze(ctx, r.PathValue("id"), adminActor(r), body.Edits, now, func(listing jobs.ScoutedListing, tempJobID string) (jobs.AnalyzeScoutedResult, error) {
+		return s.store.AnalyzeScouted(ctx, s.reader, listing, tempJobID, now, body.ContinueExtract)
+	})
+	if jobs.IsMissingAPIKey(err) {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		return
+	}
+	if err != nil {
+		slog.Error("analyze scout submission", "error", err)
+		writeScoutError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"submission": sub,
+		"record":     result.Record,
+		"duplicate":  result.Duplicate,
+		"top_k":      result.TopK,
+	})
+}
+
+func (s *Server) adminScoutCompareMatches(w http.ResponseWriter, r *http.Request) {
+	if s.reader == nil {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
+	defer cancel()
+	compares, err := s.scouts.CompareMatches(ctx, r.PathValue("id"), s.reader)
+	if jobs.IsMissingAPIKey(err) {
+		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		return
+	}
+	if err != nil {
+		slog.Error("compare scout matches", "error", err)
+		writeScoutError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"compares": compares})
 }
 
 func (s *Server) adminScoutExpire(w http.ResponseWriter, r *http.Request) {

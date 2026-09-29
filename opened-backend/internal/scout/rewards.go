@@ -13,8 +13,6 @@ const (
 	HoldDays = 14
 	// MinPayoutCents is the smallest payout a scout can request.
 	MinPayoutCents = 2500
-	// MajorBoardApprovalShare scales the approval reward for jobs already on major boards.
-	MajorBoardApprovalShare = 0.5
 	// ConversionShare is the scout's share of a claimed company's interview fees.
 	ConversionShare = 0.1
 )
@@ -38,36 +36,27 @@ var hireRewardCents = map[string]int64{
 
 // RewardTable is shown on the scout level and earnings pages.
 type RewardTable struct {
-	HoldDays                int              `json:"hold_days"`
-	MinPayout               Money            `json:"min_payout"`
-	InterviewBySeniority    map[string]Money `json:"interview_by_seniority"`
-	HireBySeniority         map[string]Money `json:"hire_by_seniority"`
-	MajorBoardApprovalShare float64          `json:"major_board_approval_share"`
-	ConversionShare         float64          `json:"conversion_share"`
+	HoldDays             int              `json:"hold_days"`
+	MinPayout            Money            `json:"min_payout"`
+	InterviewBySeniority map[string]Money `json:"interview_by_seniority"`
+	HireBySeniority      map[string]Money `json:"hire_by_seniority"`
+	ConversionShare      float64          `json:"conversion_share"`
 }
 
 // Rewards returns the reward table.
 func Rewards() RewardTable {
 	return RewardTable{
-		HoldDays:                HoldDays,
-		MinPayout:               cents(MinPayoutCents),
-		InterviewBySeniority:    moneyMap(interviewRewardCents),
-		HireBySeniority:         moneyMap(hireRewardCents),
-		MajorBoardApprovalShare: MajorBoardApprovalShare,
-		ConversionShare:         ConversionShare,
+		HoldDays:             HoldDays,
+		MinPayout:            cents(MinPayoutCents),
+		InterviewBySeniority: moneyMap(interviewRewardCents),
+		HireBySeniority:      moneyMap(hireRewardCents),
+		ConversionShare:      ConversionShare,
 	}
 }
 
 // ApprovalReward is paid when a trusted+ scout's job is published.
-func ApprovalReward(level string, onMajorBoards bool) Money {
-	base := Rule(level).ApprovalReward.AmountCents
-	if base <= 0 {
-		return cents(0)
-	}
-	if onMajorBoards {
-		return cents(int64(math.Round(float64(base) * MajorBoardApprovalShare)))
-	}
-	return cents(base)
+func ApprovalReward(level string) Money {
+	return Rule(level).ApprovalReward
 }
 
 // InterviewReward is paid when an interview on the scout's job settles.
