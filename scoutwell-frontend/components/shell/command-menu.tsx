@@ -8,22 +8,19 @@ import {
   createStaticSource,
   icons,
   Icon,
-  Kbd,
-  useAppShellMobile,
   type SearchableItem,
 } from "@openseat/design-system";
 import { ALL_PAGES } from "@/lib/nav";
 
 const PALETTE_LABEL = "Jump to a page";
 const PALETTE_GROUP = "Pages";
-const SHORTCUT = "mod+k";
+const SHORTCUT_HINT = "Ctrl or ⌘ + K";
 
 type PageItem = SearchableItem<{ group: string; description: string }>;
 
 /** ⌘K: a search-and-jump palette over every page, opened from the top bar or the keyboard. */
 export function CommandMenu() {
   const router = useRouter();
-  const { isMobile } = useAppShellMobile();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -54,15 +51,13 @@ export function CommandMenu() {
     <>
       <Button
         label={PALETTE_LABEL}
-        variant="secondary"
+        variant="ghost"
         size="sm"
         icon={<Icon icon={icons.search} />}
-        isIconOnly={isMobile}
-        endContent={isMobile ? undefined : <Kbd keys={SHORTCUT} />}
+        isIconOnly
+        tooltip={`${PALETTE_LABEL} (${SHORTCUT_HINT})`}
         onClick={() => setIsOpen(true)}
-      >
-        Search
-      </Button>
+      />
       <CommandPalette
         isOpen={isOpen}
         onOpenChange={setIsOpen}

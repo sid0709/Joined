@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { activeHref, breadcrumbs, railItems } from "./nav";
+import { activeHref, navItems } from "./nav";
 
 describe("nav", () => {
   test("a detail page keeps its list page active", () => {
@@ -9,23 +9,14 @@ describe("nav", () => {
     expect(activeHref("/elsewhere")).toBeUndefined();
   });
 
-  test("breadcrumbs end on the current page and nest pages under their area", () => {
-    expect(breadcrumbs("/dashboard")).toEqual([{ label: "Overview" }]);
-    expect(breadcrumbs("/payouts")).toEqual([
-      { label: "Earnings", href: "/earnings" },
-      { label: "Payouts" },
-    ]);
-    expect(breadcrumbs("/submissions/abc")).toEqual([
-      { label: "Submissions", href: "/submissions" },
-      { label: "Details" },
-    ]);
-    expect(breadcrumbs("/elsewhere")).toEqual([]);
+  test("pills carry the in-review and unread counts", () => {
+    const items = navItems(3, 2);
+    expect(items.find((item) => item.href === "/submissions")?.count).toBe(3);
+    expect(items.find((item) => item.href === "/notifications")?.count).toBe(2);
+    expect(items.filter((item) => item.count !== undefined)).toHaveLength(2);
   });
 
-  test("the rail carries the in-review count on Submissions only", () => {
-    const items = railItems(3);
-    expect(items.find((item) => item.href === "/submissions")?.count).toBe(3);
-    expect(items.filter((item) => item.count !== undefined)).toHaveLength(1);
-    expect(items.find((item) => item.href === "/earnings")?.children).toHaveLength(2);
+  test("every pill page is active on its own path", () => {
+    for (const item of navItems(0, 0)) expect(activeHref(item.href)).toBe(item.href);
   });
 });

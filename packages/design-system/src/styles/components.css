@@ -12,6 +12,7 @@
 @import "./components/notification.css";
 @import "./components/sticky.css";
 @import "./components/charts.css";
+@import "./components/pill-nav.css";
 
 /* Input / Field */
 .os-field-group {

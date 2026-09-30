@@ -152,9 +152,9 @@ export type { PageWidth, Stat } from "./Page";
 export { ThemeToggle } from "./ThemeToggle";
 export type { ThemeName } from "./ThemeToggle";
 
-// Workspace shell and dashboard pieces: collapsible rail, KPI widget, segment bar.
-export { AppRail } from "./AppRail";
-export type { AppRailProps, AppRailItem, AppRailLink } from "./AppRail";
+// Workspace shell and dashboard pieces: pill navigation, KPI widget, segment bar.
+export { PillNav } from "./PillNav";
+export type { PillNavProps, PillNavItem } from "./PillNav";
 export { KpiWidget } from "./Kpi";
 export type { KpiDelta } from "./Kpi";
 export { SegmentBar } from "./Charts";
