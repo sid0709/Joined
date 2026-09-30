@@ -13,7 +13,8 @@ function applyTheme(theme: ThemeName) {
   });
 }
 
-export function ThemeToggle() {
+/** `onChange` lets an app that renders its theme on the server re-render after a switch. */
+export function ThemeToggle({ onChange }: { onChange?: (theme: ThemeName) => void } = {}) {
   const [theme, setTheme] = useState<ThemeName>("dark");
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export function ThemeToggle() {
     window.localStorage.setItem("openseat-theme", next);
     document.cookie = `openseat-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
     setTheme(next);
+    onChange?.(next);
   };
 
   const next = theme === "dark" ? "light" : "dark";

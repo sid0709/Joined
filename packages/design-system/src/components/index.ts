@@ -159,3 +159,5 @@ export { KpiWidget } from "./Kpi";
 export type { KpiDelta } from "./Kpi";
 export { Sparkline, SegmentBar } from "./Charts";
 export type { Segment, SegmentTone } from "./Charts";
+export { PageTabs } from "./PageTabs";
+export type { PageTab } from "./PageTabs";

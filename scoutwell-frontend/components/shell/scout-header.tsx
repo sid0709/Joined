@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -30,6 +31,7 @@ export function ScoutHeader({
   /** The released balance, already formatted; shown as a shortcut to payouts. */
   available?: string;
 }) {
+  const router = useRouter();
   const { isMobile } = useAppShellMobile();
   const heading = (
     <TopNavHeading
@@ -46,7 +48,7 @@ export function ScoutHeader({
         heading={heading}
         endContent={
           <>
-            <ThemeToggle />
+            <ThemeToggle onChange={() => router.refresh()} />
             <Button label="Sign in" variant="ghost" size="sm" href={ROUTES.signIn} />
             <Button label="Become a scout" variant="primary" size="sm" href={ROUTES.signUp} />
           </>
@@ -89,7 +91,7 @@ export function ScoutHeader({
             isIconOnly={isMobile}
             href={ROUTES.submit}
           />
-          <ThemeToggle />
+          <ThemeToggle onChange={() => router.refresh()} />
           <AccountMenu user={user} levelLabel={levelLabel} />
         </>
       }

@@ -34,3 +34,6 @@ export const RAIL_COOKIE = "scout-rail";
 export const RAIL_COOKIE_VALUE_COLLAPSED = "collapsed";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 export const RAIL_COOKIE_MAX_AGE = ONE_YEAR_SECONDS;
+
+/** Written by the theme toggle; the server reads it so a dark scout never sees a light flash. */
+export const THEME_COOKIE = "openseat-theme";

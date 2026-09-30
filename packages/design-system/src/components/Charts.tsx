@@ -29,7 +29,13 @@ export function Sparkline({ values, label }: { values: number[]; label?: string 
 
 export type SegmentTone = "blue" | "green" | "orange" | "red" | "neutral";
 
-export type Segment = { label: string; value: number; tone?: SegmentTone };
+export type Segment = {
+  label: string;
+  value: number;
+  tone?: SegmentTone;
+  /** How the value reads in the legend and to screen readers, e.g. "$12.50". Defaults to the number. */
+  display?: string;
+};
 
 /** One bar split by share, with an optional legend. Empty data renders an empty track. */
 export function SegmentBar({
@@ -44,7 +50,9 @@ export function SegmentBar({
 }) {
   const shares = segmentShares(segments.map((segment) => segment.value));
   const summary = segments
-    .map((segment) => `${segment.label} ${segment.value}${unit ? ` ${unit}` : ""}`)
+    .map(
+      (segment) => `${segment.label} ${segment.display ?? segment.value}${unit ? ` ${unit}` : ""}`,
+    )
     .join(", ");
   return (
     <div className="os-segments">
@@ -66,7 +74,7 @@ export function SegmentBar({
             <li key={segment.label}>
               <span className="os-segment-key" data-tone={segment.tone ?? "blue"} />
               <span>{segment.label}</span>
-              <strong>{segment.value}</strong>
+              <strong>{segment.display ?? segment.value}</strong>
             </li>
           ))}
         </ul>

@@ -23,12 +23,14 @@
 
 .os-segments {
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: var(--spacing-3);
 }
 
 .os-segment-track {
   display: flex;
+  width: 100%;
   gap: var(--spacing-0-5);
   height: var(--spacing-2);
   overflow: hidden;

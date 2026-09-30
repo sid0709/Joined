@@ -2,12 +2,12 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { OpenSeatProvider } from "@openseat/design-system/theme";
+import { OpenSeatProvider, type ColorMode } from "@openseat/design-system/theme";
 
 /** Theme and link wiring for every page. Data comes from Server Components. */
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, mode }: { children: ReactNode; mode: ColorMode }) {
   return (
-    <OpenSeatProvider mode="light" linkComponent={Link}>
+    <OpenSeatProvider mode={mode} linkComponent={Link}>
       {children}
     </OpenSeatProvider>
   );
