@@ -58,6 +58,9 @@ export function CodeInput({
 }: CodeInputProps) {
   const id = useId();
   const cells = useRef<Array<HTMLInputElement | null>>([]);
+  // Focus moves before React re-renders, so handlers read the newest value from here.
+  const latest = useRef(value);
+  latest.current = value;
 
   const focusCell = (index: number) => {
     const cell = cells.current[Math.max(0, Math.min(index, length - 1))];
@@ -66,7 +69,8 @@ export function CodeInput({
   };
 
   const apply = ({ value: next, focusIndex }: CodeEdit) => {
-    if (next !== value) {
+    if (next !== latest.current) {
+      latest.current = next;
       onChange(next);
       if (next.length === length) onComplete?.(next);
     }
@@ -74,23 +78,25 @@ export function CodeInput({
   };
 
   const handleChange = (index: number, event: ChangeEvent<HTMLInputElement>) => {
-    const typed = typedCharacters(event.target.value, value[index]);
+    const current = latest.current;
+    const typed = typedCharacters(event.target.value, current[index]);
     if (!typed) {
-      apply(deleteCode(value, index));
+      apply(deleteCode(current, index));
       return;
     }
-    apply(insertCode(value, index, typed, length, charset));
+    apply(insertCode(current, index, typed, length, charset));
   };
 
   const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    const current = latest.current;
     switch (event.key) {
       case "Backspace":
         event.preventDefault();
-        apply(deleteCode(value, index));
+        apply(deleteCode(current, index));
         break;
       case "Delete":
         event.preventDefault();
-        if (index < value.length) apply({ ...deleteCode(value, index), focusIndex: index });
+        if (index < current.length) apply(deleteCode(current, index));
         break;
       case "ArrowLeft":
         event.preventDefault();
@@ -98,7 +104,7 @@ export function CodeInput({
         break;
       case "ArrowRight":
         event.preventDefault();
-        focusCell(Math.min(index + 1, value.length));
+        focusCell(Math.min(index + 1, current.length));
         break;
       case "Home":
         event.preventDefault();
@@ -106,14 +112,14 @@ export function CodeInput({
         break;
       case "End":
         event.preventDefault();
-        focusCell(value.length);
+        focusCell(current.length);
         break;
     }
   };
 
   const handlePaste = (index: number, event: ClipboardEvent<HTMLInputElement>) => {
     event.preventDefault();
-    apply(insertCode(value, index, event.clipboardData.getData("text"), length, charset));
+    apply(insertCode(latest.current, index, event.clipboardData.getData("text"), length, charset));
   };
 
   return (
@@ -151,7 +157,7 @@ export function CodeInput({
                 onPaste={(event) => handlePaste(index, event)}
                 onFocus={(event) => {
                   // Reaching a cell past the end lands on the first empty one.
-                  if (index > value.length) focusCell(value.length);
+                  if (index > latest.current.length) focusCell(latest.current.length);
                   else event.target.select();
                 }}
                 inputMode={charset === "numeric" ? "numeric" : "text"}

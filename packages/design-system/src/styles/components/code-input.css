@@ -46,16 +46,17 @@
 
 .os-code-cell {
   position: relative;
-  flex: 0 1 var(--_cell);
+  flex: 0 1 auto;
+  width: var(--_cell);
   min-width: 0;
   aspect-ratio: 1;
   border-radius: var(--radius-full);
   background: var(--color-background-surface);
   box-shadow: inset 0 0 0 1px var(--color-border-emphasized);
   transition:
-    box-shadow var(--duration-normal) var(--ease-standard),
-    background-color var(--duration-normal) var(--ease-standard),
-    transform var(--duration-slow) var(--ease-decelerate);
+    box-shadow var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-medium) var(--ease-standard);
 }
 
 .os-code-cell:hover {
@@ -75,7 +76,7 @@
 .os-code-cell[data-filled="true"] {
   background: var(--color-accent-muted);
   box-shadow: inset 0 0 0 1px var(--color-border-blue);
-  animation: os-code-pop var(--duration-slow) var(--ease-decelerate);
+  animation: os-code-pop var(--duration-medium) var(--ease-standard);
 }
 
 .os-code-cell[data-filled="true"]:focus-within {
@@ -138,7 +139,7 @@
 }
 
 .os-code[data-status="error"] .os-code-cells {
-  animation: os-code-shake var(--duration-slow) var(--ease-standard) 2;
+  animation: os-code-shake var(--duration-fast) var(--ease-standard) 3;
 }
 
 .os-code[data-status="error"] .os-code-input {
@@ -151,8 +152,8 @@
   background: var(--color-success-muted);
   box-shadow: inset 0 0 0 2px var(--color-success);
   transform: none;
-  animation: os-code-ripple var(--duration-slow) var(--ease-decelerate) both;
-  animation-delay: calc(var(--os-code-index) * var(--duration-normal));
+  animation: os-code-ripple var(--duration-medium) var(--ease-standard) both;
+  animation-delay: calc(var(--os-code-index) * var(--duration-fast));
 }
 
 .os-code[data-status="success"] .os-code-input {
