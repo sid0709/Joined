@@ -9,6 +9,16 @@ describe("nav", () => {
     expect(activeHref("/elsewhere")).toBeUndefined();
   });
 
+  test("the longer matching page wins when one path contains another", () => {
+    const pages = [
+      { href: "/settings", label: "Settings", description: "Account settings." },
+      { href: "/settings/billing", label: "Billing", description: "Payout method." },
+    ];
+    expect(activeHref("/settings/billing", pages)).toBe("/settings/billing");
+    expect(activeHref("/settings/billing/tax", pages)).toBe("/settings/billing");
+    expect(activeHref("/settings", pages)).toBe("/settings");
+  });
+
   test("pills carry the in-review and unread counts", () => {
     const items = navItems(3, 2);
     expect(items.find((item) => item.href === "/submissions")?.count).toBe(3);

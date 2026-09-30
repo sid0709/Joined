@@ -38,8 +38,11 @@ export function navItems(inReview: number, unread: number): PillNavItem[] {
 }
 
 /** The deepest page that contains the path: /submissions/abc still lights up Submissions. */
-export function activeHref(pathname: string): string | undefined {
-  return ALL_PAGES.filter(
-    (page) => pathname === page.href || pathname.startsWith(`${page.href}/`),
-  ).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+export function activeHref(
+  pathname: string,
+  pages: readonly PageLink[] = ALL_PAGES,
+): string | undefined {
+  return pages
+    .filter((page) => pathname === page.href || pathname.startsWith(`${page.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
