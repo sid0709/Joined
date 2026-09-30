@@ -163,23 +163,20 @@ body {
   box-shadow: var(--shadow-high);
 }
 
-.sw-pill:focus-visible,
-.sw-hero-link:focus-visible {
+.sw-pill:focus-visible {
   outline: calc(var(--border-width) * 2) solid var(--color-on-accent);
   outline-offset: var(--spacing-0-5);
 }
 
-.sw-hero-link {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-on-accent);
-  text-decoration: none;
-  border-bottom: calc(var(--border-width) * 2) solid
-    color-mix(in srgb, var(--color-on-accent) 45%, transparent);
-  transition: border-color var(--duration-fast) var(--ease-standard);
+/* The hero is an accent surface. Primary fills with the surface color and
+   ghost labels use the on-accent ink, through the button's own tokens. */
+.sw-hero-actions .astryx-button[data-variant="primary"] {
+  --color-accent: var(--color-background-surface);
+  --color-on-accent: var(--color-text-accent);
 }
 
-.sw-hero-link:hover {
-  border-color: var(--color-on-accent);
+.sw-hero-actions .astryx-button[data-variant="ghost"] {
+  --color-text-primary: var(--color-on-accent);
 }
 
 .sw-hero-figures {

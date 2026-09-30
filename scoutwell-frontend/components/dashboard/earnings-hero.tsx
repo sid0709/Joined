@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "@openseat/design-system";
 import { formatMoney, type Balance } from "@openseat/scout";
 import { ROUTES } from "@/lib/routes";
 
@@ -27,12 +27,13 @@ export function EarningsHero({
         <p className="sw-hero-caption">available to pay out</p>
         {note ? <p className="sw-hero-note">{note}</p> : null}
         <div className="sw-hero-actions">
-          <Link className="sw-pill" href={ROUTES.submit}>
-            Submit a job
-          </Link>
-          <Link className="sw-hero-link" href={ROUTES.payouts}>
-            {payoutReady ? "Request payout" : "Set up payouts"}
-          </Link>
+          <Button label="Submit a job" variant="primary" size="lg" href={ROUTES.submit} />
+          <Button
+            label={payoutReady ? "Request payout" : "Set up payouts"}
+            variant="ghost"
+            size="lg"
+            href={ROUTES.payouts}
+          />
         </div>
       </div>
       <dl className="sw-hero-figures">

@@ -74,6 +74,7 @@ export const DEMO_COMPONENTS: Record<string, ComponentType> = {
   toast: dynamic(() => import("./toast"), { ssr: false, loading }),
   breadcrumbs: dynamic(() => import("./breadcrumbs"), { ssr: false, loading }),
   pagination: dynamic(() => import("./pagination"), { ssr: false, loading }),
+  "pill-nav": dynamic(() => import("./pill-nav"), { ssr: false, loading }),
   "side-nav": dynamic(() => import("./side-nav"), { ssr: false, loading }),
   stepper: dynamic(() => import("./stepper"), { ssr: false, loading }),
   "tab-list": dynamic(() => import("./tab-list"), { ssr: false, loading }),

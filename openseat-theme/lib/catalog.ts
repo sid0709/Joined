@@ -491,6 +491,13 @@ export const CATALOG: CatalogGroup[] = [
         importName: "Pagination",
       },
       {
+        slug: "pill-nav",
+        title: "Pill Nav",
+        description:
+          "App pages as icon pills. The current page opens to its label, counts sit on the icon, and small screens pin the bar to the bottom.",
+        importName: "PillNav",
+      },
+      {
         slug: "side-nav",
         title: "Side Nav",
         description: "Sections, nesting, a collapsible rail, pinned items, and a footer.",
