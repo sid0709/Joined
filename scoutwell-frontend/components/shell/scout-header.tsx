@@ -1,31 +1,35 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import {
   Badge,
   Button,
+  Icon,
+  icons,
   ThemeToggle,
   TopNav,
   TopNavHeading,
-  TopNavItem,
   useAppShellMobile,
 } from "@openseat/design-system";
 import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
+import { CommandMenu } from "./command-menu";
+import { ScoutBreadcrumbs } from "./scout-breadcrumbs";
 
-/** The product bar. Signed out it sells; signed in it puts Submit and notifications in reach. */
+/** The product bar. Signed out it sells; signed in it holds where you are, search, balance and Submit. */
 export function ScoutHeader({
   user = null,
   levelLabel = "",
   unread = 0,
+  available = "",
 }: {
   user?: SessionUser | null;
   levelLabel?: string;
   unread?: number;
+  /** The released balance, already formatted; shown as a shortcut to payouts. */
+  available?: string;
 }) {
-  const pathname = usePathname();
   const { isMobile } = useAppShellMobile();
   const heading = (
     <TopNavHeading
@@ -55,19 +59,36 @@ export function ScoutHeader({
     <TopNav
       label={BRAND}
       heading={heading}
+      startContent={isMobile ? undefined : <ScoutBreadcrumbs />}
+      centerContent={<CommandMenu />}
       endContent={
         <>
-          {isMobile ? null : (
-            <>
-              <Button label="Submit a job" variant="primary" size="sm" href={ROUTES.submit} />
-              <TopNavItem
-                label="Notifications"
-                href={ROUTES.notifications}
-                isSelected={pathname === ROUTES.notifications}
-              />
-            </>
+          {isMobile || !available ? null : (
+            <Button
+              label={`Available ${available}`}
+              variant="ghost"
+              size="sm"
+              href={ROUTES.payouts}
+            />
           )}
-          {unread > 0 ? <Badge label={`${unread} new`} variant="info" /> : null}
+          <Button
+            label={unread > 0 ? `Notifications, ${unread} new` : "Notifications"}
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon={icons.bell} />}
+            isIconOnly={unread === 0}
+            href={ROUTES.notifications}
+          >
+            {unread > 0 ? String(unread) : undefined}
+          </Button>
+          <Button
+            label="Submit a job"
+            variant="primary"
+            size="sm"
+            icon={<Icon icon={icons.plus} />}
+            isIconOnly={isMobile}
+            href={ROUTES.submit}
+          />
           <ThemeToggle />
           <AccountMenu user={user} levelLabel={levelLabel} />
         </>
