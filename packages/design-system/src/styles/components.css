@@ -360,13 +360,15 @@ button.os-star {
   border-radius: var(--radius-full);
 }
 
-/* Pressed toggles keep the button ink. The surface turns the same gray as a
-   secondary button, and the glyph fills so on reads as a solid mark. */
+/* Pressed toggles stay outlined. A weak accent wash sits behind the accent
+   icon and label, so on reads as color rather than a solid fill. */
 .astryx-toggle-button[data-is-pressed="true"] {
-  background-color: var(--color-neutral);
+  background-color: var(--color-accent-muted);
+  color: var(--color-accent);
 }
 .astryx-toggle-button[data-is-pressed="true"] .os-glyph {
-  fill: currentColor;
+  color: var(--color-accent);
+  fill: none;
 }
 
 @media (forced-colors: active) {

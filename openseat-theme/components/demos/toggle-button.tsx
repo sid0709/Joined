@@ -27,7 +27,7 @@ export default function ToggleButtonDemo() {
       <Preview
         align="start"
         label="Label and icon"
-        description="Same ink as a button. Pressed turns the surface gray and fills the icon."
+        description="Pressed turns the icon and label accent, on a weak accent wash."
       >
         <Row>
           <ToggleButton

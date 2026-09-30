@@ -18,11 +18,11 @@ export function GuestActions({ isCompact }: { isCompact: boolean }) {
   return (
     <>
       {isCompact ? null : <ForEmployersNavItem />}
-      <Button label="Sign in" variant="secondary" size="sm" href={signInHref(pathname)} />
+      <Button label="Sign in" variant="secondary" size="md" href={signInHref(pathname)} />
       <Button
         label={isCompact ? "Sign up" : "Create account"}
         variant="primary"
-        size="sm"
+        size="md"
         href={ROUTES.signUp}
       />
     </>
