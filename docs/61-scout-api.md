@@ -50,7 +50,7 @@ Every `/v1/scout/*` call except `GET /v1/scout/meta` needs `Authorization: Beare
 | `equity`                  | `true` when the role is paid in equity. Salary is stored unset, and a salary sent with it is dropped.                                                                                          |
 | `workplace`, `employment` | Required enums from `meta.limits`.                                                                                                                                                             |
 | `seniority`               | Optional enum from `meta.limits`; inferred from the title when omitted.                                                                                                                        |
-| `tags`, `skills`          | Optional; up to `limits.max_tags` / `limits.max_skills`. The Scoutwell form does not collect them. Tag `visa` marks sponsorship.                                                               |
+| `tags`, `skills`          | Not accepted. Staff analyze the description with AI, which generates the skills and sets the visa-sponsorship flag.                                                                            |
 | `not_duplicate_claim`     | Required when matches exist. The scout claims this listing is distinct; staff review the claim.                                                                                                |
 | `external_ref`            | Optional partner id, unique per scout. Reuse answers `409` with `existing_id`.                                                                                                                 |
 

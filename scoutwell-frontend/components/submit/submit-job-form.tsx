@@ -180,8 +180,6 @@ export function SubmitJobForm({
           equity: form.equity,
           salary: "",
           summary: form.summary,
-          tags: [],
-          skills: [],
           not_duplicate_claim: needsClaim ? notDuplicateClaim : false,
         },
         { "Idempotency-Key": idempotencyKey },

@@ -39,8 +39,6 @@ export type SubmissionInput = {
   equity: boolean;
   salary: string;
   summary: string;
-  tags: string[];
-  skills: string[];
   not_duplicate_claim?: boolean;
   external_ref?: string;
 };
@@ -67,8 +65,6 @@ export type Submission = {
   equity: boolean;
   salary: string;
   summary: string;
-  tags: string[];
-  skills: string[];
   status: SubmissionStatus;
   rejection_code?: string;
   rejection_reason?: string;
@@ -214,8 +210,6 @@ export type RewardTable = {
 export type Limits = {
   min_summary_chars: number;
   max_summary_chars: number;
-  max_tags: number;
-  max_skills: number;
   max_batch: number;
   workplaces: Workplace[];
   employments: Employment[];

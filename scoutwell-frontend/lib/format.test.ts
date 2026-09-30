@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { formatCount, parseList, parseTags, progressTo, sourceLabel } from "./format";
+import { formatCount, progressTo, sourceLabel } from "./format";
 
 describe("format", () => {
   it("picks singular or plural labels", () => {
@@ -12,14 +12,6 @@ describe("format", () => {
     expect(progressTo(15, 30)).toBe(50);
     expect(progressTo(45, 30)).toBe(100);
     expect(progressTo(3, 0)).toBe(100);
-  });
-
-  it("dedupes comma-separated tags", () => {
-    expect(parseTags(" Remote, visa, remote ")).toEqual(["remote", "visa"]);
-  });
-
-  it("dedupes skills but keeps their spelling", () => {
-    expect(parseList("Go, Kubernetes , go,")).toEqual(["Go", "Kubernetes"]);
   });
 
   it("names the ATS when known", () => {

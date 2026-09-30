@@ -90,6 +90,7 @@ Records that a client authorized a specific bidder (or the agent) to act for the
 | salary_min_cents / salary_max_cents          | bigint                                                                 | nullable                                               |
 | salary_currency                              | char(3)                                                                |                                                        |
 | summary                                      | text                                                                   | **Our own structured summary**, not copied description |
+| description                                  | text                                                                   | **Required.** Original posting, before AI analysis     |
 | requirements                                 | jsonb                                                                  | skills, years, certifications                          |
 | official_apply_url                           | text                                                                   | Required                                               |
 | apply_form_complexity                        | enum `bulk, complex, unknown`                                          | From matching/router                                   |
