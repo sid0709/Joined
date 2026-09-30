@@ -1,39 +1,35 @@
-import { Badge, Button, Card, Glyph, HStack, Heading, Stack, Text } from "@openseat/design-system";
+import { Card, HStack, Heading, Stack, Text } from "@openseat/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
-import { WORKSPACE } from "@/lib/company";
+import type { AuthCompany } from "@/lib/auth/types";
 import { ROUTES } from "@/lib/routes";
+import { CandidateViewButton } from "@/components/company/candidate-view-button";
 
 const LOGO_SIZE = 64;
 
 /** The workspace’s front door: who you’re hiring for and the two most common actions. */
-export function WorkspaceHero({ greeting }: { greeting: string }) {
+export function WorkspaceHero({ greeting, company }: { greeting: string; company: AuthCompany }) {
   return (
     <Card padding={6} elevation="low">
       <HStack hAlign="between" vAlign="center" gap={5} wrap="wrap">
         <HStack gap={4} vAlign="center">
-          <CompanyLogo name={WORKSPACE.name} size={LOGO_SIZE} />
+          <CompanyLogo
+            name={company.name}
+            src={company.logo}
+            companyId={company.id}
+            size={LOGO_SIZE}
+          />
           <Stack gap={1}>
             <Text type="supporting" color="secondary">
               {greeting}
             </Text>
-            <HStack gap={2} vAlign="center" wrap="wrap">
-              <Heading level={1}>{WORKSPACE.name}</Heading>
-              {WORKSPACE.verified ? (
-                <Badge label="Verified employer" variant="info" icon={<Glyph name="check" />} />
-              ) : null}
-            </HStack>
+            <Heading level={1}>{company.name}</Heading>
             <Text color="secondary" display="block">
-              {WORKSPACE.industry} · {WORKSPACE.size} people · {WORKSPACE.locations}
+              {company.url || "Hiring workspace"}
             </Text>
           </Stack>
         </HStack>
         <HStack gap={2} wrap="wrap">
-          <Button
-            label="View public page"
-            variant="secondary"
-            href={ROUTES.companyPublic(WORKSPACE.slug)}
-            icon={<Glyph name="eye" />}
-          />
+          <CandidateViewButton label="View as candidate" href={ROUTES.companyPublic(company.id)} />
         </HStack>
       </HStack>
     </Card>

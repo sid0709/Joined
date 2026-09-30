@@ -2,6 +2,9 @@ export const BRAND = "Opened";
 
 export const ROUTES = {
   search: "/",
+  signIn: "/sign-in",
+  signUp: "/sign-up",
+  hiringSetup: "/hiring/setup",
   applications: "/applications",
   interviews: "/interviews",
   messages: "/messages",
@@ -9,7 +12,7 @@ export const ROUTES = {
   profile: "/profile",
   settings: "/settings",
   job: (id: string) => `/jobs/${id}`,
-  companyPublic: (slug: string) => `/companies/${slug}`,
+  companyPublic: (id: string) => `/companies/${id}`,
   company: "/company",
   companyJobs: "/company/jobs",
   companyJobNew: "/company/jobs/new",
@@ -19,8 +22,18 @@ export const ROUTES = {
   companyTeam: "/company/team",
   companyBilling: "/company/billing",
   companySettings: "/company/settings",
+  companyProfile: "/company/profile",
+  companyAccount: "/company/account",
   companyMessages: "/company/messages",
 } as const;
+
+/** Sign in, then come back to `path`. */
+export function signInHref(path: string) {
+  return `${ROUTES.signIn}?next=${encodeURIComponent(path)}`;
+}
+
+/** Sign up with the hiring path preselected. */
+export const HIRING_SIGN_UP_HREF = `${ROUTES.signUp}?intent=hiring`;
 
 export type PageLink = {
   href: string;
@@ -38,6 +51,12 @@ export const INTERVIEWS_PAGE: PageLink = {
   href: ROUTES.interviews,
   label: "Interviews",
   description: "Upcoming and past interviews, including ones we detected.",
+};
+
+export const MESSAGES_PAGE: PageLink = {
+  href: ROUTES.messages,
+  label: "Messages",
+  description: "Conversations with companies, and notes from Opened.",
 };
 
 export const RESUMES_PAGE: PageLink = {
@@ -110,6 +129,20 @@ export const COMPANY_SETTINGS_PAGE: PageLink = {
   href: ROUTES.companySettings,
   label: "Settings",
   description: "Domains, notifications, and hiring defaults.",
+};
+
+/** You, in the hiring workspace — not the company. The company's own page is COMPANY_ABOUT_PAGE. */
+export const COMPANY_PROFILE_PAGE: PageLink = {
+  href: ROUTES.companyProfile,
+  label: "My profile",
+  description: "How candidates and teammates see you, and how you like to interview.",
+};
+
+/** Your own sign-in, notifications, and calendar. Company-wide rules live in COMPANY_SETTINGS_PAGE. */
+export const COMPANY_ACCOUNT_PAGE: PageLink = {
+  href: ROUTES.companyAccount,
+  label: "Account settings",
+  description: "Your sign-in, what you’re notified about, and the calendar you interview from.",
 };
 
 /** Candidate ("hunter") or employer ("company") — each has its own shell, nav, and account menu. */

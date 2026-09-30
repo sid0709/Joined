@@ -17,15 +17,14 @@ import {
   Switch,
   TextArea,
 } from "@openseat/design-system";
-import { companyBySlug, type Job } from "@/lib/jobs";
+import { companyBySlug, jobHasLogoFile, type Job } from "@/lib/jobs";
+import { createApplication } from "@/lib/me/pipeline";
 import { RESUMES } from "@/lib/resumes";
 import { CompanyLogo } from "./company-logo";
 
 const DIALOG_WIDTH = 560;
 const NOTE_MAX_LENGTH = 500;
 const NOTE_ROWS = 4;
-/** How long the demo submission pretends to send. */
-const SUBMIT_DELAY_MS = 900;
 
 /** Only resumes the parser could read can go out with an application. */
 const READY_RESUMES = RESUMES.filter((resume) => resume.parse === "parsed");
@@ -43,7 +42,7 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
   const [resumeId, setResumeId] = useState(DEFAULT_RESUME_ID);
   const [note, setNote] = useState("");
   const [shareProfile, setShareProfile] = useState(true);
-  const company = job ? companyBySlug(job.companySlug) : undefined;
+  const company = job ? companyBySlug(job.companyId) : undefined;
 
   const close = () => {
     onOpenChange(false);
@@ -52,7 +51,12 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
 
   const submit = async () => {
     if (!job) return;
-    await new Promise((resolve) => setTimeout(resolve, SUBMIT_DELAY_MS));
+    const resume = READY_RESUMES.find((item) => item.id === resumeId);
+    await createApplication({
+      jobId: job.id,
+      resume: resume?.label,
+      note,
+    });
     onSubmitted(job);
     close();
   };
@@ -71,7 +75,15 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
             <DialogHeader
               title={`Apply to ${job.title}`}
               subtitle={`${job.company} · ${job.location}`}
-              startContent={<CompanyLogo name={job.company} size={40} />}
+              startContent={
+                <CompanyLogo
+                  name={job.company}
+                  companyId={job.companyId}
+                  src={job.companyLogo}
+                  hasFile={jobHasLogoFile(job)}
+                  size={40}
+                />
+              }
               onOpenChange={(open) => (open ? undefined : close())}
               hasDivider
             />

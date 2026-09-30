@@ -2,7 +2,7 @@
 
 Everything you need to set up, run, check, and audit this monorepo.
 
-> **Run every command from the repo root.** You never need to `cd` into an app. Each app has a root script (`bun run dev:opened`, `bun run build:app`, …), and anything else can target one workspace with `bun --filter <name> <script>`.
+> **Run every command from the repo root.** You never need to `cd` into an app. `bun run dev` starts every frontend and the API together. Each app also has its own root script (`bun run dev:opened`, `bun run dev:admin`, `bun run dev:admin-api`, …), and anything else can target one workspace with `bun --filter <name> <script>`.
 
 > **bun only.** Never use npm, yarn, or pnpm, and never commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. The only lockfile is `bun.lock` at the root.
 
@@ -10,14 +10,17 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace                 | Path                      | What it is                                                 | Dev port | Root dev script      |
-| ------------------------- | ------------------------- | ---------------------------------------------------------- | -------- | -------------------- |
-| `opened-frontend`         | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js) | 3002     | `bun run dev:opened` |
-| `openseat-frontend`       | `openseat-frontend/`      | OpenSeat web app (Next.js)                                 | 3000     | `bun run dev:app`    |
-| `openseat-theme`          | `openseat-theme/`         | Design-system showcase (Next.js)                           | 3001     | `bun run dev:theme`  |
-| `@openseat/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)       | —        | —                    |
+| Workspace                 | Path                      | What it is                                                   | Dev port | Root dev script         |
+| ------------------------- | ------------------------- | ------------------------------------------------------------ | -------- | ----------------------- |
+| `opened-frontend`         | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:opened`    |
+| `connected-frontend`      | `connected-frontend/`     | OpenSeat web app (Next.js)                                   | 3000     | `bun run dev:app`       |
+| `openseat-theme`          | `openseat-theme/`         | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`     |
+| `opened-admin`            | `opened-admin/`           | Opened admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`     |
+| `scoutwell-frontend`      | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`     |
+| `opened-backend`          | `opened-backend/`         | Opened API (Go)                                              | 8080     | `bun run dev:admin-api` |
+| `@openseat/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                       |
 
-Apps use the design system through the workspace (`"@openseat/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately.
+Apps use the design system through the workspace (`"@openseat/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. `opened-backend` sits beside those workspaces: it is a Go server. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -36,7 +39,7 @@ Other folders: `docs/` (product and architecture specs), `tools/` (repo checks),
 - The root `package.json` holds the versions:
   ```jsonc
   "workspaces": {
-    "packages": ["openseat-frontend", "openseat-theme", "opened-frontend", "packages/*"],
+    "packages": ["connected-frontend", "openseat-theme", "opened-frontend", "packages/*"],
     "catalog": { "next": "16.3.6", "react": "19.3.0", "typescript": "5.9.3" /* … */ }
   }
   ```
@@ -153,12 +156,41 @@ bun run check:deps
 
 ### Development
 
-| App                    | Command              | URL                   |
-| ---------------------- | -------------------- | --------------------- |
-| Opened (job platform)  | `bun run dev:opened` | http://localhost:3002 |
-| OpenSeat app           | `bun run dev:app`    | http://localhost:3000 |
-| Design-system showcase | `bun run dev:theme`  | http://localhost:3001 |
-| All three at once      | `bun run dev`        | all of the above      |
+One command starts every frontend and the API. From the repo root:
+
+```bash
+bun run dev
+```
+
+| Name                   | URL                   | Log prefix |
+| ---------------------- | --------------------- | ---------- |
+| OpenSeat app           | http://localhost:3000 | `[app]`    |
+| Design-system showcase | http://localhost:3001 | `[theme]`  |
+| Opened (job platform)  | http://localhost:3002 | `[opened]` |
+| Opened admin           | http://localhost:3010 | `[admin]`  |
+| Opened API             | http://127.0.0.1:8080 | `[api]`    |
+
+Ctrl+C stops all of them. The API reads `opened-backend/.env` (copy `opened-backend/.env.example`). It needs `MONGO_URI`; if that file is missing, the API line exits and the frontends keep running.
+
+### Open one app
+
+| App                    | Command                 | Then open             |
+| ---------------------- | ----------------------- | --------------------- |
+| Opened (job platform)  | `bun run dev:opened`    | http://localhost:3002 |
+| OpenSeat app           | `bun run dev:app`       | http://localhost:3000 |
+| Design-system showcase | `bun run dev:theme`     | http://localhost:3001 |
+| Opened admin           | `bun run dev:admin`     | http://localhost:3010 |
+| Opened API             | `bun run dev:admin-api` | http://127.0.0.1:8080 |
+
+On macOS, open a running app in the browser:
+
+```bash
+open http://localhost:3002
+open http://localhost:3000
+open http://localhost:3001
+open http://localhost:3010
+open http://127.0.0.1:8080
+```
 
 For any other script in one workspace, use `--filter` with the workspace name:
 
@@ -195,7 +227,7 @@ bun run start:opened --port 3102
 
 ### Troubleshooting
 
-- **Port already in use** — find the old process and stop it:
+- **Port already in use** — `bun run dev` stops whatever is listening on 3000, 3001, 3002, 3003, 3010, and 8080 before it starts. A single app (`bun run dev:opened` and the others) does not, so stop that listener yourself:
   ```bash
   lsof -iTCP:3002 -sTCP:LISTEN
   ```
@@ -216,21 +248,23 @@ bun run start:opened --port 3102
 
 ## 5. Checks
 
-Run the whole suite before pushing:
+Run exactly what CI runs before pushing:
 
 ```bash
-bun run lint
-bun run typecheck
-bun run format:check
-bun run test
-bun run check:deps
-bun run check:boundaries
-bun run build
+bun run ci
 ```
+
+It runs every CI job in order, keeps going when one fails, and ends with a pass/fail summary. Run only some jobs by naming them — `lint`, `format`, `typecheck`, `dependencies`, `test`, `build`, `commits`:
+
+```bash
+bun run ci lint test
+```
+
+`commits` runs commitlint on what your branch adds on top of `origin/main` (`git fetch` first; set `CI_BASE_REF` to compare against another ref). The individual checks it runs:
 
 | Command                     | What it checks                                                                                                                                                                              |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bun run lint`              | ESLint in every workspace, zero warnings allowed. Includes `import/no-extraneous-dependencies`.                                                                                             |
+| `bun run lint`              | ESLint in every workspace (`lint:workspaces`) and in `tools/` + `tests/` (`lint:repo`), zero warnings allowed.                                                                              |
 | `bun run lint:fix`          | Same, auto-fixing what it can.                                                                                                                                                              |
 | `bun run typecheck`         | `tsc --noEmit` in every workspace.                                                                                                                                                          |
 | `bun run format:check`      | Prettier. Fix with `bun run format`.                                                                                                                                                        |
@@ -255,7 +289,7 @@ bun test tests
 
 ### CI
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `main`, after `bun install --frozen-lockfile`:
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`, after `bun install --frozen-lockfile`. Each job calls `bun run ci <job>`, so the steps are defined once in `tools/ci.mjs` and `bun run ci` locally runs the same thing. Workspace tasks go through `turbo run`, which picks up every workspace listed in the root `package.json` — adding or renaming a workspace needs no CI change.
 
 | Job                                       | Runs                                                                        |
 | ----------------------------------------- | --------------------------------------------------------------------------- |
@@ -287,39 +321,60 @@ Apps import only from the package, e.g. `import { Button } from "@openseat/desig
 
 ## 7. Performance and accessibility audit (Unlighthouse)
 
-[Unlighthouse](https://unlighthouse.dev) runs Lighthouse against every route it can find. It's already a root dev dependency.
+[Unlighthouse](https://unlighthouse.dev) runs Lighthouse against every route it can find. `@unlighthouse/cli` is already a root dev dependency, so you do not install it again.
 
-### Audit a deployed site
+Dev-server scores are misleadingly low (no minification, dev overlays). Build and start the app first, then audit that production server.
 
-```bash
-bunx unlighthouse --site https://your-site.com --max-routes -1 --disable-dynamic-sampling
-```
+### Audit Opened
 
-- `--max-routes -1` — no limit on how many routes to scan.
-- `--disable-dynamic-sampling` — scan every page, even ones that share a route pattern (e.g. every `/jobs/[id]`).
-
-### Audit a local app
-
-Dev-server scores are misleadingly low (no minification, dev overlays), so audit a production build:
+Terminal 1 — production server on port 3102, so it can sit next to `bun run dev`:
 
 ```bash
 bun run build:opened
 bun run start:opened --port 3102
 ```
 
-In a second terminal:
+Terminal 2 — scan every route, then open the report:
 
 ```bash
-bunx unlighthouse --site http://localhost:3102 --max-routes -1 --disable-dynamic-sampling
+bun run audit:opened
 ```
 
-When it finishes, Unlighthouse opens its report in your browser. Reports go to `.unlighthouse/` (already gitignored).
+Employer pages live under `/company`. Start the crawl there so Unlighthouse reaches them:
 
-- **Employer pages** (`/company/*`) — start the crawl there so it reaches them:
-  ```bash
-  bunx unlighthouse --site http://localhost:3102/company --max-routes -1 --disable-dynamic-sampling
-  ```
-- **Faster, rougher pass** — drop `--disable-dynamic-sampling` to sample one page per route pattern.
+```bash
+bun run audit:opened:company
+```
+
+### Audit each app
+
+Use a production server for the app you care about (`bun run build:<app>` then `bun run start:<app>`), then:
+
+| App                    | Audit command                  | Site it scans                 |
+| ---------------------- | ------------------------------ | ----------------------------- |
+| Opened                 | `bun run audit:opened`         | http://localhost:3102         |
+| Opened employer pages  | `bun run audit:opened:company` | http://localhost:3102/company |
+| OpenSeat app           | `bun run audit:app`            | http://localhost:3000         |
+| Design-system showcase | `bun run audit:theme`          | http://localhost:3001         |
+| Opened admin           | `bun run audit:admin`          | http://localhost:3010         |
+
+`next start` listens on port 3000 unless you pass `--port`. Opened's audit script expects **3102** so it does not collide with the OpenSeat app. For the app, theme, or admin, start that one app on the port in the table (stop `bun run dev` first if that port is taken).
+
+Any other site, including a deployed URL:
+
+```bash
+bun run audit -- --site https://your-site.com
+```
+
+`bun run audit` passes `--disable-dynamic-sampling`, so Unlighthouse scans every page, including ones that share a route pattern such as `/jobs/[id]`.
+
+When a scan finishes, Unlighthouse opens the report in your browser. Reports go to `.unlighthouse/` (already gitignored).
+
+`@unlighthouse/cli` does not install an `unlighthouse` command. The audit scripts run `tools/unlighthouse.mjs`, which starts `node_modules/@unlighthouse/cli/dist/cli.mjs`. For a faster, rougher pass, leave dynamic sampling on:
+
+```bash
+bun tools/unlighthouse.mjs --site http://localhost:3102
+```
 
 ---
 
@@ -365,22 +420,27 @@ git push -u origin feat/<short-name>
 
 ## 9. Quick reference
 
-| I want to…                           | Command                                                                                |
-| ------------------------------------ | -------------------------------------------------------------------------------------- |
-| Install everything                   | `bun install`                                                                          |
-| Run Opened                           | `bun run dev:opened`                                                                   |
-| Run the OpenSeat app                 | `bun run dev:app`                                                                      |
-| Run the design-system showcase       | `bun run dev:theme`                                                                    |
-| Run all apps                         | `bun run dev`                                                                          |
-| Run any script in one workspace      | `bun --filter <workspace> <script>`                                                    |
-| Build / start Opened for production  | `bun run build:opened` then `bun run start:opened --port 3102`                         |
-| Add a library                        | Add to root `catalog`, then `"<lib>": "catalog:"` in the workspace, then `bun install` |
-| Upgrade a library                    | Change it once in the root `catalog`, `bun install`, fix the code that breaks          |
-| Check one version / one node_modules | `bun run check:deps` (also runs in `bun run test` and CI)                              |
-| Lint / type-check everything         | `bun run lint` · `bun run typecheck`                                                   |
-| Format everything                    | `bun run format`                                                                       |
-| Run tests                            | `bun run test`                                                                         |
-| Rebuild the theme CSS                | `bun run theme:build`                                                                  |
-| Audit a site                         | `bunx unlighthouse --site <url> --max-routes -1 --disable-dynamic-sampling`            |
-| Reset installs from scratch          | `rm -rf node_modules */node_modules packages/*/node_modules` then `bun install`        |
-| Clear a stale dev cache              | `rm -rf opened-frontend/.next`                                                         |
+| I want to…                                      | Command                                                                                |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Install everything                              | `bun install`                                                                          |
+| Run everything (frontends + API)                | `bun run dev`                                                                          |
+| Run Opened                                      | `bun run dev:opened` → http://localhost:3002                                           |
+| Run the OpenSeat app                            | `bun run dev:app` → http://localhost:3000                                              |
+| Run the design-system showcase                  | `bun run dev:theme` → http://localhost:3001                                            |
+| Run the Opened admin UI                         | `bun run dev:admin` → http://localhost:3010                                            |
+| Run the Opened API                              | `bun run dev:admin-api` → http://127.0.0.1:8080                                        |
+| Open a running app (macOS)                      | `open http://localhost:3002`                                                           |
+| Run any script in one workspace                 | `bun --filter <workspace> <script>`                                                    |
+| Build / start Opened for production             | `bun run build:opened` then `bun run start:opened --port 3102`                         |
+| Add a library                                   | Add to root `catalog`, then `"<lib>": "catalog:"` in the workspace, then `bun install` |
+| Upgrade a library                               | Change it once in the root `catalog`, `bun install`, fix the code that breaks          |
+| Check one version / one node_modules            | `bun run check:deps` (also runs in `bun run test` and CI)                              |
+| Run every CI check locally                      | `bun run ci` (or `bun run ci lint test`)                                               |
+| Lint / type-check everything                    | `bun run lint` · `bun run typecheck`                                                   |
+| Format everything                               | `bun run format`                                                                       |
+| Run tests                                       | `bun run test`                                                                         |
+| Rebuild the theme CSS                           | `bun run theme:build`                                                                  |
+| Audit Opened (after `start:opened --port 3102`) | `bun run audit:opened`                                                                 |
+| Audit another site                              | `bun run audit -- --site <url>`                                                        |
+| Reset installs from scratch                     | `rm -rf node_modules */node_modules packages/*/node_modules` then `bun install`        |
+| Clear a stale dev cache                         | `rm -rf opened-frontend/.next`                                                         |

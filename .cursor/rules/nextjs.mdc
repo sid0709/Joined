@@ -1,6 +1,6 @@
 ---
 description: Next.js App Router — split files, routing, small bundles, reuse
-globs: "{openseat-frontend,openseat-theme}/**/*.{ts,tsx,js,jsx}"
+globs: "{connected-frontend,openseat-theme,opened-frontend}/**/*.{ts,tsx,js,jsx}"
 alwaysApply: false
 ---
 

@@ -61,6 +61,7 @@ export default function TokenizerDemo() {
   const [invitees, setInvitees] = useState<Person[]>(PEOPLE_ITEMS.slice(0, 2));
   const [capped, setCapped] = useState<Person[]>([]);
   const [tags, setTags] = useState<SearchableItem[]>([SKILLS[0]]);
+  const [tagline, setTagline] = useState<SearchableItem[]>([SKILLS[2]]);
   const [overflow, setOverflow] = useState<SearchableItem[]>(SKILLS.slice(0, 7));
   const [log, setLog] = useState<string[]>([]);
 
@@ -145,6 +146,26 @@ export default function TokenizerDemo() {
                 size="sm"
               />
             )}
+          />
+        </Stack>
+      </Preview>
+
+      <Preview
+        align="start"
+        label="Select or create"
+        description="Pick a skill from the list, or type anything and press Enter to create a chip."
+      >
+        <Stack width={FIELD_WIDTH}>
+          <Tokenizer
+            label="Tagline"
+            searchSource={skillSource}
+            value={tagline}
+            onChange={setTagline}
+            hasCreate
+            hasClear
+            debounceMs={0}
+            placeholder="Search, or type and press Enter"
+            description="Enter creates a chip even when nothing matches."
           />
         </Stack>
       </Preview>

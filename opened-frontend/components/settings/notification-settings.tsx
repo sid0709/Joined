@@ -23,14 +23,22 @@ import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 type Matrix = Record<string, Record<NotificationChannel, boolean>>;
 
-const INITIAL: Matrix = Object.fromEntries(
-  NOTIFICATION_EVENTS.map((event) => [event.id, { ...event.defaults }]),
-);
 const TIME_COLUMNS = 2;
 
-/** Each event × each channel as a checkbox grid, plus quiet hours. */
-export function NotificationSettings() {
-  const [matrix, setMatrix] = useState(INITIAL);
+function initialMatrix(events: NotificationEvent[]): Matrix {
+  return Object.fromEntries(events.map((event) => [event.id, { ...event.defaults }]));
+}
+
+/**
+ * Each event × each channel as a checkbox grid, plus quiet hours. Candidates get
+ * job-search events by default; the hiring workspace passes its own.
+ */
+export function NotificationSettings({
+  events = NOTIFICATION_EVENTS,
+}: {
+  events?: NotificationEvent[];
+}) {
+  const [matrix, setMatrix] = useState(() => initialMatrix(events));
   const [quiet, setQuiet] = useState(true);
   const [quietStart, setQuietStart] = useState(QUIET_HOURS.start);
   const [quietEnd, setQuietEnd] = useState(QUIET_HOURS.end);
@@ -81,7 +89,7 @@ export function NotificationSettings() {
         <Table
           caption="Notification channels"
           columns={columns}
-          rows={NOTIFICATION_EVENTS}
+          rows={events}
           rowKey={(row) => row.id}
           variant="plain"
         />

@@ -31,7 +31,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** The job itself: key facts, the pitch, the work, the bar, and the perks. */
+/** The job itself: key facts, the pitch, the work, the bar, and the benefits. */
 export function JobOverview({ job }: { job: Job }) {
   return (
     <Stack gap={6}>
@@ -52,8 +52,13 @@ export function JobOverview({ job }: { job: Job }) {
           {job.team}
         </MetadataListItem>
         <MetadataListItem label="Source" icon={<Glyph name="link" />}>
-          {SOURCE_LABEL[job.source]}
+          {job.listingSource || SOURCE_LABEL[job.source]}
         </MetadataListItem>
+        {job.createdBy ? (
+          <MetadataListItem label="Created by" icon={<Glyph name="pin" />}>
+            {job.createdBy}
+          </MetadataListItem>
+        ) : null}
       </MetadataList>
 
       <Section title="About the role">

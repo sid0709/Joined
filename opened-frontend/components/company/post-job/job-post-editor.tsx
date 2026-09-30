@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import {
   Button,
   CheckboxInput,
@@ -27,18 +26,20 @@ import {
   type SearchableItem,
 } from "@openseat/design-system";
 import { useRouter } from "next/navigation";
-import { SettingsGroup, SettingsRow } from "@/components/settings-group";
+import { useMemo, useState } from "react";
+
 import { JobResultCard } from "@/components/jobs/job-result-card";
+import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { POLICY_META, WORKSPACE, type AssistedPolicy } from "@/lib/company";
-import type { Job, Seniority, Workplace } from "@/lib/jobs";
+import {
+  SENIORITY_OPTIONS,
+  WORKPLACE_OPTIONS,
+  type Job,
+  type Seniority,
+  type Workplace,
+} from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 
-const WORKPLACES: { value: Workplace; label: string }[] = [
-  { value: "remote", label: "Remote" },
-  { value: "hybrid", label: "Hybrid" },
-  { value: "onsite", label: "On-site" },
-];
-const SENIORITY: Seniority[] = ["Junior", "Mid", "Senior", "Lead"];
 const TEAMS = ["Design", "Data", "Engineering", "Operations"].map((value) => ({
   value,
   label: value,
@@ -79,7 +80,7 @@ type Draft = {
 const EMPTY: Draft = {
   title: "",
   team: TEAMS[0].value,
-  seniority: "Mid",
+  seniority: "Middle",
   location: "",
   workplace: "hybrid",
   payMin: DEFAULT_PAY.min,
@@ -96,7 +97,7 @@ function toPreviewJob(draft: Draft): Job {
     id: "draft",
     title: draft.title || "Job title",
     company: WORKSPACE.name,
-    companySlug: WORKSPACE.slug,
+    companyId: WORKSPACE.slug,
     location: draft.location || "Location",
     workplace: draft.workplace,
     pay: { min: draft.payMin, max: draft.payMax, currency: CURRENCY, period: "year" },
@@ -155,7 +156,7 @@ export function JobPostEditor() {
               <Selector label="Team" options={TEAMS} value={draft.team} onChange={set("team")} />
               <Selector
                 label="Seniority"
-                options={SENIORITY.map((value) => ({ value, label: value }))}
+                options={SENIORITY_OPTIONS}
                 value={draft.seniority}
                 onChange={(value) => set("seniority")(value as Seniority)}
               />
@@ -173,7 +174,7 @@ export function JobPostEditor() {
                 onChange={(value) => set("workplace")(value as Workplace)}
                 layout="fill"
               >
-                {WORKPLACES.map((option) => (
+                {WORKPLACE_OPTIONS.map((option) => (
                   <SegmentedControlItem
                     key={option.value}
                     value={option.value}

@@ -14,8 +14,8 @@ import {
   COMPANY_JOBS,
   pipelineTotal,
 } from "@/lib/company";
+import { loadSession } from "@/lib/auth/session";
 import { daysBetween } from "@/lib/dates";
-import { PROFILE } from "@/lib/profile";
 import { ROUTES } from "@/lib/routes";
 
 export const metadata: Metadata = { title: "Hiring" };
@@ -55,12 +55,15 @@ function stats() {
   ];
 }
 
-export default function CompanyHomePage() {
-  const firstName = PROFILE.name.split(" ")[0];
+export default async function CompanyHomePage() {
+  const session = await loadSession();
+  const company = session?.company;
+  const firstName = session?.user.name.split(" ")[0] ?? "there";
+  if (!company) return null;
 
   return (
     <Stack gap={6}>
-      <WorkspaceHero greeting={`Welcome back, ${firstName}`} />
+      <WorkspaceHero greeting={`Welcome back, ${firstName}`} company={company} />
       <StatGrid stats={stats()} />
       <GridSystem gap={6} align="start">
         <GridColumn span="full" lg={7}>

@@ -1,5 +1,5 @@
 import { Card, Heading, List, ListItem, Stack, Text } from "@openseat/design-system";
-import { formatPay, type Job } from "@/lib/jobs";
+import { formatPay, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";
 import { MatchBadge } from "./match-badge";
@@ -33,7 +33,15 @@ export function SimilarJobs({ jobs, scoreOf, onSelect }: Props) {
             key={job.id}
             label={job.title}
             description={`${job.company} · ${formatPay(job.pay)}`}
-            startContent={<CompanyLogo name={job.company} size={32} />}
+            startContent={
+              <CompanyLogo
+                name={job.company}
+                companyId={job.companyId}
+                src={job.companyLogo}
+                hasFile={jobHasLogoFile(job)}
+                size={32}
+              />
+            }
             endContent={<MatchBadge score={scoreOf(job)} />}
             {...(onSelect ? { onClick: () => onSelect(job) } : { href: ROUTES.job(job.id) })}
           />

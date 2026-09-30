@@ -1,16 +1,19 @@
-import type { Employment, Job, JobSource, Pay, Seniority, Workplace } from "./types";
+export {
+  EMPLOYMENT_LABEL,
+  EMPLOYMENT_OPTIONS,
+  SENIORITY_LABEL,
+  SENIORITY_OPTIONS,
+  WORKPLACE_LABEL,
+  WORKPLACE_OPTIONS,
+} from "@openseat/job-schema";
+
+import type { Job, JobSource, Pay } from "./types";
 
 const LOCALE = "en-US";
 const HOURS_PER_DAY = 24;
 const THOUSAND = 1_000;
 /** Full-time hours in a year, used to compare hourly and salaried pay. */
 export const HOURS_PER_YEAR = 2_080;
-
-export const WORKPLACE_LABEL: Record<Workplace, string> = {
-  remote: "Remote",
-  hybrid: "Hybrid",
-  onsite: "On-site",
-};
 
 export const SOURCE_LABEL: Record<JobSource, string> = {
   direct: "Posted here",
@@ -22,19 +25,6 @@ export const SOURCE_DESCRIPTION: Record<JobSource, string> = {
   direct: "Apply here with your profile and resume.",
   aggregated: "Opens the official listing on the company’s site.",
   scouted: "Shared by a scout before it reaches the big boards.",
-};
-
-export const EMPLOYMENT_LABEL: Record<Employment, string> = {
-  "full-time": "Full-time",
-  contract: "Contract",
-  "part-time": "Part-time",
-};
-
-export const SENIORITY_LABEL: Record<Seniority, string> = {
-  Junior: "Junior",
-  Mid: "Mid-level",
-  Senior: "Senior",
-  Lead: "Lead",
 };
 
 function currencySymbol(currency: string) {

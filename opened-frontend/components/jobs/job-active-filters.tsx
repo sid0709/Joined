@@ -8,7 +8,7 @@ import {
   formatAmount,
   type JobFilters,
 } from "@/lib/jobs";
-import { PROFILE } from "@/lib/profile";
+import { DEFAULT_CURRENCY } from "@/lib/profile";
 
 type Chip = { key: string; label: string; remove: Partial<JobFilters> };
 
@@ -42,7 +42,7 @@ function chipsFor(filters: JobFilters): Chip[] {
   if (filters.minPay > 0)
     chips.push({
       key: "pay",
-      label: `${formatAmount(filters.minPay, PROFILE.currency)}+ a year`,
+      label: `${formatAmount(filters.minPay, DEFAULT_CURRENCY)}+ a year`,
       remove: { minPay: 0 },
     });
   if (filters.posted !== "any") {

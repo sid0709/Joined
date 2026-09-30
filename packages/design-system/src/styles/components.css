@@ -77,6 +77,50 @@
   padding: 40px 48px 96px;
   box-sizing: border-box;
 }
+
+/* Kanban surfaces need their own contrast layer. The default muted Card is
+   intentionally subtle, but that makes adjacent columns merge in dark mode. */
+.os-kanban-row > .os-kanban-cell {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-background-muted);
+  border: 1px solid var(--color-border-emphasized);
+  border-block-start: 4px solid var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.os-kanban-row > .os-kanban-cell:nth-child(2) {
+  border-block-start-color: var(--color-warning);
+}
+
+.os-kanban-row > .os-kanban-cell:nth-child(3) {
+  border-block-start-color: var(--color-success);
+}
+
+.os-kanban-row > .os-kanban-cell:nth-child(4) {
+  border-block-start-color: var(--color-error);
+}
+
+.os-kanban-cell [role="list"] {
+  min-height: inherit;
+}
+
+.os-kanban-cell [data-kanban-card] {
+  border-radius: var(--radius-inner);
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
+}
+
+.os-kanban-cell [data-kanban-card]:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.os-kanban-cell [data-kanban-card]:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
 .os-page-hero {
   max-width: 720px;
   margin: 0 auto 48px;
@@ -177,6 +221,22 @@ button.os-star {
 .os-rating-caption {
   font-size: var(--font-size-sm, 0.75rem);
   color: var(--color-text-primary);
+}
+
+/* Pressed toggles keep the button ink. The surface turns the same gray as a
+   secondary button, and the glyph fills so on reads as a solid mark. */
+.astryx-toggle-button[data-is-pressed="true"] {
+  background-color: var(--color-neutral);
+}
+.astryx-toggle-button[data-is-pressed="true"] .os-glyph {
+  fill: currentColor;
+}
+
+@media (forced-colors: active) {
+  .astryx-toggle-button[data-is-pressed="true"] {
+    background-color: Highlight;
+    color: HighlightText;
+  }
 }
 
 .os-swatch-grid {

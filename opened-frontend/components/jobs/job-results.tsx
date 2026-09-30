@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import {
   Badge,
   Button,
@@ -110,11 +113,18 @@ export function JobResults({
   onClearFilters,
   canClear,
 }: Props) {
+  const topRef = useRef<HTMLElement>(null);
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = Math.min(page * PAGE_SIZE, total);
 
+  // A page is long now; start the next one at its first result, not where the last one ended.
+  const changePage = (next: number) => {
+    onPageChange(next);
+    topRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+
   return (
-    <Stack gap={4}>
+    <Stack gap={4} ref={topRef}>
       <TabList
         value={list}
         onChange={(value) => onListChange(value as ListKey)}
@@ -184,7 +194,7 @@ export function JobResults({
         <HStack hAlign="center">
           <Pagination
             page={page}
-            onChange={onPageChange}
+            onChange={changePage}
             totalPages={pageCount}
             label="Result pages"
           />

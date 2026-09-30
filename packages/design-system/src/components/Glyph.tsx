@@ -67,6 +67,11 @@ const PATHS = {
   pin: "M9 4h6l-1 6 3 3H7l3-3zM12 13v8",
   sparkle: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18",
   seat: "M7 4h10v8H7zM5 12h14v3H5zM7 15v5M17 15v5",
+  chat: "M4 5h16v11H9l-5 4z",
+  info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v5M12 8h.01",
+  panelRight: "M4 5h16v14H4zM15 5v14",
+  archive: "M4 5h16v4H4zM5 9v10h14V9M10 13h4",
+  signOut: "M10 4H5v16h5M15 8l4 4-4 4M19 12H9",
 } as const;
 
 export type GlyphName = keyof typeof PATHS;

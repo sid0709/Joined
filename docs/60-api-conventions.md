@@ -4,7 +4,7 @@
 
 - Base path `/v1`. Breaking changes → `/v2`; additive changes allowed in place.
 - JSON, `snake_case` fields, UTF-8. Money: `{ "amount_cents": 400, "currency": "USD" }`. Times: ISO 8601 UTC.
-- Auth: `Authorization: Bearer <access_token>`. Mode-scoped endpoints check `user_modes`.
+- Auth: `Authorization: Bearer <access_token>`. Role-scoped endpoints check `users.role`. An account has one role.
 - **Idempotency:** `Idempotency-Key` header required on POSTs that create applications, assignments, charges, payouts, reports. Keys stored 24 h; same key + same body → same response; same key + different body → 409.
 - **Pagination:** cursor-based: `?cursor=&limit=` (max 100) → `{ "data": [...], "next_cursor": "…" }`.
 - **Filtering/sorting:** explicit query params per endpoint; `sort=-created_at`.

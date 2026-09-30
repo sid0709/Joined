@@ -1,18 +1,27 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { GridColumn, GridSystem } from "@openseat/design-system";
 import { CompanyNav } from "@/components/company/company-nav";
 import { PageContainer } from "@/components/page-container";
 import { AppFrame } from "@/components/shell/app-frame";
 import { EmployerHeader } from "@/components/shell/employer-header";
+import { loadCompanyUnread } from "@/lib/me/load";
+import { loadSession } from "@/lib/auth/session";
+import { ROUTES, signInHref } from "@/lib/routes";
 
-/** Employer mode: its own header, and the workspace nav on the left of every hiring page. */
-export default function CompanyLayout({ children }: { children: ReactNode }) {
+/** Employer mode: a signed-in person linked to a company, with the workspace nav on the left. */
+export default async function CompanyLayout({ children }: { children: ReactNode }) {
+  const session = await loadSession();
+  if (!session) redirect(signInHref(ROUTES.company));
+  if (session.user.role !== "employee") redirect(ROUTES.search);
+  if (!session.company) redirect(ROUTES.hiringSetup);
+  const unread = await loadCompanyUnread();
   return (
-    <AppFrame header={<EmployerHeader />}>
+    <AppFrame header={<EmployerHeader session={session} unread={unread} />}>
       <PageContainer>
         <GridSystem gap={6}>
           <GridColumn span="full" lg={3}>
-            <CompanyNav />
+            <CompanyNav company={session.company} unread={unread} />
           </GridColumn>
           <GridColumn span="full" lg={9}>
             {children}

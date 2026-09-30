@@ -64,7 +64,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       {
         id: "danger",
         label: "Delete account",
-        description: "Close your job-hunter account for good.",
+        description: "Remove your account. A company you created is removed with it.",
         icon: "trash",
       },
     ],
@@ -187,7 +187,6 @@ export const CONNECTIONS: Connection[] = [
     id: "google-calendar",
     name: "Google Calendar",
     description: "Adds interviews to your calendar and spots new invites.",
-    account: "jordan.avery@example.com",
   },
   { id: "gmail", name: "Gmail", description: "Reads only messages from companies you applied to." },
   { id: "outlook", name: "Outlook", description: "Calendar and mail, for Microsoft accounts." },
@@ -195,7 +194,6 @@ export const CONNECTIONS: Connection[] = [
     id: "linkedin",
     name: "LinkedIn",
     description: "Imports your work history into your profile.",
-    account: "linkedin.com/in/jordanavery",
   },
 ];
 

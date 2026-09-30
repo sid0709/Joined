@@ -1,8 +1,8 @@
-export type Workplace = "remote" | "hybrid" | "onsite";
+import type { Employment, PayPeriod, Seniority, Workplace } from "@openseat/job-schema";
+
+export type { Employment, PayPeriod, Seniority, Workplace };
+
 export type JobSource = "direct" | "aggregated" | "scouted";
-export type Seniority = "Junior" | "Mid" | "Senior" | "Lead";
-export type Employment = "full-time" | "contract" | "part-time";
-export type PayPeriod = "year" | "hour";
 
 export type Pay = {
   min: number;
@@ -15,7 +15,11 @@ export type Job = {
   id: string;
   title: string;
   company: string;
-  companySlug: string;
+  /** Opaque company id. Company pages and job links use this, not a name slug. */
+  companyId: string;
+  companyUrl?: string;
+  companyLogo?: string;
+  companyProfile?: PublicCompany;
   location: string;
   workplace: Workplace;
   pay: Pay;
@@ -24,6 +28,9 @@ export type Job = {
   /** Hours since the job went live — sample data stays "fresh" whenever it is viewed. */
   postedHoursAgo: number;
   source: JobSource;
+  /** Scrape or ATS origin from the temp listing, such as Greenhouse. */
+  listingSource?: string;
+  createdBy?: string;
   visa: boolean;
   applicants: number;
   team: string;
@@ -32,6 +39,32 @@ export type Job = {
   responsibilities: string[];
   requirements: string[];
   benefits: string[];
+  /** Official listing. Apply and copy link use this for aggregated jobs. */
+  applyLink?: string;
+};
+
+/** A company the seeker can open. Profile fields are present once an admin has saved them. */
+export type PublicCompany = {
+  id: string;
+  name: string;
+  url?: string;
+  logo?: string;
+  tagline?: string;
+  about?: string;
+  industry?: string;
+  size?: string;
+  founded?: number;
+  replyDays?: number;
+  headquarters?: string;
+  companyType?: string;
+  /** Offices as one line. When unset, the page uses locations from live jobs. */
+  locations?: string;
+  specialties?: string[];
+  mission?: string;
+  values?: { icon: string; title: string; description: string }[];
+  leadership?: { name: string; title: string }[];
+  benefitCategories?: { label: string; items: string[] }[];
+  hasLogoFile?: boolean;
 };
 
 export type CompanyProfile = {
