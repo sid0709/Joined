@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { Glyph } from "@openseat/design-system";
 import type { BidderTask } from "@/src/shared/types/bidder-workflow";
 
 import { useBidderContext } from "@/src/shared/bidder/BidderContext";
@@ -219,108 +220,248 @@ function Dashboard({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
   const submitted = assignment.links.filter((link) =>
     ["Submitted", "QA passed"].includes(link.status),
   ).length;
+  const qaPassCount = assignment.links.filter((link) => link.status === "QA passed").length;
+  const progressPercent = Math.round((submitted / assignment.links.length) * 100);
+  const connectedTasks = data.tasks.filter((task) => task.status === "Connected").length;
+
   return (
     <PageBody>
-      <Stack gap={24}>
-        <Header
-          title="Your bidder workspace"
-          description="Discover task orders, build trusted Job Hunter connections, complete assigned applications, and see exactly how your work is reviewed and paid."
-          action={
+      <Stack gap={32}>
+        {/* Header Section */}
+        <div className="bidder-dashboard-hero">
+          <div className="bidder-hero-content">
+            <span className="bidder-hero-label">
+              <span className="bidder-hero-dot"></span>
+              BIDDER WORKSPACE
+            </span>
+            <h1 className="bidder-hero-title">Your bidding dashboard</h1>
+            <p className="bidder-hero-description">
+              Discover quality task opportunities, build strong partnerships with job hunters,
+              complete applications with confidence, and grow your earnings.
+            </p>
+          </div>
+          <div className="bidder-hero-actions">
             <Button href="/marketplace/jobs" variant="primary">
-              Browse task marketplace
+              <Glyph name="search" size="0.9em" />
+              Browse marketplace
             </Button>
-          }
-        />
-        <Stats
-          items={[
-            [
-              String(data.tasks.filter((task) => task.status === "Connected").length),
-              "Connected tasks",
-            ],
-            [String(submitted), "Links submitted"],
-            [`${performance.qaPassRate}%`, "QA pass rate"],
-            [`$${(earnings.pendingCents / 100).toFixed(2)}`, "Pending earnings"],
-          ]}
-        />
-        <div className="marketplace-dashboard-grid">
-          <Card
-            title="Your current assignment"
-            meta="Work only appears here after a Job Hunter connects with you"
-          >
-            <div className="bidder-feature-card">
-              <div>
-                <span className="eyebrow">
-                  {assignment.packageName} · {assignment.ratePerLink} per link
-                </span>
-                <h2 className="h2">{assignment.taskTitle}</h2>
-                <p className="body-sm text-ink-muted">
-                  {assignment.ownerName} ·{" "}
-                  {assignment.links.filter((link) => link.status === "QA passed").length} QA-passed
-                  applications
-                </p>
-              </div>
-              <Badge label={`${submitted}/${assignment.links.length} in progress`} tone="primary" />
-            </div>
-            <div className="bidder-progress">
+            <Button href="/marketplace/candidate/work" variant="secondary">
+              <Glyph name="list" size="0.9em" />
+              Active work
+            </Button>
+          </div>
+        </div>
+
+        {/* KPI Stats Grid */}
+        <div className="bidder-stats-grid">
+          <div className="bidder-stat-card">
+            <div className="bidder-stat-header">
               <span
-                style={{ width: `${Math.round((submitted / assignment.links.length) * 100)}%` }}
-              />
+                className="bidder-stat-icon"
+                style={{ backgroundColor: "var(--color-accent-muted)" }}
+              >
+                <Glyph name="link" size="1.2em" style={{ color: "var(--color-accent)" }} />
+              </span>
+              <span className="bidder-stat-label">Connected tasks</span>
             </div>
-            <div className="marketplace-card-footer">
-              <span className="body-sm">Daily target: {assignment.dailyTarget} links</span>
-              <Link className="os-link" href="/marketplace/candidate/work">
-                Open active work →
-              </Link>
+            <div className="bidder-stat-value">{connectedTasks}</div>
+            <p className="bidder-stat-footnote">Active collaborations</p>
+          </div>
+
+          <div className="bidder-stat-card">
+            <div className="bidder-stat-header">
+              <span
+                className="bidder-stat-icon"
+                style={{ backgroundColor: "var(--color-success-muted)" }}
+              >
+                <Glyph name="check" size="1.2em" style={{ color: "var(--color-success)" }} />
+              </span>
+              <span className="bidder-stat-label">QA pass rate</span>
+            </div>
+            <div className="bidder-stat-value">{performance.qaPassRate}%</div>
+            <p className="bidder-stat-footnote">{qaPassCount} applications passed</p>
+          </div>
+
+          <div className="bidder-stat-card">
+            <div className="bidder-stat-header">
+              <span
+                className="bidder-stat-icon"
+                style={{ backgroundColor: "var(--color-warning-muted)" }}
+              >
+                <Glyph name="clock" size="1.2em" style={{ color: "var(--color-warning)" }} />
+              </span>
+              <span className="bidder-stat-label">In progress</span>
+            </div>
+            <div className="bidder-stat-value">{submitted}</div>
+            <p className="bidder-stat-footnote">Links awaiting QA review</p>
+          </div>
+
+          <div className="bidder-stat-card">
+            <div className="bidder-stat-header">
+              <span
+                className="bidder-stat-icon"
+                style={{ backgroundColor: "var(--color-accent-muted)" }}
+              >
+                <Glyph name="trending-up" size="1.2em" style={{ color: "var(--color-accent)" }} />
+              </span>
+              <span className="bidder-stat-label">Pending earnings</span>
+            </div>
+            <div className="bidder-stat-value">${(earnings.pendingCents / 100).toFixed(2)}</div>
+            <p className="bidder-stat-footnote">Waiting for QA approval</p>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="bidder-dashboard-content">
+          {/* Current Assignment Card */}
+          <Card>
+            <div className="bidder-assignment-card">
+              <div className="bidder-assignment-header">
+                <div className="bidder-assignment-info">
+                  <span className="bidder-assignment-label">{assignment.packageName}</span>
+                  <h3 className="bidder-assignment-title">{assignment.taskTitle}</h3>
+                  <p className="bidder-assignment-meta">
+                    {assignment.ownerName} • {assignment.ratePerLink}/link • Est. $
+                    {(qaPassCount * parseFloat(assignment.ratePerLink.slice(1))).toFixed(2)}
+                  </p>
+                </div>
+                <Badge label={`${submitted}/${assignment.links.length}`} tone="primary" />
+              </div>
+
+              {/* Progress Bar */}
+              <div className="bidder-progress-section">
+                <div className="bidder-progress-header">
+                  <span className="bidder-progress-label">Progress</span>
+                  <span className="bidder-progress-percent">{progressPercent}%</span>
+                </div>
+                <div className="bidder-progress-bar">
+                  <div
+                    className="bidder-progress-fill"
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Links Preview */}
+              <div className="bidder-links-preview">
+                <div className="bidder-link-stat">
+                  <strong>{qaPassCount}</strong>
+                  <small>QA passed</small>
+                </div>
+                <div className="bidder-link-stat">
+                  <strong>{submitted - qaPassCount}</strong>
+                  <small>Submitted</small>
+                </div>
+                <div className="bidder-link-stat">
+                  <strong>
+                    {assignment.links.filter((l) => l.status === "In progress").length}
+                  </strong>
+                  <small>In progress</small>
+                </div>
+                <div className="bidder-link-stat">
+                  <strong>{assignment.links.filter((l) => l.status === "Needs fix").length}</strong>
+                  <small>Needs fix</small>
+                </div>
+              </div>
+
+              <div className="bidder-assignment-actions">
+                <Link href="/marketplace/candidate/work" className="bidder-action-link">
+                  <Glyph name="arrow-right" size="0.85em" />
+                  Continue working
+                </Link>
+              </div>
             </div>
           </Card>
-          <Card title="Next best action" meta="Keep your connection healthy">
-            <div className="marketplace-review-list">
-              <div>
-                <Badge label="Needs fix" tone="danger" />
-                <p className="body-sm">
-                  One Google application needs a location answer before review.
-                </p>
+
+          {/* Action Items */}
+          <Card>
+            <div className="bidder-action-items">
+              <h3 className="bidder-card-title">Next steps</h3>
+              <p className="bidder-card-meta">Keep your collaboration strong</p>
+
+              <div className="bidder-action-item">
+                <span className="bidder-action-badge" data-tone="danger">
+                  <Glyph name="alert-circle" size="0.85em" />
+                  Action needed
+                </span>
+                <div>
+                  <p className="bidder-action-text">
+                    One application needs location clarification. Check your messages for details.
+                  </p>
+                  <Link href="/marketplace/candidate/messages" className="bidder-action-link">
+                    Review message
+                  </Link>
+                </div>
               </div>
-              <div>
-                <Badge label="Messages" tone="primary" />
-                <p className="body-sm">
-                  Aurora Talent Partners sent two updates about your package.
-                </p>
+
+              <div className="bidder-action-item">
+                <span className="bidder-action-badge" data-tone="success">
+                  <Glyph name="trending-up" size="0.85em" />
+                  Great progress
+                </span>
+                <div>
+                  <p className="bidder-action-text">
+                    You're 12 links away from the next rate tier. Keep up the excellent QA rate!
+                  </p>
+                  <Link href="/marketplace/candidate/performance" className="bidder-action-link">
+                    View performance
+                  </Link>
+                </div>
               </div>
-              <div>
-                <Badge label="Performance" tone="success" />
-                <p className="body-sm">
-                  You are 12 QA-passed links away from the next rate review.
-                </p>
+
+              <div className="bidder-action-item">
+                <span className="bidder-action-badge" data-tone="primary">
+                  <Glyph name="message-circle" size="0.85em" />
+                  New message
+                </span>
+                <div>
+                  <p className="bidder-action-text">
+                    Aurora Talent Partners sent an update about the new package assignment.
+                  </p>
+                  <Link href="/marketplace/candidate/messages" className="bidder-action-link">
+                    Open chat
+                  </Link>
+                </div>
               </div>
             </div>
-            <Button href="/marketplace/candidate/messages" variant="secondary">
-              Open collaboration
-            </Button>
           </Card>
         </div>
-        <Card
-          title="How work becomes payment"
-          meta="A transparent path from task interest to earnings"
-        >
-          <div className="bidder-flow">
-            <span>
-              <strong>1</strong> Choose a task
-            </span>
-            <span>
-              <strong>2</strong> Get connected
-            </span>
-            <span>
-              <strong>3</strong> Apply links
-            </span>
-            <span>
-              <strong>4</strong> Pass QA
-            </span>
-            <span>
-              <strong>5</strong> Get paid
-            </span>
+
+        {/* Quick Links */}
+        <div className="bidder-quick-links">
+          <div className="bidder-quick-link-item">
+            <Glyph name="briefcase" size="1.5em" />
+            <h4>Find tasks</h4>
+            <p>Browse open opportunities from job hunters</p>
+            <Button href="/marketplace/jobs" variant="tertiary">
+              Learn more
+            </Button>
           </div>
-        </Card>
+          <div className="bidder-quick-link-item">
+            <Glyph name="message-square" size="1.5em" />
+            <h4>Collaborate</h4>
+            <p>Chat with job hunters about your work</p>
+            <Button href="/marketplace/candidate/messages" variant="tertiary">
+              View messages
+            </Button>
+          </div>
+          <div className="bidder-quick-link-item">
+            <Glyph name="trending-up" size="1.5em" />
+            <h4>Track earnings</h4>
+            <p>See your payment and rate progression</p>
+            <Button href="/marketplace/candidate/earnings" variant="tertiary">
+              View earnings
+            </Button>
+          </div>
+          <div className="bidder-quick-link-item">
+            <Glyph name="award" size="1.5em" />
+            <h4>Performance</h4>
+            <p>Monitor your quality metrics and progress</p>
+            <Button href="/marketplace/candidate/performance" variant="tertiary">
+              View metrics
+            </Button>
+          </div>
+        </div>
       </Stack>
     </PageBody>
   );

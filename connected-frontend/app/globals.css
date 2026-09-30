@@ -316,6 +316,366 @@ body {
   background: var(--color-accent-muted);
 }
 
+/* Enhanced Bidder Dashboard Styles */
+.bidder-dashboard-hero {
+  display: grid;
+  gap: var(--space-5);
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background:
+    radial-gradient(60rem 20rem at 100% -30%, var(--color-accent-muted), transparent 70%),
+    var(--color-background-surface);
+}
+
+.bidder-hero-content {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bidder-hero-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  color: var(--color-text-accent);
+}
+
+.bidder-hero-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.bidder-hero-title {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.bidder-hero-description {
+  max-width: 50rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.bidder-hero-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* Stats Grid */
+.bidder-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+}
+
+.bidder-stat-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-surface);
+  transition: all 160ms var(--ease-standard, ease);
+}
+
+.bidder-stat-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.bidder-stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.bidder-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-element);
+  flex-shrink: 0;
+}
+
+.bidder-stat-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.bidder-stat-value {
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.bidder-stat-footnote {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Dashboard Content */
+.bidder-dashboard-content {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Assignment Card */
+.bidder-assignment-card {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bidder-assignment-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.bidder-assignment-info {
+  display: grid;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.bidder-assignment-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bidder-assignment-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.bidder-assignment-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* Progress Section */
+.bidder-progress-section {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bidder-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bidder-progress-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.bidder-progress-percent {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-accent);
+}
+
+.bidder-progress-bar {
+  height: 0.5rem;
+  background: var(--color-background-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bidder-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-muted));
+  border-radius: 999px;
+  transition: width 300ms var(--ease-standard, ease);
+}
+
+/* Links Preview */
+.bidder-links-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-background-muted);
+  border-radius: var(--radius-element);
+}
+
+.bidder-link-stat {
+  display: grid;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.bidder-link-stat strong {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.bidder-link-stat small {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* Assignment Actions */
+.bidder-assignment-actions {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.bidder-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.5rem 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-accent);
+  text-decoration: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+  transition: all 160ms var(--ease-standard, ease);
+}
+
+.bidder-action-link:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+/* Action Items */
+.bidder-action-items {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bidder-card-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.bidder-card-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.bidder-action-item {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-border);
+  border-radius: 0 var(--radius-element) var(--radius-element) 0;
+  transition: all 160ms var(--ease-standard, ease);
+}
+
+.bidder-action-item:hover {
+  border-left-color: var(--color-accent);
+  background: var(--color-background-muted);
+}
+
+.bidder-action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: fit-content;
+  padding: 0.35rem 0.65rem;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: 999px;
+}
+
+.bidder-action-badge[data-tone="danger"] {
+  background: color-mix(in srgb, var(--color-danger-muted) 60%, transparent);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-muted);
+}
+
+.bidder-action-badge[data-tone="success"] {
+  background: color-mix(in srgb, var(--color-success-muted) 60%, transparent);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-muted);
+}
+
+.bidder-action-badge[data-tone="primary"] {
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-muted);
+}
+
+.bidder-action-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Quick Links */
+.bidder-quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+}
+
+.bidder-quick-link-item {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-surface);
+  text-align: center;
+  transition: all 160ms var(--ease-standard, ease);
+  color: var(--color-text-accent);
+}
+
+.bidder-quick-link-item:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--color-accent-muted) 20%, var(--color-background-surface));
+}
+
+.bidder-quick-link-item h4 {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.bidder-quick-link-item p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
 @media (max-width: 64rem) {
   .bidder-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -329,9 +689,42 @@ body {
   .bidder-pipeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .bidder-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bidder-links-preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bidder-quick-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 48rem) {
+  .bidder-dashboard-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bidder-hero-actions {
+    flex-direction: column;
+  }
+
+  .bidder-stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bidder-links-preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bidder-quick-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bidder-assignment-header {
+    flex-direction: column;
+  }
+
   .bidder-task-facts,
   .bidder-flow {
     grid-template-columns: minmax(0, 1fr);
