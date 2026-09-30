@@ -151,3 +151,11 @@ export type { PageWidth, Stat } from "./Page";
 
 export { ThemeToggle } from "./ThemeToggle";
 export type { ThemeName } from "./ThemeToggle";
+
+// Workspace shell and dashboard pieces: collapsible rail, KPI widget, sparkline, segment bar.
+export { AppRail } from "./AppRail";
+export type { AppRailProps, AppRailItem, AppRailLink } from "./AppRail";
+export { KpiWidget } from "./Kpi";
+export type { KpiDelta } from "./Kpi";
+export { Sparkline, SegmentBar } from "./Charts";
+export type { Segment, SegmentTone } from "./Charts";

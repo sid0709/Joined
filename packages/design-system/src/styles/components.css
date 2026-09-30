@@ -11,6 +11,7 @@
 @import "./components/responsive.css";
 @import "./components/notification.css";
 @import "./components/sticky.css";
+@import "./components/charts.css";
 
 /* Input / Field */
 .os-field-group {
