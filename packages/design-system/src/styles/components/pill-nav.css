@@ -45,7 +45,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: calc(var(--size-element-lg) + var(--spacing-1));
+  height: calc(var(--size-element-md) + var(--spacing-1));
   padding-inline: var(--spacing-3);
   border-radius: var(--radius-full);
   color: var(--color-icon-secondary);
@@ -153,7 +153,7 @@
 
 .os-pill-nav-spacer {
   height: calc(
-    var(--size-element-lg) + var(--spacing-1) + 2 * var(--spacing-2) + env(safe-area-inset-bottom)
+    var(--size-element-md) + var(--spacing-1) + 2 * var(--spacing-2) + env(safe-area-inset-bottom)
   );
 }
 

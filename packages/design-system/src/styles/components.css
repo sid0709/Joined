@@ -254,7 +254,54 @@ button.os-star {
 }
 
 .astryx-button[data-size="lg"] {
-  padding-inline: var(--spacing-6);
+  padding-inline: var(--spacing-8);
+  font-size: var(--font-size-lg);
+}
+
+/* Icon slot: sm keeps 16. md takes the old large mark. lg steps up again. */
+.astryx-button[data-size="md"] > span > span:has(> svg),
+.astryx-button[data-size="md"] > span > span:has(> svg) > svg {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.astryx-button[data-size="lg"] > span > span:has(> svg),
+.astryx-button[data-size="lg"] > span > span:has(> svg) > svg {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+
+/* Menu rows follow the same ladder. sm is the old md row, md is the old lg
+   row, lg is a full large control. */
+.astryx-dropdown-menu-item[data-size="sm"] {
+  min-height: var(--size-element-sm);
+  padding-block: var(--spacing-1-5);
+}
+
+.astryx-dropdown-menu-item[data-size="md"] {
+  min-height: var(--size-element-md);
+  padding-block: var(--spacing-2);
+}
+
+.astryx-dropdown-menu-item[data-size="md"] .astryx-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.25rem;
+}
+
+.astryx-dropdown-menu-item[data-size="lg"] {
+  min-height: var(--size-element-lg);
+  padding-block: var(--spacing-3);
+  padding-inline: var(--spacing-3);
+  font-size: var(--font-size-lg);
+}
+
+.astryx-dropdown-menu-item[data-size="lg"] .astryx-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
 }
 
 .astryx-button:has(> span > span:only-child svg) {
