@@ -56,6 +56,7 @@ export const DEMO_COMPONENTS: Record<string, ComponentType> = {
   "number-input": dynamic(() => import("./number-input"), { ssr: false, loading }),
   radio: dynamic(() => import("./radio"), { ssr: false, loading }),
   rating: dynamic(() => import("./rating"), { ssr: false, loading }),
+  "code-input": dynamic(() => import("./code-input"), { ssr: false, loading }),
   select: dynamic(() => import("./select"), { ssr: false, loading }),
   slider: dynamic(() => import("./slider"), { ssr: false, loading }),
   switch: dynamic(() => import("./switch"), { ssr: false, loading }),

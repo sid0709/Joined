@@ -1,0 +1,232 @@
+/* CodeInput — one round cell per character. A filled cell pops in, the active cell lifts and
+   shows a blinking caret, a wrong code shakes once, and a right one ripples green across the row.
+   Motion uses only duration/ease tokens and stands down for prefers-reduced-motion. */
+
+.os-code {
+  --_cell: var(--spacing-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  max-width: 100%;
+}
+
+.os-code-sm {
+  --_cell: var(--spacing-10);
+}
+
+.os-code-lg {
+  --_cell: calc(var(--spacing-12) + var(--spacing-2));
+}
+
+.os-code-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.os-code-label-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.os-code-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.os-code-cells {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.os-code-cell {
+  position: relative;
+  flex: 0 1 var(--_cell);
+  min-width: 0;
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border-emphasized);
+  transition:
+    box-shadow var(--duration-normal) var(--ease-standard),
+    background-color var(--duration-normal) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-decelerate);
+}
+
+.os-code-cell:hover {
+  box-shadow: inset 0 0 0 1px var(--color-text-disabled);
+}
+
+/* The active cell lifts slightly and takes the accent ring. */
+.os-code-cell:focus-within {
+  background: var(--color-accent-muted);
+  box-shadow:
+    inset 0 0 0 2px var(--color-accent),
+    0 var(--spacing-1) var(--spacing-3) var(--color-shadow);
+  transform: translateY(calc(-1 * var(--spacing-0-5))) scale(1.06);
+}
+
+/* A cell that holds a character keeps a soft accent tint, and pops each time it fills. */
+.os-code-cell[data-filled="true"] {
+  background: var(--color-accent-muted);
+  box-shadow: inset 0 0 0 1px var(--color-border-blue);
+  animation: os-code-pop var(--duration-slow) var(--ease-decelerate);
+}
+
+.os-code-cell[data-filled="true"]:focus-within {
+  box-shadow:
+    inset 0 0 0 2px var(--color-accent),
+    0 var(--spacing-1) var(--spacing-3) var(--color-shadow);
+}
+
+.os-code-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  outline: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-transform: uppercase;
+  caret-color: transparent;
+  cursor: text;
+}
+
+.os-code-sm .os-code-input {
+  font-size: var(--font-size-xl);
+}
+
+.os-code-lg .os-code-input {
+  font-size: var(--font-size-3xl);
+}
+
+/* A blinking bar stands in for the caret while an empty cell is active. */
+.os-code-cell[data-filled="false"]:focus-within::after {
+  content: "";
+  position: absolute;
+  top: 28%;
+  bottom: 28%;
+  left: 50%;
+  width: var(--spacing-0-5);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: os-code-caret 1s var(--ease-standard) infinite;
+}
+
+/* Error: one shake and a red ring. */
+.os-code[data-status="error"] .os-code-cell,
+.os-code[data-status="error"] .os-code-cell:focus-within {
+  background: var(--color-error-muted);
+  box-shadow: inset 0 0 0 2px var(--color-error);
+}
+
+.os-code[data-status="error"] .os-code-cells {
+  animation: os-code-shake var(--duration-slow) var(--ease-standard) 2;
+}
+
+.os-code[data-status="error"] .os-code-input {
+  color: var(--color-error);
+}
+
+/* Success: green, each cell a beat after the one before. */
+.os-code[data-status="success"] .os-code-cell,
+.os-code[data-status="success"] .os-code-cell:focus-within {
+  background: var(--color-success-muted);
+  box-shadow: inset 0 0 0 2px var(--color-success);
+  transform: none;
+  animation: os-code-ripple var(--duration-slow) var(--ease-decelerate) both;
+  animation-delay: calc(var(--os-code-index) * var(--duration-normal));
+}
+
+.os-code[data-status="success"] .os-code-input {
+  color: var(--color-success);
+}
+
+.os-code-input:disabled {
+  cursor: not-allowed;
+}
+
+.os-code-cell:has(.os-code-input:disabled) {
+  opacity: 0.45;
+}
+
+@keyframes os-code-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes os-code-caret {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes os-code-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(calc(-1 * var(--spacing-2)));
+  }
+  75% {
+    transform: translateX(var(--spacing-2));
+  }
+}
+
+@keyframes os-code-ripple {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-code-cell,
+  .os-code-cells {
+    animation: none !important;
+    transition: none;
+  }
+
+  .os-code-cell:focus-within {
+    transform: none;
+  }
+
+  .os-code-cell[data-filled="false"]:focus-within::after {
+    animation: none;
+  }
+}

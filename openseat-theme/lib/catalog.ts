@@ -323,6 +323,12 @@ export const CATALOG: CatalogGroup[] = [
         importName: "CheckboxInput",
       },
       {
+        slug: "code-input",
+        title: "Code Input",
+        description: "One round cell per digit — paste, backspace, and success and error motion.",
+        importName: "CodeInput",
+      },
+      {
         slug: "date-input",
         title: "Date Input",
         description:

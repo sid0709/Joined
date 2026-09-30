@@ -14,6 +14,7 @@
 @import "./components/sticky.css";
 @import "./components/charts.css";
 @import "./components/pill-nav.css";
+@import "./components/code-input.css";
 
 /* Input / Field */
 .os-field-group {
