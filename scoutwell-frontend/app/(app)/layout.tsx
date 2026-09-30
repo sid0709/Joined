@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { PageContainer } from "@openseat/design-system";
-import { formatMoney } from "@openseat/scout";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
 import { ScoutMobilePillBar } from "@/components/shell/scout-pill-nav";
@@ -26,7 +25,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           levelLabel={stats.level.label}
           unread={unread}
           inReview={inReview}
-          available={formatMoney(stats.balance.released)}
         />
       }
     >

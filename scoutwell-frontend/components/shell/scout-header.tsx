@@ -18,21 +18,18 @@ import { AccountMenu } from "./account-menu";
 import { CommandMenu } from "./command-menu";
 import { ScoutPillNav } from "./scout-pill-nav";
 
-/** The product bar. Signed out it sells; signed in it holds the page pills, search, balance and Submit. */
+/** The product bar. Signed out it sells; signed in it holds the page pills, search, and Submit. */
 export function ScoutHeader({
   user = null,
   levelLabel = "",
   unread = 0,
   inReview = 0,
-  available = "",
 }: {
   user?: SessionUser | null;
   levelLabel?: string;
   unread?: number;
   /** Submissions still being checked or reviewed; badged on the Submissions pill. */
   inReview?: number;
-  /** The released balance, already formatted; shown as a shortcut to payouts. */
-  available?: string;
 }) {
   const router = useRouter();
   const { isMobile } = useAppShellMobile();
@@ -64,18 +61,10 @@ export function ScoutHeader({
     <TopNav
       label={BRAND}
       heading={heading}
-      startContent={isMobile ? undefined : <ScoutPillNav inReview={inReview} unread={unread} />}
+      centerContent={isMobile ? undefined : <ScoutPillNav inReview={inReview} unread={unread} />}
       endContent={
         <>
           <CommandMenu />
-          {isMobile || !available ? null : (
-            <Button
-              label={`Available ${available}`}
-              variant="ghost"
-              size="sm"
-              href={ROUTES.payouts}
-            />
-          )}
           <Button
             label="Submit a job"
             variant="primary"
