@@ -1,0 +1,25 @@
+---
+description: Reflect every design-system change in the OpenSeat theme docs
+globs: "{packages/design-system,openseat-theme}/**/*.{ts,tsx,css}"
+alwaysApply: false
+---
+
+# Theme shows the design system
+
+`openseat-theme` is the catalog for `@openseat/design-system`. A change to a component, glyph, token, or visual treatment is not done until the theme shows the current look.
+
+When you change `packages/design-system`:
+
+1. Update the matching demo in `openseat-theme/components/demos/`.
+2. Add a new public component to `openseat-theme/lib/catalog.ts` and register its demo in `openseat-theme/components/demos/load.ts`.
+3. Rewrite demo and catalog copy that still describes the old treatment (radius, sizes, icon weight).
+
+Glyphs have their own page (`glyph`). A new or redrawn icon is shown there in the same change.
+
+```tsx
+// ❌ design system only
+// packages/design-system/src/components/Glyph.tsx gained `sun`
+
+// ✅ same change also updates the theme
+// openseat-theme/components/demos/glyph.tsx renders <Glyph name="sun" />
+```

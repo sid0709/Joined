@@ -81,7 +81,7 @@ export default function IconDemo() {
       <Preview
         align="start"
         label="OpenSeat set"
-        description="icons.* covers product actions and is drawn to match Astryx."
+        description="icons.* is the OpenSeat glyph set: one weight, round caps, including sun and moon."
       >
         <HStack gap={4} wrap="wrap">
           {GLYPHS.map((name) => (

@@ -34,6 +34,7 @@ export const DEMO_COMPONENTS: Record<string, ComponentType> = {
   code: dynamic(() => import("./code"), { ssr: false, loading }),
   "code-block": dynamic(() => import("./code-block"), { ssr: false, loading }),
   "empty-state": dynamic(() => import("./empty-state"), { ssr: false, loading }),
+  glyph: dynamic(() => import("./glyph"), { ssr: false, loading }),
   heading: dynamic(() => import("./heading"), { ssr: false, loading }),
   icon: dynamic(() => import("./icon"), { ssr: false, loading }),
   kbd: dynamic(() => import("./kbd"), { ssr: false, loading }),

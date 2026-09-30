@@ -27,7 +27,7 @@ export default function ButtonGroupDemo() {
       <Preview
         align="start"
         label="Connected actions"
-        description="Related buttons share one surface and a single hairline divider."
+        description="Related buttons share one capsule. Outer ends are full; the seam stays square."
       >
         <Row>
           <ButtonGroup label="History">

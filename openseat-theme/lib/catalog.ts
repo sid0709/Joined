@@ -222,10 +222,17 @@ export const CATALOG: CatalogGroup[] = [
         importName: "Heading",
       },
       {
+        slug: "glyph",
+        title: "Glyph",
+        description:
+          "The OpenSeat stroke set — one 24px grid, 2px stroke, round caps. Sun and moon included.",
+        importName: "Glyph",
+      },
+      {
         slug: "icon",
         title: "Icon",
         description:
-          "The Astryx registry and the OpenSeat set — sizes, semantic and palette colors, and labels.",
+          "The Astryx registry and the OpenSeat glyph set — sizes, semantic and palette colors, and labels.",
         importName: "Icon",
       },
       {

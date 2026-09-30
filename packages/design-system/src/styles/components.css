@@ -1,6 +1,6 @@
 /* OpenSeat-shaped UI kit. Visual language matches https://astryx.atmeta.com/
-   (system fonts, 32px controls, --radius-element on buttons, no chrome borders
-   on primary/ghost). Color comes only from tokens.css. */
+   (system fonts, 32px controls, pill buttons, no chrome borders on primary/ghost).
+   Color comes only from tokens.css. */
 
 @import "./components/picker.css";
 @import "./components/tree.css";
@@ -223,6 +223,62 @@ button.os-star {
 .os-rating-caption {
   font-size: var(--font-size-sm, 0.75rem);
   color: var(--color-text-primary);
+}
+
+/* Pill buttons, same idea as the nav pills: a full radius, and enough inline
+   padding that the label sits clear of the curve. The radius is the private
+   Astryx variable, so a chat composer or thumbnail can still tighten the
+   buttons inside it. Icon-only controls stay circles. */
+[data-astryx-theme] {
+  --_button-radius: var(--radius-full);
+}
+
+.astryx-button {
+  padding-inline: var(--spacing-5);
+}
+
+.astryx-button[data-size="sm"] {
+  padding-inline: var(--spacing-4);
+}
+
+.astryx-button[data-size="lg"] {
+  padding-inline: var(--spacing-6);
+}
+
+.astryx-button:has(> span > span:only-child svg) {
+  padding-inline: 0;
+  padding-block: 0;
+}
+
+/* Joined buttons share one capsule: outer ends are full, seams stay square.
+   The trailing test matches Astryx, so a menu layer after the last button
+   does not steal the end cap. */
+.astryx-button-group[data-orientation="horizontal"] .astryx-button:first-child {
+  border-start-start-radius: var(--radius-full);
+  border-end-start-radius: var(--radius-full);
+}
+
+.astryx-button-group[data-orientation="horizontal"]
+  .astryx-button:not(:has(~ *:not([popover]):not(template))) {
+  border-start-end-radius: var(--radius-full);
+  border-end-end-radius: var(--radius-full);
+}
+
+.astryx-button-group[data-orientation="vertical"] .astryx-button:first-child {
+  border-start-start-radius: var(--radius-full);
+  border-start-end-radius: var(--radius-full);
+}
+
+.astryx-button-group[data-orientation="vertical"]
+  .astryx-button:not(:has(~ *:not([popover]):not(template))) {
+  border-end-start-radius: var(--radius-full);
+  border-end-end-radius: var(--radius-full);
+}
+
+.astryx-button-group[data-elevation="low"],
+.astryx-button-group[data-elevation="med"],
+.astryx-button-group[data-elevation="high"] {
+  border-radius: var(--radius-full);
 }
 
 /* Pressed toggles keep the button ink. The surface turns the same gray as a
