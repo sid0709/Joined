@@ -8,19 +8,18 @@ import {
   Stack,
   Text,
   Timeline,
-  PageHeader,
   SectionCard,
   StatGrid,
 } from "@openseat/design-system";
 import {
   LEVEL_BADGE,
-  formatMoney,
   formatRate,
   type ScoutNotification,
   type Stats,
   type Submission,
 } from "@openseat/scout";
 import { GoalBar } from "@/components/goal-bar";
+import { EarningsHero } from "./earnings-hero";
 import { SubmissionTable } from "@/components/submissions/submission-table";
 import { formatDay, greeting, relativeDay } from "@/lib/dates";
 import { formatCount, progressTo } from "@/lib/format";
@@ -42,22 +41,19 @@ export function DashboardView({
 
   return (
     <Stack gap={6}>
-      <PageHeader
-        title={`${greeting()}, ${firstName}`}
-        description="You earn when job hunters actually use the jobs you find."
-        action={<Button label="Submit a job" variant="primary" href={ROUTES.submit} />}
-      />
-
-      {available > 0 && !stats.payout.ready ? (
-        <Banner
-          status="warning"
-          title={`${formatMoney(balance.released)} is ready to pay out`}
-          description={`Finish payout setup: ${stats.payout.blockers.join(", ").toLowerCase()}.`}
-          endContent={
-            <Button label="Set up payouts" size="sm" variant="secondary" href={ROUTES.payouts} />
+      <div className="sw-rise">
+        <EarningsHero
+          greeting={`${greeting()}, ${firstName}`}
+          balance={balance}
+          payoutReady={stats.payout.ready}
+          note={
+            available > 0 && !stats.payout.ready
+              ? `To pay out, finish ${stats.payout.blockers.join(" and ").toLowerCase()}.`
+              : undefined
           }
         />
-      ) : null}
+      </div>
+
       {quota.remaining === 0 ? (
         <Banner
           status="info"
@@ -74,14 +70,14 @@ export function DashboardView({
             hint: `${formatCount(stats.activity.applications, "application")} · ${formatCount(stats.activity.interviews, "interview")}`,
           },
           {
-            label: "Available",
-            value: formatMoney(balance.released),
-            hint: `${formatMoney(balance.held)} still on hold`,
+            label: "In review",
+            value: String(metrics.pending),
+            hint: `${formatCount(metrics.approved, "approved job")} so far`,
           },
           {
-            label: "Earned to date",
-            value: formatMoney(balance.lifetime),
-            hint: `${formatMoney(balance.paid)} paid out`,
+            label: "Approval rate",
+            value: formatRate(metrics.approval_rate),
+            hint: `Interviews on ${formatRate(metrics.interview_producing_rate)} of jobs`,
           },
           {
             label: "Today",

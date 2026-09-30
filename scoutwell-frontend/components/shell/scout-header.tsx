@@ -8,6 +8,7 @@ import {
   TopNav,
   TopNavHeading,
   TopNavItem,
+  useAppShellMobile,
 } from "@openseat/design-system";
 import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
@@ -25,6 +26,7 @@ export function ScoutHeader({
   unread?: number;
 }) {
   const pathname = usePathname();
+  const { isMobile } = useAppShellMobile();
   const heading = (
     <TopNavHeading
       heading={BRAND}
@@ -55,12 +57,16 @@ export function ScoutHeader({
       heading={heading}
       endContent={
         <>
-          <Button label="Submit a job" variant="primary" size="sm" href={ROUTES.submit} />
-          <TopNavItem
-            label="Notifications"
-            href={ROUTES.notifications}
-            isSelected={pathname === ROUTES.notifications}
-          />
+          {isMobile ? null : (
+            <>
+              <Button label="Submit a job" variant="primary" size="sm" href={ROUTES.submit} />
+              <TopNavItem
+                label="Notifications"
+                href={ROUTES.notifications}
+                isSelected={pathname === ROUTES.notifications}
+              />
+            </>
+          )}
           {unread > 0 ? <Badge label={`${unread} new`} variant="info" /> : null}
           <ThemeToggle />
           <AccountMenu user={user} levelLabel={levelLabel} />
