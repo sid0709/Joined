@@ -13,14 +13,15 @@ import (
 
 func readyJob(status string) storedJob {
 	return storedJob{
-		Title:    "Engineer",
-		Team:     "Platform",
-		Location: "NYC",
-		Summary:  "Build the product.",
-		PayMin:   100000,
-		PayMax:   140000,
-		Skills:   []string{"Go", "SQL", "API"},
-		Status:   status,
+		Title:       "Engineer",
+		Team:        "Platform",
+		Location:    "NYC",
+		Summary:     "Build the product.",
+		Description: "Build the product. Full posting text as the company wrote it.",
+		PayMin:      100000,
+		PayMax:      140000,
+		Skills:      []string{"Go", "SQL", "API"},
+		Status:      status,
 	}
 }
 

@@ -22,7 +22,6 @@ const (
 	ScoutedSource  = "scoutwell"
 	scoutedJobType = "scouted"
 	scoutedModel   = "scout"
-	tagVisa        = "visa"
 )
 
 // ScoutedListing is an approved scout submission, ready to publish.
@@ -34,18 +33,19 @@ type ScoutedListing struct {
 	// CompanyID is set when the scout picked or created a company page.
 	CompanyID string
 	// CompanyURL is the employer's own site, empty when the link is an ATS board.
-	CompanyURL  string
-	Title       string
-	Location    string
-	Workplace   string
-	Employment  string
-	Seniority   string
-	Pay         Pay
-	Equity      bool
-	SalaryText  string
+	CompanyURL string
+	Title      string
+	Location   string
+	Workplace  string
+	Employment string
+	Seniority  string
+	Pay        Pay
+	Equity     bool
+	SalaryText string
+	// Summary is the posting text as the scout wrote it. It is kept on the record
+	// unchanged as the original job description; the model writes the listing
+	// copy, skills, and visa flag from it.
 	Summary     string
-	Skills      []string
-	Tags        []string
 	SubmittedAt time.Time
 }
 
@@ -78,8 +78,6 @@ func (s *Store) StageScouted(ctx context.Context, listing ScoutedListing, now ti
 		{Key: "source", Value: ScoutedSource},
 		{Key: "sourceRef", Value: listing.SubmissionID},
 		{Key: "companyPublicId", Value: listing.CompanyID},
-		{Key: "skills", Value: listing.Skills},
-		{Key: "tags", Value: listing.Tags},
 		{Key: "equity", Value: listing.Equity},
 		{Key: "pay", Value: listing.Pay},
 		{Key: "metadata", Value: bson.D{{Key: "details", Value: bson.D{
@@ -138,8 +136,6 @@ func listingFromScouted(listing ScoutedListing, id bson.ObjectID) tempListing {
 		Source:          ScoutedSource,
 		SourceRef:       listing.SubmissionID,
 		CompanyPublicID: listing.CompanyID,
-		Skills:          listing.Skills,
-		Tags:            listing.Tags,
 		Equity:          listing.Equity,
 		Pay:             listing.Pay,
 	}
@@ -213,9 +209,9 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 			Seniority:        seniority,
 			Employment:       oneOf(listing.Employment, []string{employmentFullTime, employmentContract, employmentPartTime}, employmentFullTime),
 			Source:           scoutedJobType,
-			Visa:             hasTag(listing.Tags, tagVisa),
-			Skills:           cleanList(listing.Skills, maxSkills),
+			Skills:           []string{},
 			Summary:          truncate(strings.TrimSpace(listing.Summary), maxSummaryRunes),
+			Description:      originalDescription(listing.Summary),
 			Responsibilities: []string{},
 			Requirements:     []string{},
 			Benefits:         []string{},
@@ -366,15 +362,6 @@ func (s *Store) resolveScoutCompany(ctx context.Context, listing ScoutedListing,
 		return "", err
 	}
 	return id, nil
-}
-
-func hasTag(tags []string, want string) bool {
-	for _, tag := range tags {
-		if strings.EqualFold(strings.TrimSpace(tag), want) {
-			return true
-		}
-	}
-	return false
 }
 
 // companySlug matches the companyKey written by auth when a company page is created.

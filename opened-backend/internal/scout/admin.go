@@ -486,8 +486,6 @@ func (s *Store) applyEdits(ctx context.Context, sub Submission, edits Submission
 		{Key: "equity", Value: normalized.Equity},
 		{Key: "salaryText", Value: normalized.SalaryText},
 		{Key: "summary", Value: normalized.Summary},
-		{Key: "tags", Value: normalized.Tags},
-		{Key: "skills", Value: normalized.Skills},
 		{Key: "hiddenJob", Value: true},
 		{Key: "dedupeKey", Value: DedupeKey(normalized.CompanyID, normalized.CompanyName, normalized.Title)},
 		{Key: "updatedAt", Value: s.now().UTC()},

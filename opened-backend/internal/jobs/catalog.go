@@ -61,8 +61,6 @@ type tempListing struct {
 	Source          string        `bson:"source"`
 	SourceRef       string        `bson:"sourceRef,omitempty"`
 	CompanyPublicID string        `bson:"companyPublicId,omitempty"`
-	Skills          []string      `bson:"skills,omitempty"`
-	Tags            []string      `bson:"tags,omitempty"`
 	Equity          bool          `bson:"equity,omitempty"`
 	Pay             Pay           `bson:"pay,omitempty"`
 	Metadata        struct {
@@ -290,6 +288,7 @@ func (s *Store) UpdateSearchJob(ctx context.Context, id string, patch SearchJobP
 		return SearchRecord{}, err
 	}
 
+	s.backfillDescription(ctx, &doc)
 	job := doc.Job
 	job.Title = fallback(strings.TrimSpace(patch.Title), job.Title)
 	job.Company = fallback(strings.TrimSpace(patch.Company), job.Company)
@@ -377,6 +376,9 @@ func (s *Store) tempListing(ctx context.Context, id bson.ObjectID) (tempListing,
 }
 
 func (s *Store) saveSearchJob(ctx context.Context, doc storedSearchJob) error {
+	if strings.TrimSpace(doc.Job.Description) == "" {
+		return ErrMissingDescription
+	}
 	_, err := s.structured().ReplaceOne(
 		ctx,
 		bson.D{{Key: "_id", Value: doc.ID}},

@@ -18,6 +18,8 @@ var (
 	ErrAnalyzeInProgress = errors.New("an analysis is already running")
 	ErrNonePending       = errors.New("every temp job already has a search record")
 	ErrInvalidInput      = errors.New("check the form and try again")
+	// ErrMissingDescription stops a search record without its original job description.
+	ErrMissingDescription = errors.New("the original job description is required")
 )
 
 type ListResult struct {
