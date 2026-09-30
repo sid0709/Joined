@@ -304,6 +304,26 @@ button.os-star {
   font-size: 1.5rem;
 }
 
+/* Segmented control is a pill track. Neutral shrinks each item by 8px, which
+   after the size step-up lands on the old small height, and the radius token
+   is the element radius. Items use the control size; the track is fully round. */
+.astryx-segmented-control {
+  --_segmented-control-radius: var(--radius-full);
+  border-radius: var(--radius-full);
+}
+
+.astryx-segmented-control-item[data-size="sm"] {
+  height: var(--size-element-sm);
+}
+
+.astryx-segmented-control-item[data-size="md"] {
+  height: var(--size-element-md);
+}
+
+.astryx-segmented-control-item[data-size="lg"] {
+  height: var(--size-element-lg);
+}
+
 .astryx-button:has(> span > span:only-child svg) {
   padding-inline: 0;
   padding-block: 0;

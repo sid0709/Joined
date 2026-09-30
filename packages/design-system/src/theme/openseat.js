@@ -412,17 +412,18 @@ export const openseatTheme = {
     "segmented-control": {
       base: {
         padding: "var(--spacing-1)",
+        borderRadius: "var(--radius-full)",
       },
     },
     "segmented-control-item": {
       "size:sm": {
-        height: "calc(var(--size-element-sm) - 8px)",
+        height: "var(--size-element-sm)",
       },
       "size:md": {
-        height: "calc(var(--size-element-md) - 8px)",
+        height: "var(--size-element-md)",
       },
       "size:lg": {
-        height: "calc(var(--size-element-lg) - 8px)",
+        height: "var(--size-element-lg)",
       },
       selected: {
         boxShadow: "none",

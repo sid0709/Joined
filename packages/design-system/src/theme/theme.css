@@ -566,18 +566,20 @@
     .astryx-segmented-control {
       padding: var(--spacing-1);
       --_segmented-control-padding: var(--spacing-1);
+      border-radius: var(--radius-full);
+      --_segmented-control-radius: var(--radius-full);
     }
 
     .astryx-segmented-control-item[data-size="sm"] {
-      height: calc(var(--size-element-sm) - 8px);
+      height: var(--size-element-sm);
     }
 
     .astryx-segmented-control-item[data-size="md"] {
-      height: calc(var(--size-element-md) - 8px);
+      height: var(--size-element-md);
     }
 
     .astryx-segmented-control-item[data-size="lg"] {
-      height: calc(var(--size-element-lg) - 8px);
+      height: var(--size-element-lg);
     }
 
     .astryx-segmented-control-item[data-selected="selected"] {
