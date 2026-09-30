@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
-import { API_SERVICE } from "./local-services.mjs";
+
 import { freePorts } from "./free-ports.mjs";
+import { API_SERVICE } from "./local-services.mjs";
 
 freePorts([API_SERVICE.port], { label: API_SERVICE.shortName });
 
