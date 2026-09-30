@@ -76,11 +76,109 @@ body {
   border-radius: var(--radius-container);
   transition:
     transform 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+  display: flex;
+  flex-direction: column;
 }
 .bidder-task-grid > *:hover {
   transform: translateY(-2px);
   box-shadow: var(--elevation-2, var(--shadow-md, 0 8px 20px rgb(0 0 0 / 8%)));
+  border-color: var(--color-accent);
+}
+.bidder-task-grid .bidder-task-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-3);
+}
+.bidder-task-card-header > div {
+  flex: 1;
+  min-width: 0;
+}
+.bidder-task-card-header h2 {
+  margin: var(--space-2) 0 0 0;
+  color: var(--color-text-primary);
+}
+.bidder-owner-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.bidder-owner-avatar {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-border));
+  border-radius: 50%;
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+.bidder-owner-line > span:last-child {
+  display: grid;
+  gap: 0.15rem;
+}
+.bidder-owner-line strong {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.bidder-owner-line small {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+.bidder-task-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.bidder-task-meta-row span {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-background-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+.bidder-task-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-background-muted);
+  border-radius: var(--radius-element);
+  margin: var(--space-3) 0;
+  flex-grow: 1;
+}
+.bidder-task-facts span {
+  display: grid;
+  gap: 0.25rem;
+  text-align: center;
+}
+.bidder-task-facts strong {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+.bidder-task-facts small {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+.marketplace-inline-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }
 .bidder-filter-bar {
   display: grid;
