@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import type { BidderTask } from "@/src/shared/types/bidder-workflow";
+
 import { useBidderContext } from "@/src/shared/bidder/BidderContext";
 import { useBidderWorkflow } from "@/src/shared/bidder/BidderWorkflowContext";
 import { Badge, Button, Card, Input, PageBody, Stack, TextArea } from "@/src/shared/marketplace-ui";
@@ -158,31 +160,53 @@ export function BidderTaskDetailView({ taskId }: { taskId: string }) {
               </div>
             </Card>
           </Stack>
-          <Card
-            title="Available packages"
-            meta="Package difficulty and rate are agreed with the Job Hunter"
-          >
-            <div className="marketplace-review-list">
-              {task.packages.map((pkg) => (
-                <div key={pkg.id}>
-                  <div className="marketplace-card-footer">
-                    <strong className="body-strong">{pkg.name}</strong>
-                    <Badge
-                      label={pkg.ratePerLink}
-                      tone={pkg.difficulty === "Advanced" ? "primary" : "neutral"}
-                    />
+          <Stack gap={16}>
+            <Card
+              title="Available packages"
+              meta="Package difficulty and rate are agreed with the Job Hunter"
+            >
+              <div className="marketplace-review-list">
+                {task.packages.map((pkg) => (
+                  <div key={pkg.id}>
+                    <div className="marketplace-card-footer">
+                      <strong className="body-strong">{pkg.name}</strong>
+                      <Badge
+                        label={pkg.ratePerLink}
+                        tone={pkg.difficulty === "Advanced" ? "primary" : "neutral"}
+                      />
+                    </div>
+                    <p className="body-sm text-ink-muted">
+                      {pkg.ats} · {pkg.linkCount} links · {pkg.difficulty}
+                    </p>
                   </div>
-                  <p className="body-sm text-ink-muted">
-                    {pkg.ats} · {pkg.linkCount} links · {pkg.difficulty}
-                  </p>
+                ))}
+              </div>
+              <p className="caption text-ink-muted">
+                Official company links appear only after the Job Hunter approves the connection and
+                assigns a package.
+              </p>
+            </Card>
+            <Card title="Before you connect" meta="A clear request gets a faster response">
+              <div className="bidder-readiness-list">
+                <div>
+                  <span>Availability</span>
+                  <strong>{task.availability}</strong>
                 </div>
-              ))}
-            </div>
-            <p className="caption text-ink-muted">
-              You will see official company links only after the Job Hunter approves the connection
-              and assigns a package.
-            </p>
-          </Card>
+                <div>
+                  <span>Expected quality</span>
+                  <strong>{task.qualityExpectation}</strong>
+                </div>
+                <div>
+                  <span>Next step</span>
+                  <strong>Start a task conversation</strong>
+                </div>
+              </div>
+              <p className="caption text-ink-muted">
+                Share your relevant experience, preferred package, and the days you can commit. Do
+                not submit company applications until the Job Hunter assigns the links.
+              </p>
+            </Card>
+          </Stack>
         </div>
       </Stack>
     </PageBody>
@@ -304,10 +328,15 @@ function Dashboard({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
 
 function Marketplace({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
   const [query, setQuery] = useState("");
-  const visible = data.tasks.filter((task) =>
-    `${task.title} ${task.ownerName} ${task.packages.map((pkg) => pkg.ats).join(" ")}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+  const [kind, setKind] = useState<"all" | BidderTask["kind"]>("all");
+  const [difficulty, setDifficulty] = useState<"all" | "Easy" | "Standard" | "Advanced">("all");
+  const visible = data.tasks.filter(
+    (task) =>
+      (kind === "all" || task.kind === kind) &&
+      (difficulty === "all" || task.packages.some((pkg) => pkg.difficulty === difficulty)) &&
+      `${task.title} ${task.ownerName} ${task.packages.map((pkg) => pkg.ats).join(" ")}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
   );
   return (
     <PageBody>
@@ -316,13 +345,33 @@ function Marketplace({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
           title="Task marketplace"
           description="Job Hunters post task orders here. Choose work that fits your availability and request a connection directly with the task owner."
         />
-        <div className="marketplace-page-toolbar">
+        <div className="marketplace-page-toolbar bidder-filter-bar">
           <Input
             label="Search tasks"
             placeholder="Search role, Job Hunter, or ATS"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
+          <label className="bidder-filter-control">
+            <span>Task type</span>
+            <select value={kind} onChange={(event) => setKind(event.target.value as typeof kind)}>
+              <option value="all">All task types</option>
+              <option value="Permanent contact">Permanent contact</option>
+              <option value="One-time package">One-time package</option>
+            </select>
+          </label>
+          <label className="bidder-filter-control">
+            <span>Package difficulty</span>
+            <select
+              value={difficulty}
+              onChange={(event) => setDifficulty(event.target.value as typeof difficulty)}
+            >
+              <option value="all">Any difficulty</option>
+              <option value="Easy">Easy</option>
+              <option value="Standard">Standard</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </label>
         </div>
         <Stats
           items={[
@@ -338,17 +387,23 @@ function Marketplace({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
         <div className="bidder-task-grid">
           {visible.map((task) => (
             <Card key={task.id}>
-              <div className="marketplace-card-footer">
+              <div className="bidder-task-card-header">
                 <div>
-                  <span className="eyebrow">
-                    {task.kind} · {task.postedAt}
-                  </span>
+                  <div className="bidder-owner-line">
+                    <span className="bidder-owner-avatar">{task.ownerInitials}</span>
+                    <span>
+                      <strong>{task.ownerName}</strong>
+                      <small>{task.postedAt}</small>
+                    </span>
+                  </div>
                   <h2 className="h2">{task.title}</h2>
-                  <p className="body-sm text-ink-muted">
-                    {task.ownerName} · {task.availability}
-                  </p>
                 </div>
                 <Badge label={task.status} tone={taskTone(task.status)} />
+              </div>
+              <div className="bidder-task-meta-row">
+                <span>{task.kind}</span>
+                <span>{task.availability}</span>
+                <span>{task.packages.length} package options</span>
               </div>
               <p className="body-sm">{task.description}</p>
               <div className="marketplace-tag-list">
@@ -390,6 +445,14 @@ function Marketplace({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
             </Card>
           ))}
         </div>
+        {!visible.length && (
+          <Card title="No matching tasks">
+            <p className="body text-ink-muted">
+              Try a different role, task type, or package difficulty. New task orders appear here as
+              Job Hunters publish them.
+            </p>
+          </Card>
+        )}
       </Stack>
     </PageBody>
   );
@@ -422,6 +485,29 @@ function MyBids({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
             [String(data.assignments.length), "Active assignments"],
           ]}
         />
+        <Card title="Your connection journey" meta="Every stage keeps the next action visible">
+          <div className="bidder-pipeline">
+            {[
+              ["01", "Interest sent", "Task owner has your profile"],
+              ["02", "Chat", "Agree on fit, package, and pace"],
+              ["03", "Connected", "Job Hunter can assign links"],
+              ["04", "Working", "Submit links and respond to QA"],
+            ].map(([step, title, description], index) => (
+              <div
+                className={
+                  index < 2
+                    ? "bidder-pipeline-step bidder-pipeline-step-done"
+                    : "bidder-pipeline-step"
+                }
+                key={step}
+              >
+                <span>{step}</span>
+                <strong>{title}</strong>
+                <small>{description}</small>
+              </div>
+            ))}
+          </div>
+        </Card>
         <Card
           title="Task connection pipeline"
           meta="A task interest is not a job application; it starts a conversation with the owner"
@@ -750,6 +836,30 @@ function Earnings({ data }: { data: ReturnType<typeof useBidderWorkflow> }) {
                   {assignment.links.filter((link) => link.status === "QA passed").length} QA-passed
                   links · {assignment.pendingEarned} pending review
                 </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card
+          title="Rate progression"
+          meta="Your rate grows with verified quality, consistency, and delivery"
+        >
+          <div className="bidder-rate-ladder">
+            {[
+              ["New", "$0.60–$0.90", "Starting range"],
+              ["Rising", "$0.80–$1.35", "Your current level"],
+              ["Top", "$1.20–$1.85", "96%+ QA consistency"],
+              ["Elite", "$1.60–$2.40", "Trusted high-volume work"],
+            ].map(([level, rate, note]) => (
+              <div
+                className={
+                  level === "Rising" ? "bidder-rate-row bidder-rate-row-active" : "bidder-rate-row"
+                }
+                key={level}
+              >
+                <strong>{level}</strong>
+                <span>{rate}</span>
+                <small>{note}</small>
               </div>
             ))}
           </div>
