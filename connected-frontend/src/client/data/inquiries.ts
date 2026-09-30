@@ -1,6 +1,6 @@
-import type { ChatMessage, Inquiry } from "@/src/client/types/hunter";
+import type { ChatMessage, Inquiry } from "@/src/shared/types/marketplace";
 
-import { isoAgo } from "@/src/client/data/clock";
+import { isoAgo } from "@/src/shared/mock/clock";
 
 let counter = 0;
 function msg(sender: ChatMessage["sender"], body: string, days: number, hours = 0): ChatMessage {

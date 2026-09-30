@@ -1,13 +1,13 @@
 import { Glyph } from "@openseat/design-system";
 import Link from "next/link";
 
-import type { Interview } from "@/src/client/types/hunter";
+import type { Interview } from "@/src/shared/types/marketplace";
 
-import { Person } from "@/src/client/components/ui/Person";
 import { useHunter } from "@/src/client/context/HunterContext";
 import { STAGE_TITLE } from "@/src/client/data/pipeline";
-import { longDate } from "@/src/client/lib/format";
 import { MODE_LABEL, displayClock, needsOutcome } from "@/src/client/lib/interviews";
+import { Person } from "@/src/shared/kit/Person";
+import { longDate } from "@/src/shared/lib/format";
 import { Badge, Button } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

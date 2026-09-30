@@ -3,9 +3,12 @@
 import { Switch } from "@openseat/design-system";
 
 import type { ProfileForm } from "@/src/client/components/profile/useProfileForm";
-import type { InterviewAvailability, NotificationPreferences } from "@/src/client/types/hunter";
+import type {
+  InterviewAvailability,
+  NotificationPreferences,
+} from "@/src/shared/types/marketplace";
 
-import { Panel } from "@/src/client/components/ui/Panel";
+import { Panel } from "@/src/shared/kit/Panel";
 import { Badge, Input, Select, TextArea } from "@/src/shared/marketplace-ui";
 
 interface SectionProps {

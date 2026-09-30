@@ -4,11 +4,11 @@ import type {
   Assignment,
   Ats,
   Feedback,
-} from "@/src/client/types/hunter";
+} from "@/src/shared/types/marketplace";
 
-import { isoAgo, MOCK_NOW, MS_PER_DAY, seeded } from "@/src/client/data/clock";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { POOL_JOBS } from "@/src/client/data/pool";
+import { isoAgo, MOCK_NOW, MS_PER_DAY, seeded } from "@/src/shared/mock/clock";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
+import { POOL_JOBS } from "@/src/shared/mock/pool";
 
 interface AssignmentSpec {
   id: string;

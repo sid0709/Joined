@@ -1,4 +1,4 @@
-import { MOCK_NOW, MS_PER_DAY, MS_PER_HOUR } from "@/src/client/data/clock";
+import { MOCK_NOW, MS_PER_DAY, MS_PER_HOUR } from "@/src/shared/mock/clock";
 
 const MS_PER_MINUTE = 60_000;
 

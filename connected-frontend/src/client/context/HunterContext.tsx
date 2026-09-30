@@ -20,7 +20,7 @@ import type {
   PoolJob,
   Task,
   Transaction,
-} from "@/src/client/types/hunter";
+} from "@/src/shared/types/marketplace";
 
 import { BIDDERS } from "@/src/client/data/bidders";
 import {
@@ -29,7 +29,6 @@ import {
   INITIAL_PROFILE,
   INITIAL_TRANSACTIONS,
 } from "@/src/client/data/billing";
-import { MOCK_NOW } from "@/src/client/data/clock";
 import { INITIAL_INQUIRIES } from "@/src/client/data/inquiries";
 import { INITIAL_INTERVIEWS } from "@/src/client/data/interviews";
 import { INITIAL_NOTIFICATIONS } from "@/src/client/data/notifications";
@@ -38,11 +37,12 @@ import {
   INITIAL_ASSIGNMENTS,
   INITIAL_FEEDBACK,
 } from "@/src/client/data/operations";
-import { PACKAGE_BY_ID, PACKAGE_TIERS } from "@/src/client/data/packages";
 import { NEXT_STAGE, STAGE_TITLE, STATUS_FOR_STAGE } from "@/src/client/data/pipeline";
-import { POOL_JOBS } from "@/src/client/data/pool";
 import { INITIAL_TASKS } from "@/src/client/data/tasks";
-import { sumLines } from "@/src/client/lib/selectors";
+import { sumLines } from "@/src/shared/lib/selectors";
+import { MOCK_NOW } from "@/src/shared/mock/clock";
+import { PACKAGE_BY_ID, PACKAGE_TIERS } from "@/src/shared/mock/packages";
+import { POOL_JOBS } from "@/src/shared/mock/pool";
 
 interface ActionResult {
   ok: boolean;

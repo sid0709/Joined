@@ -1,11 +1,11 @@
 import { Glyph } from "@openseat/design-system";
 import Link from "next/link";
 
-import type { Bidder, Inquiry, Task } from "@/src/client/types/hunter";
+import type { Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 
 import { useHunter } from "@/src/client/context/HunterContext";
-import { money, shortDate } from "@/src/client/lib/format";
 import { displayClock, isUpcoming } from "@/src/client/lib/interviews";
+import { money, shortDate } from "@/src/shared/lib/format";
 import { Avatar, Badge, Button } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

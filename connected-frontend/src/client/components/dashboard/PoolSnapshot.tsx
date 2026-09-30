@@ -1,8 +1,8 @@
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { POOL_ATS } from "@/src/client/data/pool";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
 import { Button } from "@/src/shared/marketplace-ui";
+import { POOL_ATS } from "@/src/shared/mock/pool";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 export function PoolSnapshot() {

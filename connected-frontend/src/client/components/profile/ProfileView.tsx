@@ -10,8 +10,8 @@ import {
 } from "@/src/client/components/profile/ProfileSections";
 import { ProfileSidebar } from "@/src/client/components/profile/ProfileSidebar";
 import { useProfileForm } from "@/src/client/components/profile/useProfileForm";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Person } from "@/src/client/components/ui/Person";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Person } from "@/src/shared/kit/Person";
 import { Banner, Button, PageBody } from "@/src/shared/marketplace-ui";
 
 export function ProfileView() {

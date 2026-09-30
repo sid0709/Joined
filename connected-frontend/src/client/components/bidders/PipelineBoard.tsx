@@ -2,7 +2,7 @@
 
 import { KanbanBoard, type KanbanColumn, type KanbanLane } from "@openseat/design-system";
 
-import type { HiringStage, Inquiry } from "@/src/client/types/hunter";
+import type { HiringStage, Inquiry } from "@/src/shared/types/marketplace";
 
 import { BidderTicket } from "@/src/client/components/bidders/BidderTicket";
 import { useHunter } from "@/src/client/context/HunterContext";

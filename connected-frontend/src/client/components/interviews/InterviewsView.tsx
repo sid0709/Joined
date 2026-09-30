@@ -4,18 +4,12 @@ import { Calendar } from "@openseat/design-system";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
-import type { Interview } from "@/src/client/types/hunter";
+import type { Interview } from "@/src/shared/types/marketplace";
 
 import { InterviewRow } from "@/src/client/components/interviews/InterviewRow";
 import { OutcomeDialog } from "@/src/client/components/interviews/OutcomeDialog";
 import { ScheduleDialog } from "@/src/client/components/interviews/ScheduleDialog";
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { StatCard } from "@/src/client/components/ui/StatCard";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { MOCK_TODAY } from "@/src/client/data/clock";
-import { percent, ratio } from "@/src/client/lib/format";
 import {
   dateFromYmd,
   isUpcoming,
@@ -23,7 +17,13 @@ import {
   toEvent,
   ymdFromDate,
 } from "@/src/client/lib/interviews";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Panel } from "@/src/shared/kit/Panel";
+import { StatCard } from "@/src/shared/kit/StatCard";
+import { percent, ratio } from "@/src/shared/lib/format";
 import { Banner, Button, PageBody } from "@/src/shared/marketplace-ui";
+import { MOCK_TODAY } from "@/src/shared/mock/clock";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 const WEEK_DAYS = 7;

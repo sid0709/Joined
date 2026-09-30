@@ -4,14 +4,14 @@ import { Glyph, type GlyphName } from "@openseat/design-system";
 import Link from "next/link";
 import { useState } from "react";
 
-import type { NotificationKind } from "@/src/client/types/hunter";
+import type { NotificationKind } from "@/src/shared/types/marketplace";
 
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { Tabs } from "@/src/client/components/ui/Tabs";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { relativeTime } from "@/src/client/lib/format";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Panel } from "@/src/shared/kit/Panel";
+import { Tabs } from "@/src/shared/kit/Tabs";
+import { relativeTime } from "@/src/shared/lib/format";
 import { Button, PageBody } from "@/src/shared/marketplace-ui";
 
 type Filter = "all" | "unread";

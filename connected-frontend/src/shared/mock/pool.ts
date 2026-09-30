@@ -1,4 +1,4 @@
-import type { Ats, PoolJob } from "@/src/client/types/hunter";
+import type { Ats, PoolJob } from "@/src/shared/types/marketplace";
 
 interface PoolSource {
   ats: Ats;

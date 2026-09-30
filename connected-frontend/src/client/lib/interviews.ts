@@ -1,7 +1,11 @@
-import type { Interview, InterviewAvailability, InterviewMode } from "@/src/client/types/hunter";
+import type {
+  Interview,
+  InterviewAvailability,
+  InterviewMode,
+} from "@/src/shared/types/marketplace";
 import type { CalendarEvent, CalendarTone } from "@openseat/design-system";
 
-import { MOCK_TODAY, MOCK_WALL_TIME } from "@/src/client/data/clock";
+import { MOCK_TODAY, MOCK_WALL_TIME } from "@/src/shared/mock/clock";
 
 const MINUTES_PER_HOUR = 60;
 const SLOT_STEP_MIN = 30;

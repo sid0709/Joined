@@ -1,5 +1,5 @@
-import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
+import { TaskBoardView } from "@/src/candidate/components/TaskBoardView";
 
 export default function MarketplaceJobsPage() {
-  return <BidderWorkflowView view="marketplace" />;
+  return <TaskBoardView />;
 }

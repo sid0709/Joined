@@ -1,5 +1,11 @@
-import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
+import { Suspense } from "react";
 
-export default function CandidateWorkPage() {
-  return <BidderWorkflowView view="work" />;
+import { WorkView } from "@/src/candidate/components/WorkView";
+
+export default function Page() {
+  return (
+    <Suspense>
+      <WorkView />
+    </Suspense>
+  );
 }

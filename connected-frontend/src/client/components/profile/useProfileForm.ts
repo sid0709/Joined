@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 
-import type { InterviewAvailability, NotificationPreferences } from "@/src/client/types/hunter";
+import type {
+  InterviewAvailability,
+  NotificationPreferences,
+} from "@/src/shared/types/marketplace";
 
 import { useHunter } from "@/src/client/context/HunterContext";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";

@@ -1,7 +1,7 @@
 import { Glyph, type GlyphName } from "@openseat/design-system";
 import Link from "next/link";
 
-import { Panel } from "@/src/client/components/ui/Panel";
+import { Panel } from "@/src/shared/kit/Panel";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 const STEPS: { icon: GlyphName; title: string; body: string; href: string }[] = [

@@ -1,5 +1,5 @@
-import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
+import { EarningsView } from "@/src/candidate/components/EarningsView";
 
-export default function CandidateEarningsPage() {
-  return <BidderWorkflowView view="earnings" />;
+export default function Page() {
+  return <EarningsView />;
 }

@@ -1,5 +1,5 @@
-import { BidderWorkflowView } from "@/src/candidate/components/BidderWorkflowView";
+import { DashboardView } from "@/src/candidate/components/DashboardView";
 
-export default function CandidateDashboardPage() {
-  return <BidderWorkflowView view="dashboard" />;
+export default function Page() {
+  return <DashboardView />;
 }

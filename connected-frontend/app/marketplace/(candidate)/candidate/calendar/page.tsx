@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { InterviewsView } from "@/src/candidate/components/InterviewsView";
 
-export default function CandidateCalendarPage() {
-  redirect("/marketplace/messages");
+export default function Page() {
+  return <InterviewsView />;
 }

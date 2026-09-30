@@ -6,20 +6,32 @@ import { ReactNode, useEffect } from "react";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
 import { AppShell, NavItem } from "@/src/shared/marketplace-ui";
+import { BIDDER_ROUTES } from "@/src/shared/routes/bidder";
 
 type MarketplaceRole = "Candidate" | "Client";
 
-const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string }[]> = {
+const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string; also?: string[] }[]> = {
   Candidate: [
-    { label: "Dashboard", href: "/marketplace/candidate/dashboard" },
-    { label: "Task Marketplace", href: "/marketplace/jobs" },
-    { label: "My Interests", href: "/marketplace/candidate/bids" },
-    { label: "Invitations", href: "/marketplace/candidate/invitations" },
-    { label: "Active Work", href: "/marketplace/candidate/work" },
-    { label: "Messages", href: "/marketplace/messages" },
-    { label: "Earnings", href: "/marketplace/candidate/earnings" },
-    { label: "Performance", href: "/marketplace/candidate/performance" },
-    { label: "Profile", href: "/marketplace/candidate/profile" },
+    { label: "Dashboard", href: BIDDER_ROUTES.dashboard },
+    { label: "Task Board", href: BIDDER_ROUTES.board },
+    {
+      label: "Pipeline",
+      href: BIDDER_ROUTES.pipeline,
+      also: [BIDDER_ROUTES.invitations, BIDDER_ROUTES.interviews],
+    },
+    { label: "Messages", href: BIDDER_ROUTES.messages },
+    { label: "My Work", href: BIDDER_ROUTES.work },
+    { label: "Reviews", href: BIDDER_ROUTES.reviews },
+    {
+      label: "Earnings",
+      href: BIDDER_ROUTES.earnings,
+      also: [BIDDER_ROUTES.performance],
+    },
+    {
+      label: "Profile",
+      href: BIDDER_ROUTES.profile,
+      also: [BIDDER_ROUTES.assessments, BIDDER_ROUTES.notifications],
+    },
   ],
   Client: [
     { label: "Add Job Link", href: "/marketplace/client/jobs/new" },
@@ -79,9 +91,12 @@ export function MarketplaceShell({
 }) {
   const pathname = usePathname();
   const { currentUser, logoutUser } = useMockAuth();
-  const items: NavItem[] = NAV_ITEMS[role].map((item) => ({
+  const items: NavItem[] = NAV_ITEMS[role].map(({ also = [], ...item }) => ({
     ...item,
-    active: pathname === item.href || pathname.startsWith(`${item.href}/`),
+    active:
+      pathname === item.href ||
+      pathname.startsWith(`${item.href}/`) ||
+      also.some((extra) => pathname === extra),
   }));
 
   return (

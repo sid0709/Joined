@@ -4,7 +4,7 @@ import type {
   InvoiceStatus,
   TaskStatus,
   TaskType,
-} from "@/src/client/types/hunter";
+} from "@/src/shared/types/marketplace";
 
 import { Badge } from "@/src/shared/marketplace-ui";
 

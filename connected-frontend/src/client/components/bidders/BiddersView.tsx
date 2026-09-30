@@ -2,21 +2,21 @@
 
 import { useMemo, useState } from "react";
 
-import type { HiringStage, Interview } from "@/src/client/types/hunter";
+import type { HiringStage, Interview } from "@/src/shared/types/marketplace";
 
 import { BidderDrawer } from "@/src/client/components/bidders/BidderDrawer";
 import { PipelineBoard } from "@/src/client/components/bidders/PipelineBoard";
 import { PipelineList } from "@/src/client/components/bidders/PipelineList";
 import { OutcomeDialog } from "@/src/client/components/interviews/OutcomeDialog";
 import { ScheduleDialog } from "@/src/client/components/interviews/ScheduleDialog";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { StatCard } from "@/src/client/components/ui/StatCard";
-import { Tabs } from "@/src/client/components/ui/Tabs";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { MOCK_TODAY } from "@/src/client/data/clock";
 import { STAGE_TITLE } from "@/src/client/data/pipeline";
-import { percent, ratio } from "@/src/client/lib/format";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { StatCard } from "@/src/shared/kit/StatCard";
+import { Tabs } from "@/src/shared/kit/Tabs";
+import { percent, ratio } from "@/src/shared/lib/format";
 import { Banner, Button, Checkbox, Input, PageBody, Select } from "@/src/shared/marketplace-ui";
+import { MOCK_TODAY } from "@/src/shared/mock/clock";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 type ViewKey = "board" | "list";
