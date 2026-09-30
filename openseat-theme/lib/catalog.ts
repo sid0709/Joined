@@ -75,7 +75,8 @@ export const CATALOG: CatalogGroup[] = [
       {
         slug: "toggle-button",
         title: "Toggle Button",
-        description: "A binary on/off control. Pressed: gray surface, filled icon.",
+        description:
+          "A binary on/off control. Pressed: accent icon and label on a weak accent wash.",
         importName: "ToggleButton",
       },
       {
@@ -222,10 +223,17 @@ export const CATALOG: CatalogGroup[] = [
         importName: "Heading",
       },
       {
+        slug: "glyph",
+        title: "Glyph",
+        description:
+          "The OpenSeat stroke set — one 24px grid, 2px stroke, round caps. Sun and moon included.",
+        importName: "Glyph",
+      },
+      {
         slug: "icon",
         title: "Icon",
         description:
-          "The Astryx registry and the OpenSeat set — sizes, semantic and palette colors, and labels.",
+          "The Astryx registry and the OpenSeat glyph set — sizes, semantic and palette colors, and labels.",
         importName: "Icon",
       },
       {
@@ -489,6 +497,13 @@ export const CATALOG: CatalogGroup[] = [
         title: "Pagination",
         description: "Pages, count, compact, input, and dots — page sizes and unknown totals.",
         importName: "Pagination",
+      },
+      {
+        slug: "pill-nav",
+        title: "Pill Nav",
+        description:
+          "App pages as icon pills. The current page opens to its label, counts sit on the icon, and small screens pin the bar to the bottom.",
+        importName: "PillNav",
       },
       {
         slug: "side-nav",

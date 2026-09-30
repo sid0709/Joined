@@ -3,9 +3,10 @@ import { AppShell } from "@openseat/design-system";
 
 export const CONTENT_PADDING = 5;
 
+/** The page frame: the product bar on top, the page below. No side navigation. */
 export function AppFrame({ header, children }: { header: ReactNode; children: ReactNode }) {
   return (
-    <AppShell variant="surface" topNav={header} contentPadding={CONTENT_PADDING}>
+    <AppShell variant="surface" topNav={header} mobileNav={false} contentPadding={CONTENT_PADDING}>
       {children}
     </AppShell>
   );

@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { GridColumn, GridSystem, PageContainer } from "@openseat/design-system";
-import { LEVEL_BADGE } from "@openseat/scout";
+import { PageContainer } from "@openseat/design-system";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
-import { ScoutNav } from "@/components/shell/scout-nav";
+import { ScoutMobilePillBar } from "@/components/shell/scout-pill-nav";
 import { loadSession } from "@/lib/auth/session";
 import { ROUTES, signInHref } from "@/lib/routes";
 import { loadStats } from "@/lib/scout/load";
@@ -15,32 +14,22 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!session || !stats) redirect(signInHref(ROUTES.dashboard));
   if (!stats.profile.terms_accepted_at) redirect(ROUTES.onboarding);
 
+  const inReview = stats.metrics.pending;
+  const unread = stats.unread_notifications;
+
   return (
     <AppFrame
       header={
         <ScoutHeader
           user={session.user}
           levelLabel={stats.level.label}
-          unread={stats.unread_notifications}
+          unread={unread}
+          inReview={inReview}
         />
       }
     >
-      <PageContainer>
-        <GridSystem gap={6}>
-          <GridColumn span="full" lg={3}>
-            <ScoutNav
-              name={session.user.name}
-              levelLabel={stats.level.label}
-              levelBadge={LEVEL_BADGE[stats.level.id]}
-              inReview={stats.metrics.pending}
-              unread={stats.unread_notifications}
-            />
-          </GridColumn>
-          <GridColumn span="full" lg={9}>
-            {children}
-          </GridColumn>
-        </GridSystem>
-      </PageContainer>
+      <PageContainer>{children}</PageContainer>
+      <ScoutMobilePillBar inReview={inReview} unread={unread} />
     </AppFrame>
   );
 }

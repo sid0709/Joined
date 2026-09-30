@@ -86,7 +86,7 @@ export function JobSearchBar({
                 value={q}
                 onChange={(value) => onChange({ q: value })}
                 startIcon={<Glyph name="search" />}
-                size="lg"
+                size="md"
                 width="100%"
                 hasClear
                 autoComplete="off"
@@ -99,7 +99,7 @@ export function JobSearchBar({
                 value={where}
                 onChange={(value) => onChange({ where: value })}
                 startIcon={<Glyph name="pin" />}
-                size="lg"
+                size="md"
                 width="100%"
                 hasClear
                 autoComplete="off"
@@ -109,7 +109,7 @@ export function JobSearchBar({
               type="submit"
               label="Search"
               variant="primary"
-              size="lg"
+              size="md"
               icon={<Glyph name="search" />}
             />
           </HStack>

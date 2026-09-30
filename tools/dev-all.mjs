@@ -1,49 +1,24 @@
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+
+import { freePorts } from "./free-ports.mjs";
+import { API_SERVICE, LOCAL_SERVICES, serviceSite } from "./local-services.mjs";
 
 const reset = "\x1b[0m";
 
 const services = [
-  {
-    name: "app",
-    color: "\x1b[36m",
-    url: "http://localhost:3000",
+  ...LOCAL_SERVICES.map((service) => ({
+    name: service.shortName,
+    color: service.color,
+    url: serviceSite(service),
     command: "bun",
-    args: ["--filter", "connected-frontend", "dev"],
-  },
+    args: ["--filter", service.workspace, "dev"],
+  })),
   {
-    name: "theme",
-    color: "\x1b[35m",
-    url: "http://localhost:3001",
-    command: "bun",
-    args: ["--filter", "openseat-theme", "dev"],
-  },
-  {
-    name: "opened",
-    color: "\x1b[32m",
-    url: "http://localhost:3002",
-    command: "bun",
-    args: ["--filter", "opened-frontend", "dev"],
-  },
-  {
-    name: "scout",
-    color: "\x1b[36m",
-    url: "http://localhost:3003",
-    command: "bun",
-    args: ["--filter", "scoutwell-frontend", "dev"],
-  },
-  {
-    name: "admin",
-    color: "\x1b[33m",
-    url: "http://localhost:3010",
-    command: "bun",
-    args: ["--filter", "opened-admin", "dev"],
-  },
-  {
-    name: "api",
-    color: "\x1b[34m",
-    url: "http://127.0.0.1:8080",
-    command: "go",
-    args: ["run", "-C", "opened-backend", "./cmd/server"],
+    name: API_SERVICE.shortName,
+    color: API_SERVICE.color,
+    url: API_SERVICE.url,
+    command: API_SERVICE.command,
+    args: API_SERVICE.args,
   },
 ];
 
@@ -101,61 +76,8 @@ function shutdown() {
   }, 3000).unref();
 }
 
-function sleep(ms) {
-  spawnSync("sleep", [String(ms / 1000)]);
-}
-
-function listeningPids(port) {
-  try {
-    const output = execFileSync("lsof", [`-tiTCP:${port}`, "-sTCP:LISTEN"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    return output
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((pid) => pid && pid !== String(process.pid));
-  } catch {
-    return [];
-  }
-}
-
-function freePorts() {
-  const ports = [...new Set(services.map((service) => new URL(service.url).port))];
-  const pids = [...new Set(ports.flatMap(listeningPids))];
-  if (pids.length === 0) {
-    return;
-  }
-
-  console.log("Stopping whatever is already listening on the dev ports:");
-  for (const pid of pids) {
-    const held = ports.filter((port) => listeningPids(port).includes(pid));
-    console.log(`  pid ${pid}${held.length ? ` on ${held.join(", ")}` : ""}`);
-    try {
-      process.kill(Number(pid), "SIGTERM");
-    } catch {
-      // Already gone.
-    }
-  }
-
-  const deadline = Date.now() + 2000;
-  while (Date.now() < deadline && ports.some((port) => listeningPids(port).length > 0)) {
-    sleep(100);
-  }
-  for (const port of ports) {
-    for (const pid of listeningPids(port)) {
-      try {
-        process.kill(Number(pid), "SIGKILL");
-      } catch {
-        // Already gone.
-      }
-    }
-  }
-  sleep(200);
-  console.log("");
-}
-
-freePorts();
+const ports = [...new Set(services.map((service) => new URL(service.url).port))];
+freePorts(ports);
 
 console.log("Starting every OpenSeat dev server:\n");
 for (const service of services) {

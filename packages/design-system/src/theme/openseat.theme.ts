@@ -57,4 +57,18 @@ export const openSeatTheme = defineTheme({
     "--font-family-body": FONT_FAMILY_SYSTEM,
     "--font-family-heading": FONT_FAMILY_SYSTEM,
   },
+  components: {
+    "segmented-control": {
+      base: {
+        padding: "var(--spacing-1)",
+        borderRadius: "var(--radius-full)",
+      },
+    },
+    "segmented-control-item": {
+      "size:sm": { height: "var(--size-element-sm)" },
+      "size:md": { height: "var(--size-element-md)" },
+      "size:lg": { height: "var(--size-element-lg)" },
+      selected: { boxShadow: "none" },
+    },
+  },
 });

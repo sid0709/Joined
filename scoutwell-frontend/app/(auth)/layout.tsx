@@ -1,20 +1,24 @@
 import type { ReactNode } from "react";
-import { Center, Stack } from "@openseat/design-system";
+import { Stack } from "@openseat/design-system";
+import { AuthAside } from "@/components/auth/auth-aside";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
 import { loadSession } from "@/lib/auth/session";
 
-const FORM_WIDTH = 520;
+const FORM_WIDTH = 480;
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   const session = await loadSession();
   return (
     <AppFrame header={<ScoutHeader user={session?.user ?? null} />}>
-      <Center axis="both" minHeight="100%" padding={6}>
-        <Stack width="100%" maxWidth={FORM_WIDTH}>
-          {children}
-        </Stack>
-      </Center>
+      <div className="sw-auth">
+        <AuthAside />
+        <div className="sw-auth-main">
+          <Stack width="100%" maxWidth={FORM_WIDTH}>
+            <div className="sw-rise">{children}</div>
+          </Stack>
+        </div>
+      </div>
     </AppFrame>
   );
 }

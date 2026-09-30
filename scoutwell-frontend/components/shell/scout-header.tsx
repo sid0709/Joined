@@ -1,30 +1,37 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
+  Icon,
+  icons,
   ThemeToggle,
   TopNav,
   TopNavHeading,
-  TopNavItem,
+  useAppShellMobile,
 } from "@openseat/design-system";
 import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
+import { ScoutPillNav } from "./scout-pill-nav";
 
-/** The product bar. Signed out it sells; signed in it puts Submit and notifications in reach. */
+/** The product bar. Signed out it sells; signed in it holds the page pills and Submit. */
 export function ScoutHeader({
   user = null,
   levelLabel = "",
   unread = 0,
+  inReview = 0,
 }: {
   user?: SessionUser | null;
   levelLabel?: string;
   unread?: number;
+  /** Submissions still being checked or reviewed; badged on the Submissions pill. */
+  inReview?: number;
 }) {
-  const pathname = usePathname();
+  const router = useRouter();
+  const { isMobile } = useAppShellMobile();
   const heading = (
     <TopNavHeading
       heading={BRAND}
@@ -40,7 +47,7 @@ export function ScoutHeader({
         heading={heading}
         endContent={
           <>
-            <ThemeToggle />
+            <ThemeToggle onChange={() => router.refresh()} />
             <Button label="Sign in" variant="ghost" size="sm" href={ROUTES.signIn} />
             <Button label="Become a scout" variant="primary" size="sm" href={ROUTES.signUp} />
           </>
@@ -53,16 +60,18 @@ export function ScoutHeader({
     <TopNav
       label={BRAND}
       heading={heading}
+      centerContent={isMobile ? undefined : <ScoutPillNav inReview={inReview} unread={unread} />}
       endContent={
         <>
-          <Button label="Submit a job" variant="primary" size="sm" href={ROUTES.submit} />
-          <TopNavItem
-            label="Notifications"
-            href={ROUTES.notifications}
-            isSelected={pathname === ROUTES.notifications}
+          <Button
+            label="Submit a job"
+            variant="primary"
+            size="md"
+            icon={<Icon icon={icons.plus} />}
+            isIconOnly={isMobile}
+            href={ROUTES.submit}
           />
-          {unread > 0 ? <Badge label={`${unread} new`} variant="info" /> : null}
-          <ThemeToggle />
+          <ThemeToggle onChange={() => router.refresh()} />
           <AccountMenu user={user} levelLabel={levelLabel} />
         </>
       }

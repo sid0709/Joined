@@ -1,0 +1,179 @@
+/* PillNav — icon pills; the current page opens to icon + label in the accent colour while one
+   highlight slides beneath it. Uses only tokens the Astryx theme ships (astryx.css, theme.css),
+   so the motion and sizes resolve in every app that loads openseat.css. */
+
+.os-pill-nav {
+  min-width: 0;
+}
+
+.os-pill-track {
+  position: relative;
+}
+
+.os-pill-list {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The open pill keeps its full label; icon-only pills give way first on narrow bars. */
+.os-pill-list > li:has(.os-pill[data-active="true"]) {
+  flex-shrink: 0;
+}
+
+/* The highlight: placed and moved by PillNav, following the active pill frame by frame. */
+.os-pill-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent-muted);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.os-pill-indicator[data-visible="true"] {
+  opacity: 1;
+}
+
+.os-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: calc(var(--size-element-md) + var(--spacing-1));
+  padding-inline: var(--spacing-3);
+  border-radius: var(--radius-full);
+  color: var(--color-icon-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-medium) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.os-pill:hover {
+  background-color: var(--color-overlay-hover);
+  color: var(--color-icon-primary);
+}
+
+.os-pill:active {
+  transform: scale(0.96);
+}
+
+.os-pill:focus-visible {
+  outline: var(--focus-outline-width) var(--focus-outline-style) var(--focus-outline-color);
+  outline-offset: var(--spacing-0-5);
+}
+
+.os-pill[data-active="true"],
+.os-pill[data-active="true"]:hover {
+  background-color: transparent;
+  color: var(--color-accent);
+}
+
+.os-pill-icon {
+  position: relative;
+  display: inline-flex;
+  font-size: var(--font-size-xl);
+}
+
+/* A small count bubble on the icon's top-end corner. */
+.os-pill-count {
+  position: absolute;
+  top: calc(-1 * var(--spacing-1-5));
+  inset-inline-start: calc(100% - var(--spacing-2));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--spacing-4);
+  height: var(--spacing-4);
+  padding-inline: var(--spacing-1);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 var(--spacing-0-5) var(--color-background-surface);
+  pointer-events: none;
+}
+
+/* The label track opens from 0 to its natural width (0fr → 1fr), so the pill and every
+   neighbour glide instead of jumping. The gap before the text lives inside the track. */
+.os-pill-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns var(--duration-medium) var(--ease-standard);
+}
+
+.os-pill-label > span {
+  min-width: 0;
+  overflow: hidden;
+  padding-inline-start: var(--spacing-1-5);
+  opacity: 0;
+  transform: translateX(calc(-1 * var(--spacing-1)));
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform var(--duration-medium) var(--ease-standard);
+}
+
+.os-pill[data-active="true"] .os-pill-label {
+  grid-template-columns: 1fr;
+}
+
+/* Opening: the text fades in just behind the width, so it never shows clipped. */
+.os-pill[data-active="true"] .os-pill-label > span {
+  opacity: 1;
+  transform: none;
+  transition-delay: var(--duration-fast), 0s;
+}
+
+/* Small screens: the same pills as a bar along the bottom edge. */
+.os-pill-nav[data-placement="bottom"] {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: var(--spacing-2);
+  padding-bottom: calc(var(--spacing-2) + env(safe-area-inset-bottom));
+  background: var(--color-background-surface);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.os-pill-nav-spacer {
+  height: calc(
+    var(--size-element-md) + var(--spacing-1) + 2 * var(--spacing-2) + env(safe-area-inset-bottom)
+  );
+}
+
+.os-pill-nav[data-placement="bottom"] .os-pill-list {
+  justify-content: space-between;
+  gap: 0;
+}
+
+.os-pill-nav[data-placement="bottom"] .os-pill {
+  padding-inline: var(--spacing-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-pill,
+  .os-pill-label,
+  .os-pill-label > span,
+  .os-pill-indicator {
+    transition: none;
+  }
+  .os-pill:active {
+    transform: none;
+  }
+}

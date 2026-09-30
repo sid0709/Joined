@@ -212,22 +212,21 @@ bun --filter @openseat/design-system <script>
 
 ### Production build and start
 
-| App                    | Build                  | Start                  |
-| ---------------------- | ---------------------- | ---------------------- |
-| Opened                 | `bun run build:opened` | `bun run start:opened` |
-| OpenSeat app           | `bun run build:app`    | `bun run start:app`    |
-| Design-system showcase | `bun run build:theme`  | `bun run start:theme`  |
-| All three              | `bun run build`        | —                      |
+| App                    | Build                     | Start                  |
+| ---------------------- | ------------------------- | ---------------------- |
+| Connected              | `bun run build:app`       | `bun run start:app`    |
+| Opened                 | `bun run build:opened`    | `bun run start:opened` |
+| Scoutwell              | `bun run build:scout`     | `bun run start:scout`  |
+| Opened admin           | `bun run build:admin`     | `bun run start:admin`  |
+| Design-system showcase | `bun run build:theme`     | `bun run start:theme`  |
+| All four frontends     | `bun run build:frontends` | start each `start:*`   |
+| Every workspace        | `bun run build`           | —                      |
 
-`next start` serves on port 3000 by default. Pass `--port` to run next to a dev server:
-
-```bash
-bun run start:opened --port 3102
-```
+`start:opened` and `start:scout` pass `--port` **3002** and **3003** so they match dev and can run beside Connected on **3000**.
 
 ### Troubleshooting
 
-- **Port already in use** — `bun run dev` stops whatever is listening on 3000, 3001, 3002, 3003, 3010, and 8080 before it starts. A single app (`bun run dev:opened` and the others) does not, so stop that listener yourself:
+- **Port already in use** — `bun run dev`, `bun run start:frontends`, and each `bun run dev:*` / `bun run start:*` stop whatever is listening on that app's port before starting. If something else grabbed the port afterward:
   ```bash
   lsof -iTCP:3002 -sTCP:LISTEN
   ```
@@ -325,40 +324,37 @@ Apps import only from the package, e.g. `import { Button } from "@openseat/desig
 
 Dev-server scores are misleadingly low (no minification, dev overlays). Build and start the app first, then audit that production server.
 
-### Audit Opened
+### Audit all frontends (except theme)
 
-Terminal 1 — production server on port 3102, so it can sit next to `bun run dev`:
+`bun run audit` runs Unlighthouse against **connected-frontend**, **opened-frontend**, **scoutwell-frontend**, and **opened-admin** in sequence. **openseat-theme** is not included (`bun run audit:theme` if you need it).
 
-```bash
-bun run build:opened
-bun run start:opened --port 3102
-```
-
-Terminal 2 — scan every route, then open the report:
+Terminal 1 — build, then start every production frontend on the same ports as `bun run dev` (`start:frontends` frees those ports first):
 
 ```bash
-bun run audit:opened
+bun run build:frontends
+bun run start:frontends
 ```
 
-Employer pages live under `/company`. Start the crawl there so Unlighthouse reaches them:
+Individual `bun run dev:*` and `bun run start:*` scripts also free that app's port before launching.
+
+Terminal 2 — crawl and Lighthouse each app (reports under `.unlighthouse/<workspace-name>/`):
 
 ```bash
-bun run audit:opened:company
+bun run audit
 ```
 
-### Audit each app
+### Audit one app
 
-Use a production server for the app you care about (`bun run build:<app>` then `bun run start:<app>`), then:
+Build and start only that app (`bun run build:<app>` then `bun run start:<app>`), then:
 
 | App                    | Audit command                  | Site it scans                 |
 | ---------------------- | ------------------------------ | ----------------------------- |
-| Opened                 | `bun run audit:opened`         | http://localhost:3102         |
-| Opened employer pages  | `bun run audit:opened:company` | http://localhost:3102/company |
-| OpenSeat app           | `bun run audit:app`            | http://localhost:3000         |
-| Design-system showcase | `bun run audit:theme`          | http://localhost:3001         |
+| Connected              | `bun run audit:app`            | http://localhost:3000         |
+| Opened                 | `bun run audit:opened`         | http://localhost:3002         |
+| Opened employer pages  | `bun run audit:opened:company` | http://localhost:3002/company |
+| Scoutwell              | `bun run audit:scout`          | http://localhost:3003         |
 | Opened admin           | `bun run audit:admin`          | http://localhost:3010         |
-
-`next start` listens on port 3000 unless you pass `--port`. Opened's audit script expects **3102** so it does not collide with the OpenSeat app. For the app, theme, or admin, start that one app on the port in the table (stop `bun run dev` first if that port is taken).
+| Design-system showcase | `bun run audit:theme`          | http://localhost:3001         |
 
 Any other site, including a deployed URL:
 
@@ -368,12 +364,12 @@ bun run audit -- --site https://your-site.com
 
 `bun run audit` passes `--disable-dynamic-sampling`, so Unlighthouse scans every page, including ones that share a route pattern such as `/jobs/[id]`.
 
-When a scan finishes, Unlighthouse opens the report in your browser. Reports go to `.unlighthouse/` (already gitignored).
+Each run writes a static HTML report under `.unlighthouse/<app>/` (gitignored). Preview with `bunx sirv-cli .unlighthouse/connected-frontend` (or the app folder you care about).
 
-`@unlighthouse/cli` does not install an `unlighthouse` command. The audit scripts run `tools/unlighthouse.mjs`, which starts `node_modules/@unlighthouse/cli/dist/cli.mjs`. For a faster, rougher pass, leave dynamic sampling on:
+`@unlighthouse/cli` does not install an `unlighthouse` command. Targets live in `tools/audit-frontends.mjs`; `bun run audit` uses `tools/audit-all-frontends.mjs`. For a faster, rougher pass on one site, leave dynamic sampling on:
 
 ```bash
-bun tools/unlighthouse.mjs --site http://localhost:3102
+bun tools/unlighthouse.mjs --site http://localhost:3002
 ```
 
 ---
@@ -420,27 +416,28 @@ git push -u origin feat/<short-name>
 
 ## 9. Quick reference
 
-| I want to…                                      | Command                                                                                |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Install everything                              | `bun install`                                                                          |
-| Run everything (frontends + API)                | `bun run dev`                                                                          |
-| Run Opened                                      | `bun run dev:opened` → http://localhost:3002                                           |
-| Run the OpenSeat app                            | `bun run dev:app` → http://localhost:3000                                              |
-| Run the design-system showcase                  | `bun run dev:theme` → http://localhost:3001                                            |
-| Run the Opened admin UI                         | `bun run dev:admin` → http://localhost:3010                                            |
-| Run the Opened API                              | `bun run dev:admin-api` → http://127.0.0.1:8080                                        |
-| Open a running app (macOS)                      | `open http://localhost:3002`                                                           |
-| Run any script in one workspace                 | `bun --filter <workspace> <script>`                                                    |
-| Build / start Opened for production             | `bun run build:opened` then `bun run start:opened --port 3102`                         |
-| Add a library                                   | Add to root `catalog`, then `"<lib>": "catalog:"` in the workspace, then `bun install` |
-| Upgrade a library                               | Change it once in the root `catalog`, `bun install`, fix the code that breaks          |
-| Check one version / one node_modules            | `bun run check:deps` (also runs in `bun run test` and CI)                              |
-| Run every CI check locally                      | `bun run ci` (or `bun run ci lint test`)                                               |
-| Lint / type-check everything                    | `bun run lint` · `bun run typecheck`                                                   |
-| Format everything                               | `bun run format`                                                                       |
-| Run tests                                       | `bun run test`                                                                         |
-| Rebuild the theme CSS                           | `bun run theme:build`                                                                  |
-| Audit Opened (after `start:opened --port 3102`) | `bun run audit:opened`                                                                 |
-| Audit another site                              | `bun run audit -- --site <url>`                                                        |
-| Reset installs from scratch                     | `rm -rf node_modules */node_modules packages/*/node_modules` then `bun install`        |
-| Clear a stale dev cache                         | `rm -rf opened-frontend/.next`                                                         |
+| I want to…                            | Command                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| Install everything                    | `bun install`                                                                          |
+| Run everything (frontends + API)      | `bun run dev`                                                                          |
+| Run Opened                            | `bun run dev:opened` → http://localhost:3002                                           |
+| Run the OpenSeat app                  | `bun run dev:app` → http://localhost:3000                                              |
+| Run the design-system showcase        | `bun run dev:theme` → http://localhost:3001                                            |
+| Run the Opened admin UI               | `bun run dev:admin` → http://localhost:3010                                            |
+| Run the Opened API                    | `bun run dev:admin-api` → http://127.0.0.1:8080                                        |
+| Open a running app (macOS)            | `open http://localhost:3002`                                                           |
+| Run any script in one workspace       | `bun --filter <workspace> <script>`                                                    |
+| Build / start all frontends for audit | `bun run build:frontends` then each `bun run start:*` (see §7)                         |
+| Add a library                         | Add to root `catalog`, then `"<lib>": "catalog:"` in the workspace, then `bun install` |
+| Upgrade a library                     | Change it once in the root `catalog`, `bun install`, fix the code that breaks          |
+| Check one version / one node_modules  | `bun run check:deps` (also runs in `bun run test` and CI)                              |
+| Run every CI check locally            | `bun run ci` (or `bun run ci lint test`)                                               |
+| Lint / type-check everything          | `bun run lint` · `bun run typecheck`                                                   |
+| Format everything                     | `bun run format`                                                                       |
+| Run tests                             | `bun run test`                                                                         |
+| Rebuild the theme CSS                 | `bun run theme:build`                                                                  |
+| Audit all frontends (no theme)        | `bun run audit` (after production servers are up)                                      |
+| Audit one frontend                    | `bun run audit:opened` · `audit:app` · `audit:scout` · `audit:admin`                   |
+| Audit another site only               | `bun run audit -- --site <url>`                                                        |
+| Reset installs from scratch           | `rm -rf node_modules */node_modules packages/*/node_modules` then `bun install`        |
+| Clear a stale dev cache               | `rm -rf opened-frontend/.next`                                                         |

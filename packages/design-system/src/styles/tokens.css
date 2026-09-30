@@ -134,9 +134,9 @@
   --z-toast: 110;
   --z-tooltip: 120;
 
-  --control-height: 32px;
-  --control-height-sm: 28px;
-  --control-height-lg: 40px;
+  --control-height: 36px;
+  --control-height-sm: 32px;
+  --control-height-lg: 48px;
 
   /* Compatibility aliases used by existing .os-* CSS */
   --canvas: var(--color-background-body);
