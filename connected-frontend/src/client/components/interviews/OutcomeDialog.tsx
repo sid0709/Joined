@@ -3,10 +3,10 @@
 import { Rating } from "@openseat/design-system";
 import { useState } from "react";
 
-import type { Interview, InterviewOutcome } from "@/src/client/types/hunter";
+import type { Interview, InterviewOutcome } from "@/src/shared/types/marketplace";
 
-import { Person } from "@/src/client/components/ui/Person";
 import { useHunter } from "@/src/client/context/HunterContext";
+import { Person } from "@/src/shared/kit/Person";
 import { Button, Modal, Select, TextArea } from "@/src/shared/marketplace-ui";
 
 const DEFAULT_SCORE = 4;

@@ -1,12 +1,12 @@
 import { Table } from "@openseat/design-system";
 
-import type { StatusCounts } from "@/src/client/lib/selectors";
-import type { Bidder } from "@/src/client/types/hunter";
+import type { StatusCounts } from "@/src/shared/lib/selectors";
+import type { Bidder } from "@/src/shared/types/marketplace";
 
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { Person } from "@/src/client/components/ui/Person";
-import { relativeTime, percent } from "@/src/client/lib/format";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { Person } from "@/src/shared/kit/Person";
+import { relativeTime, percent } from "@/src/shared/lib/format";
 import { Badge, Button } from "@/src/shared/marketplace-ui";
 
 export interface BidderRow extends Record<string, unknown> {

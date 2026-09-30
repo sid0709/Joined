@@ -2,10 +2,10 @@ import { Glyph } from "@openseat/design-system";
 
 import type { ChecklistItem, ProfileForm } from "@/src/client/components/profile/useProfileForm";
 
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { Person } from "@/src/client/components/ui/Person";
 import { useHunter } from "@/src/client/context/HunterContext";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { Person } from "@/src/shared/kit/Person";
 
 interface ProfileSidebarProps {
   form: ProfileForm;

@@ -6,13 +6,13 @@ import { useState } from "react";
 import { InvoiceDetail } from "@/src/client/components/billing/InvoiceDetail";
 import { SpendBreakdowns, TransactionsPanel } from "@/src/client/components/billing/SpendPanels";
 import { TopUpDialog } from "@/src/client/components/billing/TopUpDialog";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { StatCard } from "@/src/client/components/ui/StatCard";
-import { InvoiceStatusBadge } from "@/src/client/components/ui/StatusBadge";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { longDate, money } from "@/src/client/lib/format";
-import { invoiceTotals } from "@/src/client/lib/selectors";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Panel } from "@/src/shared/kit/Panel";
+import { StatCard } from "@/src/shared/kit/StatCard";
+import { InvoiceStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { longDate, money } from "@/src/shared/lib/format";
+import { invoiceTotals } from "@/src/shared/lib/selectors";
 import { Banner, Button, PageBody } from "@/src/shared/marketplace-ui";
 
 interface Row extends Record<string, unknown> {

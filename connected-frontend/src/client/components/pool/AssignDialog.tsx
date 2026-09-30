@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 
-import type { PackageTier, PoolJob, Task } from "@/src/client/types/hunter";
+import type { PackageTier, PoolJob, Task } from "@/src/shared/types/marketplace";
 
-import { DateField } from "@/src/client/components/ui/Fields";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { isoAhead } from "@/src/client/data/clock";
-import { money, plural } from "@/src/client/lib/format";
+import { DateField } from "@/src/shared/kit/Fields";
+import { money, plural } from "@/src/shared/lib/format";
 import { Banner, Button, Modal, Select, TextArea } from "@/src/shared/marketplace-ui";
+import { isoAhead } from "@/src/shared/mock/clock";
 
 const DEFAULT_DUE_DAYS = 3;
 

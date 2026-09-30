@@ -1,4 +1,4 @@
-import type { HiringStage, InquiryStatus } from "@/src/client/types/hunter";
+import type { HiringStage, InquiryStatus } from "@/src/shared/types/marketplace";
 
 export interface StageDefinition {
   id: HiringStage;

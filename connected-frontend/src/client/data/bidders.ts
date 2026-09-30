@@ -1,4 +1,4 @@
-import type { Bidder } from "@/src/client/types/hunter";
+import type { Bidder } from "@/src/shared/types/marketplace";
 
 export const BIDDERS: Bidder[] = [
   {

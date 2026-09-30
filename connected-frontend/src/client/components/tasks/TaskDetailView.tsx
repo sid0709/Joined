@@ -7,12 +7,12 @@ import { InquiryCard } from "@/src/client/components/tasks/InquiryCard";
 import { TaskAssignmentsTab } from "@/src/client/components/tasks/TaskAssignmentsTab";
 import { TaskOverviewTab } from "@/src/client/components/tasks/TaskOverviewTab";
 import { TaskTeamTab } from "@/src/client/components/tasks/TaskTeamTab";
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { TaskStatusBadge, TaskTypeBadge } from "@/src/client/components/ui/StatusBadge";
-import { Tabs } from "@/src/client/components/ui/Tabs";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { countStatuses } from "@/src/client/lib/selectors";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { TaskStatusBadge, TaskTypeBadge } from "@/src/shared/kit/StatusBadge";
+import { Tabs } from "@/src/shared/kit/Tabs";
+import { countStatuses } from "@/src/shared/lib/selectors";
 import { Banner, Button, PageBody } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

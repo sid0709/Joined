@@ -1,12 +1,12 @@
-import type { ApplicationRecord, Bidder } from "@/src/client/types/hunter";
+import type { ApplicationRecord, Bidder } from "@/src/shared/types/marketplace";
 
-import { DailyBars } from "@/src/client/components/charts/DailyBars";
-import { Donut } from "@/src/client/components/charts/Donut";
-import { Heatmap } from "@/src/client/components/charts/Heatmap";
-import { Legend, type MeterSegment } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { weekday } from "@/src/client/lib/format";
-import { dailySeries, type StatusCounts } from "@/src/client/lib/selectors";
+import { DailyBars } from "@/src/shared/kit/charts/DailyBars";
+import { Donut } from "@/src/shared/kit/charts/Donut";
+import { Heatmap } from "@/src/shared/kit/charts/Heatmap";
+import { Legend, type MeterSegment } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { weekday } from "@/src/shared/lib/format";
+import { dailySeries, type StatusCounts } from "@/src/shared/lib/selectors";
 
 const HEATMAP_DAYS = 7;
 const SERIES_DAYS = 14;

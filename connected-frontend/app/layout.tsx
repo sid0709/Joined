@@ -1,9 +1,10 @@
-import { OpenSeatProvider } from "@openseat/design-system/theme";
 import { Inter } from "next/font/google";
 import { cookies } from "next/headers";
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
+import { ThemeProviders } from "@/src/shared/components/ThemeProviders";
 
 import "./globals.css";
 
@@ -36,7 +37,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <OpenSeatProvider mode={initialTheme}>{children}</OpenSeatProvider>
+        <ThemeProviders mode={initialTheme}>{children}</ThemeProviders>
       </body>
     </html>
   );

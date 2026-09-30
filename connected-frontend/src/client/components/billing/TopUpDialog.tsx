@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-import { NumberField } from "@/src/client/components/ui/Fields";
-import { money } from "@/src/client/lib/format";
+import { NumberField } from "@/src/shared/kit/Fields";
+import { money } from "@/src/shared/lib/format";
 import { Button, Modal } from "@/src/shared/marketplace-ui";
 
 const PRESETS = [100, 250, 500, 1000];

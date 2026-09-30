@@ -5,13 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BidderSidebar } from "@/src/client/components/messages/BidderSidebar";
 import { ThreadList } from "@/src/client/components/messages/ThreadList";
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Person } from "@/src/client/components/ui/Person";
-import { InquiryStatusBadge } from "@/src/client/components/ui/StatusBadge";
-import { Tabs } from "@/src/client/components/ui/Tabs";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { clockTime, plural } from "@/src/client/lib/format";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Person } from "@/src/shared/kit/Person";
+import { InquiryStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { Tabs } from "@/src/shared/kit/Tabs";
+import { clockTime, plural } from "@/src/shared/lib/format";
 import { Banner, Button, ChatComposer, PageBody } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

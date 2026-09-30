@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { AvatarStack } from "@/src/client/components/ui/Person";
-import { TaskStatusBadge, TaskTypeBadge } from "@/src/client/components/ui/StatusBadge";
 import { useHunter } from "@/src/client/context/HunterContext";
 import { useHunterMetrics } from "@/src/client/hooks/useHunterMetrics";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { AvatarStack } from "@/src/shared/kit/Person";
+import { TaskStatusBadge, TaskTypeBadge } from "@/src/shared/kit/StatusBadge";
 import { Button } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

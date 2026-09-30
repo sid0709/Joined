@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import type { Interview, InterviewMode } from "@/src/client/types/hunter";
+import type { Interview, InterviewMode } from "@/src/shared/types/marketplace";
 
-import { DateField } from "@/src/client/components/ui/Fields";
 import { useHunter } from "@/src/client/context/HunterContext";
 import { STAGE_TITLE } from "@/src/client/data/pipeline";
 import {
@@ -14,6 +13,7 @@ import {
   displayClock,
   openSlots,
 } from "@/src/client/lib/interviews";
+import { DateField } from "@/src/shared/kit/Fields";
 import { Banner, Button, Modal, Select, TextArea } from "@/src/shared/marketplace-ui";
 
 interface ScheduleDialogProps {

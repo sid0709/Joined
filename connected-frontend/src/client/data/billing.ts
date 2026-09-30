@@ -1,9 +1,14 @@
-import type { HunterProfile, Invoice, InvoiceLine, Transaction } from "@/src/client/types/hunter";
+import type {
+  HunterProfile,
+  Invoice,
+  InvoiceLine,
+  Transaction,
+} from "@/src/shared/types/marketplace";
 
-import { isoAgo, MOCK_NOW, MS_PER_DAY } from "@/src/client/data/clock";
 import { INITIAL_APPLICATIONS, INITIAL_ASSIGNMENTS } from "@/src/client/data/operations";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
 import { INITIAL_TASKS } from "@/src/client/data/tasks";
+import { isoAgo, MOCK_NOW, MS_PER_DAY } from "@/src/shared/mock/clock";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 
 interface InvoiceWindow {
   invoice: Invoice;

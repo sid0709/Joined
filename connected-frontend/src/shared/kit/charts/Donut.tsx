@@ -1,4 +1,4 @@
-import type { MeterSegment } from "@/src/client/components/ui/Meter";
+import type { MeterSegment } from "@/src/shared/kit/Meter";
 
 const SIZE = 180;
 const STROKE = 22;

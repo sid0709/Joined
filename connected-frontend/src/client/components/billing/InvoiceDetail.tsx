@@ -1,14 +1,14 @@
 import { Table } from "@openseat/design-system";
 
-import type { Invoice, InvoiceLine } from "@/src/client/types/hunter";
+import type { Invoice, InvoiceLine } from "@/src/shared/types/marketplace";
 
-import { Panel } from "@/src/client/components/ui/Panel";
-import { InvoiceStatusBadge } from "@/src/client/components/ui/StatusBadge";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { longDate, money } from "@/src/client/lib/format";
-import { lineAmount, sumLines } from "@/src/client/lib/selectors";
+import { Panel } from "@/src/shared/kit/Panel";
+import { InvoiceStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { longDate, money } from "@/src/shared/lib/format";
+import { lineAmount, sumLines } from "@/src/shared/lib/selectors";
 import { Button } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 
 interface Row extends Record<string, unknown> {
   id: string;

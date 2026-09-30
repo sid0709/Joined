@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { DashboardView } from "@/src/candidate/components/DashboardView";
 
-export default function CandidateDashboardPage() {
-  redirect("/marketplace/candidate/bids");
+export default function Page() {
+  return <DashboardView />;
 }

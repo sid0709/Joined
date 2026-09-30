@@ -1,6 +1,6 @@
-import type { Task } from "@/src/client/types/hunter";
+import type { Task } from "@/src/shared/types/marketplace";
 
-import { isoAgo, isoAhead } from "@/src/client/data/clock";
+import { isoAgo, isoAhead } from "@/src/shared/mock/clock";
 
 export const INITIAL_TASKS: Task[] = [
   {

@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 
 import { useHunter } from "@/src/client/context/HunterContext";
-import { MOCK_NOW } from "@/src/client/data/clock";
-import { dayKey } from "@/src/client/lib/format";
+import { dayKey } from "@/src/shared/lib/format";
 import {
   countStatuses,
   dailySeries,
@@ -10,7 +9,8 @@ import {
   groupBy,
   qaRate,
   sumLines,
-} from "@/src/client/lib/selectors";
+} from "@/src/shared/lib/selectors";
+import { MOCK_NOW } from "@/src/shared/mock/clock";
 
 const TREND_DAYS = 14;
 const WEEK = 7;

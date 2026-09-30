@@ -1,5 +1,5 @@
-import { CandidateProfileForm } from "@/src/candidate/components/CandidateProfileForm";
+import { ProfileView } from "@/src/candidate/components/ProfileView";
 
-export default function CandidateProfilePage() {
-  return <CandidateProfileForm />;
+export default function Page() {
+  return <ProfileView />;
 }

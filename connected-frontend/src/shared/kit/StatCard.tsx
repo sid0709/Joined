@@ -2,7 +2,7 @@ import { Glyph, type GlyphName } from "@openseat/design-system";
 
 import type { ReactNode } from "react";
 
-import { Sparkline } from "@/src/client/components/charts/Sparkline";
+import { Sparkline } from "@/src/shared/kit/charts/Sparkline";
 
 export type Tone = "accent" | "success" | "warning" | "danger";
 

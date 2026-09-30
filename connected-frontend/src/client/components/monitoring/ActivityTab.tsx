@@ -1,12 +1,12 @@
 import { Timeline, type TimelineItem, type TimelineTone } from "@openseat/design-system";
 
-import type { ApplicationRecord, ApplicationStatus } from "@/src/client/types/hunter";
+import type { ApplicationRecord, ApplicationStatus } from "@/src/shared/types/marketplace";
 
-import { Panel } from "@/src/client/components/ui/Panel";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { MOCK_NOW } from "@/src/client/data/clock";
-import { POOL_BY_ID } from "@/src/client/data/pool";
-import { dayKey, relativeTime } from "@/src/client/lib/format";
+import { Panel } from "@/src/shared/kit/Panel";
+import { dayKey, relativeTime } from "@/src/shared/lib/format";
+import { MOCK_NOW } from "@/src/shared/mock/clock";
+import { POOL_BY_ID } from "@/src/shared/mock/pool";
 
 const EVENT_LIMIT = 30;
 

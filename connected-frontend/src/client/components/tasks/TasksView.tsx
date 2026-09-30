@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 
 import { TaskCard } from "@/src/client/components/tasks/TaskCard";
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { StatCard } from "@/src/client/components/ui/StatCard";
 import { useHunterMetrics } from "@/src/client/hooks/useHunterMetrics";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { StatCard } from "@/src/shared/kit/StatCard";
 import { Button, Input, PageBody, Select } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

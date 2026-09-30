@@ -1,17 +1,17 @@
 "use client";
 
-import { DailyBars } from "@/src/client/components/charts/DailyBars";
 import { ActiveTasksPanel } from "@/src/client/components/dashboard/ActiveTasksPanel";
 import { AttentionPanel } from "@/src/client/components/dashboard/AttentionPanel";
 import { PoolSnapshot } from "@/src/client/components/dashboard/PoolSnapshot";
 import { WorkflowStrip } from "@/src/client/components/dashboard/WorkflowStrip";
-import { Legend } from "@/src/client/components/ui/Meter";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { StatCard } from "@/src/client/components/ui/StatCard";
 import { useHunter } from "@/src/client/context/HunterContext";
 import { useHunterMetrics } from "@/src/client/hooks/useHunterMetrics";
-import { money, percent } from "@/src/client/lib/format";
+import { DailyBars } from "@/src/shared/kit/charts/DailyBars";
+import { Legend } from "@/src/shared/kit/Meter";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Panel } from "@/src/shared/kit/Panel";
+import { StatCard } from "@/src/shared/kit/StatCard";
+import { money, percent } from "@/src/shared/lib/format";
 import { Button, PageBody } from "@/src/shared/marketplace-ui";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 

@@ -1,6 +1,6 @@
-import type { HunterNotification } from "@/src/client/types/hunter";
+import type { HunterNotification } from "@/src/shared/types/marketplace";
 
-import { isoAgo } from "@/src/client/data/clock";
+import { isoAgo } from "@/src/shared/mock/clock";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 export const INITIAL_NOTIFICATIONS: HunterNotification[] = [
