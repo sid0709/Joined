@@ -36,6 +36,10 @@ export function createApplication(input: {
   resume?: string;
   columnId?: string;
   note?: string;
+  screeningAnswers?: import("@/lib/intake").ScreeningAnswer[];
+  referralSource?: string;
+  consentAt?: string;
+  consentVersion?: string;
 }) {
   return meSend<Application>("/applications", "POST", input).then(hydrateApplication);
 }

@@ -3,8 +3,7 @@ import type { Option } from "@/lib/profile";
 import type { Connection, NotificationEvent } from "@/lib/settings";
 
 /**
- * Hiring workspace — you, not the company: your hiring profile, how you
- * interview, and your own account settings. Sample data until the API lands.
+ * Hiring workspace — you, not the company. Empty until this person saves a profile.
  */
 
 export type HiringProfile = {
@@ -21,18 +20,17 @@ export type HiringProfile = {
   isVisibleToCandidates: boolean;
 };
 
-export const MY_HIRING_PROFILE: HiringProfile = {
-  title: "Head of Talent",
-  about:
-    "I run hiring for design and data. Expect a straight answer on pay, the team, and next steps within two working days.",
-  meetingLink: "meet.google.com/opn-hire-now",
+export const EMPTY_HIRING_PROFILE: HiringProfile = {
+  title: "",
+  about: "",
+  meetingLink: "",
   interviewLength: "45",
   buffer: "15",
-  dayStart: "09:30",
+  dayStart: "09:00",
   dayEnd: "17:00",
-  interviewDays: ["mon", "tue", "wed", "thu"],
+  interviewDays: ["mon", "tue", "wed", "thu", "fri"],
   timeZone: "America/Chicago",
-  signature: "Talent team · Replies within two working days",
+  signature: "",
   isVisibleToCandidates: true,
 };
 
@@ -106,14 +104,12 @@ export const HIRING_CONNECTIONS: Connection[] = [
     id: "google-calendar",
     name: "Google Calendar",
     description: "Finds your free time and adds every interview you’re on.",
-    account: "you@company.example",
   },
   { id: "outlook", name: "Outlook", description: "Calendar and mail, for Microsoft accounts." },
   {
     id: "google-meet",
     name: "Google Meet",
     description: "Creates a video link for each interview you schedule.",
-    account: "Default for video rounds",
   },
   { id: "zoom", name: "Zoom", description: "Use your Zoom room instead of Google Meet." },
 ];

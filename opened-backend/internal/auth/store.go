@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -345,6 +346,10 @@ func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice,
 			{Key: "jobIds", Value: bson.A{}},
 			{Key: "createdBy", Value: userID},
 			{Key: "createdAt", Value: now.UTC()},
+			{Key: "verificationStatus", Value: jobs.VerificationPending},
+			{Key: "claimed", Value: true},
+			{Key: "claimMethod", Value: jobs.ClaimManual},
+			{Key: "claimedBy", Value: userID},
 		})
 		if err != nil {
 			return err
@@ -389,6 +394,7 @@ func (s *Store) view(ctx context.Context, userID string) (Session, error) {
 		return session, nil
 	}
 	company.Role = member.Role
+	company.HiringRole = membershipFrom(member).HiringRole
 	company.IsCreator = removesCompany(createdBy, userID)
 	session.Company = &company
 	return session, nil

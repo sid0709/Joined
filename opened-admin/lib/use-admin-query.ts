@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ApiError } from "@openseat/scout";
 import { adminFetch } from "@/lib/api";
 
-type Snapshot<T> = { key: string; result: T | null; error: string | null };
+type Snapshot<T> = {
+  key: string;
+  result: T | null;
+  error: string | null;
+  errorStatus: number | null;
+};
 
 /**
  * Loads an admin API path in the browser and keeps the last result on screen
@@ -19,7 +25,8 @@ export function useAdminQuery<T>(path: string) {
     const controller = new AbortController();
     adminFetch<T>(path, { signal: controller.signal })
       .then((result) => {
-        if (!controller.signal.aborted) setSnapshot({ key, result, error: null });
+        if (!controller.signal.aborted)
+          setSnapshot({ key, result, error: null, errorStatus: null });
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
@@ -27,6 +34,7 @@ export function useAdminQuery<T>(path: string) {
           key,
           result: null,
           error: cause instanceof Error ? cause.message : "Could not load",
+          errorStatus: cause instanceof ApiError ? cause.status : null,
         });
       });
     return () => controller.abort();
@@ -39,6 +47,7 @@ export function useAdminQuery<T>(path: string) {
     result: idle ? null : (snapshot?.result ?? null),
     loading,
     error: idle || loading ? null : (snapshot?.error ?? null),
+    errorStatus: idle || loading ? null : (snapshot?.errorStatus ?? null),
     reload,
   };
 }

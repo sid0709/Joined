@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Badge,
   Button,
@@ -19,12 +19,18 @@ import {
 } from "@openseat/design-system";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { POLICY_META, TEAM, WORKSPACE, type AssistedPolicy } from "@/lib/company";
+import {
+  ASSISTED_POLICIES,
+  DEFAULT_DAILY_CAP,
+  POLICY_META,
+  type AssistedPolicy,
+} from "@/lib/company";
+import { fetchSettings, fetchTeam, saveSettings, transferOwnership } from "@/lib/company/api";
 import type { AuthSession } from "@/lib/auth/types";
+import { sessionHiringRole } from "@/lib/company/access";
 import { RemoveAccount } from "@/components/settings/remove-account";
+import { OrgCatalogSettings } from "@/components/company/settings/org-catalog";
 
-const POLICIES = Object.keys(POLICY_META) as AssistedPolicy[];
-const DEFAULT_DAILY_CAP = 5;
 const DIGESTS = [
   { value: "instant", label: "Instant" },
   { value: "daily", label: "Daily" },
@@ -32,17 +38,11 @@ const DIGESTS = [
 ];
 const SPEND_ALERT_PERCENT = 80;
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
-const TRANSFER_OPTIONS = TEAM.filter((member) => !member.isYou && !member.isPending).map(
-  (member) => ({
-    value: member.id,
-    label: member.name,
-  }),
-);
 
 /** Company-wide defaults: domains, assisted policy, alerts, and ownership. */
 export function CompanySettings({ session }: { session: AuthSession }) {
   const toast = useToast();
-  const [domains, setDomains] = useState([{ name: WORKSPACE.website, verified: true }]);
+  const [domains, setDomains] = useState<{ name: string; verified: boolean }[]>([]);
   const [newDomain, setNewDomain] = useState("");
   const [policy, setPolicy] = useState<AssistedPolicy>("accept");
   const [dailyCap, setDailyCap] = useState(DEFAULT_DAILY_CAP);
@@ -50,7 +50,41 @@ export function CompanySettings({ session }: { session: AuthSession }) {
   const [autoReply, setAutoReply] = useState(true);
   const [digest, setDigest] = useState("daily");
   const [spendAlert, setSpendAlert] = useState(true);
-  const [transferTo, setTransferTo] = useState(TRANSFER_OPTIONS[0]?.value ?? "");
+  const [transferTo, setTransferTo] = useState("");
+  const [transferOptions, setTransferOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([fetchSettings(), fetchTeam()])
+      .then(([settings, team]) => {
+        if (!active) return;
+        setDomains(settings.domains);
+        setPolicy(settings.policy);
+        setDailyCap(settings.dailyCap);
+        setFaceCheck(settings.faceCheck);
+        setAutoReply(settings.autoReply);
+        setDigest(settings.digest);
+        setSpendAlert(settings.spendAlert);
+        const options = team.members
+          .filter((member) => !member.isYou && !member.isPending && member.role !== "owner")
+          .map((member) => ({ value: member.id, label: member.name }));
+        setTransferOptions(options);
+        setTransferTo(options[0]?.value ?? "");
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  const persist = (message: string) => {
+    saveSettings({ domains, policy, dailyCap, faceCheck, autoReply, digest, spendAlert })
+      .then((saved) => {
+        setDomains(saved.domains);
+        toast({ body: message });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
 
   const domain = newDomain.trim().toLowerCase();
   const domainValid = DOMAIN_PATTERN.test(domain) && !domains.some((item) => item.name === domain);
@@ -88,9 +122,23 @@ export function CompanySettings({ session }: { session: AuthSession }) {
               variant="secondary"
               isDisabled={!domainValid}
               onClick={() => {
-                setDomains((current) => [...current, { name: domain, verified: false }]);
+                const next = [...domains, { name: domain, verified: false }];
+                setDomains(next);
                 setNewDomain("");
-                toast({ body: `Added ${domain}. Add the DNS record to verify it.` });
+                saveSettings({
+                  domains: next,
+                  policy,
+                  dailyCap,
+                  faceCheck,
+                  autoReply,
+                  digest,
+                  spendAlert,
+                })
+                  .then((saved) => {
+                    setDomains(saved.domains);
+                    toast({ body: `Saved ${domain}.` });
+                  })
+                  .catch((error: Error) => toast({ body: error.message, type: "error" }));
               }}
             />
           </HStack>
@@ -104,6 +152,14 @@ export function CompanySettings({ session }: { session: AuthSession }) {
           <SaveFooter
             hint="Existing jobs keep their own settings."
             message="Hiring defaults saved"
+            action={
+              <Button
+                label="Save"
+                variant="primary"
+                size="sm"
+                onClick={() => persist("Hiring defaults saved")}
+              />
+            }
           />
         }
       >
@@ -112,7 +168,7 @@ export function CompanySettings({ session }: { session: AuthSession }) {
           value={policy}
           onChange={(value) => setPolicy(value as AssistedPolicy)}
         >
-          {POLICIES.map((value) => (
+          {ASSISTED_POLICIES.map((value) => (
             <RadioListItem
               key={value}
               value={value}
@@ -163,7 +219,20 @@ export function CompanySettings({ session }: { session: AuthSession }) {
 
       <SettingsGroup
         title="Team notifications"
-        footer={<SaveFooter hint="Goes to owners and admins." message="Team notifications saved" />}
+        footer={
+          <SaveFooter
+            hint="Goes to owners and admins."
+            message="Team notifications saved"
+            action={
+              <Button
+                label="Save"
+                variant="primary"
+                size="sm"
+                onClick={() => persist("Team notifications saved")}
+              />
+            }
+          />
+        }
       >
         <SettingsRow label="New applicant digest">
           <SegmentedControl label="New applicant digest" value={digest} onChange={setDigest}>
@@ -181,6 +250,8 @@ export function CompanySettings({ session }: { session: AuthSession }) {
         </SettingsRow>
       </SettingsGroup>
 
+      <OrgCatalogSettings actorRole={sessionHiringRole(session.company)} />
+
       <SettingsGroup
         title="Ownership"
         description="Only the owner can manage billing and close the company account."
@@ -190,14 +261,19 @@ export function CompanySettings({ session }: { session: AuthSession }) {
             <Selector
               label="New owner"
               isLabelHidden
-              options={TRANSFER_OPTIONS}
+              options={transferOptions}
               value={transferTo}
               onChange={setTransferTo}
             />
             <Button
               label="Transfer"
               variant="secondary"
-              onClick={() => toast({ body: "We emailed a confirmation link to the new owner." })}
+              isDisabled={!transferTo || session.company?.isCreator !== true}
+              onClick={() =>
+                transferOwnership(transferTo)
+                  .then(() => toast({ body: "Ownership transferred. You are now an admin." }))
+                  .catch((error: Error) => toast({ body: error.message, type: "error" }))
+              }
             />
           </HStack>
         </SettingsRow>
@@ -211,7 +287,10 @@ export function CompanySettings({ session }: { session: AuthSession }) {
             variant="destructive"
             size="sm"
             onClick={() =>
-              toast({ body: "Contact support to close a verified company.", type: "error" })
+              toast({
+                body: "Delete your account below if you created this company. That removes its jobs and balance.",
+                type: "error",
+              })
             }
           />
         </SettingsRow>

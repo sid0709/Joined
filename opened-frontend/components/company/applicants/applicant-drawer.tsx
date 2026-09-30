@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Avatar,
   Badge,
@@ -18,36 +18,193 @@ import {
   Text,
   TextArea,
   Token,
+  Tokenizer,
+  createStaticSource,
 } from "@openseat/design-system";
 import {
   APPLICANT_STAGES,
   ASSISTED_LABEL,
+  REFERRAL_OPTIONS,
   STRONG_FIT,
-  jobTitle,
+  TAG_SUGGESTIONS,
+  findDuplicateApplicants,
+  mergeStageOptions,
   type Applicant,
-  type ApplicantStage,
+  type ApplicantColumnId,
+  type HiringProfile,
+  type InterviewGuide,
+  type ScorecardSubmission,
+  type ScorecardSubmissionInput,
+  type ScorecardTemplate,
+  type TeamMember,
+  type TeamRole,
 } from "@/lib/company";
+import { FeedbackGateBanner, canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
+import { InterviewGuideView } from "@/components/company/pipeline/interview-guide-shell";
+import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
+import {
+  SchedulePanel,
+  emptyScheduleDraft,
+  scheduleDraftReady,
+  type ScheduleDraft,
+} from "@/components/company/interviews/schedule-panel";
 import { formatShortDate } from "@/lib/dates";
 import { formatCount } from "@/lib/jobs";
+import {
+  DEFAULT_FEEDBACK_GATE,
+  type FeedbackGateConfig,
+  type PipelineStageDef,
+} from "@/lib/pipeline-eval";
+import type { ScheduleMode, ProposedSlot } from "@/lib/schedule-join";
+import type { OfferTemplate } from "@/lib/offer-hire";
+import { OfferPanel, type OfferActionResult } from "@/components/company/offer/offer-panel";
+import { denialReason } from "@/lib/rbac";
 
 const AVATAR_SIZE = 48;
 const NOTE_ROWS = 3;
-const STAGE_OPTIONS = APPLICANT_STAGES.map((stage) => ({ value: stage.id, label: stage.title }));
+const REFERRAL_LABEL = Object.fromEntries(
+  REFERRAL_OPTIONS.map((option) => [option.value, option.label]),
+);
 
-/** A candidate’s profile, the team’s read on them, and the next move. */
+export type ApplicantScheduleRequest = {
+  date: string;
+  start: string;
+  end: string;
+  round: string;
+  mode: ScheduleMode;
+  proposedSlots: ProposedSlot[];
+  interviewerIds: string[];
+  interviewerNames: string[];
+};
+
+/** A candidate’s profile, intake answers, tags, the team’s read, and the next move. */
 export function ApplicantDrawer({
   applicant,
+  allApplicants,
+  teamMembers,
+  actorRole = null,
+  canMove = true,
+  canHire = true,
+  canSchedule = true,
+  canScore = true,
+  hiringProfile,
+  scorecardTemplate,
+  interviewGuide,
+  feedbackGate,
+  customStages,
+  scorecards,
+  offerTemplates,
+  onScorecard,
   onClose,
   onChange,
+  onSchedule,
+  onOffer,
 }: {
   applicant: Applicant | null;
+  allApplicants: Applicant[];
+  teamMembers: TeamMember[];
+  actorRole?: TeamRole | null;
+  /** Soft gate — applicants.move (stage CTAs). */
+  canMove?: boolean;
+  /** Soft gate — offers.hire (mark hired). */
+  canHire?: boolean;
+  /** Soft gate — interviews.schedule. */
+  canSchedule?: boolean;
+  /** Soft gate — interviews.score (scorecard submit). */
+  canScore?: boolean;
+  hiringProfile: HiringProfile | null;
+  scorecardTemplate: ScorecardTemplate | null;
+  interviewGuide: InterviewGuide | null;
+  feedbackGate: FeedbackGateConfig;
+  customStages?: PipelineStageDef[];
+  scorecards: ScorecardSubmission[];
+  offerTemplates: OfferTemplate[];
+  onScorecard: (input: ScorecardSubmissionInput) => void | Promise<void>;
   onClose: () => void;
   onChange: (next: Applicant, message?: string) => void;
+  onSchedule: (applicant: Applicant, slot: ApplicantScheduleRequest) => void;
+  onOffer: (result: OfferActionResult) => void;
 }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [draft, setDraft] = useState<ScheduleDraft>(emptyScheduleDraft());
+  const tagSource = useMemo(
+    () => createStaticSource(TAG_SUGGESTIONS.map((label) => ({ id: label, label }))),
+    [],
+  );
+  const [gateError, setGateError] = useState<ReturnType<typeof canAdvanceStage> | null>(null);
+
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- reset on candidate id */
+  useEffect(() => {
+    if (!applicant) return;
+    setDraft({
+      ...emptyScheduleDraft(),
+      interviewerIds: applicant.interviewerIds ?? [],
+    });
+    setGateError(null);
+  }, [applicant?.id]);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+
   if (!applicant) return null;
-  const move = (stage: ApplicantStage, message: string) =>
-    onChange({ ...applicant, columnId: stage }, message);
+
+  const applicantScorecards = scorecards.filter((item) => item.applicantId === applicant.id);
+  const stageOptions = mergeStageOptions(APPLICANT_STAGES, customStages).map((stage) => ({
+    value: stage.id,
+    label: stage.title,
+  }));
+  const tryMove = (stage: ApplicantColumnId, message?: string) => {
+    if (stage === "hired" ? !canHire : !canMove) {
+      setGateError({
+        ok: false,
+        reason: denialReason(actorRole, stage === "hired" ? "offers.hire" : "applicants.move"),
+      });
+      return;
+    }
+    const nextNotes = notes[applicant.id] ?? applicant.notes;
+    const check = canAdvanceStage({
+      fromStage: applicant.columnId,
+      toStage: stage,
+      notes: nextNotes,
+      rating: applicant.rating,
+      hasScorecard: applicantScorecards.length > 0,
+      gate: feedbackGate ?? DEFAULT_FEEDBACK_GATE,
+      customStages,
+    });
+    if (!check.ok) {
+      setGateError(check);
+      return;
+    }
+    setGateError(null);
+    onChange({ ...applicant, columnId: stage, notes: nextNotes }, message);
+  };
+  const move = (stage: ApplicantColumnId, message: string) => tryMove(stage, message);
+  const slotReady = scheduleDraftReady(draft);
+  const duplicates = findDuplicateApplicants(applicant, allApplicants);
+  const answers = applicant.screeningAnswers ?? [];
+  const knockedOut = answers.some((answer) => answer.knockedOut);
+  const tags = (applicant.tags ?? []).map((label) => ({ id: label, label }));
+
+  const submitSchedule = () => {
+    if (!canSchedule) {
+      setGateError({
+        ok: false,
+        reason: denialReason(actorRole, "interviews.schedule"),
+      });
+      return;
+    }
+    const names = draft.interviewerIds
+      .map((id) => teamMembers.find((member) => member.id === id)?.name)
+      .filter((name): name is string => Boolean(name));
+    onSchedule(applicant, {
+      date: draft.date,
+      start: draft.start,
+      end: draft.end,
+      round: draft.round,
+      mode: draft.mode,
+      proposedSlots: draft.proposedSlots,
+      interviewerIds: draft.interviewerIds,
+      interviewerNames: names,
+    });
+  };
 
   return (
     <Drawer
@@ -62,12 +219,14 @@ export function ApplicantDrawer({
             <Button
               label="Reject"
               variant="ghost"
+              isDisabled={!canMove}
               onClick={() => move("rejected", `${applicant.name} rejected`)}
             />
             {applicant.assisted !== "direct" ? (
               <Button
                 label="Not relevant"
                 variant="ghost"
+                isDisabled={!canMove}
                 onClick={() => move("rejected", "Marked not relevant — not billed")}
               />
             ) : null}
@@ -76,13 +235,38 @@ export function ApplicantDrawer({
             <Button
               label="Shortlist"
               variant="secondary"
+              isDisabled={!canMove}
               onClick={() => move("screening", `${applicant.name} shortlisted`)}
             />
-            <Button
-              label="Schedule interview"
-              variant="primary"
-              onClick={() => move("interview", `Sent ${applicant.name} your open slots`)}
-            />
+            {applicant.columnId === "interview" || applicant.columnId === "screening" ? (
+              <Button
+                label="Move to offer"
+                variant="secondary"
+                isDisabled={!canMove}
+                onClick={() => move("offer", `${applicant.name} moved to offer`)}
+              />
+            ) : null}
+            {applicant.columnId === "offer" ? (
+              <Button
+                label="Mark hired"
+                variant="primary"
+                isDisabled={!canHire}
+                onClick={() => move("hired", `${applicant.name} hired`)}
+              />
+            ) : (
+              <Button
+                label={
+                  draft.mode === "propose"
+                    ? "Offer times"
+                    : draft.mode === "self_schedule"
+                      ? "Send self-schedule"
+                      : "Schedule interview"
+                }
+                variant="primary"
+                isDisabled={!slotReady || !canSchedule}
+                onClick={submitSchedule}
+              />
+            )}
           </HStack>
         </HStack>
       }
@@ -98,11 +282,29 @@ export function ApplicantDrawer({
             label={ASSISTED_LABEL[applicant.assisted]}
             variant={applicant.assisted === "direct" ? "neutral" : "purple"}
           />
+          {knockedOut ? <Badge label="Knockout answer" variant="error" /> : null}
+          {applicant.consentAt ? <Badge label="Consent captured" variant="success" /> : null}
         </HStack>
+
+        {duplicates.length > 0 ? (
+          <Banner
+            status="warning"
+            title={applicant.userId ? "Same account on another job" : "Possible duplicate"}
+            description={
+              applicant.userId
+                ? `This seeker also applied to ${duplicates
+                    .map((item) => item.jobTitle)
+                    .join(", ")}.`
+                : `Same name also applied to ${duplicates
+                    .map((item) => item.jobTitle)
+                    .join(", ")}. Confirm it is not the same person before advancing.`
+            }
+          />
+        ) : null}
 
         <Stack gap={2}>
           <HStack hAlign="between" vAlign="end">
-            <Text type="label">Fit for {jobTitle(applicant.jobId)}</Text>
+            <Text type="label">Fit for {applicant.jobTitle}</Text>
             <Heading level={3} type="display-3">
               {`${applicant.fit}%`}
             </Heading>
@@ -125,7 +327,34 @@ export function ApplicantDrawer({
             {formatShortDate(applicant.appliedOn)}
           </MetadataListItem>
           <MetadataListItem label="Resume">{applicant.resume}</MetadataListItem>
+          <MetadataListItem label="Referral">
+            {applicant.referralSource
+              ? (REFERRAL_LABEL[applicant.referralSource] ?? applicant.referralSource)
+              : "—"}
+          </MetadataListItem>
+          <MetadataListItem label="Consent">
+            {applicant.consentAt ? formatShortDate(new Date(applicant.consentAt)) : "—"}
+          </MetadataListItem>
         </MetadataList>
+
+        {answers.length > 0 ? (
+          <Stack gap={3}>
+            <Heading level={3}>Screening answers</Heading>
+            <Stack gap={2}>
+              {answers.map((answer) => (
+                <Stack key={answer.questionId} gap={1}>
+                  <Text type="supporting" color="secondary">
+                    {answer.prompt || answer.questionId}
+                  </Text>
+                  <HStack gap={2} vAlign="center" wrap="wrap">
+                    <Text weight="medium">{answer.value || "—"}</Text>
+                    {answer.knockedOut ? <Badge label="Knockout" variant="error" /> : null}
+                  </HStack>
+                </Stack>
+              ))}
+            </Stack>
+          </Stack>
+        ) : null}
 
         <Stack gap={2}>
           <Text type="label">Skills</Text>
@@ -136,14 +365,77 @@ export function ApplicantDrawer({
           </HStack>
         </Stack>
 
+        <Stack gap={2}>
+          <Tokenizer
+            label="Pools / tags"
+            description="Employer-side pools for this candidate."
+            searchSource={tagSource}
+            value={tags}
+            onChange={(next) => onChange({ ...applicant, tags: next.map((item) => item.label) })}
+            hasCreate
+            hasEntriesOnFocus
+            placeholder="Add a tag"
+          />
+        </Stack>
+
         <Banner
           status="info"
           title="Contact details stay hidden"
           description="Email and phone unlock once an interview is scheduled here."
         />
 
+        {!canSchedule ? (
+          <Banner
+            status="warning"
+            title="Cannot schedule"
+            description={denialReason(actorRole, "interviews.schedule")}
+          />
+        ) : null}
+        <SchedulePanel
+          hiringProfile={hiringProfile}
+          teamMembers={teamMembers}
+          interviewerIds={draft.interviewerIds}
+          onInterviewersChange={(interviewerIds) => {
+            setDraft((current) => ({ ...current, interviewerIds }));
+            onChange({ ...applicant, interviewerIds });
+          }}
+          draft={draft}
+          onDraftChange={setDraft}
+        />
+
+        <Stack gap={3}>
+          <Heading level={3}>Interview guide</Heading>
+          <InterviewGuideView guide={interviewGuide} />
+        </Stack>
+
+        <ScorecardSubmitShell
+          key={applicant.id}
+          template={scorecardTemplate}
+          applicantId={applicant.id}
+          existing={applicantScorecards}
+          canScore={canScore}
+          scoreDenial={denialReason(actorRole, "interviews.score")}
+          onSubmit={onScorecard}
+        />
+
+        <OfferPanel
+          applicant={applicant}
+          templates={offerTemplates}
+          teamMembers={teamMembers}
+          actorRole={actorRole}
+          onApply={onOffer}
+        />
+
         <Stack gap={4}>
           <Heading level={3}>Team review</Heading>
+          {!canMove && !canHire ? (
+            <Banner
+              status="warning"
+              title="Cannot move stages"
+              description={denialReason(actorRole, "applicants.move")}
+            />
+          ) : null}
+          <FeedbackGateBanner result={gateError} />
           <Rating
             value={applicant.rating ?? 0}
             onChange={(rating) => onChange({ ...applicant, rating })}
@@ -151,13 +443,14 @@ export function ApplicantDrawer({
           />
           <Selector
             label="Stage"
-            options={STAGE_OPTIONS}
+            options={stageOptions}
             value={applicant.columnId}
-            onChange={(value) => onChange({ ...applicant, columnId: value as ApplicantStage })}
+            onChange={(value) => tryMove(value)}
+            isDisabled={!canMove && !canHire}
           />
           <TextArea
             label="Notes for the team"
-            value={notes[applicant.id] ?? ""}
+            value={notes[applicant.id] ?? applicant.notes ?? ""}
             onChange={(value) => setNotes((current) => ({ ...current, [applicant.id]: value }))}
             rows={NOTE_ROWS}
             placeholder="Strengths, concerns, what to probe in the interview…"

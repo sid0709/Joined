@@ -8,17 +8,22 @@ export function CompanyLogo({
   companyId,
   hasFile = false,
   size = 48,
+  version = 0,
+  srcOverride,
 }: {
   name: string;
   src?: string;
   companyId?: string;
   hasFile?: boolean;
   size?: AvatarSize;
+  version?: number;
+  /** A draft or local preview. Used as-is, instead of the saved logo route. */
+  srcOverride?: string;
 }) {
   return (
     <Avatar
       name={name}
-      src={companyLogoSrc(companyId, src, hasFile)}
+      src={srcOverride || companyLogoSrc(companyId, src, hasFile, version) || undefined}
       size={size}
       shape="rounded"
       tooltip={false}

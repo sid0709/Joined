@@ -23,10 +23,23 @@ export async function loadSearchCatalog(): Promise<Job[]> {
   return body.jobs ?? [];
 }
 
-export async function loadCompany(id: string): Promise<CompanyPage | null> {
-  const response = await fetch(catalogUrl(`${SEARCH_COMPANIES_PATH}/${encodeURIComponent(id)}`), {
-    cache: "no-store",
-  });
+export type CompanyPageFilters = {
+  department?: string;
+  location?: string;
+};
+
+/** GET /v1/search/companies/:id — optional ?department=&location= careers filters. */
+export async function loadCompany(
+  id: string,
+  filters?: CompanyPageFilters,
+): Promise<CompanyPage | null> {
+  const path = `${SEARCH_COMPANIES_PATH}/${encodeURIComponent(id)}`;
+  const url = catalogUrl(path);
+  const department = filters?.department?.trim();
+  const location = filters?.location?.trim();
+  if (department) url.searchParams.set("department", department);
+  if (location) url.searchParams.set("location", location);
+  const response = await fetch(url, { cache: "no-store" });
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error("Could not load company");

@@ -9,6 +9,7 @@ import {
   type DropdownMenuOption,
 } from "@openseat/design-system";
 import type { AuthSession } from "@/lib/auth/types";
+import { companyRoleLabel } from "@/lib/company/access";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import {
   COMPANY_ACCOUNT_PAGE,
@@ -48,14 +49,9 @@ const MODE_MENU: Record<WorkspaceMode, { links: { page: PageLink; icon: IconType
   },
 };
 
-const ROLE_LABEL: Record<NonNullable<AuthSession["company"]>["role"], string> = {
-  owner: "Owner",
-  member: "Member",
-};
-
 function identityLine(mode: WorkspaceMode, session: AuthSession) {
   if (mode !== "company" || !session.company) return session.user.email;
-  return `${ROLE_LABEL[session.company.role]} · ${session.company.name}`;
+  return `${companyRoleLabel(session.company)} · ${session.company.name}`;
 }
 
 /** The signed-in account menu. Signed-out visitors get GuestActions instead. */

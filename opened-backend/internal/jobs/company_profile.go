@@ -16,11 +16,9 @@ const (
 	maxListItem      = 80
 	maxValueTitle    = 60
 	maxValueBody     = 240
-	maxLeaderName    = 80
 	maxBenefitLabel  = 60
 	maxSpecialties   = 12
 	maxValues        = 6
-	maxLeaders       = 8
 	maxBenefitGroups = 6
 	maxBenefitItems  = 12
 	minFoundedYear   = 1800
@@ -57,11 +55,6 @@ type companyValue struct {
 	Description string `json:"description" bson:"description"`
 }
 
-type companyLeader struct {
-	Name  string `json:"name" bson:"name"`
-	Title string `json:"title" bson:"title"`
-}
-
 type benefitCategory struct {
 	Label string   `json:"label" bson:"label"`
 	Items []string `json:"items" bson:"items"`
@@ -80,7 +73,6 @@ type companyProfile struct {
 	Specialties       []string          `json:"specialties,omitempty" bson:"specialties,omitempty"`
 	Mission           string            `json:"mission,omitempty" bson:"mission,omitempty"`
 	Values            []companyValue    `json:"values,omitempty" bson:"values,omitempty"`
-	Leadership        []companyLeader   `json:"leadership,omitempty" bson:"leadership,omitempty"`
 	BenefitCategories []benefitCategory `json:"benefitCategories,omitempty" bson:"benefitCategories,omitempty"`
 	// Perks is legacy. Reads fold it into benefit categories; saves omit it.
 	Perks []string `json:"-" bson:"perks,omitempty"`
@@ -95,7 +87,7 @@ type companyOverrides struct {
 	Profile companyProfile `bson:"profile,omitempty"`
 }
 
-// CompanyWrite is the admin edit form. Every field is sent, including blanks.
+// CompanyWrite is the company page edit form. Every field is sent, including blanks.
 type CompanyWrite struct {
 	Name              string            `json:"name"`
 	URL               string            `json:"url"`
@@ -112,7 +104,6 @@ type CompanyWrite struct {
 	Specialties       []string          `json:"specialties"`
 	Mission           string            `json:"mission"`
 	Values            []companyValue    `json:"values"`
-	Leadership        []companyLeader   `json:"leadership"`
 	BenefitCategories []benefitCategory `json:"benefitCategories"`
 }
 
@@ -178,9 +169,9 @@ func (doc storedCompany) publicCompany() PublicCompany {
 		Specialties:       nilIfEmpty(profile.Specialties),
 		Mission:           profile.Mission,
 		Values:            nilValues(profile.Values),
-		Leadership:        nilLeaders(profile.Leadership),
 		BenefitCategories: nilBenefits(foldPerks(profile.BenefitCategories, profile.Perks)),
 		HasLogoFile:       doc.hasLogoFile(),
+		Verified:          doc.VerificationStatus == VerificationApproved,
 	}
 }
 
@@ -244,7 +235,6 @@ func overridesFrom(input CompanyWrite) (companyOverrides, error) {
 			Specialties:       cleanList(clipItems(input.Specialties, maxListItem), maxSpecialties),
 			Mission:           truncate(strings.TrimSpace(input.Mission), maxMission),
 			Values:            cleanValues(input.Values),
-			Leadership:        cleanLeaders(input.Leadership),
 			BenefitCategories: cleanBenefits(input.BenefitCategories),
 		},
 	}, nil
@@ -278,24 +268,6 @@ func cleanValues(values []companyValue) []companyValue {
 			Description: truncate(strings.TrimSpace(value.Description), maxValueBody),
 		})
 		if len(out) == maxValues {
-			break
-		}
-	}
-	return out
-}
-
-func cleanLeaders(leaders []companyLeader) []companyLeader {
-	out := make([]companyLeader, 0, min(len(leaders), maxLeaders))
-	for _, leader := range leaders {
-		name := truncate(strings.TrimSpace(leader.Name), maxLeaderName)
-		if name == "" {
-			continue
-		}
-		out = append(out, companyLeader{
-			Name:  name,
-			Title: truncate(strings.TrimSpace(leader.Title), maxLeaderName),
-		})
-		if len(out) == maxLeaders {
 			break
 		}
 	}
@@ -347,13 +319,6 @@ func nilValues(values []companyValue) []companyValue {
 		return nil
 	}
 	return values
-}
-
-func nilLeaders(leaders []companyLeader) []companyLeader {
-	if len(leaders) == 0 {
-		return nil
-	}
-	return leaders
 }
 
 // foldPerks keeps a removed perks list visible under Benefits & Perks until the next save.

@@ -45,6 +45,30 @@ export function formatMonthDay(date: Date) {
   };
 }
 
+/** "YYYY-MM-DD" at local midnight. */
+export function parseISODate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return new Date(value);
+  return new Date(year, month - 1, day);
+}
+
+/** Local calendar day as "YYYY-MM-DD". */
+export function formatISODate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** A short age for an activity row. */
+export function formatAgo(date: Date, now = new Date()) {
+  const minutes = Math.round((now.getTime() - date.getTime()) / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  return relativeDay(date, now);
+}
+
 /** "14:30" → "2:30 PM". */
 export function formatTime(time: string) {
   const [hours, minutes] = time.split(":").map(Number);

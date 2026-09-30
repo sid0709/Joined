@@ -1,4 +1,5 @@
 import type { Employment, PayPeriod, Seniority, Workplace } from "@openseat/job-schema";
+import type { ScreeningQuestion } from "@/lib/intake";
 
 export type { Employment, PayPeriod, Seniority, Workplace };
 
@@ -39,8 +40,11 @@ export type Job = {
   responsibilities: string[];
   requirements: string[];
   benefits: string[];
+  description?: string;
   /** Official listing. Apply and copy link use this for aggregated jobs. */
   applyLink?: string;
+  /** Screening / knockout questions for direct apply. */
+  screeningQuestions?: ScreeningQuestion[];
 };
 
 /** A company the seeker can open. Profile fields are present once an admin has saved them. */
@@ -62,7 +66,6 @@ export type PublicCompany = {
   specialties?: string[];
   mission?: string;
   values?: { icon: string; title: string; description: string }[];
-  leadership?: { name: string; title: string }[];
   benefitCategories?: { label: string; items: string[] }[];
   hasLogoFile?: boolean;
 };

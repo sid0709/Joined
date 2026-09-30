@@ -1,167 +1,133 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Badge,
+  Button,
   GridColumn,
   GridSystem,
   HStack,
-  NumberInput,
-  Selector,
   Stack,
   Sticky,
   Text,
-  TextArea,
-  TextInput,
-  Tokenizer,
-  createStaticSource,
-  type SearchableItem,
+  useToast,
 } from "@openseat/design-system";
+import { CompanyPageFields } from "@/components/company/about/company-page-fields";
 import { CompanyCard } from "@/components/jobs/company-card";
 import { SaveFooter } from "@/components/save-footer";
-import { SettingsGroup, SettingsRow } from "@/components/settings-group";
-import { WORKSPACE, type Workspace } from "@/lib/company";
-
-const TAGLINE_MAX = 90;
-const ABOUT_MAX = 400;
-const ABOUT_ROWS = 4;
-const MAX_BENEFITS = 6;
-const SIZES = ["1–10", "11–50", "51–200", "201–500", "501–1,000", "1,001–5,000", "5,000+"].map(
-  (value) => ({ value, label: `${value} people` }),
-);
-const BENEFIT_SUGGESTIONS = [
-  "Hybrid, 2 days in office",
-  "Remote-first",
-  "Learning budget $2,000/yr",
-  "16 weeks parental leave",
-  "Home office stipend",
-  "4-day summer weeks",
-  "Visa sponsorship",
-];
-
-const toItems = (labels: string[]): SearchableItem[] =>
-  labels.map((label) => ({ id: label, label }));
+import {
+  deleteCompanyLogo,
+  fetchCompanyPage,
+  saveCompanyPage,
+  uploadCompanyLogo,
+} from "@/lib/company/api";
+import {
+  emptyPageWrite,
+  pageWriteFrom,
+  type CompanyPage,
+  type CompanyPageWrite,
+} from "@/lib/company/page";
+import type { AuthCompany } from "@/lib/auth/types";
+import { companyLogoSrc } from "@/lib/jobs";
 
 /** Edit the public company page on the left; see the card candidates get on the right. */
-export function CompanyPageEditor() {
-  const [draft, setDraft] = useState<Workspace>(WORKSPACE);
-  const benefitSource = useMemo(() => createStaticSource(toItems(BENEFIT_SUGGESTIONS)), []);
-  const set =
-    <K extends keyof Workspace>(key: K) =>
-    (value: Workspace[K]) =>
-      setDraft((current) => ({ ...current, [key]: value }));
-  const footer = (
+export function CompanyPageEditor({
+  company,
+  canEdit,
+}: {
+  company: AuthCompany;
+  canEdit: boolean;
+}) {
+  const toast = useToast();
+  const [page, setPage] = useState<CompanyPage | null>(null);
+  const [draft, setDraft] = useState<CompanyPageWrite>(emptyPageWrite(company));
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoCleared, setLogoCleared] = useState(false);
+  const [version, setVersion] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const objectUrl = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : null), [logoFile]);
+
+  useEffect(() => {
+    if (!objectUrl) return;
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [objectUrl]);
+
+  useEffect(() => {
+    let active = true;
+    fetchCompanyPage()
+      .then((loaded) => {
+        if (!active) return;
+        setPage(loaded);
+        setDraft(pageWriteFrom(loaded));
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
+
+  const typedLogo = draft.logo.trim();
+  const savedLogo = page?.logo?.trim() ?? "";
+  const logoChanged = logoCleared || (typedLogo !== "" && typedLogo !== savedLogo);
+  const logoPreview =
+    objectUrl ||
+    (logoChanged
+      ? typedLogo || undefined
+      : companyLogoSrc(page?.id ?? company.id, page?.logo, Boolean(page?.hasLogoFile), version));
+  const canRemoveLogo = Boolean(logoFile || (page?.hasLogoFile && !logoCleared));
+
+  const save = () => {
+    if (!canEdit || saving) return;
+    setSaving(true);
+    saveCompanyPage(draft)
+      .then(async (saved) => {
+        if (logoFile) return uploadCompanyLogo(logoFile);
+        if (logoCleared && page?.hasLogoFile) return deleteCompanyLogo();
+        return saved;
+      })
+      .then((saved) => {
+        setPage(saved);
+        setDraft(pageWriteFrom(saved));
+        setLogoFile(null);
+        setLogoCleared(false);
+        setVersion((token) => token + 1);
+        toast({ body: "Company page published" });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }))
+      .finally(() => setSaving(false));
+  };
+
+  const footer = canEdit ? (
     <SaveFooter
       hint="Changes go live on your public page and every job card."
       message="Company page published"
+      action={
+        <Button label="Save" variant="primary" size="sm" onClick={save} isDisabled={saving} />
+      }
     />
-  );
+  ) : null;
+  const benefits = draft.benefitCategories.flatMap((group) => group.items);
 
   return (
     <GridSystem gap={6} align="start">
       <GridColumn span="full" lg={7}>
-        <Stack gap={6}>
-          <SettingsGroup
-            title="Identity"
-            description="How candidates recognise you."
-            footer={footer}
-          >
-            <SettingsRow label="Company name">
-              <TextInput
-                label="Company name"
-                isLabelHidden
-                value={draft.name}
-                onChange={set("name")}
-              />
-            </SettingsRow>
-            <SettingsRow label="Tagline" description={`One line, up to ${TAGLINE_MAX} characters.`}>
-              <TextInput
-                label="Tagline"
-                isLabelHidden
-                value={draft.tagline}
-                onChange={(value) => set("tagline")(value.slice(0, TAGLINE_MAX))}
-              />
-            </SettingsRow>
-            <SettingsRow
-              label="Website"
-              description={
-                <HStack gap={2} vAlign="center">
-                  <span>Used to verify your team.</span>
-                  <Badge label="Verified" variant="success" />
-                </HStack>
-              }
-            >
-              <TextInput
-                label="Website"
-                isLabelHidden
-                value={draft.website}
-                onChange={set("website")}
-              />
-            </SettingsRow>
-          </SettingsGroup>
-
-          <SettingsGroup title="About" description="The facts on your card." footer={footer}>
-            <TextArea
-              label="About"
-              value={draft.about}
-              onChange={set("about")}
-              rows={ABOUT_ROWS}
-              maxLength={ABOUT_MAX}
-            />
-            <SettingsRow label="Industry">
-              <TextInput
-                label="Industry"
-                isLabelHidden
-                value={draft.industry}
-                onChange={set("industry")}
-              />
-            </SettingsRow>
-            <SettingsRow label="Size">
-              <Selector
-                label="Size"
-                isLabelHidden
-                options={SIZES}
-                value={draft.size}
-                onChange={set("size")}
-              />
-            </SettingsRow>
-            <SettingsRow label="Founded">
-              <NumberInput
-                label="Founded"
-                isLabelHidden
-                value={draft.founded}
-                onChange={set("founded")}
-                isIntegerOnly
-              />
-            </SettingsRow>
-            <SettingsRow label="Locations" description="Offices, separated by ·">
-              <TextInput
-                label="Locations"
-                isLabelHidden
-                value={draft.locations}
-                onChange={set("locations")}
-              />
-            </SettingsRow>
-          </SettingsGroup>
-
-          <SettingsGroup
-            title="Benefits & Perks"
-            description={`Up to ${MAX_BENEFITS}. Specific beats generic.`}
-            footer={footer}
-          >
-            <Tokenizer
-              label="Benefits & Perks"
-              isLabelHidden
-              searchSource={benefitSource}
-              value={toItems(draft.benefits)}
-              onChange={(items) => set("benefits")(items.map((item) => item.label))}
-              maxEntries={MAX_BENEFITS}
-              hasCreate
-              hasEntriesOnFocus
-              placeholder="Add a benefit or perk"
-            />
-          </SettingsGroup>
-        </Stack>
+        <CompanyPageFields
+          draft={draft}
+          onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+          footer={footer}
+          logoPreview={logoPreview}
+          logoFile={logoFile}
+          canRemoveLogo={canRemoveLogo}
+          onLogoFile={(file) => {
+            setLogoFile(file);
+            setLogoCleared(false);
+          }}
+          onLogoClear={() => {
+            setLogoFile(null);
+            setLogoCleared(true);
+          }}
+          taglineKey={version}
+          canEdit={canEdit}
+        />
       </GridColumn>
 
       <GridColumn span="full" lg={5}>
@@ -173,7 +139,26 @@ export function CompanyPageEditor() {
                 · as candidates see it
               </Text>
             </HStack>
-            <CompanyCard company={draft} hasActions={false} />
+            <CompanyCard
+              company={{
+                id: page?.id ?? company.id,
+                slug: page?.id ?? company.id,
+                name: draft.name,
+                about: draft.about,
+                industry: draft.industry,
+                size: draft.size,
+                founded: draft.founded || undefined,
+                replyDays: draft.replyDays || undefined,
+                locations: draft.locations,
+                tagline: draft.tagline,
+                benefits,
+                logo: page?.logo,
+                hasLogoFile: Boolean(page?.hasLogoFile) && !logoCleared && !logoFile,
+                logoVersion: version,
+                logoSrc: logoPreview,
+              }}
+              hasActions={false}
+            />
           </Stack>
         </Sticky>
       </GridColumn>

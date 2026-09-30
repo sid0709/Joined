@@ -75,6 +75,19 @@ func TestAllowsAudienceKeepsRolesApart(t *testing.T) {
 	}
 }
 
+func TestValidHiringRoleAcceptsEinsteinRoles(t *testing.T) {
+	for _, role := range []string{"admin", "recruiter", "viewer", "hiring_manager", "interviewer", "finance"} {
+		if !validHiringRole(role) {
+			t.Fatalf("%s should be a hiring role", role)
+		}
+	}
+	for _, role := range []string{"owner", "hm", "hiring-manager", "", "superadmin"} {
+		if validHiringRole(role) {
+			t.Fatalf("%s should not be stored as a hiring role", role)
+		}
+	}
+}
+
 func TestRemovesCompanyOnlyForCreator(t *testing.T) {
 	if !removesCompany("user-1", "user-1") {
 		t.Fatal("creator should remove the company")

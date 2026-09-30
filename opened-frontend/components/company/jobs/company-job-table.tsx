@@ -24,21 +24,28 @@ const PIPELINE_WIDTH = 200;
 const PAGE_SIZE = 8;
 const STATUS_ORDER: Record<CompanyJobStatus, number> = { open: 0, paused: 1, draft: 2, closed: 3 };
 
-export type JobAction = "open" | "pause" | "resume" | "close" | "publish";
+export type JobAction = "open" | "pause" | "resume" | "close" | "publish" | "reopen";
 
 function actionsFor(
   job: CompanyJob,
   onAction: (job: CompanyJob, action: JobAction) => void,
+  canPublish: boolean,
 ): DropdownMenuOption[] {
   const act = (action: JobAction) => () => onAction(job, action);
+  // Einstein PATCH /jobs/:id requires jobs.publish for every status change (pause/resume/close/reopen/publish).
   return [
     { label: "View details", onClick: act("open") },
     { type: "divider" },
-    ...(job.status === "open" ? [{ label: "Pause", onClick: act("pause") }] : []),
-    ...(job.status === "paused" ? [{ label: "Resume", onClick: act("resume") }] : []),
-    ...(job.status === "draft" ? [{ label: "Publish", onClick: act("publish") }] : []),
-    ...(job.status !== "closed"
-      ? [{ label: "Close job", variant: "destructive" as const, onClick: act("close") }]
+    ...(job.status === "open" && canPublish ? [{ label: "Pause", onClick: act("pause") }] : []),
+    ...(job.status === "paused" && canPublish ? [{ label: "Resume", onClick: act("resume") }] : []),
+    ...(job.status === "draft" && canPublish
+      ? [{ label: "Publish", onClick: act("publish") }]
+      : []),
+    ...(job.status === "closed" && canPublish
+      ? [{ label: "Reopen job", onClick: act("reopen") }]
+      : []),
+    ...(job.status !== "closed" && canPublish
+      ? [{ label: "Close & archive", variant: "destructive" as const, onClick: act("close") }]
       : []),
   ];
 }
@@ -47,9 +54,14 @@ function actionsFor(
 export function CompanyJobTable({
   jobs,
   onAction,
+  canPublish = true,
 }: {
   jobs: CompanyJob[];
   onAction: (job: CompanyJob, action: JobAction) => void;
+  /** Accepted for callers; pause soft-gate uses canPublish (BE PATCH). */
+  canEdit?: boolean;
+  /** Soft gate — jobs.publish (pause / publish / resume / close / reopen). */
+  canPublish?: boolean;
 }) {
   const now = new Date();
   const columns: TableColumn<CompanyJob>[] = [
@@ -61,8 +73,19 @@ export function CompanyJobTable({
         <Stack gap={0.5}>
           <Text weight="semibold">{row.title}</Text>
           <Text type="supporting" color="secondary">
-            {row.team} · {row.location} · {formatCount(daysBetween(row.postedOn, now), "day")} ago
+            {[
+              row.department || row.team,
+              row.location,
+              `${formatCount(daysBetween(row.postedOn, now), "day")} ago`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </Text>
+          {row.status === "closed" && row.closeReason ? (
+            <Text type="supporting" color="secondary">
+              Closed: {row.closeReason}
+            </Text>
+          ) : null}
         </Stack>
       ),
     },
@@ -110,7 +133,7 @@ export function CompanyJobTable({
       sortValue: (row) => STATUS_ORDER[row.status],
       render: (row) => (
         <Badge
-          label={JOB_STATUS_META[row.status].label}
+          label={row.status === "closed" ? "Archived" : JOB_STATUS_META[row.status].label}
           variant={JOB_STATUS_META[row.status].badge}
         />
       ),
@@ -124,7 +147,7 @@ export function CompanyJobTable({
           <MoreMenu
             label={`Actions for ${row.title}`}
             size="sm"
-            items={actionsFor(row, onAction)}
+            items={actionsFor(row, onAction, canPublish)}
           />
         </span>
       ),

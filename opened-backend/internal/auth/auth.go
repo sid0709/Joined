@@ -94,12 +94,13 @@ type User struct {
 }
 
 type Company struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	URL       string `json:"url,omitempty"`
-	Logo      string `json:"logo,omitempty"`
-	Role      string `json:"role"`
-	IsCreator bool   `json:"isCreator,omitempty"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	URL        string `json:"url,omitempty"`
+	Logo       string `json:"logo,omitempty"`
+	Role       string `json:"role"`
+	HiringRole string `json:"hiringRole,omitempty"`
+	IsCreator  bool   `json:"isCreator,omitempty"`
 }
 
 type Session struct {
@@ -140,10 +141,20 @@ type storedSession struct {
 }
 
 type storedMember struct {
-	UserID    string    `bson:"userId"`
-	CompanyID string    `bson:"companyId"`
-	Role      string    `bson:"role"`
-	CreatedAt time.Time `bson:"createdAt"`
+	UserID     string    `bson:"userId"`
+	CompanyID  string    `bson:"companyId"`
+	Role       string    `bson:"role"`
+	HiringRole string    `bson:"hiringRole,omitempty"`
+	CreatedAt  time.Time `bson:"createdAt"`
+}
+
+// Membership is one person's place on a company.
+type Membership struct {
+	UserID     string
+	CompanyID  string
+	Role       string
+	HiringRole string
+	CreatedAt  time.Time
 }
 
 func normalizeSignup(input Signup) (Signup, error) {

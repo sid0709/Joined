@@ -11,6 +11,7 @@ import (
 
 type enumFile struct {
 	Currency         string            `json:"currency"`
+	Currencies       []string          `json:"currencies"`
 	Workplace        []enumOption      `json:"workplace"`
 	Seniority        []enumOption      `json:"seniority"`
 	Employment       []enumOption      `json:"employment"`
@@ -38,6 +39,9 @@ func TestEnumsMatchSharedFile(t *testing.T) {
 	}
 	if shared.Currency != CurrencyUSD {
 		t.Fatalf("currency = %q", shared.Currency)
+	}
+	if !reflect.DeepEqual(shared.Currencies, Currencies()) {
+		t.Fatalf("currencies = %v", shared.Currencies)
 	}
 	if got := values(shared.Workplace); !reflect.DeepEqual(got, Workplaces()) {
 		t.Fatalf("workplaces = %v", got)

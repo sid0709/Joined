@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 import enums from "../enums.json";
 
 import {
+  CURRENCIES,
   DEFAULT_CURRENCY,
   EMPLOYMENTS,
   EMPLOYMENT_LABEL,
@@ -23,6 +24,7 @@ function pairs<T extends string>(values: readonly T[], labels: Record<T, string>
 
 test("enums.json matches the TypeScript job enums", () => {
   expect(enums.currency).toBe(DEFAULT_CURRENCY);
+  expect(enums.currencies).toEqual([...CURRENCIES]);
   expect(enums.workplace).toEqual(pairs(WORKPLACES, WORKPLACE_LABEL));
   expect(enums.seniority).toEqual(pairs(SENIORITIES, SENIORITY_LABEL));
   expect(enums.employment).toEqual(pairs(EMPLOYMENTS, EMPLOYMENT_LABEL));

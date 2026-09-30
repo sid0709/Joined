@@ -10,25 +10,34 @@ import {
 import type { Overview } from "@openseat/scout";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/nav";
+import type { TrustNavCounts } from "@/lib/trust";
 import { ConsoleNav, type NavCounts } from "./console-nav";
 
 const CONTENT_PADDING = 6;
 
-function counts(overview: Overview | null): NavCounts {
-  if (!overview) return {};
+function counts(overview: Overview | null, trust: TrustNavCounts): NavCounts {
   return {
-    queue: overview.needs_review,
-    verifications: overview.pending_verifications,
-    payouts: overview.pending_payouts,
+    ...(overview
+      ? {
+          queue: overview.needs_review,
+          verifications: overview.pending_verifications,
+          payouts: overview.pending_payouts,
+        }
+      : {}),
+    companyVerification: trust.companyVerification,
+    directReview: trust.directReview,
+    cases: trust.cases,
   };
 }
 
 /** Top bar, staff navigation, and the centered content column. */
 export function AdminShell({
   overview,
+  trust,
   children,
 }: {
   overview: Overview | null;
+  trust: TrustNavCounts;
   children: ReactNode;
 }) {
   return (
@@ -48,7 +57,7 @@ export function AdminShell({
           endContent={<ThemeToggle />}
         />
       }
-      sideNav={<ConsoleNav counts={counts(overview)} />}
+      sideNav={<ConsoleNav counts={counts(overview, trust)} />}
     >
       <PageContainer width="wide">{children}</PageContainer>
     </AppShell>

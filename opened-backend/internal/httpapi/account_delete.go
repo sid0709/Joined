@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sid0709/OpenSeat/opened-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/opened-backend/internal/employer"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/jobs"
 	"github.com/sid0709/OpenSeat/opened-backend/internal/scout"
 )
@@ -13,10 +14,11 @@ type AccountEraser struct {
 	people *candidate.Store
 	scouts *scout.Store
 	jobs   *jobs.Store
+	hiring *employer.Store
 }
 
-func NewAccountEraser(people *candidate.Store, scouts *scout.Store, jobsStore *jobs.Store) AccountEraser {
-	return AccountEraser{people: people, scouts: scouts, jobs: jobsStore}
+func NewAccountEraser(people *candidate.Store, scouts *scout.Store, jobsStore *jobs.Store, hiring *employer.Store) AccountEraser {
+	return AccountEraser{people: people, scouts: scouts, jobs: jobsStore, hiring: hiring}
 }
 
 // DeleteUser removes the person and everything that exists only because of them.
@@ -33,6 +35,9 @@ func (e AccountEraser) DeleteUser(ctx context.Context, userID, ownedCompanyID st
 	}
 	jobIDs := append(removed.JobIDs, published...)
 	if ownedCompanyID != "" {
+		if err := e.hiring.DeleteCompany(ctx, ownedCompanyID); err != nil {
+			return err
+		}
 		companyJobs, err := e.jobs.DeleteByCompany(ctx, ownedCompanyID)
 		if err != nil {
 			return err
@@ -46,6 +51,9 @@ func (e AccountEraser) DeleteUser(ctx context.Context, userID, ownedCompanyID st
 		return err
 	}
 	if err := e.people.DeleteUser(ctx, userID); err != nil {
+		return err
+	}
+	if err := e.hiring.DeleteUser(ctx, userID); err != nil {
 		return err
 	}
 	for _, companyID := range removed.CompanyIDs {

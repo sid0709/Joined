@@ -72,11 +72,6 @@ export type CompanyValue = {
   description: string;
 };
 
-export type CompanyLeader = {
-  name: string;
-  title: string;
-};
-
 export type BenefitCategory = {
   label: string;
   items: string[];
@@ -101,7 +96,6 @@ export type AdminCompany = {
   specialties: string[];
   mission: string;
   values: CompanyValue[];
-  leadership: CompanyLeader[];
   benefitCategories: BenefitCategory[];
   hasLogoFile?: boolean;
 };
@@ -169,7 +163,6 @@ export function companyWriteFrom(company: AdminCompany): CompanyWrite {
     specialties: company.specialties ?? [],
     mission: company.mission ?? "",
     values: company.values ?? [],
-    leadership: company.leadership ?? [],
     benefitCategories: company.benefitCategories ?? [],
   };
 }

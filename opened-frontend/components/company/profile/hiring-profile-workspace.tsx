@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Button,
@@ -18,6 +18,7 @@ import {
   TimeField,
   ToggleButton,
   ToggleButtonGroup,
+  useToast,
 } from "@openseat/design-system";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
@@ -25,12 +26,13 @@ import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import type { AuthSession } from "@/lib/auth/types";
 import {
   ABOUT_MAX_LENGTH,
+  EMPTY_HIRING_PROFILE,
   INTERVIEW_BUFFERS,
   INTERVIEW_LENGTHS,
-  MY_HIRING_PROFILE,
   WEEKDAYS,
   type HiringProfile,
 } from "@/lib/company";
+import { fetchHiringProfile, saveHiringProfile } from "@/lib/company/api";
 import { TIME_ZONES } from "@/lib/settings";
 import { HiringProfilePreview } from "./hiring-profile-preview";
 
@@ -44,12 +46,37 @@ const TIME_COLUMNS = 2;
  * and how your messages sign off — with a live preview beside the form.
  */
 export function HiringProfileWorkspace({ session }: { session: AuthSession }) {
+  const toast = useToast();
   const [name, setName] = useState(session.user.name);
-  const [profile, setProfile] = useState<HiringProfile>(MY_HIRING_PROFILE);
+  const [profile, setProfile] = useState<HiringProfile>(EMPTY_HIRING_PROFILE);
   const company = session.company?.name ?? "";
+
+  useEffect(() => {
+    let active = true;
+    fetchHiringProfile()
+      .then((loaded) => {
+        if (!active) return;
+        if (loaded.name) setName(loaded.name);
+        setProfile(loaded);
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+    return () => {
+      active = false;
+    };
+  }, [toast]);
 
   const set = <K extends keyof HiringProfile>(key: K, value: HiringProfile[K]) =>
     setProfile((current) => ({ ...current, [key]: value }));
+
+  const save = (message: string) => {
+    saveHiringProfile({ ...profile, name })
+      .then((saved) => {
+        if (saved.name) setName(saved.name);
+        setProfile(saved);
+        toast({ body: message });
+      })
+      .catch((error: Error) => toast({ body: error.message, type: "error" }));
+  };
 
   return (
     <GridSystem gap={6} responsiveTo="viewport">
@@ -59,7 +86,18 @@ export function HiringProfileWorkspace({ session }: { session: AuthSession }) {
             title="Public profile"
             description="Shown on your messages, interview invites, and the jobs you own."
             footer={
-              <SaveFooter hint="Teammates always see your full profile." message="Profile saved" />
+              <SaveFooter
+                hint="Teammates always see your full profile."
+                message="Profile saved"
+                action={
+                  <Button
+                    label="Save"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => save("Profile saved")}
+                  />
+                }
+              />
             }
           >
             <SettingsRow label="Photo" description="Square, at least 400 × 400 px." layout="inline">
@@ -117,6 +155,14 @@ export function HiringProfileWorkspace({ session }: { session: AuthSession }) {
               <SaveFooter
                 hint="Busy times on your connected calendar are always skipped."
                 message="Interview preferences saved"
+                action={
+                  <Button
+                    label="Save"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => save("Interview preferences saved")}
+                  />
+                }
               />
             }
           >
@@ -204,6 +250,14 @@ export function HiringProfileWorkspace({ session }: { session: AuthSession }) {
               <SaveFooter
                 hint="Added under your name on every message."
                 message="Signature saved"
+                action={
+                  <Button
+                    label="Save"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => save("Signature saved")}
+                  />
+                }
               />
             }
           >

@@ -2,7 +2,6 @@ import type { Job, PublicCompany } from "./types";
 import type { GlyphName } from "@openseat/design-system";
 
 const OFFICE_LIMIT = 3;
-const SKILLS_LIMIT = 6;
 const VALUE_ICONS: GlyphName[] = [
   "heart",
   "star",
@@ -17,14 +16,13 @@ const VALUE_ICONS: GlyphName[] = [
 ];
 
 export type CompanyValue = { icon: GlyphName; title: string; description: string };
-export type Leader = { name: string; title: string };
 export type BenefitCategory = { label: string; items: string[] };
 
 /**
- * The public company profile. Fields an admin has saved come from the company record.
+ * The public company profile. Fields saved on the company record come through as-is.
  * Anything still unset stays `undefined` so the page can render a skeleton instead of
- * inventing a fact. Offices and tech stack still come from this company's live jobs
- * unless offices were saved on the company.
+ * inventing a fact. Offices still come from this company's live jobs unless offices
+ * were saved on the company.
  */
 export type PresentedCompany = {
   id: string;
@@ -46,13 +44,10 @@ export type PresentedCompany = {
   specialties?: string[];
   mission?: string;
   values?: CompanyValue[];
-  leadership?: Leader[];
   benefitCategories?: BenefitCategory[];
   /** Flat list of benefit and perk items, for cards. */
   benefits?: string[];
   hasLogoFile?: boolean;
-  /** Job skills, deduped — real, derived from this company's live postings. */
-  techStack?: string[];
 };
 
 export function companyFromJob(job: Job): PublicCompany | null {
@@ -82,11 +77,16 @@ export function openRolesFor(companyId: string, jobs: Job[]) {
 }
 
 /** Same-origin logo URL. Third-party hosts block the browser from loading their files directly. */
-export function companyLogoSrc(companyId?: string, logo?: string, hasFile = false) {
+export function companyLogoSrc(companyId?: string, logo?: string, hasFile = false, version = 0) {
   const raw = logo?.trim();
-  if (raw?.startsWith("/")) return raw;
+  if (raw?.startsWith("/") || raw?.startsWith("blob:") || raw?.startsWith("data:")) {
+    return raw;
+  }
   const id = companyId?.trim();
-  if (id && (raw || hasFile)) return `/companies/${encodeURIComponent(id)}/logo`;
+  if (id && (raw || hasFile)) {
+    const base = `/companies/${encodeURIComponent(id)}/logo`;
+    return version > 0 ? `${base}?v=${version}` : base;
+  }
   return undefined;
 }
 
@@ -96,7 +96,6 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
     0,
     OFFICE_LIMIT,
   );
-  const skills = [...new Set(companyJobs.flatMap((job) => job.skills))].slice(0, SKILLS_LIMIT);
 
   const savedLocations = text(company.locations);
   const values = company.values
@@ -106,9 +105,6 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
       description: value.description?.trim() ?? "",
     }))
     .filter((value) => value.title);
-  const leadership = company.leadership
-    ?.map((leader) => ({ name: leader.name?.trim() ?? "", title: leader.title?.trim() ?? "" }))
-    .filter((leader) => leader.name);
   const benefitCategories = company.benefitCategories
     ?.map((category) => ({
       label: category.label?.trim() ?? "",
@@ -138,12 +134,10 @@ export function presentCompany(company: PublicCompany, jobs: Job[]): PresentedCo
     specialties: list(company.specialties),
     mission: text(company.mission),
     values: values && values.length > 0 ? values : undefined,
-    leadership: leadership && leadership.length > 0 ? leadership : undefined,
     benefitCategories:
       benefitCategories && benefitCategories.length > 0 ? benefitCategories : undefined,
     benefits: benefits && benefits.length > 0 ? benefits : undefined,
     hasLogoFile: company.hasLogoFile || undefined,
-    techStack: skills.length > 0 ? skills : undefined,
   };
 }
 

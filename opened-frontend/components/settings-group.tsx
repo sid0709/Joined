@@ -18,11 +18,13 @@ import {
 export function SettingsGroup({
   title,
   description,
+  action,
   footer,
   children,
 }: {
   title: string;
   description?: string;
+  action?: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
 }) {
@@ -30,14 +32,17 @@ export function SettingsGroup({
   return (
     <Card padding={0}>
       <Stack>
-        <Stack gap={1} padding={6}>
-          <Heading level={3}>{title}</Heading>
-          {description ? (
-            <Text type="supporting" color="secondary" display="block">
-              {description}
-            </Text>
-          ) : null}
-        </Stack>
+        <HStack hAlign="between" vAlign="start" gap={3} padding={6}>
+          <Stack gap={1}>
+            <Heading level={3}>{title}</Heading>
+            {description ? (
+              <Text type="supporting" color="secondary" display="block">
+                {description}
+              </Text>
+            ) : null}
+          </Stack>
+          {action}
+        </HStack>
         {rows.map((row, index) => (
           <Fragment key={index}>
             <Divider />
