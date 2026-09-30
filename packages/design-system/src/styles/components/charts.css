@@ -1,25 +1,4 @@
-/* Sparkline and SegmentBar — single-hue data marks from the theme's data tokens. */
-
-.os-spark {
-  display: block;
-  width: 100%;
-  height: var(--spacing-8);
-  overflow: visible;
-}
-
-.os-spark-line {
-  fill: none;
-  stroke: var(--color-data-blue-3);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-
-.os-spark-area {
-  fill: color-mix(in srgb, var(--color-data-blue-3) 14%, transparent);
-  stroke: none;
-}
+/* SegmentBar — a proportion bar coloured from the theme's data tokens. */
 
 .os-segments {
   display: flex;

@@ -16,7 +16,7 @@ const DELTA_VARIANT = { up: "success", down: "error", flat: "neutral" } as const
 
 /**
  * A dashboard number with room for what makes it readable at a glance: a quiet label with an
- * optional action, a change since last period, a hint, and one visual (Sparkline, SegmentBar).
+ * optional action, a change since last period, a hint, and one visual (a SegmentBar).
  */
 export function KpiWidget({
   label,

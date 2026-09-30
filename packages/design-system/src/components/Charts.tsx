@@ -1,31 +1,9 @@
-import { areaPath, linePath, segmentShares, sparklinePoints } from "./chartMath";
+import { segmentShares } from "./chartMath";
 
 /**
- * Two small data marks that sit inside a KpiWidget or a card: a trend line and a proportion bar.
+ * A proportion bar that sits inside a KpiWidget or a card.
  * Colours come only from the theme's data tokens (see styles/components/charts.css).
  */
-
-const SPARK_WIDTH = 120;
-const SPARK_HEIGHT = 32;
-
-/** A trend line with a soft fill. Decorative unless `label` is given. */
-export function Sparkline({ values, label }: { values: number[]; label?: string }) {
-  const points = sparklinePoints(values, SPARK_WIDTH, SPARK_HEIGHT);
-  if (points.length < 2) return null;
-  return (
-    <svg
-      className="os-spark"
-      viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
-      preserveAspectRatio="none"
-      role={label ? "img" : undefined}
-      aria-label={label}
-      aria-hidden={label ? undefined : true}
-    >
-      <path className="os-spark-area" d={areaPath(points, SPARK_HEIGHT)} />
-      <path className="os-spark-line" d={linePath(points)} />
-    </svg>
-  );
-}
 
 export type SegmentTone = "blue" | "green" | "orange" | "red" | "neutral";
 
