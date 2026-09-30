@@ -1,4 +1,4 @@
-import { areaPath, linePath, segmentShares, sparklinePoints } from "./charts";
+import { areaPath, linePath, segmentShares, sparklinePoints } from "./chartMath";
 
 /**
  * Two small data marks that sit inside a KpiWidget or a card: a trend line and a proportion bar.

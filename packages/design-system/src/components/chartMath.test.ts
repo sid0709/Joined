@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { areaPath, linePath, segmentShares, sparklinePoints } from "./charts";
+import { areaPath, linePath, segmentShares, sparklinePoints } from "./chartMath";
 
 describe("sparklinePoints", () => {
   it("returns nothing for an empty series", () => {
