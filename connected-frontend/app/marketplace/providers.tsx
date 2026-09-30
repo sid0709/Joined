@@ -5,6 +5,7 @@ import React from "react";
 import { MockAuthProvider } from "@/src/shared/auth/MockAuthContext";
 import { BidderProvider } from "@/src/shared/bidder/BidderContext";
 import { BidderWorkflowProvider } from "@/src/shared/bidder/BidderWorkflowContext";
+import { HunterProvider } from "@/src/client/context/HunterContext";
 import { JobRoomsProvider } from "@/src/shared/job-rooms/JobRoomsContext";
 
 export function MarketplaceProviders({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,9 @@ export function MarketplaceProviders({ children }: { children: React.ReactNode }
     <MockAuthProvider>
       <JobRoomsProvider>
         <BidderProvider>
-          <BidderWorkflowProvider>{children}</BidderWorkflowProvider>
+          <BidderWorkflowProvider>
+            <HunterProvider>{children}</HunterProvider>
+          </BidderWorkflowProvider>
         </BidderProvider>
       </JobRoomsProvider>
     </MockAuthProvider>
