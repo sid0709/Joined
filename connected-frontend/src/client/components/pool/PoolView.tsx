@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import type { PoolJob } from "@/src/client/types/hunter";
+import type { PoolJob } from "@/src/shared/types/marketplace";
 
 import { AssignDialog } from "@/src/client/components/pool/AssignDialog";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { StatCard } from "@/src/client/components/ui/StatCard";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { POOL_ATS } from "@/src/client/data/pool";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { StatCard } from "@/src/shared/kit/StatCard";
 import { Badge, Banner, Button, Input, PageBody, Select } from "@/src/shared/marketplace-ui";
+import { POOL_ATS } from "@/src/shared/mock/pool";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 const QUICK_SELECT = 20;

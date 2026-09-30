@@ -6,30 +6,42 @@ import { ReactNode, useEffect } from "react";
 import { useMockAuth } from "@/src/shared/auth/MockAuthContext";
 import { useIsMounted } from "@/src/shared/hooks/useIsMounted";
 import { AppShell, NavItem } from "@/src/shared/marketplace-ui";
-import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
+import { BIDDER_ROUTES } from "@/src/shared/routes/bidder";
 
 type MarketplaceRole = "Candidate" | "Client";
 
-const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string }[]> = {
+const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string; also?: string[] }[]> = {
   Candidate: [
-    { label: "My Bids", href: "/marketplace/candidate/bids" },
-    { label: "Invitations", href: "/marketplace/candidate/invitations" },
-    { label: "Performance", href: "/marketplace/candidate/performance" },
-    { label: "Active Work", href: "/marketplace/candidate/work" },
-    { label: "Messages", href: "/marketplace/messages" },
-    { label: "Earnings", href: "/marketplace/candidate/earnings" },
-    { label: "Profile", href: "/marketplace/candidate/profile" },
+    { label: "Dashboard", href: BIDDER_ROUTES.dashboard },
+    { label: "Task Board", href: BIDDER_ROUTES.board },
+    {
+      label: "Pipeline",
+      href: BIDDER_ROUTES.pipeline,
+      also: [BIDDER_ROUTES.invitations, BIDDER_ROUTES.interviews],
+    },
+    { label: "Messages", href: BIDDER_ROUTES.messages },
+    { label: "My Work", href: BIDDER_ROUTES.work },
+    { label: "Reviews", href: BIDDER_ROUTES.reviews },
+    {
+      label: "Earnings",
+      href: BIDDER_ROUTES.earnings,
+      also: [BIDDER_ROUTES.performance],
+    },
+    {
+      label: "Profile",
+      href: BIDDER_ROUTES.profile,
+      also: [BIDDER_ROUTES.assessments, BIDDER_ROUTES.notifications],
+    },
   ],
   Client: [
-    { label: "Dashboard", href: HUNTER_ROUTES.dashboard },
-    { label: "Tasks", href: HUNTER_ROUTES.tasks },
-    { label: "Bidders", href: HUNTER_ROUTES.bidders },
-    { label: "Interviews", href: HUNTER_ROUTES.interviews },
-    { label: "Job Pool", href: HUNTER_ROUTES.pool },
-    { label: "Monitoring", href: HUNTER_ROUTES.monitoring },
-    { label: "Messages", href: HUNTER_ROUTES.messages },
-    { label: "Billing", href: HUNTER_ROUTES.billing },
-    { label: "Profile", href: HUNTER_ROUTES.profile },
+    { label: "Add Job Link", href: "/marketplace/client/jobs/new" },
+    { label: "Job Pool", href: "/marketplace/client/jobs" },
+    { label: "Bidders", href: "/marketplace/client/bidders" },
+    { label: "Interview Calendar", href: "/marketplace/client/calendar" },
+    { label: "Applications", href: "/marketplace/client/applications" },
+    { label: "Managed Bidders", href: "/marketplace/client/work" },
+    { label: "Payments", href: "/marketplace/client/payments" },
+    { label: "Profile", href: "/marketplace/client/profile" },
   ],
 };
 
@@ -62,7 +74,7 @@ function RoleGuard({ role, children }: { role: MarketplaceRole; children: ReactN
       router.replace(
         currentUser.role === "Candidate"
           ? "/marketplace/candidate/dashboard"
-          : HUNTER_ROUTES.dashboard,
+          : "/marketplace/client/dashboard",
       );
     }
   }, [currentUser, isMounted, role, router]);
@@ -79,21 +91,25 @@ export function MarketplaceShell({
 }) {
   const pathname = usePathname();
   const { currentUser, logoutUser } = useMockAuth();
-  const items: NavItem[] = NAV_ITEMS[role].map((item) => ({
+  const items: NavItem[] = NAV_ITEMS[role].map(({ also = [], ...item }) => ({
     ...item,
-    active: pathname === item.href || pathname.startsWith(`${item.href}/`),
+    active:
+      pathname === item.href ||
+      pathname.startsWith(`${item.href}/`) ||
+      also.some((extra) => pathname === extra),
   }));
 
   return (
     <RoleGuard role={role}>
       <AppShell
         nav={{
-          brand: role === "Client" ? "OpenSeat Job Hunter" : "OpenSeat Bidder",
+          brand: role === "Candidate" ? "OpenSeat Bidder" : "OpenSeat Marketplace",
           items,
           cta: "Log Out",
           onCtaClick: logoutUser,
           initials: initialsFor(currentUser?.fullName),
-          userHref: role === "Candidate" ? "/marketplace/candidate/profile" : HUNTER_ROUTES.profile,
+          userHref:
+            role === "Candidate" ? "/marketplace/candidate/profile" : "/marketplace/client/profile",
           showAvatar: true,
           showThemeToggle: true,
         }}

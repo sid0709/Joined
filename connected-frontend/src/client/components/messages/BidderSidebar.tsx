@@ -4,14 +4,14 @@ import { Glyph } from "@openseat/design-system";
 import Link from "next/link";
 import { useState } from "react";
 
-import type { Bidder, Inquiry, Task } from "@/src/client/types/hunter";
+import type { Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 
-import { NumberField } from "@/src/client/components/ui/Fields";
-import { Person } from "@/src/client/components/ui/Person";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { money } from "@/src/client/lib/format";
+import { NumberField } from "@/src/shared/kit/Fields";
+import { Person } from "@/src/shared/kit/Person";
+import { money } from "@/src/shared/lib/format";
 import { Button, Select } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 interface BidderSidebarProps {

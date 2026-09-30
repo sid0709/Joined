@@ -1,6 +1,6 @@
-import type { DailyPoint } from "@/src/client/types/hunter";
+import type { DailyPoint } from "@/src/shared/types/marketplace";
 
-import { shortDate, weekday } from "@/src/client/lib/format";
+import { shortDate, weekday } from "@/src/shared/lib/format";
 
 const WIDTH = 720;
 const HEIGHT = 260;

@@ -1,10 +1,10 @@
 import { Glyph, type GlyphName } from "@openseat/design-system";
 import Link from "next/link";
 
-import { Panel } from "@/src/client/components/ui/Panel";
 import { useHunter } from "@/src/client/context/HunterContext";
 import { useHunterMetrics } from "@/src/client/hooks/useHunterMetrics";
-import { money, plural } from "@/src/client/lib/format";
+import { Panel } from "@/src/shared/kit/Panel";
+import { money, plural } from "@/src/shared/lib/format";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 interface AttentionItem {

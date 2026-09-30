@@ -4,11 +4,11 @@ import { Rating } from "@openseat/design-system";
 import { useState } from "react";
 
 import { FeedbackDialog } from "@/src/client/components/monitoring/FeedbackDialog";
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { Person } from "@/src/client/components/ui/Person";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { relativeTime } from "@/src/client/lib/format";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { Panel } from "@/src/shared/kit/Panel";
+import { Person } from "@/src/shared/kit/Person";
+import { relativeTime } from "@/src/shared/lib/format";
 import { Button, Select } from "@/src/shared/marketplace-ui";
 
 /** What you have told bidders. They see this on their collaboration page. */

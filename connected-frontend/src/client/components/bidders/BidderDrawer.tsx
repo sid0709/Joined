@@ -3,15 +3,15 @@
 import { Drawer, Glyph, Rating } from "@openseat/design-system";
 import { useState } from "react";
 
-import type { HiringStage, Interview } from "@/src/client/types/hunter";
+import type { HiringStage, Interview } from "@/src/shared/types/marketplace";
 
 import { InterviewRow } from "@/src/client/components/interviews/InterviewRow";
-import { InquiryStatusBadge } from "@/src/client/components/ui/StatusBadge";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
 import { HIRING_STAGES } from "@/src/client/data/pipeline";
-import { money, percent, relativeTime } from "@/src/client/lib/format";
+import { InquiryStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { money, percent, relativeTime } from "@/src/shared/lib/format";
 import { Banner, Button, Select, TextArea } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 const DEFAULT_SCORE = 3;

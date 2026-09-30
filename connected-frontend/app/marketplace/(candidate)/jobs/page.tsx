@@ -1,5 +1,5 @@
-import { MarketplaceJobsView } from "@/src/shared/components/MarketplaceJobsView";
+import { TaskBoardView } from "@/src/candidate/components/TaskBoardView";
 
 export default function MarketplaceJobsPage() {
-  return <MarketplaceJobsView />;
+  return <TaskBoardView />;
 }

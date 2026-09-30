@@ -1,11 +1,11 @@
-import type { MeterSegment } from "@/src/client/components/ui/Meter";
+import type { MeterSegment } from "@/src/shared/kit/Meter";
 
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { money, relativeTime } from "@/src/client/lib/format";
-import { lineAmount } from "@/src/client/lib/selectors";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { money, relativeTime } from "@/src/shared/lib/format";
+import { lineAmount } from "@/src/shared/lib/selectors";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 
 type Tone = MeterSegment["tone"];
 const TONES: Tone[] = ["accent", "violet", "positive", "caution", "soft"];

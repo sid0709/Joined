@@ -1,4 +1,4 @@
-import type { PackageTier } from "@/src/client/types/hunter";
+import type { PackageTier } from "@/src/shared/types/marketplace";
 
 /** Rate cards. Harder application systems cost more per submitted link. */
 export const PACKAGE_TIERS: PackageTier[] = [

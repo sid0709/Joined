@@ -4,17 +4,17 @@ import { Glyph, Table } from "@openseat/design-system";
 import Link from "next/link";
 import { useState } from "react";
 
-import type { ApplicationRecord, ApplicationStatus } from "@/src/client/types/hunter";
+import type { ApplicationRecord, ApplicationStatus } from "@/src/shared/types/marketplace";
 
-import { Panel } from "@/src/client/components/ui/Panel";
-import { Person } from "@/src/client/components/ui/Person";
-import { ApplicationStatusBadge } from "@/src/client/components/ui/StatusBadge";
-import { Tabs } from "@/src/client/components/ui/Tabs";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { POOL_BY_ID } from "@/src/client/data/pool";
-import { relativeTime } from "@/src/client/lib/format";
+import { Panel } from "@/src/shared/kit/Panel";
+import { Person } from "@/src/shared/kit/Person";
+import { ApplicationStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { Tabs } from "@/src/shared/kit/Tabs";
+import { relativeTime } from "@/src/shared/lib/format";
 import { Button, Modal, Select, TextArea } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
+import { POOL_BY_ID } from "@/src/shared/mock/pool";
 
 type Queue = Extract<ApplicationStatus, "submitted" | "returned" | "failed">;
 

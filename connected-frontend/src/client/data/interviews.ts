@@ -1,6 +1,6 @@
-import type { Interview } from "@/src/client/types/hunter";
+import type { Interview } from "@/src/shared/types/marketplace";
 
-import { ymdFromNow } from "@/src/client/data/clock";
+import { ymdFromNow } from "@/src/shared/mock/clock";
 
 export const INITIAL_INTERVIEWS: Interview[] = [
   {

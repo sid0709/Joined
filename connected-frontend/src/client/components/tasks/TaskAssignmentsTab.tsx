@@ -1,15 +1,15 @@
 import { Table } from "@openseat/design-system";
 
-import type { ApplicationRecord, Assignment } from "@/src/client/types/hunter";
+import type { ApplicationRecord, Assignment } from "@/src/shared/types/marketplace";
 
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { relativeTime, shortDate } from "@/src/client/lib/format";
-import { countStatuses } from "@/src/client/lib/selectors";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { relativeTime, shortDate } from "@/src/shared/lib/format";
+import { countStatuses } from "@/src/shared/lib/selectors";
 import { Badge } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 
 interface Row extends Record<string, unknown> {
   id: string;

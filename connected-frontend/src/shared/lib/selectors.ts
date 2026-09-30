@@ -4,10 +4,10 @@ import type {
   DailyPoint,
   Invoice,
   InvoiceLine,
-} from "@/src/client/types/hunter";
+} from "@/src/shared/types/marketplace";
 
-import { MOCK_NOW, MS_PER_DAY } from "@/src/client/data/clock";
-import { dayKey, ratio } from "@/src/client/lib/format";
+import { dayKey, ratio } from "@/src/shared/lib/format";
+import { MOCK_NOW, MS_PER_DAY } from "@/src/shared/mock/clock";
 
 export type StatusCounts = Record<ApplicationStatus, number>;
 

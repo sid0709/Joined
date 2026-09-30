@@ -1,12 +1,12 @@
 import { Glyph } from "@openseat/design-system";
 
-import type { Bidder, Inquiry, Task } from "@/src/client/types/hunter";
+import type { Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 
-import { Person } from "@/src/client/components/ui/Person";
-import { InquiryStatusBadge } from "@/src/client/components/ui/StatusBadge";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { money, relativeTime } from "@/src/client/lib/format";
+import { Person } from "@/src/shared/kit/Person";
+import { InquiryStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { money, relativeTime } from "@/src/shared/lib/format";
 import { Badge, Button } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 interface InquiryCardProps {

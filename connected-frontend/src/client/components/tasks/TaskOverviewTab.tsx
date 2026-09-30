@@ -1,15 +1,15 @@
 import { Glyph } from "@openseat/design-system";
 import { Table } from "@openseat/design-system";
 
-import type { StatusCounts } from "@/src/client/lib/selectors";
-import type { ApplicationRecord, Task } from "@/src/client/types/hunter";
+import type { StatusCounts } from "@/src/shared/lib/selectors";
+import type { ApplicationRecord, Task } from "@/src/shared/types/marketplace";
 
-import { DailyBars } from "@/src/client/components/charts/DailyBars";
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Panel } from "@/src/client/components/ui/Panel";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { longDate, money, shortDate } from "@/src/client/lib/format";
-import { dailySeries } from "@/src/client/lib/selectors";
+import { DailyBars } from "@/src/shared/kit/charts/DailyBars";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Panel } from "@/src/shared/kit/Panel";
+import { longDate, money, shortDate } from "@/src/shared/lib/format";
+import { dailySeries } from "@/src/shared/lib/selectors";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 
 interface TaskOverviewTabProps {
   task: Task;

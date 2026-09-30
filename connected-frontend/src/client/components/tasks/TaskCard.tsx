@@ -1,15 +1,15 @@
 import { Glyph } from "@openseat/design-system";
 import Link from "next/link";
 
-import type { StatusCounts } from "@/src/client/lib/selectors";
-import type { Inquiry, Task } from "@/src/client/types/hunter";
+import type { StatusCounts } from "@/src/shared/lib/selectors";
+import type { Inquiry, Task } from "@/src/shared/types/marketplace";
 
-import { Meter } from "@/src/client/components/ui/Meter";
-import { AvatarStack } from "@/src/client/components/ui/Person";
-import { TaskStatusBadge, TaskTypeBadge } from "@/src/client/components/ui/StatusBadge";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { money, plural, relativeTime } from "@/src/client/lib/format";
+import { Meter } from "@/src/shared/kit/Meter";
+import { AvatarStack } from "@/src/shared/kit/Person";
+import { TaskStatusBadge, TaskTypeBadge } from "@/src/shared/kit/StatusBadge";
+import { money, plural, relativeTime } from "@/src/shared/lib/format";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 interface TaskCardProps {

@@ -1,9 +1,9 @@
-import type { TaskPackageLine, TaskType } from "@/src/client/types/hunter";
+import type { TaskPackageLine, TaskType } from "@/src/shared/types/marketplace";
 
-import { Panel } from "@/src/client/components/ui/Panel";
-import { TaskTypeBadge } from "@/src/client/components/ui/StatusBadge";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { money } from "@/src/client/lib/format";
+import { Panel } from "@/src/shared/kit/Panel";
+import { TaskTypeBadge } from "@/src/shared/kit/StatusBadge";
+import { money } from "@/src/shared/lib/format";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 
 interface TaskPreviewProps {
   type: TaskType;

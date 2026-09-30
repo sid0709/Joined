@@ -1,14 +1,14 @@
 import { Glyph } from "@openseat/design-system";
 
-import type { ApplicationRecord, Bidder, Inquiry, Task } from "@/src/client/types/hunter";
+import type { ApplicationRecord, Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 
-import { EmptyBlock } from "@/src/client/components/ui/EmptyBlock";
-import { Meter } from "@/src/client/components/ui/Meter";
-import { Person } from "@/src/client/components/ui/Person";
-import { PACKAGE_BY_ID } from "@/src/client/data/packages";
-import { money, percent } from "@/src/client/lib/format";
-import { countStatuses, deliveredCount, qaRate } from "@/src/client/lib/selectors";
+import { EmptyBlock } from "@/src/shared/kit/EmptyBlock";
+import { Meter } from "@/src/shared/kit/Meter";
+import { Person } from "@/src/shared/kit/Person";
+import { money, percent } from "@/src/shared/lib/format";
+import { countStatuses, deliveredCount, qaRate } from "@/src/shared/lib/selectors";
 import { Button } from "@/src/shared/marketplace-ui";
+import { PACKAGE_BY_ID } from "@/src/shared/mock/packages";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 interface TaskTeamTabProps {

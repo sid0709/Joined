@@ -4,15 +4,14 @@ import { FileUploader } from "@openseat/design-system";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import type { Task, TaskPackageLine, TaskType } from "@/src/client/types/hunter";
+import type { Task, TaskPackageLine, TaskType } from "@/src/shared/types/marketplace";
 
 import { estimateSpend, TaskPreview } from "@/src/client/components/tasks/TaskPreview";
-import { DateField, NumberField } from "@/src/client/components/ui/Fields";
-import { PageHeader } from "@/src/client/components/ui/PageHeader";
-import { Panel } from "@/src/client/components/ui/Panel";
 import { useHunter } from "@/src/client/context/HunterContext";
-import { isoAhead } from "@/src/client/data/clock";
-import { money } from "@/src/client/lib/format";
+import { DateField, NumberField } from "@/src/shared/kit/Fields";
+import { PageHeader } from "@/src/shared/kit/PageHeader";
+import { Panel } from "@/src/shared/kit/Panel";
+import { money } from "@/src/shared/lib/format";
 import {
   Badge,
   Banner,
@@ -22,6 +21,7 @@ import {
   PageBody,
   TextArea,
 } from "@/src/shared/marketplace-ui";
+import { isoAhead } from "@/src/shared/mock/clock";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
 
 const STEPS = ["Contract type", "Details", "Packages & rates", "Terms"] as const;

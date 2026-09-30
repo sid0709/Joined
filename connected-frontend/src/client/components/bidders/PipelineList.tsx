@@ -1,12 +1,12 @@
 import { Table } from "@openseat/design-system";
 
-import type { Inquiry } from "@/src/client/types/hunter";
+import type { Inquiry } from "@/src/shared/types/marketplace";
 
-import { Person } from "@/src/client/components/ui/Person";
 import { useHunter } from "@/src/client/context/HunterContext";
 import { STAGE_TITLE } from "@/src/client/data/pipeline";
-import { money, relativeTime, shortDate } from "@/src/client/lib/format";
 import { isUpcoming, displayClock } from "@/src/client/lib/interviews";
+import { Person } from "@/src/shared/kit/Person";
+import { money, relativeTime, shortDate } from "@/src/shared/lib/format";
 import { Badge } from "@/src/shared/marketplace-ui";
 
 interface Row extends Record<string, unknown> {

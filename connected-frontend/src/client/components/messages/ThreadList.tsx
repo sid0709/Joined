@@ -1,7 +1,7 @@
-import type { Bidder, Inquiry, Task } from "@/src/client/types/hunter";
+import type { Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 
-import { InquiryStatusBadge } from "@/src/client/components/ui/StatusBadge";
-import { relativeTime } from "@/src/client/lib/format";
+import { InquiryStatusBadge } from "@/src/shared/kit/StatusBadge";
+import { relativeTime } from "@/src/shared/lib/format";
 import { Avatar } from "@/src/shared/marketplace-ui";
 
 interface ThreadListProps {
