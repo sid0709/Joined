@@ -1,6 +1,7 @@
 /* OpenSeat-shaped UI kit. Visual language matches https://astryx.atmeta.com/
-   (system fonts, 32px controls, pill buttons, no chrome borders on primary/ghost).
-   Color comes only from tokens.css. */
+   (system fonts, pill buttons, no chrome borders on primary/ghost).
+   Color comes only from tokens.css. Control sizes are one step up from Astryx:
+   sm is the old md, md is the old lg, and lg is a larger step. */
 
 @import "./components/picker.css";
 @import "./components/tree.css";
@@ -223,6 +224,17 @@ button.os-star {
 .os-rating-caption {
   font-size: var(--font-size-sm, 0.75rem);
   color: var(--color-text-primary);
+}
+
+/* One step up from the Astryx scale, on :root so portaled menus inherit it.
+   sm 32 (old md), md 36 (old lg), lg 48. */
+:root {
+  --size-element-sm: 32px;
+  --size-element-md: 36px;
+  --size-element-lg: 48px;
+  --control-height-sm: var(--size-element-sm);
+  --control-height: var(--size-element-md);
+  --control-height-lg: var(--size-element-lg);
 }
 
 /* Pill buttons, same idea as the nav pills: a full radius, and enough inline

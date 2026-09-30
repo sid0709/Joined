@@ -15,10 +15,9 @@ import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
-import { CommandMenu } from "./command-menu";
 import { ScoutPillNav } from "./scout-pill-nav";
 
-/** The product bar. Signed out it sells; signed in it holds the page pills, search, and Submit. */
+/** The product bar. Signed out it sells; signed in it holds the page pills and Submit. */
 export function ScoutHeader({
   user = null,
   levelLabel = "",
@@ -64,11 +63,10 @@ export function ScoutHeader({
       centerContent={isMobile ? undefined : <ScoutPillNav inReview={inReview} unread={unread} />}
       endContent={
         <>
-          <CommandMenu />
           <Button
             label="Submit a job"
             variant="primary"
-            size="sm"
+            size="md"
             icon={<Icon icon={icons.plus} />}
             isIconOnly={isMobile}
             href={ROUTES.submit}

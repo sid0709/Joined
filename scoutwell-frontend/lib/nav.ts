@@ -12,9 +12,7 @@ import {
   type PageLink,
 } from "./routes";
 
-/** Where the pill nav and the ⌘K palette read the app's pages from. */
-
-/** Every page a scout can open, in the order the palette lists them. */
+/** Every page a scout can open, used to mark the active pill. */
 export const ALL_PAGES: PageLink[] = [
   DASHBOARD_PAGE,
   SUBMIT_PAGE,
