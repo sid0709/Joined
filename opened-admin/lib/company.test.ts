@@ -1,6 +1,14 @@
 import { describe, expect, it } from "bun:test";
 
-import { applyAutofill, autofillPath, type AdminCompany, companyWriteFrom } from "./company";
+import { API_PROXY } from "@/lib/config";
+
+import {
+  applyAutofill,
+  autofillPath,
+  type AdminCompany,
+  companyLogoSrc,
+  companyWriteFrom,
+} from "./company";
 
 const base: AdminCompany = {
   id: "c1",
@@ -70,5 +78,37 @@ describe("applyAutofill", () => {
 describe("autofillPath", () => {
   it("encodes the company id", () => {
     expect(autofillPath("a/b")).toBe("/v1/companies/a%2Fb/autofill");
+  });
+});
+
+describe("companyLogoSrc", () => {
+  const apiLogo = (id: string, version = 0) =>
+    `${API_PROXY}/v1/search/companies/${encodeURIComponent(id)}/logo?v=${version}`;
+
+  it("has no logo when there is neither a URL nor an uploaded file", () => {
+    expect(companyLogoSrc({ id: "c1" })).toBeUndefined();
+    expect(companyLogoSrc({ id: "c1", logo: "  " })).toBeUndefined();
+  });
+
+  it("uses an ordinary logo URL as is", () => {
+    expect(companyLogoSrc({ id: "c1", logo: " https://logo.example/g.png " })).toBe(
+      "https://logo.example/g.png",
+    );
+    expect(companyLogoSrc({ id: "c1", logo: "not a url" })).toBe("not a url");
+  });
+
+  it("serves LinkedIn logos through the API", () => {
+    for (const logo of [
+      "https://linkedin.com/logo.png",
+      "https://www.linkedin.com/logo.png",
+      "https://licdn.com/logo.png",
+      "https://media.licdn.com/logo.png",
+    ]) {
+      expect(companyLogoSrc({ id: "c1", logo })).toBe(apiLogo("c1"));
+    }
+  });
+
+  it("serves an uploaded file through the API, versioned for cache busting", () => {
+    expect(companyLogoSrc({ id: "a/b", hasLogoFile: true }, 4)).toBe(apiLogo("a/b", 4));
   });
 });

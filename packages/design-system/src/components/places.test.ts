@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test";
 
-import { formatAddress, parseAddress, type Address } from "./places";
+import {
+  cityLabel,
+  formatAddress,
+  joinLocations,
+  parseAddress,
+  splitLocations,
+  type Address,
+} from "./places";
 
 const address = (patch: Partial<Address>): Address => ({
   line1: "",
@@ -72,5 +79,20 @@ describe("parseAddress", () => {
       address({ line1: "Calle 1", city: "Madrid", postalCode: "28001", country: "Spain" }),
     ];
     for (const sample of samples) expect(parseAddress(formatAddress(sample))).toEqual(sample);
+  });
+});
+
+describe("locations", () => {
+  it("labels a city by its name", () => {
+    expect(cityLabel({ name: "Seattle", state: "WA" })).toBe("Seattle");
+  });
+
+  it("joins cities, dropping blanks", () => {
+    expect(joinLocations([" Seattle ", "", "Austin"])).toBe("Seattle · Austin");
+  });
+
+  it("splits what joinLocations wrote", () => {
+    expect(splitLocations("Seattle · Austin ·  ")).toEqual(["Seattle", "Austin"]);
+    expect(splitLocations(joinLocations(["Miami", "Boston"]))).toEqual(["Miami", "Boston"]);
   });
 });
