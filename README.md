@@ -14,7 +14,7 @@ A **bun workspaces monorepo**:
 | `connected-frontend`    | Joined web app                                                          | `bun run dev:app` → http://localhost:3000        |
 | `joined-theme`          | Design-system showcase                                                  | `bun run dev:theme` → http://localhost:3001      |
 | `scoutwell-frontend`    | Scoutwell — scouts submit jobs and earn on outcomes                     | `bun run dev:scout` → http://localhost:3003      |
-| `joined-admin`          | Admin console — review queue, scouts, jobs                              | `bun run dev:admin` → http://localhost:3010      |
+| `admin-frontend`        | Admin console — review queue, scouts, jobs                              | `bun run dev:admin` → http://localhost:3010      |
 | `joined-backend`        | Joined API (Go) — accounts, job search, hunter and recruiter workspaces | `bun run dev:joined-api` → http://127.0.0.1:8080 |
 | `admin-backend`         | Admin API (Go) — staff routes behind the admin console                  | `bun run dev:admin-api` → http://127.0.0.1:8081  |
 | `scoutwell-backend`     | Scoutwell API (Go) — scout accounts, submissions, partner API keys      | `bun run dev:scout-api` → http://127.0.0.1:8082  |
@@ -30,7 +30,7 @@ Each app has its own Go API that runs and deploys on its own. The apps call thei
 | App                            | API                        | Serves                                                                                                |
 | ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `joined-frontend`              | `joined-backend` (8080)    | `/v1/auth` (hunters, recruiters), `/v1/search`, `/v1/me`, `/v1/company`, `/v1/schedule`               |
-| `joined-admin`                 | `admin-backend` (8081)     | `/v1/settings`, `/v1/jobs`, `/v1/companies`, `/v1/reports`, `/v1/admin/*`; all need `ADMIN_API_TOKEN` |
+| `admin-frontend`               | `admin-backend` (8081)     | `/v1/settings`, `/v1/jobs`, `/v1/companies`, `/v1/reports`, `/v1/admin/*`; all need `ADMIN_API_TOKEN` |
 | `scoutwell-frontend`, partners | `scoutwell-backend` (8082) | `/v1/auth` (scouts), `/v1/scout/*`                                                                    |
 
 All three share one MongoDB and build on `backend-core`: the domain stores, the HTTP helpers, and the sign-in routes. A rule that crosses domains, like deleting an account, behaves the same whichever API runs it. Each service reads its own `.env` (copy its `.env.example`). `bun run dev:api` starts all three; `bun run test:go` tests every Go module.
@@ -38,7 +38,7 @@ All three share one MongoDB and build on `backend-core`: the domain stores, the 
 ### Scout pipeline setup
 
 1. `admin-backend/.env`: set `ADMIN_API_TOKEN` (e.g. `openssl rand -hex 32`). Without it the staff endpoints are open.
-2. `joined-admin/.env.local`: `ADMIN_API_URL` and the same `ADMIN_API_TOKEN` (see `joined-admin/.env.example`).
+2. `admin-frontend/.env.local`: `ADMIN_API_URL` and the same `ADMIN_API_TOKEN` (see `admin-frontend/.env.example`).
 3. `scoutwell-frontend/.env.local`: `SCOUTWELL_API_URL` (see `scoutwell-frontend/.env.example`).
 
 Partners submit jobs over the Scoutwell API with keys from Scoutwell → API access; see [docs/61-scout-api.md](docs/61-scout-api.md).

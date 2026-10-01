@@ -38,11 +38,11 @@ export const LOCAL_SERVICES = [
     startExtraArgs: ["--port", "3003"],
   },
   {
-    id: "joined-admin",
+    id: "admin-frontend",
     shortName: "admin",
     port: 3010,
     color: "\x1b[33m",
-    workspace: "joined-admin",
+    workspace: "admin-frontend",
     startExtraArgs: [],
   },
 ];
@@ -72,7 +72,7 @@ export const AUDIT_FRONTEND_IDS = [
   "connected-frontend",
   "joined-frontend",
   "scoutwell-frontend",
-  "joined-admin",
+  "admin-frontend",
 ];
 
 export function localService(idOrShortName) {

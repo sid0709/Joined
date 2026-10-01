@@ -15,10 +15,10 @@ Everything you need to set up, run, check, and audit this monorepo.
 | `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:joined`     |
 | `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                     | 3000     | `bun run dev:app`        |
 | `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`      |
-| `joined-admin`          | `joined-admin/`           | Joined admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`      |
+| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`      |
 | `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`      |
 | `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                        | 8080     | `bun run dev:joined-api` |
-| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `joined-admin`                            | 8081     | `bun run dev:admin-api`  |
+| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                          | 8081     | `bun run dev:admin-api`  |
 | `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners     | 8082     | `bun run dev:scout-api`  |
 | `backend-core`          | `backend-core/`           | Go code the three APIs share: domain stores, HTTP helpers    | —        | —                        |
 | `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                        |
@@ -338,7 +338,7 @@ Dev-server scores are misleadingly low (no minification, dev overlays). Build an
 
 ### Audit all frontends (except theme)
 
-`bun run audit` runs Unlighthouse against **connected-frontend**, **joined-frontend**, **scoutwell-frontend**, and **joined-admin** in sequence. **joined-theme** is not included (`bun run audit:theme` if you need it).
+`bun run audit` runs Unlighthouse against **connected-frontend**, **joined-frontend**, **scoutwell-frontend**, and **admin-frontend** in sequence. **joined-theme** is not included (`bun run audit:theme` if you need it).
 
 Terminal 1 — build, then start every production frontend on the same ports as `bun run dev` (`start:frontends` frees those ports first):
 

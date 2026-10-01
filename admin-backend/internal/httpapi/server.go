@@ -1,4 +1,4 @@
-// Package httpapi is the admin API: the staff routes behind the joined-admin console.
+// Package httpapi is the admin API: the staff routes behind the admin-frontend console.
 package httpapi
 
 import (

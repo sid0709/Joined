@@ -4,7 +4,7 @@
 linker = "hoisted"
 
 [test]
-# Per-file lines under lcov: type-heavy modules (e.g. joined-admin/lib/trust.ts) sit near 50%
+# Per-file lines under lcov: type-heavy modules (e.g. admin-frontend/lib/trust.ts) sit near 50%
 # lines while functions stay above 80%. Keep functions strict; allow lines at 50%.
 coverageThreshold = { functions = 0.8, lines = 0.5 }
 coverageSkipTestFiles = true

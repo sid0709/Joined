@@ -1,6 +1,6 @@
 # 61 — Scout API (job submission protocol)
 
-**Services:** `scoutwell-backend` serves `/v1/scout/*` and scout sign-in (`internal/httpapi/scout*.go`); `admin-backend` serves `/v1/admin/scout/*` (`internal/httpapi/scout_admin.go`); both build on `backend-core/scout` · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`joined-admin`)
+**Services:** `scoutwell-backend` serves `/v1/scout/*` and scout sign-in (`internal/httpapi/scout*.go`); `admin-backend` serves `/v1/admin/scout/*` (`internal/httpapi/scout_admin.go`); both build on `backend-core/scout` · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`admin-frontend`)
 
 One protocol for every way a job enters the pool from a scout: the Scoutwell web form, a partner's sourcing pipeline, and bulk uploads all call the same endpoints and go through the same checks, levels, and rewards (see [13-platform-scout.md](13-platform-scout.md)). Conventions follow [60-api-conventions.md](60-api-conventions.md).
 

@@ -1,4 +1,4 @@
-// Command server runs the admin API for the joined-admin console.
+// Command server runs the admin API for the admin-frontend console.
 package main
 
 import (

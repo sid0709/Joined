@@ -21,11 +21,13 @@
         "typescript-eslint": "catalog:",
       },
     },
-    "connected-frontend": {
-      "name": "connected-frontend",
+    "admin-frontend": {
+      "name": "admin-frontend",
       "version": "0.1.0",
       "dependencies": {
         "@joined/design-system": "workspace:*",
+        "@joined/job-schema": "workspace:*",
+        "@joined/scout": "workspace:*",
         "next": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
@@ -41,13 +43,11 @@
         "typescript": "catalog:",
       },
     },
-    "joined-admin": {
-      "name": "joined-admin",
+    "connected-frontend": {
+      "name": "connected-frontend",
       "version": "0.1.0",
       "dependencies": {
         "@joined/design-system": "workspace:*",
-        "@joined/job-schema": "workspace:*",
-        "@joined/scout": "workspace:*",
         "next": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
@@ -919,6 +919,8 @@
 
     "acorn-jsx": ["acorn-jsx@5.3.2", "", { "peerDependencies": { "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0" } }, "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ=="],
 
+    "admin-frontend": ["admin-frontend@workspace:admin-frontend"],
+
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
     "ajv": ["ajv@6.15.0", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "fast-json-stable-stringify": "^2.0.0", "json-schema-traverse": "^0.4.1", "uri-js": "^4.2.2" } }, "sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw=="],
@@ -1506,8 +1508,6 @@
     "iterator.prototype": ["iterator.prototype@1.1.5", "", { "dependencies": { "define-data-property": "^1.1.4", "es-object-atoms": "^1.0.0", "get-intrinsic": "^1.2.6", "get-proto": "^1.0.0", "has-symbols": "^1.1.0", "set-function-name": "^2.0.2" } }, "sha512-H0dkQoCa3b2VEeKQBOxFph+JAbcrQdE7KC0UkqwpLmv2EC4P41QXP+rqo9wYodACiG5/WM5s9oDApTU8utwj9g=="],
 
     "jiti": ["jiti@2.7.0", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
-
-    "joined-admin": ["joined-admin@workspace:joined-admin"],
 
     "joined-frontend": ["joined-frontend@workspace:joined-frontend"],
 
