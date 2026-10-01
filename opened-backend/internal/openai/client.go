@@ -23,18 +23,21 @@ const (
 var ErrMissingAPIKey = errors.New("OPENAI_API_KEY is not set")
 
 type Client struct {
-	apiKey  string
-	model   string
-	baseURL string
-	http    *http.Client
+	apiKey      string
+	model       string
+	searchModel string
+	baseURL     string
+	http        *http.Client
+	searchHTTP  *http.Client
 }
 
 func New(apiKey, model, baseURL string) *Client {
 	return &Client{
-		apiKey:  strings.TrimSpace(apiKey),
-		model:   model,
-		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    newHTTPClient(),
+		apiKey:     strings.TrimSpace(apiKey),
+		model:      model,
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		http:       newHTTPClient(),
+		searchHTTP: &http.Client{Timeout: searchTimeout},
 	}
 }
 

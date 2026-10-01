@@ -36,12 +36,14 @@ type Config struct {
 	CompaniesCollection string
 	OpenAIAPIKey        string
 	OpenAIModel         string
-	OpenAIBaseURL       string
-	FrontendOrigin      string
-	GoogleClientID      string
-	GoogleClientSecret  string
-	GoogleRedirectURL   string
-	AdminAPIToken       string
+	// OpenAISearchModel answers web-search requests. Blank means OpenAIModel.
+	OpenAISearchModel  string
+	OpenAIBaseURL      string
+	FrontendOrigin     string
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
+	AdminAPIToken      string
 }
 
 func (c Config) SourceName() string {
@@ -68,6 +70,7 @@ func Load() (Config, error) {
 		CompaniesCollection: envOr("COMPANIES_COLLECTION", defaultCompaniesCollection),
 		OpenAIAPIKey:        strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
 		OpenAIModel:         envOr("OPENAI_MODEL", defaultOpenAIModel),
+		OpenAISearchModel:   strings.TrimSpace(os.Getenv("OPENAI_SEARCH_MODEL")),
 		OpenAIBaseURL:       envOr("OPENAI_BASE_URL", defaultOpenAIBaseURL),
 		FrontendOrigin:      strings.TrimRight(envOr("FRONTEND_ORIGIN", defaultFrontendOrigin), "/"),
 		GoogleClientID:      strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),

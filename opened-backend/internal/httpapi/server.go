@@ -85,6 +85,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, scout
 	mux.HandleFunc("GET /v1/companies", server.admin(server.listCompanies))
 	mux.HandleFunc("GET /v1/companies/{id}", server.admin(server.getAdminCompany))
 	mux.HandleFunc("PATCH /v1/companies/{id}", server.admin(server.updateCompany))
+	mux.HandleFunc("POST /v1/companies/{id}/autofill", server.admin(server.autofillCompany))
 	mux.HandleFunc("POST /v1/companies/{id}/logo", server.admin(server.uploadCompanyLogo))
 	mux.HandleFunc("DELETE /v1/companies/{id}/logo", server.admin(server.deleteCompanyLogo))
 	mux.HandleFunc("GET /v1/jobs", server.admin(server.listSearchJobs))

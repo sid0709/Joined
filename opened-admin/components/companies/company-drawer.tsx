@@ -14,6 +14,7 @@ import {
   GridSystem,
   HStack,
   Heading,
+  Link,
   NumberInput,
   Selector,
   Skeleton,
@@ -27,6 +28,7 @@ import {
   parseAddress,
   splitLocations,
 } from "@openseat/design-system";
+import { companySizeLabel } from "@openseat/job-schema";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ListField } from "@/components/list-field";
 import { adminFetch, adminSend } from "@/lib/api";
@@ -37,10 +39,13 @@ import {
   INDUSTRIES,
   LOGO_ACCEPT,
   VALUE_ICONS,
+  applyAutofill,
+  autofillPath,
   companyLogoSrc,
   companyWriteFrom,
   type AdminCompany,
   type BenefitCategory,
+  type CompanyAutofill,
   type CompanyValue,
   type CompanyWrite,
 } from "@/lib/company";
@@ -51,9 +56,13 @@ const DRAWER_SIZE = 760;
 const LOADING_HEIGHT = 200;
 const NOT_SET = { value: "", label: "Not set" };
 
-function options(values: readonly string[], current: string, suffix = "") {
+function options(
+  values: readonly string[],
+  current: string,
+  label: (value: string) => string = (value) => value,
+) {
   const list = current && !values.includes(current) ? [current, ...values] : [...values];
-  return [NOT_SET, ...list.map((value) => ({ value, label: `${value}${suffix}` }))];
+  return [NOT_SET, ...list.map((value) => ({ value, label: label(value) }))];
 }
 
 /** Edit the public company page. Logo files upload after the profile saves. */
@@ -88,6 +97,11 @@ function CompanyDetail({
   const [version, setVersion] = useState(0);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoCleared, setLogoCleared] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+  const [autofillError, setAutofillError] = useState<string | null>(null);
+  const [autofillSources, setAutofillSources] = useState<string[] | null>(null);
+  // Bumped after an autofill so fields that keep their own text restart from the new draft.
+  const [fillKey, setFillKey] = useState(0);
   const path = `${COMPANIES_PATH}/${encodeURIComponent(companyId)}`;
 
   useEffect(() => {
@@ -112,6 +126,27 @@ function CompanyDetail({
       setSaved(false);
       setDraft((current) => (current ? { ...current, [key]: value } : current));
     };
+
+  async function autofill() {
+    if (!draft || !company) return;
+    setAutofillError(null);
+    setAutofilling(true);
+    try {
+      const found = await adminSend<CompanyAutofill>(autofillPath(company.id), "POST", {
+        name: draft.name,
+        url: draft.url,
+      });
+      setDraft((current) => (current ? applyAutofill(current, found.company) : current));
+      setAutofillSources(found.sources);
+      setFillKey((token) => token + 1);
+      setSaved(false);
+    } catch (cause) {
+      setAutofillSources(null);
+      setAutofillError(cause instanceof Error ? cause.message : "Could not autofill this company");
+    } finally {
+      setAutofilling(false);
+    }
+  }
 
   async function save() {
     if (!draft || !company) return;
@@ -169,6 +204,28 @@ function CompanyDetail({
       <Stack gap={5}>
         {error ? <Banner status="error" title={error} /> : null}
         {saveError ? <Banner status="error" title={saveError} /> : null}
+        {autofillError ? <Banner status="error" title={autofillError} /> : null}
+        {autofillSources ? (
+          <Stack gap={2}>
+            <Banner
+              status="info"
+              title="Filled in from the web. Review it, then save."
+              description="Fields the search could not confirm were left as they were. Nothing is saved until you press Save company."
+            />
+            {autofillSources.length ? (
+              <Stack gap={1}>
+                <Text type="supporting" color="secondary">
+                  Sources
+                </Text>
+                {autofillSources.map((source) => (
+                  <Link key={source} href={source} target="_blank">
+                    {source}
+                  </Link>
+                ))}
+              </Stack>
+            ) : null}
+          </Stack>
+        ) : null}
         {saved ? (
           <Banner
             status="success"
@@ -179,7 +236,18 @@ function CompanyDetail({
         {!draft && !error ? <Skeleton width="100%" height={LOADING_HEIGHT} /> : null}
         {draft && company ? (
           <Stack gap={6}>
-            <Group title="Identity">
+            <Group
+              title="Identity"
+              action={
+                <Button
+                  label={autofilling ? "Researching…" : "Autofill with AI"}
+                  variant="secondary"
+                  size="sm"
+                  clickAction={autofill}
+                  isDisabled={autofilling || (!draft.name.trim() && !draft.url.trim())}
+                />
+              }
+            >
               <GridSystem gap={4}>
                 <GridColumn span="full" md={6}>
                   <TextInput label="Name" value={draft.name} onChange={set("name")} />
@@ -213,7 +281,7 @@ function CompanyDetail({
                 }}
               />
               <TaglineField
-                key={`tagline-${version}`}
+                key={`tagline-${version}-${fillKey}`}
                 value={draft.tagline}
                 onChange={set("tagline")}
               />
@@ -240,7 +308,7 @@ function CompanyDetail({
                 <GridColumn span="full" md={4}>
                   <Selector
                     label="Size"
-                    options={options(COMPANY_SIZES, draft.size, " people")}
+                    options={options(COMPANY_SIZES, draft.size, companySizeLabel)}
                     value={draft.size}
                     onChange={set("size")}
                   />
@@ -263,7 +331,7 @@ function CompanyDetail({
               <TextArea label="About" value={draft.about} onChange={set("about")} />
               <TextArea label="Mission" value={draft.mission} onChange={set("mission")} />
               <ListField
-                key={`specialties-${version}`}
+                key={`specialties-${version}-${fillKey}`}
                 label="Specialties"
                 value={draft.specialties}
                 onChange={set("specialties")}
@@ -273,12 +341,13 @@ function CompanyDetail({
 
             <Group title="Places">
               <AddressSelector
-                key={`hq-${version}`}
+                key={`hq-${version}-${fillKey}`}
                 label="Headquarters"
                 value={parseAddress(draft.headquarters)}
                 onChange={(address) => set("headquarters")(formatAddress(address))}
               />
               <CitySelector
+                key={`offices-${fillKey}`}
                 multiple
                 label="Offices"
                 value={splitLocations(draft.locations)}
@@ -288,7 +357,7 @@ function CompanyDetail({
 
             <ValuesField values={draft.values} onChange={set("values")} />
             <BenefitsField
-              key={`benefits-${version}`}
+              key={`benefits-${version}-${fillKey}`}
               groups={draft.benefitCategories}
               onChange={set("benefitCategories")}
             />
