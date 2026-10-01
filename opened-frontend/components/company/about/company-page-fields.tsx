@@ -26,6 +26,7 @@ import {
   splitLocations,
   type SearchableItem,
 } from "@openseat/design-system";
+import { companySizeLabel } from "@openseat/job-schema";
 import { SettingsGroup } from "@/components/settings-group";
 import {
   ABOUT_MAX,
@@ -180,7 +181,7 @@ export function CompanyPageFields({
           <GridColumn span="full" md={4}>
             <Selector
               label="Size"
-              options={selectOptions(COMPANY_SIZES, draft.size, " people")}
+              options={selectOptions(COMPANY_SIZES, draft.size, companySizeLabel)}
               value={draft.size}
               onChange={(size) => onChange({ size })}
               isDisabled={!canEdit}

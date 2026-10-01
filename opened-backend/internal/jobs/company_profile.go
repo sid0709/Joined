@@ -1,6 +1,10 @@
 package jobs
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
+)
 
 const (
 	maxCompanyName   = 80
@@ -8,8 +12,6 @@ const (
 	maxCompanyLogo   = 500
 	maxTagline       = 140
 	maxAbout         = 2000
-	maxIndustry      = 80
-	maxCompanyType   = 80
 	maxHeadquarters  = 240
 	maxLocations     = 480
 	maxMission       = 800
@@ -25,29 +27,6 @@ const (
 	maxFoundedYear   = 2100
 	maxReplyDays     = 365
 )
-
-var companySizes = []string{
-	"1–10",
-	"11–50",
-	"51–200",
-	"201–500",
-	"501–1,000",
-	"1,001–5,000",
-	"5,000+",
-}
-
-var valueIcons = []string{
-	"heart",
-	"star",
-	"users",
-	"check",
-	"sparkle",
-	"home",
-	"pin",
-	"code",
-	"seat",
-	"chat",
-}
 
 type companyValue struct {
 	Icon        string `json:"icon" bson:"icon"`
@@ -209,8 +188,12 @@ func overridesFrom(input CompanyWrite) (companyOverrides, error) {
 		return companyOverrides{}, ErrInvalidInput
 	}
 	size := strings.TrimSpace(input.Size)
-	if size != "" && !contains(companySizes, size) {
-		return companyOverrides{}, ErrInvalidInput
+	if size != "" {
+		canonical, ok := jobschema.CanonicalChoice(size, jobschema.CompanySizes())
+		if !ok {
+			return companyOverrides{}, ErrInvalidInput
+		}
+		size = canonical
 	}
 	if input.Founded != 0 && (input.Founded < minFoundedYear || input.Founded > maxFoundedYear) {
 		return companyOverrides{}, ErrInvalidInput
@@ -225,12 +208,12 @@ func overridesFrom(input CompanyWrite) (companyOverrides, error) {
 		Profile: companyProfile{
 			Tagline:           truncate(strings.TrimSpace(input.Tagline), maxTagline),
 			About:             truncate(strings.TrimSpace(input.About), maxAbout),
-			Industry:          truncate(strings.TrimSpace(input.Industry), maxIndustry),
+			Industry:          jobschema.CanonicalOrOther(input.Industry, jobschema.Industries()),
 			Size:              size,
 			Founded:           input.Founded,
 			ReplyDays:         input.ReplyDays,
 			Headquarters:      truncate(strings.TrimSpace(input.Headquarters), maxHeadquarters),
-			CompanyType:       truncate(strings.TrimSpace(input.CompanyType), maxCompanyType),
+			CompanyType:       jobschema.CanonicalOrOther(input.CompanyType, jobschema.CompanyTypes()),
 			Locations:         truncate(strings.TrimSpace(input.Locations), maxLocations),
 			Specialties:       cleanList(clipItems(input.Specialties, maxListItem), maxSpecialties),
 			Mission:           truncate(strings.TrimSpace(input.Mission), maxMission),
@@ -259,7 +242,7 @@ func cleanValues(values []companyValue) []companyValue {
 			continue
 		}
 		icon := strings.TrimSpace(value.Icon)
-		if !contains(valueIcons, icon) {
+		if !contains(jobschema.ValueIcons(), icon) {
 			icon = "star"
 		}
 		out = append(out, companyValue{

@@ -77,3 +77,104 @@ func CanonicalSeniority(value string) (string, bool) {
 	mapped, ok := seniorityAliases[strings.ToLower(strings.TrimSpace(value))]
 	return mapped, ok
 }
+
+// Other is the catch-all in every company enum.
+const Other = "Other"
+
+// Industries are the company industries a page can pick.
+func Industries() []string {
+	return []string{
+		"Accounting",
+		"Advertising",
+		"Agriculture",
+		"Architecture",
+		"Construction",
+		"Consulting",
+		"Education",
+		"Energy",
+		"Entertainment",
+		"Finance",
+		"Food",
+		"Government",
+		"Healthcare",
+		"Hospitality",
+		"Insurance",
+		"Legal",
+		"Manufacturing",
+		"Media",
+		"Nonprofit",
+		"Real estate",
+		"Retail",
+		"Software",
+		"Telecommunications",
+		"Transportation",
+		"Other",
+	}
+}
+
+// CompanyTypes are the company types a page can pick.
+func CompanyTypes() []string {
+	return []string{
+		"Private",
+		"Public",
+		"Nonprofit",
+		"Government",
+		"Educational",
+		"Partnership",
+		"Cooperative",
+		"Other",
+	}
+}
+
+// CompanySizes are the headcount bands a page can pick.
+func CompanySizes() []string {
+	return []string{
+		"1–10",
+		"11–50",
+		"51–200",
+		"201–500",
+		"501–1,000",
+		"1,001–5,000",
+		"5,000+",
+		"Other",
+	}
+}
+
+// ValueIcons are the icons a company value can use.
+func ValueIcons() []string {
+	return []string{
+		"heart",
+		"star",
+		"users",
+		"check",
+		"sparkle",
+		"home",
+		"pin",
+		"code",
+		"seat",
+		"chat",
+	}
+}
+
+// CanonicalChoice returns the listed spelling of value, ignoring case and outer spaces.
+func CanonicalChoice(value string, options []string) (string, bool) {
+	value = strings.TrimSpace(value)
+	for _, option := range options {
+		if strings.EqualFold(option, value) {
+			return option, true
+		}
+	}
+	return "", false
+}
+
+// CanonicalOrOther is CanonicalChoice for the company enums: a blank stays blank and
+// anything not on the list becomes Other.
+func CanonicalOrOther(value string, options []string) string {
+	if strings.TrimSpace(value) == "" {
+		return ""
+	}
+	if choice, ok := CanonicalChoice(value, options); ok {
+		return choice
+	}
+	return Other
+}

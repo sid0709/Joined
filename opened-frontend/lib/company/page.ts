@@ -11,65 +11,7 @@ export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 export const TAGLINE_SEPARATOR = " · ";
 export const LOGO_MARK_SIZE = 64;
 
-export const INDUSTRIES = [
-  "Accounting",
-  "Advertising",
-  "Agriculture",
-  "Architecture",
-  "Construction",
-  "Consulting",
-  "Education",
-  "Energy",
-  "Entertainment",
-  "Finance",
-  "Food",
-  "Government",
-  "Healthcare",
-  "Hospitality",
-  "Insurance",
-  "Legal",
-  "Manufacturing",
-  "Media",
-  "Nonprofit",
-  "Real estate",
-  "Retail",
-  "Software",
-  "Telecommunications",
-  "Transportation",
-] as const;
-
-export const COMPANY_TYPES = [
-  "Private",
-  "Public",
-  "Nonprofit",
-  "Government",
-  "Educational",
-  "Partnership",
-  "Cooperative",
-] as const;
-
-export const COMPANY_SIZES = [
-  "1–10",
-  "11–50",
-  "51–200",
-  "201–500",
-  "501–1,000",
-  "1,001–5,000",
-  "5,000+",
-] as const;
-
-export const VALUE_ICONS = [
-  "heart",
-  "star",
-  "users",
-  "check",
-  "sparkle",
-  "home",
-  "pin",
-  "code",
-  "seat",
-  "chat",
-] as const;
+export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@openseat/job-schema";
 
 export type CompanyValue = {
   icon: string;
@@ -150,11 +92,15 @@ export function pageWriteFrom(page: CompanyPage): CompanyPageWrite {
   };
 }
 
-export function selectOptions(values: readonly string[], current: string, suffix = "") {
+export function selectOptions(
+  values: readonly string[],
+  current: string,
+  label: (value: string) => string = (value) => value,
+) {
   const known = values.includes(current);
   const list = current && !known ? [current, ...values] : [...values];
   return [
     { value: "", label: "Not set" },
-    ...list.map((value) => ({ value, label: `${value}${suffix}` })),
+    ...list.map((value) => ({ value, label: label(value) })),
   ];
 }

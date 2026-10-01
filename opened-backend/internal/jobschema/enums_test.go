@@ -17,6 +17,10 @@ type enumFile struct {
 	Employment       []enumOption      `json:"employment"`
 	PayPeriod        []enumOption      `json:"payPeriod"`
 	SeniorityAliases map[string]string `json:"seniorityAliases"`
+	Industries       []string          `json:"industries"`
+	CompanyTypes     []string          `json:"companyTypes"`
+	CompanySizes     []string          `json:"companySizes"`
+	ValueIcons       []string          `json:"valueIcons"`
 }
 
 type enumOption struct {
@@ -58,6 +62,16 @@ func TestEnumsMatchSharedFile(t *testing.T) {
 	if !reflect.DeepEqual(shared.SeniorityAliases, seniorityAliases) {
 		t.Fatalf("aliases = %#v", shared.SeniorityAliases)
 	}
+	for name, pair := range map[string][2][]string{
+		"industries":    {shared.Industries, Industries()},
+		"company types": {shared.CompanyTypes, CompanyTypes()},
+		"company sizes": {shared.CompanySizes, CompanySizes()},
+		"value icons":   {shared.ValueIcons, ValueIcons()},
+	} {
+		if !reflect.DeepEqual(pair[0], pair[1]) {
+			t.Fatalf("%s = %v", name, pair[0])
+		}
+	}
 }
 
 func TestCanonicalSeniorityAcceptsLegacyNames(t *testing.T) {
@@ -87,4 +101,21 @@ func values(options []enumOption) []string {
 		out[i] = option.Value
 	}
 	return out
+}
+
+func TestCompanyEnumsEndWithOtherAndFoldUnknownValues(t *testing.T) {
+	for name, list := range map[string][]string{"industries": Industries(), "types": CompanyTypes(), "sizes": CompanySizes()} {
+		if list[len(list)-1] != Other {
+			t.Fatalf("%s do not end with Other: %v", name, list)
+		}
+	}
+	if got := CanonicalOrOther(" software ", Industries()); got != "Software" {
+		t.Fatalf("got %q", got)
+	}
+	if got := CanonicalOrOther("Fintech", Industries()); got != Other {
+		t.Fatalf("got %q", got)
+	}
+	if got := CanonicalOrOther("  ", Industries()); got != "" {
+		t.Fatalf("blank became %q", got)
+	}
 }
