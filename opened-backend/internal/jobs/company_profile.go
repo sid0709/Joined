@@ -7,25 +7,24 @@ import (
 )
 
 const (
-	maxCompanyName   = 80
-	maxCompanyURL    = 300
-	maxCompanyLogo   = 500
-	maxTagline       = 140
-	maxAbout         = 2000
-	maxHeadquarters  = 240
-	maxLocations     = 480
-	maxMission       = 800
-	maxListItem      = 80
-	maxValueTitle    = 60
-	maxValueBody     = 240
-	maxBenefitLabel  = 60
-	maxSpecialties   = 12
-	maxValues        = 6
-	maxBenefitGroups = 6
-	maxBenefitItems  = 12
-	minFoundedYear   = 1800
-	maxFoundedYear   = 2100
-	maxReplyDays     = 365
+	maxCompanyName  = 80
+	maxCompanyURL   = 300
+	maxCompanyLogo  = 500
+	maxTagline      = 140
+	maxAbout        = 2000
+	maxHeadquarters = 240
+	maxLocations    = 480
+	maxMission      = 800
+	maxListItem     = 80
+	maxValueTitle   = 60
+	maxValueBody    = 240
+	maxBenefitLabel = 60
+	maxSpecialties  = 12
+	maxValues       = 6
+	maxBenefitItems = 12
+	minFoundedYear  = 1800
+	maxFoundedYear  = 2100
+	maxReplyDays    = 365
 )
 
 type companyValue struct {
@@ -148,7 +147,7 @@ func (doc storedCompany) publicCompany() PublicCompany {
 		Specialties:       nilIfEmpty(profile.Specialties),
 		Mission:           profile.Mission,
 		Values:            nilValues(profile.Values),
-		BenefitCategories: nilBenefits(foldPerks(profile.BenefitCategories, profile.Perks)),
+		BenefitCategories: nilBenefits(cleanBenefits(foldPerks(profile.BenefitCategories, profile.Perks))),
 		HasLogoFile:       doc.hasLogoFile(),
 		Verified:          doc.VerificationStatus == VerificationApproved,
 	}
@@ -257,17 +256,27 @@ func cleanValues(values []companyValue) []companyValue {
 	return out
 }
 
+// cleanBenefits gives every benefit its own category: one label, one line. A category
+// that holds several lines, as older pages saved them, becomes one category per line under
+// the same label, so nothing is lost. Exact repeats are dropped.
 func cleanBenefits(groups []benefitCategory) []benefitCategory {
-	out := make([]benefitCategory, 0, min(len(groups), maxBenefitGroups))
+	out := make([]benefitCategory, 0, min(len(groups), jobschema.MaxBenefits))
+	seen := make(map[string]struct{}, len(groups))
 	for _, group := range groups {
 		label := truncate(strings.TrimSpace(group.Label), maxBenefitLabel)
-		items := cleanList(clipItems(group.Items, maxListItem), maxBenefitItems)
-		if label == "" || len(items) == 0 {
+		if label == "" {
 			continue
 		}
-		out = append(out, benefitCategory{Label: label, Items: items})
-		if len(out) == maxBenefitGroups {
-			break
+		for _, item := range cleanList(clipItems(group.Items, maxListItem), maxBenefitItems) {
+			key := strings.ToLower(label + "\x00" + item)
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, benefitCategory{Label: label, Items: []string{item}})
+			if len(out) == jobschema.MaxBenefits {
+				return out
+			}
 		}
 	}
 	return out
@@ -334,11 +343,6 @@ func foldPerks(groups []benefitCategory, perks []string) []benefitCategory {
 			out[i].Items = append(append([]string{}, group.Items...), fresh...)
 			return out
 		}
-	}
-	if len(out) >= maxBenefitGroups {
-		last := len(out) - 1
-		out[last].Items = append(append([]string{}, out[last].Items...), fresh...)
-		return out
 	}
 	return append(out, benefitCategory{Label: "Perks", Items: fresh})
 }

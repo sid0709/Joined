@@ -78,6 +78,9 @@ func CanonicalSeniority(value string) (string, bool) {
 	return mapped, ok
 }
 
+// MaxBenefits is how many benefits a company page lists. Each is its own category with one line.
+const MaxBenefits = 12
+
 // Other is the catch-all in every company enum.
 const Other = "Other"
 

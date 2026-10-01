@@ -28,10 +28,9 @@ import {
   parseAddress,
   splitLocations,
 } from "@openseat/design-system";
-import { companySizeLabel } from "@openseat/job-schema";
+import { MAX_BENEFITS, companySizeLabel } from "@openseat/job-schema";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ListField } from "@/components/list-field";
-import { BenefitItemsField } from "./benefit-items-field";
 import { adminFetch, adminSend } from "@/lib/api";
 import {
   COMPANIES_PATH,
@@ -612,8 +611,15 @@ function BenefitsField({
   return (
     <Group
       title="Benefits & perks"
-      action={<Button label="Add category" variant="ghost" size="sm" clickAction={addCategory} />}
+      action={
+        groups.length < MAX_BENEFITS ? (
+          <Button label="Add benefit" variant="ghost" size="sm" clickAction={addCategory} />
+        ) : null
+      }
     >
+      <Text type="supporting" color="secondary">
+        One benefit per category, so the page shows a varied list. Up to {MAX_BENEFITS}.
+      </Text>
       {groups.length === 0 ? <Text color="secondary">None yet.</Text> : null}
       {groups.map((group, index) => (
         <Card key={ids[index] ?? `extra-${index}`} padding={4} variant="muted">
@@ -622,12 +628,14 @@ function BenefitsField({
               label="Category"
               value={group.label}
               onChange={(label) => update(index, { label })}
-              placeholder="Health"
+              placeholder="Health insurance"
             />
-            <BenefitItemsField
-              value={group.items}
-              onChange={(items) => update(index, { items })}
-              placeholder="Medical, dental, and vision"
+            <TextInput
+              label="Benefit"
+              value={group.items[0] ?? ""}
+              onChange={(item) => update(index, { items: item ? [item] : [] })}
+              placeholder="Medical, dental, and vision for you and dependents"
+              description="One line."
             />
             <HStack hAlign="end">
               <Button

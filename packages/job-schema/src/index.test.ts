@@ -10,6 +10,7 @@ import {
   EMPLOYMENTS,
   EMPLOYMENT_LABEL,
   INDUSTRIES,
+  MAX_BENEFITS,
   OTHER,
   PAY_PERIODS,
   PAY_PERIOD_LABEL,
@@ -40,6 +41,7 @@ test("enums.json matches the TypeScript job enums", () => {
   expect(enums.companyTypes).toEqual([...COMPANY_TYPES]);
   expect(enums.companySizes).toEqual([...COMPANY_SIZES]);
   expect(enums.valueIcons).toEqual([...VALUE_ICONS]);
+  expect(enums.maxBenefits).toBe(MAX_BENEFITS);
 });
 
 test("company size labels add people except for Other", () => {

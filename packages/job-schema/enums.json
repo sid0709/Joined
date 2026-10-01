@@ -129,5 +129,6 @@
     "code",
     "seat",
     "chat"
-  ]
+  ],
+  "maxBenefits": 12
 }

@@ -36,7 +36,7 @@ const researchedAnswer = `{
   "specialties": ["Hiring", "React"],
   "mission": "Make hiring fair.",
   "values": [{"icon": "rocket", "title": "Ship it", "description": "Move fast."}, {"icon": "heart", "title": " ", "description": "dropped"}],
-  "benefits": [{"theme": "Perks", "item": "Team offsites"}, {"theme": "Health & wellness", "item": "Medical"}, {"theme": "health & WELLNESS", "item": "Dental\n- Vision"}, {"theme": "Time off & family", "item": "Unlimited PTO"}, {"theme": "Made up", "item": "Snacks"}, {"theme": "Pay & equity", "item": "  "}]
+  "benefits": [{"category": "Health insurance", "item": "Medical, dental,\n and vision"}, {"category": "Parental leave", "item": "16 weeks paid"}, {"category": "health INSURANCE", "item": "a repeat"}, {"category": "", "item": "no category"}, {"category": "Learning budget", "item": "  "}]
 }`
 
 func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
@@ -80,7 +80,7 @@ func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
 	for _, group := range c.BenefitCategories {
 		groups = append(groups, group.Label+": "+strings.Join(group.Items, "|"))
 	}
-	want := "Health & wellness: Medical|Dental|Vision; Time off & family: Unlimited PTO; Perks: Team offsites|Snacks"
+	want := "Health insurance: Medical, dental, and vision; Parental leave: 16 weeks paid"
 	if got := strings.Join(groups, "; "); got != want {
 		t.Fatalf("benefits = %q\nwant      %q", got, want)
 	}
@@ -139,5 +139,24 @@ func TestCompanyResearchSchemaOnlyOffersTheFormsChoices(t *testing.T) {
 	want := append([]string{""}, jobschema.Industries()...)
 	if got := schema.Properties["industry"].Enum; strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("industry enum = %v", got)
+	}
+}
+
+func TestCleanBenefitsGivesEachBenefitItsOwnCategory(t *testing.T) {
+	got := cleanBenefits([]benefitCategory{
+		{Label: "Talent community", Items: []string{"Mentorship", "Burnout coaching", "mentorship"}},
+		{Label: "Health", Items: []string{"Medical"}},
+		{Label: " ", Items: []string{"unlabelled"}},
+	})
+	if len(got) != 3 {
+		t.Fatalf("got %+v", got)
+	}
+	for _, group := range got {
+		if len(group.Items) != 1 {
+			t.Fatalf("a category holds %d items: %+v", len(group.Items), group)
+		}
+	}
+	if got[0].Label != "Talent community" || got[1].Items[0] != "Burnout coaching" || got[2].Label != "Health" {
+		t.Fatalf("got %+v", got)
 	}
 }

@@ -95,6 +95,9 @@ export function companySizeLabel(size: string) {
   return size === OTHER ? size : `${size} people`;
 }
 
+/** A company page lists up to this many benefits. Each is its own category with one line. */
+export const MAX_BENEFITS = 12;
+
 export type Industry = (typeof INDUSTRIES)[number];
 export type CompanyType = (typeof COMPANY_TYPES)[number];
 export type CompanySize = (typeof COMPANY_SIZES)[number];

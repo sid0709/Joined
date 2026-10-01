@@ -21,6 +21,7 @@ type enumFile struct {
 	CompanyTypes     []string          `json:"companyTypes"`
 	CompanySizes     []string          `json:"companySizes"`
 	ValueIcons       []string          `json:"valueIcons"`
+	MaxBenefits      int               `json:"maxBenefits"`
 }
 
 type enumOption struct {
@@ -61,6 +62,9 @@ func TestEnumsMatchSharedFile(t *testing.T) {
 	}
 	if !reflect.DeepEqual(shared.SeniorityAliases, seniorityAliases) {
 		t.Fatalf("aliases = %#v", shared.SeniorityAliases)
+	}
+	if shared.MaxBenefits != MaxBenefits {
+		t.Fatalf("max benefits = %d", shared.MaxBenefits)
 	}
 	for name, pair := range map[string][2][]string{
 		"industries":    {shared.Industries, Industries()},

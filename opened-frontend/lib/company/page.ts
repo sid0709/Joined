@@ -5,13 +5,17 @@ export const ABOUT_MAX = 2000;
 export const MISSION_MAX = 800;
 export const MAX_SPECIALTIES = 12;
 export const MAX_VALUES = 6;
-export const MAX_BENEFIT_GROUPS = 6;
-export const MAX_BENEFIT_ITEMS = 12;
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 export const TAGLINE_SEPARATOR = " · ";
 export const LOGO_MARK_SIZE = 64;
 
-export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@openseat/job-schema";
+export {
+  COMPANY_SIZES,
+  COMPANY_TYPES,
+  INDUSTRIES,
+  MAX_BENEFITS,
+  VALUE_ICONS,
+} from "@openseat/job-schema";
 
 export type CompanyValue = {
   icon: string;

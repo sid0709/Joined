@@ -41,7 +41,7 @@ Rules:
 - For industry, companyType, and size, pick exactly one listed value. Use "Other" when you know the answer but nothing listed fits.
 - Write about and mission in your own words, neutral and factual, with no marketing language.
 - values: only values the company states about itself, such as on its careers or about page. At most 6. Pick the icon that fits each best. The description says in one sentence what the value means there, in the company's terms; if the company only names the value, leave the description "".
-- benefits: benefits the company gives its own employees, as published on its careers or jobs pages. Not services it sells to customers or to the people in its talent network. List each benefit as its own entry: one short line, at most 60 characters, no line breaks, such as "Medical, dental, and vision" or "Unlimited PTO". Give every entry the theme it belongs to.
+- benefits: benefits the company gives its own employees, as published on its careers or jobs pages. Not services it sells to customers or to the people in its talent network. Every benefit is its own category with exactly one line. category is a short title of one to three words, and no two benefits share a category, for example "Health insurance", "Parental leave", "Learning budget", "Remote work", "Equity", "401(k) match". item is one line, at most 60 characters, no line breaks, saying what the company offers, for example "Medical, dental, and vision for you and dependents". Cover as many different kinds of benefit as the company publishes, up to 12.
 - taglinePhrases: two or three short phrases that describe the company, such as "Payments infrastructure" or "Series C".
 - headquarters: the full mailing address of the main office, from the company's contact, legal, privacy, or terms pages, or a business registry. line1 is the street address with any suite, such as "1450 Brickell Ave, Suite 1900". state is the two-letter code for a US state or Canadian province, otherwise "". postalCode is the ZIP or postal code. country is the full English name, such as "United States".
 - offices: every city where the company has an office, including the headquarters city, as "City, ST" in the US or "City, Country" elsewhere. A remote-first company lists just its headquarters city.
@@ -111,21 +111,10 @@ type researchedCompany struct {
 	Benefits    []benefitEntry `json:"benefits"`
 }
 
-// benefitEntry is one benefit and the theme the model filed it under.
+// benefitEntry is one benefit: its own category and the one line under it.
 type benefitEntry struct {
-	Theme string `json:"theme"`
-	Item  string `json:"item"`
-}
-
-// benefitThemes are the categories autofill groups benefits into, in display order.
-// There is one per benefit group the page can hold.
-var benefitThemes = []string{
-	"Health & wellness",
-	"Time off & family",
-	"Pay & equity",
-	"Growth & learning",
-	"Work setup",
-	"Perks",
+	Category string `json:"category"`
+	Item     string `json:"item"`
 }
 
 // write turns the model's answer into the edit form's shape, applying the same limits
@@ -154,7 +143,7 @@ func (c researchedCompany) write() CompanyWrite {
 		Specialties:       cleanList(clipItems(c.Specialties, maxListItem), maxSpecialties),
 		Mission:           truncate(strings.TrimSpace(c.Mission), maxMission),
 		Values:            cleanValues(c.Values),
-		BenefitCategories: cleanBenefits(groupBenefits(c.Benefits)),
+		BenefitCategories: cleanBenefits(benefitCategories(c.Benefits)),
 	}
 }
 
@@ -197,28 +186,23 @@ func withHeadquartersCity(c researchedCompany) string {
 	return joinNonEmpty(", ", hq.City, countryName(hq.Country))
 }
 
-// groupBenefits files each benefit under its theme, in theme order, one line per item.
-// An entry the model wrote across several lines becomes several items.
-func groupBenefits(entries []benefitEntry) []benefitCategory {
-	byTheme := make(map[string][]string, len(benefitThemes))
+// benefitCategories makes each benefit its own category with one line. A repeated
+// category keeps only its first benefit, so the list stays varied, and a line the model
+// broke over several lines is joined back into one.
+func benefitCategories(entries []benefitEntry) []benefitCategory {
+	out := make([]benefitCategory, 0, len(entries))
+	seen := make(map[string]struct{}, len(entries))
 	for _, entry := range entries {
-		theme, ok := jobschema.CanonicalChoice(entry.Theme, benefitThemes)
-		if !ok {
-			theme = benefitThemes[len(benefitThemes)-1]
+		label := strings.TrimSpace(entry.Category)
+		item := strings.Join(strings.Fields(strings.TrimLeft(strings.TrimSpace(entry.Item), "-•* ")), " ")
+		key := strings.ToLower(label)
+		if _, dup := seen[key]; dup || label == "" || item == "" {
+			continue
 		}
-		for _, line := range strings.Split(entry.Item, "\n") {
-			if line = strings.TrimLeft(strings.TrimSpace(line), "-•* "); line != "" {
-				byTheme[theme] = append(byTheme[theme], line)
-			}
-		}
+		seen[key] = struct{}{}
+		out = append(out, benefitCategory{Label: label, Items: []string{item}})
 	}
-	groups := make([]benefitCategory, 0, len(byTheme))
-	for _, theme := range benefitThemes {
-		if items := byTheme[theme]; len(items) > 0 {
-			groups = append(groups, benefitCategory{Label: theme, Items: items})
-		}
-	}
-	return groups
+	return out
 }
 
 // countryName spells out the common short forms of a country.
@@ -286,8 +270,8 @@ func companyResearchSchema() json.RawMessage {
 			"description": text,
 		})),
 		"benefits": list(object(map[string]any{
-			"theme": map[string]any{"type": "string", "enum": benefitThemes},
-			"item":  text,
+			"category": text,
+			"item":     text,
 		})),
 	})
 	raw, _ := json.Marshal(schema)
