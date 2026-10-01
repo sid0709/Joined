@@ -89,22 +89,31 @@ func (s *Store) CompleteGoogle(ctx context.Context, state, code string, now time
 	if err != nil {
 		return "", err
 	}
-	if account.RefreshToken == "" || account.Email == "" {
-		return "", ErrInvalidInput
+	if err := s.ConnectGoogle(ctx, record.UserID, account, now); err != nil {
+		return "", err
 	}
-	_, err = s.collection(calendarCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: record.UserID}}, bson.D{
+	return record.UserID, nil
+}
+
+// ConnectGoogle saves a job hunter's calendar grant and pulls in matching
+// interviews. Sign in with Google calls it too when the calendar was granted.
+func (s *Store) ConnectGoogle(ctx context.Context, userID string, account GoogleAccount, now time.Time) error {
+	if account.RefreshToken == "" || account.Email == "" {
+		return ErrInvalidInput
+	}
+	_, err := s.collection(calendarCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{
 		{Key: "$set", Value: storedConnection{
-			UserID:       record.UserID,
+			UserID:       userID,
 			Email:        account.Email,
 			RefreshToken: account.RefreshToken,
 			ConnectedAt:  now.UTC(),
 		}},
 	}, options.UpdateOne().SetUpsert(true))
 	if err != nil {
-		return "", err
+		return err
 	}
-	_, _ = s.SyncGoogle(ctx, record.UserID, now)
-	return record.UserID, nil
+	_, _ = s.SyncGoogle(ctx, userID, now)
+	return nil
 }
 
 func (s *Store) DisconnectGoogle(ctx context.Context, userID string) error {

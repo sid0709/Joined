@@ -19,9 +19,14 @@ export function signInHref(path: string) {
   return `${ROUTES.signIn}?next=${encodeURIComponent(path)}`;
 }
 
-/** Only same-site paths; anything else lands on the dashboard. */
+/**
+ * Only same-site paths; anything else lands on the dashboard. Browsers read
+ * "/\" like "//", another host, so both are refused.
+ */
 export function safeNextPath(value: string | null | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return ROUTES.dashboard;
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return ROUTES.dashboard;
+  }
   return value;
 }
 

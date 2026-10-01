@@ -51,6 +51,14 @@ type OpenAI struct {
 	BaseURL     string
 }
 
+// Google is the OAuth client from Google Cloud and where Sign in with Google
+// returns to: the app's frontend callback page, registered on that client.
+type Google struct {
+	ClientID          string
+	ClientSecret      string
+	SignInRedirectURL string
+}
+
 // HTTP is where a service listens and which browser origins may call it.
 type HTTP struct {
 	Addr    string
@@ -86,6 +94,14 @@ func LoadOpenAI() OpenAI {
 		Model:       Env("OPENAI_MODEL", defaultOpenAIModel),
 		SearchModel: strings.TrimSpace(os.Getenv("OPENAI_SEARCH_MODEL")),
 		BaseURL:     Env("OPENAI_BASE_URL", defaultOpenAIBaseURL),
+	}
+}
+
+func LoadGoogle() Google {
+	return Google{
+		ClientID:          Env("GOOGLE_CLIENT_ID", ""),
+		ClientSecret:      Env("GOOGLE_CLIENT_SECRET", ""),
+		SignInRedirectURL: Env("GOOGLE_SIGNIN_REDIRECT_URL", ""),
 	}
 }
 

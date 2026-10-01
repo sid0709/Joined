@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@joined/design-system": "workspace:*",
+    "@joined/google-signin": "workspace:*",
     "@joined/job-schema": "workspace:*",
     "@astryxdesign/core": "catalog:",
     "@astryxdesign/theme-neutral": "catalog:",

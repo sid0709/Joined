@@ -70,6 +70,7 @@
         "@astryxdesign/core": "catalog:",
         "@astryxdesign/theme-neutral": "catalog:",
         "@joined/design-system": "workspace:*",
+        "@joined/google-signin": "workspace:*",
         "@joined/job-schema": "workspace:*",
         "@stylexjs/stylex": "catalog:",
         "next": "catalog:",
@@ -129,6 +130,13 @@
         "react-dom": ">=19",
       },
     },
+    "packages/google-signin": {
+      "name": "@joined/google-signin",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "catalog:",
+      },
+    },
     "packages/job-schema": {
       "name": "@joined/job-schema",
       "version": "0.1.0",
@@ -152,6 +160,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@joined/design-system": "workspace:*",
+        "@joined/google-signin": "workspace:*",
         "@joined/scout": "workspace:*",
         "next": "catalog:",
         "react": "catalog:",
@@ -504,6 +513,8 @@
     "@internationalized/number": ["@internationalized/number@3.6.8", "", { "dependencies": { "@swc/helpers": "^0.5.0" } }, "sha512-8UmMFia46DUt+k97zKd9fKWXcWHR+k8ae3eYzILETuT2KbIvLyOfac7zesw+sJdRAAZ7Q9pM1Mk22aXp2LD0Ig=="],
 
     "@joined/design-system": ["@joined/design-system@workspace:packages/design-system"],
+
+    "@joined/google-signin": ["@joined/google-signin@workspace:packages/google-signin"],
 
     "@joined/job-schema": ["@joined/job-schema@workspace:packages/job-schema"],
 

@@ -4,74 +4,53 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/sid0709/OpenSeat/backend-core/google"
 )
 
-const (
-	googleAuthURL    = "https://accounts.google.com/o/oauth2/v2/auth"
-	googleTokenURL   = "https://oauth2.googleapis.com/token"
-	googleUserURL    = "https://www.googleapis.com/oauth2/v2/userinfo"
-	googleEventsURL  = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
-	googleEventScope = "https://www.googleapis.com/auth/calendar.events"
-	googleEmailScope = "https://www.googleapis.com/auth/userinfo.email"
-	maxGoogleBody    = 1 << 20
-)
+const googleEventsURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 
+// Google is the job hunter's Google Calendar, reached through the shared OAuth client.
 type Google struct {
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	HTTP         *http.Client
+	OAuth *google.Client
+	// RedirectURL is joined-backend's calendar callback, registered in Google Cloud.
+	RedirectURL string
 }
 
 func (g *Google) Configured() bool {
-	return g != nil && g.ClientID != "" && g.ClientSecret != "" && g.RedirectURL != ""
+	return g != nil && g.OAuth.Configured() && g.RedirectURL != ""
 }
 
-func (g *Google) client() *http.Client {
-	if g.HTTP != nil {
-		return g.HTTP
-	}
-	return http.DefaultClient
-}
-
+// AuthURL asks for calendar access. It always shows the consent screen so Google
+// sends a refresh token even when the person granted the calendar before.
 func (g *Google) AuthURL(state string) string {
-	values := url.Values{
-		"client_id":     {g.ClientID},
-		"redirect_uri":  {g.RedirectURL},
-		"response_type": {"code"},
-		"scope":         {googleEventScope + " " + googleEmailScope},
-		"access_type":   {"offline"},
-		"prompt":        {"consent"},
-		"state":         {state},
-	}
-	return googleAuthURL + "?" + values.Encode()
+	return g.OAuth.AuthURL(google.AuthRequest{
+		RedirectURL: g.RedirectURL,
+		Scopes:      []string{google.ScopeOpenID, google.ScopeEmail, google.ScopeCalendarEvents},
+		State:       state,
+		Offline:     true,
+		Consent:     true,
+	})
 }
 
 func (g *Google) Exchange(ctx context.Context, code string) (GoogleAccount, error) {
-	token, err := g.token(ctx, url.Values{
-		"code":          {code},
-		"client_id":     {g.ClientID},
-		"client_secret": {g.ClientSecret},
-		"redirect_uri":  {g.RedirectURL},
-		"grant_type":    {"authorization_code"},
-	})
+	token, err := g.OAuth.Exchange(ctx, code, g.RedirectURL, "")
 	if err != nil {
 		return GoogleAccount{}, err
 	}
-	email, err := g.email(ctx, token.AccessToken)
+	profile, err := g.OAuth.Profile(ctx, token.AccessToken)
 	if err != nil {
 		return GoogleAccount{}, err
 	}
-	return GoogleAccount{Email: email, RefreshToken: token.RefreshToken}, nil
+	return GoogleAccount{Email: profile.Email, RefreshToken: token.RefreshToken}, nil
 }
 
 func (g *Google) ListEvents(ctx context.Context, refreshToken string, from, to time.Time) ([]CalEvent, error) {
-	access, err := g.accessToken(ctx, refreshToken)
+	access, err := g.OAuth.AccessToken(ctx, refreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +70,12 @@ func (g *Google) ListEvents(ctx context.Context, refreshToken string, from, to t
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+access)
-	res, err := g.client().Do(req)
+	res, err := g.OAuth.HTTPClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
-	body, err := readBody(res)
+	body, err := google.ReadBody(res)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +102,7 @@ func (g *Google) ListEvents(ctx context.Context, refreshToken string, from, to t
 }
 
 func (g *Google) CreateEvent(ctx context.Context, refreshToken string, event CalEvent) (string, error) {
-	access, err := g.accessToken(ctx, refreshToken)
+	access, err := g.OAuth.AccessToken(ctx, refreshToken)
 	if err != nil {
 		return "", err
 	}
@@ -145,12 +124,12 @@ func (g *Google) CreateEvent(ctx context.Context, refreshToken string, event Cal
 	}
 	req.Header.Set("Authorization", "Bearer "+access)
 	req.Header.Set("Content-Type", "application/json")
-	res, err := g.client().Do(req)
+	res, err := g.OAuth.HTTPClient().Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer res.Body.Close()
-	body, err := readBody(res)
+	body, err := google.ReadBody(res)
 	if err != nil {
 		return "", err
 	}
@@ -166,17 +145,12 @@ func (g *Google) CreateEvent(ctx context.Context, refreshToken string, event Cal
 	return created.ID, nil
 }
 
-type googleToken struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 type googleEvent struct {
-	ID          string `json:"id"`
-	Status      string `json:"status"`
-	Summary     string `json:"summary"`
-	Description string `json:"description"`
-	Location    string `json:"location"`
+	ID          string     `json:"id"`
+	Status      string     `json:"status"`
+	Summary     string     `json:"summary"`
+	Description string     `json:"description"`
+	Location    string     `json:"location"`
 	Start       googleWhen `json:"start"`
 	End         googleWhen `json:"end"`
 }
@@ -231,73 +205,4 @@ func googleDateTime(date, clock string) string {
 		clock = "09:00"
 	}
 	return date + "T" + clock + ":00Z"
-}
-
-func (g *Google) accessToken(ctx context.Context, refreshToken string) (string, error) {
-	token, err := g.token(ctx, url.Values{
-		"refresh_token": {refreshToken},
-		"client_id":     {g.ClientID},
-		"client_secret": {g.ClientSecret},
-		"grant_type":    {"refresh_token"},
-	})
-	if err != nil {
-		return "", err
-	}
-	return token.AccessToken, nil
-}
-
-func (g *Google) token(ctx context.Context, values url.Values) (googleToken, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, googleTokenURL, strings.NewReader(values.Encode()))
-	if err != nil {
-		return googleToken{}, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	res, err := g.client().Do(req)
-	if err != nil {
-		return googleToken{}, err
-	}
-	defer res.Body.Close()
-	body, err := readBody(res)
-	if err != nil {
-		return googleToken{}, err
-	}
-	if res.StatusCode >= 300 {
-		return googleToken{}, fmt.Errorf("google token: %s", res.Status)
-	}
-	var token googleToken
-	if err := json.Unmarshal(body, &token); err != nil {
-		return googleToken{}, err
-	}
-	return token, nil
-}
-
-func (g *Google) email(ctx context.Context, accessToken string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, googleUserURL, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	res, err := g.client().Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	body, err := readBody(res)
-	if err != nil {
-		return "", err
-	}
-	if res.StatusCode >= 300 {
-		return "", fmt.Errorf("google userinfo: %s", res.Status)
-	}
-	var payload struct {
-		Email string `json:"email"`
-	}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return "", err
-	}
-	return strings.ToLower(strings.TrimSpace(payload.Email)), nil
-}
-
-func readBody(res *http.Response) ([]byte, error) {
-	return io.ReadAll(io.LimitReader(res.Body, maxGoogleBody))
 }

@@ -19,6 +19,10 @@ export type { JobCardProps } from "./Card";
 // Brand — the Joined wordmark, app icon, and product name.
 export * from "../brand";
 
+// Sign in with Google — Google's mark and the button every app's sign-in uses.
+export { GoogleMark, GoogleSignInButton } from "./GoogleSignIn";
+export type { GoogleMarkProps, GoogleSignInButtonProps } from "./GoogleSignIn";
+
 export { Nav } from "./Nav";
 export type { NavProps, NavItem } from "./Nav";
 
