@@ -8,7 +8,7 @@ import {
   useAppShellMobile,
   useToast,
   type DropdownMenuOption,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { SessionUser } from "@/lib/auth/types";
 import { ACCOUNT_PAGE, DEVELOPERS_PAGE, PAYOUTS_PAGE, ROUTES } from "@/lib/routes";
 import { authSend } from "@/lib/scout/client";

@@ -20,7 +20,7 @@ export function ThemeToggle({ onChange }: { onChange?: (theme: ThemeName) => voi
 
   useEffect(() => {
     const current = document.documentElement.getAttribute("data-theme");
-    const stored = window.localStorage.getItem("openseat-theme");
+    const stored = window.localStorage.getItem("joined-theme");
     const next = stored === "light" || stored === "dark" ? stored : current;
     if (next === "light" || next === "dark") {
       applyTheme(next);
@@ -30,8 +30,8 @@ export function ThemeToggle({ onChange }: { onChange?: (theme: ThemeName) => voi
 
   const switchTheme = (next: ThemeName) => {
     applyTheme(next);
-    window.localStorage.setItem("openseat-theme", next);
-    document.cookie = `openseat-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    window.localStorage.setItem("joined-theme", next);
+    document.cookie = `joined-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`;
     setTheme(next);
     onChange?.(next);
   };

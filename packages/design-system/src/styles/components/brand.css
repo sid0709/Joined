@@ -1,0 +1,98 @@
+/* Joined brand artwork — JoinedLogo, JoinedMark, BrandLockup, BrandFooter.
+   The palette is the fixed one from the masters in Joined-Logo/. Blue is the
+   brand's everyday color; "blue" reads the adaptive ramp, which is the exact
+   blue-gradient artwork in light mode and steps one stop brighter in dark mode
+   so the navy end stays legible on dark surfaces. */
+
+.os-brand {
+  /* "blue-gradient" and the app tile: navy → Meta blue → cyan. */
+  --os-brand-blue-1: #0033a0;
+  --os-brand-blue-2: #0866ff;
+  --os-brand-blue-3: #2d8cff;
+  --os-brand-blue-4: #1faff5;
+  --os-brand-blue-5: #2cd4f0;
+  /* "blue" (default): the blue ramp, brightened in dark mode. */
+  --os-brand-adaptive-1: light-dark(#0033a0, #2d8cff);
+  --os-brand-adaptive-2: light-dark(#0866ff, #2d8cff);
+  --os-brand-adaptive-3: light-dark(#2d8cff, #1faff5);
+  --os-brand-adaptive-4: light-dark(#1faff5, #2cd4f0);
+  --os-brand-adaptive-5: light-dark(#2cd4f0, #2cd4f0);
+  /* "original": teal → green → amber → orange, for marketing moments. */
+  --os-brand-original-1: #0b6b6e;
+  --os-brand-original-2: #12a08a;
+  --os-brand-original-3: #8dc63f;
+  --os-brand-original-4: #ffb000;
+  --os-brand-original-5: #ff5f15;
+  /* Solid fills. */
+  --os-brand-meta-blue: #0866ff;
+  --os-brand-black: #0b1220;
+  --os-brand-white: #ffffff;
+
+  display: block;
+  flex-shrink: 0;
+  width: auto;
+}
+
+/* BrandLockup — the logo block that opens sign-in, sign-up, and error pages. */
+.os-brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-3);
+  text-align: center;
+}
+.os-brand-lockup-start {
+  align-items: flex-start;
+  text-align: start;
+}
+.os-brand-lockup-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.os-brand-lockup-product {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.os-brand-lockup-endorse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+.os-brand-lockup-tagline {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* BrandFooter — a quiet "Part of Joined" sign-off under pages. */
+.os-brand-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding-block: var(--spacing-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+.os-brand-footer-start {
+  justify-content: flex-start;
+}
+.os-brand-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  color: inherit;
+  text-decoration: none;
+}
+.os-brand-footer-link:hover {
+  color: var(--color-text-primary);
+}

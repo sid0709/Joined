@@ -1,5 +1,5 @@
-import { Button, Card, PageHeader, PageTabs, Stack } from "@openseat/design-system";
-import { type Earning, type List } from "@openseat/scout";
+import { Button, Card, PageHeader, PageTabs, Stack } from "@joined/design-system";
+import { type Earning, type List } from "@joined/scout";
 import { redirect } from "next/navigation";
 
 import type { Metadata } from "next";

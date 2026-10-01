@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import type { List, Payout } from "@openseat/scout";
+import type { List, Payout } from "@joined/scout";
 import { PayoutsView } from "@/components/payouts/payouts-view";
 import { ROUTES, signInHref } from "@/lib/routes";
 import { loadMeta, loadStats } from "@/lib/scout/load";

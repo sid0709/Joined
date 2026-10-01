@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 import { useMemo, useState } from "react";
 
 import type { Review } from "@/src/candidate/types/workspace";
@@ -370,7 +370,7 @@ export function ReviewsView() {
       >
         <div className="hx-inline-form" style={{ padding: "var(--space-4)" }}>
           <p className="hx-muted" style={{ margin: 0 }}>
-            Explain why you believe the work met the requirements. OpenSeat support reviews disputes
+            Explain why you believe the work met the requirements. Joined support reviews disputes
             within one business day and the hunter is notified.
           </p>
           <TextArea

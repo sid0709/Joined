@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

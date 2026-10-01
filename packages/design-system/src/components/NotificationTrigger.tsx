@@ -65,7 +65,7 @@ interface NotificationApi {
 const NotificationContext = createContext<NotificationApi | null>(null);
 
 /**
- * Mounts the four corners. OpenSeatProvider includes this, so useNotification
+ * Mounts the four corners. JoinedProvider includes this, so useNotification
  * works anywhere inside it.
  */
 export function NotificationViewport({ children }: { children: ReactNode }) {

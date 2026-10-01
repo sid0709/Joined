@@ -1,4 +1,4 @@
-import type { PillNavItem } from "@openseat/design-system";
+import type { PillNavItem } from "@joined/design-system";
 import {
   ACCOUNT_PAGE,
   DASHBOARD_PAGE,

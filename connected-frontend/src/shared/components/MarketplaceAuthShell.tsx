@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 
-import { ThemeToggle } from "@/src/shared/marketplace-ui";
+import { BrandFooter, BrandLockup, ThemeToggle } from "@/src/shared/marketplace-ui";
 
 export function MarketplaceAuthShell({ children }: { children: ReactNode }) {
   return (
@@ -8,7 +8,9 @@ export function MarketplaceAuthShell({ children }: { children: ReactNode }) {
       <div className="marketplace-theme-toggle">
         <ThemeToggle />
       </div>
+      <BrandLockup tagline="The work marketplace — clear briefs, thoughtful bids." />
       {children}
+      <BrandFooter lead="©" />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 /**
- * Feedback and status components are original Astryx — OpenSeat only themes
- * them. OpenSeatProvider mounts the ToastViewport, so useToast works anywhere.
+ * Feedback and status components are original Astryx — Joined only themes
+ * them. JoinedProvider mounts the ToastViewport, so useToast works anywhere.
  */
 export { Badge } from "@astryxdesign/core/Badge";
 export type { BadgeProps, BadgeVariant } from "@astryxdesign/core/Badge";

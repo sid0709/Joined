@@ -147,7 +147,7 @@ export const INITIAL_ENGAGEMENTS: Engagement[] = [
     status: "negotiating",
     stage: "interview",
     pitch:
-      "I have completed more than 400 Workday submissions with a 95% first-pass QA rate and I hold the OpenSeat Workday certification.",
+      "I have completed more than 400 Workday submissions with a 95% first-pass QA rate and I hold the Joined Workday certification.",
     proposedRates: [{ packageId: "pkg-workday", rate: 1.5 }],
     weeklyCapacity: 45,
     createdAt: isoAgo(2),

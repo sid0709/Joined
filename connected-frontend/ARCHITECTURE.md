@@ -1,6 +1,6 @@
-# OpenSeat frontend architecture
+# Joined frontend architecture
 
-OpenSeat is a two-sided work marketplace. `Candidate` means the person bidding
+Joined is a two-sided work marketplace. `Candidate` means the person bidding
 for work; `Client` means the person posting and managing work.
 
 ## Product areas
@@ -66,22 +66,22 @@ context or query hook first.
 
 ## Marketplace benchmark and product decision
 
-OpenSeat is closest to a hybrid of three established marketplace patterns:
+Joined is closest to a hybrid of three established marketplace patterns:
 
-| Benchmark                                                                                                                                      | What it does well                                                                                      | What OpenSeat borrows                                                          |
+| Benchmark                                                                                                                                      | What it does well                                                                                      | What Joined borrows                                                            |
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | [Upwork proposal review](https://support.upwork.com/hc/en-us/articles/18010402882195--Review-job-proposals)                                    | Structured proposals, shortlist/message/hire/decline/archive actions, and proposal tabs                | Proposal lifecycle, comparison actions, and room-scoped review history         |
 | [Upwork fixed-price protection](https://support.upwork.com/hc/en-us/articles/211062568-How-Upwork-protects-your-payments)                      | Funded milestones, submission for approval, change requests, automatic release, and dispute assistance | Milestone state machine, escrow status, delivery history, and dispute boundary |
 | [Toptal screening](https://www.toptal.com/top-3-percent)                                                                                       | Quality gate before a candidate enters the high-trust network                                          | Identity/quality signals and a future verification service boundary            |
 | [Fiverr order workflow](https://help.fiverr.com/hc/en-us/articles/37552517993105-The-complete-guide-to-your-Fiverr-order-Statuses-and-process) | Explicit active, delivered, revision, completed, late, cancelled, and review states                    | Post-hire room statuses, delivery review, revisions, completion, and reviews   |
 
-The conclusion is not to copy one competitor. OpenSeat should combine Upwork's
+The conclusion is not to copy one competitor. Joined should combine Upwork's
 proposal and contract mechanics, Toptal's trust layer, and Fiverr's explicit
 delivery state machine around one durable job-room object.
 
 ## Current frontend judgement
 
-Before this pass, OpenSeat had a useful route skeleton and a credible design
+Before this pass, Joined had a useful route skeleton and a credible design
 system, but it was not yet enterprise-ready as a marketplace foundation:
 
 - A proposal was only a rate, cover letter, and status, which made comparison shallow.

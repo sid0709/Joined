@@ -1,6 +1,6 @@
 /**
- * Action components are original Astryx — OpenSeat only themes them.
- * Import them from here so apps depend on @openseat/design-system alone.
+ * Action components are original Astryx — Joined only themes them.
+ * Import them from here so apps depend on @joined/design-system alone.
  */
 export { Button } from "@astryxdesign/core/Button";
 export type { ButtonProps, ButtonVariant, ButtonSize } from "@astryxdesign/core/Button";

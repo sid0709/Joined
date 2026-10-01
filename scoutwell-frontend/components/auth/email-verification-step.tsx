@@ -11,7 +11,7 @@ import {
   Stack,
   Text,
   type CodeInputStatus,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { EMAIL_VERIFICATION_CODE_LENGTH, isValidVerificationCode } from "@/lib/auth/verification";
 
 type EmailVerificationStepProps = {

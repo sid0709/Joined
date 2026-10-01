@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@openseat/design-system";
+import { AppShell } from "@joined/design-system";
 
 export const CONTENT_PADDING = 5;
 

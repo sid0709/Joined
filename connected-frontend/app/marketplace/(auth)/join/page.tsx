@@ -27,7 +27,7 @@ export default function MarketplaceJoinPage() {
       <Stack gap={24}>
         <div className="marketplace-centered-copy">
           <h1 className="h1">{greeting}</h1>
-          <p className="body text-ink-muted">How would you like to use OpenSeat?</p>
+          <p className="body text-ink-muted">How would you like to use Joined?</p>
         </div>
         <div className="marketplace-role-grid">
           <Button

@@ -18,8 +18,8 @@ import {
   useToast,
   PageHeader,
   SectionCard,
-} from "@openseat/design-system";
-import { ApiError, formatMoney, type Money, type Payout, type Stats } from "@openseat/scout";
+} from "@joined/design-system";
+import { ApiError, formatMoney, type Money, type Payout, type Stats } from "@joined/scout";
 import { scoutSend } from "@/lib/scout/client";
 import { PayoutHistory } from "./payout-history";
 import { PayoutMethodCard, TaxCard, VerificationCard } from "./setup-cards";

@@ -54,13 +54,13 @@ function Section({
 }
 
 export const metadata = {
-  title: "Style guide — OpenSeat",
+  title: "Style guide — Joined",
 };
 
 export default function StyleGuidePage() {
   return (
     <div className="min-h-screen bg-canvas px-6 py-8 md:px-12">
-      <h1 className="h1 mb-8">OpenSeat style guide</h1>
+      <h1 className="h1 mb-8">Joined style guide</h1>
 
       <Section
         id="tokens"
@@ -168,7 +168,7 @@ export default function StyleGuidePage() {
 
       <Section title="Nav">
         <Nav
-          brand="OpenSeat"
+          brand="Joined"
           items={[
             { label: "Dashboard", active: true },
             { label: "Job rooms" },

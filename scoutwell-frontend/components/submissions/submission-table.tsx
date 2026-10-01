@@ -9,8 +9,8 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
-import { CHANNEL_LABEL, type Submission } from "@openseat/scout";
+} from "@joined/design-system";
+import { CHANNEL_LABEL, type Submission } from "@joined/scout";
 import { SubmissionStatusBadge } from "@/components/status-badge";
 import { formatDay } from "@/lib/dates";
 import { sourceLabel } from "@/lib/format";

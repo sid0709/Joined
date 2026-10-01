@@ -4,11 +4,11 @@
 @source "../components/**/*.{ts,tsx}";
 
 /* Point Tailwind's dark: variant at our [data-theme] attribute instead of
-   prefers-color-scheme, so dark: utilities and the OpenSeat tokens read
+   prefers-color-scheme, so dark: utilities and the Joined tokens read
    from the same switch. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Exposes the OpenSeat tokens as Tailwind v4 utilities (bg-primary,
+/* Exposes the Joined tokens as Tailwind v4 utilities (bg-primary,
    text-ink-muted, rounded-pill, duration-fast, …). "inline" keeps these
    bound to the live custom property so the dark/light swap keeps working. */
 @theme inline {

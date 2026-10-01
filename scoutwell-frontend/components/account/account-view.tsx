@@ -16,14 +16,14 @@ import {
   useToast,
   PageHeader,
   SectionCard,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ApiError,
   LEVEL_BADGE,
   VERIFICATION,
   type Profile,
   type ProfilePatch,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { formatDay } from "@/lib/dates";
 import { scoutSend } from "@/lib/scout/client";
 import { RemoveAccount } from "./remove-account";

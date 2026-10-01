@@ -1,6 +1,6 @@
 /**
- * Lists are original Astryx — OpenSeat only themes them. Table, Timeline, and
- * Tree are OpenSeat composites that sit beside these.
+ * Lists are original Astryx — Joined only themes them. Table, Timeline, and
+ * Tree are Joined composites that sit beside these.
  */
 export { List, ListItem } from "@astryxdesign/core/List";
 export type { ListProps, ListItemProps, ListDensity } from "@astryxdesign/core/List";

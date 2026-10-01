@@ -1,0 +1,4 @@
+/* The full Joined stylesheet — Astryx foundation, then Joined
+   composites. Apps import this one file. */
+@import "./astryx.css";
+@import "./components.css";

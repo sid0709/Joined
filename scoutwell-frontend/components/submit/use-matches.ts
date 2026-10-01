@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { JobMatch, MatchResult } from "@openseat/scout";
+import type { JobMatch, MatchResult } from "@joined/scout";
 
 import { PRECHECK_DELAY_MS } from "@/lib/config";
 import { scoutSend } from "@/lib/scout/client";

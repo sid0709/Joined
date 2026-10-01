@@ -1,6 +1,6 @@
 "use client";
 
-import * as DesignSystem from "@openseat/design-system";
+import * as DesignSystem from "@joined/design-system";
 import { Children, isValidElement } from "react";
 
 import type { ChangeEvent, ReactNode } from "react";
@@ -13,8 +13,11 @@ export {
   Text,
   Heading,
   ThemeToggle,
-} from "@openseat/design-system";
-export type { NavItem } from "@openseat/design-system";
+  JoinedLogo,
+  BrandLockup,
+  BrandFooter,
+} from "@joined/design-system";
+export type { NavItem } from "@joined/design-system";
 
 const DesignButton = DesignSystem.Button;
 const DesignCard = DesignSystem.Card;

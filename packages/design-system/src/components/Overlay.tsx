@@ -1,5 +1,5 @@
 /**
- * Overlays are original Astryx — OpenSeat only themes them. Tooltip lives in
+ * Overlays are original Astryx — Joined only themes them. Tooltip lives in
  * ./Primitives; DropdownMenu and MoreMenu live in ./Action.
  */
 export { Dialog, DialogHeader, useImperativeDialog } from "@astryxdesign/core/Dialog";

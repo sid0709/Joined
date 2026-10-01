@@ -1,6 +1,6 @@
 "use client";
 
-import { Rating } from "@openseat/design-system";
+import { Rating } from "@joined/design-system";
 import { useState } from "react";
 
 import type { Interview, InterviewOutcome } from "@/src/shared/types/marketplace";

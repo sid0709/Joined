@@ -161,7 +161,7 @@ export const ASSESSMENT_QUIZ: Record<string, QuizQuestion[]> = {
         "A hunter asks you to answer a work-authorization question in a way you know is untrue. You…",
       options: [
         "Follow the hunter, it's their client",
-        "Decline and report it to OpenSeat support",
+        "Decline and report it to Joined support",
         "Answer differently without telling anyone",
       ],
       answer: 1,
@@ -190,7 +190,7 @@ export const ASSESSMENT_QUIZ: Record<string, QuizQuestion[]> = {
 export const INITIAL_ASSESSMENTS: Assessment[] = [
   {
     id: "assess-standards",
-    title: "OpenSeat work standards",
+    title: "Joined work standards",
     ats: "General",
     minutes: 10,
     questions: 3,

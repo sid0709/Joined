@@ -1,13 +1,13 @@
 ---
-description: OpenSeat monorepo conventions — bun, no hardcoding, shared packages
+description: Joined monorepo conventions — bun, no hardcoding, shared packages
 alwaysApply: true
 ---
 
-# OpenSeat project conventions
+# Joined project conventions
 
 **Never start the main servers. Never CDP. Never mock-up test.** The human runs API/admin/frontend/theme. Edit code only. Do not `go run`, `bun run dev`, `next dev`, kill listeners, browser-automate, snapshot, or click through localhost to “verify.”
 
-This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `packages/*` (e.g. `@openseat/design-system`). Apps consume shared packages; do not copy the same component, token, or helper into more than one workspace.
+This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `packages/*` (e.g. `@joined/design-system`). Apps consume shared packages; do not copy the same component, token, or helper into more than one workspace.
 
 ## Package manager
 

@@ -2,17 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Banner,
-  Button,
-  Card,
-  Heading,
-  Link,
-  Stack,
-  Text,
-  TextInput,
-} from "@openseat/design-system";
-import { ApiError } from "@openseat/scout";
+import { Banner, Button, Card, Heading, Link, Stack, Text, TextInput } from "@joined/design-system";
+import { ApiError } from "@joined/scout";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 import { authSend } from "@/lib/scout/client";

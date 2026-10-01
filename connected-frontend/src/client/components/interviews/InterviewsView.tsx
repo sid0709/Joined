@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar } from "@openseat/design-system";
+import { Calendar } from "@joined/design-system";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 

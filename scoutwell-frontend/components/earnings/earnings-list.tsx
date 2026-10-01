@@ -1,6 +1,6 @@
-import { EmptyState, Glyph, List, ListItem, Stack, Text } from "@openseat/design-system";
-import type { GlyphName } from "@openseat/design-system";
-import { REWARD_TYPE, formatMoney, type Earning, type RewardType } from "@openseat/scout";
+import { EmptyState, Glyph, List, ListItem, Stack, Text } from "@joined/design-system";
+import type { GlyphName } from "@joined/design-system";
+import { REWARD_TYPE, formatMoney, type Earning, type RewardType } from "@joined/scout";
 import { EarningStatusBadge } from "@/components/status-badge";
 import { formatDay } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";

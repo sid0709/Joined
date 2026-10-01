@@ -1,12 +1,21 @@
 import Link from "next/link";
 
-import { ButtonLink, Card, Stack, ThemeToggle } from "@/src/shared/marketplace-ui";
+import {
+  BrandFooter,
+  ButtonLink,
+  Card,
+  JoinedLogo,
+  Stack,
+  ThemeToggle,
+} from "@/src/shared/marketplace-ui";
 
 export default function Home() {
   return (
     <main className="home-page">
       <header className="os-nav">
-        <span className="h3 os-nav-brand">OpenSeat</span>
+        <Link href="/" className="os-nav-brand">
+          <JoinedLogo height="2rem" />
+        </Link>
         <nav className="os-nav-items" aria-label="Primary navigation">
           <a className="label os-nav-item" href="#how-it-works">
             How it works
@@ -28,7 +37,7 @@ export default function Home() {
           <span className="label text-primary">THE WORK MARKETPLACE</span>
           <h1 className="display home-hero-title">Find the right people for meaningful work.</h1>
           <p className="body-lg text-ink-muted home-hero-copy">
-            OpenSeat connects clients with focused candidates through clear briefs, thoughtful bids,
+            Joined connects clients with focused candidates through clear briefs, thoughtful bids,
             and conversations that lead to better contracts.
           </p>
           <div className="home-actions">
@@ -90,6 +99,8 @@ export default function Home() {
           </Link>
         </Card>
       </section>
+
+      <BrandFooter lead="©" />
     </main>
   );
 }

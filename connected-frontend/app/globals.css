@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@openseat/design-system/styles/theme.css";
-@import "@openseat/design-system/styles/astryx.css";
+@import "@joined/design-system/styles/theme.css";
+@import "@joined/design-system/styles/astryx.css";
 @import "../src/shared/styles/kit.css";
 @import "../src/candidate/styles/bidder.css";
 
@@ -28,8 +28,9 @@ body {
 }
 
 .os-nav-brand {
+  display: inline-flex;
+  align-items: center;
   margin: 0;
-  white-space: nowrap;
 }
 .os-nav-items,
 .os-nav-right {
@@ -64,6 +65,8 @@ body {
 .marketplace-auth-shell {
   position: relative;
   display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
   min-height: 100vh;
   align-items: center;
   justify-content: center;

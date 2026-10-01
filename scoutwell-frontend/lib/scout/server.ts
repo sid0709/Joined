@@ -1,6 +1,6 @@
-import { ApiError, parseProblem } from "@openseat/scout";
+import { ApiError, parseProblem } from "@joined/scout";
 import { sessionToken } from "@/lib/auth/cookie";
-import { openedApiUrl } from "@/lib/config";
+import { joinedApiUrl } from "@/lib/config";
 
 /**
  * GET a scout endpoint as the signed-in person, from a Server Component.
@@ -9,7 +9,7 @@ import { openedApiUrl } from "@/lib/config";
 export async function scoutGet<T>(path: string): Promise<T | null> {
   const token = await sessionToken();
   if (!token) return null;
-  const response = await fetch(new URL(`/v1/scout${path}`, `${openedApiUrl()}/`), {
+  const response = await fetch(new URL(`/v1/scout${path}`, `${joinedApiUrl()}/`), {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     cache: "no-store",
   });
@@ -21,7 +21,7 @@ export async function scoutGet<T>(path: string): Promise<T | null> {
 
 /** The public rulebook; needs no session. */
 export async function scoutMeta<T>(): Promise<T> {
-  const response = await fetch(new URL("/v1/scout/meta", `${openedApiUrl()}/`), {
+  const response = await fetch(new URL("/v1/scout/meta", `${joinedApiUrl()}/`), {
     next: { revalidate: 300 },
   });
   const text = await response.text();

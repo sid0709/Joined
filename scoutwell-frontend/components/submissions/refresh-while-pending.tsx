@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { isPending, type Submission } from "@openseat/scout";
+import { isPending, type Submission } from "@joined/scout";
 import { STATUS_POLL_MS } from "@/lib/config";
 import { scoutFetch } from "@/lib/scout/client";
 

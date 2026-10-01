@@ -1,4 +1,4 @@
-/* OpenSeat-shaped UI kit. Visual language matches https://astryx.atmeta.com/
+/* Joined-shaped UI kit. Visual language matches https://astryx.atmeta.com/
    (system fonts, pill buttons, no chrome borders on primary/ghost).
    Color comes only from tokens.css. Control sizes are one step up from Astryx:
    sm is the old md, md is the old lg, and lg is a larger step. */
@@ -15,6 +15,7 @@
 @import "./components/charts.css";
 @import "./components/pill-nav.css";
 @import "./components/code-input.css";
+@import "./components/brand.css";
 
 /* Input / Field */
 .os-field-group {

@@ -1,10 +1,10 @@
 /**
- * The scout API contract (opened-backend/internal/scout). Field names are the
+ * The scout API contract (joined-backend/internal/scout). Field names are the
  * snake_case JSON the API sends; see docs/61-scout-api.md.
- * Workplace, seniority, employment, and pay use @openseat/job-schema.
+ * Workplace, seniority, employment, and pay use @joined/job-schema.
  */
 
-import type { Employment, Pay, PayPeriod, Seniority, Workplace } from "@openseat/job-schema";
+import type { Employment, Pay, PayPeriod, Seniority, Workplace } from "@joined/job-schema";
 
 export type { Employment, Pay, PayPeriod, Seniority, Workplace };
 

@@ -12,7 +12,7 @@ export function PoolSnapshot() {
   return (
     <Panel
       title="Job pool"
-      subtitle={`${available.length} links ready to assign · managed by OpenSeat admin`}
+      subtitle={`${available.length} links ready to assign · managed by Joined admin`}
       actions={<Button href={HUNTER_ROUTES.pool} variant="ghost" size="sm" label="Open pool" />}
     >
       {POOL_ATS.map((ats) => {

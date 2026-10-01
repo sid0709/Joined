@@ -8,8 +8,8 @@ import {
   Text,
   type BadgeVariant,
   SectionCard,
-} from "@openseat/design-system";
-import { SUBMISSION_STATUS, type Meta, type SubmissionStatus } from "@openseat/scout";
+} from "@joined/design-system";
+import { SUBMISSION_STATUS, type Meta, type SubmissionStatus } from "@joined/scout";
 
 import { FullText } from "@/components/full-text";
 

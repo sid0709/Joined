@@ -1,4 +1,4 @@
-import { Timeline, type TimelineItem, type TimelineTone } from "@openseat/design-system";
+import { Timeline, type TimelineItem, type TimelineTone } from "@joined/design-system";
 
 import type { ApplicationRecord, ApplicationStatus } from "@/src/shared/types/marketplace";
 

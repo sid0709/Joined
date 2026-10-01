@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Precheck } from "@openseat/scout";
+import type { Precheck } from "@joined/scout";
 import { PRECHECK_DELAY_MS } from "@/lib/config";
 import { scoutSend } from "@/lib/scout/client";
 

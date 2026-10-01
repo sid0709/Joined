@@ -103,7 +103,7 @@ function Value({ children }: { children: string }) {
 }
 
 /**
- * A toggleable, self-describing demo of every OpenSeat design token: a sample
+ * A toggleable, self-describing demo of every Joined design token: a sample
  * rendered with the token beside its name and live resolved value. Includes a
  * dark/light switch because most values differ per theme.
  */

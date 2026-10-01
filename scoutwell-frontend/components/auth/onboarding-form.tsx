@@ -15,8 +15,8 @@ import {
   Stepper,
   Text,
   icons,
-} from "@openseat/design-system";
-import { ApiError, formatMoney, type Meta } from "@openseat/scout";
+} from "@joined/design-system";
+import { ApiError, formatMoney, type Meta } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 import { scoutSend } from "@/lib/scout/client";
 

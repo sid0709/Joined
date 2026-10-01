@@ -3,7 +3,7 @@ import type {
   InterviewAvailability,
   InterviewMode,
 } from "@/src/shared/types/marketplace";
-import type { CalendarEvent, CalendarTone } from "@openseat/design-system";
+import type { CalendarEvent, CalendarTone } from "@joined/design-system";
 
 import { MOCK_TODAY, MOCK_WALL_TIME } from "@/src/shared/mock/clock";
 

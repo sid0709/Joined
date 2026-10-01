@@ -1,6 +1,6 @@
 "use client";
 
-import { DateInput, NumberInput, type DateInputProps } from "@openseat/design-system";
+import { DateInput, NumberInput, type DateInputProps } from "@joined/design-system";
 
 type IsoDate = NonNullable<DateInputProps["value"]>;
 

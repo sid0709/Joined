@@ -1,5 +1,5 @@
-import { Glyph } from "@openseat/design-system";
-import { Table } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
+import { Table } from "@joined/design-system";
 
 import type { StatusCounts } from "@/src/shared/lib/selectors";
 import type { ApplicationRecord, Task } from "@/src/shared/types/marketplace";

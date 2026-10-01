@@ -1,5 +1,5 @@
-import { Button } from "@openseat/design-system";
-import { formatMoney, type Balance } from "@openseat/scout";
+import { Button } from "@joined/design-system";
+import { formatMoney, type Balance } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 
 /** The scout's number one question, answered first: what can I take home. */

@@ -1,5 +1,5 @@
 import { sessionToken } from "@/lib/auth/cookie";
-import { openedApiUrl } from "@/lib/config";
+import { joinedApiUrl } from "@/lib/config";
 
 /** Headers a browser call may carry through to the API. */
 const FORWARDED_REQUEST = ["Content-Type", "Idempotency-Key"];
@@ -29,7 +29,7 @@ export async function forwardScout(request: Request, apiPath: string): Promise<R
       { status: 401 },
     );
   }
-  const dest = new URL(apiPath, `${openedApiUrl()}/`);
+  const dest = new URL(apiPath, `${joinedApiUrl()}/`);
   dest.search = new URL(request.url).search;
   const headers = new Headers({ Authorization: `Bearer ${token}` });
   for (const name of FORWARDED_REQUEST) {

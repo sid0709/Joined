@@ -19,8 +19,8 @@ import {
   icons,
   type SearchSource,
   type SearchableItem,
-} from "@openseat/design-system";
-import { ApiError } from "@openseat/scout";
+} from "@joined/design-system";
+import { ApiError } from "@joined/scout";
 import { useMemo, useState } from "react";
 
 import { scoutFetch, scoutUpload } from "@/lib/scout/client";

@@ -579,7 +579,7 @@ export function BidderWorkspaceProvider({ children }: { children: React.ReactNod
         notify(
           "review",
           "Dispute sent",
-          "OpenSeat support will review this decision within one business day.",
+          "Joined support will review this decision within one business day.",
           "/marketplace/candidate/feedback",
         );
       },

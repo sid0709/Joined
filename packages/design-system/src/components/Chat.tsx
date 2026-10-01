@@ -1,5 +1,5 @@
 /**
- * Chat is original Astryx — OpenSeat only themes it. Compose ChatLayout,
+ * Chat is original Astryx — Joined only themes it. Compose ChatLayout,
  * ChatMessageList, ChatMessage, and ChatComposer for any thread.
  */
 export {

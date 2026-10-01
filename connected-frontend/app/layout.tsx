@@ -14,12 +14,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "OpenSeat",
+  title: "Joined",
   description: "A permissioned help marketplace — sealed job rooms, invited bidders.",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const storedTheme = (await cookies()).get("openseat-theme")?.value;
+  const storedTheme = (await cookies()).get("joined-theme")?.value;
   const initialTheme = storedTheme === "light" ? "light" : "dark";
   return (
     <html
@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('openseat-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
+              "(function(){try{var t=localStorage.getItem('joined-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();",
           }}
         />
       </head>

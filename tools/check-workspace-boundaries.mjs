@@ -51,7 +51,7 @@ for (const { directory: workspace } of workspaces) {
           violations.push(`${location}: relative import escapes ${workspace}: ${specifier}`);
         }
       } else if (
-        specifier.startsWith("@openseat/design-system/src/") ||
+        specifier.startsWith("@joined/design-system/src/") ||
         appPackageNames.some((name) => specifier === name || specifier.startsWith(`${name}/`))
       ) {
         violations.push(

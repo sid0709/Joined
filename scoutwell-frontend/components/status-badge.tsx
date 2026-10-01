@@ -1,4 +1,4 @@
-import { Badge } from "@openseat/design-system";
+import { Badge } from "@joined/design-system";
 import {
   CHECK_OUTCOME,
   EARNING_STATUS,
@@ -8,7 +8,7 @@ import {
   type EarningStatus,
   type PayoutStatus,
   type Submission,
-} from "@openseat/scout";
+} from "@joined/scout";
 
 export function SubmissionStatusBadge({
   submission,

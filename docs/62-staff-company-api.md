@@ -1,6 +1,6 @@
 # 62 — Staff company verification and direct-job review
 
-**Service:** `opened-backend` · **App:** `opened-admin` (Roosebelt)
+**Service:** `joined-backend` · **App:** `joined-admin` (Roosebelt)
 
 Staff routes use the same guard as scout admin: `Server.admin()`. When `ADMIN_API_TOKEN` is set, send `Authorization: Bearer <token>`. Every mutation stores the caller from `X-Admin-Actor` (printable, max 80 characters; missing header is recorded as `admin`) on `admin_audit`, with the same BSON field names as scout (`action`, `subjectType`, `subjectId`, `actor`, `note`, `at`). The response `auditId` is that document's hex `_id`. A failed audit insert fails the request.
 

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Heading, Link, Stack, Text, TextInput } from "@openseat/design-system";
-import { ApiError } from "@openseat/scout";
+import { Button, Card, Heading, Link, Stack, Text, TextInput } from "@joined/design-system";
+import { ApiError } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 import { authSend } from "@/lib/scout/client";
 import { EmailVerificationStep } from "./email-verification-step";

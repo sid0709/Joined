@@ -20,7 +20,7 @@ import {
   useToast,
   PageHeader,
   SectionCard,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ApiError,
   DEFAULT_CURRENCY,
@@ -37,7 +37,7 @@ import {
   type Seniority,
   type Submission,
   type Workplace,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

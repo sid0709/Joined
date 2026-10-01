@@ -1,0 +1,12 @@
+@import "@joined/design-system/styles/joined.css";
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-family-body);
+}
+
+/* Keep the layout still when a page grows past the fold and the scrollbar appears. */
+html {
+  scrollbar-gutter: stable;
+}

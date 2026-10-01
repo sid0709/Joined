@@ -10,19 +10,19 @@
     {
       "name": "theme-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "openseat-theme", "dev"],
+      "runtimeArgs": ["run", "--cwd", "joined-theme", "dev"],
       "port": 3001
     },
     {
-      "name": "opened-dev",
+      "name": "joined-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "opened-frontend", "dev"],
+      "runtimeArgs": ["run", "--cwd", "joined-frontend", "dev"],
       "port": 3002
     },
     {
-      "name": "opened-admin-dev",
+      "name": "joined-admin-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "opened-admin", "dev"],
+      "runtimeArgs": ["run", "--cwd", "joined-admin", "dev"],
       "port": 3010
     },
     {

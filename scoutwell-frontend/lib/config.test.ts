@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { openedApiUrl, openedWebUrl, publicApiUrl } from "./config";
+import { joinedApiUrl, joinedWebUrl, publicApiUrl } from "./config";
 
-const KEYS = ["OPENED_API_URL", "SCOUT_PUBLIC_API_URL", "OPENED_WEB_URL"] as const;
+const KEYS = ["JOINED_API_URL", "SCOUT_PUBLIC_API_URL", "JOINED_WEB_URL"] as const;
 const saved = Object.fromEntries(KEYS.map((key) => [key, process.env[key]]));
 
 afterEach(() => {
@@ -14,24 +14,24 @@ afterEach(() => {
 
 describe("config", () => {
   test("the API URL is required and loses its trailing slash", () => {
-    delete process.env.OPENED_API_URL;
-    expect(() => openedApiUrl()).toThrow("OPENED_API_URL is not set");
-    process.env.OPENED_API_URL = "http://api.test/";
-    expect(openedApiUrl()).toBe("http://api.test");
+    delete process.env.JOINED_API_URL;
+    expect(() => joinedApiUrl()).toThrow("JOINED_API_URL is not set");
+    process.env.JOINED_API_URL = "http://api.test/";
+    expect(joinedApiUrl()).toBe("http://api.test");
   });
 
   test("the public API URL falls back to the API URL", () => {
-    process.env.OPENED_API_URL = "http://api.test";
+    process.env.JOINED_API_URL = "http://api.test";
     delete process.env.SCOUT_PUBLIC_API_URL;
     expect(publicApiUrl()).toBe("http://api.test");
     process.env.SCOUT_PUBLIC_API_URL = "https://api.example.com/";
     expect(publicApiUrl()).toBe("https://api.example.com");
   });
 
-  test("the Opened site URL is optional", () => {
-    delete process.env.OPENED_WEB_URL;
-    expect(openedWebUrl()).toBe("");
-    process.env.OPENED_WEB_URL = "https://opened.test/";
-    expect(openedWebUrl()).toBe("https://opened.test");
+  test("the Joined site URL is optional", () => {
+    delete process.env.JOINED_WEB_URL;
+    expect(joinedWebUrl()).toBe("");
+    process.env.JOINED_WEB_URL = "https://joined.test/";
+    expect(joinedWebUrl()).toBe("https://joined.test");
   });
 });

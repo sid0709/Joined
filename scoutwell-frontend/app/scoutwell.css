@@ -1,4 +1,4 @@
-/* Scoutwell's look, composed only from the OpenSeat theme's tokens (color,
+/* Scoutwell's look, composed only from the Joined theme's tokens (color,
    spacing, radius, type, shadow, motion). Layout widths are the only literals. */
 
 body {
@@ -563,6 +563,20 @@ body {
     border-radius: var(--radius-full);
     background: color-mix(in srgb, var(--color-on-accent) 10%, transparent);
   }
+}
+
+.sw-auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.sw-auth-endorse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1-5);
+  color: color-mix(in srgb, var(--color-on-accent) 80%, transparent);
+  font-size: var(--font-size-sm);
 }
 
 .sw-auth-quote {
