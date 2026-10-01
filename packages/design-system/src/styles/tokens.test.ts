@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 /**
- * Apps load openseat.css, whose tokens come from Astryx (astryx.css) and our theme build
+ * Apps load joined.css, whose tokens come from Astryx (astryx.css) and our theme build
  * (theme/theme.css) — not from tokens.css. A var() naming anything else resolves to nothing,
  * which silently drops sizes and whole `transition` declarations.
  */

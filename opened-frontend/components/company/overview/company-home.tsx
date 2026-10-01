@@ -9,7 +9,7 @@ import {
   GridSystem,
   Stack,
   Timeline,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { JobsPipeline } from "@/components/company/overview/jobs-pipeline";
 import { NeedsAttention } from "@/components/company/overview/needs-attention";
 import { UpcomingInterviews } from "@/components/company/overview/upcoming-interviews";

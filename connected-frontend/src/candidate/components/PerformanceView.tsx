@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 import { useMemo } from "react";
 
 import { MONEY_LINKS, SectionNav } from "@/src/candidate/components/ui/SectionNav";
@@ -161,11 +161,7 @@ export function PerformanceView() {
               />
             </Panel>
 
-            <Panel
-              title="Speed by package"
-              subtitle="Your average against the OpenSeat guide"
-              flush
-            >
+            <Panel title="Speed by package" subtitle="Your average against the Joined guide" flush>
               <div className="bx-table-wrap">
                 <table className="bx-table">
                   <thead>

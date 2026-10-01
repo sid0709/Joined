@@ -1,5 +1,5 @@
-import { Badge, Button } from "@openseat/design-system";
-import { formatMoney, formatRate, type Meta } from "@openseat/scout";
+import { Badge, Button } from "@joined/design-system";
+import { formatMoney, formatRate, type Meta } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 import { ApiBand } from "./api-band";
 import { HowItWorks } from "./how-it-works";

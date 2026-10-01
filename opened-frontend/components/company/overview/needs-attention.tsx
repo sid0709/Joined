@@ -8,7 +8,7 @@ import {
   Stack,
   Text,
   type GlyphName,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SectionCard } from "@/components/section-card";
 import type { Applicant, BillingAccount, CompanyInterview, CompanyJob } from "@/lib/company";
 import { formatCount } from "@/lib/jobs";

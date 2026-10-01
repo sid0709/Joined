@@ -1,6 +1,6 @@
 "use client";
 
-import { Table } from "@openseat/design-system";
+import { Table } from "@joined/design-system";
 import { useState } from "react";
 
 import { InvoiceDetail } from "@/src/client/components/billing/InvoiceDetail";

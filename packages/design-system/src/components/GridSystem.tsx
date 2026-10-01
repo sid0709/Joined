@@ -57,7 +57,7 @@ function perTier<T>(value: Responsive<T> | undefined): Partial<Record<"base" | T
 }
 
 /**
- * A 12-track grid whose columns reflow per tier — the OpenSeat answer to
+ * A 12-track grid whose columns reflow per tier — the Joined answer to
  * "full width on phones, halves on tablets, thirds on desktop". For
  * intrinsic, count-free reflow, use Astryx `Grid columns={{ minWidth }}`.
  */

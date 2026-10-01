@@ -1,4 +1,4 @@
-import { Glyph, type GlyphName } from "@openseat/design-system";
+import { Glyph, type GlyphName } from "@joined/design-system";
 
 import type { ReactNode } from "react";
 

@@ -1,0 +1,26 @@
+/* Joined brand artwork — JoinedLogo and JoinedMark. The palette is the fixed
+   one from the masters in Joined-Logo/; logos keep their colors in light and
+   dark, so pick the variant for the surface (white on dark or accent fills). */
+
+.os-brand {
+  /* "original-colors": teal → green → amber → orange. */
+  --os-brand-original-1: #0b6b6e;
+  --os-brand-original-2: #12a08a;
+  --os-brand-original-3: #8dc63f;
+  --os-brand-original-4: #ffb000;
+  --os-brand-original-5: #ff5f15;
+  /* "blue-gradient" and the app tile: navy → Meta blue → cyan. */
+  --os-brand-blue-1: #0033a0;
+  --os-brand-blue-2: #0866ff;
+  --os-brand-blue-3: #2d8cff;
+  --os-brand-blue-4: #1faff5;
+  --os-brand-blue-5: #2cd4f0;
+  /* Solid fills. */
+  --os-brand-meta-blue: #0866ff;
+  --os-brand-black: #0b1220;
+  --os-brand-white: #ffffff;
+
+  display: block;
+  flex-shrink: 0;
+  width: auto;
+}

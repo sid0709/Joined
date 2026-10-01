@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, ClickableCard, HStack, Heading, Stack, Text } from "@openseat/design-system";
+import { Badge, ClickableCard, HStack, Heading, Stack, Text } from "@joined/design-system";
 import { DateBadge } from "@/components/date-badge";
 import { formatTime, relativeDay } from "@/lib/dates";
 import { FORMAT_LABEL, STATUS_META, type Interview } from "@/lib/interviews";

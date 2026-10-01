@@ -1,4 +1,4 @@
-// Original Astryx, OpenSeat-themed: primitives, actions, content, containers,
+// Original Astryx, Joined-themed: primitives, actions, content, containers,
 // data input, feedback, navigation, overlays, lists, and chat.
 export * from "./Primitives";
 export * from "./Action";
@@ -16,6 +16,9 @@ export type { ControlSize, FieldSize } from "./size";
 export { JobCard } from "./Card";
 export type { JobCardProps } from "./Card";
 
+// Brand — the Joined wordmark, app icon, and product name.
+export * from "../brand";
+
 export { Nav } from "./Nav";
 export type { NavProps, NavItem } from "./Nav";
 
@@ -23,7 +26,7 @@ export { TokenDemo } from "./TokenDemo";
 
 export * from "./LayoutPrimitives";
 
-// Responsive layer — OpenSeat composites on Astryx breakpoints.
+// Responsive layer — Joined composites on Astryx breakpoints.
 export { GridSystem, GridColumn, GRID_COLUMNS } from "./GridSystem";
 export type { GridSystemProps, GridColumnProps, GridSpanValue, Responsive } from "./GridSystem";
 export {
@@ -126,7 +129,7 @@ export type {
   NotificationDismiss,
 } from "./NotificationTrigger";
 
-// OpenSeat pickers — typed segments plus a dial, wheels, or slot list.
+// Joined pickers — typed segments plus a dial, wheels, or slot list.
 export { TimeInput } from "./TimeInput";
 export type { TimeInputProps, TimeInputVariant, HourCycle, MinuteStep } from "./TimeInput";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, HStack, Stack, Text, TextInput, useToast } from "@openseat/design-system";
+import { Button, HStack, Stack, Text, TextInput, useToast } from "@joined/design-system";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup } from "@/components/settings-group";
 import {

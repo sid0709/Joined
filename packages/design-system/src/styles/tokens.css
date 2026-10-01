@@ -1,7 +1,7 @@
-/* OpenSeat theme tokens — OpenSeat (Meta) token contract.
+/* Joined theme tokens — Joined (Meta) token contract.
    Names, scales, and light/dark pairs match https://astryx.atmeta.com/docs/color
    (and typography / spacing / shape). The only brand override is the accent:
-   Meta / Facebook blue instead of OpenSeat's default near-black accent. */
+   Meta / Facebook blue instead of Joined's default near-black accent. */
 
 :root {
   color-scheme: light;
@@ -19,7 +19,7 @@
   --color-blue-900: #003978;
   --color-blue-950: #02165e;
 
-  /* Accent — OpenSeat's --color-accent, re-pointed at the blue series. */
+  /* Accent — Joined's --color-accent, re-pointed at the blue series. */
   --color-accent: light-dark(#1877f2, #2e89ff);
   --color-accent-muted: light-dark(#e7f3ff, #253c5a);
   --color-on-accent: #ffffff;
@@ -67,7 +67,7 @@
   --color-icon-blue: light-dark(#003978, #88bcff);
   --color-text-blue: light-dark(#003978, #a1caff);
 
-  /* Spacing — 4px grid, OpenSeat --spacing-* */
+  /* Spacing — 4px grid, Joined --spacing-* */
   --spacing-0: 0px;
   --spacing-0-5: 2px;
   --spacing-1: 4px;
@@ -231,7 +231,7 @@
   color-scheme: dark;
 }
 
-/* Type styles — OpenSeat semantic scale */
+/* Type styles — Joined semantic scale */
 .display {
   font-family: var(--font-family-heading);
   font-size: var(--font-size-5xl);

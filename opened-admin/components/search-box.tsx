@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon, TextInput, icons } from "@openseat/design-system";
+import { Icon, TextInput, icons } from "@joined/design-system";
 import { SEARCH_DEBOUNCE_MS } from "@/lib/config";
 
 /** A search field that reports its value a moment after typing stops. */

@@ -12,7 +12,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { disconnectGoogleCalendar, startGoogleCalendar } from "@/lib/me/pipeline";
 import { CONNECTIONS, type Connection } from "@/lib/settings";
 

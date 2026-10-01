@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Stack } from "@openseat/design-system";
+import { Stack } from "@joined/design-system";
 import { CompanySettings } from "@/components/company/settings/company-settings";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";

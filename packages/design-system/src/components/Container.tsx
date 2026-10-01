@@ -1,6 +1,6 @@
 /**
- * Containers are original Astryx — OpenSeat only themes them. Card itself
- * lives in ./Primitives; JobCard composes these for the OpenSeat room card.
+ * Containers are original Astryx — Joined only themes them. Card itself
+ * lives in ./Primitives; JobCard composes these for the Joined room card.
  */
 export { ClickableCard } from "@astryxdesign/core/ClickableCard";
 export type { ClickableCardProps } from "@astryxdesign/core/ClickableCard";

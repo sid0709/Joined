@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, EmptyState } from "@openseat/design-system";
+import { Button, EmptyState } from "@joined/design-system";
 
 export default function Error({
   reset,

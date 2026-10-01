@@ -13,7 +13,7 @@ import {
   icons,
   type SearchSource,
   type SearchableItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { CompanyChoice, CompanyOption } from "@/lib/auth/types";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 

@@ -1,4 +1,4 @@
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 
 import type { ChecklistItem, ProfileForm } from "@/src/client/components/profile/useProfileForm";
 

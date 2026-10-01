@@ -12,7 +12,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { SETTINGS_NAV, SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings";
 import { AccountSettings } from "./account-settings";

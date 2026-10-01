@@ -1,5 +1,5 @@
-import { SectionCard, SegmentBar } from "@openseat/design-system";
-import type { Metrics } from "@openseat/scout";
+import { SectionCard, SegmentBar } from "@joined/design-system";
+import type { Metrics } from "@joined/scout";
 
 /** Every job you sent, split by where it stands. Nothing renders until there is a first submission. */
 export function SubmissionPipeline({ metrics }: { metrics: Metrics }) {

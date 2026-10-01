@@ -1,6 +1,6 @@
 "use client";
 
-import { KanbanBoard, type KanbanColumn, type KanbanLane } from "@openseat/design-system";
+import { KanbanBoard, type KanbanColumn, type KanbanLane } from "@joined/design-system";
 
 import type { HiringStage, Inquiry } from "@/src/shared/types/marketplace";
 

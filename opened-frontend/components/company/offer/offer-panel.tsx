@@ -17,7 +17,7 @@ import {
   Tokenizer,
   createStaticSource,
   type SearchableItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { Applicant, TeamMember } from "@/lib/company";
 import {
   createHirePacket,
@@ -695,7 +695,7 @@ export function OfferPanel({
       <Stack gap={2}>
         <Text type="label">E-sign (first-party)</Text>
         <Text type="supporting" color="secondary">
-          OpenSeat-hosted sign link only. DocuSign is out of scope. Mark signed / declined posts to
+          Joined-hosted sign link only. DocuSign is out of scope. Mark signed / declined posts to
           the employer e-sign mark endpoint (offers.send).
         </Text>
         {draft.offer.esign && draft.offer.esign.status !== "none" ? (

@@ -13,7 +13,7 @@ import {
   Stack,
   Text,
   TextInput,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { CompanyChoice } from "@/lib/auth/types";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GridColumn, GridSystem, Stack } from "@openseat/design-system";
+import { GridColumn, GridSystem, Stack } from "@joined/design-system";
 import { ProfileAbout } from "@/components/profile/profile-about";
 import { ProfileContact } from "@/components/profile/profile-contact";
 import { ProfileExperience } from "@/components/profile/profile-experience";

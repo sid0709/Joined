@@ -11,7 +11,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { STRONG_FIT, type Applicant } from "@/lib/company";
 import { OFFER_STATUS_LABEL } from "@/lib/offer-hire";
 import { relativeDay } from "@/lib/dates";

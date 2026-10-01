@@ -1,4 +1,4 @@
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 
 import type { ApplicationRecord, Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 

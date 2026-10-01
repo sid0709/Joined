@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { OpenSeatProvider } from "@openseat/design-system/theme";
+import { JoinedProvider } from "@joined/design-system/theme";
 import { ModePicker } from "@/components/onboarding/mode-picker";
 
 /**
@@ -11,9 +11,9 @@ import { ModePicker } from "@/components/onboarding/mode-picker";
  */
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <OpenSeatProvider mode="light" linkComponent={Link}>
+    <JoinedProvider mode="light" linkComponent={Link}>
       <ModePicker />
       {children}
-    </OpenSeatProvider>
+    </JoinedProvider>
   );
 }

@@ -16,8 +16,8 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@openseat/design-system";
-import { DEFAULT_CURRENCY, PAY_PERIOD_OPTIONS } from "@openseat/job-schema";
+} from "@joined/design-system";
+import { DEFAULT_CURRENCY, PAY_PERIOD_OPTIONS } from "@joined/job-schema";
 import {
   EMPLOYMENT_LABEL,
   SENIORITY_LABEL,
@@ -30,7 +30,7 @@ import {
   type Submission,
   type SubmissionInput,
   type Workplace,
-} from "@openseat/scout";
+} from "@joined/scout";
 
 import { ROUTES } from "@/lib/nav";
 

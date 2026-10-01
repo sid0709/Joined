@@ -10,14 +10,14 @@ import {
   Timeline,
   SectionCard,
   StatGrid,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   LEVEL_BADGE,
   formatRate,
   type ScoutNotification,
   type Stats,
   type Submission,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { GoalBar } from "@/components/goal-bar";
 import { EarningsHero } from "./earnings-hero";
 import { SubmissionTable } from "@/components/submissions/submission-table";

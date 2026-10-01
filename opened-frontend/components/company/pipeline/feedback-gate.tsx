@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, CheckboxInput, Stack, Text } from "@openseat/design-system";
+import { Banner, CheckboxInput, Stack, Text } from "@joined/design-system";
 import {
   canAdvanceStage,
   type AdvanceCheckInput,

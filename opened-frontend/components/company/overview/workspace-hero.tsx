@@ -1,4 +1,4 @@
-import { Card, HStack, Heading, Stack, Text } from "@openseat/design-system";
+import { Card, HStack, Heading, Stack, Text } from "@joined/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
 import { companyRoleLabel } from "@/lib/company/access";

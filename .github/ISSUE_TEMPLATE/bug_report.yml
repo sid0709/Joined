@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in OpenSeat.
+description: Report a reproducible problem in Joined.
 title: "bug: "
 labels: [bug]
 body:

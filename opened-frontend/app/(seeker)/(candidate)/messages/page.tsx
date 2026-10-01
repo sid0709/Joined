@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Sticky } from "@openseat/design-system";
+import { Sticky } from "@joined/design-system";
 import { CandidateMessages } from "@/components/messages/candidate-messages";
 import { PageContainer } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";

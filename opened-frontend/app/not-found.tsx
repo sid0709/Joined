@@ -1,4 +1,4 @@
-import { Button, EmptyState, Stack } from "@openseat/design-system";
+import { Button, EmptyState, Stack } from "@joined/design-system";
 import { AppFrame } from "@/components/shell/app-frame";
 import { SeekerHeader } from "@/components/shell/seeker-header";
 import { loadSession } from "@/lib/auth/session";

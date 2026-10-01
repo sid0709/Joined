@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { MAX_CUSTOM_STAGES, newCustomStage, type PipelineStageDef } from "@/lib/pipeline-eval";
 
 /** Employer-authored pipeline stages beyond the fixed six. */

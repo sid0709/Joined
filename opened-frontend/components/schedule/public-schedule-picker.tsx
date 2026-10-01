@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatDay, formatTime, parseISODate } from "@/lib/dates";
 import { FORMAT_LABEL, type InterviewFormat } from "@/lib/interviews";
 import { isConflictError } from "@/lib/me/client";

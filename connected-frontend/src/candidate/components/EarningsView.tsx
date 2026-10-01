@@ -367,9 +367,9 @@ export function EarningsView() {
 
             <Panel title="Fees">
               <p className="hx-muted hx-small" style={{ margin: 0 }}>
-                OpenSeat keeps {percent(PLATFORM_FEE * 100)} of every approved link to cover
-                payments, support and dispute handling. Hunters never see this fee and you never pay
-                to receive a payout.
+                Joined keeps {percent(PLATFORM_FEE * 100)} of every approved link to cover payments,
+                support and dispute handling. Hunters never see this fee and you never pay to
+                receive a payout.
               </p>
             </Panel>
           </div>

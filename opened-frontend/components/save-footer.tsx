@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button, HStack, Text, useToast } from "@openseat/design-system";
+import { Button, HStack, Text, useToast } from "@joined/design-system";
 
 /** The footer strip of a settings group: a quiet hint and the group’s own Save. */
 export function SaveFooter({

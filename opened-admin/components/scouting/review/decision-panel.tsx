@@ -11,14 +11,14 @@ import {
   Text,
   TextArea,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ApiError,
   type AdminSubmissionDetail,
   type ReviewInput,
   type Submission,
   type SubmissionInput,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { adminSend } from "@/lib/api";
 import { ROUTES } from "@/lib/nav";
 

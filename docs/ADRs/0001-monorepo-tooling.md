@@ -5,7 +5,7 @@
 
 ## Context
 
-OpenSeat contains two Next.js applications and a shared design-system package.
+Joined contains two Next.js applications and a shared design-system package.
 They need consistent dependency installation, linting, formatting, typechecks,
 tests, and builds while retaining their current directory layout. The
 repository's contributor rules require Bun; a second package manager would
@@ -14,7 +14,7 @@ create conflicting lockfiles and CI behavior.
 ## Decision
 
 - Keep Bun 1.4.2 as the package manager and `bun.lock` as the workspace lockfile.
-- Keep the existing `openseat-frontend/`, `openseat-theme/`, and
+- Keep the existing `joined-frontend/`, `joined-theme/`, and
   `packages/design-system/` paths. Any move to an `apps/` layout needs a
   separate agreed change.
 - Use Turbo to run workspace lint, typecheck, and build tasks, and use root

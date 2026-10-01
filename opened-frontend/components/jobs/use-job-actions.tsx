@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, useToast } from "@openseat/design-system";
+import { Button, useToast } from "@joined/design-system";
 import type { Job } from "@/lib/jobs";
 import { createApplication } from "@/lib/me/pipeline";
 import { signInHref } from "@/lib/routes";

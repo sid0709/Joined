@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import type { List, ScoutNotification } from "@openseat/scout";
+import type { List, ScoutNotification } from "@joined/scout";
 import { NotificationsView } from "@/components/notifications/notifications-view";
 import { PAGE_LIMIT } from "@/lib/config";
 import { param, type SearchParams } from "@/lib/page";

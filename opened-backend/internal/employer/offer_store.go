@@ -91,7 +91,7 @@ func (s *Store) DecideOfferApproval(ctx context.Context, companyID, applicantID,
 	return approval, nil
 }
 
-// CreateOfferEsign mints a first-party OpenSeat sign URL and stores it on the offer.
+// CreateOfferEsign mints a first-party Joined sign URL and stores it on the offer.
 func (s *Store) CreateOfferEsign(ctx context.Context, companyID, applicantID, origin string, input EsignInput, actor Actor, now time.Time) (candidate.OfferEsign, error) {
 	app, err := s.loadCompanyApplicant(ctx, companyID, applicantID)
 	if err != nil {

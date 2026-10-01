@@ -15,7 +15,7 @@ import {
   createStaticSource,
   useToast,
   type SearchableItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   AUTHORIZATION_OPTIONS,
   LOCATION_SUGGESTIONS,

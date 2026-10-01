@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Text } from "@openseat/design-system";
+import { Text } from "@joined/design-system";
 
 /**
  * A ListItem description that wraps. A plain-string description is clamped to one

@@ -18,7 +18,7 @@ import {
   TabList,
   Text,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   LISTS,
   SORTS,

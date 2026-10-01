@@ -20,7 +20,7 @@ import {
   PageHeader,
   SectionCard,
   StatGrid,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   EMPLOYMENT_LABEL,
   REWARD_TYPE,
@@ -32,7 +32,7 @@ import {
   sumMoney,
   type Earning,
   type Submission,
-} from "@openseat/scout";
+} from "@joined/scout";
 
 import { RefreshWhilePending } from "./refresh-while-pending";
 

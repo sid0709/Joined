@@ -13,7 +13,7 @@ import {
   Text,
   icons,
   type GlyphName,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 
 export type SettingsSectionLink<Id extends string> = {
   id: Id;

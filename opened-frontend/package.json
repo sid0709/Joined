@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"
   },
   "dependencies": {
-    "@openseat/design-system": "workspace:*",
-    "@openseat/job-schema": "workspace:*",
+    "@joined/design-system": "workspace:*",
+    "@joined/job-schema": "workspace:*",
     "@astryxdesign/core": "catalog:",
     "@astryxdesign/theme-neutral": "catalog:",
     "@stylexjs/stylex": "catalog:",

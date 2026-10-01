@@ -14,11 +14,11 @@ export const LOCAL_SERVICES = [
     startExtraArgs: [],
   },
   {
-    id: "openseat-theme",
+    id: "joined-theme",
     shortName: "theme",
     port: 3001,
     color: "\x1b[35m",
-    workspace: "openseat-theme",
+    workspace: "joined-theme",
     startExtraArgs: ["--port", "3001"],
   },
   {

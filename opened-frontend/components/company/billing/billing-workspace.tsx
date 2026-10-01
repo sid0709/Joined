@@ -16,7 +16,7 @@ import {
   Text,
   useToast,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { SectionCard } from "@/components/section-card";
 import { fetchBilling, purchaseBalance } from "@/lib/company/api";

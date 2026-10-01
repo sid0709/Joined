@@ -1,4 +1,4 @@
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 import Link from "next/link";
 
 import type { ReactNode } from "react";

@@ -14,8 +14,8 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
-import { SENIORITY_LABEL, WORKPLACE_LABEL } from "@openseat/job-schema";
+} from "@joined/design-system";
+import { SENIORITY_LABEL, WORKPLACE_LABEL } from "@joined/job-schema";
 import { SearchJobDrawer } from "@/components/jobs/search-job-drawer";
 import { SearchBox } from "@/components/search-box";
 import { formatCount, positiveInt } from "@/lib/format";

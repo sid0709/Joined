@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, EmptyState } from "@openseat/design-system";
+import { Button, EmptyState } from "@joined/design-system";
 import { ROUTES } from "@/lib/routes";
 
 export default function ErrorPage({

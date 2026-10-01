@@ -1,4 +1,4 @@
-import { formatMoney, type Meta } from "@openseat/scout";
+import { formatMoney, type Meta } from "@joined/scout";
 
 /** Four numbered steps, from link to payout. */
 export function HowItWorks({ meta }: { meta: Meta }) {

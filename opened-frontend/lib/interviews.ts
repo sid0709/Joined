@@ -1,4 +1,4 @@
-import type { BadgeVariant, CalendarEvent, CalendarTone } from "@openseat/design-system";
+import type { BadgeVariant, CalendarEvent, CalendarTone } from "@joined/design-system";
 import { parseDay } from "@/lib/me/dates";
 
 export type InterviewFormat = "video" | "phone" | "onsite";

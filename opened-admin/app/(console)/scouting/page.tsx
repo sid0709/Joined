@@ -7,7 +7,7 @@ import {
   SectionCard,
   Stack,
   StatGrid,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   formatMoney,
   type AdminList,
@@ -15,7 +15,7 @@ import {
   type Overview,
   type Payout,
   type ScoutSummary,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { PayoutList } from "@/components/scouting/payout-list";
 import { QueueTable } from "@/components/scouting/queue-table";
 import { VerificationList } from "@/components/scouting/verification-list";

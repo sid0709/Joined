@@ -13,7 +13,7 @@ import {
   TextArea,
   TextInput,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { useMemo, useState } from "react";
 import {
   MAX_SCORECARD_CRITERIA,

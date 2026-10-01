@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Stack } from "@openseat/design-system";
+import { Stack } from "@joined/design-system";
 import { CompanyJobsWorkspace } from "@/components/company/jobs/company-jobs-workspace";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";

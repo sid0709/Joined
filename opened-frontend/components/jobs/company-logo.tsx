@@ -1,4 +1,4 @@
-import { Avatar, type AvatarSize } from "@openseat/design-system";
+import { Avatar, type AvatarSize } from "@joined/design-system";
 import { companyLogoSrc } from "@/lib/jobs";
 
 /** A company’s mark. `src` is the stored logo URL; we load it through our own route. */

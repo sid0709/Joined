@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, HStack, Stack, Table, Text, type TableColumn } from "@openseat/design-system";
+import { Badge, HStack, Stack, Table, Text, type TableColumn } from "@joined/design-system";
 import {
   PERMISSION_META,
   ROLE_META,

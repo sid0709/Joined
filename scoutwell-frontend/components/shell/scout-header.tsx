@@ -10,7 +10,7 @@ import {
   TopNav,
   TopNavHeading,
   useAppShellMobile,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";

@@ -11,8 +11,8 @@ import {
   Stack,
   Text,
   SectionCard,
-} from "@openseat/design-system";
-import { ApiError, type JobMatch, type MatchCompare, type Submission } from "@openseat/scout";
+} from "@joined/design-system";
+import { ApiError, type JobMatch, type MatchCompare, type Submission } from "@joined/scout";
 import { useEffect, useState } from "react";
 
 import { adminSend } from "@/lib/api";

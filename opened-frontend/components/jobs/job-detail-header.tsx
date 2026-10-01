@@ -14,7 +14,7 @@ import {
   ToggleButton,
   icons,
   type DropdownMenuOption,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";

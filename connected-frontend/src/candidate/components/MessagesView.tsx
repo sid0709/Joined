@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 

@@ -1,6 +1,6 @@
 # Marketplace App Routes
 
-Route tree for the OpenSeat marketplace. Role-specific UI lives in `src/candidate/` and `src/client/` — pages here are thin entry points only.
+Route tree for the Joined marketplace. Role-specific UI lives in `src/candidate/` and `src/client/` — pages here are thin entry points only.
 
 ## URL Map
 

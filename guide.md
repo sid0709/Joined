@@ -7,7 +7,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 ## While you code
 
 - Use **bun only**. Never npm, yarn, or pnpm. The only lockfile is `bun.lock`.
-- Work from the repo root. Do not copy a component, token, or helper into more than one app. Shared UI lives in `packages/*` (for example `@openseat/design-system`). Apps import the package's public exports, never its `src` tree.
+- Work from the repo root. Do not copy a component, token, or helper into more than one app. Shared UI lives in `packages/*` (for example `@joined/design-system`). Apps import the package's public exports, never its `src` tree.
 - Do not hardcode values that belong in config or tokens:
   - URLs, API hosts, feature flags → env / config
   - Colors, spacing, type, radii, shadows → design tokens (`tokens.css`)
@@ -27,7 +27,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 | ---------------------------- | ----------------------------------- | --------------------- |
 | Everything (frontends + API) | `bun run dev`                       | 3000–3003, 3010, 8080 |
 | Opened (job platform)        | `bun run dev:opened`                | http://localhost:3002 |
-| OpenSeat app                 | `bun run dev:app`                   | http://localhost:3000 |
+| Joined app                   | `bun run dev:app`                   | http://localhost:3000 |
 | Design-system showcase       | `bun run dev:theme`                 | http://localhost:3001 |
 | Opened admin                 | `bun run dev:admin`                 | http://localhost:3010 |
 | Scoutwell                    | `bun run dev:scout`                 | http://localhost:3003 |

@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
   TextInput,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { ROUTES } from "@/lib/routes";
 
 const CONFIRM = "DELETE";

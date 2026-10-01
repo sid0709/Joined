@@ -6,7 +6,7 @@ import {
   Section,
   Skeleton,
   Stack,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { PageContainer } from "@/components/page-container";
 
 const LOGO_SIZE = 96;

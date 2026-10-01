@@ -1,4 +1,4 @@
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 import Link from "next/link";
 
 import type { BoardHunter, BoardTask, Engagement } from "@/src/candidate/types/workspace";

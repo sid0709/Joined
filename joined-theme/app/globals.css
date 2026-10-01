@@ -1,0 +1,18 @@
+@import "@joined/design-system/styles/joined.css";
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-family-body);
+}
+
+/* A transformed box is the containing block for a fixed bottom PillNav, so the
+   demo bar sits in this frame instead of the documentation viewport. */
+.os-pill-nav-stage {
+  position: relative;
+  box-sizing: border-box;
+  height: calc(var(--spacing-16) * 4);
+  padding: var(--spacing-4);
+  transform: translateZ(0);
+  overflow: hidden;
+}

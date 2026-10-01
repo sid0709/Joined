@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckboxInput, HStack, ProgressBar, Stack, Text } from "@openseat/design-system";
+import { CheckboxInput, HStack, ProgressBar, Stack, Text } from "@joined/design-system";
 import type { PrepTask } from "@/lib/interviews";
 
 /** Prep tasks with a progress bar; toggling a task reports the whole list. */

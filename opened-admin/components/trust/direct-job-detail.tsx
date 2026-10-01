@@ -12,7 +12,7 @@ import {
   SectionCard,
   Stack,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";

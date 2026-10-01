@@ -1,4 +1,4 @@
-import { Table } from "@openseat/design-system";
+import { Table } from "@joined/design-system";
 
 import type { ApplicationRecord, Assignment } from "@/src/shared/types/marketplace";
 

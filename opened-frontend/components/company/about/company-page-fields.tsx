@@ -25,8 +25,8 @@ import {
   parseAddress,
   splitLocations,
   type SearchableItem,
-} from "@openseat/design-system";
-import { companySizeLabel } from "@openseat/job-schema";
+} from "@joined/design-system";
+import { companySizeLabel } from "@joined/job-schema";
 import { SettingsGroup } from "@/components/settings-group";
 import {
   ABOUT_MAX,

@@ -8,7 +8,7 @@ import {
   Stack,
   Switch,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   EMPLOYMENTS,
   EMPLOYMENT_LABEL,

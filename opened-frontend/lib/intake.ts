@@ -55,7 +55,7 @@ export const APPLY_CONSENT_LABEL =
 
 export const REFERRAL_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Prefer not to say" },
-  { value: "openseat", label: "OpenSeat search" },
+  { value: "joined", label: "Joined search" },
   { value: "employee", label: "Employee referral" },
   { value: "linkedin", label: "LinkedIn" },
   { value: "agency", label: "Agency / scout" },

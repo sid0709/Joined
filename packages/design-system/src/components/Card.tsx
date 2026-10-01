@@ -25,7 +25,7 @@ export interface JobCardProps {
   width?: Width;
 }
 
-/** The OpenSeat room card: title, meta line, optional body and footer, on an Astryx Card. */
+/** The Joined room card: title, meta line, optional body and footer, on an Astryx Card. */
 export function JobCard({
   title,
   meta,

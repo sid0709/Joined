@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    "@openseat/design-system",
+    "@joined/design-system",
     "@astryxdesign/core",
     "@astryxdesign/theme-neutral",
     "@stylexjs/stylex",

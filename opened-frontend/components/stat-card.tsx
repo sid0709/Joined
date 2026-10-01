@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Card, Grid, HStack, Heading, Stack, Text } from "@openseat/design-system";
+import { Card, Grid, HStack, Heading, Stack, Text } from "@joined/design-system";
 
 export type Stat = {
   label: string;

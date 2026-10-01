@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, Heading, Stack, Text } from "@openseat/design-system";
+import { Banner, Button, Card, Heading, Stack, Text } from "@joined/design-system";
 import type { CompanyChoice } from "@/lib/auth/types";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";

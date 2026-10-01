@@ -14,14 +14,14 @@ import {
   Text,
   TextArea,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ApiError,
   type AdminScoutDetail,
   type LevelRule,
   type ScoutLevel,
   type ScoutPatch,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { adminSend } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@openseat/design-system";
+import { AppShell } from "@joined/design-system";
 
 /** Space around page content, as a spacing step. Sticky panels offset by the same amount. */
 export const CONTENT_PADDING = 5;

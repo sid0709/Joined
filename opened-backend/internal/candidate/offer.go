@@ -62,7 +62,7 @@ type OfferApproval struct {
 	Note        string    `json:"note,omitempty" bson:"note,omitempty"`
 }
 
-// OfferEsign is a first-party OpenSeat sign link. No external e-sign vendor.
+// OfferEsign is a first-party Joined sign link. No external e-sign vendor.
 type OfferEsign struct {
 	Status        string     `json:"status" bson:"status"`
 	DocumentTitle string     `json:"documentTitle,omitempty" bson:"documentTitle,omitempty"`

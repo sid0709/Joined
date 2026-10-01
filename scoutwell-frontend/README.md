@@ -1,6 +1,6 @@
 # Scoutwell
 
-Frontend for OpenSeat scouts. Submit official job links and earn when hunters and bidders use them. There is no backend — state lives in this browser.
+Frontend for Joined scouts. Submit official job links and earn when hunters and bidders use them. There is no backend — state lives in this browser.
 
 ```bash
 bun install

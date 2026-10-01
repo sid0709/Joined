@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { GridColumn, GridSystem } from "@openseat/design-system";
+import { GridColumn, GridSystem } from "@joined/design-system";
 import { CompanyNav } from "@/components/company/company-nav";
 import { PageContainer } from "@/components/page-container";
 import { AppFrame } from "@/components/shell/app-frame";

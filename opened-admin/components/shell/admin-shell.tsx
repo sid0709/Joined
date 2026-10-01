@@ -6,8 +6,8 @@ import {
   TopNav,
   TopNavHeading,
   Badge,
-} from "@openseat/design-system";
-import type { Overview } from "@openseat/scout";
+} from "@joined/design-system";
+import type { Overview } from "@joined/scout";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/nav";
 import type { TrustNavCounts } from "@/lib/trust";

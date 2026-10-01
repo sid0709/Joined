@@ -1,5 +1,5 @@
 /**
- * Navigation components are original Astryx — OpenSeat only themes them.
+ * Navigation components are original Astryx — Joined only themes them.
  * TopNav and SideNav live in ./LayoutPrimitives; Nav composes TopNav.
  */
 export {

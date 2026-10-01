@@ -11,7 +11,7 @@ import {
   Stack,
   Text,
   Token,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { SearchJob } from "@/lib/search-job";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

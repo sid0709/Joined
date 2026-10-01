@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"
   },
   "dependencies": {
-    "@openseat/design-system": "workspace:*",
+    "@joined/design-system": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

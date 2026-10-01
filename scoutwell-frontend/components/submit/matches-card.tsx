@@ -8,10 +8,10 @@ import {
   Stack,
   Text,
   SectionCard,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 
 import type { MatchesState } from "./use-matches";
-import type { JobMatch } from "@openseat/scout";
+import type { JobMatch } from "@joined/scout";
 
 import { FullText } from "@/components/full-text";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 
 import { TaskContactPanel } from "@/src/candidate/components/TaskContactPanel";
 import { HunterLine } from "@/src/candidate/components/ui/HunterLine";

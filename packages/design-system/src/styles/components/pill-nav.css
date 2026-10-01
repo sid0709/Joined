@@ -1,6 +1,6 @@
 /* PillNav — icon pills; the current page opens to icon + label in the accent colour while one
    highlight slides beneath it. Uses only tokens the Astryx theme ships (astryx.css, theme.css),
-   so the motion and sizes resolve in every app that loads openseat.css. */
+   so the motion and sizes resolve in every app that loads joined.css. */
 
 .os-pill-nav {
   min-width: 0;

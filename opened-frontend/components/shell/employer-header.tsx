@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, TopNav, TopNavHeading } from "@openseat/design-system";
+import { Badge, TopNav, TopNavHeading } from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { PostJobButton } from "@/components/post-job-button";
 import { BRAND, ROUTES } from "@/lib/routes";

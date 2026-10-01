@@ -7,7 +7,7 @@ import {
   HStack,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SectionCard } from "@/components/section-card";
 import { JOB_STATUS_META, pipelineTotal, type CompanyJob } from "@/lib/company";
 import { formatCount } from "@/lib/jobs";

@@ -15,7 +15,7 @@ export {
   INDUSTRIES,
   MAX_BENEFITS,
   VALUE_ICONS,
-} from "@openseat/job-schema";
+} from "@joined/job-schema";
 
 export type CompanyValue = {
   icon: string;

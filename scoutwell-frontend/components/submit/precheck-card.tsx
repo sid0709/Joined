@@ -6,7 +6,7 @@ import {
   Text,
   type BadgeVariant,
   SectionCard,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 
 import type { PrecheckState } from "./use-precheck";
 

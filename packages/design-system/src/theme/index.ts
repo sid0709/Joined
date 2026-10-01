@@ -1,3 +1,3 @@
-export { openseatTheme } from "./openseat";
-export { OpenSeatProvider } from "./OpenSeatProvider";
-export type { OpenSeatProviderProps, ColorMode } from "./OpenSeatProvider";
+export { joinedTheme } from "./joined";
+export { JoinedProvider } from "./JoinedProvider";
+export type { JoinedProviderProps, ColorMode } from "./JoinedProvider";

@@ -1,4 +1,4 @@
-import { Button, EmptyState, PageContainer } from "@openseat/design-system";
+import { Button, EmptyState, PageContainer } from "@joined/design-system";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
 import { ROUTES } from "@/lib/routes";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Button, HStack, Stack, Switch, Text, useToast } from "@openseat/design-system";
+import { Badge, Button, HStack, Stack, Switch, Text, useToast } from "@joined/design-system";
 import { SESSIONS } from "@/lib/settings";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 

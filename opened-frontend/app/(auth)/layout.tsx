@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Center, Stack } from "@openseat/design-system";
+import { Center, Stack } from "@joined/design-system";
 
 const FORM_WIDTH = 480;
 

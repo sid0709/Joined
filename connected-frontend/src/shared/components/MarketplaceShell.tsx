@@ -46,7 +46,7 @@ const NAV_ITEMS: Record<MarketplaceRole, { label: string; href: string; also?: s
 };
 
 function initialsFor(name?: string) {
-  return (name ?? "OpenSeat")
+  return (name ?? "Joined")
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
@@ -103,7 +103,7 @@ export function MarketplaceShell({
     <RoleGuard role={role}>
       <AppShell
         nav={{
-          brand: role === "Candidate" ? "OpenSeat Bidder" : "OpenSeat Marketplace",
+          brand: role === "Candidate" ? "Joined Bidder" : "Joined Marketplace",
           items,
           cta: "Log Out",
           onCtaClick: logoutUser,

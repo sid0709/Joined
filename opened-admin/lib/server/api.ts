@@ -1,4 +1,4 @@
-import { ApiError, parseProblem } from "@openseat/scout";
+import { ApiError, parseProblem } from "@joined/scout";
 import { adminApiUrl, adminHeaders } from "./env";
 
 /** GET an admin endpoint from a Server Component. Throws ApiError on failure. */

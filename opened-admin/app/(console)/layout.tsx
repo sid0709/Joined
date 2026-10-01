@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Overview } from "@openseat/scout";
+import type { Overview } from "@joined/scout";
 import { AdminShell } from "@/components/shell/admin-shell";
 import { adminGet } from "@/lib/server/api";
 import { trustNavCounts } from "@/lib/server/trust-counts";

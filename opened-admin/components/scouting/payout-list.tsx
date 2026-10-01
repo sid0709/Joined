@@ -1,5 +1,5 @@
-import { EmptyState, List, ListItem, Text } from "@openseat/design-system";
-import { formatMoney, type Payout } from "@openseat/scout";
+import { EmptyState, List, ListItem, Text } from "@joined/design-system";
+import { formatMoney, type Payout } from "@joined/scout";
 import { ageLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 

@@ -10,7 +10,7 @@ import {
   type PayPeriod,
   type Seniority,
   type Workplace,
-} from "@openseat/job-schema";
+} from "@joined/job-schema";
 
 export {
   EMPLOYMENT_LABEL,

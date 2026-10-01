@@ -6,7 +6,7 @@ import { loadSession } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Sign your offer",
-  description: "Review and sign your OpenSeat offer letter.",
+  description: "Review and sign your Joined offer letter.",
 };
 
 /**

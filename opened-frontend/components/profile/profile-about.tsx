@@ -11,7 +11,7 @@ import {
   createStaticSource,
   useToast,
   type SearchableItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SectionCard } from "@/components/section-card";
 import { saveProfile } from "@/lib/me/pipeline";
 import {

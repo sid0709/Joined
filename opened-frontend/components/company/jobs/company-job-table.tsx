@@ -8,7 +8,7 @@ import {
   Text,
   type DropdownMenuOption,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   JOB_STATUS_META,
   POLICY_META,

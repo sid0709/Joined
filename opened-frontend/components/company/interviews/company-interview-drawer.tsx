@@ -16,7 +16,7 @@ import {
   Text,
   TextArea,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SelfScheduleShare } from "@/components/company/interviews/self-schedule-share";
 import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
 import {

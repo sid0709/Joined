@@ -1,4 +1,4 @@
-import { Badge, Glyph, HStack } from "@openseat/design-system";
+import { Badge, Glyph, HStack } from "@joined/design-system";
 import { EMPLOYMENT_LABEL, SENIORITY_LABEL, WORKPLACE_LABEL, isNew, type Job } from "@/lib/jobs";
 
 /** The facts a job hunter scans for first, as a row of badges. */

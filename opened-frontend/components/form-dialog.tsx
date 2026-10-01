@@ -9,7 +9,7 @@ import {
   Layout,
   LayoutContent,
   LayoutFooter,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 
 const DIALOG_WIDTH = 480;
 

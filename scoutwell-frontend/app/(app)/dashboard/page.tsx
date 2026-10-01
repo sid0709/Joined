@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import type { List, ScoutNotification, Submission } from "@openseat/scout";
+import type { List, ScoutNotification, Submission } from "@joined/scout";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { RECENT_LIMIT } from "@/lib/config";
 import { ROUTES, signInHref } from "@/lib/routes";

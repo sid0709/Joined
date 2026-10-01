@@ -1,4 +1,4 @@
-import { Glyph } from "@openseat/design-system";
+import { Glyph } from "@joined/design-system";
 
 export function Stars({ value, count }: { value: number; count?: number }) {
   return (

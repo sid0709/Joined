@@ -9,8 +9,8 @@ import {
   PageHeader,
   SectionCard,
   StatGrid,
-} from "@openseat/design-system";
-import { LEVEL_BADGE, formatMoney, formatRate, type LevelRule, type Stats } from "@openseat/scout";
+} from "@joined/design-system";
+import { LEVEL_BADGE, formatMoney, formatRate, type LevelRule, type Stats } from "@joined/scout";
 import { GoalBar } from "@/components/goal-bar";
 import { progressTo } from "@/lib/format";
 

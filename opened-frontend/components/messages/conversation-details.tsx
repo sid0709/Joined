@@ -9,7 +9,7 @@ import {
   MetadataListItem,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { MailThread } from "@/lib/messages";
 import { ThreadAvatar } from "./thread-avatar";
 

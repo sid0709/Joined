@@ -1,4 +1,4 @@
-import { PageContainer } from "@openseat/design-system";
+import { PageContainer } from "@joined/design-system";
 import type { Metadata } from "next";
 import { LandingPage } from "@/components/landing/landing-page";
 import { AppFrame } from "@/components/shell/app-frame";

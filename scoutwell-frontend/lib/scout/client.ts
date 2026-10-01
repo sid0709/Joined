@@ -1,4 +1,4 @@
-import { ApiError, parseProblem } from "@openseat/scout";
+import { ApiError, parseProblem } from "@joined/scout";
 
 const BASE = "/api/scout";
 

@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { HStack, Selector, Tab, TabList } from "@openseat/design-system";
+import { HStack, Selector, Tab, TabList } from "@joined/design-system";
 import { SearchBox } from "@/components/search-box";
 import { ROUTES } from "@/lib/nav";
 

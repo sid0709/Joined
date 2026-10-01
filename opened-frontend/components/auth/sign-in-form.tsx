@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Banner,
-  Button,
-  Card,
-  Heading,
-  Link,
-  Stack,
-  Text,
-  TextInput,
-} from "@openseat/design-system";
+import { Banner, Button, Card, Heading, Link, Stack, Text, TextInput } from "@joined/design-system";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";
 

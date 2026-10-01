@@ -13,8 +13,8 @@ import {
   TextInput,
   useToast,
   SectionCard,
-} from "@openseat/design-system";
-import { ApiError, VERIFICATION, type PayoutMethodType, type Profile } from "@openseat/scout";
+} from "@joined/design-system";
+import { ApiError, VERIFICATION, type PayoutMethodType, type Profile } from "@joined/scout";
 import { formatDay } from "@/lib/dates";
 import { scoutSend } from "@/lib/scout/client";
 

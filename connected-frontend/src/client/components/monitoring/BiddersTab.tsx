@@ -1,4 +1,4 @@
-import { Table } from "@openseat/design-system";
+import { Table } from "@joined/design-system";
 
 import type { StatusCounts } from "@/src/shared/lib/selectors";
 import type { Bidder } from "@/src/shared/types/marketplace";

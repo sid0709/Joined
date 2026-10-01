@@ -1,5 +1,5 @@
 /**
- * Layout, text, and icon primitives from Astryx. Everything OpenSeat renders
+ * Layout, text, and icon primitives from Astryx. Everything Joined renders
  * sits on these, so apps never import Astryx directly.
  */
 export { Stack, HStack, VStack, StackItem } from "@astryxdesign/core/Stack";

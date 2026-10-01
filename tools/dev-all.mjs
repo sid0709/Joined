@@ -79,7 +79,7 @@ function shutdown() {
 const ports = [...new Set(services.map((service) => new URL(service.url).port))];
 freePorts(ports);
 
-console.log("Starting every OpenSeat dev server:\n");
+console.log("Starting every Joined dev server:\n");
 for (const service of services) {
   console.log(`  ${service.color}${service.name.padEnd(7)}${reset}  ${service.url}`);
 }

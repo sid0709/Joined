@@ -18,7 +18,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { JobDetailDrawer } from "@/components/jobs/job-detail-drawer";
 import { SearchBox } from "@/components/search-box";

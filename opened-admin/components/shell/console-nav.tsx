@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { BRAND } from "@/lib/config";
 import { CONSOLE_NAV, activeHref, type NavLink } from "@/lib/nav";
 

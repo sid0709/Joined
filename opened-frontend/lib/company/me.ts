@@ -1,4 +1,4 @@
-import type { GlyphName } from "@openseat/design-system";
+import type { GlyphName } from "@joined/design-system";
 import type { Option } from "@/lib/profile";
 import type { Connection, NotificationEvent } from "@/lib/settings";
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader, Stack } from "@openseat/design-system";
-import { formatMoney, type AdminList, type Overview, type Payout } from "@openseat/scout";
+import { PageHeader, Stack } from "@joined/design-system";
+import { formatMoney, type AdminList, type Overview, type Payout } from "@joined/scout";
 import { PAYOUT_FILTERS, PayoutFilters } from "@/components/scouting/payout-filters";
 import { PayoutsTable } from "@/components/scouting/payouts-table";
 import { UrlPager } from "@/components/scouting/url-pager";

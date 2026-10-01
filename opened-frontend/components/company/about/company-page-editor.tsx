@@ -10,7 +10,7 @@ import {
   Sticky,
   Text,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyPageFields } from "@/components/company/about/company-page-fields";
 import { CompanyCard } from "@/components/jobs/company-card";
 import { SaveFooter } from "@/components/save-footer";

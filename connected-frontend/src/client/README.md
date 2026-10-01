@@ -39,5 +39,5 @@ src/client/
 
 ## Import Rules
 
-✅ Allowed: `@/src/shared/*`, `@openseat/design-system`
+✅ Allowed: `@/src/shared/*`, `@joined/design-system`
 ❌ Forbidden: `@/src/candidate/*`

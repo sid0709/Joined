@@ -1,13 +1,13 @@
 # Contributing
 
-OpenSeat uses Bun workspaces. Install the pinned dependencies from the
+Joined uses Bun workspaces. Install the pinned dependencies from the
 repository root:
 
 ```sh
 bun install --frozen-lockfile
 ```
 
-The workspaces are `connected-frontend`, `openseat-theme`, `opened-frontend`,
+The workspaces are `connected-frontend`, `joined-theme`, `opened-frontend`,
 and `packages/design-system`. Read [Coding Style](CODING_STYLE.md) before changing
 shared code. Keep repository policy and owner settings aligned with the
 existing [CODEOWNERS](../.github/CODEOWNERS); ask the owner before proposing

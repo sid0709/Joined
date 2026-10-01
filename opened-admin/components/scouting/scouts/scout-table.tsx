@@ -9,14 +9,14 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   LEVEL_BADGE,
   VERIFICATION,
   formatMoney,
   formatRate,
   type ScoutSummary,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { formatCount, formatDate } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 

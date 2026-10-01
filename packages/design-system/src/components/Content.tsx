@@ -1,7 +1,7 @@
 /**
- * Content components are original Astryx — OpenSeat only themes them.
+ * Content components are original Astryx — Joined only themes them.
  * Text, Heading, and Icon live in ./Primitives; import everything from
- * @openseat/design-system so apps never reach into Astryx directly.
+ * @joined/design-system so apps never reach into Astryx directly.
  */
 export { Avatar, AvatarStatusDot } from "@astryxdesign/core/Avatar";
 export type {

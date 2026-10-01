@@ -20,7 +20,7 @@ import {
   Token,
   Tokenizer,
   createStaticSource,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   APPLICANT_STAGES,
   ASSISTED_LABEL,

@@ -3,7 +3,7 @@ import {
   SENIORITY_LABEL,
   WORKPLACE_LABEL,
   seniorityLabel,
-} from "@openseat/job-schema";
+} from "@joined/job-schema";
 
 import type {
   Channel,
@@ -16,7 +16,7 @@ import type {
   SubmissionStatus,
   Verification,
 } from "./types";
-import type { BadgeVariant, BannerStatus } from "@openseat/design-system";
+import type { BadgeVariant, BannerStatus } from "@joined/design-system";
 
 export { EMPLOYMENT_LABEL, SENIORITY_LABEL, WORKPLACE_LABEL, seniorityLabel };
 

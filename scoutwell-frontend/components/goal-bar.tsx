@@ -1,6 +1,6 @@
 "use client";
 
-import { ProgressBar, type ProgressBarVariant } from "@openseat/design-system";
+import { ProgressBar, type ProgressBarVariant } from "@joined/design-system";
 
 /**
  * A progress bar with a text value, usable from Server Components: the value

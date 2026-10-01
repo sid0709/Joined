@@ -26,7 +26,7 @@
  *
  * POST /v1/company/applicants/:id/offer/esign
  *   body: { documentTitle?: string }
- *   response: OfferEsign  // first-party only; mint a signed URL on OpenSeat
+ *   response: OfferEsign  // first-party only; mint a signed URL on Joined
  *   permission: offers.send
  *
  * POST /v1/company/applicants/:id/offer/esign/mark
@@ -120,7 +120,7 @@ export type OfferEsignStatus = "none" | "pending" | "signed" | "declined";
 export type OfferEsign = {
   status: OfferEsignStatus;
   documentTitle?: string;
-  /** OpenSeat-hosted sign URL when Einstein mints one. */
+  /** Joined-hosted sign URL when Einstein mints one. */
   signUrl?: string;
   sentAt?: string;
   signedAt?: string;
@@ -538,7 +538,7 @@ export function renderOfferBody(
 /** Preview first-party sign URL; prefer offer.esign.signUrl from POST .../offer/esign. */
 export function scaffoldEsignUrl(applicantId: string, origin?: string): string {
   const base =
-    origin || (typeof window !== "undefined" ? window.location.origin : "https://openseat.app");
+    origin || (typeof window !== "undefined" ? window.location.origin : "https://joined.app");
   return `${base}/offer/sign/${encodeURIComponent(applicantId)}`;
 }
 

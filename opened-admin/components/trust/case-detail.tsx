@@ -17,7 +17,7 @@ import {
   Text,
   useToast,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";

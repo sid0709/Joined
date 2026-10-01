@@ -13,7 +13,7 @@ import {
   Token,
   icons,
   type IconColor,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { GOOD_MATCH, STRONG_MATCH, type JobMatch, type MatchLevel } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { matchProgressVariant } from "./match-badge";

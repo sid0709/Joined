@@ -9,7 +9,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatShortDate } from "@/lib/dates";
 import { OUTCOME_META, type Interview } from "@/lib/interviews";
 

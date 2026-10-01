@@ -1,4 +1,4 @@
-import { Button, Glyph } from "@openseat/design-system";
+import { Button, Glyph } from "@joined/design-system";
 
 /**
  * Opens a public page — a job posting, the company page — the way candidates

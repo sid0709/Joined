@@ -212,7 +212,7 @@ export function hydrateOptionalUrl(raw: string | undefined | null): string | und
  */
 export function scaffoldSelfScheduleUrl(interviewId: string, origin?: string): string {
   const base =
-    origin || (typeof window !== "undefined" ? window.location.origin : "https://openseat.app");
+    origin || (typeof window !== "undefined" ? window.location.origin : "https://joined.app");
   return `${base}/schedule/${encodeURIComponent(interviewId)}`;
 }
 

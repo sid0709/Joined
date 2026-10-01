@@ -1,4 +1,4 @@
-# OpenSeat
+# Joined
 
 Permissioned help marketplace (Athens AI sibling). Hunters open jobs; allowed bidders help.
 
@@ -8,17 +8,17 @@ Juniors own product work. Core/platform changes need owner review.
 
 A **bun workspaces monorepo**:
 
-| Workspace                 | What it is                                               | Run it                                          |
-| ------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
-| `opened-frontend`         | Opened job platform — candidate and employer modes       | `bun run dev:opened` → http://localhost:3002    |
-| `connected-frontend`      | OpenSeat web app                                         | `bun run dev:app` → http://localhost:3000       |
-| `openseat-theme`          | Design-system showcase                                   | `bun run dev:theme` → http://localhost:3001     |
-| `scoutwell-frontend`      | Scoutwell — scouts submit jobs and earn on outcomes      | `bun run dev:scout` → http://localhost:3003     |
-| `opened-admin`            | Admin console — review queue, scouts, jobs               | `bun run dev:admin` → http://localhost:3010     |
-| `opened-backend`          | Opened API (Go) — jobs, accounts, scout pipeline         | `bun run dev:admin-api` → http://127.0.0.1:8080 |
-| `@openseat/design-system` | Shared UI package (`packages/design-system`)             | used by every app                               |
-| `@openseat/scout`         | Scout API contract (`packages/scout`)                    | Scoutwell and the admin console                 |
-| `@openseat/job-schema`    | Job enums shared with the Go API (`packages/job-schema`) | every job-related app                           |
+| Workspace               | What it is                                               | Run it                                          |
+| ----------------------- | -------------------------------------------------------- | ----------------------------------------------- |
+| `opened-frontend`       | Opened job platform — candidate and employer modes       | `bun run dev:opened` → http://localhost:3002    |
+| `connected-frontend`    | Joined web app                                           | `bun run dev:app` → http://localhost:3000       |
+| `joined-theme`          | Design-system showcase                                   | `bun run dev:theme` → http://localhost:3001     |
+| `scoutwell-frontend`    | Scoutwell — scouts submit jobs and earn on outcomes      | `bun run dev:scout` → http://localhost:3003     |
+| `opened-admin`          | Admin console — review queue, scouts, jobs               | `bun run dev:admin` → http://localhost:3010     |
+| `opened-backend`        | Opened API (Go) — jobs, accounts, scout pipeline         | `bun run dev:admin-api` → http://127.0.0.1:8080 |
+| `@joined/design-system` | Shared UI package (`packages/design-system`)             | used by every app                               |
+| `@joined/scout`         | Scout API contract (`packages/scout`)                    | Scoutwell and the admin console                 |
+| `@joined/job-schema`    | Job enums shared with the Go API (`packages/job-schema`) | every job-related app                           |
 
 ### Scout pipeline setup
 

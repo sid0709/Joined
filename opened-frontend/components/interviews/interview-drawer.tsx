@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   TextArea,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatDay, formatTime } from "@/lib/dates";
 import {
   FORMAT_LABEL,

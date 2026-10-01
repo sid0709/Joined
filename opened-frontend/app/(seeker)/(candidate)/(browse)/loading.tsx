@@ -1,4 +1,4 @@
-import { Skeleton, Stack } from "@openseat/design-system";
+import { Skeleton, Stack } from "@joined/design-system";
 
 const SEARCH_HEIGHT = 72;
 const LIST_HEIGHT = 360;

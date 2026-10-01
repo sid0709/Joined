@@ -17,14 +17,14 @@ import {
   TextArea,
   useToast,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ApiError,
   PAYOUT_STATUS,
   formatMoney,
   type Payout,
   type PayoutDecision,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { adminSend } from "@/lib/api";
 import { ageLabel, formatDate } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";

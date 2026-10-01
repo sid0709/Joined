@@ -7,7 +7,7 @@ import {
   icons,
   useAppShellMobile,
   type DropdownMenuOption,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { companyRoleLabel } from "@/lib/company/access";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";

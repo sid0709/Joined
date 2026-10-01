@@ -17,7 +17,7 @@ import {
   useToast,
   type CardVariant,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SectionCard } from "@/components/section-card";
 import { StatGrid } from "@/components/stat-card";
 import {

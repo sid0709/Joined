@@ -10,7 +10,7 @@ import {
   Grid,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   NOTICE_OPTIONS,
   WORKPLACE_OPTIONS,

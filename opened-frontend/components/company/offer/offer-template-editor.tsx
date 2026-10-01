@@ -11,7 +11,7 @@ import {
   TextArea,
   TextInput,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   MAX_OFFER_TEMPLATES,
   centsToDollarsInput,

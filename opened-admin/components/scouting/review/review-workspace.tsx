@@ -11,8 +11,8 @@ import {
   PageHeader,
   Stack,
   Sticky,
-} from "@openseat/design-system";
-import { DEFAULT_CURRENCY } from "@openseat/job-schema";
+} from "@joined/design-system";
+import { DEFAULT_CURRENCY } from "@joined/job-schema";
 import {
   CHANNEL_LABEL,
   SUBMISSION_STATUS,
@@ -20,7 +20,7 @@ import {
   type AdminSubmissionDetail,
   type Submission,
   type SubmissionInput,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 

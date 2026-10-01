@@ -1,4 +1,4 @@
-import { Badge, Button, HStack, Glyph, Stack, Text } from "@openseat/design-system";
+import { Badge, Button, HStack, Glyph, Stack, Text } from "@joined/design-system";
 import { formatShortDate } from "@/lib/dates";
 import type { Resume } from "@/lib/resumes";
 import { ROUTES } from "@/lib/routes";

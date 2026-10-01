@@ -1,5 +1,7 @@
 "use client";
 
+import { BRAND_NAME, JoinedLogo, JoinedMark } from "../brand";
+
 import { Button } from "./Action";
 import { Avatar } from "./Content";
 import { TopNav, TopNavHeading, TopNavItem } from "./LayoutPrimitives";
@@ -13,6 +15,7 @@ export interface NavItem {
 }
 
 export interface NavProps {
+  /** Product name. The bare brand renders as the wordmark; a sub-product gets the app icon and its name. */
   brand?: string;
   items?: NavItem[];
   cta?: string;
@@ -25,9 +28,9 @@ export interface NavProps {
   showAvatar?: boolean;
 }
 
-/** The OpenSeat product bar — an Astryx TopNav with one primary action and the signed-in person. */
+/** The Joined product bar — an Astryx TopNav with one primary action and the signed-in person. */
 export function Nav({
-  brand = "OpenSeat",
+  brand = BRAND_NAME,
   items = [],
   cta,
   onCtaClick,
@@ -39,7 +42,13 @@ export function Nav({
   return (
     <TopNav
       label={brand}
-      heading={<TopNavHeading heading={brand} />}
+      heading={
+        brand === BRAND_NAME ? (
+          <TopNavHeading logo={<JoinedLogo />} logoLabel={brand} />
+        ) : (
+          <TopNavHeading logo={<JoinedMark label="" />} heading={brand} />
+        )
+      }
       startContent={
         <>
           {items.map((item) => (

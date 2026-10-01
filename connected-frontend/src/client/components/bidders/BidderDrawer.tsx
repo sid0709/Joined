@@ -1,6 +1,6 @@
 "use client";
 
-import { Drawer, Glyph, Rating } from "@openseat/design-system";
+import { Drawer, Glyph, Rating } from "@joined/design-system";
 import { useState } from "react";
 
 import type { HiringStage, Interview } from "@/src/shared/types/marketplace";

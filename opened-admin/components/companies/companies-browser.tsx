@@ -12,7 +12,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyDrawer } from "@/components/companies/company-drawer";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { SearchBox } from "@/components/search-box";

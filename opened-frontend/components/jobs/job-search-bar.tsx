@@ -11,7 +11,7 @@ import {
   Text,
   TextInput,
   Token,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatCount } from "@/lib/jobs";
 
 export type SavedQuery = { q: string; where: string };

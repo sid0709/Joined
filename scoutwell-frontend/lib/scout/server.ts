@@ -1,4 +1,4 @@
-import { ApiError, parseProblem } from "@openseat/scout";
+import { ApiError, parseProblem } from "@joined/scout";
 import { sessionToken } from "@/lib/auth/cookie";
 import { openedApiUrl } from "@/lib/config";
 

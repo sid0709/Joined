@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CodeBlock } from "@openseat/design-system";
+import { CodeBlock } from "@joined/design-system";
 import { ROUTES } from "@/lib/routes";
 
 const SAMPLE = `POST /v1/scout/submissions

@@ -9,7 +9,7 @@ import {
   Text,
   useToast,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { fetchTeamAudit } from "@/lib/company/api";
 import { formatShortDate } from "@/lib/dates";
 import type { AuditEvent } from "@/lib/rbac";

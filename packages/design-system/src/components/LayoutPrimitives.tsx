@@ -1,5 +1,5 @@
 /**
- * Layout and navigation frames are original Astryx. OpenSeat adds the
+ * Layout and navigation frames are original Astryx. Joined adds the
  * responsive layer on top (GridSystem, ResponsiveStack, Show/Hide, ResponsiveFrame).
  */
 export { AppShell, useAppShellMobile } from "@astryxdesign/core/AppShell";

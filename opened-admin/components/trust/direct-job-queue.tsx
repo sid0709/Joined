@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Badge, PageHeader, Stack, Table, Text, type TableColumn } from "@openseat/design-system";
+import { Badge, PageHeader, Stack, Table, Text, type TableColumn } from "@joined/design-system";
 import { UrlPager } from "@/components/scouting/url-pager";
 import { TrustState } from "@/components/trust/trust-state";
 import { ageLabel, positiveInt } from "@/lib/format";

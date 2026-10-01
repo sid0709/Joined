@@ -1,4 +1,4 @@
-import { Badge, HStack, ListItem, Stack, StackItem, Text } from "@openseat/design-system";
+import { Badge, HStack, ListItem, Stack, StackItem, Text } from "@joined/design-system";
 import { lastActivity, threadPreview, type MailThread } from "@/lib/messages";
 import { ThreadAvatar } from "./thread-avatar";
 

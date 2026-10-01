@@ -1,5 +1,5 @@
 {
-  "name": "@openseat/scout",
+  "name": "@joined/scout",
   "version": "0.1.0",
   "private": true,
   "sideEffects": false,
@@ -12,8 +12,8 @@
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"
   },
   "dependencies": {
-    "@openseat/design-system": "workspace:*",
-    "@openseat/job-schema": "workspace:*"
+    "@joined/design-system": "workspace:*",
+    "@joined/job-schema": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:"

@@ -10,7 +10,7 @@
     {
       "name": "theme-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "openseat-theme", "dev"],
+      "runtimeArgs": ["run", "--cwd", "joined-theme", "dev"],
       "port": 3001
     },
     {

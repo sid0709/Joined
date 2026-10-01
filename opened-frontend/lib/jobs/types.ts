@@ -1,4 +1,4 @@
-import type { Employment, PayPeriod, Seniority, Workplace } from "@openseat/job-schema";
+import type { Employment, PayPeriod, Seniority, Workplace } from "@joined/job-schema";
 import type { ScreeningQuestion } from "@/lib/intake";
 
 export type { Employment, PayPeriod, Seniority, Workplace };

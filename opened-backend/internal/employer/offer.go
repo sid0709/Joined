@@ -29,7 +29,7 @@ const (
 	maxCurrencyLen       = 8
 	defaultOfferCurrency = "USD"
 	offerSignPath        = "/offer/sign/"
-	defaultOfferOrigin   = "https://openseat.app"
+	defaultOfferOrigin   = "https://joined.app"
 )
 
 var ymdPattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Heading, Stack, Text } from "@openseat/design-system";
+import { Button, Heading, Stack, Text } from "@joined/design-system";
 import { originalDescription } from "@/lib/jobs/original-description";
 
 /** The posting as the employer or scout wrote it, cut short until "Show more" is pressed. */

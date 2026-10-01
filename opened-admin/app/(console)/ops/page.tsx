@@ -1,4 +1,4 @@
-import { Button, EmptyState, HStack, PageHeader, Stack } from "@openseat/design-system";
+import { Button, EmptyState, HStack, PageHeader, Stack } from "@joined/design-system";
 import { ROUTES } from "@/lib/nav";
 
 export const metadata = { title: "Retention and ops" };

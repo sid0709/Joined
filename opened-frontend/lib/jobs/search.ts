@@ -1,4 +1,4 @@
-import { EMPLOYMENTS, SENIORITIES, WORKPLACES } from "@openseat/job-schema";
+import { EMPLOYMENTS, SENIORITIES, WORKPLACES } from "@joined/job-schema";
 
 import { WORKPLACE_LABEL, annualPay } from "./format";
 

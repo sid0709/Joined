@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Stack, PageHeader, SectionCard } from "@openseat/design-system";
-import type { ApiKey } from "@openseat/scout";
+import { Stack, PageHeader, SectionCard } from "@joined/design-system";
+import type { ApiKey } from "@joined/scout";
 import { ApiDocs } from "@/components/developers/api-docs";
 import { ApiKeys } from "@/components/developers/api-keys";
 import { publicApiUrl } from "@/lib/config";

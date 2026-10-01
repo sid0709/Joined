@@ -1,4 +1,4 @@
-# OpenSeat — Command Guide
+# Joined — Command Guide
 
 Everything you need to set up, run, check, and audit this monorepo.
 
@@ -10,17 +10,17 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace                 | Path                      | What it is                                                   | Dev port | Root dev script         |
-| ------------------------- | ------------------------- | ------------------------------------------------------------ | -------- | ----------------------- |
-| `opened-frontend`         | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:opened`    |
-| `connected-frontend`      | `connected-frontend/`     | OpenSeat web app (Next.js)                                   | 3000     | `bun run dev:app`       |
-| `openseat-theme`          | `openseat-theme/`         | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`     |
-| `opened-admin`            | `opened-admin/`           | Opened admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`     |
-| `scoutwell-frontend`      | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`     |
-| `opened-backend`          | `opened-backend/`         | Opened API (Go)                                              | 8080     | `bun run dev:admin-api` |
-| `@openseat/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                       |
+| Workspace               | Path                      | What it is                                                   | Dev port | Root dev script         |
+| ----------------------- | ------------------------- | ------------------------------------------------------------ | -------- | ----------------------- |
+| `opened-frontend`       | `opened-frontend/`        | Opened job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:opened`    |
+| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                     | 3000     | `bun run dev:app`       |
+| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`     |
+| `opened-admin`          | `opened-admin/`           | Opened admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`     |
+| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`     |
+| `opened-backend`        | `opened-backend/`         | Opened API (Go)                                              | 8080     | `bun run dev:admin-api` |
+| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                       |
 
-Apps use the design system through the workspace (`"@openseat/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. `opened-backend` sits beside those workspaces: it is a Go server. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
+Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. `opened-backend` sits beside those workspaces: it is a Go server. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -39,13 +39,13 @@ Other folders: `docs/` (product and architecture specs), `tools/` (repo checks),
 - The root `package.json` holds the versions:
   ```jsonc
   "workspaces": {
-    "packages": ["connected-frontend", "openseat-theme", "opened-frontend", "packages/*"],
+    "packages": ["connected-frontend", "joined-theme", "opened-frontend", "packages/*"],
     "catalog": { "next": "16.3.6", "react": "19.3.0", "typescript": "5.9.3" /* … */ }
   }
   ```
 - Each workspace's `package.json` still lists **which** libraries it uses — but never a version:
   ```jsonc
-  "dependencies": { "next": "catalog:", "react": "catalog:", "@openseat/design-system": "workspace:*" }
+  "dependencies": { "next": "catalog:", "react": "catalog:", "@joined/design-system": "workspace:*" }
   ```
   Each workspace keeps its own `package.json` because that's what makes it a workspace: its name (for `--filter` and `workspace:*`), the list of libraries it's allowed to import, and its scripts (e.g. its dev port).
 - `overrides` in the root `package.json` forces third-party packages onto our version when they'd otherwise pull their own (today: `@types/node`). Every override must equal its catalog version.
@@ -126,7 +126,7 @@ The catalog pins every library **we** declare, but those libraries pull in hundr
 
 ```bash
 git clone https://github.com/sid0709/OpenSeat.git
-cd OpenSeat
+cd Joined
 bun install
 ```
 
@@ -164,7 +164,7 @@ bun run dev
 
 | Name                   | URL                   | Log prefix |
 | ---------------------- | --------------------- | ---------- |
-| OpenSeat app           | http://localhost:3000 | `[app]`    |
+| Joined app             | http://localhost:3000 | `[app]`    |
 | Design-system showcase | http://localhost:3001 | `[theme]`  |
 | Opened (job platform)  | http://localhost:3002 | `[opened]` |
 | Opened admin           | http://localhost:3010 | `[admin]`  |
@@ -177,7 +177,7 @@ Ctrl+C stops all of them. The API reads `opened-backend/.env` (copy `opened-back
 | App                    | Command                 | Then open             |
 | ---------------------- | ----------------------- | --------------------- |
 | Opened (job platform)  | `bun run dev:opened`    | http://localhost:3002 |
-| OpenSeat app           | `bun run dev:app`       | http://localhost:3000 |
+| Joined app             | `bun run dev:app`       | http://localhost:3000 |
 | Design-system showcase | `bun run dev:theme`     | http://localhost:3001 |
 | Opened admin           | `bun run dev:admin`     | http://localhost:3010 |
 | Opened API             | `bun run dev:admin-api` | http://127.0.0.1:8080 |
@@ -196,7 +196,7 @@ For any other script in one workspace, use `--filter` with the workspace name:
 
 ```bash
 bun --filter opened-frontend <script>
-bun --filter @openseat/design-system <script>
+bun --filter @joined/design-system <script>
 ```
 
 ### Opened: candidate and employer modes
@@ -306,15 +306,20 @@ bun test tests
 
 Source: `packages/design-system/src/`.
 
-- **Components** — `src/components/` (re-exported Astryx parts plus OpenSeat composites).
+- **Components** — `src/components/` (re-exported Astryx parts plus Joined composites).
 - **Tokens** — `src/styles/tokens.css` (color, spacing, type, radius, shadow).
-- **Theme** — `src/theme/openseat.theme.ts`. After editing it, regenerate the built theme CSS:
+- **Theme** — `src/theme/joined.theme.ts`. After editing it, regenerate the built theme CSS:
   ```bash
   bun run theme:build
   ```
   This rewrites `src/theme/theme.css` and its generated neighbours. Commit them with the `.ts` change.
+- **Brand** — `src/brand/`: `JoinedLogo` (the wordmark) and `JoinedMark` (the app icon and bare symbol), drawn from the masters in `Joined-Logo/`. Use the wordmark where the product is named on its own, and the app icon beside a sub-product name.
+- **App icons** — every app's `app/favicon.ico`, `app/icon.svg`, and `app/apple-icon.png` come from `Joined-Logo/3-App-Icon-D-Link`. After changing the artwork, regenerate them:
+  ```bash
+  bun run brand:icons
+  ```
 
-Apps import only from the package, e.g. `import { Button } from "@openseat/design-system"`. Never hardcode colors, spacing, or type — use tokens and components.
+Apps import only from the package, e.g. `import { Button } from "@joined/design-system"`. Never hardcode colors, spacing, or type — use tokens and components.
 
 ---
 
@@ -326,7 +331,7 @@ Dev-server scores are misleadingly low (no minification, dev overlays). Build an
 
 ### Audit all frontends (except theme)
 
-`bun run audit` runs Unlighthouse against **connected-frontend**, **opened-frontend**, **scoutwell-frontend**, and **opened-admin** in sequence. **openseat-theme** is not included (`bun run audit:theme` if you need it).
+`bun run audit` runs Unlighthouse against **connected-frontend**, **opened-frontend**, **scoutwell-frontend**, and **opened-admin** in sequence. **joined-theme** is not included (`bun run audit:theme` if you need it).
 
 Terminal 1 — build, then start every production frontend on the same ports as `bun run dev` (`start:frontends` frees those ports first):
 
@@ -421,7 +426,7 @@ git push -u origin feat/<short-name>
 | Install everything                    | `bun install`                                                                          |
 | Run everything (frontends + API)      | `bun run dev`                                                                          |
 | Run Opened                            | `bun run dev:opened` → http://localhost:3002                                           |
-| Run the OpenSeat app                  | `bun run dev:app` → http://localhost:3000                                              |
+| Run the Joined app                    | `bun run dev:app` → http://localhost:3000                                              |
 | Run the design-system showcase        | `bun run dev:theme` → http://localhost:3001                                            |
 | Run the Opened admin UI               | `bun run dev:admin` → http://localhost:3010                                            |
 | Run the Opened API                    | `bun run dev:admin-api` → http://127.0.0.1:8080                                        |
@@ -436,6 +441,7 @@ git push -u origin feat/<short-name>
 | Format everything                     | `bun run format`                                                                       |
 | Run tests                             | `bun run test`                                                                         |
 | Rebuild the theme CSS                 | `bun run theme:build`                                                                  |
+| Regenerate app icons from the logo    | `bun run brand:icons`                                                                  |
 | Audit all frontends (no theme)        | `bun run audit` (after production servers are up)                                      |
 | Audit one frontend                    | `bun run audit:opened` · `audit:app` · `audit:scout` · `audit:admin`                   |
 | Audit another site only               | `bun run audit -- --site <url>`                                                        |

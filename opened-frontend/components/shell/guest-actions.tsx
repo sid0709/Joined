@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Button, TopNavItem } from "@openseat/design-system";
+import { Button, TopNavItem } from "@joined/design-system";
 import { HIRING_SIGN_UP_HREF, ROUTES, signInHref } from "@/lib/routes";
 
 /** The employer door for signed-out visitors. On phones it lives in the nav drawer instead. */

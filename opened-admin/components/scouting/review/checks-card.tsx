@@ -1,5 +1,5 @@
-import { Badge, HStack, SectionCard, Stack, Text } from "@openseat/design-system";
-import { CHECK_OUTCOME, isPending, type Submission } from "@openseat/scout";
+import { Badge, HStack, SectionCard, Stack, Text } from "@joined/design-system";
+import { CHECK_OUTCOME, isPending, type Submission } from "@joined/scout";
 import { formatDateTime } from "@/lib/format";
 
 /** The automatic check results, in the order they ran. */

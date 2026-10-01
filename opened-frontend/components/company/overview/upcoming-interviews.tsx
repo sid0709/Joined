@@ -7,7 +7,7 @@ import {
   HStack,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { DateBadge } from "@/components/date-badge";
 import { SectionCard } from "@/components/section-card";
 import { INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";

@@ -10,7 +10,7 @@ import {
   StatusDot,
   Text,
   formatBytes,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatShortDate } from "@/lib/dates";
 import { PARSE_META, type Resume } from "@/lib/resumes";
 import { ResumePagePreview } from "./resume-page-preview";

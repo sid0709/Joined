@@ -1,4 +1,4 @@
-import type { AdminSubmission, Check, SubmissionStatus } from "@openseat/scout";
+import type { AdminSubmission, Check, SubmissionStatus } from "@joined/scout";
 
 export const QUEUE_PAGE_SIZE = 25;
 export const SCOUTS_PAGE_SIZE = 25;

@@ -1,7 +1,7 @@
 "use client";
 
-import { EmptyState, Stack, Table, Text, type TableColumn } from "@openseat/design-system";
-import { formatMoney, type Payout } from "@openseat/scout";
+import { EmptyState, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { formatMoney, type Payout } from "@joined/scout";
 import { PayoutStatusBadge } from "@/components/status-badge";
 import { formatDay } from "@/lib/dates";
 import { formatCount } from "@/lib/format";

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Stack } from "@openseat/design-system";
+import { Stack } from "@joined/design-system";
 import { SectionedSettings } from "@/components/sectioned-settings";
 import { ConnectionSettings } from "@/components/settings/connection-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";

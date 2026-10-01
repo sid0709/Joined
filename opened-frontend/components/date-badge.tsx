@@ -1,4 +1,4 @@
-import { Card, Heading, Stack, Text } from "@openseat/design-system";
+import { Card, Heading, Stack, Text } from "@joined/design-system";
 import { formatMonthDay } from "@/lib/dates";
 
 const BADGE_WIDTH = 64;

@@ -24,7 +24,7 @@ import {
   createStaticSource,
   useToast,
   type SearchableItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 

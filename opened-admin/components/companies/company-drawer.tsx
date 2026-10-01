@@ -27,8 +27,8 @@ import {
   joinLocations,
   parseAddress,
   splitLocations,
-} from "@openseat/design-system";
-import { MAX_BENEFITS, companySizeLabel } from "@openseat/job-schema";
+} from "@joined/design-system";
+import { MAX_BENEFITS, companySizeLabel } from "@joined/job-schema";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ListField } from "@/components/list-field";
 import { adminFetch, adminSend } from "@/lib/api";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Switch } from "@openseat/design-system";
+import { Switch } from "@joined/design-system";
 
 import type { ProfileForm } from "@/src/client/components/profile/useProfileForm";
 import type {

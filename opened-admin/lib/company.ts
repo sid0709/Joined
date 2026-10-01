@@ -4,8 +4,8 @@ export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
-export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@openseat/job-schema";
-export type { ValueIcon } from "@openseat/job-schema";
+export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@joined/job-schema";
+export type { ValueIcon } from "@joined/job-schema";
 
 export type CompanyValue = {
   icon: string;

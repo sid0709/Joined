@@ -12,7 +12,7 @@ import {
   TextInput,
   useToast,
   type UploadHandler,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { FormDialog } from "@/components/form-dialog";
 import { StatGrid } from "@/components/stat-card";
 import {

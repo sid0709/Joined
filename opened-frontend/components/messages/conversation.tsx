@@ -6,7 +6,7 @@ import {
   LayoutContent,
   LayoutHeader,
   Stack,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { BRAND } from "@/lib/routes";
 import { ConversationHeader } from "./conversation-header";
 import { MessageRuns } from "./message-runs";

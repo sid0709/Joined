@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TextArea } from "@openseat/design-system";
+import { TextArea } from "@joined/design-system";
 
 /**
  * A list edited as one item per line. The raw text is kept as typed, so a

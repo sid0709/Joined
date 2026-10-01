@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, Button, HStack, Stack, Text, TextInput, useToast } from "@openseat/design-system";
+import { Banner, Button, HStack, Stack, Text, TextInput, useToast } from "@joined/design-system";
 import { scaffoldSelfScheduleUrl } from "@/lib/schedule-join";
 
 /** Share (or scaffold) a candidate self-schedule link while awaiting a slot. */
@@ -19,7 +19,7 @@ export function SelfScheduleShare({
     ? url!.trim()
     : interviewId
       ? scaffoldSelfScheduleUrl(interviewId)
-      : "https://openseat.app/schedule/…";
+      : "https://joined.app/schedule/…";
 
   const copy = async () => {
     try {

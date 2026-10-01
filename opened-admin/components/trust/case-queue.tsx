@@ -11,7 +11,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { UrlPager } from "@/components/scouting/url-pager";
 import { TrustState } from "@/components/trust/trust-state";
 import { ageLabel, positiveInt } from "@/lib/format";

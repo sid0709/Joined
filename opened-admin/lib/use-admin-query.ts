@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ApiError } from "@openseat/scout";
+import { ApiError } from "@joined/scout";
 import { adminFetch } from "@/lib/api";
 
 type Snapshot<T> = {

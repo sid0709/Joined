@@ -1,4 +1,4 @@
-import type { BadgeVariant, KanbanColumn } from "@openseat/design-system";
+import type { BadgeVariant, KanbanColumn } from "@joined/design-system";
 
 /** Hiring workspace — applicants to this company's jobs. */
 

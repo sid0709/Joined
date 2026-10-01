@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "@openseat/design-system";
+import type { BadgeVariant } from "@joined/design-system";
 
 /** Hiring workspace — prepaid balance. Purchases are credited in full. */
 

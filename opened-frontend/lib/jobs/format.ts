@@ -7,7 +7,7 @@ export {
   WORKPLACE_OPTIONS,
   CURRENCY_OPTIONS,
   DEFAULT_CURRENCY,
-} from "@openseat/job-schema";
+} from "@joined/job-schema";
 
 import type { Job, JobSource, Pay } from "./types";
 

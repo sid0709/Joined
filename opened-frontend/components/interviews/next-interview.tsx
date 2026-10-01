@@ -16,7 +16,7 @@ import {
   StatusDot,
   Text,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { DateBadge } from "@/components/date-badge";
 import { daysBetween, formatDay, formatTime, relativeDay } from "@/lib/dates";
 import { FORMAT_LABEL, STATUS_META, type Interview, type PrepTask } from "@/lib/interviews";

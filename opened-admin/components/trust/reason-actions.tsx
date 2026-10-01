@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Banner, Button, HStack, Selector, Stack, Text, TextArea } from "@openseat/design-system";
+import { Banner, Button, HStack, Selector, Stack, Text, TextArea } from "@joined/design-system";
 
 type Action = {
   id: string;

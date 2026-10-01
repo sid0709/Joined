@@ -21,7 +21,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { companyBySlug, jobHasLogoFile, type Job } from "@/lib/jobs";
 import {
   APPLY_CONSENT_LABEL,

@@ -1,5 +1,5 @@
 import type { Job, PublicCompany } from "./types";
-import type { GlyphName } from "@openseat/design-system";
+import type { GlyphName } from "@joined/design-system";
 
 const OFFICE_LIMIT = 3;
 const VALUE_ICONS: GlyphName[] = [

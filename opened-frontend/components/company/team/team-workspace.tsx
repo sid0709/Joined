@@ -16,7 +16,7 @@ import {
   TextInput,
   useToast,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { SettingsGroup } from "@/components/settings-group";
 import { AuditTrailPanel } from "@/components/company/team/audit-trail-panel";
 import { JobAccessPanel } from "@/components/company/team/job-access-panel";

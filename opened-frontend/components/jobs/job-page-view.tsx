@@ -8,7 +8,7 @@ import {
   GridColumn,
   GridSystem,
   Stack,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 import {
   companyFromJob,

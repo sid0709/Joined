@@ -10,7 +10,7 @@ import {
   HStack,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyRequestError } from "@/lib/me/client";
 import { fetchMyOfferEsign, respondMyOfferEsign } from "@/lib/me/offer-esign";
 import type { OfferEsign } from "@/lib/offer-hire";
@@ -79,7 +79,7 @@ export function OfferSignPanel({
       <Stack gap={6}>
         <EmptyState
           title="Sign your offer"
-          description="Sign in with the applicant account that received this offer to review and countersign. First-party OpenSeat e-sign only — no DocuSign."
+          description="Sign in with the applicant account that received this offer to review and countersign. First-party Joined e-sign only — no DocuSign."
           actions={
             <Button
               label="Sign in to continue"
@@ -128,7 +128,7 @@ export function OfferSignPanel({
       <Stack gap={2}>
         <Heading level={1}>Sign your offer</Heading>
         <Text type="supporting" color="secondary">
-          Review and countersign on OpenSeat. No DocuSign. This link is for the applicant on this
+          Review and countersign on Joined. No DocuSign. This link is for the applicant on this
           application only.
         </Text>
         <HStack gap={2} wrap="wrap" vAlign="center">

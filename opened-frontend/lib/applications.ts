@@ -1,4 +1,4 @@
-import type { BadgeVariant, KanbanColumn } from "@openseat/design-system";
+import type { BadgeVariant, KanbanColumn } from "@joined/design-system";
 import { parseJSONDate } from "@/lib/me/dates";
 
 export type ApplicationStage = "saved" | "applied" | "screening" | "interview" | "offer" | "closed";

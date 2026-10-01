@@ -1,5 +1,5 @@
-import { Badge, Banner, List, ListItem, SectionCard, Stack, Text } from "@openseat/design-system";
-import { SUBMISSION_STATUS, type AdminSubmissionDetail, type Submission } from "@openseat/scout";
+import { Badge, Banner, List, ListItem, SectionCard, Stack, Text } from "@joined/design-system";
+import { SUBMISSION_STATUS, type AdminSubmissionDetail, type Submission } from "@joined/scout";
 
 import { ageLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";

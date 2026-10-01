@@ -1,5 +1,5 @@
 {
-  "name": "@openseat/design-system",
+  "name": "@joined/design-system",
   "version": "0.1.0",
   "private": true,
   "sideEffects": [
@@ -12,7 +12,7 @@
     "./styles.css": "./src/styles/theme.css",
     "./styles/astryx.css": "./src/styles/astryx.css",
     "./styles/components.css": "./src/styles/components.css",
-    "./styles/openseat.css": "./src/styles/openseat.css",
+    "./styles/joined.css": "./src/styles/joined.css",
     "./styles/theme.css": "./src/styles/theme.css",
     "./styles/tokens.css": "./src/styles/tokens.css",
     "./theme": "./src/theme/index.ts"
@@ -25,7 +25,7 @@
     "lint": "eslint src --max-warnings=0",
     "lint:fix": "eslint src --fix --max-warnings=0",
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json",
-    "theme:build": "astryx theme build src/theme/openseat.theme.ts -o src/theme/theme.css"
+    "theme:build": "astryx theme build src/theme/joined.theme.ts -o src/theme/theme.css"
   },
   "dependencies": {
     "@astryxdesign/core": "catalog:",

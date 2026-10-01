@@ -1,6 +1,6 @@
 import { companyGet, companySend, companySendForm } from "@/lib/me/client";
 import { parseISODate, startOfDay } from "@/lib/dates";
-import { DEFAULT_CURRENCY } from "@openseat/job-schema";
+import { DEFAULT_CURRENCY } from "@joined/job-schema";
 import type { ActivityItem } from "./activity";
 import type { Applicant, ApplicantColumnId, AssistedBy } from "./applicants";
 import type { BillingAccount, BillableEvent, Purchase } from "./billing";
@@ -523,7 +523,7 @@ export function decideOfferApproval(
   });
 }
 
-/** POST /v1/company/applicants/:id/offer/esign — first-party OpenSeat sign URL. */
+/** POST /v1/company/applicants/:id/offer/esign — first-party Joined sign URL. */
 export function createOfferEsign(applicantId: string, body?: { documentTitle?: string }) {
   return companySend<OfferEsign>(
     `/applicants/${encodeURIComponent(applicantId)}/offer/esign`,

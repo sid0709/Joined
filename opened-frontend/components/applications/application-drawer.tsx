@@ -19,7 +19,7 @@ import {
   TextArea,
   Timeline,
   type TimelineItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   SOURCE_LABEL,
   STAGE_BY_ID,

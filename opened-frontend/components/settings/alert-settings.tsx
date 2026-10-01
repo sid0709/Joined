@@ -8,7 +8,7 @@ import {
   SegmentedControlItem,
   Slider,
   Stack,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ALERT_FREQUENCIES,
   ALERT_SOURCES,

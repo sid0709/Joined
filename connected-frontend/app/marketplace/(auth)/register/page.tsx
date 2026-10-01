@@ -39,7 +39,7 @@ export default function MarketplaceRegisterPage() {
           <div>
             <h1 className="h1">Create your account</h1>
             <p className="body text-ink-muted">
-              Join the OpenSeat marketplace for focused project work.
+              Join the Joined marketplace for focused project work.
             </p>
           </div>
           {errorMessage && <Banner tone="danger" title={errorMessage} />}

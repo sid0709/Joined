@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { TopNav, TopNavHeading, TopNavItem, useAppShellMobile } from "@openseat/design-system";
+import { TopNav, TopNavHeading, TopNavItem, useAppShellMobile } from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";

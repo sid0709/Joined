@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Divider,
-  GridColumn,
-  GridSystem,
-  Heading,
-  Icon,
-  Text,
-  icons,
-} from "@openseat/design-system";
+import { Divider, GridColumn, GridSystem, Heading, Icon, Text, icons } from "@joined/design-system";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -177,7 +169,7 @@ export function BidderOnboardingView() {
           <Banner
             tone="info"
             title="This is a quality and safety gate"
-            description="OpenSeat never asks bidders to invent experience, guess eligibility answers, attend interviews, or communicate with employers as the applicant."
+            description="Joined never asks bidders to invent experience, guess eligibility answers, attend interviews, or communicate with employers as the applicant."
           />
         </div>
 

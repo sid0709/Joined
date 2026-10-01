@@ -1,1 +1,1 @@
-export * from "@openseat/design-system";
+export * from "@joined/design-system";

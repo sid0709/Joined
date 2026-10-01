@@ -11,7 +11,7 @@ import {
   SectionCard,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   caseRecordQueryFromReport,
   isCompanyAtsReason,

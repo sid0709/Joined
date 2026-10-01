@@ -12,7 +12,7 @@ import {
   LayoutPanel,
   icons,
   useElementWidth,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { MailMessage, MailThread } from "@/lib/messages";
 import { Conversation } from "./conversation";
 import { ConversationDetails } from "./conversation-details";

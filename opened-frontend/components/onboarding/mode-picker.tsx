@@ -15,7 +15,7 @@ import {
   Stack,
   Text,
   type GlyphName,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { BRAND, HIRING_SIGN_UP_HREF, ROUTES, type WorkspaceMode } from "@/lib/routes";
 import {
   getServerWorkspaceMode,

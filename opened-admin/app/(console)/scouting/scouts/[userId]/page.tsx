@@ -15,7 +15,7 @@ import {
   StatGrid,
   Text,
   Timeline,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   ApiError,
   LEVEL_BADGE,
@@ -26,7 +26,7 @@ import {
   formatRate,
   type AdminScoutDetail,
   type Meta,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { ScoutActions } from "@/components/scouting/scouts/scout-actions";
 import { ageLabel, formatCount, formatDate, formatDateTime } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";

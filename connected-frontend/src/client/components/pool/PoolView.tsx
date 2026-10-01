@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph, Table } from "@openseat/design-system";
+import { Glyph, Table } from "@joined/design-system";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -86,7 +86,7 @@ export function PoolView() {
         <PageHeader
           eyebrow="Job pool"
           title="Application links, ready to assign"
-          description="Companies submit their application links to the pool, and OpenSeat admins keep it current. You choose which links to send to each connected bidder."
+          description="Companies submit their application links to the pool, and Joined admins keep it current. You choose which links to send to each connected bidder."
           actions={<Button href={HUNTER_ROUTES.tasks} variant="secondary" label="My tasks" />}
         />
 

@@ -13,8 +13,8 @@ import {
   Text,
   useToast,
   PageHeader,
-} from "@openseat/design-system";
-import { TONE_BADGE, type ScoutNotification } from "@openseat/scout";
+} from "@joined/design-system";
+import { TONE_BADGE, type ScoutNotification } from "@joined/scout";
 import { CursorPager } from "@/components/cursor-pager";
 import { FullText } from "@/components/full-text";
 import { formatDateTime } from "@/lib/dates";

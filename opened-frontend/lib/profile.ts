@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "@openseat/design-system";
+import type { BadgeVariant } from "@joined/design-system";
 
 export type Workplace = "remote" | "hybrid" | "onsite";
 

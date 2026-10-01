@@ -16,7 +16,7 @@ import {
   Text,
   Token,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { STRONG_SCORE, type Resume } from "@/lib/resumes";
 
 /** What the parser read from the selected resume, and how to make it stronger. */

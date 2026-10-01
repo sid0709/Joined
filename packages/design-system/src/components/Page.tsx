@@ -7,7 +7,7 @@ import { Heading, Text } from "@astryxdesign/core/Text";
 import type { ReactNode } from "react";
 
 /**
- * Page-level composites every OpenSeat app shares: the centered content
+ * Page-level composites every Joined app shares: the centered content
  * column, the page title row, a titled section card, and a row of stats.
  * Built only from Astryx parts, so they follow the theme like everything else.
  */

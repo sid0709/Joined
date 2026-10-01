@@ -4,7 +4,7 @@ export {
   PAY_PERIOD_OPTIONS,
   SENIORITIES,
   SENIORITY_OPTIONS,
-} from "@openseat/job-schema";
+} from "@joined/job-schema";
 
 export * from "./labels";
 export { formatMoney, formatRate, sumMoney } from "./money";

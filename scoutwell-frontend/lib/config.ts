@@ -30,4 +30,4 @@ export function openedWebUrl(): string {
 }
 
 /** Written by the theme toggle; the server reads it so a dark scout never sees a light flash. */
-export const THEME_COOKIE = "openseat-theme";
+export const THEME_COOKIE = "joined-theme";

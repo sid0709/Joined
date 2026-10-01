@@ -9,7 +9,7 @@ import {
   Section,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 
 /**
  * A titled settings card: header, rows split by hairlines, and an optional

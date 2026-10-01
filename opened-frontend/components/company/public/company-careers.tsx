@@ -11,7 +11,7 @@ import {
   SegmentedControlItem,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { JobTags } from "@/components/jobs/job-tags";
 import { SectionCard } from "@/components/section-card";
@@ -103,7 +103,7 @@ export function CompanyCareers({
       title="Open roles"
       description={
         allJobs.length === 0
-          ? `${companyName} isn’t hiring on OpenSeat right now`
+          ? `${companyName} isn’t hiring on Joined right now`
           : `${filtered.length} of ${allJobs.length} open at ${companyName}`
       }
     >
@@ -139,7 +139,7 @@ export function CompanyCareers({
             title="No open roles right now"
             description={
               department === ALL && location === ALL
-                ? `${companyName} isn’t hiring on OpenSeat at the moment. Check back soon.`
+                ? `${companyName} isn’t hiring on Joined at the moment. Check back soon.`
                 : "No open roles match these filters. Try another department or location."
             }
           />

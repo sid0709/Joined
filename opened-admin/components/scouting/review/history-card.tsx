@@ -5,13 +5,13 @@ import {
   Text,
   Timeline,
   type TimelineItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   EARNING_STATUS,
   REWARD_TYPE,
   formatMoney,
   type AdminSubmissionDetail,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { formatDateTime } from "@/lib/format";
 
 function trail(detail: AdminSubmissionDetail): TimelineItem[] {

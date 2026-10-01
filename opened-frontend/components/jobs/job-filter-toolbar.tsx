@@ -1,11 +1,4 @@
-import {
-  Badge,
-  Button,
-  Glyph,
-  HStack,
-  ScrollableArea,
-  ToggleButton,
-} from "@openseat/design-system";
+import { Badge, Button, Glyph, HStack, ScrollableArea, ToggleButton } from "@joined/design-system";
 import { formatAmount, type JobFilters } from "@/lib/jobs";
 import { DEFAULT_CURRENCY } from "@/lib/profile";
 

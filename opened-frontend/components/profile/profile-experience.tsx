@@ -15,7 +15,7 @@ import {
   TextArea,
   TextInput,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { FormDialog } from "@/components/form-dialog";
 import { SectionCard } from "@/components/section-card";
 import { saveProfile } from "@/lib/me/pipeline";

@@ -6,7 +6,7 @@ import {
   ChatSystemMessage,
   Icon,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { bubblePosition, groupMessages, type MailThread } from "@/lib/messages";
 import { ThreadAvatar } from "./thread-avatar";
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HStack, Heading, Stack, Text } from "@openseat/design-system";
+import { HStack, Heading, Stack, Text } from "@joined/design-system";
 
 export function PageHeader({
   title,

@@ -1,11 +1,5 @@
-import {
-  Grid,
-  KpiWidget,
-  SectionCard,
-  SegmentBar,
-  type SegmentTone,
-} from "@openseat/design-system";
-import { formatMoney, type Balance, type Money, type RewardTable } from "@openseat/scout";
+import { Grid, KpiWidget, SectionCard, SegmentBar, type SegmentTone } from "@joined/design-system";
+import { formatMoney, type Balance, type Money, type RewardTable } from "@joined/scout";
 
 const KPI_MIN_WIDTH = 150;
 const KPI_MAX_COLUMNS = 4;

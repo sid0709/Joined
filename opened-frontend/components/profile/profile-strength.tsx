@@ -1,4 +1,4 @@
-import { Card, HStack, Heading, Glyph, ProgressBar, Stack, Text } from "@openseat/design-system";
+import { Card, HStack, Heading, Glyph, ProgressBar, Stack, Text } from "@joined/design-system";
 import { strengthPercent, type StrengthStep } from "@/lib/profile";
 
 const STRONG_THRESHOLD = 80;

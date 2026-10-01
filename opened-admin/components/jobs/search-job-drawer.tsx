@@ -20,13 +20,13 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   EMPLOYMENT_OPTIONS,
   PAY_PERIOD_OPTIONS,
   SENIORITY_OPTIONS,
   WORKPLACE_OPTIONS,
-} from "@openseat/job-schema";
+} from "@joined/job-schema";
 import { ListField } from "@/components/list-field";
 import { DirectJobTakedown } from "@/components/trust/direct-job-takedown";
 import { adminFetch, adminSend } from "@/lib/api";

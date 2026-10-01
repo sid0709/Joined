@@ -1,5 +1,5 @@
-import { Badge } from "@openseat/design-system";
-import { LEVEL_BADGE, formatMoney, type Meta } from "@openseat/scout";
+import { Badge } from "@joined/design-system";
+import { LEVEL_BADGE, formatMoney, type Meta } from "@joined/scout";
 
 /** The three scout levels side by side; the last is the one to aim for. */
 export function LevelTiers({ meta }: { meta: Meta }) {

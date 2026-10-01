@@ -1,8 +1,8 @@
-# OpenSeat — agent instructions
+# Joined — agent instructions
 
-This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `packages/*` (e.g. `@openseat/design-system`). Apps consume shared packages; do not copy the same component, token, or helper into more than one workspace.
+This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `packages/*` (e.g. `@joined/design-system`). Apps consume shared packages; do not copy the same component, token, or helper into more than one workspace.
 
-Workspaces: `connected-frontend`, `openseat-theme`, `opened-frontend`, `packages/*`.
+Workspaces: `connected-frontend`, `joined-theme`, `opened-frontend`, `packages/*`.
 
 Before pushing, run `bun run ci` — it runs exactly what GitHub CI runs (`tools/ci.mjs`).
 
@@ -51,7 +51,7 @@ If a constant is used in more than one workspace, put it in a shared package —
 - Colocate types with the code that owns them; share types from packages when more than one app needs them.
 - Change the source of truth (tokens, shared components, config) instead of patching call sites with one-off values.
 
-## Next.js apps (`connected-frontend`, `openseat-theme`, `opened-frontend`, any future Next.js workspace)
+## Next.js apps (`connected-frontend`, `joined-theme`, `opened-frontend`, any future Next.js workspace)
 
 When the folder is a Next.js project, follow current App Router practice. Read that app's `node_modules/next/dist/docs/` before using APIs that may have changed.
 
@@ -59,7 +59,7 @@ When the folder is a Next.js project, follow current App Router practice. Read t
 
 - Keep `page.tsx` / `layout.tsx` thin: compose, don't dump UI and data logic in the route file.
 - Split by concern: `components/`, `lib/`, `hooks/`, route-local `_components` only when not reused.
-- Extract anything reused across routes into shared components — prefer `@openseat/design-system` or the app `components/` folder.
+- Extract anything reused across routes into shared components — prefer `@joined/design-system` or the app `components/` folder.
 - One component per file when it has its own state, data, or styles. Don't grow a 400-line page.
 
 ### Routing

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ApiError, type AdminSubmissionDetail } from "@openseat/scout";
+import { ApiError, type AdminSubmissionDetail } from "@joined/scout";
 import { ChecksCard } from "@/components/scouting/review/checks-card";
 import { HistoryCard } from "@/components/scouting/review/history-card";
 import { RelatedCard } from "@/components/scouting/review/related-card";

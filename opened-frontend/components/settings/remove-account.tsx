@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertDialog, Banner, Button, List, ListItem, TextInput } from "@openseat/design-system";
+import { AlertDialog, Banner, Button, List, ListItem, TextInput } from "@joined/design-system";
 import { DELETE_CONFIRMATION } from "@/lib/settings";
 import { ROUTES } from "@/lib/routes";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";

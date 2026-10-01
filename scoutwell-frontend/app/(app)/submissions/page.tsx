@@ -1,7 +1,7 @@
-import { Stack, PageHeader } from "@openseat/design-system";
+import { Stack, PageHeader } from "@joined/design-system";
 import { redirect } from "next/navigation";
 
-import type { List, Submission } from "@openseat/scout";
+import type { List, Submission } from "@joined/scout";
 import type { Metadata } from "next";
 
 import { CursorPager } from "@/components/cursor-pager";

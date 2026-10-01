@@ -134,7 +134,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     verificationStatus: "In review",
   });
   const [clientProfile, setClientProfile] = useState<ClientProfile>({
-    organizationName: "OpenSeat Demo Studio",
+    organizationName: "Joined Demo Studio",
     organizationType: "Growing company",
     industry: "Technology and services",
     location: "United States",

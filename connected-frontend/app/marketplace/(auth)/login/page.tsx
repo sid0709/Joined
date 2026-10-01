@@ -44,7 +44,7 @@ export default function MarketplaceLoginPage() {
         <FormLayout>
           <div>
             <h1 className="h1">Welcome back</h1>
-            <p className="body text-ink-muted">Sign in to your OpenSeat bidding workspace.</p>
+            <p className="body text-ink-muted">Sign in to your Joined bidding workspace.</p>
           </div>
           {errorMessage && <Banner tone="danger" title={errorMessage} />}
           <Input

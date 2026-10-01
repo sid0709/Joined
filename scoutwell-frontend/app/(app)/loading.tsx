@@ -1,4 +1,4 @@
-import { Skeleton, Stack } from "@openseat/design-system";
+import { Skeleton, Stack } from "@joined/design-system";
 
 const HERO = 72;
 const BODY = 280;

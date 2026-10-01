@@ -1,4 +1,4 @@
-import { AspectRatio, Card, Stack } from "@openseat/design-system";
+import { AspectRatio, Card, Stack } from "@joined/design-system";
 
 /** US Letter, portrait. */
 const PAGE_RATIO = 8.5 / 11;

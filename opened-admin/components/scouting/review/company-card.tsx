@@ -10,7 +10,7 @@ import {
   Skeleton,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { COMPANIES_PATH, companyLogoSrc, type AdminCompany } from "@/lib/company";
 import { ROUTES } from "@/lib/nav";

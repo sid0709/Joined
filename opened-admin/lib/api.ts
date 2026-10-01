@@ -1,4 +1,4 @@
-import { ApiError, parseProblem } from "@openseat/scout";
+import { ApiError, parseProblem } from "@joined/scout";
 import { API_PROXY } from "@/lib/config";
 
 /** Calls the Opened API from the browser through the admin proxy. */

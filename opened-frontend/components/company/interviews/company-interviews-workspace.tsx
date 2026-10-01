@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { StatGrid } from "@/components/stat-card";
 import {
   fetchApplicantScorecards,

@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { STRONG_MATCH, type Application } from "@/lib/applications";
 import { relativeDay } from "@/lib/dates";
 

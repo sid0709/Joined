@@ -10,7 +10,7 @@ import {
   MetadataListItem,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { formatTime } from "@/lib/dates";
 import { INTERVIEW_LENGTHS, WEEKDAYS, type HiringProfile } from "@/lib/company";
 import { TIME_ZONES } from "@/lib/settings";

@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text, type CardVariant } from "@openseat/design-system";
+import { Card, HStack, Stack, Text, type CardVariant } from "@joined/design-system";
 import { PIPELINE_STAGES, pipelineTotal, type PipelineCounts } from "@/lib/company";
 
 const BAR_HEIGHT = 8;

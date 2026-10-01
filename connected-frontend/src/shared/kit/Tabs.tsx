@@ -1,6 +1,6 @@
 "use client";
 
-import { SegmentedControl, SegmentedControlItem } from "@openseat/design-system";
+import { SegmentedControl, SegmentedControlItem } from "@joined/design-system";
 
 interface TabsProps<T extends string> {
   label: string;

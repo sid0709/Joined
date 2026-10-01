@@ -1,7 +1,7 @@
 /**
- * Data input controls are original Astryx — OpenSeat only themes them.
- * OpenSeat's own pickers (Calendar, DateField, TimeInput, Clock) and Rating
- * live beside these; import everything from @openseat/design-system.
+ * Data input controls are original Astryx — Joined only themes them.
+ * Joined's own pickers (Calendar, DateField, TimeInput, Clock) and Rating
+ * live beside these; import everything from @joined/design-system.
  */
 export { Field, FieldLabel, FieldStatus } from "@astryxdesign/core/Field";
 export type {

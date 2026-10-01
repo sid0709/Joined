@@ -12,7 +12,7 @@ import {
   TextArea,
   TextInput,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { ListField } from "@/components/list-field";
 import { adminSend } from "@/lib/api";
 import {

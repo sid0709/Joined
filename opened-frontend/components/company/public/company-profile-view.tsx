@@ -18,8 +18,8 @@ import {
   Stack,
   Text,
   Token,
-} from "@openseat/design-system";
-import { companySizeLabel } from "@openseat/job-schema";
+} from "@joined/design-system";
+import { companySizeLabel } from "@joined/job-schema";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { SectionCard } from "@/components/section-card";
 import {

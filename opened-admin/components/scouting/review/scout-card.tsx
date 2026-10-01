@@ -8,7 +8,7 @@ import {
   SectionCard,
   Stack,
   Text,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   LEVEL_BADGE,
   VERIFICATION,
@@ -16,7 +16,7 @@ import {
   formatRate,
   type LevelRule,
   type ScoutSummary,
-} from "@openseat/scout";
+} from "@joined/scout";
 import { formatCount } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 

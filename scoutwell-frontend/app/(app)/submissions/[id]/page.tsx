@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { ApiError, type Earning, type List, type Submission } from "@openseat/scout";
+import { ApiError, type Earning, type List, type Submission } from "@joined/scout";
 import { SubmissionView } from "@/components/submissions/submission-view";
 import { openedWebUrl } from "@/lib/config";
 import { ROUTES, signInHref } from "@/lib/routes";

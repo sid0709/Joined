@@ -11,7 +11,7 @@ import {
   TextInput,
   icons,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { StatGrid } from "@/components/stat-card";
 import { canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
 import {

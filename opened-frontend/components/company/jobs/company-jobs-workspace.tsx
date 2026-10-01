@@ -13,7 +13,7 @@ import {
   TextInput,
   icons,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { StatGrid } from "@/components/stat-card";
 import { fetchApplicants, fetchJobs, setJobStatus } from "@/lib/company/api";
 import {

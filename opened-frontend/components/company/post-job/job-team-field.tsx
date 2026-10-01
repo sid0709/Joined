@@ -11,7 +11,7 @@ import {
   useToast,
   type SearchableItem,
   type SearchSource,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { saveJobTeams } from "@/lib/company/api";
 
 function asItem(label: string): SearchableItem {

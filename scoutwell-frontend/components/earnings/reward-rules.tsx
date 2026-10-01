@@ -1,4 +1,4 @@
-import { MetadataList, MetadataListItem, Text } from "@openseat/design-system";
+import { MetadataList, MetadataListItem, Text } from "@joined/design-system";
 import {
   SENIORITIES,
   SENIORITY_LABEL,
@@ -6,7 +6,7 @@ import {
   formatRate,
   type LevelRule,
   type RewardTable,
-} from "@openseat/scout";
+} from "@joined/scout";
 
 /** What each kind of reward pays, at this scout's level. */
 export function RewardRules({ rewards, level }: { rewards: RewardTable; level: LevelRule }) {

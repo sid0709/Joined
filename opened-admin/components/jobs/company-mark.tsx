@@ -1,4 +1,4 @@
-import { Avatar } from "@openseat/design-system";
+import { Avatar } from "@joined/design-system";
 
 const SIZES = { sm: 36, lg: 64 } as const;
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader, Stack } from "@openseat/design-system";
-import type { AdminList, AdminSubmission } from "@openseat/scout";
+import { PageHeader, Stack } from "@joined/design-system";
+import type { AdminList, AdminSubmission } from "@joined/scout";
 import { QueueFilters } from "@/components/scouting/queue-filters";
 import { QueueTable } from "@/components/scouting/queue-table";
 import { UrlPager } from "@/components/scouting/url-pager";

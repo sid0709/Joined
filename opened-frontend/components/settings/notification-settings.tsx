@@ -10,7 +10,7 @@ import {
   Text,
   TimeField,
   type TableColumn,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   CHANNELS,
   NOTIFICATION_EVENTS,

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader, Stack } from "@openseat/design-system";
-import type { AdminList, ScoutSummary } from "@openseat/scout";
+import { PageHeader, Stack } from "@joined/design-system";
+import type { AdminList, ScoutSummary } from "@joined/scout";
 import { ScoutFilters } from "@/components/scouting/scouts/scout-filters";
 import { ScoutTable } from "@/components/scouting/scouts/scout-table";
 import { UrlPager } from "@/components/scouting/url-pager";

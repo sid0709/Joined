@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { fetchJobAccess, fetchJobs, saveJobAccess } from "@/lib/company/api";
 import {
   ROLE_META,

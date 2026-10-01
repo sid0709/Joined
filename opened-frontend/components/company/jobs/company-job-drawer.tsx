@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   APPLICANT_STAGES,
   DEFAULT_FEEDBACK_GATE,

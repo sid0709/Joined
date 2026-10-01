@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, RadioList, RadioListItem, Stack, Switch, useToast } from "@openseat/design-system";
+import { Button, RadioList, RadioListItem, Stack, Switch, useToast } from "@joined/design-system";
 import { AUDIENCES, type ProfileAudience } from "@/lib/settings";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";

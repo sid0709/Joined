@@ -11,7 +11,7 @@ import {
   Selector,
   Stack,
   TextInput,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { LANGUAGES, TIME_ZONES, WEEK_STARTS } from "@/lib/settings";
 import { SaveFooter } from "@/components/save-footer";

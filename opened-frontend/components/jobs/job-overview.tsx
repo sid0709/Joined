@@ -12,7 +12,7 @@ import {
   Text,
   Token,
   icons,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import {
   EMPLOYMENT_LABEL,
   SENIORITY_LABEL,

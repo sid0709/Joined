@@ -6,7 +6,7 @@ import {
   Tokenizer,
   createStaticSource,
   type SearchableItem,
-} from "@openseat/design-system";
+} from "@joined/design-system";
 import { useMemo } from "react";
 import type { TeamMember } from "@/lib/company";
 
