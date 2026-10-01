@@ -11,7 +11,7 @@ The human runs the apps. The agent only edits code.
 
 Do not start, restart, background, or kill the main processes from the terminal:
 
-- API: `go run ./cmd/server`, anything listening on 8080
+- APIs: `go run ./cmd/server`, `bun run dev:api`, anything listening on 8080–8082
 - Admin, frontend, theme: `bun run dev`, `next dev`, `next start`
 
 Do not `kill` listeners to “replace” a server. If a server is down, say so and stop. Do not wait on health checks or poll `/v1/*` as a substitute for running the app.

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { joinedApiUrl } from "@/lib/config";
+import { scoutwellApiUrl } from "@/lib/config";
 import { sessionToken } from "./cookie";
 import type { AuthSession } from "./types";
 
@@ -9,7 +9,7 @@ const SESSION_PATH = "/v1/auth/session";
 export const loadSession = cache(async function loadSession(): Promise<AuthSession | null> {
   const token = await sessionToken();
   if (!token) return null;
-  const response = await fetch(new URL(SESSION_PATH, `${joinedApiUrl()}/`), {
+  const response = await fetch(new URL(SESSION_PATH, `${scoutwellApiUrl()}/`), {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

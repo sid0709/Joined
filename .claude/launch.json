@@ -20,9 +20,9 @@
       "port": 3002
     },
     {
-      "name": "joined-admin-dev",
+      "name": "admin-dev",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "joined-admin", "dev"],
+      "runtimeArgs": ["run", "--cwd", "admin-frontend", "dev"],
       "port": 3010
     },
     {

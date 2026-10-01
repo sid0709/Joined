@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { joinedApiUrl } from "@/lib/config";
+import { scoutwellApiUrl } from "@/lib/config";
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "./constants";
 import type { AuthSession } from "./types";
 
@@ -10,7 +10,7 @@ type Issued = {
 
 /** Signs in or up against the API and keeps the token in an httpOnly cookie. */
 export async function forwardAuth(path: string, body: unknown): Promise<Response> {
-  const response = await fetch(new URL(path, `${joinedApiUrl()}/`), {
+  const response = await fetch(new URL(path, `${scoutwellApiUrl()}/`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

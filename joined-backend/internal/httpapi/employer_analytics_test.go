@@ -8,7 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func TestCompanyAnalyticsForbiddenIs403(t *testing.T) {
@@ -41,7 +42,7 @@ func TestCompanyAnalyticsHappyPathJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()
-	writeJSON(rec, http.StatusOK, snap)
+	httpkit.WriteJSON(rec, http.StatusOK, snap)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d", rec.Code)
 	}

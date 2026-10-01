@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func (s *Server) getCompanyAnalytics(w http.ResponseWriter, r *http.Request) {
@@ -36,5 +37,5 @@ func (s *Server) getCompanyAnalytics(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, snapshot)
+	httpkit.WriteJSON(w, http.StatusOK, snapshot)
 }

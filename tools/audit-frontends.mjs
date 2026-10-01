@@ -9,7 +9,7 @@ export const AUDIT_FRONTENDS = AUDIT_FRONTEND_IDS.map((id) => {
     "connected-frontend": "Connected",
     "joined-frontend": "Joined",
     "scoutwell-frontend": "Scoutwell",
-    "joined-admin": "Joined admin",
+    "admin-frontend": "Joined admin",
   };
   return {
     id: service.id,

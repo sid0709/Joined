@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
 )
 
 func TestFeedbackGateConflictIs409(t *testing.T) {

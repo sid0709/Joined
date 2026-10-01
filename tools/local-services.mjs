@@ -1,7 +1,7 @@
 /** @typedef {"dev" | "start"} ServiceMode */
 
 /**
- * Local apps and API — ports align with `bun run dev` (`tools/dev-all.mjs`).
+ * Local apps — ports align with `bun run dev` (`tools/dev-all.mjs`).
  * `startExtraArgs` are passed after `bun --filter <workspace> start --`.
  */
 export const LOCAL_SERVICES = [
@@ -38,31 +38,41 @@ export const LOCAL_SERVICES = [
     startExtraArgs: ["--port", "3003"],
   },
   {
-    id: "joined-admin",
+    id: "admin-frontend",
     shortName: "admin",
     port: 3010,
     color: "\x1b[33m",
-    workspace: "joined-admin",
+    workspace: "admin-frontend",
     startExtraArgs: [],
   },
 ];
 
-export const API_SERVICE = {
-  id: "joined-backend-api",
-  shortName: "api",
-  port: 8080,
-  color: "\x1b[34m",
-  url: "http://127.0.0.1:8080",
-  command: "go",
-  args: ["run", "-C", "joined-backend", "./cmd/server"],
-};
+/** A Go backend service. `go run -C <dir>` makes it read its own `<dir>/.env`. */
+function goService({ id, shortName, port, color }) {
+  return {
+    id,
+    shortName,
+    port,
+    color,
+    url: `http://127.0.0.1:${port}`,
+    command: "go",
+    args: ["run", "-C", id, "./cmd/server"],
+  };
+}
+
+/** Backend services, one per app — run by `bun run dev` and `bun run dev:api`. */
+export const API_SERVICES = [
+  goService({ id: "joined-backend", shortName: "joined-api", port: 8080, color: "\x1b[34m" }),
+  goService({ id: "admin-backend", shortName: "admin-api", port: 8081, color: "\x1b[93m" }),
+  goService({ id: "scoutwell-backend", shortName: "scout-api", port: 8082, color: "\x1b[96m" }),
+];
 
 /** Frontends audited by `bun run audit` (excludes theme). */
 export const AUDIT_FRONTEND_IDS = [
   "connected-frontend",
   "joined-frontend",
   "scoutwell-frontend",
-  "joined-admin",
+  "admin-frontend",
 ];
 
 export function localService(idOrShortName) {
@@ -71,6 +81,16 @@ export function localService(idOrShortName) {
   if (!service) {
     const known = LOCAL_SERVICES.map((entry) => `${entry.id} (${entry.shortName})`).join(", ");
     throw new Error(`Unknown service "${idOrShortName}". Expected one of: ${known}`);
+  }
+  return service;
+}
+
+export function apiService(idOrShortName) {
+  const key = idOrShortName.trim().toLowerCase();
+  const service = API_SERVICES.find((entry) => entry.id === key || entry.shortName === key);
+  if (!service) {
+    const known = API_SERVICES.map((entry) => `${entry.id} (${entry.shortName})`).join(", ");
+    throw new Error(`Unknown API "${idOrShortName}". Expected one of: ${known}`);
   }
   return service;
 }

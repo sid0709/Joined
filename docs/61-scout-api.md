@@ -1,6 +1,6 @@
 # 61 — Scout API (job submission protocol)
 
-**Service:** `joined-backend` (`internal/scout`, `internal/httpapi/scout*.go`) · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`joined-admin`)
+**Services:** `scoutwell-backend` serves `/v1/scout/*` and scout sign-in (`internal/httpapi/scout*.go`); `admin-backend` serves `/v1/admin/scout/*` (`internal/httpapi/scout_admin.go`); both build on `backend-core/scout` · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`admin-frontend`)
 
 One protocol for every way a job enters the pool from a scout: the Scoutwell web form, a partner's sourcing pipeline, and bulk uploads all call the same endpoints and go through the same checks, levels, and rewards (see [13-platform-scout.md](13-platform-scout.md)). Conventions follow [60-api-conventions.md](60-api-conventions.md).
 
@@ -106,7 +106,7 @@ RFC 9457 problem details (`application/problem+json`) with a stable `code`:
 
 ## Staff endpoints
 
-`/v1/admin/scout/*` serves the admin console: overview counts, the review queue, per-submission detail (checks, scout record, related submissions, audit trail), decisions (`approve` with optional edits, `reject` with a reason code, `duplicate`), outcomes (`interview`, `hire`), `expire`, `recheck`, scout level and identity decisions, and payout decisions. When `ADMIN_API_TOKEN` is set on the API, these (and the older admin job and company endpoints) require it as a bearer token; the admin console adds it server-side through its `/api/joined` proxy so it never reaches a browser. Every staff decision is written to `admin_audit`.
+`/v1/admin/scout/*` (on `admin-backend`) serves the admin console: overview counts, the review queue, per-submission detail (checks, scout record, related submissions, audit trail), decisions (`approve` with optional edits, `reject` with a reason code, `duplicate`), outcomes (`interview`, `hire`), `expire`, `recheck`, scout level and identity decisions, and payout decisions. When `ADMIN_API_TOKEN` is set on `admin-backend`, every route there except `/health` requires it as a bearer token; the admin console adds it server-side through its `/api/admin` proxy so it never reaches a browser. Every staff decision is written to `admin_audit`.
 
 ## Data
 

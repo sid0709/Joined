@@ -1,4 +1,4 @@
-// The Scoutwell API contract, shared by scoutwell-frontend and joined-admin.
+// The Scoutwell API contract, shared by scoutwell-frontend and admin-frontend.
 export {
   DEFAULT_CURRENCY,
   PAY_PERIOD_OPTIONS,

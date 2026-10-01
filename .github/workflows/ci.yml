@@ -79,6 +79,7 @@ jobs:
         env:
           # Server-only config the apps read while building; a placeholder is enough (no .env.local in CI).
           JOINED_API_URL: http://127.0.0.1:8080
+          SCOUTWELL_API_URL: http://127.0.0.1:8082
         run: bun run ci build
 
   commit-conventions:

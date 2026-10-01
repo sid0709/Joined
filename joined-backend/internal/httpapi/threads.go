@@ -3,6 +3,8 @@ package httpapi
 import (
 	"net/http"
 	"time"
+
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func (s *Server) getMyThreads(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +16,7 @@ func (s *Server) getMyThreads(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"threads": threads})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"threads": threads})
 }
 
 func (s *Server) getMyThread(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +28,7 @@ func (s *Server) getMyThread(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, thread)
+	httpkit.WriteJSON(w, http.StatusOK, thread)
 }
 
 func (s *Server) postMyMessage(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +46,7 @@ func (s *Server) postMyMessage(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, msg)
+	httpkit.WriteJSON(w, http.StatusOK, msg)
 }
 
 func (s *Server) getCompanyThreads(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +58,7 @@ func (s *Server) getCompanyThreads(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"threads": threads})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"threads": threads})
 }
 
 func (s *Server) getCompanyThread(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +70,7 @@ func (s *Server) getCompanyThread(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, thread)
+	httpkit.WriteJSON(w, http.StatusOK, thread)
 }
 
 func (s *Server) postCompanyMessage(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +88,7 @@ func (s *Server) postCompanyMessage(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, msg)
+	httpkit.WriteJSON(w, http.StatusOK, msg)
 }
 
 func (s *Server) getMyUnread(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +100,7 @@ func (s *Server) getMyUnread(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]int{"unread": count})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]int{"unread": count})
 }
 
 func (s *Server) getCompanyUnread(w http.ResponseWriter, r *http.Request) {
@@ -110,5 +112,5 @@ func (s *Server) getCompanyUnread(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]int{"unread": count})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]int{"unread": count})
 }

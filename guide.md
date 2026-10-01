@@ -23,16 +23,18 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 
 ## Running
 
-| What                         | Command                             | URL                   |
-| ---------------------------- | ----------------------------------- | --------------------- |
-| Everything (frontends + API) | `bun run dev`                       | 3000–3003, 3010, 8080 |
-| Joined (job platform)        | `bun run dev:joined`                | http://localhost:3002 |
-| Joined app                   | `bun run dev:app`                   | http://localhost:3000 |
-| Design-system showcase       | `bun run dev:theme`                 | http://localhost:3001 |
-| Joined admin                 | `bun run dev:admin`                 | http://localhost:3010 |
-| Scoutwell                    | `bun run dev:scout`                 | http://localhost:3003 |
-| Joined API                   | `bun run dev:admin-api`             | http://127.0.0.1:8080 |
-| One script in one workspace  | `bun --filter <workspace> <script>` | —                     |
+| What                          | Command                             | URL                        |
+| ----------------------------- | ----------------------------------- | -------------------------- |
+| Everything (frontends + APIs) | `bun run dev`                       | 3000–3003, 3010, 8080–8082 |
+| Joined (job platform)         | `bun run dev:joined`                | http://localhost:3002      |
+| Joined app                    | `bun run dev:app`                   | http://localhost:3000      |
+| Design-system showcase        | `bun run dev:theme`                 | http://localhost:3001      |
+| Joined admin                  | `bun run dev:admin`                 | http://localhost:3010      |
+| Scoutwell                     | `bun run dev:scout`                 | http://localhost:3003      |
+| Joined API                    | `bun run dev:joined-api`            | http://127.0.0.1:8080      |
+| Admin API                     | `bun run dev:admin-api`             | http://127.0.0.1:8081      |
+| Scoutwell API                 | `bun run dev:scout-api`             | http://127.0.0.1:8082      |
+| One script in one workspace   | `bun --filter <workspace> <script>` | —                          |
 
 First time, and after `package.json` or `bun.lock` changes:
 
