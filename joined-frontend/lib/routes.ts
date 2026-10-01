@@ -1,4 +1,4 @@
-import { BRAND_NAME } from "@joined/design-system";
+import { BRAND_NAME } from "@joined/design-system/brand-name";
 
 export const BRAND = BRAND_NAME;
 
