@@ -310,16 +310,6 @@ export function SubmissionView({
                 {sub.url}
               </Link>
               <Text display="block">{sub.summary}</Text>
-              {sub.tags.length + sub.skills.length > 0 ? (
-                <HStack gap={1.5} wrap="wrap">
-                  {sub.tags.map((tag) => (
-                    <Badge key={`tag-${tag}`} label={tag} variant="blue" />
-                  ))}
-                  {sub.skills.map((skill) => (
-                    <Badge key={`skill-${skill}`} label={skill} variant="neutral" />
-                  ))}
-                </HStack>
-              ) : null}
             </SectionCard>
           </Stack>
         </GridColumn>

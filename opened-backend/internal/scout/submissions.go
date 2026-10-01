@@ -131,8 +131,6 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 		Equity:         normalized.Equity,
 		SalaryText:     normalized.SalaryText,
 		Summary:        normalized.Summary,
-		Tags:           normalized.Tags,
-		Skills:         normalized.Skills,
 		DedupeKey:      DedupeKey(normalized.CompanyID, normalized.CompanyName, normalized.Title),
 		DuplicateClaim: normalized.NotDuplicateClaim,
 		Matches:        matches,
@@ -184,8 +182,6 @@ func stagedListing(sub Submission) jobs.ScoutedListing {
 		Equity:       sub.Equity,
 		SalaryText:   sub.SalaryText,
 		Summary:      sub.Summary,
-		Skills:       sub.Skills,
-		Tags:         sub.Tags,
 		SubmittedAt:  sub.SubmittedAt,
 	}
 }
@@ -515,8 +511,6 @@ func (sub Submission) input() SubmissionInput {
 		Equity:       sub.Equity,
 		SalaryText:   sub.SalaryText,
 		Summary:      sub.Summary,
-		Tags:         sub.Tags,
-		Skills:       sub.Skills,
 		ExternalRef:  sub.ExternalRef,
 	}
 }

@@ -85,6 +85,7 @@ func (s *Store) syncSearchFromTemp(ctx context.Context, id bson.ObjectID, patch 
 	if err != nil {
 		return err
 	}
+	s.backfillDescription(ctx, &doc)
 	doc.Job = applyTempFields(doc.Job, patch)
 	if link := strings.TrimSpace(patch.ApplyLink); link != "" {
 		doc.ApplyLink = link
@@ -116,6 +117,9 @@ func normalizeTempPatch(patch TempJobPatch) (TempJobPatch, error) {
 func applyTempFields(job SearchJob, patch TempJobPatch) SearchJob {
 	job.Title = fallback(patch.Title, job.Title)
 	job.Company = fallback(patch.CompanyName, job.Company)
+	if description := strings.TrimSpace(patch.Description); description != "" {
+		job.Description = description
+	}
 	if location := strings.TrimSpace(patch.Location); location != "" {
 		job.Location = location
 	}

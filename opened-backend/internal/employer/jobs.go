@@ -275,7 +275,7 @@ func normalizeJob(input JobInput, now time.Time) (storedJob, error) {
 }
 
 func readyToPublish(doc storedJob) error {
-	if doc.Title == "" || doc.Location == "" || doc.Summary == "" || doc.PayMin <= 0 || doc.PayMax < doc.PayMin || len(doc.Skills) < publishSkillMinimum {
+	if doc.Title == "" || doc.Location == "" || doc.Summary == "" || strings.TrimSpace(doc.Description) == "" || doc.PayMin <= 0 || doc.PayMax < doc.PayMin || len(doc.Skills) < publishSkillMinimum {
 		return ErrInvalidInput
 	}
 	return nil

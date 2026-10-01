@@ -8,12 +8,12 @@ Grow the job pool with high-quality jobs that are not on LinkedIn or Indeed. Sco
 
 ## Pages
 
-| Page               | Must do                                                                                                                                                                                                                    |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Submit a job**   | Modal/form: official apply URL, company name, title, location, salary (or equity), work mode, employment, short summary. Live checks as they type (URL reachable, duplicate warning). Skills and tags are added in review. |
-| **My submissions** | Status per submission (checking, needs review, approved, rejected, duplicate) with reasons; per-job stats (applications, interviews, hires).                                                                               |
-| **Earnings**       | Pending (held), released, paid; breakdown by reward type; payout settings.                                                                                                                                                 |
-| **Level & limits** | Current level, daily submission limit, next-level requirements, quality metrics.                                                                                                                                           |
+| Page               | Must do                                                                                                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Submit a job**   | Modal/form: official apply URL, company name, title, location, salary (or equity), work mode, employment, job description. Live checks as they type (URL reachable, duplicate warning). AI analysis generates the skills. |
+| **My submissions** | Status per submission (checking, needs review, approved, rejected, duplicate) with reasons; per-job stats (applications, interviews, hires).                                                                              |
+| **Earnings**       | Pending (held), released, paid; breakdown by reward type; payout settings.                                                                                                                                                |
+| **Level & limits** | Current level, daily submission limit, next-level requirements, quality metrics.                                                                                                                                          |
 
 ## Submission pipeline
 

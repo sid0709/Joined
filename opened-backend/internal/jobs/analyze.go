@@ -204,6 +204,9 @@ func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID st
 }
 
 func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (SearchRecord, error) {
+	if originalDescription(listing.Description) == "" {
+		return SearchRecord{}, ErrMissingDescription
+	}
 	payload, err := reader.JSON(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
 	if err != nil {
 		return SearchRecord{}, err
@@ -220,6 +223,23 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 	if listing.CompanyPublicID != "" {
 		companyID = listing.CompanyPublicID
 	}
+	job := keepScoutFilled(buildSearchJob(
+		publicID,
+		companyID,
+		listing.Title,
+		listing.CompanyName,
+		listing.PostedAt,
+		now,
+		listingHints{
+			Location:   listing.Metadata.Details.Location,
+			Remote:     listing.Metadata.Details.Remote,
+			Seniority:  listing.Metadata.Details.Seniority,
+			Employment: listing.Metadata.Details.Time,
+			Salary:     listing.Metadata.Details.Salary,
+		},
+		extracted,
+	), listing)
+	job.Description = originalDescription(listing.Description)
 	record := storedSearchJob{
 		ID:         listing.ID,
 		TempJobID:  listing.ID.Hex(),
@@ -230,22 +250,7 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 		CreatedBy:  strings.TrimSpace(listing.CreatedBy),
 		Source:     strings.TrimSpace(listing.Source),
 		SourceRef:  strings.TrimSpace(listing.SourceRef),
-		Job: keepScoutFilled(buildSearchJob(
-			publicID,
-			companyID,
-			listing.Title,
-			listing.CompanyName,
-			listing.PostedAt,
-			now,
-			listingHints{
-				Location:   listing.Metadata.Details.Location,
-				Remote:     listing.Metadata.Details.Remote,
-				Seniority:  listing.Metadata.Details.Seniority,
-				Employment: listing.Metadata.Details.Time,
-				Salary:     listing.Metadata.Details.Salary,
-			},
-			extracted,
-		), listing),
+		Job:        job,
 	}
 	if err := s.saveSearchJob(ctx, record); err != nil {
 		return SearchRecord{}, err

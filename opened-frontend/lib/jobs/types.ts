@@ -40,6 +40,7 @@ export type Job = {
   responsibilities: string[];
   requirements: string[];
   benefits: string[];
+  /** The posting before analysis, as written. Saved on every job; empty only on older records. */
   description?: string;
   /** Official listing. Apply and copy link use this for aggregated jobs. */
   applyLink?: string;

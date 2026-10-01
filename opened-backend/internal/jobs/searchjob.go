@@ -39,27 +39,30 @@ const (
 // SearchJob is the record Opened job search reads.
 // Field names match opened-frontend/lib/jobs/types.ts.
 type SearchJob struct {
-	ID                 string              `json:"id" bson:"id"`
-	Title              string              `json:"title" bson:"title"`
-	Company            string              `json:"company" bson:"company"`
-	CompanyID          string              `json:"companyId" bson:"companyId"`
-	Location           string              `json:"location" bson:"location"`
-	Workplace          string              `json:"workplace" bson:"workplace"`
-	Pay                Pay                 `json:"pay" bson:"pay"`
-	Equity             bool                `json:"equity" bson:"equity"`
-	Seniority          string              `json:"seniority" bson:"seniority"`
-	Employment         string              `json:"employment" bson:"employment"`
-	PostedHoursAgo     int                 `json:"postedHoursAgo" bson:"postedHoursAgo"`
-	Source             string              `json:"source" bson:"source"`
-	Visa               bool                `json:"visa" bson:"visa"`
-	Applicants         int                 `json:"applicants" bson:"applicants"`
-	Team               string              `json:"team" bson:"team"`
-	Skills             []string            `json:"skills" bson:"skills"`
-	Summary            string              `json:"summary" bson:"summary"`
-	Responsibilities   []string            `json:"responsibilities" bson:"responsibilities"`
-	Requirements       []string            `json:"requirements" bson:"requirements"`
-	Benefits           []string            `json:"benefits" bson:"benefits"`
-	Description        string              `json:"description,omitempty" bson:"description,omitempty"`
+	ID               string   `json:"id" bson:"id"`
+	Title            string   `json:"title" bson:"title"`
+	Company          string   `json:"company" bson:"company"`
+	CompanyID        string   `json:"companyId" bson:"companyId"`
+	Location         string   `json:"location" bson:"location"`
+	Workplace        string   `json:"workplace" bson:"workplace"`
+	Pay              Pay      `json:"pay" bson:"pay"`
+	Equity           bool     `json:"equity" bson:"equity"`
+	Seniority        string   `json:"seniority" bson:"seniority"`
+	Employment       string   `json:"employment" bson:"employment"`
+	PostedHoursAgo   int      `json:"postedHoursAgo" bson:"postedHoursAgo"`
+	Source           string   `json:"source" bson:"source"`
+	Visa             bool     `json:"visa" bson:"visa"`
+	Applicants       int      `json:"applicants" bson:"applicants"`
+	Team             string   `json:"team" bson:"team"`
+	Skills           []string `json:"skills" bson:"skills"`
+	Summary          string   `json:"summary" bson:"summary"`
+	Responsibilities []string `json:"responsibilities" bson:"responsibilities"`
+	Requirements     []string `json:"requirements" bson:"requirements"`
+	Benefits         []string `json:"benefits" bson:"benefits"`
+	// Description is the posting text before analysis, kept as written. Every saved
+	// record has one (see saveSearchJob); Summary and the bullet lists are the
+	// model's rewrite of it.
+	Description        string              `json:"description" bson:"description"`
 	ScreeningQuestions []ScreeningQuestion `json:"screeningQuestions" bson:"screeningQuestions,omitempty"`
 }
 
@@ -166,15 +169,6 @@ func keepScoutFilled(job SearchJob, listing tempListing) SearchJob {
 	}
 	if title := strings.TrimSpace(listing.Title); title != "" {
 		job.Title = title
-	}
-	if skills := cleanList(listing.Skills, maxSkills); len(skills) > 0 {
-		job.Skills = skills
-	}
-	for _, tag := range listing.Tags {
-		if strings.EqualFold(strings.TrimSpace(tag), tagVisa) {
-			job.Visa = true
-			break
-		}
 	}
 	if listing.Source != "" {
 		job.Source = listing.Source
@@ -336,4 +330,9 @@ func truncate(value string, limit int) string {
 	}
 	runes := []rune(value)
 	return strings.TrimSpace(string(runes[:limit]))
+}
+
+// originalDescription trims and caps a posting's text for the record's Description.
+func originalDescription(text string) string {
+	return truncate(strings.TrimSpace(text), maxDescriptionRunes)
 }

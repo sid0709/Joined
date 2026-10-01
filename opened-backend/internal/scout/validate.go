@@ -20,10 +20,6 @@ const (
 	maxTitleChars    = 160
 	maxLocationChars = 120
 	maxSalaryChars   = 80
-	maxTags          = 8
-	maxTagChars      = 24
-	maxSkills        = 12
-	maxSkillChars    = 40
 	maxExternalRef   = 120
 )
 
@@ -33,8 +29,6 @@ var externalRefPattern = regexp.MustCompile(`^[A-Za-z0-9._:\-/]+$`)
 type Limits struct {
 	MinSummaryChars int      `json:"min_summary_chars"`
 	MaxSummaryChars int      `json:"max_summary_chars"`
-	MaxTags         int      `json:"max_tags"`
-	MaxSkills       int      `json:"max_skills"`
 	MaxBatch        int      `json:"max_batch"`
 	Workplaces      []string `json:"workplaces"`
 	Employments     []string `json:"employments"`
@@ -46,8 +40,6 @@ func InputLimits() Limits {
 	return Limits{
 		MinSummaryChars: MinSummaryChars,
 		MaxSummaryChars: MaxSummaryChars,
-		MaxTags:         maxTags,
-		MaxSkills:       maxSkills,
 		MaxBatch:        MaxBatchSize,
 		Workplaces:      jobschema.Workplaces(),
 		Employments:     jobschema.Employments(),
@@ -97,9 +89,6 @@ func NormalizeInput(in SubmissionInput) (SubmissionInput, ParsedURL, error) {
 		problems.add("external_ref", "use up to 120 letters, digits, and . _ : - /")
 	}
 
-	in.Tags = cleanTags(problems, in.Tags)
-	in.Skills = cleanSkills(problems, in.Skills)
-
 	in.Workplace = requireOne(problems, "workplace", in.Workplace, InputLimits().Workplaces)
 	in.Employment = requireOne(problems, "employment", in.Employment, InputLimits().Employments)
 	in.Seniority = pickSeniority(problems, in.Seniority, jobschema.SeniorityFromHint(in.Title))
@@ -147,55 +136,4 @@ func pickSeniority(problems *ValidationError, value, fallback string) string {
 	}
 	problems.add("seniority", "must be one of "+strings.Join(jobschema.Seniorities(), ", "))
 	return fallback
-}
-
-func cleanTags(problems *ValidationError, tags []string) []string {
-	out := []string{}
-	seen := map[string]struct{}{}
-	for _, tag := range tags {
-		tag = Slug(tag)
-		if tag == "" {
-			continue
-		}
-		if utf8.RuneCountInString(tag) > maxTagChars {
-			problems.add("tags", "each tag must be at most "+strconv.Itoa(maxTagChars)+" characters")
-			return out
-		}
-		if _, ok := seen[tag]; ok {
-			continue
-		}
-		seen[tag] = struct{}{}
-		out = append(out, tag)
-	}
-	if len(out) > maxTags {
-		problems.add("tags", "use at most "+strconv.Itoa(maxTags)+" tags")
-		return out[:maxTags]
-	}
-	return out
-}
-
-func cleanSkills(problems *ValidationError, skills []string) []string {
-	out := []string{}
-	seen := map[string]struct{}{}
-	for _, skill := range skills {
-		skill = clean(skill)
-		if skill == "" {
-			continue
-		}
-		if utf8.RuneCountInString(skill) > maxSkillChars {
-			problems.add("skills", "each skill must be at most "+strconv.Itoa(maxSkillChars)+" characters")
-			return out
-		}
-		key := strings.ToLower(skill)
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		out = append(out, skill)
-	}
-	if len(out) > maxSkills {
-		problems.add("skills", "use at most "+strconv.Itoa(maxSkills)+" skills")
-		return out[:maxSkills]
-	}
-	return out
 }

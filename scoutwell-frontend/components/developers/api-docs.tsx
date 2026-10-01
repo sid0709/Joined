@@ -246,9 +246,12 @@ export function ApiDocs({ baseUrl, meta }: { baseUrl: string; meta: Meta }) {
             }
           />
           <ListItem
-            label="tags, skills"
+            label="No tags or skills"
             description={
-              <FullText>{`Optional. Up to ${limits.max_tags} tags and ${limits.max_skills} skills. The Scoutwell form does not collect them. Tag visa marks sponsorship.`}</FullText>
+              <FullText>
+                Not accepted. Skills and visa sponsorship are read from the description when staff
+                analyze the job, so there is nothing to send.
+              </FullText>
             }
           />
           <ListItem

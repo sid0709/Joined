@@ -99,7 +99,7 @@ func main() {
 	if cfg.AdminAPIToken == "" {
 		slog.Warn("ADMIN_API_TOKEN is not set: staff endpoints accept unauthenticated requests")
 	}
-	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL)
+	reader := openai.New(cfg.OpenAIAPIKey, cfg.OpenAIModel, cfg.OpenAIBaseURL).WithSearchModel(cfg.OpenAISearchModel)
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: httpapi.New(store, accounts, people, scouts, hiring, moderation, reader, httpapi.Options{

@@ -19,6 +19,7 @@ import {
   Text,
   Token,
 } from "@openseat/design-system";
+import { companySizeLabel } from "@openseat/job-schema";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { SectionCard } from "@/components/section-card";
 import {
@@ -125,7 +126,7 @@ export function CompanyProfileView({
                     {[
                       profile.industry,
                       profile.companyType,
-                      profile.size ? `${profile.size} people` : null,
+                      profile.size ? companySizeLabel(profile.size) : null,
                     ]
                       .filter(Boolean)
                       .join(" · ")}

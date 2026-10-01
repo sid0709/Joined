@@ -4,67 +4,8 @@ export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
-export const INDUSTRIES = [
-  "Accounting",
-  "Advertising",
-  "Agriculture",
-  "Architecture",
-  "Construction",
-  "Consulting",
-  "Education",
-  "Energy",
-  "Entertainment",
-  "Finance",
-  "Food",
-  "Government",
-  "Healthcare",
-  "Hospitality",
-  "Insurance",
-  "Legal",
-  "Manufacturing",
-  "Media",
-  "Nonprofit",
-  "Real estate",
-  "Retail",
-  "Software",
-  "Telecommunications",
-  "Transportation",
-] as const;
-
-export const COMPANY_TYPES = [
-  "Private",
-  "Public",
-  "Nonprofit",
-  "Government",
-  "Educational",
-  "Partnership",
-  "Cooperative",
-] as const;
-
-export const COMPANY_SIZES = [
-  "1–10",
-  "11–50",
-  "51–200",
-  "201–500",
-  "501–1,000",
-  "1,001–5,000",
-  "5,000+",
-] as const;
-
-export const VALUE_ICONS = [
-  "heart",
-  "star",
-  "users",
-  "check",
-  "sparkle",
-  "home",
-  "pin",
-  "code",
-  "seat",
-  "chat",
-] as const;
-
-export type ValueIcon = (typeof VALUE_ICONS)[number];
+export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@openseat/job-schema";
+export type { ValueIcon } from "@openseat/job-schema";
 
 export type CompanyValue = {
   icon: string;
@@ -164,5 +105,41 @@ export function companyWriteFrom(company: AdminCompany): CompanyWrite {
     mission: company.mission ?? "",
     values: company.values ?? [],
     benefitCategories: company.benefitCategories ?? [],
+  };
+}
+
+/** What POST /v1/companies/{id}/autofill returns: a draft to review. Nothing is saved. */
+export type CompanyAutofill = {
+  company: CompanyWrite;
+  sources: string[];
+};
+
+export function autofillPath(companyId: string) {
+  return `${COMPANIES_PATH}/${encodeURIComponent(companyId)}/autofill`;
+}
+
+/**
+ * Lays an autofill draft over the form. Anything the search could not find stays as it
+ * was, and so do the logo and reply time, which the web cannot tell us.
+ */
+export function applyAutofill(draft: CompanyWrite, found: CompanyWrite): CompanyWrite {
+  const text = (next: string, current: string) => (next.trim() ? next : current);
+  const list = <T>(next: T[], current: T[]) => (next.length ? next : current);
+  return {
+    ...draft,
+    name: text(found.name, draft.name),
+    url: text(draft.url, found.url),
+    tagline: text(found.tagline, draft.tagline),
+    about: text(found.about, draft.about),
+    industry: text(found.industry, draft.industry),
+    size: text(found.size, draft.size),
+    founded: found.founded > 0 ? found.founded : draft.founded,
+    headquarters: text(found.headquarters, draft.headquarters),
+    companyType: text(found.companyType, draft.companyType),
+    locations: text(found.locations, draft.locations),
+    specialties: list(found.specialties, draft.specialties),
+    mission: text(found.mission, draft.mission),
+    values: list(found.values, draft.values),
+    benefitCategories: list(found.benefitCategories, draft.benefitCategories),
   };
 }

@@ -126,3 +126,14 @@ func TestReplaceTeamRenamesAndDedupes(t *testing.T) {
 		t.Fatalf("got = %v", got)
 	}
 }
+
+func TestReadyToPublishNeedsTheFullDescription(t *testing.T) {
+	doc := readyJob(statusOpen)
+	if err := readyToPublish(doc); err != nil {
+		t.Fatalf("ready job rejected: %v", err)
+	}
+	doc.Description = "  "
+	if err := readyToPublish(doc); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("err = %v, want ErrInvalidInput", err)
+	}
+}

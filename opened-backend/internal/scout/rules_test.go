@@ -121,7 +121,6 @@ func TestNormalizeInputDefaultsAndErrors(t *testing.T) {
 		Employment:   EmploymentFullTime,
 		Pay:          Pay{Min: 180000, Max: 220000},
 		Summary:      strings.Repeat("a", MinSummaryChars),
-		Tags:         []string{"Visa", "visa", " Remote "},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -132,8 +131,8 @@ func TestNormalizeInputDefaultsAndErrors(t *testing.T) {
 	if in.Pay.Min != 180000 || in.Pay.Max != 220000 || in.Pay.Currency != "USD" || in.SalaryText == "" {
 		t.Fatalf("pay = %+v salary = %q", in.Pay, in.SalaryText)
 	}
-	if len(in.Tags) != 2 || parsed.ATS != "Lever" {
-		t.Fatalf("tags = %v ats = %q", in.Tags, parsed.ATS)
+	if parsed.ATS != "Lever" {
+		t.Fatalf("ats = %q", parsed.ATS)
 	}
 
 	_, _, err = NormalizeInput(SubmissionInput{URL: "nope", Summary: "short", Workplace: "moon", ExternalRef: "bad ref!"})
@@ -198,7 +197,6 @@ func TestNormalizeInputRequiresRoleAndClearsEquityPay(t *testing.T) {
 		Title:        "Designer",
 		LocationText: "Berlin",
 		Summary:      strings.Repeat("b", MinSummaryChars),
-		Tags:         []string{"hybrid", "contract"},
 	})
 	fields, ok := err.(*ValidationError)
 	if !ok {

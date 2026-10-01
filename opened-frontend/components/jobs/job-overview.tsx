@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import {
-  Collapsible,
   Glyph,
   HStack,
   Heading,
@@ -22,6 +21,7 @@ import {
   formatPay,
   type Job,
 } from "@/lib/jobs";
+import { OriginalDescription } from "./original-description";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -86,21 +86,6 @@ export function JobOverview({ job }: { job: Job }) {
         </List>
       </Section>
 
-      {job.description?.trim() ? (
-        <Collapsible trigger="More details">
-          <Stack gap={3}>
-            {job.description
-              .trim()
-              .split(/\n+/)
-              .map((paragraph, index) => (
-                <Text key={`${index}-${paragraph.slice(0, 24)}`} display="block">
-                  {paragraph}
-                </Text>
-              ))}
-          </Stack>
-        </Collapsible>
-      ) : null}
-
       {(job.benefits ?? []).length ? (
         <Section title="Benefits">
           <HStack gap={2} wrap="wrap">
@@ -110,6 +95,8 @@ export function JobOverview({ job }: { job: Job }) {
           </HStack>
         </Section>
       ) : null}
+
+      <OriginalDescription text={job.description} />
     </Stack>
   );
 }

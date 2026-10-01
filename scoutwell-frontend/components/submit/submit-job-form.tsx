@@ -9,6 +9,7 @@ import {
   HStack,
   List,
   ListItem,
+  LocationSelector,
   NumberInput,
   Selector,
   Stack,
@@ -179,8 +180,6 @@ export function SubmitJobForm({
           equity: form.equity,
           salary: "",
           summary: form.summary,
-          tags: [],
-          skills: [],
           not_duplicate_claim: needsClaim ? notDuplicateClaim : false,
         },
         { "Idempotency-Key": idempotencyKey },
@@ -234,14 +233,14 @@ export function SubmitJobForm({
 
             <SectionCard title="The role">
               <GridSystem gap={4}>
-                <GridColumn span="full" md={6}>
+                <GridColumn span="full" md={4}>
                   <CompanyField
                     company={form.company}
                     onCompany={set("company")}
                     status={status("company_name")}
                   />
                 </GridColumn>
-                <GridColumn span="full" md={6}>
+                <GridColumn span="full" md={4}>
                   <TextInput
                     label="Job title"
                     value={form.title}
@@ -250,14 +249,12 @@ export function SubmitJobForm({
                     status={status("title")}
                   />
                 </GridColumn>
-                <GridColumn span="full" md={6}>
-                  <TextInput
+                <GridColumn span="full" md={4}>
+                  <LocationSelector
                     label="Location"
                     value={form.locationText}
                     onChange={set("locationText")}
-                    placeholder="Remote (US), Berlin, …"
-                    isRequired
-                    status={status("location_text")}
+                    placeholder="City, state, or country"
                   />
                 </GridColumn>
                 <GridColumn span="full" md={4}>

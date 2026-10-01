@@ -24,6 +24,85 @@ export type PayPeriod = (typeof PAY_PERIODS)[number];
 
 export const DEFAULT_CURRENCY = "USD";
 
+/** The catch-all in every company enum. Pick it when nothing else fits. */
+export const OTHER = "Other";
+
+export const INDUSTRIES = [
+  "Accounting",
+  "Advertising",
+  "Agriculture",
+  "Architecture",
+  "Construction",
+  "Consulting",
+  "Education",
+  "Energy",
+  "Entertainment",
+  "Finance",
+  "Food",
+  "Government",
+  "Healthcare",
+  "Hospitality",
+  "Insurance",
+  "Legal",
+  "Manufacturing",
+  "Media",
+  "Nonprofit",
+  "Real estate",
+  "Retail",
+  "Software",
+  "Telecommunications",
+  "Transportation",
+  "Other",
+] as const;
+
+export const COMPANY_TYPES = [
+  "Private",
+  "Public",
+  "Nonprofit",
+  "Government",
+  "Educational",
+  "Partnership",
+  "Cooperative",
+  "Other",
+] as const;
+
+export const COMPANY_SIZES = [
+  "1–10",
+  "11–50",
+  "51–200",
+  "201–500",
+  "501–1,000",
+  "1,001–5,000",
+  "5,000+",
+  "Other",
+] as const;
+
+export const VALUE_ICONS = [
+  "heart",
+  "star",
+  "users",
+  "check",
+  "sparkle",
+  "home",
+  "pin",
+  "code",
+  "seat",
+  "chat",
+] as const;
+
+/** "11–50" reads "11–50 people"; "Other" stays "Other". */
+export function companySizeLabel(size: string) {
+  return size === OTHER ? size : `${size} people`;
+}
+
+/** A company page lists up to this many benefits. Each is its own category with one line. */
+export const MAX_BENEFITS = 12;
+
+export type Industry = (typeof INDUSTRIES)[number];
+export type CompanyType = (typeof COMPANY_TYPES)[number];
+export type CompanySize = (typeof COMPANY_SIZES)[number];
+export type ValueIcon = (typeof VALUE_ICONS)[number];
+
 export const CURRENCIES = ["USD", "EUR", "GBP", "CAD"] as const;
 export type JobCurrency = (typeof CURRENCIES)[number];
 

@@ -45,6 +45,10 @@ export type { StickyProps } from "./Sticky";
 export { TIERS, VIEWPORT_TIERS, CONTAINER_TIERS, tierFor } from "./breakpoints";
 export type { Tier, TierOrBase, ResponsiveTo } from "./breakpoints";
 
+export { CodeInput, CODE_INPUT_LENGTH } from "./CodeInput";
+export type { CodeInputProps, CodeInputStatus } from "./CodeInput";
+export type { CodeCharset } from "./codeInputRules";
+
 export { Glyph, icons } from "./Glyph";
 export type { GlyphName, GlyphProps } from "./Glyph";
 

@@ -59,8 +59,6 @@ export function inputFrom(sub: Submission): SubmissionInput {
     equity: sub.equity,
     salary: sub.salary,
     summary: sub.summary,
-    tags: sub.tags,
-    skills: sub.skills,
   };
 }
 
@@ -270,6 +268,7 @@ export function ReviewWorkspace({
               <DecisionPanel
                 detail={detail}
                 edits={editable && dirty(draft, original) ? draft : null}
+                hasSkills={Boolean(listing?.job.skills.length)}
               />
               {scout}
               {history}

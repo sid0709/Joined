@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Badge,
   Button,
   CheckboxInput,
   GridColumn,
@@ -51,13 +50,6 @@ function withPay(pay: Pay | undefined, patch: Partial<Pay>): Pay {
     period: pay?.period ?? "year",
     ...patch,
   };
-}
-
-function splitList(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 /**
@@ -138,14 +130,6 @@ export function JobEditor({
           {submission.url}
         </Link>
         <Text display="block">{submission.summary}</Text>
-        <HStack gap={1.5} wrap="wrap">
-          {submission.tags.map((tag) => (
-            <Badge key={`t-${tag}`} label={tag} variant="blue" />
-          ))}
-          {submission.skills.map((skill) => (
-            <Badge key={`s-${skill}`} label={skill} variant="neutral" />
-          ))}
-        </HStack>
       </SectionCard>
     );
   }
@@ -153,7 +137,7 @@ export function JobEditor({
   return (
     <SectionCard
       title="Job details"
-      description="Fix anything the scout got wrong. Analyze writes About / What you’ll do for Opened. Salary and other filled fields stay."
+      description="Fix anything the scout got wrong. Analyze writes About, What you’ll do, and the skills for Opened. Salary and other filled fields stay."
       action={
         <HStack gap={2}>
           {isDirty ? (
@@ -263,29 +247,12 @@ export function JobEditor({
           </GridColumn>
         </GridSystem>
         <TextArea
-          label="Job description"
+          label="Original job description"
           value={value.summary}
           onChange={set("summary")}
-          description={`${value.summary.trim().length} characters. Shown to job hunters.`}
+          isRequired
+          description={`${value.summary.trim().length} characters. Kept as written. Analyze reads it to write the listing and its skills.`}
         />
-        <GridSystem gap={4}>
-          <GridColumn span="full" md={6}>
-            <TextInput
-              label="Tags"
-              value={value.tags.join(", ")}
-              onChange={(next) => set("tags")(splitList(next.toLowerCase()))}
-              description="Comma-separated; visa marks sponsorship."
-            />
-          </GridColumn>
-          <GridColumn span="full" md={6}>
-            <TextInput
-              label="Skills"
-              value={value.skills.join(", ")}
-              onChange={(next) => set("skills")(splitList(next))}
-              description="Comma-separated."
-            />
-          </GridColumn>
-        </GridSystem>
       </Stack>
     </SectionCard>
   );

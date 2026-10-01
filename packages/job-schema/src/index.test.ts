@@ -3,18 +3,25 @@ import { expect, test } from "bun:test";
 import enums from "../enums.json";
 
 import {
+  COMPANY_SIZES,
+  COMPANY_TYPES,
   CURRENCIES,
   DEFAULT_CURRENCY,
   EMPLOYMENTS,
   EMPLOYMENT_LABEL,
+  INDUSTRIES,
+  MAX_BENEFITS,
+  OTHER,
   PAY_PERIODS,
   PAY_PERIOD_LABEL,
   SENIORITIES,
   SENIORITY_ALIASES,
   SENIORITY_LABEL,
+  VALUE_ICONS,
   WORKPLACES,
   WORKPLACE_LABEL,
   canonicalSeniority,
+  companySizeLabel,
   seniorityLabel,
 } from "./index";
 
@@ -30,6 +37,22 @@ test("enums.json matches the TypeScript job enums", () => {
   expect(enums.employment).toEqual(pairs(EMPLOYMENTS, EMPLOYMENT_LABEL));
   expect(enums.payPeriod).toEqual(pairs(PAY_PERIODS, PAY_PERIOD_LABEL));
   expect(enums.seniorityAliases).toEqual(SENIORITY_ALIASES);
+  expect(enums.industries).toEqual([...INDUSTRIES]);
+  expect(enums.companyTypes).toEqual([...COMPANY_TYPES]);
+  expect(enums.companySizes).toEqual([...COMPANY_SIZES]);
+  expect(enums.valueIcons).toEqual([...VALUE_ICONS]);
+  expect(enums.maxBenefits).toBe(MAX_BENEFITS);
+});
+
+test("company size labels add people except for Other", () => {
+  expect(companySizeLabel("11–50")).toBe("11–50 people");
+  expect(companySizeLabel(OTHER)).toBe("Other");
+});
+
+test("every company enum ends with Other", () => {
+  for (const list of [INDUSTRIES, COMPANY_TYPES, COMPANY_SIZES]) {
+    expect(list[list.length - 1]).toBe(OTHER);
+  }
 });
 
 test("seniority aliases fold onto the record values in any case", () => {

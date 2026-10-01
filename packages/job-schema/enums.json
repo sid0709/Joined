@@ -2,25 +2,64 @@
   "currency": "USD",
   "currencies": ["USD", "EUR", "GBP", "CAD"],
   "workplace": [
-    { "value": "remote", "label": "Remote" },
-    { "value": "hybrid", "label": "Hybrid" },
-    { "value": "onsite", "label": "On-site" }
+    {
+      "value": "remote",
+      "label": "Remote"
+    },
+    {
+      "value": "hybrid",
+      "label": "Hybrid"
+    },
+    {
+      "value": "onsite",
+      "label": "On-site"
+    }
   ],
   "seniority": [
-    { "value": "Junior", "label": "Junior" },
-    { "value": "Middle", "label": "Middle" },
-    { "value": "Senior", "label": "Senior" },
-    { "value": "Leader", "label": "Lead" },
-    { "value": "Manager", "label": "Manager" }
+    {
+      "value": "Junior",
+      "label": "Junior"
+    },
+    {
+      "value": "Middle",
+      "label": "Middle"
+    },
+    {
+      "value": "Senior",
+      "label": "Senior"
+    },
+    {
+      "value": "Leader",
+      "label": "Lead"
+    },
+    {
+      "value": "Manager",
+      "label": "Manager"
+    }
   ],
   "employment": [
-    { "value": "full-time", "label": "Full-time" },
-    { "value": "contract", "label": "Contract" },
-    { "value": "part-time", "label": "Part-time" }
+    {
+      "value": "full-time",
+      "label": "Full-time"
+    },
+    {
+      "value": "contract",
+      "label": "Contract"
+    },
+    {
+      "value": "part-time",
+      "label": "Part-time"
+    }
   ],
   "payPeriod": [
-    { "value": "year", "label": "Per year" },
-    { "value": "hour", "label": "Per hour" }
+    {
+      "value": "year",
+      "label": "Per year"
+    },
+    {
+      "value": "hour",
+      "label": "Per hour"
+    }
   ],
   "seniorityAliases": {
     "entry": "Junior",
@@ -31,5 +70,65 @@
     "lead": "Leader",
     "leader": "Leader",
     "manager": "Manager"
-  }
+  },
+  "industries": [
+    "Accounting",
+    "Advertising",
+    "Agriculture",
+    "Architecture",
+    "Construction",
+    "Consulting",
+    "Education",
+    "Energy",
+    "Entertainment",
+    "Finance",
+    "Food",
+    "Government",
+    "Healthcare",
+    "Hospitality",
+    "Insurance",
+    "Legal",
+    "Manufacturing",
+    "Media",
+    "Nonprofit",
+    "Real estate",
+    "Retail",
+    "Software",
+    "Telecommunications",
+    "Transportation",
+    "Other"
+  ],
+  "companyTypes": [
+    "Private",
+    "Public",
+    "Nonprofit",
+    "Government",
+    "Educational",
+    "Partnership",
+    "Cooperative",
+    "Other"
+  ],
+  "companySizes": [
+    "1–10",
+    "11–50",
+    "51–200",
+    "201–500",
+    "501–1,000",
+    "1,001–5,000",
+    "5,000+",
+    "Other"
+  ],
+  "valueIcons": [
+    "heart",
+    "star",
+    "users",
+    "check",
+    "sparkle",
+    "home",
+    "pin",
+    "code",
+    "seat",
+    "chat"
+  ],
+  "maxBenefits": 12
 }

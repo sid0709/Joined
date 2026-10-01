@@ -1,53 +1,31 @@
 package jobs
 
-import "strings"
+import (
+	"strings"
 
-const (
-	maxCompanyName   = 80
-	maxCompanyURL    = 300
-	maxCompanyLogo   = 500
-	maxTagline       = 140
-	maxAbout         = 2000
-	maxIndustry      = 80
-	maxCompanyType   = 80
-	maxHeadquarters  = 240
-	maxLocations     = 480
-	maxMission       = 800
-	maxListItem      = 80
-	maxValueTitle    = 60
-	maxValueBody     = 240
-	maxBenefitLabel  = 60
-	maxSpecialties   = 12
-	maxValues        = 6
-	maxBenefitGroups = 6
-	maxBenefitItems  = 12
-	minFoundedYear   = 1800
-	maxFoundedYear   = 2100
-	maxReplyDays     = 365
+	"github.com/sid0709/OpenSeat/opened-backend/internal/jobschema"
 )
 
-var companySizes = []string{
-	"1–10",
-	"11–50",
-	"51–200",
-	"201–500",
-	"501–1,000",
-	"1,001–5,000",
-	"5,000+",
-}
-
-var valueIcons = []string{
-	"heart",
-	"star",
-	"users",
-	"check",
-	"sparkle",
-	"home",
-	"pin",
-	"code",
-	"seat",
-	"chat",
-}
+const (
+	maxCompanyName  = 80
+	maxCompanyURL   = 300
+	maxCompanyLogo  = 500
+	maxTagline      = 140
+	maxAbout        = 2000
+	maxHeadquarters = 240
+	maxLocations    = 480
+	maxMission      = 800
+	maxListItem     = 80
+	maxValueTitle   = 60
+	maxValueBody    = 240
+	maxBenefitLabel = 60
+	maxSpecialties  = 12
+	maxValues       = 6
+	maxBenefitItems = 12
+	minFoundedYear  = 1800
+	maxFoundedYear  = 2100
+	maxReplyDays    = 365
+)
 
 type companyValue struct {
 	Icon        string `json:"icon" bson:"icon"`
@@ -169,7 +147,7 @@ func (doc storedCompany) publicCompany() PublicCompany {
 		Specialties:       nilIfEmpty(profile.Specialties),
 		Mission:           profile.Mission,
 		Values:            nilValues(profile.Values),
-		BenefitCategories: nilBenefits(foldPerks(profile.BenefitCategories, profile.Perks)),
+		BenefitCategories: nilBenefits(cleanBenefits(foldPerks(profile.BenefitCategories, profile.Perks))),
 		HasLogoFile:       doc.hasLogoFile(),
 		Verified:          doc.VerificationStatus == VerificationApproved,
 	}
@@ -209,8 +187,12 @@ func overridesFrom(input CompanyWrite) (companyOverrides, error) {
 		return companyOverrides{}, ErrInvalidInput
 	}
 	size := strings.TrimSpace(input.Size)
-	if size != "" && !contains(companySizes, size) {
-		return companyOverrides{}, ErrInvalidInput
+	if size != "" {
+		canonical, ok := jobschema.CanonicalChoice(size, jobschema.CompanySizes())
+		if !ok {
+			return companyOverrides{}, ErrInvalidInput
+		}
+		size = canonical
 	}
 	if input.Founded != 0 && (input.Founded < minFoundedYear || input.Founded > maxFoundedYear) {
 		return companyOverrides{}, ErrInvalidInput
@@ -225,12 +207,12 @@ func overridesFrom(input CompanyWrite) (companyOverrides, error) {
 		Profile: companyProfile{
 			Tagline:           truncate(strings.TrimSpace(input.Tagline), maxTagline),
 			About:             truncate(strings.TrimSpace(input.About), maxAbout),
-			Industry:          truncate(strings.TrimSpace(input.Industry), maxIndustry),
+			Industry:          jobschema.CanonicalOrOther(input.Industry, jobschema.Industries()),
 			Size:              size,
 			Founded:           input.Founded,
 			ReplyDays:         input.ReplyDays,
 			Headquarters:      truncate(strings.TrimSpace(input.Headquarters), maxHeadquarters),
-			CompanyType:       truncate(strings.TrimSpace(input.CompanyType), maxCompanyType),
+			CompanyType:       jobschema.CanonicalOrOther(input.CompanyType, jobschema.CompanyTypes()),
 			Locations:         truncate(strings.TrimSpace(input.Locations), maxLocations),
 			Specialties:       cleanList(clipItems(input.Specialties, maxListItem), maxSpecialties),
 			Mission:           truncate(strings.TrimSpace(input.Mission), maxMission),
@@ -259,7 +241,7 @@ func cleanValues(values []companyValue) []companyValue {
 			continue
 		}
 		icon := strings.TrimSpace(value.Icon)
-		if !contains(valueIcons, icon) {
+		if !contains(jobschema.ValueIcons(), icon) {
 			icon = "star"
 		}
 		out = append(out, companyValue{
@@ -274,17 +256,27 @@ func cleanValues(values []companyValue) []companyValue {
 	return out
 }
 
+// cleanBenefits gives every benefit its own category: one label, one line. A category
+// that holds several lines, as older pages saved them, becomes one category per line under
+// the same label, so nothing is lost. Exact repeats are dropped.
 func cleanBenefits(groups []benefitCategory) []benefitCategory {
-	out := make([]benefitCategory, 0, min(len(groups), maxBenefitGroups))
+	out := make([]benefitCategory, 0, min(len(groups), jobschema.MaxBenefits))
+	seen := make(map[string]struct{}, len(groups))
 	for _, group := range groups {
 		label := truncate(strings.TrimSpace(group.Label), maxBenefitLabel)
-		items := cleanList(clipItems(group.Items, maxListItem), maxBenefitItems)
-		if label == "" || len(items) == 0 {
+		if label == "" {
 			continue
 		}
-		out = append(out, benefitCategory{Label: label, Items: items})
-		if len(out) == maxBenefitGroups {
-			break
+		for _, item := range cleanList(clipItems(group.Items, maxListItem), maxBenefitItems) {
+			key := strings.ToLower(label + "\x00" + item)
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, benefitCategory{Label: label, Items: []string{item}})
+			if len(out) == jobschema.MaxBenefits {
+				return out
+			}
 		}
 	}
 	return out
@@ -351,11 +343,6 @@ func foldPerks(groups []benefitCategory, perks []string) []benefitCategory {
 			out[i].Items = append(append([]string{}, group.Items...), fresh...)
 			return out
 		}
-	}
-	if len(out) >= maxBenefitGroups {
-		last := len(out) - 1
-		out[last].Items = append(append([]string{}, out[last].Items...), fresh...)
-		return out
 	}
 	return append(out, benefitCategory{Label: "Perks", Items: fresh})
 }

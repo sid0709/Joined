@@ -151,18 +151,56 @@ export function formatAddress(address: Address) {
   return [address.line1.trim(), place, address.country.trim()].filter(Boolean).join(", ");
 }
 
-export function parseAddress(value: string): Address {
-  const trimmed = value.trim();
-  const match = trimmed.match(
-    /^(.*?),\s*([^,]+),\s*([A-Z]{2})(?:\s+(\d{5}(?:-\d{4})?))?(?:,\s*(.+))?$/,
+const US_STATE_TOKEN = /^([A-Za-z .]+?)(?:\s+(\d{5}(?:-\d{4})?))?$/;
+/** A trailing postal code has a digit and no lowercase: "75001", "SW1A 1AA", "M5V 2T6". */
+const TRAILING_POSTAL = /^(.*?\S)\s+((?=[A-Z0-9 -]*\d)[A-Z0-9][A-Z0-9 -]{1,9})$/;
+
+/** "FL", "fl", or "Florida" → "FL"; anything else → null. */
+function usStateCode(value: string) {
+  const text = value.trim().toLowerCase();
+  const state = US_STATES.find(
+    (item) => item.abbreviation.toLowerCase() === text || item.name.toLowerCase() === text,
   );
-  if (!match) return { line1: trimmed, city: "", state: "", postalCode: "", country: "" };
+  return state?.abbreviation ?? null;
+}
+
+/**
+ * Reads back what formatAddress wrote — "street, City, ST 12345, Country" — with any part
+ * missing: "Miami, FL, United States", "Seattle, WA 98101", "1 Rue X, Paris 75001, France".
+ */
+export function parseAddress(value: string): Address {
+  const parts = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const address = emptyAddress();
+  if (parts.length === 0) return address;
+
+  // A US state, with or without a ZIP, sits right after the city.
+  for (let index = parts.length - 1; index >= 1; index -= 1) {
+    const match = parts[index].match(US_STATE_TOKEN);
+    const code = match ? usStateCode(match[1]) : null;
+    if (!match || !code) continue;
+    return {
+      line1: parts.slice(0, index - 1).join(", "),
+      city: parts[index - 1],
+      state: code,
+      postalCode: match[2] ?? "",
+      country: parts.slice(index + 1).join(", "),
+    };
+  }
+
+  // Elsewhere: street…, City [postal], Country.
+  if (parts.length === 1) return { ...address, line1: parts[0] };
+  const country = parts[parts.length - 1];
+  const place = parts[parts.length - 2];
+  const postal = place.match(TRAILING_POSTAL);
   return {
-    line1: match[1].trim(),
-    city: match[2].trim(),
-    state: match[3],
-    postalCode: match[4] ?? "",
-    country: (match[5] ?? "").trim(),
+    line1: parts.slice(0, -2).join(", "),
+    city: postal ? postal[1] : place,
+    state: "",
+    postalCode: postal ? postal[2] : "",
+    country,
   };
 }
 

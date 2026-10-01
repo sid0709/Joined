@@ -26,9 +26,12 @@ import { ROUTES } from "@/lib/nav";
 export function DecisionPanel({
   detail,
   edits,
+  hasSkills,
 }: {
   detail: AdminSubmissionDetail;
   edits: SubmissionInput | null;
+  /** Approving needs the skills that Analyze with AI generates. */
+  hasSkills: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -62,16 +65,24 @@ export function DecisionPanel({
       <Stack gap={4}>
         {error ? <Banner status="error" title={error} /> : null}
         {decidable ? (
-          <Button
-            label={edits ? "Save edits and publish" : "Approve and publish"}
-            variant="primary"
-            clickAction={() =>
-              review(
-                { decision: "approve", note, edits: edits ?? undefined },
-                "Approved and published.",
-              )
-            }
-          />
+          <Stack gap={2}>
+            <Button
+              label={edits ? "Save edits and publish" : "Approve and publish"}
+              variant="primary"
+              isDisabled={!hasSkills}
+              clickAction={() =>
+                review(
+                  { decision: "approve", note, edits: edits ?? undefined },
+                  "Approved and published.",
+                )
+              }
+            />
+            {hasSkills ? null : (
+              <Text type="supporting" color="secondary" display="block">
+                Run Analyze with AI first. It generates the skills every job needs.
+              </Text>
+            )}
+          </Stack>
         ) : null}
         {sub.status === "needs_review" || live ? (
           <Stack gap={3}>

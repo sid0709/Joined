@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
+  Badge,
   Heading,
   HStack,
   List,
@@ -30,6 +31,17 @@ export function ListingPreview({ job }: { job: SearchJob }) {
       description="This is the structured record job hunters read after analyze."
     >
       <Stack gap={6}>
+        <Section title="Skills">
+          {job.skills.length ? (
+            <HStack gap={1.5} wrap="wrap">
+              {job.skills.map((skill) => (
+                <Badge key={skill} label={skill} variant="neutral" />
+              ))}
+            </HStack>
+          ) : (
+            <Text color="secondary">Required. Analyze generates them.</Text>
+          )}
+        </Section>
         <Section title="About the role">
           <Text display="block">{job.summary || "—"}</Text>
         </Section>

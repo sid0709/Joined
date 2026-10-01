@@ -164,22 +164,20 @@ type Check struct {
 
 // SubmissionInput is what a scout (web form or API client) sends.
 type SubmissionInput struct {
-	URL               string   `json:"url"`
-	CompanyName       string   `json:"company_name"`
-	Title             string   `json:"title"`
-	LocationText      string   `json:"location_text"`
-	CompanyID         string   `json:"company_id"`
-	Workplace         string   `json:"workplace"`
-	Employment        string   `json:"employment"`
-	Seniority         string   `json:"seniority"`
-	Pay               Pay      `json:"pay"`
-	Equity            bool     `json:"equity"`
-	SalaryText        string   `json:"salary"`
-	Summary           string   `json:"summary"`
-	Tags              []string `json:"tags"`
-	Skills            []string `json:"skills"`
-	NotDuplicateClaim bool     `json:"not_duplicate_claim"`
-	ExternalRef       string   `json:"external_ref"`
+	URL               string `json:"url"`
+	CompanyName       string `json:"company_name"`
+	Title             string `json:"title"`
+	LocationText      string `json:"location_text"`
+	CompanyID         string `json:"company_id"`
+	Workplace         string `json:"workplace"`
+	Employment        string `json:"employment"`
+	Seniority         string `json:"seniority"`
+	Pay               Pay    `json:"pay"`
+	Equity            bool   `json:"equity"`
+	SalaryText        string `json:"salary"`
+	Summary           string `json:"summary"`
+	NotDuplicateClaim bool   `json:"not_duplicate_claim"`
+	ExternalRef       string `json:"external_ref"`
 }
 
 // Submission is a scout's job link and everything the pipeline learned about it.
@@ -206,8 +204,6 @@ type Submission struct {
 	Equity          bool          `json:"equity" bson:"equity"`
 	SalaryText      string        `json:"salary" bson:"salaryText"`
 	Summary         string        `json:"summary" bson:"summary"`
-	Tags            []string      `json:"tags" bson:"tags"`
-	Skills          []string      `json:"skills" bson:"skills"`
 	DedupeKey       string        `json:"-" bson:"dedupeKey"`
 	Status          string        `json:"status" bson:"status"`
 	RejectionCode   string        `json:"rejection_code,omitempty" bson:"rejectionCode,omitempty"`
@@ -343,12 +339,6 @@ type AdminList[T any] struct {
 
 func (s *Submission) fill() {
 	s.ID = s.ObjectID.Hex()
-	if s.Tags == nil {
-		s.Tags = []string{}
-	}
-	if s.Skills == nil {
-		s.Skills = []string{}
-	}
 	if s.Checks == nil {
 		s.Checks = []Check{}
 	}

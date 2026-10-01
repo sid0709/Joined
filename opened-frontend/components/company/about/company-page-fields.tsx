@@ -26,6 +26,7 @@ import {
   splitLocations,
   type SearchableItem,
 } from "@openseat/design-system";
+import { companySizeLabel } from "@openseat/job-schema";
 import { SettingsGroup } from "@/components/settings-group";
 import {
   ABOUT_MAX,
@@ -34,8 +35,7 @@ import {
   INDUSTRIES,
   LOGO_ACCEPT,
   LOGO_MARK_SIZE,
-  MAX_BENEFIT_GROUPS,
-  MAX_BENEFIT_ITEMS,
+  MAX_BENEFITS,
   MAX_SPECIALTIES,
   MAX_VALUES,
   MISSION_MAX,
@@ -47,16 +47,6 @@ import {
   type CompanyPageWrite,
   type CompanyValue,
 } from "@/lib/company/page";
-
-const BENEFIT_SUGGESTIONS = [
-  "Hybrid, 2 days in office",
-  "Remote-first",
-  "Learning budget $2,000/yr",
-  "16 weeks parental leave",
-  "Home office stipend",
-  "4-day summer weeks",
-  "Visa sponsorship",
-];
 
 const ICON_OPTIONS = VALUE_ICONS.map((icon) => ({ value: icon, label: icon }));
 
@@ -86,7 +76,6 @@ export function CompanyPageFields({
   taglineKey: number;
   canEdit: boolean;
 }) {
-  const benefitSource = useMemo(() => createStaticSource(toItems(BENEFIT_SUGGESTIONS)), []);
   const specialtySource = useMemo(() => createStaticSource([]), []);
 
   return (
@@ -180,7 +169,7 @@ export function CompanyPageFields({
           <GridColumn span="full" md={4}>
             <Selector
               label="Size"
-              options={selectOptions(COMPANY_SIZES, draft.size, " people")}
+              options={selectOptions(COMPANY_SIZES, draft.size, companySizeLabel)}
               value={draft.size}
               onChange={(size) => onChange({ size })}
               isDisabled={!canEdit}
@@ -295,12 +284,12 @@ export function CompanyPageFields({
 
       <SettingsGroup
         title="Benefits & Perks"
-        description="Group them so candidates can scan."
+        description="One benefit per category, so candidates see a varied list."
         footer={footer}
         action={
-          canEdit && draft.benefitCategories.length < MAX_BENEFIT_GROUPS ? (
+          canEdit && draft.benefitCategories.length < MAX_BENEFITS ? (
             <Button
-              label="Add category"
+              label="Add benefit"
               variant="ghost"
               size="sm"
               onClick={() =>
@@ -317,7 +306,6 @@ export function CompanyPageFields({
           <BenefitCard
             key={index}
             group={group}
-            source={benefitSource}
             onChange={(next) =>
               onChange({
                 benefitCategories: draft.benefitCategories.map((item, itemIndex) =>
@@ -449,14 +437,13 @@ function ValueCard({
   );
 }
 
+/** One benefit: its category and a single line. */
 function BenefitCard({
   group,
-  source,
   onChange,
   onRemove,
 }: {
   group: BenefitCategory;
-  source: ReturnType<typeof createStaticSource>;
   onChange: (group: BenefitCategory) => void;
   onRemove?: () => void;
 }) {
@@ -467,24 +454,16 @@ function BenefitCard({
           label="Category"
           value={group.label}
           onChange={(label) => onChange({ ...group, label })}
-          placeholder="Health"
+          placeholder="Health insurance"
           isReadOnly={!onRemove}
         />
-        <Tokenizer
-          label="Items"
-          searchSource={source}
-          value={toItems(group.items)}
-          onChange={(items) =>
-            onChange({
-              ...group,
-              items: items.map((item) => item.label).slice(0, MAX_BENEFIT_ITEMS),
-            })
-          }
-          maxEntries={MAX_BENEFIT_ITEMS}
-          hasCreate={Boolean(onRemove)}
-          hasEntriesOnFocus
-          isDisabled={!onRemove}
-          placeholder="Medical, dental, vision"
+        <TextInput
+          label="Benefit"
+          value={group.items[0] ?? ""}
+          onChange={(item) => onChange({ ...group, items: item ? [item] : [] })}
+          placeholder="Medical, dental, and vision for you and dependents"
+          description="One line."
+          isReadOnly={!onRemove}
         />
         {onRemove ? (
           <HStack hAlign="end">
