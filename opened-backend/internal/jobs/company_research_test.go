@@ -31,12 +31,12 @@ const researchedAnswer = `{
   "companyType": "Venture studio",
   "size": "11–50",
   "founded": 2016,
-  "headquarters": {"line1": "", "city": "Seattle", "state": "WA", "postalCode": "", "country": "United States"},
+  "headquarters": {"line1": "500 Pine St, Suite 300", "city": "Seattle", "state": "WA", "postalCode": "98101", "country": "USA"},
   "offices": ["Austin, TX", "austin, tx", "Lisbon, Portugal"],
   "specialties": ["Hiring", "React"],
   "mission": "Make hiring fair.",
   "values": [{"icon": "rocket", "title": "Ship it", "description": "Move fast."}, {"icon": "heart", "title": " ", "description": "dropped"}],
-  "benefitCategories": [{"label": "Health", "items": ["Medical", "Dental"]}, {"label": "Empty", "items": []}]
+  "benefitCategories": [{"label": "Health", "items": ["Medical", "Dental\n- Vision"]}, {"label": "Time off", "items": ["Unlimited PTO"]}, {"label": "Empty", "items": []}]
 }`
 
 func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
@@ -67,17 +67,20 @@ func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
 	if c.Tagline != "Engineering talent · Remote-first" {
 		t.Fatalf("tagline = %q", c.Tagline)
 	}
-	if c.Headquarters != "Seattle, WA, United States" {
+	if c.Headquarters != "500 Pine St, Suite 300, Seattle, WA 98101, United States" {
 		t.Fatalf("headquarters = %q", c.Headquarters)
 	}
-	if c.Locations != "Austin, TX · Lisbon, Portugal" {
+	if c.Locations != "Seattle, WA · Austin, TX · Lisbon, Portugal" {
 		t.Fatalf("locations = %q", c.Locations)
 	}
 	if len(c.Values) != 1 || c.Values[0].Icon != "star" || c.Values[0].Title != "Ship it" {
 		t.Fatalf("values = %+v", c.Values)
 	}
-	if len(c.BenefitCategories) != 1 || c.BenefitCategories[0].Label != "Health" {
+	if len(c.BenefitCategories) != 2 || c.BenefitCategories[0].Label != "Health" || c.BenefitCategories[1].Label != "Time off" {
 		t.Fatalf("benefits = %+v", c.BenefitCategories)
+	}
+	if got := strings.Join(c.BenefitCategories[0].Items, "|"); got != "Medical|Dental|Vision" {
+		t.Fatalf("each benefit should be its own line: %q", got)
 	}
 	if len(got.Sources) != 1 {
 		t.Fatalf("sources = %v", got.Sources)

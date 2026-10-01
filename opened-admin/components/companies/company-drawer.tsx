@@ -100,6 +100,8 @@ function CompanyDetail({
   const [autofilling, setAutofilling] = useState(false);
   const [autofillError, setAutofillError] = useState<string | null>(null);
   const [autofillSources, setAutofillSources] = useState<string[] | null>(null);
+  // The form as it was before the last autofill, so a run can be undone.
+  const [beforeAutofill, setBeforeAutofill] = useState<CompanyWrite | null>(null);
   // Bumped after an autofill so fields that keep their own text restart from the new draft.
   const [fillKey, setFillKey] = useState(0);
   const path = `${COMPANIES_PATH}/${encodeURIComponent(companyId)}`;
@@ -136,6 +138,7 @@ function CompanyDetail({
         name: draft.name,
         url: draft.url,
       });
+      setBeforeAutofill(draft);
       setDraft((current) => (current ? applyAutofill(current, found.company) : current));
       setAutofillSources(found.sources);
       setFillKey((token) => token + 1);
@@ -146,6 +149,14 @@ function CompanyDetail({
     } finally {
       setAutofilling(false);
     }
+  }
+
+  function undoAutofill() {
+    if (!beforeAutofill) return;
+    setDraft(beforeAutofill);
+    setBeforeAutofill(null);
+    setAutofillSources(null);
+    setFillKey((token) => token + 1);
   }
 
   async function save() {
@@ -164,6 +175,8 @@ function CompanyDetail({
       setDraft(companyWriteFrom(updated));
       setLogoFile(null);
       setLogoCleared(false);
+      setBeforeAutofill(null);
+      setAutofillSources(null);
       setVersion((token) => token + 1);
       setSaved(true);
       onSaved();
@@ -212,6 +225,16 @@ function CompanyDetail({
               title="Filled in from the web. Review it, then save."
               description="Fields the search could not confirm were left as they were. Nothing is saved until you press Save company."
             />
+            {beforeAutofill ? (
+              <HStack>
+                <Button
+                  label="Undo autofill"
+                  variant="ghost"
+                  size="sm"
+                  clickAction={undoAutofill}
+                />
+              </HStack>
+            ) : null}
             {autofillSources.length ? (
               <Stack gap={1}>
                 <Text type="supporting" color="secondary">
@@ -240,7 +263,13 @@ function CompanyDetail({
               title="Identity"
               action={
                 <Button
-                  label={autofilling ? "Researching…" : "Autofill with AI"}
+                  label={
+                    autofilling
+                      ? "Researching…"
+                      : autofillSources
+                        ? "Autofill again"
+                        : "Autofill with AI"
+                  }
                   variant="secondary"
                   size="sm"
                   clickAction={autofill}
