@@ -36,7 +36,7 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
           {item.description}
         </Text>
       </Stack>
-      <ComponentDocs slug={item.slug} importName={item.importName} />
+      <ComponentDocs slug={item.slug} importName={item.importName} usage={item.usage} />
     </Stack>
   );
 }

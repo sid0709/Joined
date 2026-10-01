@@ -1,4 +1,4 @@
-import { Heading, List, ListItem, Stack, Text } from "@joined/design-system";
+import { BrandLockup, Heading, List, ListItem, Stack, Text } from "@joined/design-system";
 
 import { ClientOnly } from "@/components/ClientOnly";
 import { CATALOG, itemHref, type CatalogGroup } from "@/lib/catalog";
@@ -42,6 +42,10 @@ function CategoryList({ group }: { group: CatalogGroup }) {
 export function CatalogIndex() {
   return (
     <Stack gap={8}>
+      <BrandLockup
+        align="start"
+        tagline="The Joined design system — one blue brand across every app."
+      />
       <Stack gap={2}>
         <Heading level={1}>Browse the library</Heading>
         <Text color="secondary" display="block">

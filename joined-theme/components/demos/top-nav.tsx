@@ -19,6 +19,7 @@ import {
   TopNavMegaMenuItem,
   TopNavMenu,
   icons,
+  BrandHeading,
 } from "@joined/design-system";
 import { useState } from "react";
 
@@ -35,7 +36,7 @@ export default function TopNavDemo() {
       <Preview label="Product bar" description="Heading, primary links, and one action.">
         <TopNav
           label="Product"
-          heading={<TopNavHeading heading="Joined" />}
+          heading={<BrandHeading />}
           startContent={
             <>
               {LINKS.map((l) => (
@@ -85,7 +86,7 @@ export default function TopNavDemo() {
       >
         <TopNav
           label="App"
-          heading={<TopNavHeading heading="Joined" />}
+          heading={<BrandHeading />}
           centerContent={
             <TextInput
               label="Search"
@@ -119,7 +120,7 @@ export default function TopNavDemo() {
       >
         <TopNav
           label="Marketing"
-          heading={<TopNavHeading heading="Joined" />}
+          heading={<BrandHeading />}
           startContent={
             <>
               <TopNavMegaMenu

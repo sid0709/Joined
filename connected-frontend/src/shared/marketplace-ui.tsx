@@ -14,6 +14,8 @@ export {
   Heading,
   ThemeToggle,
   JoinedLogo,
+  BrandLockup,
+  BrandFooter,
 } from "@joined/design-system";
 export type { NavItem } from "@joined/design-system";
 

@@ -8,6 +8,9 @@ const loading = () => createElement(Spinner, { label: "Loading example" });
 
 export const DEMO_COMPONENTS: Record<string, ComponentType> = {
   brand: dynamic(() => import("./brand"), { ssr: false, loading }),
+  "brand-heading": dynamic(() => import("./brand-heading"), { ssr: false, loading }),
+  "brand-lockup": dynamic(() => import("./brand-lockup"), { ssr: false, loading }),
+  "brand-footer": dynamic(() => import("./brand-footer"), { ssr: false, loading }),
   button: dynamic(() => import("./button"), { ssr: false, loading }),
   "button-group": dynamic(() => import("./button-group"), { ssr: false, loading }),
   "icon-button": dynamic(() => import("./icon-button"), { ssr: false, loading }),

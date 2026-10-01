@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { TopNav, TopNavHeading, TopNavItem, useAppShellMobile } from "@joined/design-system";
+import { BrandHeading, TopNav, TopNavItem, useAppShellMobile } from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
@@ -36,7 +36,7 @@ export function SeekerHeader({
   return (
     <TopNav
       label={BRAND}
-      heading={<TopNavHeading heading={BRAND} headingHref={ROUTES.search} />}
+      heading={<BrandHeading product={BRAND} headingHref={ROUTES.search} />}
       startContent={
         <>
           {nav.map((link) => (

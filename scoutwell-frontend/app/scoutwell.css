@@ -565,6 +565,20 @@ body {
   }
 }
 
+.sw-auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.sw-auth-endorse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1-5);
+  color: color-mix(in srgb, var(--color-on-accent) 80%, transparent);
+  font-size: var(--font-size-sm);
+}
+
 .sw-auth-quote {
   margin: 0;
   color: var(--color-on-accent);

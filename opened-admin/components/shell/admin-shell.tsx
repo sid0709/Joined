@@ -4,8 +4,8 @@ import {
   PageContainer,
   ThemeToggle,
   TopNav,
-  TopNavHeading,
   Badge,
+  BrandHeading,
 } from "@joined/design-system";
 import type { Overview } from "@joined/scout";
 import { BRAND } from "@/lib/config";
@@ -48,8 +48,8 @@ export function AdminShell({
         <TopNav
           label={BRAND}
           heading={
-            <TopNavHeading
-              heading={BRAND}
+            <BrandHeading
+              product={BRAND}
               headingHref={ROUTES.scouting}
               headerEndContent={<Badge label="Staff" variant="neutral" />}
             />

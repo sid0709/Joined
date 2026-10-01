@@ -1,7 +1,10 @@
 import { useId, type CSSProperties } from "react";
 
-/** A gradient palette from brand.css: five stops at 0, 25, 50, 75, 100%. */
-export type BrandRamp = "original" | "blue";
+/**
+ * A gradient palette from brand.css: five stops at 0, 25, 50, 75, 100%.
+ * `adaptive` is the blue ramp, brightened in dark mode.
+ */
+export type BrandRamp = "adaptive" | "blue" | "original";
 
 /** A solid fill from brand.css. */
 export type BrandSolid = "meta-blue" | "black" | "white";

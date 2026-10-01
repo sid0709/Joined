@@ -14,6 +14,8 @@ import {
   SideNavSection,
   Text,
   icons,
+  BRAND_NAME,
+  JoinedMark,
 } from "@joined/design-system";
 import { useState } from "react";
 
@@ -53,9 +55,9 @@ export default function SideNavDemo() {
           <SideNav
             header={
               <SideNavHeading
-                heading="Joined"
+                heading={BRAND_NAME}
                 subheading="Northwind"
-                icon={<Icon icon={icons.seat} color="accent" />}
+                icon={<JoinedMark label="" />}
               />
             }
           >
@@ -128,9 +130,7 @@ export default function SideNavDemo() {
         <HStack gap={3} vAlign="start">
           <Card height={NAV_HEIGHT} padding={0}>
             <SideNav
-              header={
-                <SideNavHeading heading="Joined" icon={<Icon icon={icons.seat} color="accent" />} />
-              }
+              header={<SideNavHeading heading={BRAND_NAME} icon={<JoinedMark label="" />} />}
               collapsible={{
                 isCollapsed: collapsed,
                 onCollapsedChange: setCollapsed,

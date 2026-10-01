@@ -1,10 +1,10 @@
 "use client";
 
-import { BRAND_NAME, JoinedLogo, JoinedMark } from "../brand";
+import { BRAND_NAME, BrandHeading } from "../brand";
 
 import { Button } from "./Action";
 import { Avatar } from "./Content";
-import { TopNav, TopNavHeading, TopNavItem } from "./LayoutPrimitives";
+import { TopNav, TopNavItem } from "./LayoutPrimitives";
 
 import type { ReactNode } from "react";
 
@@ -42,13 +42,7 @@ export function Nav({
   return (
     <TopNav
       label={brand}
-      heading={
-        brand === BRAND_NAME ? (
-          <TopNavHeading logo={<JoinedLogo />} logoLabel={brand} />
-        ) : (
-          <TopNavHeading logo={<JoinedMark label="" />} heading={brand} />
-        )
-      }
+      heading={<BrandHeading product={brand} />}
       startContent={
         <>
           {items.map((item) => (

@@ -1,6 +1,13 @@
 import Link from "next/link";
 
-import { ButtonLink, Card, JoinedLogo, Stack, ThemeToggle } from "@/src/shared/marketplace-ui";
+import {
+  BrandFooter,
+  ButtonLink,
+  Card,
+  JoinedLogo,
+  Stack,
+  ThemeToggle,
+} from "@/src/shared/marketplace-ui";
 
 export default function Home() {
   return (
@@ -92,6 +99,8 @@ export default function Home() {
           </Link>
         </Card>
       </section>
+
+      <BrandFooter lead="©" />
     </main>
   );
 }

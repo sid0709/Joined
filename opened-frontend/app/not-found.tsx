@@ -1,8 +1,8 @@
-import { Button, EmptyState, Stack } from "@joined/design-system";
+import { BrandFooter, Button, EmptyState, Stack } from "@joined/design-system";
 import { AppFrame } from "@/components/shell/app-frame";
 import { SeekerHeader } from "@/components/shell/seeker-header";
 import { loadSession } from "@/lib/auth/session";
-import { ROUTES } from "@/lib/routes";
+import { BRAND, ROUTES } from "@/lib/routes";
 
 export default async function NotFound() {
   const session = await loadSession();
@@ -15,6 +15,7 @@ export default async function NotFound() {
           description="The job may have closed, or the link is wrong."
           actions={<Button label="Back to jobs" variant="primary" href={ROUTES.search} />}
         />
+        <BrandFooter lead={`${BRAND} is part of`} />
       </Stack>
     </AppFrame>
   );

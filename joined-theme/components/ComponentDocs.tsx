@@ -5,7 +5,15 @@ import { useState } from "react";
 
 import { DEMO_COMPONENTS } from "@/components/demos/load";
 
-export function ComponentDocs({ slug, importName }: { slug: string; importName: string }) {
+export function ComponentDocs({
+  slug,
+  importName,
+  usage,
+}: {
+  slug: string;
+  importName: string;
+  usage?: string;
+}) {
   const [tab, setTab] = useState("overview");
   const Demo = DEMO_COMPONENTS[slug];
 
@@ -17,12 +25,15 @@ export function ComponentDocs({ slug, importName }: { slug: string; importName: 
       </TabList>
       {tab === "overview" && (Demo ? <Demo /> : <Text color="secondary">No demo yet.</Text>)}
       {tab === "usage" && (
-        <CodeBlock
-          language="tsx"
-          title="Import"
-          width="100%"
-          code={`import { ${importName} } from "@joined/design-system";`}
-        />
+        <Stack gap={4}>
+          <CodeBlock
+            language="tsx"
+            title="Import"
+            width="100%"
+            code={`import { ${importName} } from "@joined/design-system";`}
+          />
+          {usage && <CodeBlock language="tsx" title="Example" width="100%" code={usage} />}
+        </Stack>
       )}
     </Stack>
   );

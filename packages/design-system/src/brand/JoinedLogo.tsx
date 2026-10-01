@@ -11,11 +11,15 @@ import {
 
 import type { CSSProperties } from "react";
 
-/** The color treatments shipped in Joined-Logo/1-Brand-Logo. */
-export type JoinedLogoVariant = "original" | "blue-gradient" | "meta-blue" | "black" | "white";
+/**
+ * The color treatments shipped in Joined-Logo/1-Brand-Logo, plus `blue`: the
+ * blue gradient that brightens in dark mode. Blue is the everyday brand color.
+ */
+export type JoinedLogoVariant =
+  "blue" | "blue-gradient" | "meta-blue" | "original" | "black" | "white";
 
 export interface JoinedLogoProps {
-  /** `original` is the primary mark; use `white` on dark or accent surfaces. */
+  /** `blue` everywhere by default; `white` on accent or photo surfaces; `original` for marketing moments. */
   variant?: JoinedLogoVariant;
   /** Rendered height; width follows the artwork's aspect ratio. */
   height?: CSSProperties["height"];
@@ -25,6 +29,7 @@ export interface JoinedLogoProps {
 }
 
 const RAMPS: Partial<Record<JoinedLogoVariant, BrandRamp>> = {
+  blue: "adaptive",
   original: "original",
   "blue-gradient": "blue",
 };
@@ -34,7 +39,7 @@ const VECTOR = { x1: 0, y1: 114.347, x2: 854.843, y2: 114.347 };
 
 /** The "Joined" wordmark. */
 export function JoinedLogo({
-  variant = "original",
+  variant = "blue",
   height = "1.5rem",
   label = BRAND_NAME,
   className,

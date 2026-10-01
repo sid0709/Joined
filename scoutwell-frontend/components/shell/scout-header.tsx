@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import {
   Badge,
+  BrandHeading,
   Button,
   Icon,
   icons,
   ThemeToggle,
   TopNav,
-  TopNavHeading,
   useAppShellMobile,
 } from "@joined/design-system";
 import type { SessionUser } from "@/lib/auth/types";
@@ -33,8 +33,8 @@ export function ScoutHeader({
   const router = useRouter();
   const { isMobile } = useAppShellMobile();
   const heading = (
-    <TopNavHeading
-      heading={BRAND}
+    <BrandHeading
+      product={BRAND}
       headingHref={user ? ROUTES.dashboard : ROUTES.home}
       headerEndContent={<Badge label="Scouts" variant="blue" />}
     />

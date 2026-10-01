@@ -1,5 +1,6 @@
-import { Badge, Button } from "@joined/design-system";
+import { Badge, BrandFooter, Button } from "@joined/design-system";
 import { formatMoney, formatRate, type Meta } from "@joined/scout";
+import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 import { ApiBand } from "./api-band";
 import { HowItWorks } from "./how-it-works";
@@ -80,6 +81,7 @@ export function LandingPage({ meta, signedIn }: { meta: Meta; signedIn: boolean 
       <HowItWorks meta={meta} />
       <LevelTiers meta={meta} />
       <ApiBand maxBatch={meta.limits.max_batch} signedIn={signedIn} />
+      <BrandFooter lead={`${BRAND} is part of`} />
     </div>
   );
 }

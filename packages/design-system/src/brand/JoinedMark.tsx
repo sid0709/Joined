@@ -1,11 +1,14 @@
 import { APP_TILE, SYMBOL } from "./geometry";
 import { BRAND_NAME } from "./name";
-import { BrandGradient, labelProps, solidFill, useGradientId } from "./paint";
+import { BrandGradient, labelProps, solidFill, useGradientId, type BrandSolid } from "./paint";
 
 import type { CSSProperties } from "react";
 
-/** The treatments shipped in Joined-Logo/3-App-Icon-D-Link. */
-export type JoinedMarkVariant = "app" | "gradient" | "meta-blue" | "white";
+/**
+ * The treatments shipped in Joined-Logo/3-App-Icon-D-Link, plus `blue`: the bare
+ * symbol in the blue gradient that brightens in dark mode.
+ */
+export type JoinedMarkVariant = "app" | "blue" | "gradient" | "meta-blue" | "white";
 
 export interface JoinedMarkProps {
   /** `app` is the rounded app tile; the others are the bare symbol. */
@@ -56,13 +59,16 @@ export function JoinedMark({
     );
   }
 
-  const gradient = variant === "gradient";
+  const ramp = variant === "blue" ? "adaptive" : variant === "gradient" ? "blue" : undefined;
   return (
     <svg viewBox={`0 0 ${SYMBOL.width} ${SYMBOL.height}`} {...svgProps}>
-      <path d={SYMBOL.d} style={gradient ? { fill: `url(#${id})` } : solidFill(variant)} />
-      {gradient && (
+      <path
+        d={SYMBOL.d}
+        style={ramp ? { fill: `url(#${id})` } : solidFill(variant as BrandSolid)}
+      />
+      {ramp && (
         <defs>
-          <BrandGradient id={id} ramp="blue" vector={SYMBOL_VECTOR} />
+          <BrandGradient id={id} ramp={ramp} vector={SYMBOL_VECTOR} />
         </defs>
       )}
     </svg>

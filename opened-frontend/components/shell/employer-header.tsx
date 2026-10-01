@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, TopNav, TopNavHeading } from "@joined/design-system";
+import { Badge, BrandHeading, TopNav } from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
 import { PostJobButton } from "@/components/post-job-button";
 import { BRAND, ROUTES } from "@/lib/routes";
@@ -13,8 +13,8 @@ export function EmployerHeader({ session, unread = 0 }: { session: AuthSession; 
     <TopNav
       label={`${BRAND} for employers`}
       heading={
-        <TopNavHeading
-          heading={BRAND}
+        <BrandHeading
+          product={BRAND}
           headingHref={ROUTES.company}
           headerEndContent={<Badge label="Employers" variant="blue" />}
         />

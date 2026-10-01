@@ -17,11 +17,11 @@ import {
   Text,
   Tile,
   TopNav,
-  TopNavHeading,
   TopNavItem,
   icons,
   type AppShellBreakpoint,
   type AppShellVariant,
+  BrandHeading,
 } from "@joined/design-system";
 import { useState, type ReactNode } from "react";
 
@@ -41,7 +41,7 @@ function Top({ current = "Rooms" }: { current?: string }) {
   return (
     <TopNav
       label="Product navigation"
-      heading={<TopNavHeading heading="Joined" />}
+      heading={<BrandHeading />}
       startContent={
         <>
           <TopNavItem label="Rooms" href="#rooms" isSelected={current === "Rooms"} />

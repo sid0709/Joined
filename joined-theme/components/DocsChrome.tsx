@@ -3,16 +3,15 @@
 import {
   AppShell,
   BRAND_NAME,
+  BrandHeading,
   Button,
   Icon,
-  JoinedLogo,
   JoinedMark,
   SideNav,
   SideNavHeading,
   SideNavItem,
   TextInput,
   TopNav,
-  TopNavHeading,
   TopNavItem,
 } from "@joined/design-system";
 import { usePathname } from "next/navigation";
@@ -46,7 +45,7 @@ export function DocsChrome({ children }: { children: ReactNode }) {
       topNav={
         <TopNav
           label="Documentation"
-          heading={<TopNavHeading logo={<JoinedLogo />} logoLabel={BRAND_NAME} headingHref="/" />}
+          heading={<BrandHeading headingHref="/" />}
           startContent={
             <>
               <TopNavItem

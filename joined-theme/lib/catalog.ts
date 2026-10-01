@@ -5,6 +5,8 @@ export type CatalogItem = {
   title: string;
   description: string;
   importName: string;
+  /** Example code for the Usage tab, after the import. */
+  usage?: string;
 };
 
 export type CatalogGroup = {
@@ -27,8 +29,47 @@ export const CATALOG: CatalogGroup[] = [
       {
         slug: "brand",
         title: "Brand",
-        description: "The Joined wordmark and app icon — color variants, sizes, and top-bar use.",
-        importName: "JoinedLogo",
+        description:
+          "The Joined wordmark and app icon — blue first, which logo goes where, and what not to do.",
+        importName: "JoinedLogo, JoinedMark, BRAND_NAME",
+        usage: `// The wordmark. Blue by default; it brightens itself in dark mode.
+<JoinedLogo height="2rem" />
+
+// White on accent or photo surfaces; original colors for marketing moments only.
+<JoinedLogo variant="white" />
+<JoinedLogo variant="original" />
+
+// The app icon tile, and the bare symbol for tight spaces.
+<JoinedMark size="2.5rem" />
+<JoinedMark variant="blue" size="1rem" label="" />`,
+      },
+      {
+        slug: "brand-heading",
+        title: "Brand Heading",
+        description:
+          "The TopNav heading for every app: the blue wordmark for Joined, the app icon beside a product name.",
+        importName: "BrandHeading",
+        usage: `// Joined itself
+<TopNav heading={<BrandHeading headingHref="/" />} />
+
+// A product under Joined
+<TopNav heading={<BrandHeading product="Opened" headingHref="/jobs" />} />`,
+      },
+      {
+        slug: "brand-lockup",
+        title: "Brand Lockup",
+        description: "The logo block that opens sign-in, sign-up, onboarding, and error pages.",
+        importName: "BrandLockup",
+        usage: `<BrandLockup tagline="Find the right people for meaningful work." />
+<BrandLockup product="Scoutwell" tagline="Sign in to keep scouting." />`,
+      },
+      {
+        slug: "brand-footer",
+        title: "Brand Footer",
+        description: "A quiet “Part of Joined” sign-off under landing, auth, and error pages.",
+        importName: "BrandFooter",
+        usage: `<BrandFooter />
+<BrandFooter lead="Scoutwell is part of" align="start" />`,
       },
     ],
   },
