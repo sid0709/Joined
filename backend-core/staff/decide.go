@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 const (

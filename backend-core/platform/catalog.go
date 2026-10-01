@@ -1,19 +1,19 @@
-package httpapi
+package platform
 
 import (
 	"context"
 	"errors"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 type jobsCatalog struct {
 	store *jobs.Store
 }
 
-func NewJobsCatalog(store *jobs.Store) candidate.Catalog {
+func newJobsCatalog(store *jobs.Store) candidate.Catalog {
 	return jobsCatalog{store: store}
 }
 

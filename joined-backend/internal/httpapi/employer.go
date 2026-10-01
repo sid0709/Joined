@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/auth"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 const parseJobTimeout = 90 * time.Second
@@ -71,7 +72,7 @@ func (s *Server) registerEmployer(mux *http.ServeMux) {
 
 func (s *Server) company(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
 	if s.hiring == nil {
-		writeError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
 		return auth.Session{}, false
 	}
 	return s.requireCompany(w, r)
@@ -124,7 +125,7 @@ func (s *Server) getCompanyOverview(w http.ResponseWriter, r *http.Request) {
 	if !employer.Can(actor.Role, employer.PermBillingView) {
 		overview.Billing = employer.EmptyBilling()
 	}
-	writeJSON(w, http.StatusOK, overview)
+	httpkit.WriteJSON(w, http.StatusOK, overview)
 }
 
 func (s *Server) getCompanyCounts(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +137,7 @@ func (s *Server) getCompanyCounts(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, counts)
+	httpkit.WriteJSON(w, http.StatusOK, counts)
 }
 
 func (s *Server) getCompanyJobs(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +157,7 @@ func (s *Server) getCompanyJobs(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"jobs": idx.FilterJobs(actor.ID, actor.Role, items)})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"jobs": idx.FilterJobs(actor.ID, actor.Role, items)})
 }
 
 func (s *Server) postCompanyJob(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +178,7 @@ func (s *Server) postCompanyJob(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, job)
+	httpkit.WriteJSON(w, http.StatusCreated, job)
 }
 
 func (s *Server) getCompanyJob(w http.ResponseWriter, r *http.Request) {
@@ -192,7 +193,7 @@ func (s *Server) getCompanyJob(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
+	httpkit.WriteJSON(w, http.StatusOK, job)
 }
 
 func (s *Server) putCompanyJob(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +212,7 @@ func (s *Server) putCompanyJob(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
+	httpkit.WriteJSON(w, http.StatusOK, job)
 }
 
 func (s *Server) parseCompanyJob(w http.ResponseWriter, r *http.Request) {
@@ -232,19 +233,19 @@ func (s *Server) parseCompanyJob(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	draft, err := jobs.ParsePostedJob(ctx, s.reader, session.Company.Name, input.Description)
 	if jobs.IsMissingAPIKey(err) {
-		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the API environment")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the API environment")
 		return
 	}
 	if errors.Is(err, jobs.ErrInvalidInput) {
-		writeError(w, http.StatusBadRequest, err.Error())
+		httpkit.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if err != nil {
 		slog.Error("parse company job", "error", err)
-		writeError(w, http.StatusBadGateway, "could not read that job description")
+		httpkit.WriteError(w, http.StatusBadGateway, "could not read that job description")
 		return
 	}
-	writeJSON(w, http.StatusOK, draft)
+	httpkit.WriteJSON(w, http.StatusOK, draft)
 }
 
 func (s *Server) getCompanyPipeline(w http.ResponseWriter, r *http.Request) {
@@ -259,7 +260,7 @@ func (s *Server) getCompanyPipeline(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, cfg)
+	httpkit.WriteJSON(w, http.StatusOK, cfg)
 }
 
 func (s *Server) putCompanyPipeline(w http.ResponseWriter, r *http.Request) {
@@ -278,7 +279,7 @@ func (s *Server) putCompanyPipeline(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, cfg)
+	httpkit.WriteJSON(w, http.StatusOK, cfg)
 }
 
 func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
@@ -298,7 +299,7 @@ func (s *Server) patchCompanyJob(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, job)
+	httpkit.WriteJSON(w, http.StatusOK, job)
 }
 
 func (s *Server) getCompanyApplicants(w http.ResponseWriter, r *http.Request) {
@@ -318,7 +319,7 @@ func (s *Server) getCompanyApplicants(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"applicants": idx.FilterApplicants(actor.ID, actor.Role, items)})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"applicants": idx.FilterApplicants(actor.ID, actor.Role, items)})
 }
 
 func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
@@ -341,7 +342,7 @@ func (s *Server) patchCompanyApplicant(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, person)
+	httpkit.WriteJSON(w, http.StatusOK, person)
 }
 
 func (s *Server) postOfferApproval(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +361,7 @@ func (s *Server) postOfferApproval(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, item)
+	httpkit.WriteJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) patchOfferApproval(w http.ResponseWriter, r *http.Request) {
@@ -379,7 +380,7 @@ func (s *Server) patchOfferApproval(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) postOfferEsign(w http.ResponseWriter, r *http.Request) {
@@ -398,7 +399,7 @@ func (s *Server) postOfferEsign(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, item)
+	httpkit.WriteJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) postOfferEsignMark(w http.ResponseWriter, r *http.Request) {
@@ -417,7 +418,7 @@ func (s *Server) postOfferEsignMark(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
@@ -436,7 +437,7 @@ func (s *Server) postHirePacket(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, item)
+	httpkit.WriteJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) patchHirePacket(w http.ResponseWriter, r *http.Request) {
@@ -455,7 +456,7 @@ func (s *Server) patchHirePacket(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) patchHirePacketItem(w http.ResponseWriter, r *http.Request) {
@@ -474,7 +475,7 @@ func (s *Server) patchHirePacketItem(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) {
@@ -489,7 +490,7 @@ func (s *Server) getApplicantScorecards(w http.ResponseWriter, r *http.Request) 
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, items)
+	httpkit.WriteJSON(w, http.StatusOK, items)
 }
 
 func (s *Server) postApplicantScorecard(w http.ResponseWriter, r *http.Request) {
@@ -508,7 +509,7 @@ func (s *Server) postApplicantScorecard(w http.ResponseWriter, r *http.Request) 
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, item)
+	httpkit.WriteJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) getCompanyInterviews(w http.ResponseWriter, r *http.Request) {
@@ -528,7 +529,7 @@ func (s *Server) getCompanyInterviews(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"interviews": idx.FilterInterviews(actor.ID, actor.Role, items)})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"interviews": idx.FilterInterviews(actor.ID, actor.Role, items)})
 }
 
 // getCompanyInterviewFreeBusy is GET /v1/company/interviews/free-busy.
@@ -546,7 +547,7 @@ func (s *Server) getCompanyInterviewFreeBusy(w http.ResponseWriter, r *http.Requ
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
 }
 
 func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
@@ -569,7 +570,7 @@ func (s *Server) postCompanyInterview(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, item)
+	httpkit.WriteJSON(w, http.StatusCreated, item)
 }
 
 func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
@@ -588,7 +589,7 @@ func (s *Server) patchCompanyInterview(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
@@ -603,7 +604,7 @@ func (s *Server) getCompanyBilling(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, billing)
+	httpkit.WriteJSON(w, http.StatusOK, billing)
 }
 
 func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
@@ -622,7 +623,7 @@ func (s *Server) postCompanyPurchase(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, billing)
+	httpkit.WriteJSON(w, http.StatusOK, billing)
 }
 
 func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
@@ -634,7 +635,7 @@ func (s *Server) getCompanyTeam(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, team)
+	httpkit.WriteJSON(w, http.StatusOK, team)
 }
 
 func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
@@ -650,7 +651,7 @@ func (s *Server) postCompanyTeam(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, team)
+	httpkit.WriteJSON(w, http.StatusOK, team)
 }
 
 func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
@@ -666,7 +667,7 @@ func (s *Server) patchCompanyTeam(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) deleteCompanyTeam(w http.ResponseWriter, r *http.Request) {
@@ -694,7 +695,7 @@ func (s *Server) postCompanyTransfer(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
@@ -709,7 +710,7 @@ func (s *Server) getCompanySettings(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, settings)
+	httpkit.WriteJSON(w, http.StatusOK, settings)
 }
 
 func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
@@ -728,7 +729,7 @@ func (s *Server) putCompanySettings(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, settings)
+	httpkit.WriteJSON(w, http.StatusOK, settings)
 }
 
 func (s *Server) getCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
@@ -743,7 +744,7 @@ func (s *Server) getCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, teams)
+	httpkit.WriteJSON(w, http.StatusOK, teams)
 }
 
 func (s *Server) putCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
@@ -762,7 +763,7 @@ func (s *Server) putCompanyJobTeams(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, teams)
+	httpkit.WriteJSON(w, http.StatusOK, teams)
 }
 
 func (s *Server) getCompanyJobTemplates(w http.ResponseWriter, r *http.Request) {
@@ -777,7 +778,7 @@ func (s *Server) getCompanyJobTemplates(w http.ResponseWriter, r *http.Request) 
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, templates)
+	httpkit.WriteJSON(w, http.StatusOK, templates)
 }
 
 func (s *Server) putCompanyJobTemplates(w http.ResponseWriter, r *http.Request) {
@@ -796,7 +797,7 @@ func (s *Server) putCompanyJobTemplates(w http.ResponseWriter, r *http.Request) 
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, templates)
+	httpkit.WriteJSON(w, http.StatusOK, templates)
 }
 
 func (s *Server) getCompanyDepartments(w http.ResponseWriter, r *http.Request) {
@@ -811,7 +812,7 @@ func (s *Server) getCompanyDepartments(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, departments)
+	httpkit.WriteJSON(w, http.StatusOK, departments)
 }
 
 func (s *Server) putCompanyDepartments(w http.ResponseWriter, r *http.Request) {
@@ -830,7 +831,7 @@ func (s *Server) putCompanyDepartments(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, departments)
+	httpkit.WriteJSON(w, http.StatusOK, departments)
 }
 
 func (s *Server) getCompanyOfficeLocations(w http.ResponseWriter, r *http.Request) {
@@ -845,7 +846,7 @@ func (s *Server) getCompanyOfficeLocations(w http.ResponseWriter, r *http.Reques
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, locations)
+	httpkit.WriteJSON(w, http.StatusOK, locations)
 }
 
 func (s *Server) putCompanyOfficeLocations(w http.ResponseWriter, r *http.Request) {
@@ -864,7 +865,7 @@ func (s *Server) putCompanyOfficeLocations(w http.ResponseWriter, r *http.Reques
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, locations)
+	httpkit.WriteJSON(w, http.StatusOK, locations)
 }
 
 func (s *Server) getCompanyPage(w http.ResponseWriter, r *http.Request) {
@@ -876,7 +877,7 @@ func (s *Server) getCompanyPage(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	httpkit.WriteJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) putCompanyPage(w http.ResponseWriter, r *http.Request) {
@@ -892,7 +893,7 @@ func (s *Server) putCompanyPage(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	httpkit.WriteJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) postCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
@@ -900,7 +901,7 @@ func (s *Server) postCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	data, contentType, ok := readLogoUpload(w, r)
+	data, contentType, ok := httpkit.ReadLogoUpload(w, r)
 	if !ok {
 		return
 	}
@@ -908,7 +909,7 @@ func (s *Server) postCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	httpkit.WriteJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) deleteCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
@@ -920,7 +921,7 @@ func (s *Server) deleteCompanyPageLogo(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	httpkit.WriteJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) getJobAccess(w http.ResponseWriter, r *http.Request) {
@@ -932,7 +933,7 @@ func (s *Server) getJobAccess(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, view)
+	httpkit.WriteJSON(w, http.StatusOK, view)
 }
 
 func (s *Server) putJobAccess(w http.ResponseWriter, r *http.Request) {
@@ -948,7 +949,7 @@ func (s *Server) putJobAccess(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, view)
+	httpkit.WriteJSON(w, http.StatusOK, view)
 }
 
 func (s *Server) getCompanyAudit(w http.ResponseWriter, r *http.Request) {
@@ -967,7 +968,7 @@ func (s *Server) getCompanyAudit(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, page)
+	httpkit.WriteJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) getHiringProfile(w http.ResponseWriter, r *http.Request) {
@@ -979,7 +980,7 @@ func (s *Server) getHiringProfile(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) putHiringProfile(w http.ResponseWriter, r *http.Request) {
@@ -995,7 +996,7 @@ func (s *Server) putHiringProfile(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 
 func writeEmployer(w http.ResponseWriter, err error) bool {
@@ -1003,24 +1004,24 @@ func writeEmployer(w http.ResponseWriter, err error) bool {
 	case err == nil:
 		return true
 	case errors.Is(err, employer.ErrNotFound):
-		writeError(w, http.StatusNotFound, "not found")
+		httpkit.WriteError(w, http.StatusNotFound, "not found")
 	case errors.Is(err, employer.ErrInvalidInput), errors.Is(err, auth.ErrInvalidInput):
-		writeError(w, http.StatusBadRequest, err.Error())
+		httpkit.WriteError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, employer.ErrInsufficient):
-		writeError(w, http.StatusPaymentRequired, err.Error())
+		httpkit.WriteError(w, http.StatusPaymentRequired, err.Error())
 	case errors.Is(err, employer.ErrForbidden):
-		writeError(w, http.StatusForbidden, err.Error())
+		httpkit.WriteError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, employer.ErrConflict), errors.Is(err, auth.ErrHasCompany):
-		writeError(w, http.StatusConflict, err.Error())
+		httpkit.WriteError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, employer.ErrFreeBusyNotReady):
 		// 503 + code, not the generic 500 crash body.
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+		httpkit.WriteJSON(w, http.StatusServiceUnavailable, map[string]string{
 			"error": err.Error(),
 			"code":  employer.FreeBusyNotReadyCode,
 		})
 	default:
 		slog.Error("company", "error", err)
-		writeError(w, http.StatusInternalServerError, "could not complete the request")
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not complete the request")
 	}
 	return false
 }

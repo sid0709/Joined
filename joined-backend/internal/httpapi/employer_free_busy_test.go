@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
 )
 
 func TestFreeBusyNotReadyIs503(t *testing.T) {
@@ -45,7 +45,7 @@ func TestFreeBusyBadRangeIs400(t *testing.T) {
 }
 
 func TestFreeBusyRouteIsRegistered(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{})
+	handler := New(nil, nil, nil, nil, nil, nil, Options{})
 	req := httptest.NewRequest(http.MethodGet, "/v1/company/interviews/free-busy?from=2026-10-01&to=2026-10-14", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

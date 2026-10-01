@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"crypto/subtle"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -10,8 +9,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
 )
 
 const (
@@ -21,36 +21,21 @@ const (
 )
 
 func (s *Server) registerScoutAdmin(mux *http.ServeMux) {
-	mux.HandleFunc("GET /v1/admin/scout/meta", s.admin(s.scoutMeta))
-	mux.HandleFunc("GET /v1/admin/scout/overview", s.admin(s.adminScoutOverview))
-	mux.HandleFunc("GET /v1/admin/scout/submissions", s.admin(s.adminScoutSubmissions))
-	mux.HandleFunc("GET /v1/admin/scout/submissions/{id}", s.admin(s.adminScoutSubmission))
-	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/review", s.admin(s.adminScoutReview))
-	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/analyze", s.admin(s.adminScoutAnalyze))
-	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/compare-matches", s.admin(s.adminScoutCompareMatches))
-	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/expire", s.admin(s.adminScoutExpire))
-	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/outcomes", s.admin(s.adminScoutOutcome))
-	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/recheck", s.admin(s.adminScoutRecheck))
-	mux.HandleFunc("GET /v1/admin/scout/scouts", s.admin(s.adminScouts))
-	mux.HandleFunc("GET /v1/admin/scout/scouts/{userId}", s.admin(s.adminScout))
-	mux.HandleFunc("PATCH /v1/admin/scout/scouts/{userId}", s.admin(s.adminPatchScout))
-	mux.HandleFunc("GET /v1/admin/scout/payouts", s.admin(s.adminPayouts))
-	mux.HandleFunc("POST /v1/admin/scout/payouts/{id}/decision", s.admin(s.adminDecidePayout))
-}
-
-// admin guards staff endpoints. When ADMIN_API_TOKEN is configured, callers
-// must send it as a bearer token; the admin console adds it server-side.
-func (s *Server) admin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if s.adminToken != "" {
-			token := bearerToken(r)
-			if subtle.ConstantTimeCompare([]byte(token), []byte(s.adminToken)) != 1 {
-				writeError(w, http.StatusUnauthorized, "admin token required")
-				return
-			}
-		}
-		next(w, r)
-	}
+	mux.HandleFunc("GET /v1/admin/scout/meta", s.scoutMeta)
+	mux.HandleFunc("GET /v1/admin/scout/overview", s.adminScoutOverview)
+	mux.HandleFunc("GET /v1/admin/scout/submissions", s.adminScoutSubmissions)
+	mux.HandleFunc("GET /v1/admin/scout/submissions/{id}", s.adminScoutSubmission)
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/review", s.adminScoutReview)
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/analyze", s.adminScoutAnalyze)
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/compare-matches", s.adminScoutCompareMatches)
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/expire", s.adminScoutExpire)
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/outcomes", s.adminScoutOutcome)
+	mux.HandleFunc("POST /v1/admin/scout/submissions/{id}/recheck", s.adminScoutRecheck)
+	mux.HandleFunc("GET /v1/admin/scout/scouts", s.adminScouts)
+	mux.HandleFunc("GET /v1/admin/scout/scouts/{userId}", s.adminScout)
+	mux.HandleFunc("PATCH /v1/admin/scout/scouts/{userId}", s.adminPatchScout)
+	mux.HandleFunc("GET /v1/admin/scout/payouts", s.adminPayouts)
+	mux.HandleFunc("POST /v1/admin/scout/payouts/{id}/decision", s.adminDecidePayout)
 }
 
 // adminActor is who made a staff decision, for the audit log.
@@ -78,13 +63,17 @@ func pageQuery(r *http.Request) (int64, int64) {
 	return page, size
 }
 
+func (s *Server) scoutMeta(w http.ResponseWriter, r *http.Request) {
+	httpkit.WriteJSON(w, http.StatusOK, scout.Rulebook())
+}
+
 func (s *Server) adminScoutOverview(w http.ResponseWriter, r *http.Request) {
 	overview, err := s.scouts.AdminOverview(r.Context())
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, overview)
+	httpkit.WriteJSON(w, http.StatusOK, overview)
 }
 
 func (s *Server) adminScoutSubmissions(w http.ResponseWriter, r *http.Request) {
@@ -98,32 +87,32 @@ func (s *Server) adminScoutSubmissions(w http.ResponseWriter, r *http.Request) {
 		PageSize: size,
 	})
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) adminScoutSubmission(w http.ResponseWriter, r *http.Request) {
 	detail, err := s.scouts.AdminSubmission(r.Context(), r.PathValue("id"))
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, detail)
+	httpkit.WriteJSON(w, http.StatusOK, detail)
 }
 
 func (s *Server) adminScoutReview(w http.ResponseWriter, r *http.Request) {
 	var input scout.ReviewInput
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	sub, err := s.scouts.Review(r.Context(), r.PathValue("id"), adminActor(r), input)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sub)
+	httpkit.WriteJSON(w, http.StatusOK, sub)
 }
 
 func (s *Server) adminScoutAnalyze(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +120,7 @@ func (s *Server) adminScoutAnalyze(w http.ResponseWriter, r *http.Request) {
 		Edits           *scout.SubmissionInput `json:"edits"`
 		ContinueExtract bool                   `json:"continue_extract"`
 	}
-	if !decodeScout(w, r, maxWriteBody, &body) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &body) {
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
@@ -141,15 +130,15 @@ func (s *Server) adminScoutAnalyze(w http.ResponseWriter, r *http.Request) {
 		return s.store.AnalyzeScouted(ctx, s.reader, listing, tempJobID, now, body.ContinueExtract)
 	})
 	if jobs.IsMissingAPIKey(err) {
-		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, missingAPIKey)
 		return
 	}
 	if err != nil {
 		slog.Error("analyze scout submission", "error", err)
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{
 		"submission": sub,
 		"record":     result.Record,
 		"duplicate":  result.Duplicate,
@@ -159,61 +148,61 @@ func (s *Server) adminScoutAnalyze(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) adminScoutCompareMatches(w http.ResponseWriter, r *http.Request) {
 	if s.reader == nil {
-		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, missingAPIKey)
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
 	defer cancel()
 	compares, err := s.scouts.CompareMatches(ctx, r.PathValue("id"), s.reader)
 	if jobs.IsMissingAPIKey(err) {
-		writeError(w, http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, missingAPIKey)
 		return
 	}
 	if err != nil {
 		slog.Error("compare scout matches", "error", err)
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"compares": compares})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"compares": compares})
 }
 
 func (s *Server) adminScoutExpire(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Note string `json:"note"`
 	}
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	sub, err := s.scouts.Expire(r.Context(), r.PathValue("id"), adminActor(r), input.Note)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sub)
+	httpkit.WriteJSON(w, http.StatusOK, sub)
 }
 
 func (s *Server) adminScoutOutcome(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Type string `json:"type"`
 	}
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	sub, err := s.scouts.RecordOutcome(r.Context(), r.PathValue("id"), adminActor(r), input.Type)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sub)
+	httpkit.WriteJSON(w, http.StatusOK, sub)
 }
 
 func (s *Server) adminScoutRecheck(w http.ResponseWriter, r *http.Request) {
 	sub, err := s.scouts.Recheck(r.Context(), r.PathValue("id"), adminActor(r))
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sub)
+	httpkit.WriteJSON(w, http.StatusOK, sub)
 }
 
 func (s *Server) adminScouts(w http.ResponseWriter, r *http.Request) {
@@ -227,53 +216,53 @@ func (s *Server) adminScouts(w http.ResponseWriter, r *http.Request) {
 		PageSize:     size,
 	})
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) adminScout(w http.ResponseWriter, r *http.Request) {
 	detail, err := s.scouts.AdminScout(r.Context(), r.PathValue("userId"))
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, detail)
+	httpkit.WriteJSON(w, http.StatusOK, detail)
 }
 
 func (s *Server) adminPatchScout(w http.ResponseWriter, r *http.Request) {
 	var patch scout.ScoutPatch
-	if !decodeScout(w, r, maxWriteBody, &patch) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &patch) {
 		return
 	}
 	detail, err := s.scouts.UpdateScout(r.Context(), r.PathValue("userId"), adminActor(r), patch)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, detail)
+	httpkit.WriteJSON(w, http.StatusOK, detail)
 }
 
 func (s *Server) adminPayouts(w http.ResponseWriter, r *http.Request) {
 	page, size := pageQuery(r)
 	list, err := s.scouts.AdminListPayouts(r.Context(), r.URL.Query().Get("status"), page, size)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) adminDecidePayout(w http.ResponseWriter, r *http.Request) {
 	var input scout.PayoutDecision
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	payout, err := s.scouts.DecidePayout(r.Context(), r.PathValue("id"), adminActor(r), input)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, payout)
+	httpkit.WriteJSON(w, http.StatusOK, payout)
 }

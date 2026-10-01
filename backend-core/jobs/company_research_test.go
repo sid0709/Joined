@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
 type fakeResearcher struct {

@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func (s *Server) getCalendar(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +17,7 @@ func (s *Server) getCalendar(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, status)
+	httpkit.WriteJSON(w, http.StatusOK, status)
 }
 
 func (s *Server) startGoogleCalendar(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +29,7 @@ func (s *Server) startGoogleCalendar(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"url": url})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]string{"url": url})
 }
 
 func (s *Server) googleCalendarCallback(w http.ResponseWriter, r *http.Request) {
@@ -67,5 +68,5 @@ func (s *Server) syncGoogleCalendar(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"interviews": created})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"interviews": created})
 }

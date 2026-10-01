@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
 const (

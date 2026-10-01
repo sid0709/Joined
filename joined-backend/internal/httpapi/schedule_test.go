@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
 )
 
 func TestWritePublicScheduleMapsLockErrors(t *testing.T) {

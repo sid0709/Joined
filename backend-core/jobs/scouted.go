@@ -13,8 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/openai"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/openai"
 )
 
 const (

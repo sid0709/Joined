@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
 )
 
 // Limits and copy match joined-frontend/lib/offer-hire.ts.

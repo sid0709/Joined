@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/scout"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/staff"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
 func (s *Server) adminCases(w http.ResponseWriter, r *http.Request) {
@@ -27,12 +28,12 @@ func (s *Server) adminCases(w http.ResponseWriter, r *http.Request) {
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) adminOpenCase(w http.ResponseWriter, r *http.Request) {
 	var input staff.CaseOpening
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	if err := input.Normalize(); !writeStaff(w, err) {
@@ -45,12 +46,12 @@ func (s *Server) adminOpenCase(w http.ResponseWriter, r *http.Request) {
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusCreated, result)
+	httpkit.WriteJSON(w, http.StatusCreated, result)
 }
 
 func (s *Server) adminDecideCase(w http.ResponseWriter, r *http.Request) {
 	var input staff.CaseDecision
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	if err := input.Normalize(); !writeStaff(w, err) {
@@ -63,7 +64,7 @@ func (s *Server) adminDecideCase(w http.ResponseWriter, r *http.Request) {
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	httpkit.WriteJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) adminReports(w http.ResponseWriter, r *http.Request) {
@@ -79,22 +80,22 @@ func (s *Server) adminReports(w http.ResponseWriter, r *http.Request) {
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) adminFileReport(w http.ResponseWriter, r *http.Request) {
-	key := strings.TrimSpace(r.Header.Get(idempotencyHeader))
+	key := strings.TrimSpace(r.Header.Get(httpkit.IdempotencyHeader))
 	if !scout.ValidIdempotencyKey(key) {
-		writeProblem(w, newProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key must be 1 to 255 characters."))
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key must be 1 to 255 characters."))
 		return
 	}
-	body, ok := readBody(w, r, maxWriteBody)
+	body, ok := httpkit.ReadBody(w, r, httpkit.MaxWriteBody)
 	if !ok {
 		return
 	}
 	var input staff.ReportFiling
 	if err := json.Unmarshal(body, &input); err != nil {
-		writeProblem(w, newProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON."))
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON."))
 		return
 	}
 	if err := input.Normalize(); !writeStaff(w, err) {
@@ -111,12 +112,12 @@ func (s *Server) adminFileReport(w http.ResponseWriter, r *http.Request) {
 	if replayed {
 		w.Header().Set("Idempotent-Replayed", "true")
 	}
-	writeJSON(w, http.StatusCreated, result)
+	httpkit.WriteJSON(w, http.StatusCreated, result)
 }
 
 func (s *Server) adminAppealReport(w http.ResponseWriter, r *http.Request) {
 	var input staff.ReportAppeal
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	if err := input.Normalize(); !writeStaff(w, err) {
@@ -129,5 +130,5 @@ func (s *Server) adminAppealReport(w http.ResponseWriter, r *http.Request) {
 	if !writeStaff(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	httpkit.WriteJSON(w, http.StatusOK, result)
 }

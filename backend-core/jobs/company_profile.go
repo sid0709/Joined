@@ -3,7 +3,7 @@ package jobs
 import (
 	"strings"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
 const (

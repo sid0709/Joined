@@ -1,26 +1,8 @@
 import { spawn } from "node:child_process";
 
 import { freePorts } from "./free-ports.mjs";
-import { API_SERVICE, LOCAL_SERVICES, serviceSite } from "./local-services.mjs";
 
 const reset = "\x1b[0m";
-
-const services = [
-  ...LOCAL_SERVICES.map((service) => ({
-    name: service.shortName,
-    color: service.color,
-    url: serviceSite(service),
-    command: "bun",
-    args: ["--filter", service.workspace, "dev"],
-  })),
-  {
-    name: API_SERVICE.shortName,
-    color: API_SERVICE.color,
-    url: API_SERVICE.url,
-    command: API_SERVICE.command,
-    args: API_SERVICE.args,
-  },
-];
 
 const children = [];
 let shuttingDown = false;
@@ -76,16 +58,31 @@ function shutdown() {
   }, 3000).unref();
 }
 
-const ports = [...new Set(services.map((service) => new URL(service.url).port))];
-freePorts(ports);
+/**
+ * Runs every service at once with prefixed output, and stops them all on Ctrl+C.
+ * @param {string} title
+ * @param {{ name: string, color: string, url: string, command: string, args: string[] }[]} services
+ */
+export function runMany(title, services) {
+  const ports = [...new Set(services.map((service) => new URL(service.url).port))];
+  freePorts(ports);
 
-console.log("Starting every Joined dev server:\n");
-for (const service of services) {
-  console.log(`  ${service.color}${service.name.padEnd(7)}${reset}  ${service.url}`);
+  const width = Math.max(...services.map((service) => service.name.length));
+  console.log(`${title}:\n`);
+  for (const service of services) {
+    console.log(`  ${service.color}${service.name.padEnd(width)}${reset}  ${service.url}`);
+  }
+  console.log("\nStop them all with Ctrl+C.\n");
+
+  for (const service of services) {
+    start(service);
+  }
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
-console.log("\nStop them all with Ctrl+C.\n");
 
-for (const service of services) {
+function start(service) {
   const stdout = { value: "" };
   const stderr = { value: "" };
   const child = spawn(service.command, service.args, {
@@ -111,6 +108,3 @@ for (const service of services) {
     );
   });
 }
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);

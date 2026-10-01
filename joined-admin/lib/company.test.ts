@@ -83,7 +83,7 @@ describe("autofillPath", () => {
 
 describe("companyLogoSrc", () => {
   const apiLogo = (id: string, version = 0) =>
-    `${API_PROXY}/v1/search/companies/${encodeURIComponent(id)}/logo?v=${version}`;
+    `${API_PROXY}/v1/companies/${encodeURIComponent(id)}/logo?v=${version}`;
 
   it("has no logo when there is neither a URL nor an uploaded file", () => {
     expect(companyLogoSrc({ id: "c1" })).toBeUndefined();

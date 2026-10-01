@@ -3,7 +3,7 @@ package staff
 import (
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 func TestSearchJobCopiesScreeningQuestions(t *testing.T) {

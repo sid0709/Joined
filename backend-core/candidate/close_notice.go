@@ -15,7 +15,7 @@ const roleClosedActivity = "Role closed"
 
 // NotifyJobClosed posts an in-app notice on each open applicant's thread and
 // records "Role closed" on that application. Failures are logged, never
-// returned: a missed notice must not undo the close. joined-backend has no
+// returned: a missed notice must not undo the close. The backend has no
 // outbound mailer; the application thread is the candidate notice channel.
 func (s *Store) NotifyJobClosed(ctx context.Context, companyID, companyName, jobID, title, reason string, now time.Time) {
 	if s == nil || strings.TrimSpace(companyID) == "" || strings.TrimSpace(jobID) == "" {

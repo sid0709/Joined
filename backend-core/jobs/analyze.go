@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/openai"
+	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )

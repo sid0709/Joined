@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
 // Reward amounts are assumptions from docs/50-pricing-and-revenue.md#scouts.

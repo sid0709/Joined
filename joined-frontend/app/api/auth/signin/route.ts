@@ -9,6 +9,5 @@ export async function POST(request: Request) {
   return forwardAuth("/v1/auth/signin", {
     email: body.email,
     password: body.password,
-    audience: "joined",
   });
 }

@@ -4,23 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/auth"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-const (
-	// maxBatchBody leaves room for MaxBatchSize full submissions.
-	maxBatchBody      = 512 << 10
-	idempotencyHeader = "Idempotency-Key"
-)
+// maxBatchBody leaves room for MaxBatchSize full submissions.
+const maxBatchBody = 512 << 10
 
 // Which callers an endpoint accepts. API keys only reach the submission API;
 // account, money, and key management need a signed-in person.
@@ -59,47 +56,37 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 // scoutActor resolves the bearer token to a scout: a web session, or an API
 // key when the endpoint allows keys.
 func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bool) (scout.Actor, bool) {
-	token := bearerToken(r)
+	token := httpkit.BearerToken(r)
 	if token == "" {
-		writeProblem(w, newProblem(http.StatusUnauthorized, "unauthorized", "Send Authorization: Bearer <session token or API key>."))
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Send Authorization: Bearer <session token or API key>."))
 		return scout.Actor{}, false
 	}
 	if scout.IsAPIKey(token) {
 		if !allowKeys {
-			writeProblem(w, newProblem(http.StatusForbidden, "forbidden", "API keys cannot use this endpoint; sign in to Scoutwell."))
+			httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusForbidden, "forbidden", "API keys cannot use this endpoint; sign in to Scoutwell."))
 			return scout.Actor{}, false
 		}
 		actor, err := s.scouts.Authenticate(r.Context(), token)
 		if err != nil {
-			writeScoutError(w, err)
+			httpkit.WriteScoutError(w, err)
 			return scout.Actor{}, false
 		}
 		return actor, true
 	}
 	userID, err := s.auth.SessionUserID(r.Context(), token, time.Now())
 	if errors.Is(err, auth.ErrInvalidLogin) {
-		writeProblem(w, newProblem(http.StatusUnauthorized, "unauthorized", "Session expired or invalid; sign in again."))
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Session expired or invalid; sign in again."))
 		return scout.Actor{}, false
 	}
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return scout.Actor{}, false
 	}
 	return scout.Actor{UserID: userID}, true
 }
 
-// decodeScout reads a JSON body, answering 400 with a problem on bad JSON.
-func decodeScout(w http.ResponseWriter, r *http.Request, limit int64, dest any) bool {
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
-	if err := decoder.Decode(dest); err != nil && !errors.Is(err, io.EOF) {
-		writeProblem(w, newProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON."))
-		return false
-	}
-	return true
-}
-
 func (s *Server) scoutMeta(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, scout.Rulebook())
+	httpkit.WriteJSON(w, http.StatusOK, scout.Rulebook())
 }
 
 func (s *Server) scoutMe(w http.ResponseWriter, r *http.Request) {
@@ -109,10 +96,10 @@ func (s *Server) scoutMe(w http.ResponseWriter, r *http.Request) {
 	}
 	profile, err := s.scouts.EnsureProfile(r.Context(), actor.UserID)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) scoutPatchMe(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +108,7 @@ func (s *Server) scoutPatchMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var patch scout.ProfilePatch
-	if !decodeScout(w, r, maxWriteBody, &patch) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &patch) {
 		return
 	}
 	s.writeProfile(w, func() (scout.Profile, error) { return s.scouts.UpdateProfile(r.Context(), actor.UserID, patch) })
@@ -141,7 +128,7 @@ func (s *Server) scoutRequestVerification(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var input scout.VerificationRequest
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	s.writeProfile(w, func() (scout.Profile, error) {
@@ -155,7 +142,7 @@ func (s *Server) scoutSaveTax(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input scout.TaxInput
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	s.writeProfile(w, func() (scout.Profile, error) { return s.scouts.SaveTaxInfo(r.Context(), actor.UserID, input) })
@@ -167,7 +154,7 @@ func (s *Server) scoutSavePayoutMethod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input scout.PayoutMethodInput
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	s.writeProfile(w, func() (scout.Profile, error) {
@@ -178,10 +165,10 @@ func (s *Server) scoutSavePayoutMethod(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeProfile(w http.ResponseWriter, run func() (scout.Profile, error)) {
 	profile, err := run()
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) scoutStats(w http.ResponseWriter, r *http.Request) {
@@ -191,22 +178,22 @@ func (s *Server) scoutStats(w http.ResponseWriter, r *http.Request) {
 	}
 	stats, err := s.scouts.Stats(r.Context(), actor.UserID)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	setQuotaHeaders(w, stats.Quota)
-	writeJSON(w, http.StatusOK, stats)
+	httpkit.SetQuotaHeaders(w, stats.Quota)
+	httpkit.WriteJSON(w, http.StatusOK, stats)
 }
 
 // idempotent runs a create endpoint once per Idempotency-Key.
 func (s *Server) idempotent(w http.ResponseWriter, r *http.Request, actor scout.Actor, body []byte, run func() (int, any)) {
-	key := strings.TrimSpace(r.Header.Get(idempotencyHeader))
+	key := strings.TrimSpace(r.Header.Get(httpkit.IdempotencyHeader))
 	respond := func() scout.Replay {
 		status, value := run()
 		encoded, err := json.Marshal(value)
 		if err != nil {
 			slog.Error("encode response", "error", err)
-			encoded, _ = json.Marshal(newProblem(http.StatusInternalServerError, "internal_error", "Something went wrong. Try again."))
+			encoded, _ = json.Marshal(httpkit.NewProblem(http.StatusInternalServerError, "internal_error", "Something went wrong. Try again."))
 			status = http.StatusInternalServerError
 		}
 		return scout.Replay{Status: status, Body: encoded}
@@ -216,14 +203,14 @@ func (s *Server) idempotent(w http.ResponseWriter, r *http.Request, actor scout.
 		replay = respond()
 	} else {
 		if !scout.ValidIdempotencyKey(key) {
-			writeProblem(w, newProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key must be 1 to 255 characters."))
+			httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key must be 1 to 255 characters."))
 			return
 		}
 		var replayed bool
 		var err error
 		replay, replayed, err = s.scouts.Idempotent(r.Context(), actor.UserID, r.URL.Path, key, body, respond)
 		if err != nil {
-			writeScoutError(w, err)
+			httpkit.WriteScoutError(w, err)
 			return
 		}
 		if replayed {
@@ -232,7 +219,7 @@ func (s *Server) idempotent(w http.ResponseWriter, r *http.Request, actor scout.
 	}
 	contentType := "application/json"
 	if replay.Status >= http.StatusBadRequest {
-		contentType = problemContentType
+		contentType = httpkit.ProblemContentType
 	}
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(replay.Status)
@@ -241,40 +228,31 @@ func (s *Server) idempotent(w http.ResponseWriter, r *http.Request, actor scout.
 	}
 }
 
-func readBody(w http.ResponseWriter, r *http.Request, limit int64) ([]byte, bool) {
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
-	if err != nil {
-		writeProblem(w, newProblem(http.StatusRequestEntityTooLarge, "invalid_request", "Body is too large."))
-		return nil, false
-	}
-	return body, true
-}
-
 func (s *Server) scoutSubmit(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.scoutActor(w, r, sessionOrKey)
 	if !ok {
 		return
 	}
-	body, ok := readBody(w, r, maxWriteBody)
+	body, ok := httpkit.ReadBody(w, r, httpkit.MaxWriteBody)
 	if !ok {
 		return
 	}
 	s.idempotent(w, r, actor, body, func() (int, any) {
 		var input scout.SubmissionInput
 		if err := json.NewDecoder(bytes.NewReader(body)).Decode(&input); err != nil {
-			return http.StatusBadRequest, newProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON.")
+			return http.StatusBadRequest, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON.")
 		}
 		sub, err := s.scouts.Submit(r.Context(), actor, input)
 		if err != nil {
 			var quota *scout.QuotaError
 			if errors.As(err, &quota) {
-				setQuotaHeaders(w, quota.Quota)
+				httpkit.SetQuotaHeaders(w, quota.Quota)
 			}
-			p := scoutProblem(err)
+			p := httpkit.ScoutProblem(err)
 			return p.Status, p
 		}
 		if quota, err := s.scouts.Quota(r.Context(), actor.UserID); err == nil {
-			setQuotaHeaders(w, quota)
+			httpkit.SetQuotaHeaders(w, quota)
 		}
 		w.Header().Set("Location", "/v1/scout/submissions/"+sub.ID)
 		return http.StatusCreated, sub
@@ -286,7 +264,7 @@ func (s *Server) scoutSubmitBatch(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	body, ok := readBody(w, r, maxBatchBody)
+	body, ok := httpkit.ReadBody(w, r, maxBatchBody)
 	if !ok {
 		return
 	}
@@ -295,11 +273,11 @@ func (s *Server) scoutSubmitBatch(w http.ResponseWriter, r *http.Request) {
 			Submissions []scout.SubmissionInput `json:"submissions"`
 		}
 		if err := json.NewDecoder(bytes.NewReader(body)).Decode(&input); err != nil {
-			return http.StatusBadRequest, newProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON.")
+			return http.StatusBadRequest, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON.")
 		}
 		results, err := s.scouts.SubmitBatch(r.Context(), actor, input.Submissions)
 		if err != nil {
-			p := scoutProblem(err)
+			p := httpkit.ScoutProblem(err)
 			return p.Status, p
 		}
 		accepted := 0
@@ -309,7 +287,7 @@ func (s *Server) scoutSubmitBatch(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if quota, err := s.scouts.Quota(r.Context(), actor.UserID); err == nil {
-			setQuotaHeaders(w, quota)
+			httpkit.SetQuotaHeaders(w, quota)
 		}
 		return http.StatusMultiStatus, map[string]any{"accepted": accepted, "rejected": len(results) - accepted, "results": results}
 	})
@@ -322,15 +300,15 @@ func (s *Server) scoutPrecheck(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		URL string `json:"url"`
 	}
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	result, err := s.scouts.Precheck(r.Context(), input.URL)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	httpkit.WriteJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) scoutMatches(w http.ResponseWriter, r *http.Request) {
@@ -338,18 +316,18 @@ func (s *Server) scoutMatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input scout.MatchQuery
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	matches, err := s.scouts.FindMatches(r.Context(), input, bson.ObjectID{})
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
 	if matches == nil {
 		matches = []scout.Match{}
 	}
-	writeJSON(w, http.StatusOK, scout.MatchResult{Matches: matches})
+	httpkit.WriteJSON(w, http.StatusOK, scout.MatchResult{Matches: matches})
 }
 
 func (s *Server) scoutListSubmissions(w http.ResponseWriter, r *http.Request) {
@@ -367,17 +345,17 @@ func (s *Server) scoutListSubmissions(w http.ResponseWriter, r *http.Request) {
 	if since := query.Get("updated_since"); since != "" {
 		at, err := time.Parse(time.RFC3339, since)
 		if err != nil {
-			writeScoutError(w, &scout.ValidationError{Fields: []scout.FieldError{{Field: "updated_since", Detail: "use an RFC 3339 time, like 2026-09-28T00:00:00Z"}}})
+			httpkit.WriteScoutError(w, &scout.ValidationError{Fields: []scout.FieldError{{Field: "updated_since", Detail: "use an RFC 3339 time, like 2026-09-28T00:00:00Z"}}})
 			return
 		}
 		parsed.UpdatedSince = &at
 	}
 	list, err := s.scouts.ListSubmissions(r.Context(), actor.UserID, parsed)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) scoutGetSubmission(w http.ResponseWriter, r *http.Request) {
@@ -387,10 +365,10 @@ func (s *Server) scoutGetSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 	sub, err := s.scouts.GetSubmission(r.Context(), actor.UserID, r.PathValue("id"))
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, sub)
+	httpkit.WriteJSON(w, http.StatusOK, sub)
 }
 
 func (s *Server) scoutEarnings(w http.ResponseWriter, r *http.Request) {
@@ -406,10 +384,10 @@ func (s *Server) scoutEarnings(w http.ResponseWriter, r *http.Request) {
 		Limit:        atoi(query.Get("limit")),
 	})
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) scoutPayouts(w http.ResponseWriter, r *http.Request) {
@@ -420,10 +398,10 @@ func (s *Server) scoutPayouts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	list, err := s.scouts.ListPayouts(r.Context(), actor.UserID, query.Get("cursor"), atoi(query.Get("limit")))
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) scoutRequestPayout(w http.ResponseWriter, r *http.Request) {
@@ -433,10 +411,10 @@ func (s *Server) scoutRequestPayout(w http.ResponseWriter, r *http.Request) {
 	}
 	payout, err := s.scouts.RequestPayout(r.Context(), actor.UserID)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, payout)
+	httpkit.WriteJSON(w, http.StatusCreated, payout)
 }
 
 func (s *Server) scoutNotifications(w http.ResponseWriter, r *http.Request) {
@@ -447,10 +425,10 @@ func (s *Server) scoutNotifications(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	list, err := s.scouts.ListNotifications(r.Context(), actor.UserID, query.Get("cursor"), atoi(query.Get("limit")))
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, list)
+	httpkit.WriteJSON(w, http.StatusOK, list)
 }
 
 func (s *Server) scoutMarkRead(w http.ResponseWriter, r *http.Request) {
@@ -461,11 +439,11 @@ func (s *Server) scoutMarkRead(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		IDs []string `json:"ids"`
 	}
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	if err := s.scouts.MarkRead(r.Context(), actor.UserID, input.IDs); err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -478,10 +456,10 @@ func (s *Server) scoutListKeys(w http.ResponseWriter, r *http.Request) {
 	}
 	keys, err := s.scouts.ListAPIKeys(r.Context(), actor.UserID)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"data": keys})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"data": keys})
 }
 
 func (s *Server) scoutCreateKey(w http.ResponseWriter, r *http.Request) {
@@ -492,15 +470,15 @@ func (s *Server) scoutCreateKey(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Name string `json:"name"`
 	}
-	if !decodeScout(w, r, maxWriteBody, &input) {
+	if !httpkit.DecodeJSON(w, r, httpkit.MaxWriteBody, &input) {
 		return
 	}
 	key, err := s.scouts.CreateAPIKey(r.Context(), actor.UserID, input.Name)
 	if err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, key)
+	httpkit.WriteJSON(w, http.StatusCreated, key)
 }
 
 func (s *Server) scoutRevokeKey(w http.ResponseWriter, r *http.Request) {
@@ -509,7 +487,7 @@ func (s *Server) scoutRevokeKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.scouts.RevokeAPIKey(r.Context(), actor.UserID, r.PathValue("id")); err != nil {
-		writeScoutError(w, err)
+		httpkit.WriteScoutError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

@@ -1,10 +1,10 @@
 import { clearSessionCookie, sessionToken } from "@/lib/auth/cookie";
-import { joinedApiUrl } from "@/lib/config";
+import { scoutwellApiUrl } from "@/lib/config";
 
 export async function DELETE() {
   const token = await sessionToken();
   if (!token) return Response.json({ error: "sign in required" }, { status: 401 });
-  const response = await fetch(new URL("/v1/auth/account", `${joinedApiUrl()}/`), {
+  const response = await fetch(new URL("/v1/auth/account", `${scoutwellApiUrl()}/`), {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",

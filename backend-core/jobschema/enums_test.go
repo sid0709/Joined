@@ -34,7 +34,7 @@ func TestEnumsMatchSharedFile(t *testing.T) {
 	if !ok {
 		t.Fatal("caller")
 	}
-	raw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "..", "packages", "job-schema", "enums.json"))
+	raw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "packages", "job-schema", "enums.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

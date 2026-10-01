@@ -1,0 +1,97 @@
+// Package platform opens the shared database and builds every domain store over
+// it. Each service builds the same stores, so rules that cross domains (deleting
+// an account, the job catalog behind an application) behave the same whichever
+// service runs them.
+package platform
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/database"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+)
+
+// Platform is a database connection and the stores built over it.
+type Platform struct {
+	client *mongo.Client
+
+	Jobs     *jobs.Store
+	Accounts *auth.Store
+	People   *candidate.Store
+	Hiring   *employer.Store
+	Scouts   *scout.Store
+	Staff    *staff.Store
+}
+
+// Options are the parts of the platform only some services configure.
+type Options struct {
+	// Calendar connects job hunters' Google calendars. Nil leaves it unconfigured.
+	Calendar *candidate.Google
+}
+
+// Open connects to the database, builds every store, and ensures their indexes.
+func Open(ctx context.Context, db config.Database, opts Options) (*Platform, error) {
+	client, err := database.Connect(ctx, db.MongoURI)
+	if err != nil {
+		return nil, fmt.Errorf("mongo: %w", err)
+	}
+	calendar := opts.Calendar
+	if calendar == nil {
+		calendar = &candidate.Google{}
+	}
+
+	listings := jobs.NewStore(client, db.SourceDB, db.SourceCollection, db.DestDB, db.DestCollection, db.JobsCollection, db.SourceCompanies, db.CompaniesCollection)
+	accounts := auth.NewStore(client, db.DestDB, db.CompaniesCollection)
+	people := candidate.NewStore(client, db.DestDB, newJobsCatalog(listings), accounts, calendar)
+	hiring := employer.NewStore(client, db.DestDB, listings, people, accounts)
+	scouts := scout.NewStore(client, db.DestDB, accounts, listings, people, scout.NewHTTPFetcher())
+	moderation := staff.NewStore(client, db.DestDB, db.CompaniesCollection, listings)
+	accounts.SetUserData(newAccountEraser(people, scouts, listings, hiring))
+
+	p := &Platform{
+		client:   client,
+		Jobs:     listings,
+		Accounts: accounts,
+		People:   people,
+		Hiring:   hiring,
+		Scouts:   scouts,
+		Staff:    moderation,
+	}
+	if err := p.ensureIndexes(ctx); err != nil {
+		p.Close()
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *Platform) ensureIndexes(ctx context.Context) error {
+	indexed := []struct {
+		name  string
+		store interface{ EnsureIndexes(context.Context) error }
+	}{
+		{"auth", p.Accounts},
+		{"candidate", p.People},
+		{"employer", p.Hiring},
+		{"staff", p.Staff},
+		{"scout", p.Scouts},
+	}
+	for _, item := range indexed {
+		if err := item.store.EnsureIndexes(ctx); err != nil {
+			return fmt.Errorf("%s indexes: %w", item.name, err)
+		}
+	}
+	return nil
+}
+
+// Close disconnects from the database.
+func (p *Platform) Close() {
+	_ = p.client.Disconnect(context.Background())
+}

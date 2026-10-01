@@ -8,11 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/staff"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
 func TestStaffCasesRejectMissingToken(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, staff.NewMem(), nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, staff.NewMem(), nil, Options{AdminToken: "secret"})
 	paths := []struct {
 		method string
 		path   string
@@ -43,10 +44,10 @@ func TestStaffCasesRejectMissingToken(t *testing.T) {
 }
 
 func TestStaffReportRejectsNotAGoodFit(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/reports", strings.NewReader(`{"subjectType":"job","subjectId":"job-1","reasonCode":"not_a_good_fit"}`))
 	req.Header.Set("Authorization", "Bearer secret")
-	req.Header.Set(idempotencyHeader, "key-1")
+	req.Header.Set(httpkit.IdempotencyHeader, "key-1")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), "reasonCode") {
@@ -56,7 +57,7 @@ func TestStaffReportRejectsNotAGoodFit(t *testing.T) {
 
 func TestStaffCasesAndReportsHappyPath(t *testing.T) {
 	mem := staff.NewMem()
-	handler := New(nil, nil, nil, nil, nil, mem, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, mem, nil, Options{AdminToken: "secret"})
 	body := `{"subjectType":" job ","subjectId":" job-1 ","reasonCode":"scam_job","details":" Asks for a fee ","evidenceKeys":[" shot ","","shot"]}`
 	rec := staffCall(t, handler, http.MethodPost, "/v1/reports", body, "secret", "  roosebelt\n", "key-1")
 	if rec.Code != http.StatusCreated {
@@ -188,7 +189,7 @@ func staffCall(t *testing.T, handler http.Handler, method, path, body, token, ac
 		req.Header.Set(adminActorHeader, actor)
 	}
 	if idempotencyKey != "" {
-		req.Header.Set(idempotencyHeader, idempotencyKey)
+		req.Header.Set(httpkit.IdempotencyHeader, idempotencyKey)
 	}
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +18,7 @@ func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) patchProfile(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +34,7 @@ func (s *Server) patchProfile(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 
 func (s *Server) getSavedJobs(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +46,7 @@ func (s *Server) getSavedJobs(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"jobIds": ids})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"jobIds": ids})
 }
 
 func (s *Server) putSavedJob(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +86,7 @@ func (s *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"applications": items, "appliedJobIds": ids})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"applications": items, "appliedJobIds": ids})
 }
 
 func (s *Server) postApplication(w http.ResponseWriter, r *http.Request) {
@@ -99,13 +100,13 @@ func (s *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 	app, err := s.people.Apply(r.Context(), session.User.ID, input, time.Now())
 	if err == candidate.ErrAlreadyApplied {
-		writeJSON(w, http.StatusOK, app)
+		httpkit.WriteJSON(w, http.StatusOK, app)
 		return
 	}
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, app)
+	httpkit.WriteJSON(w, http.StatusOK, app)
 }
 
 func (s *Server) patchApplication(w http.ResponseWriter, r *http.Request) {
@@ -135,14 +136,14 @@ func (s *Server) patchApplication(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		writeJSON(w, http.StatusOK, app)
+		httpkit.WriteJSON(w, http.StatusOK, app)
 		return
 	}
 	app, err := s.people.PatchApplication(r.Context(), session.User.ID, id, patch, time.Now())
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, app)
+	httpkit.WriteJSON(w, http.StatusOK, app)
 }
 
 func (s *Server) getMyOfferEsign(w http.ResponseWriter, r *http.Request) {
@@ -151,14 +152,14 @@ func (s *Server) getMyOfferEsign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.hiring == nil {
-		writeError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
 		return
 	}
 	item, err := s.hiring.CandidateOfferEsign(r.Context(), session.User.ID, r.PathValue("id"))
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) postMyOfferEsign(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +168,7 @@ func (s *Server) postMyOfferEsign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.hiring == nil {
-		writeError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "hiring workspace is unavailable")
 		return
 	}
 	var input employer.EsignMarkInput
@@ -178,7 +179,7 @@ func (s *Server) postMyOfferEsign(w http.ResponseWriter, r *http.Request) {
 	if !writeEmployer(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) deleteApplication(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +212,7 @@ func (s *Server) getInterviews(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"interviews": items})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"interviews": items})
 }
 
 func (s *Server) postInterview(w http.ResponseWriter, r *http.Request) {
@@ -227,7 +228,7 @@ func (s *Server) postInterview(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }
 
 func (s *Server) patchInterview(w http.ResponseWriter, r *http.Request) {
@@ -243,5 +244,5 @@ func (s *Server) patchInterview(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, item)
+	httpkit.WriteJSON(w, http.StatusOK, item)
 }

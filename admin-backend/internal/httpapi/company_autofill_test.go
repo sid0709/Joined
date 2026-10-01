@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/openai"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/openai"
 )
 
 func TestAutofillFailureTellsTheAdminWhatToDo(t *testing.T) {

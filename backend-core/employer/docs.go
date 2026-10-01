@@ -3,8 +3,8 @@ package employer
 import (
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 type storedJob struct {

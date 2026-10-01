@@ -6,12 +6,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
 // Input limits for a submission. The description is the posting text staff
 // analyze into a search record. It matches the description length the job
-// analyzer reads (joined-backend/internal/jobs maxDescriptionRunes).
+// analyzer reads (backend-core/jobs maxDescriptionRunes).
 const (
 	MinSummaryChars  = 40
 	MaxSummaryChars  = 12_000

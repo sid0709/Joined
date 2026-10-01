@@ -1,3 +1,5 @@
+// Package config reads the settings every backend service shares. Each service
+// composes the parts it needs and reads its own settings with Env.
 package config
 
 import (
@@ -8,8 +10,6 @@ import (
 )
 
 const (
-	defaultHTTPAddr            = "127.0.0.1:8080"
-	defaultAdminOrigins        = "http://127.0.0.1:3010,http://localhost:3010"
 	defaultSourceDB            = "AthensDB"
 	defaultSourceCollection    = "jobs"
 	defaultDestDB              = "OpenedDB"
@@ -19,14 +19,12 @@ const (
 	defaultCompaniesCollection = "companies"
 	defaultOpenAIModel         = "gpt-4o-mini"
 	defaultOpenAIBaseURL       = "https://api.openai.com/v1"
-	defaultFrontendOrigin      = "http://127.0.0.1:3002"
 	envFileName                = ".env"
 )
 
-type Config struct {
+// Database is the MongoDB every service shares: one set of accounts, jobs, and companies.
+type Database struct {
 	MongoURI            string
-	HTTPAddr            string
-	AdminOrigins        []string
 	SourceDB            string
 	SourceCollection    string
 	DestDB              string
@@ -34,57 +32,82 @@ type Config struct {
 	JobsCollection      string
 	SourceCompanies     string
 	CompaniesCollection string
-	OpenAIAPIKey        string
-	OpenAIModel         string
-	// OpenAISearchModel answers web-search requests. Blank means OpenAIModel.
-	OpenAISearchModel  string
-	OpenAIBaseURL      string
-	FrontendOrigin     string
-	GoogleClientID     string
-	GoogleClientSecret string
-	GoogleRedirectURL  string
-	AdminAPIToken      string
 }
 
-func (c Config) SourceName() string {
-	return c.SourceDB + "." + c.SourceCollection
+func (d Database) SourceName() string {
+	return d.SourceDB + "." + d.SourceCollection
 }
 
-func (c Config) DestName() string {
-	return c.DestDB + "." + c.DestCollection
+func (d Database) DestName() string {
+	return d.DestDB + "." + d.DestCollection
 }
 
-func Load() (Config, error) {
+// OpenAI is the model a service uses to read and research job posts.
+type OpenAI struct {
+	APIKey string
+	Model  string
+	// SearchModel answers web-search requests. Blank means Model.
+	SearchModel string
+	BaseURL     string
+}
+
+// HTTP is where a service listens and which browser origins may call it.
+type HTTP struct {
+	Addr    string
+	Origins []string
+}
+
+// LoadEnvFile reads .env from the working directory. Variables already set in
+// the environment win.
+func LoadEnvFile() {
 	loadEnvFile(envFileName)
+}
 
-	cfg := Config{
+func LoadDatabase() (Database, error) {
+	db := Database{
 		MongoURI:            strings.TrimSpace(os.Getenv("MONGO_URI")),
-		HTTPAddr:            envOr("HTTP_ADDR", defaultHTTPAddr),
-		AdminOrigins:        splitList(envOr("ADMIN_ORIGINS", defaultAdminOrigins)),
-		SourceDB:            envOr("SOURCE_DB", defaultSourceDB),
-		SourceCollection:    envOr("SOURCE_COLLECTION", defaultSourceCollection),
-		DestDB:              envOr("DEST_DB", defaultDestDB),
-		DestCollection:      envOr("DEST_COLLECTION", defaultDestCollection),
-		JobsCollection:      envOr("JOBS_COLLECTION", defaultJobsCollection),
-		SourceCompanies:     envOr("SOURCE_COMPANIES", defaultSourceCompanies),
-		CompaniesCollection: envOr("COMPANIES_COLLECTION", defaultCompaniesCollection),
-		OpenAIAPIKey:        strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
-		OpenAIModel:         envOr("OPENAI_MODEL", defaultOpenAIModel),
-		OpenAISearchModel:   strings.TrimSpace(os.Getenv("OPENAI_SEARCH_MODEL")),
-		OpenAIBaseURL:       envOr("OPENAI_BASE_URL", defaultOpenAIBaseURL),
-		FrontendOrigin:      strings.TrimRight(envOr("FRONTEND_ORIGIN", defaultFrontendOrigin), "/"),
-		GoogleClientID:      strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
-		GoogleClientSecret:  strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
-		GoogleRedirectURL:   strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URL")),
-		AdminAPIToken:       strings.TrimSpace(os.Getenv("ADMIN_API_TOKEN")),
+		SourceDB:            Env("SOURCE_DB", defaultSourceDB),
+		SourceCollection:    Env("SOURCE_COLLECTION", defaultSourceCollection),
+		DestDB:              Env("DEST_DB", defaultDestDB),
+		DestCollection:      Env("DEST_COLLECTION", defaultDestCollection),
+		JobsCollection:      Env("JOBS_COLLECTION", defaultJobsCollection),
+		SourceCompanies:     Env("SOURCE_COMPANIES", defaultSourceCompanies),
+		CompaniesCollection: Env("COMPANIES_COLLECTION", defaultCompaniesCollection),
 	}
-	if cfg.MongoURI == "" {
-		return Config{}, fmt.Errorf("MONGO_URI is required")
+	if db.MongoURI == "" {
+		return Database{}, fmt.Errorf("MONGO_URI is required")
 	}
-	if len(cfg.AdminOrigins) == 0 {
-		return Config{}, fmt.Errorf("ADMIN_ORIGINS is required")
+	return db, nil
+}
+
+func LoadOpenAI() OpenAI {
+	return OpenAI{
+		APIKey:      strings.TrimSpace(os.Getenv("OPENAI_API_KEY")),
+		Model:       Env("OPENAI_MODEL", defaultOpenAIModel),
+		SearchModel: strings.TrimSpace(os.Getenv("OPENAI_SEARCH_MODEL")),
+		BaseURL:     Env("OPENAI_BASE_URL", defaultOpenAIBaseURL),
+	}
+}
+
+// LoadHTTP reads HTTP_ADDR and CORS_ORIGINS, falling back to the service's defaults.
+func LoadHTTP(defaultAddr string, defaultOrigins []string) (HTTP, error) {
+	cfg := HTTP{
+		Addr:    Env("HTTP_ADDR", defaultAddr),
+		Origins: splitList(Env("CORS_ORIGINS", strings.Join(defaultOrigins, ","))),
+	}
+	if len(cfg.Origins) == 0 {
+		return HTTP{}, fmt.Errorf("CORS_ORIGINS is required")
 	}
 	return cfg, nil
+}
+
+// Env returns the trimmed value of key, or fallback when it is unset or blank.
+func Env(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func Redact(err error, uri string) string {
@@ -105,14 +128,6 @@ func Redact(err error, uri string) string {
 		}
 	}
 	return msg
-}
-
-func envOr(key, fallback string) string {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
-	return value
 }
 
 func splitList(value string) []string {

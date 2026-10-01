@@ -1,9 +1,11 @@
 /**
  * Server-only settings. The admin token never reaches the browser: pages read
- * the API from the server, and browser calls go through /api/joined.
+ * the API from the server, and browser calls go through /api/admin.
  */
+
+/** The admin API (admin-backend). */
 export function adminApiUrl(): string {
-  const url = process.env.ADMIN_API_URL || process.env.NEXT_PUBLIC_ADMIN_API_URL;
+  const url = process.env.ADMIN_API_URL;
   if (!url) {
     throw new Error("ADMIN_API_URL is not set");
   }

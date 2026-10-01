@@ -6,15 +6,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/config"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/database"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/database"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 const copyTimeout = 20 * time.Minute
 
 func main() {
-	cfg, err := config.Load()
+	config.LoadEnvFile()
+	cfg, err := config.LoadDatabase()
 	if err != nil {
 		slog.Error("config", "error", err)
 		os.Exit(1)

@@ -13,7 +13,7 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "env": ["JOINED_API_URL", "SCOUT_PUBLIC_API_URL", "JOINED_WEB_URL"],
+      "env": ["JOINED_API_URL", "SCOUTWELL_API_URL", "SCOUT_PUBLIC_API_URL", "JOINED_WEB_URL"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     }
   }

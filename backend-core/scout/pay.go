@@ -3,8 +3,8 @@ package scout
 import (
 	"fmt"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobschema"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
 func canonicalPay(pay Pay, salary string) Pay {

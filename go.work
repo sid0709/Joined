@@ -1,0 +1,8 @@
+go 1.26.4
+
+use (
+	./admin-backend
+	./backend-core
+	./joined-backend
+	./scoutwell-backend
+)

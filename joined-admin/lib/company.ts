@@ -68,7 +68,7 @@ export function companyLogoSrc(
   const logo = company.logo?.trim();
   if (!logo && !company.hasLogoFile) return undefined;
   if (logo && !isLinkedInLogoHost(logo)) return logo;
-  const base = `${API_PROXY}/v1/search/companies/${encodeURIComponent(company.id)}/logo`;
+  const base = `${API_PROXY}/v1/companies/${encodeURIComponent(company.id)}/logo`;
   return `${base}?v=${version}`;
 }
 

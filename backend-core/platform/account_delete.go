@@ -1,30 +1,30 @@
-package httpapi
+package platform
 
 import (
 	"context"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
 )
 
-// AccountEraser deletes an account's hunter, recruiter, and scout records together.
-type AccountEraser struct {
+// accountEraser deletes an account's hunter, recruiter, and scout records together.
+type accountEraser struct {
 	people *candidate.Store
 	scouts *scout.Store
 	jobs   *jobs.Store
 	hiring *employer.Store
 }
 
-func NewAccountEraser(people *candidate.Store, scouts *scout.Store, jobsStore *jobs.Store, hiring *employer.Store) AccountEraser {
-	return AccountEraser{people: people, scouts: scouts, jobs: jobsStore, hiring: hiring}
+func newAccountEraser(people *candidate.Store, scouts *scout.Store, jobsStore *jobs.Store, hiring *employer.Store) accountEraser {
+	return accountEraser{people: people, scouts: scouts, jobs: jobsStore, hiring: hiring}
 }
 
 // DeleteUser removes the person and everything that exists only because of them.
 // ownedCompanyID is the company page they created; it is deleted with its jobs
 // and the activity on those jobs.
-func (e AccountEraser) DeleteUser(ctx context.Context, userID, ownedCompanyID string) error {
+func (e accountEraser) DeleteUser(ctx context.Context, userID, ownedCompanyID string) error {
 	removed, err := e.scouts.DeleteUser(ctx, userID)
 	if err != nil {
 		return err

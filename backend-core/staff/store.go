@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/employer"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"

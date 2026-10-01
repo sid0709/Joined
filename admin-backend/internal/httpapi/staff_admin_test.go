@@ -8,7 +8,7 @@ import (
 )
 
 func TestStaffMutationRequiresAdminToken(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	body := strings.NewReader(`{"decision":"approve","reason":"domain matches"}`)
 	req := httptest.NewRequest(http.MethodPost, "/v1/admin/companies/company-1/verify", body)
 	rec := httptest.NewRecorder()
@@ -19,7 +19,7 @@ func TestStaffMutationRequiresAdminToken(t *testing.T) {
 }
 
 func TestStaffVerifyRequiresReason(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/admin/companies/company-1/verify", strings.NewReader(`{"decision":"approve"}`))
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set(adminActorHeader, "roosebelt")
@@ -34,7 +34,7 @@ func TestStaffVerifyRequiresReason(t *testing.T) {
 }
 
 func TestStaffReviewRejectWithoutReasonReachesStore(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/admin/jobs/job-1/review", strings.NewReader(`{"decision":"reject"}`))
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set(adminActorHeader, "roosebelt")
@@ -46,7 +46,7 @@ func TestStaffReviewRejectWithoutReasonReachesStore(t *testing.T) {
 }
 
 func TestStaffReviewRejectsBadDisposition(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/admin/jobs/job-1/review", strings.NewReader(`{"decision":"reject","rejectDisposition":"archive"}`))
 	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()
@@ -60,7 +60,7 @@ func TestStaffReviewRejectsBadDisposition(t *testing.T) {
 }
 
 func TestStaffTakedownRequiresReason(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/admin/jobs/job-1/takedown", strings.NewReader(`{}`))
 	req.Header.Set("Authorization", "Bearer secret")
 	rec := httptest.NewRecorder()
@@ -74,7 +74,7 @@ func TestStaffTakedownRequiresReason(t *testing.T) {
 }
 
 func TestStaffMutationWithTokenReachesVerify(t *testing.T) {
-	handler := New(nil, nil, nil, nil, nil, nil, nil, Options{AdminToken: "secret"})
+	handler := New(nil, nil, nil, nil, Options{AdminToken: "secret"})
 	req := httptest.NewRequest(http.MethodPost, "/v1/admin/companies/company-1/verify", strings.NewReader(`{"decision":"approve","reason":"domain matches"}`))
 	req.Header.Set("Authorization", "Bearer secret")
 	req.Header.Set(adminActorHeader, "roosebelt")

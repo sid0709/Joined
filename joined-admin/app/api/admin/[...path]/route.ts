@@ -8,7 +8,7 @@ const FORWARDED_REQUEST = ["Content-Type", "Accept", "Idempotency-Key"];
 const FORWARDED_RESPONSE = ["Content-Type", "Cache-Control"];
 
 /**
- * Relays admin console calls to the API and adds the admin token server-side,
+ * Relays admin console calls to admin-backend and adds the admin token server-side,
  * so it never ships to the browser. Only /v1 paths are relayed.
  */
 async function handle(request: Request, ctx: Ctx) {

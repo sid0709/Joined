@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func (s *Server) getPublicSchedule(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +15,7 @@ func (s *Server) getPublicSchedule(w http.ResponseWriter, r *http.Request) {
 	if !writePublicSchedule(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, view)
+	httpkit.WriteJSON(w, http.StatusOK, view)
 }
 
 func (s *Server) acceptPublicSchedule(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +31,7 @@ func (s *Server) acceptPublicSchedule(w http.ResponseWriter, r *http.Request) {
 	if !writePublicSchedule(w, err) {
 		return
 	}
-	writeJSON(w, http.StatusOK, view)
+	httpkit.WriteJSON(w, http.StatusOK, view)
 }
 
 func writePublicSchedule(w http.ResponseWriter, err error) bool {
@@ -38,16 +39,16 @@ func writePublicSchedule(w http.ResponseWriter, err error) bool {
 	case err == nil:
 		return true
 	case errors.Is(err, candidate.ErrNotFound):
-		writeError(w, http.StatusNotFound, "not found")
+		httpkit.WriteError(w, http.StatusNotFound, "not found")
 	case errors.Is(err, candidate.ErrSlotNotOffered), errors.Is(err, candidate.ErrInvalidInput):
-		writeError(w, http.StatusBadRequest, err.Error())
+		httpkit.WriteError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, candidate.ErrScheduleExpired):
-		writeError(w, http.StatusGone, err.Error())
+		httpkit.WriteError(w, http.StatusGone, err.Error())
 	case errors.Is(err, candidate.ErrScheduleTaken):
-		writeError(w, http.StatusConflict, err.Error())
+		httpkit.WriteError(w, http.StatusConflict, err.Error())
 	default:
 		slog.Error("public schedule", "error", err)
-		writeError(w, http.StatusInternalServerError, "could not complete the request")
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not complete the request")
 	}
 	return false
 }

@@ -11,8 +11,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
-	"github.com/sid0709/OpenSeat/joined-backend/internal/scout"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
 )
 
 const maxCompanyBody = jobs.MaxLogoBytes + 64<<10
@@ -24,7 +25,7 @@ func (s *Server) scoutSearchCompanies(w http.ResponseWriter, r *http.Request) {
 	found, err := s.auth.SearchCompanies(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
 		slog.Error("search companies", "error", err)
-		writeProblem(w, newProblem(http.StatusInternalServerError, "internal_error", "Could not search companies."))
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusInternalServerError, "internal_error", "Could not search companies."))
 		return
 	}
 	companies := make([]jobs.CompanyMatch, 0, len(found))
@@ -36,7 +37,7 @@ func (s *Server) scoutSearchCompanies(w http.ResponseWriter, r *http.Request) {
 			Logo: company.Logo,
 		})
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"companies": companies})
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"companies": companies})
 }
 
 func (s *Server) scoutCreateCompany(w http.ResponseWriter, r *http.Request) {
@@ -44,27 +45,27 @@ func (s *Server) scoutCreateCompany(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	body, ok := readBody(w, r, maxCompanyBody)
+	body, ok := httpkit.ReadBody(w, r, maxCompanyBody)
 	if !ok {
 		return
 	}
 	s.idempotent(w, r, actor, body, func() (int, any) {
 		name, website, logo, err := companyParts(r.Header.Get("Content-Type"), body)
 		if err != nil {
-			return http.StatusBadRequest, newProblem(http.StatusBadRequest, "invalid_request", "Body must be JSON or a multipart form.")
+			return http.StatusBadRequest, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Body must be JSON or a multipart form.")
 		}
 		input, err := scout.NormalizeScoutCompany(name, website, logo)
 		if err != nil {
-			problem := scoutProblem(err)
+			problem := httpkit.ScoutProblem(err)
 			return problem.Status, problem
 		}
 		company, created, err := s.store.CreateScoutCompany(r.Context(), input, time.Now())
 		if errors.Is(err, jobs.ErrInvalidInput) {
-			return http.StatusBadRequest, newProblem(http.StatusBadRequest, "invalid_request", err.Error())
+			return http.StatusBadRequest, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", err.Error())
 		}
 		if err != nil {
 			slog.Error("create company", "error", err)
-			return http.StatusInternalServerError, newProblem(http.StatusInternalServerError, "internal_error", "Could not create the company.")
+			return http.StatusInternalServerError, httpkit.NewProblem(http.StatusInternalServerError, "internal_error", "Could not create the company.")
 		}
 		if created {
 			return http.StatusCreated, company

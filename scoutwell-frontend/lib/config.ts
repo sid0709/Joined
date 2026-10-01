@@ -10,18 +10,18 @@ export const PAGE_LIMIT = 20;
 /** Rows shown in the dashboard's recent lists. */
 export const RECENT_LIMIT = 5;
 
-/** The Joined API, called from the server only. */
-export function joinedApiUrl(): string {
-  const url = process.env.JOINED_API_URL;
+/** The Scoutwell API (scoutwell-backend), called from the server only. */
+export function scoutwellApiUrl(): string {
+  const url = process.env.SCOUTWELL_API_URL;
   if (!url) {
-    throw new Error("JOINED_API_URL is not set");
+    throw new Error("SCOUTWELL_API_URL is not set");
   }
   return url.replace(/\/$/, "");
 }
 
 /** The API base partners call directly, shown in the developer docs. */
 export function publicApiUrl(): string {
-  return (process.env.SCOUT_PUBLIC_API_URL || joinedApiUrl()).replace(/\/$/, "");
+  return (process.env.SCOUT_PUBLIC_API_URL || scoutwellApiUrl()).replace(/\/$/, "");
 }
 
 /** Joined's public site, for "view live job" links. Optional. */

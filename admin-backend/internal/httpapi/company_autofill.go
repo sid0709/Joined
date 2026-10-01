@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 // A web search reads several pages, so it gets more time than an ordinary request.
@@ -26,9 +27,9 @@ type autofillRequest struct {
 // It saves nothing: a person reviews the draft and saves it.
 func (s *Server) autofillCompany(w http.ResponseWriter, r *http.Request) {
 	var body autofillRequest
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxWriteBody))
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, httpkit.MaxWriteBody))
 	if err := decoder.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
-		writeError(w, http.StatusBadRequest, "invalid autofill request")
+		httpkit.WriteError(w, http.StatusBadRequest, "invalid autofill request")
 		return
 	}
 
@@ -36,12 +37,12 @@ func (s *Server) autofillCompany(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	company, err := s.store.GetAdminCompany(ctx, r.PathValue("id"))
 	if errors.Is(err, jobs.ErrNotFound) {
-		writeError(w, http.StatusNotFound, "company not found")
+		httpkit.WriteError(w, http.StatusNotFound, "company not found")
 		return
 	}
 	if err != nil {
 		slog.Error("autofill: load company", "error", err)
-		writeError(w, http.StatusInternalServerError, "could not load company")
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not load company")
 		return
 	}
 	name, website := body.Name, body.URL
@@ -59,17 +60,17 @@ func (s *Server) autofillCompany(w http.ResponseWriter, r *http.Request) {
 		if status >= http.StatusInternalServerError {
 			slog.Error("autofill company", "error", err)
 		}
-		writeError(w, status, message)
+		httpkit.WriteError(w, status, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	httpkit.WriteJSON(w, http.StatusOK, result)
 }
 
 // autofillFailure maps a research error to what the admin sees.
 func autofillFailure(err error) (int, string) {
 	switch {
 	case jobs.IsMissingAPIKey(err), errors.Is(err, jobs.ErrMissingResearcher):
-		return http.StatusServiceUnavailable, "Set OPENAI_API_KEY in the admin API environment"
+		return http.StatusServiceUnavailable, missingAPIKey
 	case errors.Is(err, jobs.ErrInvalidInput):
 		return http.StatusBadRequest, "Add a company name or a valid website first"
 	case errors.Is(err, context.DeadlineExceeded):

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/joined-backend/internal/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
 )
 
 func employerPeopleErr(err error) error {
