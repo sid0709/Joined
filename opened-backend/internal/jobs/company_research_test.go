@@ -36,7 +36,7 @@ const researchedAnswer = `{
   "specialties": ["Hiring", "React"],
   "mission": "Make hiring fair.",
   "values": [{"icon": "rocket", "title": "Ship it", "description": "Move fast."}, {"icon": "heart", "title": " ", "description": "dropped"}],
-  "benefitCategories": [{"label": "Health", "items": ["Medical", "Dental\n- Vision"]}, {"label": "Time off", "items": ["Unlimited PTO"]}, {"label": "Empty", "items": []}]
+  "benefits": [{"theme": "Perks", "item": "Team offsites"}, {"theme": "Health & wellness", "item": "Medical"}, {"theme": "health & WELLNESS", "item": "Dental\n- Vision"}, {"theme": "Time off & family", "item": "Unlimited PTO"}, {"theme": "Made up", "item": "Snacks"}, {"theme": "Pay & equity", "item": "  "}]
 }`
 
 func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
@@ -76,11 +76,13 @@ func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
 	if len(c.Values) != 1 || c.Values[0].Icon != "star" || c.Values[0].Title != "Ship it" {
 		t.Fatalf("values = %+v", c.Values)
 	}
-	if len(c.BenefitCategories) != 2 || c.BenefitCategories[0].Label != "Health" || c.BenefitCategories[1].Label != "Time off" {
-		t.Fatalf("benefits = %+v", c.BenefitCategories)
+	var groups []string
+	for _, group := range c.BenefitCategories {
+		groups = append(groups, group.Label+": "+strings.Join(group.Items, "|"))
 	}
-	if got := strings.Join(c.BenefitCategories[0].Items, "|"); got != "Medical|Dental|Vision" {
-		t.Fatalf("each benefit should be its own line: %q", got)
+	want := "Health & wellness: Medical|Dental|Vision; Time off & family: Unlimited PTO; Perks: Team offsites|Snacks"
+	if got := strings.Join(groups, "; "); got != want {
+		t.Fatalf("benefits = %q\nwant      %q", got, want)
 	}
 	if len(got.Sources) != 1 {
 		t.Fatalf("sources = %v", got.Sources)
@@ -91,7 +93,7 @@ func TestResearchCompanyFillsTheFormAndFollowsTheEnums(t *testing.T) {
 }
 
 func TestResearchCompanyLeavesUnknownAnswersBlank(t *testing.T) {
-	fake := &fakeResearcher{answer: `{"name":"","website":"nope","taglinePhrases":[],"about":"","industry":"","companyType":"","size":"1000 people","founded":99,"headquarters":{"line1":"","city":"","state":"","postalCode":"","country":""},"offices":[],"specialties":[],"mission":"","values":[],"benefitCategories":[]}`}
+	fake := &fakeResearcher{answer: `{"name":"","website":"nope","taglinePhrases":[],"about":"","industry":"","companyType":"","size":"1000 people","founded":99,"headquarters":{"line1":"","city":"","state":"","postalCode":"","country":""},"offices":[],"specialties":[],"mission":"","values":[],"benefits":[]}`}
 	got, err := ResearchCompany(context.Background(), fake, "Acme", "")
 	if err != nil {
 		t.Fatal(err)

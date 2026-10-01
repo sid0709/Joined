@@ -31,6 +31,7 @@ import {
 import { companySizeLabel } from "@openseat/job-schema";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ListField } from "@/components/list-field";
+import { BenefitItemsField } from "./benefit-items-field";
 import { adminFetch, adminSend } from "@/lib/api";
 import {
   COMPANIES_PATH,
@@ -594,23 +595,28 @@ function BenefitsField({
   groups: BenefitCategory[];
   onChange: (groups: BenefitCategory[]) => void;
 }) {
+  // Stable card ids, so removing a category never hands its items to the next card.
+  const [ids, setIds] = useState(() => groups.map((_, index) => index));
+  const [nextId, setNextId] = useState(groups.length);
   const update = (index: number, patch: Partial<BenefitCategory>) =>
     onChange(groups.map((group, item) => (item === index ? { ...group, ...patch } : group)));
+  const addCategory = () => {
+    setIds([...ids, nextId]);
+    setNextId(nextId + 1);
+    onChange([...groups, { label: "", items: [] }]);
+  };
+  const removeCategory = (index: number) => {
+    setIds(ids.filter((_, item) => item !== index));
+    onChange(groups.filter((_, item) => item !== index));
+  };
   return (
     <Group
       title="Benefits & perks"
-      action={
-        <Button
-          label="Add category"
-          variant="ghost"
-          size="sm"
-          clickAction={() => onChange([...groups, { label: "", items: [] }])}
-        />
-      }
+      action={<Button label="Add category" variant="ghost" size="sm" clickAction={addCategory} />}
     >
       {groups.length === 0 ? <Text color="secondary">None yet.</Text> : null}
       {groups.map((group, index) => (
-        <Card key={index} padding={4} variant="muted">
+        <Card key={ids[index] ?? `extra-${index}`} padding={4} variant="muted">
           <Stack gap={3}>
             <TextInput
               label="Category"
@@ -618,18 +624,17 @@ function BenefitsField({
               onChange={(label) => update(index, { label })}
               placeholder="Health"
             />
-            <ListField
-              label="Items"
+            <BenefitItemsField
               value={group.items}
               onChange={(items) => update(index, { items })}
-              placeholder="Medical, dental, vision"
+              placeholder="Medical, dental, and vision"
             />
             <HStack hAlign="end">
               <Button
                 label="Remove"
                 variant="ghost"
                 size="sm"
-                clickAction={() => onChange(groups.filter((_, item) => item !== index))}
+                clickAction={() => removeCategory(index)}
               />
             </HStack>
           </Stack>
