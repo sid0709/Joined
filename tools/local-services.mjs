@@ -22,11 +22,11 @@ export const LOCAL_SERVICES = [
     startExtraArgs: ["--port", "3001"],
   },
   {
-    id: "opened-frontend",
-    shortName: "opened",
+    id: "joined-frontend",
+    shortName: "joined",
     port: 3002,
     color: "\x1b[32m",
-    workspace: "opened-frontend",
+    workspace: "joined-frontend",
     startExtraArgs: ["--port", "3002"],
   },
   {
@@ -38,31 +38,31 @@ export const LOCAL_SERVICES = [
     startExtraArgs: ["--port", "3003"],
   },
   {
-    id: "opened-admin",
+    id: "joined-admin",
     shortName: "admin",
     port: 3010,
     color: "\x1b[33m",
-    workspace: "opened-admin",
+    workspace: "joined-admin",
     startExtraArgs: [],
   },
 ];
 
 export const API_SERVICE = {
-  id: "opened-backend-api",
+  id: "joined-backend-api",
   shortName: "api",
   port: 8080,
   color: "\x1b[34m",
   url: "http://127.0.0.1:8080",
   command: "go",
-  args: ["run", "-C", "opened-backend", "./cmd/server"],
+  args: ["run", "-C", "joined-backend", "./cmd/server"],
 };
 
 /** Frontends audited by `bun run audit` (excludes theme). */
 export const AUDIT_FRONTEND_IDS = [
   "connected-frontend",
-  "opened-frontend",
+  "joined-frontend",
   "scoutwell-frontend",
-  "opened-admin",
+  "joined-admin",
 ];
 
 export function localService(idOrShortName) {

@@ -36,9 +36,13 @@ const MARK_SIZES = ["1rem", "1.5rem", "2rem", "3rem"] as const;
 type Placement = { place: string; logo: string; component: string };
 
 const PLACEMENTS: Placement[] = [
-  { place: "Top bar — Joined", logo: "Blue wordmark", component: "BrandHeading" },
   {
-    place: "Top bar — Opened, Scoutwell, Admin",
+    place: "Top bar — job platform, marketplace, docs",
+    logo: "Blue wordmark",
+    component: "BrandHeading",
+  },
+  {
+    place: "Top bar — Scoutwell, Joined Admin",
     logo: "App icon + product name",
     component: 'BrandHeading product="…"',
   },

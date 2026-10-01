@@ -1,8 +1,8 @@
 /**
- * Job enums shared by Opened, Scoutwell, and admin.
+ * Job enums shared by Joined, Scoutwell, and admin.
  *
  * enums.json is the file the Go backend checks in
- * opened-backend/internal/jobschema. Edit both together; the tests fail when
+ * joined-backend/internal/jobschema. Edit both together; the tests fail when
  * they drift. Go cannot embed a file outside its module, so the JSON is the
  * cross-language copy and this module is what TypeScript imports.
  *

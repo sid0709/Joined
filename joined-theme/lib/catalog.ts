@@ -53,7 +53,7 @@ export const CATALOG: CatalogGroup[] = [
 <TopNav heading={<BrandHeading headingHref="/" />} />
 
 // A product under Joined
-<TopNav heading={<BrandHeading product="Opened" headingHref="/jobs" />} />`,
+<TopNav heading={<BrandHeading product="Scoutwell" headingHref="/dashboard" />} />`,
       },
       {
         slug: "brand-lockup",

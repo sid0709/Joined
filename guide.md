@@ -26,12 +26,12 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 | What                         | Command                             | URL                   |
 | ---------------------------- | ----------------------------------- | --------------------- |
 | Everything (frontends + API) | `bun run dev`                       | 3000–3003, 3010, 8080 |
-| Opened (job platform)        | `bun run dev:opened`                | http://localhost:3002 |
+| Joined (job platform)        | `bun run dev:joined`                | http://localhost:3002 |
 | Joined app                   | `bun run dev:app`                   | http://localhost:3000 |
 | Design-system showcase       | `bun run dev:theme`                 | http://localhost:3001 |
-| Opened admin                 | `bun run dev:admin`                 | http://localhost:3010 |
+| Joined admin                 | `bun run dev:admin`                 | http://localhost:3010 |
 | Scoutwell                    | `bun run dev:scout`                 | http://localhost:3003 |
-| Opened API                   | `bun run dev:admin-api`             | http://127.0.0.1:8080 |
+| Joined API                   | `bun run dev:admin-api`             | http://127.0.0.1:8080 |
 | One script in one workspace  | `bun --filter <workspace> <script>` | —                     |
 
 First time, and after `package.json` or `bun.lock` changes:
@@ -40,7 +40,7 @@ First time, and after `package.json` or `bun.lock` changes:
 bun install
 ```
 
-Production build of every app: `bun run build`. One app: `bun run build:opened`, `bun run build:app`, or `bun run build:theme`.
+Production build of every app: `bun run build`. One app: `bun run build:joined`, `bun run build:app`, or `bun run build:theme`.
 
 ## Prettier
 
@@ -103,8 +103,8 @@ Also run `bun run check:deps` when you touched dependencies.
 One workspace only:
 
 ```bash
-bun --filter opened-frontend lint
-bun --filter opened-frontend typecheck
+bun --filter joined-frontend lint
+bun --filter joined-frontend typecheck
 ```
 
 ## Testing
@@ -149,7 +149,7 @@ type(optional-scope): summary in imperative mood
 ```
 
 ```text
-feat(opened-frontend): split candidate and employer modes
+feat(joined-frontend): split candidate and employer modes
 fix(design-system): stop nested grid columns inheriting spans
 docs: update the coding guide
 test: cover empty search results

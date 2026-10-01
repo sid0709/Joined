@@ -1,6 +1,6 @@
 # 61 — Scout API (job submission protocol)
 
-**Service:** `opened-backend` (`internal/scout`, `internal/httpapi/scout*.go`) · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`opened-admin`)
+**Service:** `joined-backend` (`internal/scout`, `internal/httpapi/scout*.go`) · **Clients:** Scoutwell (`scoutwell-frontend`), outsourcing partners, admin console (`joined-admin`)
 
 One protocol for every way a job enters the pool from a scout: the Scoutwell web form, a partner's sourcing pipeline, and bulk uploads all call the same endpoints and go through the same checks, levels, and rewards (see [13-platform-scout.md](13-platform-scout.md)). Conventions follow [60-api-conventions.md](60-api-conventions.md).
 
@@ -106,8 +106,8 @@ RFC 9457 problem details (`application/problem+json`) with a stable `code`:
 
 ## Staff endpoints
 
-`/v1/admin/scout/*` serves the admin console: overview counts, the review queue, per-submission detail (checks, scout record, related submissions, audit trail), decisions (`approve` with optional edits, `reject` with a reason code, `duplicate`), outcomes (`interview`, `hire`), `expire`, `recheck`, scout level and identity decisions, and payout decisions. When `ADMIN_API_TOKEN` is set on the API, these (and the older admin job and company endpoints) require it as a bearer token; the admin console adds it server-side through its `/api/opened` proxy so it never reaches a browser. Every staff decision is written to `admin_audit`.
+`/v1/admin/scout/*` serves the admin console: overview counts, the review queue, per-submission detail (checks, scout record, related submissions, audit trail), decisions (`approve` with optional edits, `reject` with a reason code, `duplicate`), outcomes (`interview`, `hire`), `expire`, `recheck`, scout level and identity decisions, and payout decisions. When `ADMIN_API_TOKEN` is set on the API, these (and the older admin job and company endpoints) require it as a bearer token; the admin console adds it server-side through its `/api/joined` proxy so it never reaches a browser. Every staff decision is written to `admin_audit`.
 
 ## Data
 
-Collections in the Opened database: `scout_profiles`, `scout_submissions`, `scout_earnings`, `scout_payouts`, `scout_notifications`, `scout_api_keys`, `scout_idempotency` (TTL 24 h), `admin_audit`. Tax ids and payout accounts are stored as the last four characters only.
+Collections in the Joined database: `scout_profiles`, `scout_submissions`, `scout_earnings`, `scout_payouts`, `scout_notifications`, `scout_api_keys`, `scout_idempotency` (TTL 24 h), `admin_audit`. Tax ids and payout accounts are stored as the last four characters only.

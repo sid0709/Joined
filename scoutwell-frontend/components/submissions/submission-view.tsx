@@ -239,7 +239,7 @@ export function SubmissionView({
           {
             label: "Applications",
             value: live ? String(sub.activity.applications) : "—",
-            hint: "From Opened job hunters",
+            hint: "From Joined job hunters",
           },
           {
             label: "Interviews",

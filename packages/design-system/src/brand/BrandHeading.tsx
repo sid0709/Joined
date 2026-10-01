@@ -8,7 +8,7 @@ export interface BrandHeadingProps extends Omit<
   TopNavHeadingProps,
   "logo" | "logoLabel" | "heading"
 > {
-  /** A product under the Joined brand (Opened, Scoutwell…). Omit for Joined itself. */
+  /** A product under the Joined brand (Scoutwell, Joined Admin…). Omit for Joined itself. */
   product?: string;
 }
 

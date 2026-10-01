@@ -9,31 +9,31 @@ export default function BrandHeadingDemo() {
     <Examples>
       <Preview
         label="Joined"
-        description="With no product, the heading is the blue wordmark — the Joined marketplace and these docs."
-      >
-        <TopNav
-          label="Joined"
-          heading={<BrandHeading headingHref="#" />}
-          startContent={<TopNavItem label="Rooms" href="#" isSelected />}
-        />
-      </Preview>
-
-      <Preview
-        label="Products"
-        description="Opened, Scoutwell, and the admin console keep their names; the Joined app icon sits beside them."
+        description="With no product, the heading is the blue wordmark — the job platform, the marketplace, and these docs."
       >
         <Stack gap={3}>
-          <TopNav label="Opened" heading={<BrandHeading product="Opened" headingHref="#" />} />
           <TopNav
-            label="Opened for employers"
+            label="Joined"
+            heading={<BrandHeading headingHref="#" />}
+            startContent={<TopNavItem label="Find jobs" href="#" isSelected />}
+          />
+          <TopNav
+            label="Joined for employers"
             heading={
               <BrandHeading
-                product="Opened"
                 headingHref="#"
                 headerEndContent={<Badge label="Employers" variant="blue" />}
               />
             }
           />
+        </Stack>
+      </Preview>
+
+      <Preview
+        label="Products"
+        description="Scoutwell and the admin console show their own names beside the Joined app icon."
+      >
+        <Stack gap={3}>
           <TopNav
             label="Scoutwell"
             heading={
@@ -45,10 +45,10 @@ export default function BrandHeadingDemo() {
             }
           />
           <TopNav
-            label="Opened Admin"
+            label="Joined Admin"
             heading={
               <BrandHeading
-                product="Opened Admin"
+                product="Joined Admin"
                 headingHref="#"
                 headerEndContent={<Badge label="Staff" variant="neutral" />}
               />

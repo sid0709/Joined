@@ -19,8 +19,8 @@ export default function BrandLockupDemo() {
         description="The app icon, the product name, and “by Joined” so every product reads as part of one family."
       >
         <Stack gap={6}>
-          <BrandLockup product="Opened" tagline="Sign in to pick up your job search." />
           <BrandLockup product="Scoutwell" tagline="Find the jobs the big boards miss." />
+          <BrandLockup product="Joined Admin" tagline="Staff sign-in." />
         </Stack>
       </Preview>
 

@@ -1,5 +1,5 @@
 /**
- * The scout API contract (opened-backend/internal/scout). Field names are the
+ * The scout API contract (joined-backend/internal/scout). Field names are the
  * snake_case JSON the API sends; see docs/61-scout-api.md.
  * Workplace, seniority, employment, and pay use @joined/job-schema.
  */

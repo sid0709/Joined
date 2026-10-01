@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ApiError, type Earning, type List, type Submission } from "@joined/scout";
 import { SubmissionView } from "@/components/submissions/submission-view";
-import { openedWebUrl } from "@/lib/config";
+import { joinedWebUrl } from "@/lib/config";
 import { ROUTES, signInHref } from "@/lib/routes";
 import { scoutGet } from "@/lib/scout/server";
 
@@ -24,7 +24,7 @@ export default async function SubmissionPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const [submission, earnings] = await load(id);
   if (!submission || !earnings) redirect(signInHref(ROUTES.submission(id)));
-  const web = openedWebUrl();
+  const web = joinedWebUrl();
   return (
     <SubmissionView
       submission={submission}

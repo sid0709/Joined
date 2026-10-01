@@ -68,7 +68,7 @@ Rules:
 
 ## Implementation (September 2026)
 
-Built as Scoutwell (`scoutwell-frontend`, port 3003) on `opened-backend/internal/scout`, with moderation in `opened-admin` → Scouting. The full protocol, including API keys for outsourcing partners, is in [61-scout-api.md](61-scout-api.md). Differences from the target below:
+Built as Scoutwell (`scoutwell-frontend`, port 3003) on `joined-backend/internal/scout`, with moderation in `joined-admin` → Scouting. The full protocol, including API keys for outsourcing partners, is in [61-scout-api.md](61-scout-api.md). Differences from the target below:
 
 - Status names match the target: `submitted`, `auto_checking`, `needs_review`, `approved`, `rejected`, `duplicate`; an approved job that closes keeps `approved` with `expired: true`.
 - "URL reachable" rejects only definite failures (404/410, unknown domain, private address). A timeout or a site that blocks bots (403/429/5xx) goes to review instead, so good jobs on protected career sites are not lost.

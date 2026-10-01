@@ -16,7 +16,7 @@ export default function BrandFooterDemo() {
         description="Name the product in the lead; link the wordmark home when there is one."
       >
         <Stack gap={2}>
-          <BrandFooter lead="Opened is part of" />
+          <BrandFooter lead="Joined Admin is part of" />
           <BrandFooter lead="Scoutwell is part of" href="#" />
         </Stack>
       </Preview>
