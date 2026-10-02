@@ -20,6 +20,22 @@ func (s *Server) getCalendar(w http.ResponseWriter, r *http.Request) {
 	httpkit.WriteJSON(w, http.StatusOK, status)
 }
 
+// getCalendarEvents is the job hunter's own Google Calendar for the Interviews
+// page: ?from=YYYY-MM-DD&to=YYYY-MM-DD&tz=<IANA zone>. Recruiters only see
+// Joined's interviews, so this is for job hunters alone.
+func (s *Server) getCalendarEvents(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.requireCandidate(w, r)
+	if !ok {
+		return
+	}
+	query := r.URL.Query()
+	feed, err := s.people.GoogleEvents(r.Context(), session.User.ID, query.Get("from"), query.Get("to"), query.Get("tz"))
+	if !writeCandidate(w, err) {
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, feed)
+}
+
 func (s *Server) startGoogleCalendar(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.requireCandidate(w, r)
 	if !ok {

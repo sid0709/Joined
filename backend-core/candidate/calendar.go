@@ -14,7 +14,7 @@ type CalendarProvider interface {
 	Configured() bool
 	AuthURL(state string) string
 	Exchange(ctx context.Context, code string) (GoogleAccount, error)
-	ListEvents(ctx context.Context, refreshToken string, from, to time.Time) ([]CalEvent, error)
+	ListEvents(ctx context.Context, refreshToken string, from, to time.Time, zone string) ([]CalEvent, error)
 	CreateEvent(ctx context.Context, refreshToken string, event CalEvent) (string, error)
 }
 
@@ -129,7 +129,7 @@ func (s *Store) SyncGoogle(ctx context.Context, userID string, now time.Time) ([
 	if err != nil {
 		return nil, err
 	}
-	events, err := s.calendar.ListEvents(ctx, conn.RefreshToken, now.Add(-24*time.Hour), now.Add(calendarHorizon))
+	events, err := s.calendar.ListEvents(ctx, conn.RefreshToken, now.Add(-24*time.Hour), now.Add(calendarHorizon), "")
 	if err != nil {
 		return nil, err
 	}

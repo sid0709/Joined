@@ -2,6 +2,7 @@ package candidate
 
 import (
 	"context"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -27,17 +28,20 @@ var defaultPrepLabels = []string{
 }
 
 type InterviewInput struct {
-	ApplicationID string         `json:"applicationId"`
-	Round         string         `json:"round"`
-	Date          string         `json:"date"`
-	Start         string         `json:"start"`
-	End           string         `json:"end"`
-	Format        string         `json:"format"`
-	Where         string         `json:"where"`
-	Interviewers  []Interviewer  `json:"interviewers"`
-	Status        string         `json:"status"`
-	Source        string         `json:"source"`
-	Prep          []PrepTask     `json:"prep"`
+	ApplicationID string        `json:"applicationId"`
+	Round         string        `json:"round"`
+	Date          string        `json:"date"`
+	Start         string        `json:"start"`
+	End           string        `json:"end"`
+	Format        string        `json:"format"`
+	Where         string        `json:"where"`
+	Interviewers  []Interviewer `json:"interviewers"`
+	Status        string        `json:"status"`
+	Source        string        `json:"source"`
+	Prep          []PrepTask    `json:"prep"`
+	// TimeZone is the job hunter's IANA zone, so the copy in Google Calendar
+	// lands at their local time. Blank means UTC.
+	TimeZone      string         `json:"timeZone"`
 	MeetingURL    string         `json:"-"`
 	ScheduleMode  string         `json:"-"`
 	ProposedSlots []ProposedSlot `json:"-"`
@@ -87,6 +91,11 @@ func (s *Store) CreateInterview(ctx context.Context, userID string, input Interv
 		}
 		return Interview{}, err
 	}
+	if input.TimeZone != "" {
+		if _, err := time.LoadLocation(input.TimeZone); err != nil {
+			return Interview{}, ErrInvalidInput
+		}
+	}
 	item, err := buildInterview(userID, app, input, now)
 	if err != nil {
 		return Interview{}, err
@@ -100,8 +109,12 @@ func (s *Store) CreateInterview(ctx context.Context, userID string, input Interv
 				Start:       item.Start,
 				End:         item.End,
 				Where:       item.Where,
+				TimeZone:    input.TimeZone,
 			})
-			if err == nil {
+			if err != nil {
+				// The interview still saves; only its Google copy is missing.
+				slog.Error("add interview to google calendar", "user", userID, "error", err)
+			} else {
 				item.GoogleEventID = eventID
 				item.Source = SourceCalendar
 			}

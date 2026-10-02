@@ -30,13 +30,17 @@ import {
   type Interview,
   type PrepTask,
 } from "@/lib/interviews";
+import { googleEventsOn, toGoogleCalendarEvents } from "@/lib/google-calendar";
 import { createInterview, updateInterview } from "@/lib/me/pipeline";
 import { toDayString } from "@/lib/me/dates";
 import { AddInterviewDialog } from "./add-interview-dialog";
+import { GoogleCalendarNotice } from "./google-calendar-notice";
+import { GoogleEventRow } from "./google-event-row";
 import { InterviewDrawer } from "./interview-drawer";
 import { InterviewRow } from "./interview-row";
 import { NextInterview } from "./next-interview";
 import { PastInterviews } from "./past-interviews";
+import { useGoogleCalendar } from "./use-google-calendar";
 
 type View = "calendar" | "upcoming" | "past";
 
@@ -47,7 +51,11 @@ function percent(part: number, whole: number) {
   return whole === 0 ? 0 : Math.round((part / whole) * 100);
 }
 
-/** Interviews: the next one front and center, then a calendar, a list, and history. */
+/**
+ * Interviews: the next one front and center, then a calendar, a list, and history.
+ * The calendar also shows the job hunter's own Google Calendar, read-only, so
+ * they can see interviews against everything else in their week.
+ */
 export function InterviewsWorkspace({
   initial,
   applications,
@@ -75,6 +83,8 @@ export function InterviewsWorkspace({
     .filter((item) => isSameDay(item.date, day) && item.status !== "cancelled")
     .sort(byDateTime);
   const open = items.find((item) => item.id === openId) ?? null;
+  const google = useGoogleCalendar(day);
+  const googleOnDay = googleEventsOn(google.events, day);
 
   const replace = (next: Interview) => {
     setItems((current) => current.map((item) => (item.id === next.id ? next : item)));
@@ -182,16 +192,22 @@ export function InterviewsWorkspace({
       {view === "calendar" ? (
         <GridSystem gap={6} align="start">
           <GridColumn span="full" lg={8}>
-            <Calendar
-              value={day}
-              onChange={(date) => setDay(startOfDay(date))}
-              views={["month", "week", "agenda"]}
-              defaultView="month"
-              events={items.filter((item) => item.status !== "cancelled").map(toCalendarEvent)}
-              eventDisplay="chips"
-              hours={CALENDAR_HOURS}
-              size="lg"
-            />
+            <Stack gap={3}>
+              <Calendar
+                value={day}
+                onChange={(date) => setDay(startOfDay(date))}
+                views={["month", "week", "agenda"]}
+                defaultView="month"
+                events={[
+                  ...items.filter((item) => item.status !== "cancelled").map(toCalendarEvent),
+                  ...toGoogleCalendarEvents(google.events),
+                ]}
+                eventDisplay="chips"
+                hours={CALENDAR_HOURS}
+                size="lg"
+              />
+              <GoogleCalendarNotice feed={google} />
+            </Stack>
           </GridColumn>
           <GridColumn span="full" lg={4}>
             <Card padding={5}>
@@ -202,15 +218,20 @@ export function InterviewsWorkspace({
                   </Text>
                   <Heading level={2}>{formatDay(day)}</Heading>
                 </Stack>
-                {onDay.length > 0 ? (
-                  onDay.map((item) => (
-                    <InterviewRow
-                      key={item.id}
-                      interview={item}
-                      onOpen={() => setOpenId(item.id)}
-                    />
-                  ))
-                ) : (
+                {onDay.map((item) => (
+                  <InterviewRow key={item.id} interview={item} onOpen={() => setOpenId(item.id)} />
+                ))}
+                {googleOnDay.length > 0 ? (
+                  <Stack gap={2}>
+                    <Text type="supporting" color="secondary">
+                      From your Google Calendar
+                    </Text>
+                    {googleOnDay.map((event) => (
+                      <GoogleEventRow key={event.id} event={event} />
+                    ))}
+                  </Stack>
+                ) : null}
+                {onDay.length === 0 && googleOnDay.length === 0 ? (
                   <EmptyState
                     isCompact
                     title="Nothing scheduled"
@@ -224,7 +245,7 @@ export function InterviewsWorkspace({
                       />
                     }
                   />
-                )}
+                ) : null}
               </Stack>
             </Card>
           </GridColumn>
