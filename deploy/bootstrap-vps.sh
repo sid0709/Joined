@@ -7,11 +7,13 @@
 #
 # Afterwards, add HTTPS once DNS points here:
 #   certbot --nginx -d joinedhq.com -d www.joinedhq.com
+#   certbot --nginx -d api.joinedhq.com
 set -euo pipefail
 
 DEPLOY_USER=deploy
 DEPLOY_DIR=/srv/joined
 SITE=joinedhq.com
+API_SITE=api.joinedhq.com
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DEPLOY_KEY="${1:?usage: bootstrap-vps.sh \"<deploy public key>\"}"
 
@@ -33,14 +35,17 @@ chmod 600 "$keys"
 # Where the workflow puts compose.yml and the production .env.
 install -d -m 750 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$DEPLOY_DIR"
 
-# The nginx site. An existing one is kept: certbot has added HTTPS to it.
+# The nginx sites: joinedhq.com and the API (backend-core). An existing one is
+# kept: certbot has added HTTPS to it.
 install -d -m 755 /var/www/joinedhq
 install -m 644 "$HERE/nginx/starting.html" /var/www/joinedhq/starting.html
-if [ ! -e "/etc/nginx/sites-available/$SITE" ]; then
-  install -m 644 "$HERE/nginx/$SITE.conf" "/etc/nginx/sites-available/$SITE"
-fi
-ln -sfn "/etc/nginx/sites-available/$SITE" "/etc/nginx/sites-enabled/$SITE"
+for site in "$SITE" "$API_SITE"; do
+  if [ ! -e "/etc/nginx/sites-available/$site" ]; then
+    install -m 644 "$HERE/nginx/$site.conf" "/etc/nginx/sites-available/$site"
+  fi
+  ln -sfn "/etc/nginx/sites-available/$site" "/etc/nginx/sites-enabled/$site"
+done
 nginx -t
 systemctl reload nginx
 
-echo "Ready: $DEPLOY_USER can deploy to $DEPLOY_DIR, and nginx serves $SITE."
+echo "Ready: $DEPLOY_USER can deploy to $DEPLOY_DIR, and nginx serves $SITE and $API_SITE."

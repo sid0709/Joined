@@ -10,20 +10,22 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace               | Path                      | What it is                                                   | Dev port | Root dev script          |
-| ----------------------- | ------------------------- | ------------------------------------------------------------ | -------- | ------------------------ |
-| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:joined`     |
-| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                     | 3000     | `bun run dev:app`        |
-| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`      |
-| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`      |
-| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`      |
-| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                        | 8080     | `bun run dev:joined-api` |
-| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                          | 8081     | `bun run dev:admin-api`  |
-| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners     | 8082     | `bun run dev:scout-api`  |
-| `backend-core`          | `backend-core/`           | Go code the three APIs share: domain stores, HTTP helpers    | —        | —                        |
-| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                        |
+| Workspace               | Path                      | What it is                                                                          | Dev port | Root dev script          |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------- | -------- | ------------------------ |
+| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)                          | 3002     | `bun run dev:joined`     |
+| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                                            | 3000     | `bun run dev:app`        |
+| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                                                    | 3001     | `bun run dev:theme`      |
+| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js)                        | 3010     | `bun run dev:admin`      |
+| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)                          | 3003     | `bun run dev:scout`      |
+| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                               | 8080     | `bun run dev:joined-api` |
+| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                                 | 8081     | `bun run dev:admin-api`  |
+| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                            | 8082     | `bun run dev:scout-api`  |
+| `backend-core`          | `backend-core/`           | Go code every API shares, and its own server: api.joinedhq.com (Bash under `/bash`) | 8083     | `bun run dev:core-api`   |
+| `bash-extension`        | `bash/extension/`         | Bash Chrome extension (Vite; load `bash/extension/dist`)                            | —        | `bun run dev:bash`       |
+| `bash-ui-board`         | `bash/ui-board/`          | Bash UI board (Vite)                                                                | 5173     | `bun run dev:bash-board` |
+| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)                                | —        | —                        |
 
-Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
+Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared `backend-core`, which also runs its own server for Bash) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -174,8 +176,9 @@ bun run dev
 | Joined API             | http://127.0.0.1:8080 | `[joined-api]` |
 | Admin API              | http://127.0.0.1:8081 | `[admin-api]`  |
 | Scoutwell API          | http://127.0.0.1:8082 | `[scout-api]`  |
+| Core API (Bash)        | http://127.0.0.1:8083 | `[core-api]`   |
 
-Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.env.example`): `joined-backend/.env`, `admin-backend/.env`, `scoutwell-backend/.env`. Each needs `MONGO_URI`; an API without it exits and everything else keeps running. `bun run dev:api` starts only the three APIs.
+Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.env.example`): `joined-backend/.env`, `admin-backend/.env`, `scoutwell-backend/.env`, `backend-core/.env`. Each needs `MONGO_URI`; an API without it exits and everything else keeps running. `bun run dev:api` starts only the four APIs.
 
 ### Open one app
 
@@ -188,6 +191,7 @@ Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.en
 | Joined API             | `bun run dev:joined-api` | http://127.0.0.1:8080 |
 | Admin API              | `bun run dev:admin-api`  | http://127.0.0.1:8081 |
 | Scoutwell API          | `bun run dev:scout-api`  | http://127.0.0.1:8082 |
+| Core API (Bash)        | `bun run dev:core-api`   | http://127.0.0.1:8083 |
 
 On macOS, open a running app in the browser:
 
@@ -440,6 +444,8 @@ git push -u origin feat/<short-name>
 | Run the Joined API                    | `bun run dev:joined-api` → http://127.0.0.1:8080                                       |
 | Run the admin API                     | `bun run dev:admin-api` → http://127.0.0.1:8081                                        |
 | Run the Scoutwell API                 | `bun run dev:scout-api` → http://127.0.0.1:8082                                        |
+| Run the core API (Bash's `/bash/*`)   | `bun run dev:core-api` → http://127.0.0.1:8083                                         |
+| Build the Bash extension / UI board   | `bun run build:bash` (watch: `bun run dev:bash`, `bun run dev:bash-board`)             |
 | Test / vet every Go module            | `bun run test:go` · `bun run vet:go`                                                   |
 | Open a running app (macOS)            | `open http://localhost:3002`                                                           |
 | Run any script in one workspace       | `bun --filter <workspace> <script>`                                                    |

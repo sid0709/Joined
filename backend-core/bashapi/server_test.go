@@ -192,6 +192,6 @@ func TestSignOutKeepsJoinedSession(t *testing.T) {
 		t.Fatalf("signout: %d", rec.Code)
 	}
 	if rec := call(handler, "GET", "/bash/auth/me", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
-		t.Fatalf("the shared Joined session must survive an Bash sign-out: %d", rec.Code)
+		t.Fatalf("the shared Joined session must survive a Bash sign-out: %d", rec.Code)
 	}
 }

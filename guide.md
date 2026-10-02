@@ -25,7 +25,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 
 | What                          | Command                             | URL                        |
 | ----------------------------- | ----------------------------------- | -------------------------- |
-| Everything (frontends + APIs) | `bun run dev`                       | 3000–3003, 3010, 8080–8082 |
+| Everything (frontends + APIs) | `bun run dev`                       | 3000–3003, 3010, 8080–8083 |
 | Joined (job platform)         | `bun run dev:joined`                | http://localhost:3002      |
 | Joined app                    | `bun run dev:app`                   | http://localhost:3000      |
 | Design-system showcase        | `bun run dev:theme`                 | http://localhost:3001      |
@@ -34,6 +34,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 | Joined API                    | `bun run dev:joined-api`            | http://127.0.0.1:8080      |
 | Admin API                     | `bun run dev:admin-api`             | http://127.0.0.1:8081      |
 | Scoutwell API                 | `bun run dev:scout-api`             | http://127.0.0.1:8082      |
+| Core API (Bash)               | `bun run dev:core-api`              | http://127.0.0.1:8083      |
 | One script in one workspace   | `bun --filter <workspace> <script>` | —                          |
 
 First time, and after `package.json` or `bun.lock` changes:

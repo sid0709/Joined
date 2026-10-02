@@ -9,10 +9,10 @@ Write production-ready code only. Do **not** add tests, test files, test scripts
 
 ## Architecture (monorepo)
 
-Packages: `backend/`, `ai-backend/`, `ui-board/`, `extension/`, `shared/`.
+Packages: `ui-board/`, `extension/`, `packages/shared/` (`@bash/shared`), `packages/bash-face/` (`@bash/face`). The backend is Go, in `backend-core/bash` and `backend-core/bashapi` at the repo root. Everything installs and runs with bun from the repo root; never npm.
 
-- Keep package boundaries clear: relay I/O in `backend`, AI/prompt/schema in `ai-backend`, visualization/UX in `ui-board`, page DOM/runtime in `extension`.
-- Put cross-package contracts in `shared/` (types, event names, default ports/URLs, shared constants). Do not redefine the same `DomNode` / payload types in multiple packages.
+- Keep package boundaries clear: relay I/O, AI/prompt/schema in the Go backend, visualization/UX in `ui-board`, page DOM/runtime in `extension`.
+- Put cross-package contracts in `@bash/shared` (types, event names, default hosts/URLs, shared constants). Do not redefine the same `DomNode` / payload types in multiple packages.
 - Prefer small modules with one job over growing god-files (e.g. `App.tsx`). Extract helpers, prompts, schemas, formatters, and protocol clients into named modules.
 
 ## No hardcoding
@@ -33,8 +33,8 @@ Never scatter magic values. Configure once, import everywhere.
 const DEFAULT_SERVER = 'http://localhost:3847';
 
 // ✅ GOOD — shared config + env override
-import { DEFAULT_BACKEND_URL } from '../../shared/config';
-const serverUrl = import.meta.env.VITE_BACKEND_URL || DEFAULT_BACKEND_URL;
+import { bashHosts } from '@bash/shared/api';
+const serverUrl = import.meta.env.VITE_BASH_API_URL || bashHosts(import.meta.env.MODE).api;
 ```
 
 ## Modular, systemized structure

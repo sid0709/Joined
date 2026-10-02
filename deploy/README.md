@@ -3,7 +3,7 @@
 Every merge to `main` runs [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml):
 
 1. **Images.** Each service is built into a Docker image and pushed to Docker Hub as `<DOCKERHUB_USERNAME>/joined:<service>-sha-<commit>` (and `<service>-latest`). The Go APIs use [`docker/go-service.Dockerfile`](../docker/go-service.Dockerfile); the Next.js apps use [`docker/next-app.Dockerfile`](../docker/next-app.Dockerfile).
-2. **Deploy.** The workflow writes a `.env` from the GitHub `production` environment, copies it and [`compose.yml`](compose.yml) to `/srv/joined` on the VPS, pulls the new images, restarts the stack, and checks that the API's `/health` and the homepage answer.
+2. **Deploy.** The workflow writes a `.env` from the GitHub `production` environment, copies it and [`compose.yml`](compose.yml) to `/srv/joined` on the VPS, pulls the new images, restarts the stack, and checks that both APIs' `/health` (joined-backend and backend-core) and the homepage answer.
 
 You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 
@@ -13,6 +13,7 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 | -------------------- | -------------- | ------------------------- | ---------------------------------------------- |
 | `joined-frontend`    | 3000           | 6002                      | yes — nginx serves it on joinedhq.com          |
 | `joined-backend`     | 8080           | 11080                     | yes                                            |
+| `backend-core`       | 8080           | 11083                     | yes — nginx serves it on api.joinedhq.com      |
 | `scoutwell-frontend` | 3000           | 6003                      | with `COMPOSE_PROFILES` containing `scoutwell` |
 | `scoutwell-backend`  | 8080           | 11082                     | with `scoutwell`                               |
 | `admin-frontend`     | 3000           | 6010                      | with `admin`                                   |
@@ -22,7 +23,9 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 
 Host ports are the dev ports + 3000, except `connected-frontend`: browsers refuse port 6000.
 Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect
-(`/v1/me/calendar/google/callback`) to the API on 11080.
+(`/v1/me/calendar/google/callback`) to the API on 11080. `api.joinedhq.com` goes to
+backend-core on 11083: Bash's extension calls `https://api.joinedhq.com/bash/...` and
+keeps a Socket.IO connection at `/bash/socket.io` ([`nginx/api.joinedhq.com.conf`](nginx/api.joinedhq.com.conf)).
 
 ## GitHub `production` environment
 
@@ -79,6 +82,19 @@ page nginx shows while the containers are starting. HTTPS comes from certbot:
 ```bash
 certbot --nginx -d joinedhq.com -d www.joinedhq.com
 ```
+
+### api.joinedhq.com
+
+On a VPS bootstrapped before this site existed, add it once, as root:
+
+1. DNS: an `A` record `api` → the VPS address (Hostinger → joinedhq.com → DNS, as in
+   [subdomains-runbook.md](subdomains-runbook.md) step 1).
+2. The site: `install -m 644 deploy/nginx/api.joinedhq.com.conf /etc/nginx/sites-available/api.joinedhq.com`,
+   `ln -sfn /etc/nginx/sites-available/api.joinedhq.com /etc/nginx/sites-enabled/`, then
+   `nginx -t && systemctl reload nginx`. Running `bootstrap-vps.sh` again does the same.
+3. HTTPS: `certbot --nginx -d api.joinedhq.com --redirect`.
+
+Check from any computer: `curl -s https://api.joinedhq.com/bash/health` prints `{"ok":true}`.
 
 Useful on the server, as `deploy`:
 
