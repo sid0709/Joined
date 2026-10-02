@@ -125,12 +125,14 @@ type CompanyChoice struct {
 }
 
 type storedUser struct {
-	ID           string    `bson:"id"`
-	Name         string    `bson:"name"`
-	Email        string    `bson:"email"`
-	PasswordHash string    `bson:"passwordHash"`
-	Role         string    `bson:"role,omitempty"`
-	CreatedAt    time.Time `bson:"createdAt"`
+	ID           string `bson:"id"`
+	Name         string `bson:"name"`
+	Email        string `bson:"email"`
+	PasswordHash string `bson:"passwordHash"`
+	Role         string `bson:"role,omitempty"`
+	// GoogleID links Sign in with Google. Accounts created that way have no password.
+	GoogleID  string    `bson:"googleId,omitempty"`
+	CreatedAt time.Time `bson:"createdAt"`
 }
 
 type storedSession struct {

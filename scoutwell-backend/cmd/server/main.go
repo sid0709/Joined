@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 	"github.com/sid0709/OpenSeat/scoutwell-backend/internal/httpapi"
@@ -42,7 +43,12 @@ func main() {
 		slog.Info("resume scout checks", "submissions", resumed)
 	}
 
-	handler := httpapi.New(p.Jobs, p.Accounts, p.Scouts, httpapi.Options{Origins: server.Origins})
+	googleConfig := config.LoadGoogle()
+	handler := httpapi.New(p.Jobs, p.Accounts, p.Scouts, httpapi.Options{
+		Origins:           server.Origins,
+		Google:            &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret},
+		GoogleRedirectURL: googleConfig.SignInRedirectURL,
+	})
 	if err := httpkit.Serve("scoutwell api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)

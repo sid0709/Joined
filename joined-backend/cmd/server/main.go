@@ -9,6 +9,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
@@ -17,7 +18,7 @@ import (
 
 const (
 	defaultHTTPAddr       = "127.0.0.1:8080"
-	defaultFrontendOrigin = "http://127.0.0.1:3002"
+	defaultFrontendOrigin = "http://localhost:3002"
 )
 
 var defaultOrigins = []string{"http://127.0.0.1:3002", "http://localhost:3002"}
@@ -36,13 +37,11 @@ func main() {
 	}
 	ai := config.LoadOpenAI()
 	frontend := strings.TrimRight(config.Env("FRONTEND_ORIGIN", defaultFrontendOrigin), "/")
-	google := &candidate.Google{
-		ClientID:     config.Env("GOOGLE_CLIENT_ID", ""),
-		ClientSecret: config.Env("GOOGLE_CLIENT_SECRET", ""),
-		RedirectURL:  config.Env("GOOGLE_REDIRECT_URL", ""),
-	}
+	googleConfig := config.LoadGoogle()
+	oauth := &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret}
+	calendar := &candidate.Google{OAuth: oauth, RedirectURL: config.Env("GOOGLE_REDIRECT_URL", "")}
 
-	p, err := platform.Open(context.Background(), db, platform.Options{Calendar: google})
+	p, err := platform.Open(context.Background(), db, platform.Options{Calendar: calendar})
 	if err != nil {
 		slog.Error("platform", "error", config.Redact(err, db.MongoURI))
 		os.Exit(1)
@@ -51,8 +50,10 @@ func main() {
 
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
 	handler := httpapi.New(p.Jobs, p.Accounts, p.People, p.Hiring, p.Staff, reader, httpapi.Options{
-		Origins:  server.Origins,
-		Frontend: frontend,
+		Origins:           server.Origins,
+		Frontend:          frontend,
+		Google:            oauth,
+		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 	})
 	if err := httpkit.Serve("joined api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)

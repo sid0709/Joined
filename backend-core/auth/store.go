@@ -87,7 +87,10 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		Keys:    bson.D{{Key: "userId", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	return s.ensureGoogleIndexes(ctx)
 }
 
 func (s *Store) Signup(ctx context.Context, input Signup, now time.Time) (string, Session, error) {

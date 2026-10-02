@@ -15,6 +15,7 @@ describe("routes", () => {
     expect(safeNextPath("")).toBe(ROUTES.dashboard);
     expect(safeNextPath("https://evil.example")).toBe(ROUTES.dashboard);
     expect(safeNextPath("//evil.example")).toBe(ROUTES.dashboard);
+    expect(safeNextPath("/\\evil.example")).toBe(ROUTES.dashboard);
   });
 
   test("a submission link includes its id", () => {

@@ -27,6 +27,8 @@ type Handlers struct {
 	Audience string
 	// CompanyCreated, when set, runs after a sign-up or company link starts a new company page.
 	CompanyCreated func(context.Context, auth.Session)
+	// Google turns on Sign in with Google. Nil, or without credentials, answers 503.
+	Google *GoogleSignIn
 }
 
 type authResponse struct {
@@ -34,10 +36,13 @@ type authResponse struct {
 	Session auth.Session `json:"session"`
 }
 
-// Register adds sign-up, sign-in, sign-out, the session, and account deletion.
+// Register adds sign-up, sign-in (with a password or Google), sign-out, the
+// session, and account deletion.
 func (h Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/signup", h.signup)
 	mux.HandleFunc("POST /v1/auth/signin", h.signin)
+	mux.HandleFunc("POST /v1/auth/google/start", h.startGoogle)
+	mux.HandleFunc("POST /v1/auth/google/callback", h.finishGoogle)
 	mux.HandleFunc("POST /v1/auth/signout", h.signout)
 	mux.HandleFunc("DELETE /v1/auth/account", h.deleteAccount)
 	mux.HandleFunc("GET /v1/auth/session", h.session)
@@ -190,7 +195,7 @@ func writeAuthResult(w http.ResponseWriter, token string, session auth.Session, 
 		httpkit.WriteError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, auth.ErrNotFound):
 		httpkit.WriteError(w, http.StatusNotFound, "company not found")
-	case errors.Is(err, auth.ErrHasCompany):
+	case errors.Is(err, auth.ErrHasCompany), errors.Is(err, auth.ErrGoogleMismatch):
 		httpkit.WriteError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, auth.ErrWrongRole):
 		httpkit.WriteError(w, http.StatusForbidden, err.Error())

@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/authapi"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
@@ -32,6 +33,10 @@ type Options struct {
 	Origins []string
 	// Frontend is joined-frontend's origin, for links and redirects back to it.
 	Frontend string
+	// Google is the OAuth client behind Sign in with Google and the calendar.
+	Google *google.Client
+	// GoogleRedirectURL is joined-frontend's Google sign-in callback page.
+	GoogleRedirectURL string
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -44,7 +49,20 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		reader:   reader,
 		frontend: opts.Frontend,
 	}
-	identity := authapi.Handlers{Accounts: accounts, Audience: auth.AudienceJoined, CompanyCreated: server.noteNewCompany}
+	identity := authapi.Handlers{
+		Accounts:       accounts,
+		Audience:       auth.AudienceJoined,
+		CompanyCreated: server.noteNewCompany,
+		// Job hunters only: recruiters need a company, so they sign up with a password.
+		// The same consent screen asks for the calendar, which interviews sync with.
+		Google: &authapi.GoogleSignIn{
+			OAuth:       opts.Google,
+			RedirectURL: opts.GoogleRedirectURL,
+			Role:        auth.RoleCandidate,
+			Scopes:      []string{google.ScopeCalendarEvents},
+			Granted:     server.attachCalendar,
+		},
+	}
 	mux := http.NewServeMux()
 	identity.Register(mux)
 	identity.RegisterCompanies(mux)
@@ -84,6 +102,19 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
 	server.registerEmployer(mux)
 	return httpkit.CORS(opts.Origins, mux)
+}
+
+// attachCalendar keeps the calendar a job hunter granted while signing in with
+// Google. Google sends a refresh token only the first time, so a returning job
+// hunter keeps the connection they have, or the disconnect they chose.
+func (s *Server) attachCalendar(ctx context.Context, session auth.Session, profile google.Profile, token google.Token) {
+	if s.people == nil || !token.Granted(google.ScopeCalendarEvents) || token.RefreshToken == "" {
+		return
+	}
+	account := candidate.GoogleAccount{Email: profile.Email, RefreshToken: token.RefreshToken}
+	if err := s.people.ConnectGoogle(ctx, session.User.ID, account, time.Now()); err != nil {
+		slog.Error("attach google calendar", "user", session.User.ID, "error", err)
+	}
 }
 
 // noteNewCompany queues a company page someone just created for staff verification.

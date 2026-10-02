@@ -20,7 +20,10 @@ export const loadSession = cache(async function loadSession(): Promise<AuthSessi
   return (await response.json()) as AuthSession;
 });
 
+/** Only same-site paths. Browsers read "/\" like "//", another host, so both are refused. */
 export function safeNextPath(value: string | null | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) {
+    return "/";
+  }
   return value;
 }

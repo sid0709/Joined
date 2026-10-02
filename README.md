@@ -35,6 +35,10 @@ Each app has its own Go API that runs and deploys on its own. The apps call thei
 
 All three share one MongoDB and build on `backend-core`: the domain stores, the HTTP helpers, and the sign-in routes. A rule that crosses domains, like deleting an account, behaves the same whichever API runs it. Each service reads its own `.env` (copy its `.env.example`). `bun run dev:api` starts all three; `bun run test:go` tests every Go module.
 
+### Production
+
+Merging to `main` builds every service into a Docker image and deploys Joined to https://joinedhq.com. How it works, and every setting the GitHub `production` environment needs, is in [deploy/README.md](deploy/README.md).
+
 ### Scout pipeline setup
 
 1. `admin-backend/.env`: set `ADMIN_API_TOKEN` (e.g. `openssl rand -hex 32`). Without it the staff endpoints are open.

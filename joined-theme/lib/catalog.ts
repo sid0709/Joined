@@ -71,6 +71,15 @@ export const CATALOG: CatalogGroup[] = [
         usage: `<BrandFooter />
 <BrandFooter lead="Scoutwell is part of" align="start" />`,
       },
+      {
+        slug: "google-sign-in-button",
+        title: "Google Sign-in Button",
+        description:
+          "“Continue with Google” for sign-in and sign-up pages. It posts to the app’s Google route.",
+        importName: "GoogleSignInButton",
+        usage: `<GoogleSignInButton action="/api/auth/google" next="/jobs" />
+<GoogleSignInButton action="/api/auth/google" label="Sign up with Google" />`,
+      },
     ],
   },
   {

@@ -2,15 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, Card, Heading, Link, Stack, Text, TextInput } from "@joined/design-system";
+import {
+  Banner,
+  Button,
+  Card,
+  Divider,
+  GoogleSignInButton,
+  Heading,
+  Link,
+  Stack,
+  Text,
+  TextInput,
+} from "@joined/design-system";
+import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";
 
-export function SignInForm({ nextPath }: { nextPath: string }) {
+/** `googleError` explains why a Google sign-in came back here, when one did. */
+export function SignInForm({ nextPath, googleError }: { nextPath: string; googleError: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(googleError);
   const [pending, setPending] = useState(false);
   const signUpHref = `${ROUTES.signUp}?next=${encodeURIComponent(nextPath)}`;
 
@@ -45,6 +58,13 @@ export function SignInForm({ nextPath }: { nextPath: string }) {
           </Text>
         </Stack>
         {error ? <Banner status="error" title={error} /> : null}
+        <Stack gap={2}>
+          <GoogleSignInButton action={GOOGLE_SIGNIN_ROUTE} next={nextPath} />
+          <Text type="supporting" color="secondary">
+            Google sign-in is for job seekers. Recruiters, use your email.
+          </Text>
+        </Stack>
+        <Divider label="or" />
         <TextInput label="Email" type="email" value={email} onChange={setEmail} />
         <TextInput label="Password" type="password" value={password} onChange={setPassword} />
         <Button label="Sign in" variant="primary" clickAction={submit} isDisabled={pending} />

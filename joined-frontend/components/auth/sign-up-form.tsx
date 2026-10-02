@@ -6,6 +6,8 @@ import {
   Banner,
   Button,
   Card,
+  Divider,
+  GoogleSignInButton,
   Heading,
   Link,
   RadioList,
@@ -14,6 +16,7 @@ import {
   Text,
   TextInput,
 } from "@joined/design-system";
+import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
 import type { CompanyChoice } from "@/lib/auth/types";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";
@@ -125,11 +128,27 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
               <Text color="secondary">
                 {employee
                   ? "Link a company already on Joined, or create a new one. If you don’t link a company, creating one is required."
-                  : "Your candidate account is just a name, email, and password."}
+                  : "Use your Google account, or a name, email, and password."}
               </Text>
             </Stack>
             {error ? <Banner status="error" title={error} /> : null}
-            {employee ? <CompanyFields path={path} onPath={setPath} onChoice={onChoice} /> : null}
+            {employee ? (
+              <CompanyFields path={path} onPath={setPath} onChoice={onChoice} />
+            ) : (
+              <>
+                <Stack gap={2}>
+                  <GoogleSignInButton
+                    action={GOOGLE_SIGNIN_ROUTE}
+                    next={nextPath}
+                    label="Sign up with Google"
+                  />
+                  <Text type="supporting" color="secondary">
+                    Google also asks to connect your calendar so interviews sync. You can skip it.
+                  </Text>
+                </Stack>
+                <Divider label="or" />
+              </>
+            )}
             <TextInput label="Name" value={name} onChange={setName} />
             <TextInput label="Email" type="email" value={email} onChange={setEmail} />
             <TextInput label="Password" type="password" value={password} onChange={setPassword} />
