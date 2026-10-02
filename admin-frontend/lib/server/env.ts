@@ -1,3 +1,6 @@
+import { STAFF_SESSION_HEADER } from "@/lib/staff-session";
+import { staffToken } from "./staff-session";
+
 /**
  * Server-only settings. The admin token never reaches the browser: pages read
  * the API from the server, and browser calls go through /api/admin.
@@ -17,15 +20,21 @@ export function adminApiToken(): string {
   return process.env.ADMIN_API_TOKEN ?? "";
 }
 
-/** Who staff decisions are recorded as in the audit log. */
+/**
+ * Who staff decisions are recorded as in the audit log when nobody signs in. With
+ * Google sign-in on, the API records the signed-in staff member instead.
+ */
 export function adminActor(): string {
   return process.env.ADMIN_ACTOR || "admin console";
 }
 
-export function adminHeaders(): Record<string, string> {
+/** The admin token, the signed-in staff member's session, and the fallback actor. */
+export async function adminHeaders(): Promise<Record<string, string>> {
   const token = adminApiToken();
+  const session = await staffToken();
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(session ? { [STAFF_SESSION_HEADER]: session } : {}),
     "X-Admin-Actor": adminActor(),
   };
 }

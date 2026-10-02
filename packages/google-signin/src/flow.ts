@@ -10,11 +10,18 @@ export type GoogleStarted =
 export type GoogleFinished =
   { ok: true; token: string; next: string } | { ok: false; error: GoogleSignInError; next: string };
 
-/** Asks the app's API where to send the browser, and for the state to remember. */
-export async function startGoogleSignIn(apiUrl: string): Promise<GoogleStarted> {
+/**
+ * Asks the app's API where to send the browser, and for the state to remember.
+ * headers go with the call, for an API that wants its own credentials.
+ */
+export async function startGoogleSignIn(
+  apiUrl: string,
+  headers: Record<string, string> = {},
+): Promise<GoogleStarted> {
   try {
     const response = await fetch(new URL(START_PATH, `${apiUrl}/`), {
       method: "POST",
+      headers,
       cache: "no-store",
     });
     if (!response.ok) return { ok: false, error: errorFor(response.status) };
@@ -33,6 +40,7 @@ export async function finishGoogleSignIn(
   apiUrl: string,
   callback: URL,
   cookie: string | undefined,
+  headers: Record<string, string> = {},
 ): Promise<GoogleFinished> {
   const saved = decodeGoogleState(cookie);
   const next = saved?.next ?? "";
@@ -52,7 +60,7 @@ export async function finishGoogleSignIn(
   try {
     const response = await fetch(new URL(CALLBACK_PATH, `${apiUrl}/`), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...headers, "Content-Type": "application/json" },
       body: JSON.stringify({ code, state }),
       cache: "no-store",
     });

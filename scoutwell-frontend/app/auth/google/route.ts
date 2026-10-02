@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import {
+  GOOGLE_AUTH_ROUTE,
   GOOGLE_STATE_COOKIE,
   encodeGoogleState,
   googleStateCookie,
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   (await cookies()).set(
     GOOGLE_STATE_COOKIE,
     encodeGoogleState({ state: started.state, next }),
-    googleStateCookie(process.env.NODE_ENV === "production"),
+    googleStateCookie(process.env.NODE_ENV === "production", GOOGLE_AUTH_ROUTE),
   );
   return seeOther(started.url);
 }

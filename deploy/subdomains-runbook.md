@@ -126,15 +126,15 @@ EOF
 
 ### Admin (only allowed IPs)
 
-The admin console has **no sign-in yet**. Anyone who can open it has full staff
-access. Until Google Workspace sign-in ships, only the owner's IP addresses may
-reach it. Replace `203.0.113.10` with the real address(es), one `allow` line each.
+The admin console only gets Google sign-in once that code is deployed. Until
+then, anyone who can open it has full staff access, so only the owner's IP
+addresses may reach it. Replace `203.0.113.10` with the real address(es), one `allow` line each.
 To find an address, the person opens https://ifconfig.me from their network.
 
 ```bash
 cat > /etc/nginx/sites-available/admin.joinedhq.com <<'EOF'
 # admin.joinedhq.com → admin-frontend. certbot adds HTTPS to this file.
-# The console has no sign-in yet, so only these addresses may open it.
+# Until staff sign-in is live and tested, only these addresses may open it.
 server {
     listen 80;
     listen [::]:80;
@@ -228,22 +228,28 @@ curl -sI http://scout.joinedhq.com | grep -i '^location'
 HTTPS answers, and plain HTTP redirects to `https://scout.joinedhq.com/`.
 Open both sites in a browser and confirm the padlock and that the page loads.
 
-## 7. Google sign-in for Scout (Google Cloud Console)
+## 7. Google sign-in (Google Cloud Console)
 
-Go to Google Cloud Console → **APIs & Services → Credentials →** the OAuth client
-Scoutwell uses (the same client ID as `GOOGLE_CLIENT_ID` in GitHub) and add:
+Each app has its own OAuth client, in its own Google Cloud project. In each one, go to
+**APIs & Services → Credentials →** the Web application client and add:
 
-- **Authorized JavaScript origins:** `https://scout.joinedhq.com`
-- **Authorized redirect URIs:** `https://scout.joinedhq.com/api/auth/google/callback`
+| Project        | Authorized JavaScript origins | Authorized redirect URIs                          |
+| -------------- | ----------------------------- | ------------------------------------------------- |
+| `joined-scout` | `https://scout.joinedhq.com`  | `https://scout.joinedhq.com/auth/google/callback` |
+| `joined-admin` | `https://admin.joinedhq.com`  | `https://admin.joinedhq.com/auth/google/callback` |
 
-Save, wait a few minutes, then sign in at https://scout.joinedhq.com with Google.
+The paths are `/auth/google/callback`, **not** `/api/auth/...`. Each one must match
+`SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL` / `ADMIN_GOOGLE_SIGNIN_REDIRECT_URL` in GitHub
+exactly. Set `joined-admin`'s consent screen to **Internal**, so only Workspace
+accounts can even try to sign in.
 
-**Check:** sign-in finishes and ends up back on Scout, logged in.
+Save, wait a few minutes, then sign in to each site with Google.
 
-Admin has no Google sign-in yet. That's separate development work: a dedicated
-**Internal** OAuth client in the Workspace org's Google Cloud project, plus a
-server-side check of the `hd` claim. Remove the IP allowlist from step 4 only
-after that ships.
+**Check:** Scout sign-in works with any Google account. Admin sign-in works with a
+Workspace account and is refused for a personal Gmail account.
+
+Keep the admin IP allowlist from step 4 until the admin sign-in check passes on
+the live site. After that, the owner decides whether to remove it.
 
 ## 8. Lock down the server
 

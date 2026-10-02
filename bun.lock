@@ -26,6 +26,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@joined/design-system": "workspace:*",
+        "@joined/google-signin": "workspace:*",
         "@joined/job-schema": "workspace:*",
         "@joined/scout": "workspace:*",
         "next": "catalog:",

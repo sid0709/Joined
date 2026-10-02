@@ -13,7 +13,7 @@ import {
   Text,
   TextInput,
 } from "@joined/design-system";
-import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
+import { GOOGLE_AUTH_ROUTE } from "@joined/google-signin";
 import { ApiError } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 import { authSend } from "@/lib/scout/client";
@@ -65,7 +65,7 @@ export function SignUpForm() {
             Find official openings the big boards miss. Earn when job hunters actually use them.
           </Text>
         </Stack>
-        <GoogleSignInButton action={GOOGLE_SIGNIN_ROUTE} label="Sign up with Google" />
+        <GoogleSignInButton action={GOOGLE_AUTH_ROUTE} label="Sign up with Google" />
         <Divider label="or" />
         <Stack gap={4}>
           <TextInput

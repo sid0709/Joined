@@ -90,6 +90,9 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := s.ensureStaffIndexes(ctx); err != nil {
+		return err
+	}
 	return s.ensureGoogleIndexes(ctx)
 }
 

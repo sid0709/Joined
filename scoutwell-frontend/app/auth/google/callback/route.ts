@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import {
+  GOOGLE_AUTH_ROUTE,
   GOOGLE_STATE_COOKIE,
   finishGoogleSignIn,
   googleStateCookie,
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
     jar.get(GOOGLE_STATE_COOKIE)?.value,
   );
   jar.set(GOOGLE_STATE_COOKIE, "", {
-    ...googleStateCookie(process.env.NODE_ENV === "production"),
+    ...googleStateCookie(process.env.NODE_ENV === "production", GOOGLE_AUTH_ROUTE),
     maxAge: 0,
   });
   const next = safeNextPath(result.next);

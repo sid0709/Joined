@@ -53,6 +53,12 @@ func TestAuthURLCarriesTheRequest(t *testing.T) {
 			t.Errorf("%s = %q, want %q", key, got, value)
 		}
 	}
+	if query.Has("hd") {
+		t.Errorf("hd = %q, want none unless HostedDomain is set", query.Get("hd"))
+	}
+	if hd := (&Client{}).AuthURL(AuthRequest{HostedDomain: "joinedhq.com"}); !strings.Contains(hd, "hd=joinedhq.com") {
+		t.Errorf("hosted domain URL = %q", hd)
+	}
 	if query.Has("prompt") {
 		t.Errorf("prompt = %q, want none unless Consent is set", query.Get("prompt"))
 	}

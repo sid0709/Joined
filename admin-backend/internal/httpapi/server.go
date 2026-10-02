@@ -27,6 +27,7 @@ type Server struct {
 	reader          jobs.ModelReader
 	ai              MigrationModel
 	migration       *migration.Runner
+	staffAuth       StaffSignIn
 	analyzeWorkers  int
 	researchWorkers int
 	adminToken      string
@@ -38,6 +39,9 @@ type Options struct {
 	// AdminToken, when set, is required as a bearer token on every route but /health.
 	AdminToken string
 	Migration  MigrationOptions
+	// Staff turns on Sign in with Google for the console. Once it is set up, every
+	// route but sign-in needs a staff session as well as the admin token.
+	Staff StaffSignIn
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -50,6 +54,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		migration:       migration.NewRunner(),
 		analyzeWorkers:  opts.Migration.AnalyzeWorkers,
 		researchWorkers: opts.Migration.ResearchWorkers,
+		staffAuth:       opts.Staff,
 		adminToken:      opts.AdminToken,
 	}
 	api := http.NewServeMux()
@@ -69,13 +74,14 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	api.HandleFunc("GET /v1/jobs", server.listSearchJobs)
 	api.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
 	api.HandleFunc("PATCH /v1/jobs/{id}", server.updateSearchJob)
+	server.registerStaffAuth(api)
 	server.registerMigration(api)
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", httpkit.Health(store))
-	mux.Handle("/", server.admin(api))
+	mux.Handle("/", server.admin(server.requireStaff(api)))
 	return httpkit.CORS(opts.Origins, mux)
 }
 

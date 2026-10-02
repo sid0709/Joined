@@ -1,6 +1,8 @@
 import type { GlyphName } from "@joined/design-system";
 
 export const ROUTES = {
+  signIn: "/sign-in",
+  signOut: "/auth/sign-out",
   scouting: "/scouting",
   queue: "/scouting/queue",
   submission: (id: string) => `/scouting/submissions/${id}`,
@@ -80,6 +82,11 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     ],
   },
 ];
+
+/** Sign in, then come back to path. */
+export function signInHref(path: string | null | undefined) {
+  return path ? `${ROUTES.signIn}?next=${encodeURIComponent(path)}` : ROUTES.signIn;
+}
 
 /** The deepest nav link that contains the path. */
 export function activeHref(pathname: string) {

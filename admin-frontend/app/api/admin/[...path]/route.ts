@@ -18,7 +18,7 @@ async function handle(request: Request, ctx: Ctx) {
   }
   const dest = new URL(`${adminApiUrl()}/${path.map(encodeURIComponent).join("/")}`);
   dest.search = new URL(request.url).search;
-  const headers = new Headers(adminHeaders());
+  const headers = new Headers(await adminHeaders());
   for (const name of FORWARDED_REQUEST) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);

@@ -10,6 +10,7 @@ import (
 	"github.com/sid0709/OpenSeat/admin-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/deepseek"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
@@ -42,6 +43,8 @@ func main() {
 	}
 	ai := config.LoadOpenAI()
 	migrationAI := deepseek.New(config.LoadDeepSeek())
+	googleConfig := config.LoadGoogle()
+	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 
 	p, err := platform.Open(context.Background(), db, platform.Options{})
@@ -56,12 +59,25 @@ func main() {
 		slog.Warn("ADMIN_API_TOKEN is not set: staff endpoints accept unauthenticated requests")
 	}
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
+	staff := httpapi.StaffSignIn{
+		Accounts:    p.Accounts,
+		OAuth:       &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret},
+		RedirectURL: googleConfig.SignInRedirectURL,
+		Domain:      staffDomain,
+	}
+	switch {
+	case !staff.Required():
+		slog.Warn("Google sign-in is not set up: the console does not ask staff to sign in")
+	case staffDomain == "":
+		slog.Error("ADMIN_GOOGLE_DOMAIN is not set: no Google account can sign in to the console")
+	}
 	if !migrationAI.Ready() {
 		slog.Warn("DEEPSEEK_API_KEY is not set: migration analysis and company research are off")
 	}
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
 		Origins:    server.Origins,
 		AdminToken: adminToken,
+		Staff:      staff,
 		Migration: httpapi.MigrationOptions{
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
