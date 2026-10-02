@@ -1,8 +1,9 @@
 name: Deploy
 
 # Every merge to main builds every service's image, pushes it to Docker Hub, and
-# rolls the VPS onto it. Settings and secrets come from the GitHub "production"
-# environment; deploy/README.md lists them.
+# rolls the VPS onto it. Settings come from the GitHub "production" environment;
+# deploy/README.md lists them. Each non-secret setting may be stored as either a
+# variable or a secret.
 on:
   push:
     branches: [main]
@@ -42,7 +43,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
+          username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       # All services share one Docker Hub repository (<user>/joined), told apart by
       # tag, so the whole project fits in a single private repository.
@@ -54,8 +55,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/joined:${{ matrix.service }}-${{ env.IMAGE_TAG }}
-            ${{ vars.DOCKERHUB_USERNAME }}/joined:${{ matrix.service }}-latest
+            ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}/joined:${{ matrix.service }}-${{ env.IMAGE_TAG }}
+            ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}/joined:${{ matrix.service }}-latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
@@ -68,9 +69,9 @@ jobs:
       url: ${{ vars.FRONTEND_ORIGIN }}
     timeout-minutes: 15
     env:
-      VPS_HOST: ${{ vars.VPS_HOST }}
-      VPS_USER: ${{ vars.VPS_USER }}
-      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
+      VPS_HOST: ${{ vars.VPS_HOST || secrets.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER || secrets.VPS_USER }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || secrets.VPS_SSH_PORT || '22' }}
       DEPLOY_DIR: /srv/joined
     steps:
       - uses: actions/checkout@v4
@@ -97,17 +98,17 @@ jobs:
 
       - name: Write production settings
         env:
-          IMAGE_REPO: ${{ vars.DOCKERHUB_USERNAME }}/joined
-          COMPOSE_PROFILES: ${{ vars.COMPOSE_PROFILES }}
-          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
-          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
-          GOOGLE_REDIRECT_URL: ${{ vars.GOOGLE_REDIRECT_URL }}
-          GOOGLE_SIGNIN_REDIRECT_URL: ${{ vars.GOOGLE_SIGNIN_REDIRECT_URL }}
-          DEST_DB: ${{ vars.DEST_DB }}
-          SCOUTWELL_ORIGIN: ${{ vars.SCOUTWELL_ORIGIN }}
-          SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL: ${{ vars.SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL }}
-          SCOUT_PUBLIC_API_URL: ${{ vars.SCOUT_PUBLIC_API_URL }}
-          ADMIN_ORIGIN: ${{ vars.ADMIN_ORIGIN }}
+          IMAGE_REPO: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}/joined
+          COMPOSE_PROFILES: ${{ vars.COMPOSE_PROFILES || secrets.COMPOSE_PROFILES }}
+          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN || secrets.FRONTEND_ORIGIN }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID || secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_REDIRECT_URL: ${{ vars.GOOGLE_REDIRECT_URL || secrets.GOOGLE_REDIRECT_URL }}
+          GOOGLE_SIGNIN_REDIRECT_URL: ${{ vars.GOOGLE_SIGNIN_REDIRECT_URL || secrets.GOOGLE_SIGNIN_REDIRECT_URL }}
+          DEST_DB: ${{ vars.DEST_DB || secrets.DEST_DB }}
+          SCOUTWELL_ORIGIN: ${{ vars.SCOUTWELL_ORIGIN || secrets.SCOUTWELL_ORIGIN }}
+          SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL: ${{ vars.SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL || secrets.SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL }}
+          SCOUT_PUBLIC_API_URL: ${{ vars.SCOUT_PUBLIC_API_URL || secrets.SCOUT_PUBLIC_API_URL }}
+          ADMIN_ORIGIN: ${{ vars.ADMIN_ORIGIN || secrets.ADMIN_ORIGIN }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -144,7 +145,7 @@ jobs:
 
       - name: Pull the new images
         env:
-          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           # The token travels over SSH's stdin, never on a command line, and the

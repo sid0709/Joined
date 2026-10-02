@@ -26,7 +26,9 @@ Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect
 
 ## GitHub `production` environment
 
-Settings → Environments → `production`. Deployments are limited to `main`.
+Settings → Environments → `production`. Deployments are limited to `main`. The workflow reads every
+non-secret setting from either a variable or a secret, so either place works; secrets
+are hidden in logs, variables are easier to read and edit.
 
 **Variables** (not secret):
 
