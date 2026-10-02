@@ -39,15 +39,15 @@ jobs:
           - { service: connected-frontend, dockerfile: docker/next-app.Dockerfile, arg: APP }
           - { service: joined-theme, dockerfile: docker/next-app.Dockerfile, arg: APP }
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       # All services share one Docker Hub repository (<user>/joined), told apart by
       # tag, so the whole project fits in a single private repository.
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -74,7 +74,7 @@ jobs:
       VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || secrets.VPS_SSH_PORT || '22' }}
       DEPLOY_DIR: /srv/joined
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up SSH
         env:
@@ -84,6 +84,12 @@ jobs:
           install -d -m 700 ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          # The fingerprint is not secret; compare it with the key on the server.
+          if ! fingerprint=$(ssh-keygen -lf ~/.ssh/deploy_key); then
+            echo "::error::VPS_SSH_KEY is not a private key. Paste the whole private key file, BEGIN and END lines included."
+            exit 1
+          fi
+          echo "Deploy key: $fingerprint"
           # Pinned host key: the deploy refuses a server that is not ours.
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           cat >> ~/.ssh/config <<EOF
@@ -94,6 +100,10 @@ jobs:
             IdentityFile ~/.ssh/deploy_key
             IdentitiesOnly yes
             StrictHostKeyChecking yes
+            # Key only: a rejected key fails at once with "Permission denied
+            # (publickey)" instead of falling back to a password prompt.
+            BatchMode yes
+            PreferredAuthentications publickey
           EOF
 
       - name: Write production settings
@@ -138,8 +148,8 @@ jobs:
 
       - name: Ship the stack
         run: |
-          scp -q deploy/compose.yml vps:"$DEPLOY_DIR/compose.yml"
-          scp -q production.env vps:"$DEPLOY_DIR/.env"
+          scp deploy/compose.yml vps:"$DEPLOY_DIR/compose.yml"
+          scp production.env vps:"$DEPLOY_DIR/.env"
           rm production.env
           ssh vps "chmod 600 '$DEPLOY_DIR/.env'"
 

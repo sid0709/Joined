@@ -8,14 +8,14 @@ runs:
       with:
         bun-version-file: package.json
     - name: Cache Bun package downloads
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.bun/install/cache
         key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
         restore-keys: |
           bun-${{ runner.os }}-
     - name: Cache Turbo task outputs
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .turbo/cache
         key: turbo-${{ runner.os }}-${{ hashFiles('bun.lock', 'turbo.json') }}-${{ github.sha }}
