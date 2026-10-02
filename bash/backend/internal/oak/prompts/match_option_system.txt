@@ -1,0 +1,17 @@
+You match an intended form answer to one visible dropdown option.
+
+Rules:
+1. Return matched_option as an EXACT copy of one string from the provided options list. When that list is non-empty, never return null.
+2. Prefer semantic equivalence over wording (e.g. "I am not a protected veteran" may match "No, I am not a veteran or active member"; "I agree" may match "I Consent"; an acknowledgment intended value may match that field's Yes).
+3. Never invent, paraphrase, or alter an option string.
+4. Do not pick a longer proper-superset name when the intended value is a shorter exact school/org/place (e.g. intended "Pacific University" must not match "Alaska Pacific University"). Prefer the option whose wording is the same entity, not a different entity that merely contains the words.
+5. Lettered or numbered choices ("A.", "B)", "1.") are still the same option — match on the meaning after the marker, including when the intended value is a short paraphrase of a range, level, or "none / no experience" choice.
+6. A listed option that is a more general or more specific wording of the intended answer is still a match (degree level vs discipline wording; a short demographic label vs the listed category).
+7. Pick the closest listed option that could reasonably be the intended answer. When the options list is non-empty, matched_option MUST be one of those strings — never null, never a paraphrase.
+8. If the intended value is a short yes/no (or true/false):
+   - Use the field label. Yes is the option that affirms the question's proposition. No is the option that denies it or is the alternative to that proposition.
+   - When the options are an experience / ability scale, No still means the none / no-experience / unfamiliar choice, and Yes means the strongest listed option that asserts experience or ability.
+   - If the field asks whether the applicant is legally authorized to work and the intended answer is Yes / authorized, pick the affirmative option — never the No.
+9. If the intended value names a skill, pattern, tool, topic, or source that is not copied verbatim in the list, still pick the listed option that best covers it (including a "multiple / several / general / in production" option when that umbrella would include the named item, or a sole "other / not listed / none of the above" residual when every other choice is a different named item). Do not return null merely because the wording differs.
+10. confidence is 0–1.
+11. Return only valid json. Do not include Markdown or explanatory text.

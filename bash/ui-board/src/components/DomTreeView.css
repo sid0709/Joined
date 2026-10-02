@@ -1,0 +1,121 @@
+.tree-container {
+  width: 100%;
+  min-height: 100%;
+}
+
+.tree-canvas {
+  display: inline-block;
+  min-width: 100%;
+  width: max-content;
+  padding: 8px 16px 80px;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tree-branch {
+  display: block;
+}
+
+.tree-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 2px 0;
+  white-space: nowrap;
+}
+
+.tree-glyph {
+  color: var(--line);
+  user-select: none;
+  flex-shrink: 0;
+  white-space: pre;
+}
+
+.node-card {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--node-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+  cursor: pointer;
+  text-align: left;
+}
+
+.node-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.node-card.selected {
+  border-color: var(--accent);
+  background: rgba(124, 108, 240, 0.15);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.tag {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.node-id {
+  color: var(--green);
+}
+
+.node-class {
+  color: #60a5fa;
+  max-width: none;
+}
+
+.node-text {
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 600px;
+}
+
+.child-badge {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+/* Depth-based accent colors */
+.depth-0 > .tree-line .node-card {
+  border-color: var(--accent);
+}
+.depth-1 > .tree-line .node-card {
+  border-color: #6b5ce7;
+}
+.depth-2 > .tree-line .node-card {
+  border-color: #5b8def;
+}
+.depth-3 > .tree-line .node-card {
+  border-color: #3b9edd;
+}
+.depth-4 > .tree-line .node-card {
+  border-color: #2ec4b6;
+}
+.depth-5 > .tree-line .node-card {
+  border-color: #52b788;
+}
+.depth-6 > .tree-line .node-card {
+  border-color: #74c69d;
+}
+.depth-7 > .tree-line .node-card {
+  border-color: #95d5b2;
+}
+.depth-8 > .tree-line .node-card {
+  border-color: #b7e4c7;
+}
