@@ -30,6 +30,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "scoutwell-frontend", "dev"],
       "port": 3003
+    },
+    {
+      "name": "sprite-demo",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["bash/demo/serve.ts"],
+      "port": 5180
     }
   ]
 }
