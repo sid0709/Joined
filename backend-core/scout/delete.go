@@ -6,6 +6,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -93,4 +94,15 @@ func (s *Store) HasCompanySubmissions(ctx context.Context, companyID string) (bo
 	}
 	n, err := s.collection(submissionsCollection).CountDocuments(ctx, bson.D{{Key: "companyId", Value: companyID}})
 	return n > 0, err
+}
+
+// SubmissionCompanyIDs lists every company a scout submission points at.
+func (s *Store) SubmissionCompanyIDs(ctx context.Context) ([]string, error) {
+	var ids []string
+	err := s.collection(submissionsCollection).Distinct(ctx, "companyId", bson.D{{Key: "companyId", Value: bson.D{{Key: "$gt", Value: ""}}}}).Decode(&ids)
+	// None comes back as "no documents".
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	}
+	return ids, err
 }

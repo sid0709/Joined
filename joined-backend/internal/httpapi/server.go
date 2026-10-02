@@ -53,12 +53,13 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		Accounts:       accounts,
 		Audience:       auth.AudienceJoined,
 		CompanyCreated: server.noteNewCompany,
-		// Job hunters only: recruiters need a company, so they sign up with a password.
-		// The same consent screen asks for the calendar, which interviews sync with.
+		// Google is the only way in. A sign-up is a job hunter unless it asks to be a
+		// recruiter, who then links or creates a company on the hiring setup page.
+		// A job hunter's consent screen also asks for the calendar interviews sync with.
 		Google: &authapi.GoogleSignIn{
 			OAuth:       opts.Google,
 			RedirectURL: opts.GoogleRedirectURL,
-			Role:        auth.RoleCandidate,
+			Roles:       []string{auth.RoleCandidate, auth.RoleEmployee},
 			Scopes:      []string{google.ScopeCalendarEvents},
 			Granted:     server.attachCalendar,
 		},
@@ -109,7 +110,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 // Google. Google sends a refresh token only the first time, so a returning job
 // hunter keeps the connection they have, or the disconnect they chose.
 func (s *Server) attachCalendar(ctx context.Context, session auth.Session, profile google.Profile, token google.Token) {
-	if s.people == nil || !token.Granted(google.ScopeCalendarEvents) || token.RefreshToken == "" {
+	if s.people == nil || session.User.Role != auth.RoleCandidate ||
+		!token.Granted(google.ScopeCalendarEvents) || token.RefreshToken == "" {
 		return
 	}
 	account := candidate.GoogleAccount{Email: profile.Email, RefreshToken: token.RefreshToken}

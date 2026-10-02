@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  AlertDialog,
   Badge,
   Banner,
   Button,
@@ -13,6 +12,7 @@ import {
   Link,
   PageHeader,
   Pagination,
+  SectionCard,
   Selector,
   Stack,
   Table,
@@ -30,13 +30,12 @@ import {
   TEMP_JOB_PAGE_SIZES,
   TEMP_JOBS_PAGE_SIZE,
   TEMP_JOBS_PATH,
-  type CopyResult,
   type TempJob,
   type TempJobList,
 } from "@/lib/jobs";
 import { listingHref } from "@/lib/listing";
 import { ROUTES } from "@/lib/nav";
-import { SEARCH_JOBS_PATH, type AnalyzeBatch } from "@/lib/search-job";
+import type { AnalyzeBatch } from "@/lib/search-job";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
 const PAGE_SIZE_OPTIONS = TEMP_JOB_PAGE_SIZES.map((size) => ({
@@ -51,13 +50,25 @@ function pageSizeOption(value: string | null) {
   return TEMP_JOB_PAGE_SIZES.some((size) => size === parsed) ? parsed : TEMP_JOBS_PAGE_SIZE;
 }
 
+type Notice = { status: "success" | "error"; title: string };
+
 type TempJobsBrowserProps = {
   title?: string;
   description?: string;
   listPath?: string;
   route?: string;
+  /** Where to POST a selection and wait for the analyzed batch. */
   analyzePath?: string;
-  allowCopy?: boolean;
+  /**
+   * Starts the analysis itself instead of waiting on analyzePath, and returns what to
+   * tell the admin. Selections up to maxSelection are allowed.
+   */
+  onAnalyze?: (ids: string[]) => Promise<Notice>;
+  maxSelection?: number;
+  /** Changing it reloads the list, e.g. when a background analysis ends. */
+  refreshKey?: number;
+  /** "section" renders a card inside a larger page instead of the page header. */
+  layout?: "page" | "section";
   details?: boolean;
   searchLabel?: string;
   caption?: string;
@@ -70,9 +81,12 @@ export function TempJobsBrowser({
   title = "Temp jobs",
   description,
   listPath = TEMP_JOBS_PATH,
-  route = ROUTES.tempJobs,
-  analyzePath = `${SEARCH_JOBS_PATH}/analyze`,
-  allowCopy = true,
+  route = ROUTES.jobMigration,
+  analyzePath,
+  onAnalyze,
+  maxSelection = MAX_ANALYZE_SELECTION,
+  refreshKey = 0,
+  layout = "page",
   details = true,
   searchLabel = "Search temp jobs",
   caption = "Temp jobs",
@@ -93,8 +107,11 @@ export function TempJobsBrowser({
 
   const [model, setModel] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
-  const [confirming, setConfirming] = useState(false);
-  const [notice, setNotice] = useState<{ status: "success" | "error"; title: string } | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  useEffect(() => {
+    if (refreshKey) reload();
+  }, [refreshKey, reload]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -113,10 +130,23 @@ export function TempJobsBrowser({
   );
 
   const analyzed = new Set(result?.analyzedIds ?? []);
-  const overLimit = selected.length > MAX_ANALYZE_SELECTION;
+  const overLimit = selected.length > maxSelection;
 
   async function analyzeSelected() {
     setNotice(null);
+    if (onAnalyze) {
+      try {
+        setNotice(await onAnalyze(selected));
+        setSelected([]);
+      } catch (cause) {
+        setNotice({
+          status: "error",
+          title: cause instanceof Error ? cause.message : "Could not analyze the jobs",
+        });
+      }
+      return;
+    }
+    if (!analyzePath) return;
     try {
       const batch = await adminSend<AnalyzeBatch>(analyzePath, "POST", {
         tempJobIds: selected,
@@ -135,27 +165,6 @@ export function TempJobsBrowser({
       setNotice({
         status: "error",
         title: cause instanceof Error ? cause.message : "Could not analyze the jobs",
-      });
-    }
-  }
-
-  async function copyFromAthens() {
-    setNotice(null);
-    try {
-      const copied = await adminFetch<CopyResult>(`${TEMP_JOBS_PATH}/sync`, { method: "POST" });
-      setNotice({
-        status: "success",
-        title: `Copied ${formatCount(copied.copied)} jobs into ${copied.destination}.`,
-      });
-      setSelected([]);
-      setConfirming(false);
-      go({ page: 1, job: null });
-      reload();
-    } catch (cause) {
-      setConfirming(false);
-      setNotice({
-        status: "error",
-        title: cause instanceof Error ? cause.message : "Could not copy jobs",
       });
     }
   }
@@ -225,37 +234,24 @@ export function TempJobsBrowser({
   ];
 
   const total = result?.total ?? 0;
-  return (
-    <Stack gap={5}>
-      <PageHeader
-        title={title}
-        description={
-          description ??
-          `Select listings, then analyze them with ${model || "the model in OPENAI_MODEL"}. Finished records appear on Jobs.`
-        }
-        action={
-          <HStack gap={2}>
-            {allowCopy ? (
-              <Button
-                label="Copy from Athens"
-                variant="secondary"
-                clickAction={() => setConfirming(true)}
-              />
-            ) : null}
-            <Button
-              label={selected.length ? `Analyze ${formatCount(selected.length)}` : "Analyze"}
-              variant="primary"
-              clickAction={analyzeSelected}
-              isDisabled={selected.length === 0 || overLimit}
-            />
-          </HStack>
-        }
+  const heading = {
+    title,
+    description:
+      description ??
+      `Select listings, then analyze them with ${model || "the model in OPENAI_MODEL"}. Finished records appear on Jobs.`,
+    action: (
+      <Button
+        label={selected.length ? `Analyze ${formatCount(selected.length)}` : "Analyze"}
+        variant="primary"
+        clickAction={analyzeSelected}
+        isDisabled={selected.length === 0 || overLimit}
       />
+    ),
+  };
+  const body = (
+    <Stack gap={5}>
       {overLimit ? (
-        <Banner
-          status="warning"
-          title={`Select at most ${MAX_ANALYZE_SELECTION} jobs at a time.`}
-        />
+        <Banner status="warning" title={`Select at most ${maxSelection} jobs at a time.`} />
       ) : null}
       {notice ? (
         <Banner
@@ -326,20 +322,18 @@ export function TempJobsBrowser({
           />
         </HStack>
       ) : null}
-      {allowCopy ? (
-        <AlertDialog
-          isOpen={confirming}
-          onOpenChange={setConfirming}
-          title="Replace every temp job?"
-          description="This replaces OpenedDB.temp_jobs with a fresh copy of AthensDB.jobs. Analyzed jobs and scouted jobs are not affected."
-          actionLabel="Replace temp jobs"
-          actionVariant="destructive"
-          onAction={copyFromAthens}
-        />
-      ) : null}
       {details && jobId ? (
         <JobDetailDrawer jobId={jobId} onClose={() => go({ job: null })} onSaved={reload} />
       ) : null}
+    </Stack>
+  );
+  if (layout === "section") {
+    return <SectionCard {...heading}>{body}</SectionCard>;
+  }
+  return (
+    <Stack gap={5}>
+      <PageHeader {...heading} />
+      {body}
     </Stack>
   );
 }

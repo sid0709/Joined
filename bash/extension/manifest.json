@@ -1,0 +1,59 @@
+{
+  "manifest_version": 3,
+  "name": "Oak",
+  "version": "1.6.41",
+  "description": "Fill forms from the Oak side panel and inspect DOM trees",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "alarms",
+    "webNavigation",
+    "sidePanel",
+    "cookies"
+  ],
+  "side_panel": {
+    "default_path": "sidebar.html"
+  },
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1:8980/*",
+    "http://localhost:8980/*",
+    "http://localhost:3002/*",
+    "http://127.0.0.1:3002/*",
+    "http://localhost:5173/*"
+  ],
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true
+    }
+  ],
+  "action": {
+    "default_title": "Open Oak side panel",
+    "default_icon": {
+      "16": "public/icon-16.png",
+      "48": "public/icon-48.png",
+      "128": "public/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "public/icon-16.png",
+    "48": "public/icon-48.png",
+    "128": "public/icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["public/icon-16.png", "public/icon-48.png", "public/icon-128.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

@@ -48,13 +48,14 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		calendar = &candidate.Google{}
 	}
 
-	listings := jobs.NewStore(client, db.SourceDB, db.SourceCollection, db.DestDB, db.DestCollection, db.JobsCollection, db.SourceCompanies, db.CompaniesCollection)
+	listings := jobs.NewStore(client, db.SourceDB, db.SourceCollection, db.DestDB, db.DestCollection, db.JobsCollection, db.SourceCompanies, db.CompaniesCollection, db.TempCompaniesCollection)
 	accounts := auth.NewStore(client, db.DestDB, db.CompaniesCollection)
 	people := candidate.NewStore(client, db.DestDB, newJobsCatalog(listings), accounts, calendar)
 	hiring := employer.NewStore(client, db.DestDB, listings, people, accounts)
 	scouts := scout.NewStore(client, db.DestDB, accounts, listings, people, scout.NewHTTPFetcher())
 	moderation := staff.NewStore(client, db.DestDB, db.CompaniesCollection, listings)
 	accounts.SetUserData(newAccountEraser(people, scouts, listings, hiring))
+	listings.SetCompanyRefs(companiesInUse(accounts, scouts))
 
 	p := &Platform{
 		client:   client,

@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
 
-import { activeHref, ROUTES } from "./nav";
+import { activeHref, ROUTES, signInHref } from "./nav";
 
 test("the deepest matching link is active", () => {
   expect(activeHref("/scouting")).toBe(ROUTES.scouting);
   expect(activeHref("/scouting/queue")).toBe(ROUTES.queue);
-  expect(activeHref("/jobs/temp")).toBe(ROUTES.tempJobs);
+  expect(activeHref("/migration/jobs")).toBe(ROUTES.jobMigration);
+  expect(activeHref("/migration/companies")).toBe(ROUTES.companyMigration);
   expect(activeHref("/jobs/scout")).toBe(ROUTES.scoutJobs);
   expect(activeHref("/jobs")).toBe(ROUTES.jobs);
   expect(activeHref("/jobs/direct-review")).toBe(ROUTES.directReview);
@@ -31,4 +32,9 @@ test("routes build ids into paths", () => {
   expect(ROUTES.report("rep-1")).toBe("/trust/reports/rep-1");
   expect(ROUTES.createCase).toBe("/trust/cases/new");
   expect(ROUTES.fileReport).toBe("/trust/reports/new");
+});
+
+test("sign-in keeps the way back", () => {
+  expect(signInHref("/trust/cases?q=a b")).toBe("/sign-in?next=%2Ftrust%2Fcases%3Fq%3Da%20b");
+  expect(signInHref(null)).toBe("/sign-in");
 });

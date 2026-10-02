@@ -6,31 +6,37 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
-	copyBatchSize     int32 = 200
-	copyProgressEvery int64 = 2000
+	copyBatchSize int32 = 500
+	// copyWriters is how many batches are written at once while the next ones are read.
+	copyWriters             = 8
+	copyProgressEvery       = 5000
 	copySampleSize          = 20
 	stagingSuffix           = "_importing"
 	namespaceNotFound int32 = 26
 	dropTimeout             = 30 * time.Second
 )
 
-func (s *Store) Copy(ctx context.Context) (CopyResult, error) {
+// Copy replaces temp_jobs with a fresh copy of the source jobs. It builds the copy in a
+// staging collection, checks it, and swaps it in, so readers never see half a copy.
+func (s *Store) Copy(ctx context.Context, progress Progress) (CopyResult, error) {
 	if !s.copyMu.TryLock() {
 		return CopyResult{}, ErrCopyInProgress
 	}
 	defer s.copyMu.Unlock()
-	return s.copy(ctx)
+	return s.copy(ctx, orNoProgress(progress))
 }
 
-func (s *Store) copy(ctx context.Context) (CopyResult, error) {
+func (s *Store) copy(ctx context.Context, progress Progress) (CopyResult, error) {
 	src := s.source()
 	stagingName := s.destCollection + stagingSuffix
 	staging := s.client.Database(s.destDB).Collection(stagingName)
@@ -51,7 +57,10 @@ func (s *Store) copy(ctx context.Context) (CopyResult, error) {
 		}
 	}()
 
-	copied, err := insertAll(ctx, src, staging)
+	if estimate, err := src.EstimatedDocumentCount(ctx); err == nil {
+		progress.Total(estimate)
+	}
+	copied, err := insertAll(ctx, src, staging, progress)
 	if err != nil {
 		return CopyResult{}, err
 	}
@@ -86,46 +95,62 @@ func (s *Store) copy(ctx context.Context) (CopyResult, error) {
 	}, nil
 }
 
-func insertAll(ctx context.Context, src, dst *mongo.Collection) (int64, error) {
+// insertAll reads src in batches and writes each batch to dst while the next is read,
+// with up to copyWriters batches in flight.
+func insertAll(ctx context.Context, src, dst *mongo.Collection, progress Progress) (int64, error) {
 	cursor, err := src.Find(ctx, bson.D{}, options.Find().SetBatchSize(copyBatchSize))
 	if err != nil {
 		return 0, fmt.Errorf("read source jobs: %w", err)
 	}
 	defer cursor.Close(ctx)
 
-	batch := make([]any, 0, copyBatchSize)
-	var copied int64
-	flush := func() error {
-		if len(batch) == 0 {
+	group, ctx := errgroup.WithContext(ctx)
+	batches := make(chan []any, copyWriters)
+	var copied atomic.Int64
+	for range copyWriters {
+		group.Go(func() error {
+			for batch := range batches {
+				if _, err := dst.InsertMany(ctx, batch, options.InsertMany().SetOrdered(false)); err != nil {
+					return fmt.Errorf("insert jobs: %w", err)
+				}
+				progress.Done(int64(len(batch)))
+				total := copied.Add(int64(len(batch)))
+				if total/copyProgressEvery != (total-int64(len(batch)))/copyProgressEvery {
+					slog.Info("copying jobs", "copied", total)
+				}
+			}
 			return nil
-		}
-		if _, err := dst.InsertMany(ctx, batch); err != nil {
-			return fmt.Errorf("insert jobs: %w", err)
-		}
-		copied += int64(len(batch))
-		batch = make([]any, 0, copyBatchSize)
-		if copied%copyProgressEvery == 0 {
-			slog.Info("copying jobs", "copied", copied)
-		}
-		return nil
+		})
 	}
-
-	for cursor.Next(ctx) {
-		raw := append(bson.Raw(nil), cursor.Current...)
-		batch = append(batch, exactDocument(raw))
-		if len(batch) == int(copyBatchSize) {
-			if err := flush(); err != nil {
-				return copied, err
+	group.Go(func() error {
+		defer close(batches)
+		batch := make([]any, 0, copyBatchSize)
+		for cursor.Next(ctx) {
+			batch = append(batch, exactDocument(append(bson.Raw(nil), cursor.Current...)))
+			if len(batch) < int(copyBatchSize) {
+				continue
+			}
+			select {
+			case batches <- batch:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			batch = make([]any, 0, copyBatchSize)
+		}
+		if err := cursor.Err(); err != nil {
+			return fmt.Errorf("read source jobs: %w", err)
+		}
+		if len(batch) > 0 {
+			select {
+			case batches <- batch:
+			case <-ctx.Done():
+				return ctx.Err()
 			}
 		}
-	}
-	if err := cursor.Err(); err != nil {
-		return copied, fmt.Errorf("read source jobs: %w", err)
-	}
-	if err := flush(); err != nil {
-		return copied, err
-	}
-	return copied, nil
+		return nil
+	})
+	err = group.Wait()
+	return copied.Load(), err
 }
 
 func verifySample(ctx context.Context, src, dst *mongo.Collection, copied int64) error {

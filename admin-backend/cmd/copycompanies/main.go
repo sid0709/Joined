@@ -37,15 +37,16 @@ func main() {
 		cfg.JobsCollection,
 		cfg.SourceCompanies,
 		cfg.CompaniesCollection,
+		cfg.TempCompaniesCollection,
 	)
 	ctx, cancel := context.WithTimeout(context.Background(), copyTimeout)
 	defer cancel()
 
-	slog.Info("copying companies", "source", cfg.SourceDB+"."+cfg.SourceCompanies, "destination", cfg.DestDB+"."+cfg.CompaniesCollection)
-	result, err := store.CopyCompanies(ctx)
+	slog.Info("copying companies", "source", cfg.SourceDB+"."+cfg.SourceCompanies, "staging", cfg.DestDB+"."+cfg.TempCompaniesCollection)
+	result, err := store.CopyCompanies(ctx, nil)
 	if err != nil {
 		slog.Error("copy failed", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)
 	}
-	slog.Info("copy finished", "copied", result.Copied, "linked", result.Linked, "source", result.Source, "destination", result.Dest)
+	slog.Info("copy finished", "copied", result.Copied, "staged", result.Staged, "refreshed", result.Refreshed, "unpublished", result.Unpublished, "linked", result.Linked)
 }

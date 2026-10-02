@@ -15,8 +15,7 @@ func (s *Server) listCompanies(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
 	defer cancel()
 
-	query := r.URL.Query()
-	result, err := s.store.ListCompanies(ctx, jobs.ParseListQuery(query.Get("page"), query.Get("pageSize"), query.Get("q")))
+	result, err := s.store.ListCompanies(ctx, jobs.ParseCompanyQuery(r.URL.Query()))
 	if err != nil {
 		slog.Error("list companies", "error", err)
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not load companies")

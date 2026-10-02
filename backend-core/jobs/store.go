@@ -16,7 +16,6 @@ var (
 	ErrInvalidID         = errors.New("invalid job id")
 	ErrCopyInProgress    = errors.New("a copy is already running")
 	ErrAnalyzeInProgress = errors.New("an analysis is already running")
-	ErrNonePending       = errors.New("every temp job already has a search record")
 	ErrInvalidInput      = errors.New("check the form and try again")
 	ErrMissingResearcher = errors.New("web search is not configured")
 	// ErrMissingDescription stops a search record without its original job description.
@@ -47,11 +46,14 @@ type Store struct {
 	structuredCollection string
 	sourceCompanies      string
 	destCompanies        string
+	tempCompanies        string
+	companyRefs          CompanyRefs
 	copyMu               sync.Mutex
+	companyCopyMu        sync.Mutex
 	analyzeMu            sync.Mutex
 }
 
-func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies string) *Store {
+func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies, tempCompanies string) *Store {
 	return &Store{
 		client:               client,
 		sourceDB:             sourceDB,
@@ -61,6 +63,7 @@ func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destColl
 		structuredCollection: structuredCollection,
 		sourceCompanies:      sourceCompanies,
 		destCompanies:        destCompanies,
+		tempCompanies:        tempCompanies,
 	}
 }
 

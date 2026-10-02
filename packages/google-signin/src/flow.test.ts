@@ -55,6 +55,25 @@ describe("finishGoogleSignIn", () => {
     expect(JSON.parse(init?.body as string)).toEqual({ code: "c1", state: "s1" });
   });
 
+  test("sends the API's own credentials along", async () => {
+    const fetchMock = answer(200, { token: "t1" });
+    await finishGoogleSignIn(API, callback("code=c1&state=s1"), cookie, {
+      Authorization: "Bearer admin",
+    });
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toEqual({
+      Authorization: "Bearer admin",
+      "Content-Type": "application/json",
+    });
+    const started = answer(200, { url: "https://accounts.google.com/x", state: "s1" });
+    await startGoogleSignIn(API, { headers: { Authorization: "Bearer admin" }, mode: "employee" });
+    const init = started.mock.calls[0]?.[1];
+    expect(init?.headers).toEqual({
+      Authorization: "Bearer admin",
+      "Content-Type": "application/json",
+    });
+    expect(JSON.parse(init?.body as string)).toEqual({ mode: "employee" });
+  });
+
   test("refuses a redirect this browser did not start", async () => {
     const fetchMock = answer(200, { token: "t1" });
     expect(await finishGoogleSignIn(API, callback("code=c1&state=other"), cookie)).toMatchObject({

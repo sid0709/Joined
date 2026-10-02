@@ -1,0 +1,40 @@
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  overflow: hidden;
+}
+
+.context-menu-header {
+  padding: 8px 10px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: var(--surface-2);
+}

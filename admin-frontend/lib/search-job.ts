@@ -23,6 +23,23 @@ export {
 };
 
 export const SEARCH_JOBS_PATH = "/v1/jobs";
+
+/** Where a public job came from, as GET /v1/jobs filters it. */
+export const JOB_SOURCES = [
+  { value: "aggregated", label: "Aggregated" },
+  { value: "scouted", label: "Scouted" },
+  { value: "direct", label: "Direct" },
+] as const;
+
+/** Sort keys GET /v1/jobs accepts. */
+export const JOB_SORTS = {
+  analyzed: "analyzed",
+  posted: "posted",
+  title: "title",
+  company: "company",
+  completion: "completion",
+  pay: "pay",
+} as const;
 export const SEARCH_JOBS_PAGE_SIZE = 25;
 
 export type SearchPay = {
@@ -71,8 +88,14 @@ export type AnalyzeBatch = {
   failed: { tempJobId: string; error: string }[];
 };
 
+/** One Job pool row: the public job and how complete it is. */
+export type JobRow = SearchRecord & {
+  /** Percentage of the job's facts that are filled in. */
+  completion: number;
+};
+
 export type SearchJobList = {
-  jobs: SearchRecord[];
+  jobs: JobRow[];
   total: number;
   page: number;
   pageSize: number;

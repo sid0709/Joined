@@ -5,7 +5,7 @@ import { Badge, Button, HStack, Stack, Switch, Text, useToast } from "@joined/de
 import { SESSIONS } from "@/lib/settings";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
-/** Password, two-step sign-in, and devices — the same for every account. */
+/** How you sign in, two-step sign-in, and devices — the same for every account. */
 export function SignInSecurity() {
   const toast = useToast();
   const [twoFactor, setTwoFactor] = useState(true);
@@ -14,8 +14,12 @@ export function SignInSecurity() {
 
   return (
     <SettingsGroup title="Sign-in & security" description="Keep your account yours.">
-      <SettingsRow label="Password" description="Last changed 3 months ago." layout="inline">
-        <Button label="Change password" variant="secondary" size="sm" />
+      <SettingsRow
+        label="Sign-in method"
+        description="You sign in with Google. Manage your password and recovery in your Google account."
+        layout="inline"
+      >
+        <Badge label="Google" variant="neutral" />
       </SettingsRow>
       <SettingsRow
         label="Two-step verification"

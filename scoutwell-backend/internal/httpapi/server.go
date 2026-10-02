@@ -38,7 +38,7 @@ func New(store *jobs.Store, accounts *auth.Store, scouts *scout.Store, opts Opti
 		Google: &authapi.GoogleSignIn{
 			OAuth:       opts.Google,
 			RedirectURL: opts.GoogleRedirectURL,
-			Role:        auth.RoleScout,
+			Roles:       []string{auth.RoleScout},
 		},
 	}.Register(mux)
 	server.registerScout(mux)

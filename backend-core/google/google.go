@@ -70,6 +70,9 @@ type AuthRequest struct {
 	// Consent shows the consent screen even when everything was granted before,
 	// which makes Google send a fresh refresh token.
 	Consent bool
+	// HostedDomain asks Google to offer only accounts of this Workspace domain. It
+	// is a hint for the account picker: check Profile.HostedDomain after sign-in.
+	HostedDomain string
 }
 
 // AuthURL is where to send the browser to sign in and grant scopes.
@@ -91,6 +94,9 @@ func (c *Client) AuthURL(req AuthRequest) string {
 	}
 	if req.Consent {
 		values.Set("prompt", "consent")
+	}
+	if req.HostedDomain != "" {
+		values.Set("hd", req.HostedDomain)
 	}
 	return authURL + "?" + values.Encode()
 }
@@ -147,6 +153,9 @@ type Profile struct {
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	Name          string `json:"name"`
+	// HostedDomain is the Google Workspace domain that manages the account, or ""
+	// for a personal Google account.
+	HostedDomain string `json:"hd"`
 }
 
 // Profile reads who the access token belongs to. It needs the openid and email scopes.
@@ -169,6 +178,7 @@ func (c *Client) Profile(ctx context.Context, accessToken string) (Profile, erro
 	}
 	profile.Email = strings.ToLower(strings.TrimSpace(profile.Email))
 	profile.Name = strings.TrimSpace(profile.Name)
+	profile.HostedDomain = strings.ToLower(strings.TrimSpace(profile.HostedDomain))
 	return profile, nil
 }
 

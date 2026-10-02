@@ -136,7 +136,7 @@ export const ACCOUNT_NAV: { title: string; sections: AccountSection[] }[] = [
       {
         id: "account",
         label: "Sign-in & security",
-        description: "Your email, password, two-step sign-in, and devices.",
+        description: "Your email, Google sign-in, two-step sign-in, and devices.",
         icon: "lock",
       },
       {

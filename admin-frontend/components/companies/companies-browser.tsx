@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Badge,
   Banner,
   EmptyState,
   HStack,
@@ -14,33 +15,60 @@ import {
   type TableColumn,
 } from "@joined/design-system";
 import { CompanyDrawer } from "@/components/companies/company-drawer";
+import { CompletionBadge } from "@/components/directory/completion-badge";
+import { DirectoryFilters } from "@/components/directory/directory-filters";
 import { CompanyMark } from "@/components/jobs/company-mark";
-import { SearchBox } from "@/components/search-box";
 import {
   COMPANIES_PAGE_SIZE,
   COMPANIES_PATH,
+  COMPANY_SIZES,
+  COMPANY_SORTS,
+  COMPANY_TYPES,
+  INDUSTRIES,
   companyLogoSrc,
-  type CompanyList,
-  type CompanySummary,
+  type CompanyDirectory,
+  type CompanyRow,
 } from "@/lib/company";
-import { formatCount, positiveInt } from "@/lib/format";
+import {
+  choiceOptions,
+  directoryParams,
+  sortValues,
+  tableSort,
+  yesNoOptions,
+  type DirectoryFilter,
+} from "@/lib/directory";
+import { formatCount, formatDate, positiveInt } from "@/lib/format";
 import { listingHref } from "@/lib/listing";
 import { ROUTES } from "@/lib/nav";
+import { VERIFICATION_APPROVED } from "@/lib/trust";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
-/** Every company page; a row opens the editor. */
+const FILTERS: DirectoryFilter[] = [
+  { param: "industry", label: "Industry", options: choiceOptions("Any industry", INDUSTRIES) },
+  { param: "size", label: "Size", options: choiceOptions("Any size", COMPANY_SIZES) },
+  { param: "type", label: "Company type", options: choiceOptions("Any type", COMPANY_TYPES) },
+  { param: "logo", label: "Logo", options: yesNoOptions("Logo or not", "Has a logo", "No logo") },
+  {
+    param: "verified",
+    label: "Verified",
+    options: yesNoOptions("Verified or not", "Verified", "Not verified"),
+  },
+];
+
+const DEFAULT_SORT = { key: COMPANY_SORTS.name, direction: "asc" } as const;
+
+function muted(value: string | number | undefined) {
+  return <Text color="secondary">{value || "—"}</Text>;
+}
+
+/** Published companies: search, filter, and sort them; a row opens the editor. */
 export function CompaniesBrowser() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get("page"), 1);
-  const query = searchParams.get("q") ?? "";
   const companyId = searchParams.get("company");
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(COMPANIES_PAGE_SIZE),
-    q: query,
-  });
-  const { result, loading, error, reload } = useAdminQuery<CompanyList>(
+  const params = directoryParams(searchParams, FILTERS, page, COMPANIES_PAGE_SIZE);
+  const { result, loading, error, reload } = useAdminQuery<CompanyDirectory>(
     `${COMPANIES_PATH}?${params}`,
   );
 
@@ -52,60 +80,95 @@ export function CompaniesBrowser() {
     [router],
   );
 
-  const columns: TableColumn<CompanySummary>[] = [
+  const columns: TableColumn<CompanyRow>[] = [
     {
-      key: "name",
+      key: COMPANY_SORTS.name,
       header: "Company",
+      sortable: true,
+      sortValue: (company) => company.name.toLowerCase(),
       render: (company) => (
         <HStack gap={3} vAlign="center">
           <CompanyMark name={company.name} logo={companyLogoSrc(company)} />
-          <Text weight="semibold">{company.name || "Untitled"}</Text>
+          <Stack gap={0.5}>
+            <Text weight="semibold">{company.name || "Untitled"}</Text>
+            <Text type="supporting" color="secondary">
+              {company.tagline || company.url || "—"}
+            </Text>
+          </Stack>
         </HStack>
       ),
     },
+    { key: "industry", header: "Industry", render: (company) => muted(company.industry) },
+    { key: "size", header: "Size", render: (company) => muted(company.size) },
+    { key: "companyType", header: "Type", render: (company) => muted(company.companyType) },
     {
-      key: "url",
-      header: "Website",
-      render: (company) => <Text color="secondary">{company.url || "—"}</Text>,
+      key: "headquarters",
+      header: "Headquarters",
+      render: (company) => muted(company.headquarters),
     },
     {
-      key: "industry",
-      header: "Industry",
-      render: (company) => <Text color="secondary">{company.industry || "—"}</Text>,
+      key: COMPANY_SORTS.founded,
+      header: "Founded",
+      align: "end",
+      sortable: true,
+      sortValue: (company) => company.founded ?? 0,
+      render: (company) => muted(company.founded),
     },
     {
-      key: "jobCount",
+      key: COMPANY_SORTS.jobs,
       header: "Jobs",
       align: "end",
+      sortable: true,
+      sortValue: (company) => company.jobCount,
       render: (company) => (
         <Text color="secondary" hasTabularNumbers>
           {formatCount(company.jobCount)}
         </Text>
       ),
     },
+    {
+      key: COMPANY_SORTS.completion,
+      header: "Completion",
+      align: "end",
+      sortable: true,
+      sortValue: (company) => company.completion,
+      render: (company) => <CompletionBadge completion={company.completion} />,
+    },
+    {
+      key: "verification",
+      header: "Verified",
+      render: (company) =>
+        company.verification === VERIFICATION_APPROVED ? (
+          <Badge label="Verified" variant="success" />
+        ) : (
+          muted("")
+        ),
+    },
+    {
+      key: COMPANY_SORTS.researched,
+      header: "Researched",
+      sortable: true,
+      sortValue: (company) => company.researchedAt ?? "",
+      render: (company) => muted(company.researchedAt ? formatDate(company.researchedAt) : ""),
+    },
   ];
 
   const total = result?.total ?? 0;
+  const filtered =
+    FILTERS.some((filter) => searchParams.get(filter.param)) || searchParams.has("q");
   return (
     <Stack gap={5}>
       <PageHeader
         title="Companies"
-        description="Public company pages. Saved name, website, logo, and profile show on Joined."
+        description="Published company pages: companies research found, and ones recruiters or scouts created. Saved name, website, logo, and profile show on Joined."
       />
-      <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
-        <HStack width={360}>
-          <SearchBox
-            key={query}
-            value={query}
-            label="Search companies"
-            placeholder="Name or industry"
-            onSearch={(value) => go({ q: value, page: 1 })}
-          />
-        </HStack>
-        <Text type="supporting" color="secondary">
-          {result ? `${formatCount(total)} companies` : "Loading"}
-        </Text>
-      </HStack>
+      <DirectoryFilters
+        current={searchParams}
+        filters={FILTERS}
+        search={{ label: "Search companies", placeholder: "Name, website, industry, place" }}
+        summary={result ? `${formatCount(total)} companies` : "Loading"}
+        onChange={go}
+      />
       {error ? <Banner status="error" title={error} /> : null}
       <Table
         caption="Companies"
@@ -113,15 +176,17 @@ export function CompaniesBrowser() {
         rows={result?.companies ?? []}
         rowKey={(company) => company.id}
         loading={loading && !result}
+        sort={tableSort(searchParams, DEFAULT_SORT)}
+        onSortChange={(sort) => go(sortValues(sort))}
         onRowClick={(company) => go({ company: company.id })}
         empty={
           <EmptyState
             isCompact
-            title={query ? `No companies match "${query}"` : "No companies yet"}
+            title={filtered ? "No companies match" : "No companies yet"}
             description={
-              query
-                ? "Try another search."
-                : "Companies appear as jobs are copied, posted, or scouted."
+              filtered
+                ? "Try another search or fewer filters."
+                : "Companies appear here once research publishes them, or a recruiter or scout creates one."
             }
           />
         }

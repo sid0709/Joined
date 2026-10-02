@@ -199,10 +199,10 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 		SourceRef:  listing.SubmissionID,
 		Job: SearchJob{
 			ID:               publicID,
-			Title:            fallback(listing.Title, "Untitled"),
-			Company:          fallback(listing.CompanyName, "Unknown company"),
+			Title:            fallback(listing.Title, untitledJob),
+			Company:          fallback(listing.CompanyName, unknownCompany),
 			CompanyID:        companyID,
-			Location:         fallback(listing.Location, "Location not listed"),
+			Location:         fallback(listing.Location, locationNotListed),
 			Workplace:        oneOf(listing.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceOnsite),
 			Pay:              pay,
 			Equity:           listing.Equity,
@@ -316,7 +316,7 @@ func (s *Store) resolveScoutCompany(ctx context.Context, listing ScoutedListing,
 		var found struct {
 			ID string `bson:"id"`
 		}
-		err := s.companies().FindOne(ctx, bson.D{{Key: "id", Value: id}}, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}})).Decode(&found)
+		err := s.findCompanyOrStaged(ctx, bson.D{{Key: "id", Value: id}}, &found, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}}))
 		if err == nil && found.ID != "" {
 			return found.ID, nil
 		}
@@ -335,7 +335,7 @@ func (s *Store) resolveScoutCompany(ctx context.Context, listing ScoutedListing,
 			{Key: "$options", Value: "i"},
 		}}},
 	}}}
-	err := s.companies().FindOne(ctx, filter, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}})).Decode(&found)
+	err := s.findCompanyOrStaged(ctx, filter, &found, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}}))
 	if err == nil && found.ID != "" {
 		return found.ID, nil
 	}

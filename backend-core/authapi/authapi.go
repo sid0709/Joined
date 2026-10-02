@@ -36,11 +36,9 @@ type authResponse struct {
 	Session auth.Session `json:"session"`
 }
 
-// Register adds sign-up, sign-in (with a password or Google), sign-out, the
-// session, and account deletion.
+// Register adds Sign in with Google (the only way to sign in or sign up),
+// sign-out, the session, and account deletion.
 func (h Handlers) Register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /v1/auth/signup", h.signup)
-	mux.HandleFunc("POST /v1/auth/signin", h.signin)
 	mux.HandleFunc("POST /v1/auth/google/start", h.startGoogle)
 	mux.HandleFunc("POST /v1/auth/google/callback", h.finishGoogle)
 	mux.HandleFunc("POST /v1/auth/signout", h.signout)
@@ -52,58 +50,6 @@ func (h Handlers) Register(mux *http.ServeMux) {
 func (h Handlers) RegisterCompanies(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/company", h.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", h.searchCompanies)
-}
-
-func (h Handlers) signup(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-		Mode     string `json:"mode"`
-		Company  *struct {
-			ID   string `json:"id"`
-			Name string `json:"name"`
-			URL  string `json:"url"`
-		} `json:"company"`
-	}
-	if !decodeAuth(w, r, &body) {
-		return
-	}
-	mode, ok := h.signupMode(body.Mode)
-	if !ok {
-		writeAuthResult(w, "", auth.Session{}, auth.ErrInvalidInput)
-		return
-	}
-	input := auth.Signup{Name: body.Name, Email: body.Email, Password: body.Password, Mode: mode}
-	if body.Company != nil {
-		input.Company = &auth.CompanyChoice{ID: body.Company.ID, Name: body.Company.Name, URL: body.Company.URL}
-	}
-	token, session, err := h.Accounts.Signup(r.Context(), input, time.Now())
-	if err == nil && body.Company != nil && strings.TrimSpace(body.Company.ID) == "" {
-		h.companyCreated(r.Context(), session)
-	}
-	writeAuthResult(w, token, session, err)
-}
-
-// signupMode is the kind of account a sign-up through this app creates. Scoutwell
-// only creates scouts; Joined creates job hunters and recruiters, never scouts.
-func (h Handlers) signupMode(requested string) (string, bool) {
-	if h.Audience == auth.RoleScout {
-		return auth.RoleScout, true
-	}
-	return requested, requested != auth.RoleScout
-}
-
-func (h Handlers) signin(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	if !decodeAuth(w, r, &body) {
-		return
-	}
-	token, session, err := h.Accounts.Signin(r.Context(), body.Email, body.Password, h.Audience, time.Now())
-	writeAuthResult(w, token, session, err)
 }
 
 func (h Handlers) signout(w http.ResponseWriter, r *http.Request) {

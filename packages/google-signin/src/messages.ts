@@ -9,8 +9,8 @@ const MESSAGES: Record<GoogleSignInError, string> = {
   cancelled: "Google sign-in was cancelled.",
   expired: "That Google sign-in timed out. Try again.",
   wrong_account:
-    "This Google account’s email belongs to an account that can’t sign in with Google here. Use your email and password.",
-  unavailable: "Sign in with Google isn’t available right now. Use your email and password.",
+    "This Google account’s email belongs to a different kind of account, or is linked to another Google account. Sign in where that account belongs.",
+  unavailable: "Sign in with Google isn’t available right now. Try again soon.",
   failed: "Couldn’t sign in with Google. Try again.",
 };
 

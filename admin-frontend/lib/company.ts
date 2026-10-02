@@ -51,12 +51,35 @@ export type CompanySummary = {
   hasLogoFile?: boolean;
 };
 
-export type CompanyList = {
-  companies: CompanySummary[];
+/** One Directory → Companies row: the company's main fields and how complete its page is. */
+export type CompanyRow = CompanySummary & {
+  tagline?: string;
+  size?: string;
+  companyType?: string;
+  headquarters?: string;
+  founded?: number;
+  locations?: string;
+  verification?: string;
+  /** Percentage of the public page's fields that are filled in. */
+  completion: number;
+  researchedAt?: string;
+};
+
+export type CompanyDirectory = {
+  companies: CompanyRow[];
   total: number;
   page: number;
   pageSize: number;
 };
+
+/** Sort keys GET /v1/companies accepts. */
+export const COMPANY_SORTS = {
+  name: "name",
+  jobs: "jobs",
+  completion: "completion",
+  founded: "founded",
+  researched: "researched",
+} as const;
 
 export type CompanyWrite = Omit<AdminCompany, "id" | "jobCount" | "hasLogoFile">;
 

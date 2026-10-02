@@ -9,6 +9,8 @@ import (
 
 	"github.com/sid0709/OpenSeat/admin-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/deepseek"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
@@ -19,6 +21,10 @@ const (
 	defaultHTTPAddr = "127.0.0.1:8081"
 	backfillTimeout = 2 * time.Minute
 	dropTimeout     = 30 * time.Second
+	// DeepSeek does not rate-limit by request count, so both AI steps run wide. A
+	// research answer waits on web searches for most of its time, so many run at once.
+	defaultAnalyzeWorkers  = 64
+	defaultResearchWorkers = 128
 )
 
 var defaultOrigins = []string{"http://127.0.0.1:3010", "http://localhost:3010"}
@@ -36,6 +42,9 @@ func main() {
 		os.Exit(1)
 	}
 	ai := config.LoadOpenAI()
+	migrationAI := deepseek.New(config.LoadDeepSeek())
+	googleConfig := config.LoadGoogle()
+	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 
 	p, err := platform.Open(context.Background(), db, platform.Options{})
@@ -44,15 +53,37 @@ func main() {
 		os.Exit(1)
 	}
 	defer p.Close()
-	migrateCatalog(p.Jobs, db.MongoURI)
+	// In the background, so the console can reach the API while it runs.
+	go migrateCatalog(p.Jobs, db.MongoURI)
 
 	if adminToken == "" {
 		slog.Warn("ADMIN_API_TOKEN is not set: staff endpoints accept unauthenticated requests")
 	}
-	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
+	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
+	staff := httpapi.StaffSignIn{
+		Accounts:    p.Accounts,
+		OAuth:       &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret},
+		RedirectURL: googleConfig.SignInRedirectURL,
+		Domain:      staffDomain,
+	}
+	switch {
+	case !staff.Required():
+		slog.Warn("Google sign-in is not set up: the console does not ask staff to sign in")
+	case staffDomain == "":
+		slog.Error("ADMIN_GOOGLE_DOMAIN is not set: no Google account can sign in to the console")
+	}
+	if !migrationAI.Ready() {
+		slog.Warn("DEEPSEEK_API_KEY is not set: migration analysis and company research are off")
+	}
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
 		Origins:    server.Origins,
 		AdminToken: adminToken,
+		Staff:      staff,
+		Migration: httpapi.MigrationOptions{
+			Model:           migrationAI,
+			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
+			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
+		},
 	})
 	if err := httpkit.Serve("admin api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
@@ -61,8 +92,8 @@ func main() {
 }
 
 // migrateCatalog brings stored jobs and companies up to the current shape. Staff
-// own the catalog, so the admin API runs these. Each is idempotent; a failure is
-// logged and the server still starts.
+// own the catalog, so the admin API runs these. Each is idempotent and safe to run
+// beside requests; a failure is logged and the server keeps serving.
 func migrateCatalog(store *jobs.Store, mongoURI string) {
 	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), backfillTimeout)
 	updated, err := store.BackfillJobProvenance(backfillCtx)

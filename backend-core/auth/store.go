@@ -90,71 +90,10 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := s.ensureStaffIndexes(ctx); err != nil {
+		return err
+	}
 	return s.ensureGoogleIndexes(ctx)
-}
-
-func (s *Store) Signup(ctx context.Context, input Signup, now time.Time) (string, Session, error) {
-	input, err := normalizeSignup(input)
-	if err != nil {
-		return "", Session{}, err
-	}
-	if input.Company != nil && input.Company.ID != "" {
-		if _, _, err := s.companyByID(ctx, input.Company.ID); err != nil {
-			return "", Session{}, err
-		}
-	}
-
-	hash, err := hashPassword(input.Password)
-	if err != nil {
-		return "", Session{}, err
-	}
-	userID, err := newPublicID()
-	if err != nil {
-		return "", Session{}, err
-	}
-	_, err = s.collection(usersCollection).InsertOne(ctx, storedUser{
-		ID:           userID,
-		Name:         input.Name,
-		Email:        input.Email,
-		PasswordHash: hash,
-		Role:         input.Mode,
-		CreatedAt:    now.UTC(),
-	})
-	if mongo.IsDuplicateKeyError(err) {
-		return "", Session{}, ErrEmailTaken
-	}
-	if err != nil {
-		return "", Session{}, err
-	}
-
-	if input.Company != nil {
-		if err := s.attach(ctx, userID, *input.Company, now); err != nil {
-			return "", Session{}, err
-		}
-	}
-	return s.issue(ctx, userID, now)
-}
-
-func (s *Store) Signin(ctx context.Context, email, password, audience string, now time.Time) (string, Session, error) {
-	email = normalizeEmail(email)
-	if email == "" || password == "" {
-		return "", Session{}, ErrInvalidLogin
-	}
-	var user storedUser
-	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&user)
-	if errors.Is(err, mongo.ErrNoDocuments) || (err == nil && !checkPassword(user.PasswordHash, password)) {
-		return "", Session{}, ErrInvalidLogin
-	}
-	if err != nil {
-		return "", Session{}, err
-	}
-	if err := s.ensureRole(ctx, &user); err != nil {
-		return "", Session{}, err
-	}
-	if !AllowsAudience(audience, user.Role) {
-		return "", Session{}, &RoleError{Role: user.Role}
-	}
-	return s.issue(ctx, user.ID, now)
 }
 
 func (s *Store) Signout(ctx context.Context, token string) error {
