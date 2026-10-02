@@ -1,5 +1,6 @@
 import type { Application } from "@/lib/applications";
 import { hydrateApplication } from "@/lib/applications";
+import { browserTimeZone, type GoogleCalendarFeed } from "@/lib/google-calendar";
 import type { Interview } from "@/lib/interviews";
 import { hydrateInterview } from "@/lib/interviews";
 import type { MailThread } from "@/lib/messages";
@@ -68,7 +69,10 @@ export function createInterview(input: {
   format: string;
   where?: string;
 }) {
-  return meSend<Interview>("/interviews", "POST", input).then(hydrateInterview);
+  // The zone lets the copy in Google Calendar land at the job hunter's local time.
+  return meSend<Interview>("/interviews", "POST", { ...input, timeZone: browserTimeZone() }).then(
+    hydrateInterview,
+  );
 }
 
 export function updateInterview(id: string, patch: Partial<Interview>) {
@@ -79,6 +83,12 @@ export function updateInterview(id: string, patch: Partial<Interview>) {
 
 export function fetchCalendar() {
   return meGet<{ connected: boolean; email?: string }>("/calendar");
+}
+
+/** The job hunter's own Google Calendar from `from` to `to` ("YYYY-MM-DD"), in their zone. */
+export function fetchGoogleEvents(from: string, to: string) {
+  const query = new URLSearchParams({ from, to, tz: browserTimeZone() });
+  return meGet<GoogleCalendarFeed>(`/calendar/events?${query}`);
 }
 
 export function startGoogleCalendar() {

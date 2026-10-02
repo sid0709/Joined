@@ -88,6 +88,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	mux.HandleFunc("POST /v1/me/interviews", server.postInterview)
 	mux.HandleFunc("PATCH /v1/me/interviews/{id}", server.patchInterview)
 	mux.HandleFunc("GET /v1/me/calendar", server.getCalendar)
+	mux.HandleFunc("GET /v1/me/calendar/events", server.getCalendarEvents)
 	mux.HandleFunc("GET /v1/me/calendar/google/start", server.startGoogleCalendar)
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
 	mux.HandleFunc("DELETE /v1/me/calendar/google", server.disconnectGoogleCalendar)

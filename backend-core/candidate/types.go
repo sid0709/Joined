@@ -269,10 +269,17 @@ type CalEvent struct {
 	ID          string
 	Title       string
 	Description string
-	Date        string
-	Start       string
-	End         string
-	Where       string
+	// Date is the start day; EndDate is the last day an all-day event covers.
+	Date    string
+	EndDate string
+	Start   string
+	End     string
+	Where   string
+	AllDay  bool
+	// Link opens the event in Google Calendar.
+	Link string
+	// TimeZone is the IANA zone Date, Start, and End are in when creating an event.
+	TimeZone string
 }
 
 type Thread struct {

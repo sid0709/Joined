@@ -6,6 +6,9 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	// Interview times are kept in each job hunter's own zone, so the binary carries
+	// the zone database instead of relying on the container's.
+	_ "time/tzdata"
 
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/config"
