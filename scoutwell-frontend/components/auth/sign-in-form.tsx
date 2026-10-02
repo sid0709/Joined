@@ -14,7 +14,7 @@ import {
   Text,
   TextInput,
 } from "@joined/design-system";
-import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
+import { GOOGLE_AUTH_ROUTE } from "@joined/google-signin";
 import { ApiError } from "@joined/scout";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
@@ -48,7 +48,7 @@ export function SignInForm({ nextPath, googleError }: { nextPath: string; google
           </Text>
         </Stack>
         {error ? <Banner status="error" title={error} /> : null}
-        <GoogleSignInButton action={GOOGLE_SIGNIN_ROUTE} next={nextPath} />
+        <GoogleSignInButton action={GOOGLE_AUTH_ROUTE} next={nextPath} />
         <Divider label="or" />
         <Stack gap={4}>
           <TextInput

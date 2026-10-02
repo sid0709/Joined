@@ -1,10 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  GOOGLE_AUTH_ROUTE,
+  GOOGLE_CALLBACK_ROUTE,
   GOOGLE_SIGNIN_ROUTE,
+  googleCallbackRoute,
   decodeGoogleState,
   encodeGoogleState,
   googleStateCookie,
+  sameSiteNextPath,
 } from "./state";
 
 describe("google state cookie", () => {
@@ -32,5 +36,30 @@ describe("google state cookie", () => {
       secure: true,
       path: GOOGLE_SIGNIN_ROUTE,
     });
+    expect(googleStateCookie(false, GOOGLE_AUTH_ROUTE)).toMatchObject({
+      secure: false,
+      path: GOOGLE_AUTH_ROUTE,
+    });
+  });
+
+  test("the callback lives under the app's route", () => {
+    expect(GOOGLE_CALLBACK_ROUTE).toBe("/api/auth/google/callback");
+    expect(googleCallbackRoute(GOOGLE_AUTH_ROUTE)).toBe("/auth/google/callback");
+  });
+});
+
+describe("next path after sign-in", () => {
+  test("keeps same-site paths and refuses other hosts", () => {
+    expect(sameSiteNextPath("/trust/cases?q=1", "/")).toBe("/trust/cases?q=1");
+    for (const unsafe of [
+      undefined,
+      null,
+      "",
+      "https://evil.example",
+      "//evil.example",
+      "/\\evil.example",
+    ]) {
+      expect(sameSiteNextPath(unsafe, "/home")).toBe("/home");
+    }
   });
 });
