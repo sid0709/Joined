@@ -1583,7 +1583,7 @@
   pointer-events: none;
 }
 
-.acorn-face-slot svg {
+.acorn-face-slot canvas {
   display: block;
   width: 100%;
   height: auto;

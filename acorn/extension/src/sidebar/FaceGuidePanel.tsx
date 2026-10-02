@@ -12,7 +12,7 @@ export function FaceGuidePanel({ thinking, working }: FaceGuidePanelProps) {
 
   return (
     <section className="face-guide" aria-label="Acorn Face guide">
-      <p className="hint">Each pose the rabbit uses while Fill or Custom is in flight.</p>
+      <p className="hint">Each mood the acorn shows while Fill or Custom is in flight.</p>
       <div className="face-guide-stats">
         <div className="face-guide-stat">
           <span className="face-guide-stat-n">{thinking}</span>

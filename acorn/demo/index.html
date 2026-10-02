@@ -4,139 +4,59 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="icon" href="data:," />
-<title>Acorn rig</title>
-<link rel="preload" as="image" href="art/acorn-body.webp" />
-<style>
-  :root {
-    --bg: #f6f5f2;
-    --surface: #ffffff;
-    --fg: #1c1b19;
-    --muted: #6f6c66;
-    --border: #e2dfd8;
-    --accent: #2f6bff;
-    --on-accent: #ffffff;
-    --checker-a: #ffffff;
-    --checker-b: #ecebe7;
-    --dark-stage: #1c1b19;
-    --radius: 12px;
-    --gap: 16px;
-    --stage: 360px;
-    color-scheme: light dark;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #141413;
-      --surface: #1d1d1b;
-      --fg: #f1efea;
-      --muted: #a29f97;
-      --border: #34332f;
-      --accent: #6f9bff;
-      --checker-a: #2a2a27;
-      --checker-b: #222220;
-      --dark-stage: #0d0d0c;
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap); margin-bottom: var(--gap); }
-  h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  a { color: var(--accent); }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--gap); }
-  .stage-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .stage { width: min(var(--stage), 100%); border-radius: 8px; display: block; }
-  .bg-checker {
-    background-color: var(--checker-a);
-    background-image:
-      linear-gradient(45deg, var(--checker-b) 25%, transparent 25%, transparent 75%, var(--checker-b) 75%),
-      linear-gradient(45deg, var(--checker-b) 25%, transparent 25%, transparent 75%, var(--checker-b) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 8px 8px;
-  }
-  .bg-light { background: #ffffff; }
-  .bg-dark { background: var(--dark-stage); }
-  .minis { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
-  .minis canvas { display: block; border-radius: 4px; }
-  .statuses { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: var(--gap); }
-  .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
-  label { color: var(--muted); }
-  input[type="range"] { width: 160px; }
-  button, select {
-    font: inherit; color: var(--fg); background: var(--surface);
-    border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; cursor: pointer;
-  }
-  button:hover { border-color: var(--muted); }
-  button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-  .readout { font-variant-numeric: tabular-nums; min-width: 40px; color: var(--muted); }
-</style>
+<title>Acorn</title>
+<link rel="stylesheet" href="./style.css" />
 </head>
 <body>
 <main>
   <header>
     <h1>Acorn</h1>
-    <a href="sheet.html">Sheet player →</a>
+    <a href="./sheet.html">Sheet player →</a>
   </header>
-  <div class="card">
+
+  <section class="card">
     <div class="stage-wrap">
-      <canvas id="stage" class="stage bg-checker"></canvas>
-      <div class="minis">
-        <canvas id="mini28" class="bg-checker" style="width:28px"></canvas>
-        <canvas id="mini18" class="bg-checker" style="width:18px"></canvas>
-        <span>28 / 18px</span>
-      </div>
+      <div id="stage" class="face stage bg-checker"></div>
+      <div class="sizes" id="sizes"></div>
     </div>
-    <div id="statuses" class="statuses" role="group" aria-label="Status"></div>
+    <div id="moods" class="moods" role="group" aria-label="Mood"></div>
     <div class="row">
-      <label for="speed">Speed</label>
-      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1" />
-      <span id="speedOut" class="readout">1×</span>
       <label for="bg">Stage</label>
       <select id="bg">
         <option value="checker">Checker</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
+      <label for="renderer">Renderer</label>
+      <select id="renderer">
+        <option value="auto">Worker (auto)</option>
+        <option value="main">Main thread</option>
+      </select>
+      <label><input id="reduced" type="checkbox" /> Reduced motion</label>
     </div>
-  </div>
+  </section>
+
+  <section class="card">
+    <div class="row between">
+      <strong>All moods</strong>
+      <span class="muted">148px, like the extension's Help page</span>
+    </div>
+    <div id="gallery" class="gallery"></div>
+  </section>
+
+  <section class="card">
+    <div class="row between">
+      <strong>Stress test</strong>
+      <span id="perf" class="muted">Off</span>
+    </div>
+    <div class="row">
+      <label for="stressCount">Badges</label>
+      <input id="stressCount" type="range" min="0" max="200" step="10" value="0" />
+      <span id="stressOut" class="readout">0</span>
+    </div>
+    <div id="stress" class="stress"></div>
+  </section>
 </main>
-<script type="module">
-  import { mountAcorn, STATUSES } from "./rig.js";
-
-  const views = ["stage", "mini28", "mini18"].map((id) => document.getElementById(id));
-  const rigs = await Promise.all(views.map((c) => mountAcorn(c)));
-  const group = document.getElementById("statuses");
-  const speed = document.getElementById("speed");
-  const speedOut = document.getElementById("speedOut");
-  const bg = document.getElementById("bg");
-
-  function select(id) {
-    for (const r of rigs) r.setStatus(id);
-    for (const b of group.children) b.setAttribute("aria-pressed", String(b.dataset.id === id));
-  }
-  for (const s of STATUSES) {
-    const b = document.createElement("button");
-    b.textContent = s.label;
-    b.dataset.id = s.id;
-    b.addEventListener("click", () => select(s.id));
-    group.append(b);
-  }
-  select(STATUSES[0].id);
-
-  speed.addEventListener("input", () => {
-    speedOut.textContent = `${speed.value}×`;
-    for (const r of rigs) r.setSpeed(Number(speed.value));
-  });
-  bg.addEventListener("change", () => {
-    for (const el of views) {
-      el.classList.remove("bg-checker", "bg-light", "bg-dark");
-      el.classList.add(`bg-${bg.value}`);
-    }
-  });
-  window.addEventListener("resize", () => { for (const r of rigs) r.resize(); });
-  document.addEventListener("keydown", (e) => {
-    const n = Number(e.key);
-    if (n >= 1 && n <= STATUSES.length) select(STATUSES[n - 1].id);
-  });
-</script>
+<script type="module" src="./main.ts"></script>
 </body>
 </html>

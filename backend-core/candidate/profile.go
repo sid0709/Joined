@@ -12,16 +12,16 @@ import (
 )
 
 const (
-	maxHeadline     = 120
-	maxAbout        = 600
-	maxPhone        = 20
-	maxLocation     = 80
-	maxAddressLine  = 120
-	maxSkill        = 40
-	maxSkills       = 24
-	maxRoles        = 8
-	maxExperience   = 20
-	maxText         = 400
+	maxHeadline    = 120
+	maxAbout       = 600
+	maxPhone       = 20
+	maxLocation    = 80
+	maxAddressLine = 120
+	maxSkill       = 40
+	maxSkills      = 24
+	maxRoles       = 8
+	maxExperience  = 20
+	maxText        = 400
 )
 
 func (s *Store) GetProfile(ctx context.Context, userID string, now time.Time) (Profile, error) {
@@ -83,6 +83,10 @@ type ProfilePatch struct {
 	NoticePeriod  *string           `json:"noticePeriod"`
 	Skills        *[]string         `json:"skills"`
 	Experience    *[]ExperienceItem `json:"experience"`
+	Education     *[]EducationItem  `json:"education"`
+	Personal      *Personal         `json:"personal"`
+	Links         *Links            `json:"links"`
+	Disclosures   *Disclosures      `json:"disclosures"`
 	Visibility    *Visibility       `json:"visibility"`
 }
 
@@ -106,6 +110,7 @@ func emptyProfile(name, email string, created time.Time) Profile {
 		NoticePeriod:  "",
 		Skills:        []string{},
 		Experience:    []ExperienceItem{},
+		Education:     []EducationItem{},
 		Visibility:    Visibility{OpenToWork: true, RecruiterSearch: true, HideFromEmployer: false},
 	}
 }
@@ -130,6 +135,10 @@ func viewProfile(stored storedProfile, name, email string, created time.Time) Pr
 		NoticePeriod:  stored.NoticePeriod,
 		Skills:        stored.Skills,
 		Experience:    stored.Experience,
+		Education:     stored.Education,
+		Personal:      stored.Personal,
+		Links:         stored.Links,
+		Disclosures:   stored.Disclosures,
 		Visibility:    stored.Visibility,
 	}
 	return normalizeProfile(profile)
@@ -154,6 +163,10 @@ func storedFromProfile(userID string, profile Profile, now time.Time) storedProf
 		NoticePeriod:  profile.NoticePeriod,
 		Skills:        profile.Skills,
 		Experience:    profile.Experience,
+		Education:     profile.Education,
+		Personal:      profile.Personal,
+		Links:         profile.Links,
+		Disclosures:   profile.Disclosures,
 		Visibility:    profile.Visibility,
 		UpdatedAt:     now.UTC(),
 	}
@@ -244,6 +257,30 @@ func applyProfilePatch(current Profile, patch ProfilePatch) (Profile, string, er
 		}
 		current.Experience = items
 	}
+	if patch.Education != nil {
+		items, err := normalizeEducation(*patch.Education)
+		if err != nil {
+			return Profile{}, "", err
+		}
+		current.Education = items
+	}
+	if patch.Personal != nil {
+		personal, err := normalizePersonal(*patch.Personal)
+		if err != nil {
+			return Profile{}, "", err
+		}
+		current.Personal = personal
+	}
+	if patch.Links != nil {
+		links, err := normalizeLinks(*patch.Links)
+		if err != nil {
+			return Profile{}, "", err
+		}
+		current.Links = links
+	}
+	if patch.Disclosures != nil {
+		current.Disclosures = normalizeDisclosures(*patch.Disclosures)
+	}
 	if patch.Visibility != nil {
 		current.Visibility = *patch.Visibility
 	}
@@ -261,21 +298,21 @@ func normalizeExperience(items []ExperienceItem) ([]ExperienceItem, error) {
 		if role == "" || company == "" {
 			return nil, ErrInvalidInput
 		}
-		id := item.ID
-		if id == "" {
-			generated, err := newPublicID()
-			if err != nil {
-				return nil, err
-			}
-			id = generated
+		id, err := itemID(item.ID)
+		if err != nil {
+			return nil, err
+		}
+		dates, err := normalizeRange(item.DateRange)
+		if err != nil {
+			return nil, err
 		}
 		out = append(out, ExperienceItem{
-			ID:      id,
-			Role:    role,
-			Company: company,
-			Period:  clip(item.Period, 40),
-			Summary: clip(item.Summary, maxText),
-			Current: item.Current,
+			ID:        id,
+			Role:      role,
+			Company:   company,
+			Period:    periodOf(dates, item.Period),
+			Summary:   clip(item.Summary, maxText),
+			DateRange: dates,
 		})
 	}
 	return out, nil
@@ -293,6 +330,9 @@ func normalizeProfile(profile Profile) Profile {
 	}
 	if profile.Experience == nil {
 		profile.Experience = []ExperienceItem{}
+	}
+	if profile.Education == nil {
+		profile.Education = []EducationItem{}
 	}
 	if profile.Workplace == "" {
 		profile.Workplace = DefaultWorkplace

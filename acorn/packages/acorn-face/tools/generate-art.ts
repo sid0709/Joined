@@ -1,5 +1,5 @@
 // Generate the acorn rig's source art with the OpenAI Images API.
-// Run: bun run --cwd acorn/demo art -- <job> [reference.png]
+// Run: bun run --cwd acorn/packages/acorn-face art -- <job> [reference.png]
 // Needs OPENAI_API_KEY in acorn/.env (git-ignored). Outputs land in art/raw/ for review.
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { join } from "node:path";
 const API_BASE = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 /** gpt-image-2.5 ships as "flare" and "sunburst" variants. */
 const MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-2.5-flare";
-const OUT = join(import.meta.dir, "art", "raw");
+const OUT = join(import.meta.dir, "..", "art", "raw");
 const VARIANTS = 2;
 
 const STYLE =

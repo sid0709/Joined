@@ -1,13 +1,15 @@
 {
-  "name": "@joined/sprite-demo",
+  "name": "@acorn/demo",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun serve.ts",
-    "art": "bun --env-file=../.env generate-art.ts",
-    "art:prepare": "bun prepare-art.ts"
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@acorn/face": "workspace:*"
   },
   "devDependencies": {
-    "sharp": "catalog:"
+    "vite": "catalog:"
   }
 }

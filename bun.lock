@@ -22,9 +22,12 @@
       },
     },
     "acorn/demo": {
-      "name": "@joined/sprite-demo",
+      "name": "@acorn/demo",
+      "dependencies": {
+        "@acorn/face": "workspace:*",
+      },
       "devDependencies": {
-        "sharp": "catalog:",
+        "vite": "catalog:",
       },
     },
     "acorn/extension": {
@@ -51,8 +54,9 @@
       "name": "@acorn/face",
       "version": "0.1.0",
       "devDependencies": {
+        "puppeteer": "catalog:",
+        "sharp": "catalog:",
         "typescript": "catalog:",
-        "vite": "catalog:",
       },
     },
     "acorn/packages/shared": {
@@ -278,6 +282,8 @@
     "vite": "8.3.1",
   },
   "packages": {
+    "@acorn/demo": ["@acorn/demo@workspace:acorn/demo"],
+
     "@acorn/face": ["@acorn/face@workspace:acorn/packages/acorn-face"],
 
     "@acorn/shared": ["@acorn/shared@workspace:acorn/packages/shared"],
@@ -587,8 +593,6 @@
     "@joined/job-schema": ["@joined/job-schema@workspace:packages/job-schema"],
 
     "@joined/scout": ["@joined/scout@workspace:packages/scout"],
-
-    "@joined/sprite-demo": ["@joined/sprite-demo@workspace:acorn/demo"],
 
     "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
 

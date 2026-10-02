@@ -90,8 +90,8 @@ export function resolveRowHold(input: RowFaceInput): AcornFaceMode {
   if (fill === "working" || fill === "thinking" || fill === "sad") return fill;
   const gen = holdFromGenerate(input.generateStatus, input.generateLabel, input.hasResume);
   if (gen) return gen;
-  if (input.blocked) return "sad";
-  if (input.recommendWarning && input.selected) return "sad";
+  if (input.blocked) return "help";
+  if (input.recommendWarning && input.selected) return "help";
   if (input.hasResume === false && input.generateStatus != null) return "sad";
   return "waiting";
 }

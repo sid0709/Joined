@@ -163,3 +163,49 @@ func TestApplicantProfileText(t *testing.T) {
 		t.Error("HTML must not be escaped")
 	}
 }
+
+func TestApplicantProfileTextCarriesProfileDetails(t *testing.T) {
+	text := ApplicantProfileText("u1", candidate.Profile{
+		Name: "Stanley Wang", Authorization: "us-sponsor",
+		Personal:    candidate.Personal{FirstName: "Stan", Age: 35, Gender: "male", Citizenship: "us-citizen"},
+		Links:       candidate.Links{LinkedIn: "https://www.linkedin.com/in/stan"},
+		Disclosures: candidate.Disclosures{Sponsorship: "not-required", Race: "asian", Veteran: "decline"},
+		Experience: []candidate.ExperienceItem{{Role: "Senior Software Engineer", Company: "Uber",
+			DateRange: candidate.DateRange{StartMonth: 1, StartYear: 2022, Current: true}}},
+		Education: []candidate.EducationItem{{School: "UC Berkeley", Degree: "BS",
+			DateRange: candidate.DateRange{StartYear: 2009, EndMonth: 5, EndYear: 2013}}},
+	})
+	var parsed struct {
+		Settings struct {
+			FirstName         string           `json:"firstName"`
+			LastName          string           `json:"lastName"`
+			Age               int              `json:"age"`
+			ImmigrationStatus string           `json:"immigrationStatus"`
+			Sponsorship       string           `json:"sponsorship"`
+			Race              string           `json:"race"`
+			VeteranStatus     string           `json:"veteranStatus"`
+			LinkedIn          string           `json:"linkedin"`
+			Careers           []map[string]any `json:"careers"`
+			Education         []map[string]any `json:"education"`
+		} `json:"settings"`
+	}
+	if err := json.Unmarshal([]byte(text), &parsed); err != nil {
+		t.Fatalf("profile text is not JSON: %v", err)
+	}
+	s := parsed.Settings
+	if s.FirstName != "Stan" || s.LastName != "Wang" || s.Age != 35 {
+		t.Errorf("name/age = %q %q %d", s.FirstName, s.LastName, s.Age)
+	}
+	if s.ImmigrationStatus != "us-citizen" || s.Sponsorship != "not-required" {
+		t.Errorf("profile answers must win over the legacy authorization: %q / %q", s.ImmigrationStatus, s.Sponsorship)
+	}
+	if s.Race != "asian" || s.VeteranStatus != "decline" || s.LinkedIn == "" {
+		t.Errorf("disclosures/links = %+v", s)
+	}
+	if len(s.Careers) != 1 || s.Careers[0]["start"] != "2022-01" || s.Careers[0]["end"] != nil || s.Careers[0]["current"] != true {
+		t.Errorf("careers = %v", s.Careers)
+	}
+	if len(s.Education) != 1 || s.Education[0]["start"] != "2009" || s.Education[0]["end"] != "2013-05" {
+		t.Errorf("education = %v", s.Education)
+	}
+}

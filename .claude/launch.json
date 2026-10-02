@@ -32,9 +32,9 @@
       "port": 6003
     },
     {
-      "name": "sprite-demo",
+      "name": "acorn-demo",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["acorn/demo/serve.ts"],
+      "runtimeArgs": ["run", "--cwd", "acorn/demo", "dev"],
       "port": 5180
     }
   ]
