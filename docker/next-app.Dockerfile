@@ -5,7 +5,6 @@
 #   docker build -f docker/next-app.Dockerfile --build-arg APP=joined-frontend .
 
 ARG BUN_VERSION=1.4.2
-ARG NODE_VERSION=22
 
 FROM oven/bun:${BUN_VERSION} AS build
 ARG APP
@@ -23,14 +22,14 @@ RUN bun --filter ${APP} build \
     && cp -r ${APP}/public ${APP}/.next/standalone/${APP}/public \
     && cp -r ${APP}/.next/static ${APP}/.next/standalone/${APP}/.next/static
 
-# The standalone server needs Node and only the files Next traced, not node_modules.
-# Debian slim, like the build stage, so native packages match.
-FROM node:${NODE_VERSION}-bookworm-slim
+# Bun runs the standalone server: only the files Next traced, not node_modules.
+# The slim Debian image matches the build stage, so native packages match too.
+FROM oven/bun:${BUN_VERSION}-slim
 ARG APP
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 WORKDIR /app
-COPY --from=build --chown=node:node /repo/${APP}/.next/standalone/ ./
+COPY --from=build --chown=bun:bun /repo/${APP}/.next/standalone/ ./
 WORKDIR /app/${APP}
-USER node
+USER bun
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]
