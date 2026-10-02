@@ -4,6 +4,7 @@
 package deepseek
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -28,18 +29,21 @@ type Client struct {
 	apiKey    string
 	model     string
 	searchURL string
-	http      *http.Client
+	// maxSearches caps the web searches behind one answer.
+	maxSearches int
+	http        *http.Client
 }
 
 func New(cfg config.DeepSeek) *Client {
 	return &Client{
 		// DeepSeek promises valid JSON but not a strict schema, and reasoning only slows
 		// down reading a job post.
-		chat:      openai.New(cfg.APIKey, cfg.Model, cfg.BaseURL).ForProvider(ErrMissingAPIKey, true, true),
-		apiKey:    strings.TrimSpace(cfg.APIKey),
-		model:     cfg.Model,
-		searchURL: strings.TrimRight(cfg.SearchURL, "/"),
-		http:      llmhttp.NewClient(searchTimeout),
+		chat:        openai.New(cfg.APIKey, cfg.Model, cfg.BaseURL).ForProvider(ErrMissingAPIKey, true, true),
+		apiKey:      strings.TrimSpace(cfg.APIKey),
+		model:       cfg.Model,
+		searchURL:   strings.TrimRight(cfg.SearchURL, "/"),
+		maxSearches: cmp.Or(max(cfg.MaxSearches, 0), config.DefaultDeepSeekMaxSearches),
+		http:        llmhttp.NewClient(searchTimeout),
 	}
 }
 

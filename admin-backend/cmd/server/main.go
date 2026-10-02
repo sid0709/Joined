@@ -21,10 +21,10 @@ const (
 	defaultHTTPAddr = "127.0.0.1:8081"
 	backfillTimeout = 2 * time.Minute
 	dropTimeout     = 30 * time.Second
-	// DeepSeek does not rate-limit by request count, so job reads run wide; each
-	// company research runs several web searches, so it runs narrower.
+	// DeepSeek does not rate-limit by request count, so both AI steps run wide. A
+	// research answer waits on web searches for most of its time, so many run at once.
 	defaultAnalyzeWorkers  = 64
-	defaultResearchWorkers = 24
+	defaultResearchWorkers = 128
 )
 
 var defaultOrigins = []string{"http://127.0.0.1:3010", "http://localhost:3010"}

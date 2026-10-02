@@ -63,9 +63,13 @@ func TestRunnerKeepsOneStepPerAreaButRunsAreasTogether(t *testing.T) {
 	if _, err := r.Start(CopyCompanies, "", block); err != nil {
 		t.Fatalf("companies alongside jobs: %v", err)
 	}
+	if _, err := r.Start(ResearchCompanies, "", block); err != nil {
+		t.Fatalf("research alongside the company copy: %v", err)
+	}
 	close(release)
 	waitFor(t, r, CopyJobs)
 	waitFor(t, r, CopyCompanies)
+	waitFor(t, r, ResearchCompanies)
 	if _, err := r.Start(AnalyzeJobs, "", func(context.Context, *Tracker) (string, error) { return "", nil }); err != nil {
 		t.Fatalf("after the copy: %v", err)
 	}

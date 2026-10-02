@@ -180,3 +180,14 @@ func validHiringRole(role string) bool {
 		return false
 	}
 }
+
+// MemberCompanyIDs lists every company a recruiter belongs to.
+func (s *Store) MemberCompanyIDs(ctx context.Context) ([]string, error) {
+	var ids []string
+	err := s.collection(membersCollection).Distinct(ctx, "companyId", bson.D{{Key: "companyId", Value: bson.D{{Key: "$gt", Value: ""}}}}).Decode(&ids)
+	// None comes back as "no documents".
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	}
+	return ids, err
+}

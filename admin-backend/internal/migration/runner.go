@@ -24,14 +24,15 @@ const (
 // Tasks lists every step, in the order the console shows them.
 var Tasks = []Task{CopyJobs, AnalyzeJobs, CopyCompanies, ResearchCompanies}
 
-// area groups steps that must not overlap: a copy replaces what an AI pass reads.
-// Jobs and companies run side by side.
+// area groups steps that must not overlap. The job copy swaps out the temp jobs the
+// analysis reads, so those two share one. The company copy only upserts the staged
+// companies research reads, so research runs any time, the copy included.
 func (t Task) area() string {
 	switch t {
 	case CopyJobs, AnalyzeJobs:
 		return "jobs"
 	default:
-		return "companies"
+		return string(t)
 	}
 }
 

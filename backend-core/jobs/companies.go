@@ -23,10 +23,17 @@ const (
 )
 
 type CompanyCopyResult struct {
-	Copied int64  `json:"copied"`
-	Linked int64  `json:"linked"`
-	Source string `json:"source"`
-	Dest   string `json:"destination"`
+	Copied int64 `json:"copied"`
+	// Staged is how many copied companies wait in staging for research.
+	Staged int64 `json:"staged"`
+	// Refreshed is how many copied companies were already published and were updated there.
+	Refreshed int64 `json:"refreshed"`
+	// Unpublished is how many untouched companies moved from companies back to staging.
+	Unpublished int64  `json:"unpublished"`
+	Linked      int64  `json:"linked"`
+	Source      string `json:"source"`
+	Staging     string `json:"staging"`
+	Dest        string `json:"destination"`
 }
 
 type PublicCompany struct {
@@ -85,8 +92,11 @@ type athensCompany struct {
 	JobIDs      []bson.ObjectID `bson:"jobIds"`
 }
 
-// CopyCompanies upserts every source company by its source id, keeping each company's
-// public id and admin edits, then links public jobs to their companies.
+// CopyCompanies upserts every source company by its source id into staging, where it
+// waits for research to publish it, keeping each company's public id and admin edits.
+// A company that is already published is updated where it is. Untouched companies an
+// earlier copy wrote straight to companies move back to staging first. Then public
+// jobs are linked to their companies.
 func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCopyResult, error) {
 	if !s.companyCopyMu.TryLock() {
 		return CompanyCopyResult{}, ErrCopyInProgress
@@ -94,12 +104,21 @@ func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCo
 	defer s.companyCopyMu.Unlock()
 	progress = orNoProgress(progress)
 
-	dest := s.companies()
-	if err := ensureCompanyIndexes(ctx, dest); err != nil {
+	public, staged := s.companies(), s.stagedCompanies()
+	for _, coll := range []*mongo.Collection{public, staged} {
+		if err := ensureCompanyIndexes(ctx, coll); err != nil {
+			return CompanyCopyResult{}, err
+		}
+	}
+	unpublished, err := s.unstageUntouched(ctx)
+	if err != nil {
 		return CompanyCopyResult{}, err
 	}
-	existing, err := s.companyIDsBySource(ctx)
+	existing, published, err := s.companyIDsBySource(ctx)
 	if err != nil {
+		return CompanyCopyResult{}, err
+	}
+	if err := s.dropPublishedFromStaging(ctx, published); err != nil {
 		return CompanyCopyResult{}, err
 	}
 	source := s.sourceCompaniesColl()
@@ -112,32 +131,44 @@ func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCo
 	}
 	defer cursor.Close(ctx)
 
+	type companyBatch struct {
+		coll   *mongo.Collection
+		models []mongo.WriteModel
+	}
 	group, groupCtx := errgroup.WithContext(ctx)
-	batches := make(chan []mongo.WriteModel, companyCopyWriters)
-	var copied atomic.Int64
+	batches := make(chan companyBatch, companyCopyWriters)
+	var stagedCount, refreshed atomic.Int64
 	for range companyCopyWriters {
 		group.Go(func() error {
 			for batch := range batches {
-				if _, err := dest.BulkWrite(groupCtx, batch, options.BulkWrite().SetOrdered(false)); err != nil {
+				if _, err := batch.coll.BulkWrite(groupCtx, batch.models, options.BulkWrite().SetOrdered(false)); err != nil {
 					return fmt.Errorf("write companies: %w", err)
 				}
-				progress.Done(int64(len(batch)))
-				copied.Add(int64(len(batch)))
+				progress.Done(int64(len(batch.models)))
+				if batch.coll == public {
+					refreshed.Add(int64(len(batch.models)))
+				} else {
+					stagedCount.Add(int64(len(batch.models)))
+				}
 			}
 			return nil
 		})
 	}
 	group.Go(func() error {
 		defer close(batches)
-		send := func(batch []mongo.WriteModel) error {
+		pending := map[*mongo.Collection][]mongo.WriteModel{}
+		send := func(coll *mongo.Collection) error {
+			if len(pending[coll]) == 0 {
+				return nil
+			}
 			select {
-			case batches <- batch:
+			case batches <- companyBatch{coll: coll, models: pending[coll]}:
+				pending[coll] = nil
 				return nil
 			case <-groupCtx.Done():
 				return groupCtx.Err()
 			}
 		}
-		batch := make([]mongo.WriteModel, 0, companyCopyBatch)
 		for cursor.Next(groupCtx) {
 			var company athensCompany
 			if err := cursor.Decode(&company); err != nil {
@@ -147,37 +178,44 @@ func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCo
 			if err != nil {
 				return err
 			}
-			batch = append(batch, model)
-			if len(batch) == companyCopyBatch {
-				if err := send(batch); err != nil {
+			target := staged
+			if _, ok := published[company.ID.Hex()]; ok {
+				target = public
+			}
+			pending[target] = append(pending[target], model)
+			if len(pending[target]) == companyCopyBatch {
+				if err := send(target); err != nil {
 					return err
 				}
-				batch = make([]mongo.WriteModel, 0, companyCopyBatch)
 			}
 		}
 		if err := cursor.Err(); err != nil {
 			return fmt.Errorf("read source companies: %w", err)
 		}
-		if len(batch) > 0 {
-			return send(batch)
+		if err := send(staged); err != nil {
+			return err
 		}
-		return nil
+		return send(public)
 	})
 	if err := group.Wait(); err != nil {
 		return CompanyCopyResult{}, err
 	}
-	slog.Info("copied companies", "copied", copied.Load())
+	result := CompanyCopyResult{
+		Copied:      stagedCount.Load() + refreshed.Load(),
+		Staged:      stagedCount.Load(),
+		Refreshed:   refreshed.Load(),
+		Unpublished: unpublished,
+		Source:      s.sourceDB + "." + s.sourceCompanies,
+		Staging:     s.destDB + "." + s.tempCompanies,
+		Dest:        s.destDB + "." + s.destCompanies,
+	}
+	slog.Info("copied companies", "staged", result.Staged, "refreshed", result.Refreshed, "unpublished", result.Unpublished)
 
-	linked, err := s.linkJobsToCompanies(ctx, existing)
+	result.Linked, err = s.linkJobsToCompanies(ctx, existing)
 	if err != nil {
 		return CompanyCopyResult{}, err
 	}
-	return CompanyCopyResult{
-		Copied: copied.Load(),
-		Linked: linked,
-		Source: s.sourceDB + "." + s.sourceCompanies,
-		Dest:   s.destDB + "." + s.destCompanies,
-	}, nil
+	return result, nil
 }
 
 // upsertCompany writes a source company's own fields. Admin edits live on `overrides`
@@ -270,30 +308,47 @@ func ensureCompanyIndexes(ctx context.Context, coll *mongo.Collection) error {
 	return nil
 }
 
-func (s *Store) companyIDsBySource(ctx context.Context) (map[string]string, error) {
-	cursor, err := s.companies().Find(ctx, bson.D{}, options.Find().SetProjection(bson.D{
-		{Key: "sourceId", Value: 1},
-		{Key: "id", Value: 1},
-	}))
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
+// companyIDsBySource maps source ids to public ids across staging and companies, and
+// lists the source ids that are published.
+func (s *Store) companyIDsBySource(ctx context.Context) (map[string]string, map[string]struct{}, error) {
 	ids := map[string]string{}
-	for cursor.Next(ctx) {
-		var doc struct {
-			ID       string `bson:"id"`
-			SourceID string `bson:"sourceId"`
+	published := map[string]struct{}{}
+	// Published last, so a company in both keeps its published id.
+	for _, side := range []struct {
+		coll      *mongo.Collection
+		published bool
+	}{{s.stagedCompanies(), false}, {s.companies(), true}} {
+		cursor, err := side.coll.Find(ctx, bson.D{}, options.Find().SetProjection(bson.D{
+			{Key: "sourceId", Value: 1},
+			{Key: "id", Value: 1},
+		}))
+		if err != nil {
+			return nil, nil, err
 		}
-		if err := cursor.Decode(&doc); err != nil {
-			return nil, err
-		}
-		if doc.SourceID != "" && doc.ID != "" {
+		for cursor.Next(ctx) {
+			var doc struct {
+				ID       string `bson:"id"`
+				SourceID string `bson:"sourceId"`
+			}
+			if err := cursor.Decode(&doc); err != nil {
+				cursor.Close(ctx)
+				return nil, nil, err
+			}
+			if doc.SourceID == "" || doc.ID == "" {
+				continue
+			}
 			ids[doc.SourceID] = doc.ID
+			if side.published {
+				published[doc.SourceID] = struct{}{}
+			}
+		}
+		err = cursor.Err()
+		cursor.Close(ctx)
+		if err != nil {
+			return nil, nil, err
 		}
 	}
-	return ids, cursor.Err()
+	return ids, published, nil
 }
 
 // linkJobsToCompanies gives every public job a public id and its company's public id,
@@ -473,25 +528,30 @@ func (s *Store) GetCatalogJob(ctx context.Context, id string, now time.Time) (ca
 	return jobs[0], nil
 }
 
+// publicCompanyID is the public id of the source company, published or still staged,
+// so a job links to its company before research publishes it.
 func (s *Store) publicCompanyID(ctx context.Context, source bson.ObjectID) (string, error) {
 	if source.IsZero() {
 		return "", nil
 	}
-	var doc struct {
-		ID string `bson:"id"`
+	for _, coll := range []*mongo.Collection{s.companies(), s.stagedCompanies()} {
+		var doc struct {
+			ID string `bson:"id"`
+		}
+		err := coll.FindOne(
+			ctx,
+			bson.D{{Key: "sourceId", Value: source.Hex()}},
+			options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}}),
+		).Decode(&doc)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		return doc.ID, nil
 	}
-	err := s.companies().FindOne(
-		ctx,
-		bson.D{{Key: "sourceId", Value: source.Hex()}},
-		options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}}),
-	).Decode(&doc)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return doc.ID, nil
+	return "", nil
 }
 
 func (s *Store) publicCompany(ctx context.Context, id string) (PublicCompany, error) {

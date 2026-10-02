@@ -55,11 +55,36 @@ func TestJSONWebSearchSendsSearchToolAndReadsAnswer(t *testing.T) {
 		t.Fatalf("sources = %v", sources)
 	}
 	tools := got["tools"].([]any)
-	if tools[0].(map[string]any)["type"] != webSearchType || got["model"] != "deepseek-flash" {
+	search := tools[0].(map[string]any)
+	if search["type"] != webSearchType || got["model"] != "deepseek-flash" {
 		t.Fatalf("request = %v", got)
+	}
+	if search["max_uses"] != float64(config.DefaultDeepSeekMaxSearches) {
+		t.Fatalf("max_uses = %v, want the default %d", search["max_uses"], config.DefaultDeepSeekMaxSearches)
 	}
 	if system := got["system"].(string); !strings.HasPrefix(system, "be exact") || !strings.Contains(system, `{"type":"object"}`) {
 		t.Fatalf("system = %q", system)
+	}
+}
+
+func TestJSONWebSearchCapsSearchesAsConfigured(t *testing.T) {
+	var got struct {
+		Tools []struct {
+			MaxUses int `json:"max_uses"`
+		} `json:"tools"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		_, _ = w.Write([]byte(searchedReply))
+	}))
+	defer server.Close()
+
+	client := New(config.DeepSeek{APIKey: "key", Model: "deepseek-flash", SearchURL: server.URL, MaxSearches: 2})
+	if _, _, err := client.JSONWebSearch(context.Background(), "", "Acme", json.RawMessage(`{}`)); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Tools) != 1 || got.Tools[0].MaxUses != 2 {
+		t.Fatalf("tools = %+v", got.Tools)
 	}
 }
 

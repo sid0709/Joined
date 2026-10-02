@@ -44,8 +44,15 @@ export type MigrationCounts = {
   tempJobs: number;
   analyzedJobs: number;
   companySource: string;
+  /** Where copied companies wait until research publishes them. */
+  companyStaging: string;
   companyDestination: string;
   sourceCompanies: number;
+  /** Staged, not researched yet. */
+  waitingCompanies: number;
+  /** Staged because research could not find them on the web. */
+  notFoundCompanies: number;
+  /** Published: the directory and Joined show them. */
   companies: number;
   researchedCompanies: number;
 };

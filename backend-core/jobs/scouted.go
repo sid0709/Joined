@@ -316,7 +316,7 @@ func (s *Store) resolveScoutCompany(ctx context.Context, listing ScoutedListing,
 		var found struct {
 			ID string `bson:"id"`
 		}
-		err := s.companies().FindOne(ctx, bson.D{{Key: "id", Value: id}}, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}})).Decode(&found)
+		err := s.findCompanyOrStaged(ctx, bson.D{{Key: "id", Value: id}}, &found, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}}))
 		if err == nil && found.ID != "" {
 			return found.ID, nil
 		}
@@ -335,7 +335,7 @@ func (s *Store) resolveScoutCompany(ctx context.Context, listing ScoutedListing,
 			{Key: "$options", Value: "i"},
 		}}},
 	}}}
-	err := s.companies().FindOne(ctx, filter, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}})).Decode(&found)
+	err := s.findCompanyOrStaged(ctx, filter, &found, options.FindOne().SetProjection(bson.D{{Key: "id", Value: 1}}))
 	if err == nil && found.ID != "" {
 		return found.ID, nil
 	}

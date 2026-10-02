@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+// DefaultDeepSeekMaxSearches caps the web searches behind one research answer: enough
+// to find a company's own site and a profile or two, few enough to stay fast.
+const DefaultDeepSeekMaxSearches = 4
+
 const (
 	defaultSourceDB            = "AthensDB"
 	defaultSourceCollection    = "jobs"
@@ -18,6 +22,7 @@ const (
 	defaultJobsCollection      = "jobs"
 	defaultSourceCompanies     = "companies"
 	defaultCompaniesCollection = "companies"
+	defaultTempCompanies       = "temp_companies"
 	defaultOpenAIModel         = "gpt-4o-mini"
 	defaultOpenAIBaseURL       = "https://api.openai.com/v1"
 	defaultDeepSeekModel       = "deepseek-flash"
@@ -36,6 +41,8 @@ type Database struct {
 	JobsCollection      string
 	SourceCompanies     string
 	CompaniesCollection string
+	// TempCompaniesCollection holds copied companies until research publishes them.
+	TempCompaniesCollection string
 }
 
 func (d Database) SourceName() string {
@@ -63,6 +70,8 @@ type DeepSeek struct {
 	Model     string
 	BaseURL   string
 	SearchURL string
+	// MaxSearches caps the web searches behind one research answer.
+	MaxSearches int
 }
 
 // Google is the OAuth client from Google Cloud and where Sign in with Google
@@ -87,14 +96,15 @@ func LoadEnvFile() {
 
 func LoadDatabase() (Database, error) {
 	db := Database{
-		MongoURI:            strings.TrimSpace(os.Getenv("MONGO_URI")),
-		SourceDB:            Env("SOURCE_DB", defaultSourceDB),
-		SourceCollection:    Env("SOURCE_COLLECTION", defaultSourceCollection),
-		DestDB:              Env("DEST_DB", defaultDestDB),
-		DestCollection:      Env("DEST_COLLECTION", defaultDestCollection),
-		JobsCollection:      Env("JOBS_COLLECTION", defaultJobsCollection),
-		SourceCompanies:     Env("SOURCE_COMPANIES", defaultSourceCompanies),
-		CompaniesCollection: Env("COMPANIES_COLLECTION", defaultCompaniesCollection),
+		MongoURI:                strings.TrimSpace(os.Getenv("MONGO_URI")),
+		SourceDB:                Env("SOURCE_DB", defaultSourceDB),
+		SourceCollection:        Env("SOURCE_COLLECTION", defaultSourceCollection),
+		DestDB:                  Env("DEST_DB", defaultDestDB),
+		DestCollection:          Env("DEST_COLLECTION", defaultDestCollection),
+		JobsCollection:          Env("JOBS_COLLECTION", defaultJobsCollection),
+		SourceCompanies:         Env("SOURCE_COMPANIES", defaultSourceCompanies),
+		CompaniesCollection:     Env("COMPANIES_COLLECTION", defaultCompaniesCollection),
+		TempCompaniesCollection: Env("TEMP_COMPANIES_COLLECTION", defaultTempCompanies),
 	}
 	if db.MongoURI == "" {
 		return Database{}, fmt.Errorf("MONGO_URI is required")
@@ -113,10 +123,11 @@ func LoadOpenAI() OpenAI {
 
 func LoadDeepSeek() DeepSeek {
 	return DeepSeek{
-		APIKey:    strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
-		Model:     Env("DEEPSEEK_MODEL", defaultDeepSeekModel),
-		BaseURL:   Env("DEEPSEEK_BASE_URL", defaultDeepSeekBaseURL),
-		SearchURL: Env("DEEPSEEK_SEARCH_URL", defaultDeepSeekSearchURL),
+		APIKey:      strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
+		Model:       Env("DEEPSEEK_MODEL", defaultDeepSeekModel),
+		BaseURL:     Env("DEEPSEEK_BASE_URL", defaultDeepSeekBaseURL),
+		SearchURL:   Env("DEEPSEEK_SEARCH_URL", defaultDeepSeekSearchURL),
+		MaxSearches: EnvInt("DEEPSEEK_MAX_SEARCHES", DefaultDeepSeekMaxSearches),
 	}
 }
 

@@ -143,7 +143,7 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 			if err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("Copied %d companies from %s into %s and linked %d jobs.", result.Copied, result.Source, result.Dest, result.Linked), nil
+			return companyCopySummary(result), nil
 		}, false, true
 	case migration.AnalyzeJobs:
 		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo}
@@ -154,10 +154,24 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
 			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), body.Redo, s.researchWorkers, progress)
-			return tally("Researched", progress.Snapshot()), err
+			run := progress.Snapshot()
+			return fmt.Sprintf("Published %d of %d. %d not found, %d failed.", run.Done, run.Total, run.Skipped, run.Failed), err
 		}, true, true
 	}
 	return nil, false, false
+}
+
+// companyCopySummary says where the copied companies went.
+func companyCopySummary(result jobs.CompanyCopyResult) string {
+	summary := fmt.Sprintf("Copied %d companies from %s: %d wait in %s for research", result.Copied, result.Source, result.Staged, result.Staging)
+	if result.Refreshed > 0 {
+		summary += fmt.Sprintf(", %d already published were updated", result.Refreshed)
+	}
+	summary += "."
+	if result.Unpublished > 0 {
+		summary += fmt.Sprintf(" Moved %d unresearched companies out of %s.", result.Unpublished, result.Dest)
+	}
+	return summary + fmt.Sprintf(" Linked %d jobs.", result.Linked)
 }
 
 func tally(verb string, run migration.Run) string {

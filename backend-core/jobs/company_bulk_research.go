@@ -7,49 +7,33 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// researchedAtField marks a company the bulk research has filled in.
+// researchedAtField marks a company the bulk research has tried.
 const researchedAtField = "research.at"
 
-// ResearchCompanies fills in company pages from the web, workers at a time, busiest
-// companies first. It only fills fields that are still blank, so admin edits stay.
-// Without redo it skips companies researched before. A company that fails is reported
-// and stays unresearched for the next run; a missing API key stops the run.
+// ResearchCompanies researches staged companies on the web, workers at a time,
+// busiest first, and publishes each one research finds. It only fills fields that are
+// still blank, so admin edits stay. A company research cannot find stays staged as not
+// found. Without redo it skips companies researched before. When it has worked through
+// the list it looks again, so companies a copy stages meanwhile are researched too. A
+// company that fails is reported and stays waiting; a missing API key stops the run.
 func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher, model string, redo bool, workers int, progress Progress) error {
 	if researcher == nil {
 		return ErrMissingResearcher
 	}
 	progress = orNoProgress(progress)
-	filter := bson.D{}
-	if !redo {
-		filter = bson.D{{Key: researchedAtField, Value: bson.D{{Key: "$exists", Value: false}}}}
-	}
-	rows, err := findAll[struct {
-		ID string `bson:"id"`
-	}](ctx, s.companies(), filter, options.Find().
-		SetProjection(bson.D{{Key: "id", Value: 1}}).
-		SetSort(bson.D{{Key: "jobCount", Value: -1}, {Key: "id", Value: 1}}))
-	if err != nil {
-		return err
-	}
-	ids := make([]string, len(rows))
-	for i, row := range rows {
-		ids[i] = row.ID
-	}
-	progress.Total(int64(len(ids)))
-
 	load := func(ctx context.Context, batch []string) ([]storedCompany, error) {
-		return findAll[storedCompany](ctx, s.companies(), bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: batch}}}})
+		return findAll[storedCompany](ctx, s.stagedCompanies(), bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: batch}}}})
 	}
 	work := func(ctx context.Context, doc storedCompany) error {
-		err := s.researchOne(ctx, researcher, model, doc)
+		published, err := s.researchOne(ctx, researcher, model, doc)
 		switch {
-		case err == nil:
+		case err == nil && published:
 			progress.Done(1)
-		case errors.Is(err, ErrInvalidInput):
-			// No name and no usable website: nothing to search for.
+		case err == nil:
 			progress.Skip(1)
 		case IsMissingAPIKey(err), errors.Is(err, ErrMissingResearcher), ctx.Err() != nil:
 			return err
@@ -58,26 +42,84 @@ func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher,
 		}
 		return nil
 	}
-	return runBulk(ctx, ids, workers, load, work)
+
+	seen := map[string]struct{}{}
+	var total int64
+	for {
+		ids, err := s.stagedToResearch(ctx, redo, seen)
+		if err != nil || len(ids) == 0 {
+			return err
+		}
+		total += int64(len(ids))
+		progress.Total(total)
+		if err := runBulk(ctx, ids, workers, load, work); err != nil {
+			return err
+		}
+	}
 }
 
-func (s *Store) researchOne(ctx context.Context, researcher WebResearcher, model string, doc storedCompany) error {
+// stagedToResearch lists staged company ids this run has not tried yet, busiest first.
+// Without redo it leaves out companies an earlier run researched.
+func (s *Store) stagedToResearch(ctx context.Context, redo bool, seen map[string]struct{}) ([]string, error) {
+	filter := bson.D{}
+	if !redo {
+		filter = bson.D{{Key: researchedAtField, Value: bson.D{{Key: "$exists", Value: false}}}}
+	}
+	rows, err := findAll[struct {
+		ID string `bson:"id"`
+	}](ctx, s.stagedCompanies(), filter, options.Find().
+		SetProjection(bson.D{{Key: "id", Value: 1}}).
+		SetSort(bson.D{{Key: "jobCount", Value: -1}, {Key: "id", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if _, done := seen[row.ID]; done || row.ID == "" {
+			continue
+		}
+		seen[row.ID] = struct{}{}
+		ids = append(ids, row.ID)
+	}
+	return ids, nil
+}
+
+// researchOne researches one staged company and publishes it when research found it.
+// A company research cannot find, or that has nothing to search for, is marked not
+// found and stays staged.
+func (s *Store) researchOne(ctx context.Context, researcher WebResearcher, model string, doc storedCompany) (bool, error) {
 	website := doc.displayURL()
 	if !validLink(website, maxCompanyURL) {
 		website = ""
 	}
 	found, err := ResearchCompany(ctx, researcher, doc.displayName(), website)
-	if err != nil {
-		return err
+	if err != nil && !errors.Is(err, ErrInvalidInput) {
+		return false, err
 	}
-	set := researchFill(doc, found.Company)
-	set = append(set,
-		bson.E{Key: researchedAtField, Value: time.Now().UTC()},
-		bson.E{Key: "research.model", Value: model},
-		bson.E{Key: "research.sources", Value: found.Sources},
-	)
-	_, err = s.companies().UpdateOne(ctx, bson.D{{Key: "id", Value: doc.ID}}, bson.D{{Key: "$set", Value: set}})
-	return err
+	filter := bson.D{{Key: "id", Value: doc.ID}}
+	stamp := bson.D{
+		{Key: researchedAtField, Value: time.Now().UTC()},
+		{Key: "research.model", Value: model},
+		{Key: "research.sources", Value: found.Sources},
+	}
+	if err != nil || !foundProfile(found.Company) {
+		set := append(stamp, bson.E{Key: researchFoundField, Value: false})
+		_, err := s.stagedCompanies().UpdateOne(ctx, filter, bson.D{{Key: "$set", Value: set}})
+		return false, err
+	}
+	set := append(researchFill(doc, found.Company), stamp...)
+	set = append(set, bson.E{Key: researchFoundField, Value: true})
+	var researched bson.D
+	err = s.stagedCompanies().FindOneAndUpdate(ctx, filter, bson.D{{Key: "$set", Value: set}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After)).Decode(&researched)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		// Published meanwhile, by a scout picking it or another run.
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, s.publishStaged(ctx, researched)
 }
 
 // researchFill sets each researched field the company page still leaves blank.

@@ -9,16 +9,22 @@ import (
 
 // MigrationCounts is how far the copy from the source database has come.
 type MigrationCounts struct {
-	JobSource           string `json:"jobSource"`
-	JobDestination      string `json:"jobDestination"`
-	SourceJobs          int64  `json:"sourceJobs"`
-	TempJobs            int64  `json:"tempJobs"`
-	AnalyzedJobs        int64  `json:"analyzedJobs"`
-	CompanySource       string `json:"companySource"`
-	CompanyDestination  string `json:"companyDestination"`
-	SourceCompanies     int64  `json:"sourceCompanies"`
-	Companies           int64  `json:"companies"`
-	ResearchedCompanies int64  `json:"researchedCompanies"`
+	JobSource          string `json:"jobSource"`
+	JobDestination     string `json:"jobDestination"`
+	SourceJobs         int64  `json:"sourceJobs"`
+	TempJobs           int64  `json:"tempJobs"`
+	AnalyzedJobs       int64  `json:"analyzedJobs"`
+	CompanySource      string `json:"companySource"`
+	CompanyStaging     string `json:"companyStaging"`
+	CompanyDestination string `json:"companyDestination"`
+	SourceCompanies    int64  `json:"sourceCompanies"`
+	// WaitingCompanies are staged and not researched yet.
+	WaitingCompanies int64 `json:"waitingCompanies"`
+	// NotFoundCompanies are staged because research could not find them.
+	NotFoundCompanies int64 `json:"notFoundCompanies"`
+	// Companies are published: the directory and Joined show them.
+	Companies           int64 `json:"companies"`
+	ResearchedCompanies int64 `json:"researchedCompanies"`
 }
 
 // MigrationCounts counts both sides of the migration at once. Whole collections use
@@ -28,6 +34,7 @@ func (s *Store) MigrationCounts(ctx context.Context) (MigrationCounts, error) {
 		JobSource:          s.sourceDB + "." + s.sourceCollection,
 		JobDestination:     s.destDB + "." + s.destCollection,
 		CompanySource:      s.sourceDB + "." + s.sourceCompanies,
+		CompanyStaging:     s.destDB + "." + s.tempCompanies,
 		CompanyDestination: s.destDB + "." + s.destCompanies,
 	}
 	group, ctx := errgroup.WithContext(ctx)
@@ -48,8 +55,17 @@ func (s *Store) MigrationCounts(ctx context.Context) (MigrationCounts, error) {
 		// Scouted jobs are published without a temp job, so only analyzed temp jobs count.
 		return s.structured().CountDocuments(ctx, bson.D{{Key: "tempJobId", Value: bson.D{{Key: "$gt", Value: ""}}}})
 	})
+	researched := func(exists bool) bson.D {
+		return bson.D{{Key: researchedAtField, Value: bson.D{{Key: "$exists", Value: exists}}}}
+	}
+	estimate(&counts.WaitingCompanies, func(ctx context.Context) (int64, error) {
+		return s.stagedCompanies().CountDocuments(ctx, researched(false))
+	})
+	estimate(&counts.NotFoundCompanies, func(ctx context.Context) (int64, error) {
+		return s.stagedCompanies().CountDocuments(ctx, researched(true))
+	})
 	estimate(&counts.ResearchedCompanies, func(ctx context.Context) (int64, error) {
-		return s.companies().CountDocuments(ctx, bson.D{{Key: researchedAtField, Value: bson.D{{Key: "$exists", Value: true}}}})
+		return s.companies().CountDocuments(ctx, researched(true))
 	})
 	if err := group.Wait(); err != nil {
 		return MigrationCounts{}, err

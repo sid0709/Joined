@@ -20,8 +20,6 @@ const (
 	maxSearchBody    = 4 << 20
 	maxSearchSources = 10
 	maxSearchTokens  = 8192
-	// maxSearches caps how many searches one answer may run.
-	maxSearches = 6
 	// maxContinuations is how many times a long search may pause and resume.
 	maxContinuations = 3
 	webSearchTool    = "web_search"
@@ -47,7 +45,7 @@ func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema 
 		MaxTokens: maxSearchTokens,
 		System:    system + schemaPrompt + string(schema),
 		Messages:  []message{{Role: "user", Content: mustJSON(user)}},
-		Tools:     []tool{{Type: webSearchType, Name: webSearchTool, MaxUses: maxSearches}},
+		Tools:     []tool{{Type: webSearchType, Name: webSearchTool, MaxUses: c.maxSearches}},
 	}
 
 	var turns []messagesReply

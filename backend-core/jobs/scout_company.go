@@ -108,12 +108,12 @@ func (s *Store) companyByName(ctx context.Context, name string) (CompanyMatch, b
 			{Key: "$options", Value: "i"},
 		}}},
 	}}}
-	err := s.companies().FindOne(ctx, filter, options.FindOne().SetProjection(bson.D{
+	err := s.findCompanyOrStaged(ctx, filter, &found, options.FindOne().SetProjection(bson.D{
 		{Key: "id", Value: 1},
 		{Key: "companyName", Value: 1},
 		{Key: "companyUrl", Value: 1},
 		{Key: "companyLogo", Value: 1},
-	})).Decode(&found)
+	}))
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return CompanyMatch{}, false, nil
 	}
