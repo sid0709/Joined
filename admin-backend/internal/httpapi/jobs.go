@@ -142,8 +142,7 @@ func (s *Server) listSearchJobs(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
 	defer cancel()
 
-	query := r.URL.Query()
-	result, err := s.store.ListSearch(ctx, jobs.ParseListQuery(query.Get("page"), query.Get("pageSize"), query.Get("q")), time.Now())
+	result, err := s.store.ListSearch(ctx, jobs.ParseJobQuery(r.URL.Query()), time.Now())
 	if err != nil {
 		slog.Error("list search jobs", "error", err)
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not load jobs")

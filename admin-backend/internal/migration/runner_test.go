@@ -43,7 +43,7 @@ func TestRunnerCountsProgressAndFinishes(t *testing.T) {
 	}
 }
 
-func TestRunnerKeepsOneStepPerAreaButRunsAreasTogether(t *testing.T) {
+func TestRunnerKeepsOneRunPerStepButRunsStepsTogether(t *testing.T) {
 	r := NewRunner()
 	release := make(chan struct{})
 	block := func(ctx context.Context, _ *Tracker) (string, error) {
@@ -54,24 +54,20 @@ func TestRunnerKeepsOneStepPerAreaButRunsAreasTogether(t *testing.T) {
 			return "", ctx.Err()
 		}
 	}
-	if _, err := r.Start(CopyJobs, "", block); err != nil {
-		t.Fatal(err)
+	for _, task := range Tasks {
+		if _, err := r.Start(task, "", block); err != nil {
+			t.Fatalf("%s alongside the others: %v", task, err)
+		}
 	}
-	if _, err := r.Start(AnalyzeJobs, "", block); !errors.Is(err, ErrBusy) {
-		t.Fatalf("second jobs step: %v", err)
-	}
-	if _, err := r.Start(CopyCompanies, "", block); err != nil {
-		t.Fatalf("companies alongside jobs: %v", err)
-	}
-	if _, err := r.Start(ResearchCompanies, "", block); err != nil {
-		t.Fatalf("research alongside the company copy: %v", err)
+	if _, err := r.Start(CopyJobs, "", block); !errors.Is(err, ErrBusy) {
+		t.Fatalf("second job copy: %v", err)
 	}
 	close(release)
-	waitFor(t, r, CopyJobs)
-	waitFor(t, r, CopyCompanies)
-	waitFor(t, r, ResearchCompanies)
-	if _, err := r.Start(AnalyzeJobs, "", func(context.Context, *Tracker) (string, error) { return "", nil }); err != nil {
-		t.Fatalf("after the copy: %v", err)
+	for _, task := range Tasks {
+		waitFor(t, r, task)
+	}
+	if _, err := r.Start(CopyJobs, "", func(context.Context, *Tracker) (string, error) { return "", nil }); err != nil {
+		t.Fatalf("after it finished: %v", err)
 	}
 }
 

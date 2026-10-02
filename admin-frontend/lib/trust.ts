@@ -10,13 +10,14 @@ export const VERIFICATION_PENDING_COUNT_PATH = "/v1/admin/companies/verification
 export const ADMIN_JOBS_PATH = "/v1/admin/jobs";
 
 export const VERIFICATION_PENDING = "pending";
+export const VERIFICATION_APPROVED = "approved";
 export const DIRECT_JOB_SOURCE = "direct";
 export const DIRECT_JOB_PENDING = "pending_review";
 export const TRUST_PAGE_SIZE = 25;
 
 export const VERIFICATION_STATUSES = [
   { value: VERIFICATION_PENDING, label: "Pending" },
-  { value: "approved", label: "Approved" },
+  { value: VERIFICATION_APPROVED, label: "Approved" },
   { value: "rejected", label: "Rejected" },
   { value: "suspended", label: "Suspended" },
 ] as const;

@@ -199,10 +199,10 @@ func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now 
 		SourceRef:  listing.SubmissionID,
 		Job: SearchJob{
 			ID:               publicID,
-			Title:            fallback(listing.Title, "Untitled"),
-			Company:          fallback(listing.CompanyName, "Unknown company"),
+			Title:            fallback(listing.Title, untitledJob),
+			Company:          fallback(listing.CompanyName, unknownCompany),
 			CompanyID:        companyID,
-			Location:         fallback(listing.Location, "Location not listed"),
+			Location:         fallback(listing.Location, locationNotListed),
 			Workplace:        oneOf(listing.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceOnsite),
 			Pay:              pay,
 			Equity:           listing.Equity,

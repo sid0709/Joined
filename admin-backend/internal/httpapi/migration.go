@@ -149,13 +149,12 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo}
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
 			err := s.store.AnalyzeTempJobs(ctx, s.ai, scope, s.analyzeWorkers, progress)
-			return tally("Analyzed", progress.Snapshot()), err
+			return tally("Published", "not publishable", progress.Snapshot()), err
 		}, true, true
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
 			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), body.Redo, s.researchWorkers, progress)
-			run := progress.Snapshot()
-			return fmt.Sprintf("Published %d of %d. %d not found, %d failed.", run.Done, run.Total, run.Skipped, run.Failed), err
+			return tally("Published", "not found", progress.Snapshot()), err
 		}, true, true
 	}
 	return nil, false, false
@@ -174,6 +173,7 @@ func companyCopySummary(result jobs.CompanyCopyResult) string {
 	return summary + fmt.Sprintf(" Linked %d jobs.", result.Linked)
 }
 
-func tally(verb string, run migration.Run) string {
-	return fmt.Sprintf("%s %d of %d. %d skipped, %d failed.", verb, run.Done, run.Total, run.Skipped, run.Failed)
+// tally says how a run went: "Published 90 of 100. 8 not found, 2 failed."
+func tally(verb, skipped string, run migration.Run) string {
+	return fmt.Sprintf("%s %d of %d. %d %s, %d failed.", verb, run.Done, run.Total, run.Skipped, skipped, run.Failed)
 }

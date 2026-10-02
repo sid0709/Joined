@@ -7,50 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
-
-func (s *Store) ListCompanies(ctx context.Context, query ListQuery) (CompanyList, error) {
-	coll := s.companies()
-	filter := companyFilter(query.Q)
-	total, err := coll.CountDocuments(ctx, filter)
-	if err != nil {
-		return CompanyList{}, err
-	}
-	opts := options.Find().
-		SetSkip((query.Page - 1) * query.PageSize).
-		SetLimit(query.PageSize).
-		SetSort(bson.D{{Key: "companyName", Value: 1}, {Key: "id", Value: 1}}).
-		SetProjection(bson.D{
-			{Key: "id", Value: 1},
-			{Key: "companyName", Value: 1},
-			{Key: "companyUrl", Value: 1},
-			{Key: "companyLogo", Value: 1},
-			{Key: "jobCount", Value: 1},
-			{Key: "overrides", Value: 1},
-			{Key: "logoFile.contentType", Value: 1},
-		})
-	cursor, err := coll.Find(ctx, filter, opts)
-	if err != nil {
-		return CompanyList{}, err
-	}
-	defer cursor.Close(ctx)
-
-	var docs []storedCompany
-	if err := cursor.All(ctx, &docs); err != nil {
-		return CompanyList{}, err
-	}
-	companies := make([]CompanySummary, 0, len(docs))
-	for _, doc := range docs {
-		companies = append(companies, doc.summary())
-	}
-	return CompanyList{
-		Companies: companies,
-		Total:     total,
-		Page:      query.Page,
-		PageSize:  query.PageSize,
-	}, nil
-}
 
 func (s *Store) GetAdminCompany(ctx context.Context, id string) (AdminCompany, error) {
 	doc, err := s.storedCompanyByID(ctx, id)
@@ -163,17 +120,4 @@ func (s *Store) DropCompanyLeadership(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return result.ModifiedCount, nil
-}
-
-func companyFilter(q string) bson.D {
-	pattern := searchPattern(q)
-	if pattern == "" {
-		return bson.D{}
-	}
-	regex := bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}
-	return bson.D{{Key: "$or", Value: bson.A{
-		bson.D{{Key: "companyName", Value: regex}},
-		bson.D{{Key: "overrides.name", Value: regex}},
-		bson.D{{Key: "overrides.profile.industry", Value: regex}},
-	}}}
 }

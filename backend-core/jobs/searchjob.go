@@ -29,6 +29,10 @@ const (
 	payHour = jobschema.PayHour
 
 	aggregatedSource = "aggregated"
+	// What a public job shows when its post left a fact out.
+	untitledJob       = "Untitled"
+	unknownCompany    = "Unknown company"
+	locationNotListed = "Location not listed"
 
 	maxSkills           = 12
 	maxBullets          = 6
@@ -111,9 +115,9 @@ func buildSearchJob(id, companyID, title, company string, posted time.Time, now 
 	job := SearchJob{
 		ID:               id,
 		CompanyID:        companyID,
-		Title:            fallback(strings.TrimSpace(title), "Untitled"),
-		Company:          fallback(strings.TrimSpace(company), "Unknown company"),
-		Location:         fallback(strings.TrimSpace(extracted.Location), strings.TrimSpace(hints.Location), "Location not listed"),
+		Title:            fallback(strings.TrimSpace(title), untitledJob),
+		Company:          fallback(strings.TrimSpace(company), unknownCompany),
+		Location:         fallback(strings.TrimSpace(extracted.Location), strings.TrimSpace(hints.Location), locationNotListed),
 		Workplace:        oneOf(extracted.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, workplaceFromHint(hints.Remote)),
 		Pay:              normalizePay(extracted.Pay, hints.Salary),
 		Seniority:        oneOf(extracted.Seniority, []string{seniorityJunior, seniorityMiddle, senioritySenior, seniorityLeader, seniorityManager}, seniorityFromHint(hints.Seniority)),

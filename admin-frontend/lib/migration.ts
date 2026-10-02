@@ -43,6 +43,8 @@ export type MigrationCounts = {
   sourceJobs: number;
   tempJobs: number;
   analyzedJobs: number;
+  /** Temp jobs whose analysis did not say enough to publish. */
+  notPublishableJobs: number;
   companySource: string;
   /** Where copied companies wait until research publishes them. */
   companyStaging: string;

@@ -100,13 +100,6 @@ type CompanySummary struct {
 	HasLogoFile bool   `json:"hasLogoFile,omitempty"`
 }
 
-type CompanyList struct {
-	Companies []CompanySummary `json:"companies"`
-	Total     int64            `json:"total"`
-	Page      int64            `json:"page"`
-	PageSize  int64            `json:"pageSize"`
-}
-
 func (doc storedCompany) displayName() string {
 	if doc.Overrides.Name != nil {
 		return strings.TrimSpace(*doc.Overrides.Name)

@@ -23,11 +23,11 @@ type SearchRecord struct {
 }
 
 type SearchList struct {
-	Jobs     []SearchRecord `json:"jobs"`
-	Total    int64          `json:"total"`
-	Page     int64          `json:"page"`
-	PageSize int64          `json:"pageSize"`
-	Pending  int64          `json:"pending"`
+	Jobs     []JobRow `json:"jobs"`
+	Total    int64    `json:"total"`
+	Page     int64    `json:"page"`
+	PageSize int64    `json:"pageSize"`
+	Pending  int64    `json:"pending"`
 }
 
 type storedSearchJob struct {
@@ -187,44 +187,6 @@ func (s *Store) enrichCompanies(ctx context.Context, jobs []catalogJob) ([]catal
 	return jobs, nil
 }
 
-func (s *Store) ListSearch(ctx context.Context, query ListQuery, now time.Time) (SearchList, error) {
-	coll := s.structured()
-	filter := searchFilter(query.Q)
-	total, err := coll.CountDocuments(ctx, filter)
-	if err != nil {
-		return SearchList{}, err
-	}
-	opts := options.Find().
-		SetSkip((query.Page - 1) * query.PageSize).
-		SetLimit(query.PageSize).
-		SetSort(bson.D{{Key: "analyzedAt", Value: -1}, {Key: "_id", Value: -1}})
-	cursor, err := coll.Find(ctx, filter, opts)
-	if err != nil {
-		return SearchList{}, err
-	}
-	defer cursor.Close(ctx)
-
-	var docs []storedSearchJob
-	if err := cursor.All(ctx, &docs); err != nil {
-		return SearchList{}, err
-	}
-	records := make([]SearchRecord, 0, len(docs))
-	for _, doc := range docs {
-		records = append(records, doc.view(now))
-	}
-	pending, err := s.pendingCount(ctx)
-	if err != nil {
-		return SearchList{}, err
-	}
-	return SearchList{
-		Jobs:     records,
-		Total:    total,
-		Page:     query.Page,
-		PageSize: query.PageSize,
-		Pending:  pending,
-	}, nil
-}
-
 func (s *Store) GetSearch(ctx context.Context, id string, now time.Time) (SearchRecord, error) {
 	coll := s.structured()
 	var doc storedSearchJob
@@ -292,7 +254,7 @@ func (s *Store) UpdateSearchJob(ctx context.Context, id string, patch SearchJobP
 	job := doc.Job
 	job.Title = fallback(strings.TrimSpace(patch.Title), job.Title)
 	job.Company = fallback(strings.TrimSpace(patch.Company), job.Company)
-	job.Location = fallback(strings.TrimSpace(patch.Location), "Location not listed")
+	job.Location = fallback(strings.TrimSpace(patch.Location), locationNotListed)
 	job.Workplace = oneOf(patch.Workplace, []string{workplaceRemote, workplaceHybrid, workplaceOnsite}, job.Workplace)
 	job.Pay = sanitizePay(patch.Pay)
 	job.Seniority = oneOf(patch.Seniority, []string{seniorityJunior, seniorityMiddle, senioritySenior, seniorityLeader, seniorityManager}, job.Seniority)
@@ -368,7 +330,11 @@ func (s *Store) pendingCount(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	pending := tempCount - structured
+	notPublishable, err := s.dest().CountDocuments(ctx, bson.D{{Key: notPublishableField, Value: bson.D{{Key: "$exists", Value: true}}}})
+	if err != nil {
+		return 0, err
+	}
+	pending := tempCount - structured - notPublishable
 	if pending < 0 {
 		return 0, nil
 	}
@@ -599,16 +565,4 @@ func (s *Store) writeProvenance(ctx context.Context, rows []provenanceJob) (int6
 		return 0, err
 	}
 	return result.ModifiedCount, nil
-}
-
-func searchFilter(q string) bson.D {
-	pattern := searchPattern(q)
-	if pattern == "" {
-		return bson.D{}
-	}
-	regex := bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}
-	return bson.D{{Key: "$or", Value: bson.A{
-		bson.D{{Key: "job.title", Value: regex}},
-		bson.D{{Key: "job.company", Value: regex}},
-	}}}
 }

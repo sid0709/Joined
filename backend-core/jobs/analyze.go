@@ -178,21 +178,33 @@ func normalizeSelection(ids []string) ([]string, error) {
 }
 
 func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (SearchRecord, error) {
-	if originalDescription(listing.Description) == "" {
-		return SearchRecord{}, ErrMissingDescription
-	}
-	payload, err := reader.JSON(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
+	record, err := s.analysisRecord(ctx, reader, listing, now)
 	if err != nil {
 		return SearchRecord{}, err
 	}
+	if err := s.saveSearchJob(ctx, record); err != nil {
+		return SearchRecord{}, err
+	}
+	return record.view(now), nil
+}
+
+// analysisRecord reads a temp job with the model and builds its public record, unsaved.
+func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (storedSearchJob, error) {
+	if originalDescription(listing.Description) == "" {
+		return storedSearchJob{}, ErrMissingDescription
+	}
+	payload, err := reader.JSON(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
+	if err != nil {
+		return storedSearchJob{}, err
+	}
 	extracted, err := parseExtraction(payload)
 	if err != nil {
-		return SearchRecord{}, fmt.Errorf("read structured job: %w", err)
+		return storedSearchJob{}, fmt.Errorf("read structured job: %w", err)
 	}
 
 	publicID, companyID, err := s.searchIdentity(ctx, listing)
 	if err != nil {
-		return SearchRecord{}, err
+		return storedSearchJob{}, err
 	}
 	if listing.CompanyPublicID != "" {
 		companyID = listing.CompanyPublicID
@@ -214,7 +226,7 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 		extracted,
 	), listing)
 	job.Description = originalDescription(listing.Description)
-	record := storedSearchJob{
+	return storedSearchJob{
 		ID:         listing.ID,
 		TempJobID:  listing.ID.Hex(),
 		PostedAt:   listing.PostedAt,
@@ -225,11 +237,7 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 		Source:     strings.TrimSpace(listing.Source),
 		SourceRef:  strings.TrimSpace(listing.SourceRef),
 		Job:        job,
-	}
-	if err := s.saveSearchJob(ctx, record); err != nil {
-		return SearchRecord{}, err
-	}
-	return record.view(now), nil
+	}, nil
 }
 
 func (s *Store) listingFrom(ctx context.Context, coll *mongo.Collection, idHex string) (tempListing, error) {

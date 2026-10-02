@@ -9,11 +9,13 @@ import (
 
 // MigrationCounts is how far the copy from the source database has come.
 type MigrationCounts struct {
-	JobSource          string `json:"jobSource"`
-	JobDestination     string `json:"jobDestination"`
-	SourceJobs         int64  `json:"sourceJobs"`
-	TempJobs           int64  `json:"tempJobs"`
-	AnalyzedJobs       int64  `json:"analyzedJobs"`
+	JobSource      string `json:"jobSource"`
+	JobDestination string `json:"jobDestination"`
+	SourceJobs     int64  `json:"sourceJobs"`
+	TempJobs       int64  `json:"tempJobs"`
+	AnalyzedJobs   int64  `json:"analyzedJobs"`
+	// NotPublishableJobs are temp jobs whose analysis did not say enough to publish.
+	NotPublishableJobs int64  `json:"notPublishableJobs"`
 	CompanySource      string `json:"companySource"`
 	CompanyStaging     string `json:"companyStaging"`
 	CompanyDestination string `json:"companyDestination"`
@@ -54,6 +56,9 @@ func (s *Store) MigrationCounts(ctx context.Context) (MigrationCounts, error) {
 	estimate(&counts.AnalyzedJobs, func(ctx context.Context) (int64, error) {
 		// Scouted jobs are published without a temp job, so only analyzed temp jobs count.
 		return s.structured().CountDocuments(ctx, bson.D{{Key: "tempJobId", Value: bson.D{{Key: "$gt", Value: ""}}}})
+	})
+	estimate(&counts.NotPublishableJobs, func(ctx context.Context) (int64, error) {
+		return s.dest().CountDocuments(ctx, bson.D{{Key: notPublishableField, Value: bson.D{{Key: "$exists", Value: true}}}})
 	})
 	researched := func(exists bool) bson.D {
 		return bson.D{{Key: researchedAtField, Value: bson.D{{Key: "$exists", Value: exists}}}}

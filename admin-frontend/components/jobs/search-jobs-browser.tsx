@@ -15,15 +15,34 @@ import {
   Text,
   type TableColumn,
 } from "@joined/design-system";
-import { SENIORITY_LABEL, WORKPLACE_LABEL } from "@joined/job-schema";
+import {
+  EMPLOYMENT_LABEL,
+  EMPLOYMENT_OPTIONS,
+  SENIORITY_LABEL,
+  SENIORITY_OPTIONS,
+  WORKPLACE_LABEL,
+  WORKPLACE_OPTIONS,
+} from "@joined/job-schema";
+import { CompletionBadge } from "@/components/directory/completion-badge";
+import { DirectoryFilters } from "@/components/directory/directory-filters";
 import { SearchJobDrawer } from "@/components/jobs/search-job-drawer";
-import { SearchBox } from "@/components/search-box";
-import { formatCount, positiveInt } from "@/lib/format";
+import {
+  directoryParams,
+  sortValues,
+  tableSort,
+  yesNoOptions,
+  type DirectoryFilter,
+  type FilterOption,
+} from "@/lib/directory";
+import { formatCount, formatDate, positiveInt } from "@/lib/format";
 import { listingHref } from "@/lib/listing";
 import { ROUTES } from "@/lib/nav";
 import {
+  JOB_SORTS,
+  JOB_SOURCES,
   SEARCH_JOBS_PAGE_SIZE,
   SEARCH_JOBS_PATH,
+  type JobRow,
   type SearchJobList,
   type SearchRecord,
 } from "@/lib/search-job";
@@ -43,17 +62,35 @@ function payLabel(record: SearchRecord) {
 
 const SOURCE_BADGE = { direct: "green", aggregated: "neutral", scouted: "purple" } as const;
 
+function anyOf(any: string, options: readonly FilterOption[]): FilterOption[] {
+  return [{ value: "", label: any }, ...options];
+}
+
+const FILTERS: DirectoryFilter[] = [
+  { param: "source", label: "Source", options: anyOf("Any source", JOB_SOURCES) },
+  { param: "workplace", label: "Workplace", options: anyOf("Any workplace", WORKPLACE_OPTIONS) },
+  { param: "seniority", label: "Level", options: anyOf("Any level", SENIORITY_OPTIONS) },
+  {
+    param: "employment",
+    label: "Employment",
+    options: anyOf("Any employment", EMPLOYMENT_OPTIONS),
+  },
+  { param: "pay", label: "Pay", options: yesNoOptions("Pay or not", "Pay listed", "No pay") },
+  {
+    param: "company",
+    label: "Company page",
+    options: yesNoOptions("Company page or not", "Has a company page", "No company page"),
+  },
+];
+
+const DEFAULT_SORT = { key: JOB_SORTS.analyzed, direction: "desc" } as const;
+
 export function SearchJobsBrowser() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get("page"), 1);
-  const query = searchParams.get("q") ?? "";
   const jobId = searchParams.get("job");
-  const params = new URLSearchParams({
-    page: String(page),
-    pageSize: String(SEARCH_JOBS_PAGE_SIZE),
-    q: query,
-  });
+  const params = directoryParams(searchParams, FILTERS, page, SEARCH_JOBS_PAGE_SIZE);
   const { result, loading, error, reload } = useAdminQuery<SearchJobList>(
     `${SEARCH_JOBS_PATH}?${params}`,
   );
@@ -64,10 +101,12 @@ export function SearchJobsBrowser() {
     [router],
   );
 
-  const columns: TableColumn<SearchRecord>[] = [
+  const columns: TableColumn<JobRow>[] = [
     {
-      key: "title",
+      key: JOB_SORTS.title,
       header: "Job",
+      sortable: true,
+      sortValue: (record) => record.job.title.toLowerCase(),
       render: (record) => (
         <Stack gap={0.5}>
           <Text weight="semibold">{record.job.title}</Text>
@@ -100,41 +139,60 @@ export function SearchJobsBrowser() {
       render: (record) => <Text color="secondary">{SENIORITY_LABEL[record.job.seniority]}</Text>,
     },
     {
-      key: "pay",
+      key: "employment",
+      header: "Employment",
+      render: (record) => <Text color="secondary">{EMPLOYMENT_LABEL[record.job.employment]}</Text>,
+    },
+    {
+      key: JOB_SORTS.pay,
       header: "Pay",
       align: "end",
+      sortable: true,
+      sortValue: (record) => record.job.pay.max,
       render: (record) => (
         <Text color="secondary" hasTabularNumbers>
           {payLabel(record)}
         </Text>
       ),
     },
+    {
+      key: JOB_SORTS.completion,
+      header: "Completion",
+      align: "end",
+      sortable: true,
+      sortValue: (record) => record.completion,
+      render: (record) => <CompletionBadge completion={record.completion} />,
+    },
+    {
+      key: JOB_SORTS.analyzed,
+      header: "Analyzed",
+      sortable: true,
+      sortValue: (record) => record.analyzedAt,
+      render: (record) => <Text color="secondary">{formatDate(record.analyzedAt)}</Text>,
+    },
   ];
 
   const total = result?.total ?? 0;
+  const filtered =
+    FILTERS.some((filter) => searchParams.get(filter.param)) || searchParams.has("q");
   return (
     <Stack gap={5}>
       <PageHeader
         title="Jobs"
-        description="The live job pool. Open a job to fix anything analysis or a scout got wrong; saves show on Joined right away."
+        description="The live job pool: jobs analysis published, scouted jobs, and direct posts. Open a job to fix anything analysis or a scout got wrong; saves show on Joined right away."
         action={<Button label="Analyze temp jobs" variant="secondary" href={ROUTES.jobMigration} />}
       />
-      <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
-        <HStack width={360}>
-          <SearchBox
-            key={query}
-            value={query}
-            label="Search jobs"
-            placeholder="Title or company"
-            onSearch={(value) => go({ q: value, page: 1 })}
-          />
-        </HStack>
-        <Text type="supporting" color="secondary">
-          {result
+      <DirectoryFilters
+        current={searchParams}
+        filters={FILTERS}
+        search={{ label: "Search jobs", placeholder: "Title, company, place, team, skill" }}
+        summary={
+          result
             ? `${formatCount(total)} jobs · ${formatCount(result.pending)} temp jobs not analyzed`
-            : "Loading jobs"}
-        </Text>
-      </HStack>
+            : "Loading jobs"
+        }
+        onChange={go}
+      />
       {error ? <Banner status="error" title={error} /> : null}
       <Table
         caption="Jobs"
@@ -142,13 +200,17 @@ export function SearchJobsBrowser() {
         rows={result?.jobs ?? []}
         rowKey={recordKey}
         loading={loading && !result}
+        sort={tableSort(searchParams, DEFAULT_SORT)}
+        onSortChange={(sort) => go(sortValues(sort))}
         onRowClick={(record) => go({ job: recordKey(record) })}
         empty={
           <EmptyState
             isCompact
-            title={query ? `No jobs match "${query}"` : "No jobs yet"}
+            title={filtered ? "No jobs match" : "No jobs yet"}
             description={
-              query ? "Try another search." : "Analyze temp jobs or scout jobs to fill the pool."
+              filtered
+                ? "Try another search or fewer filters."
+                : "Analyze temp jobs or scout jobs to fill the pool."
             }
           />
         }

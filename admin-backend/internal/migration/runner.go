@@ -1,5 +1,7 @@
 // Package migration runs the long copies and AI passes that move AthensDB into JoinedDB
-// in the background, one at a time per area, and reports their progress.
+// in the background, one run of each step at a time, and reports their progress.
+// Steps run side by side: copies upsert or swap in whole collections the AI steps
+// read by id, so an AI step can run while its copy does.
 package migration
 
 import (
@@ -24,18 +26,6 @@ const (
 // Tasks lists every step, in the order the console shows them.
 var Tasks = []Task{CopyJobs, AnalyzeJobs, CopyCompanies, ResearchCompanies}
 
-// area groups steps that must not overlap. The job copy swaps out the temp jobs the
-// analysis reads, so those two share one. The company copy only upserts the staged
-// companies research reads, so research runs any time, the copy included.
-func (t Task) area() string {
-	switch t {
-	case CopyJobs, AnalyzeJobs:
-		return "jobs"
-	default:
-		return string(t)
-	}
-}
-
 type Status string
 
 const (
@@ -49,7 +39,7 @@ const (
 const maxFailures = 50
 
 var (
-	ErrBusy       = errors.New("another migration step for this area is running")
+	ErrBusy       = errors.New("this migration step is already running")
 	ErrNotRunning = errors.New("this migration step is not running")
 )
 
@@ -89,14 +79,12 @@ func NewRunner() *Runner {
 	return &Runner{runs: map[Task]*Tracker{}}
 }
 
-// Start begins task in the background unless a step in its area is running.
+// Start begins task in the background unless it is already running.
 func (r *Runner) Start(task Task, model string, work Work) (Run, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for other, tracker := range r.runs {
-		if other.area() == task.area() && tracker.running() {
-			return Run{}, ErrBusy
-		}
+	if tracker := r.runs[task]; tracker != nil && tracker.running() {
+		return Run{}, ErrBusy
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	tracker := &Tracker{task: task, model: model, started: time.Now().UTC(), cancel: cancel}
