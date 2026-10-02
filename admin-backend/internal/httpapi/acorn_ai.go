@@ -1,10 +1,11 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
-	"slices"
+	"strings"
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/aisettings"
@@ -16,11 +17,14 @@ const (
 	maxAcornAIBody    = 4 << 10
 	noEncryptionKey   = "Set SETTINGS_ENCRYPTION_KEY (base64, 32 bytes: openssl rand -base64 32) in the admin API and core API environments to save a key"
 	invalidAcornKey   = "The key can't contain spaces"
-	unknownAcornModel = "Choose a model from the list"
+	invalidAcornModel = "The model can't contain spaces"
+	maxModelID        = 80
+	modelsTimeout     = 20 * time.Second
 )
 
 func (s *Server) registerAcornAI(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+acornAIPath, s.getAcornAI)
+	mux.HandleFunc("GET "+acornAIPath+"/models", s.listAcornModels)
 	mux.HandleFunc("PUT "+acornAIPath, s.putAcornAI)
 	mux.HandleFunc("DELETE "+acornAIPath, s.deleteAcornAI)
 }
@@ -28,7 +32,8 @@ func (s *Server) registerAcornAI(mux *http.ServeMux) {
 // acornAIView is the saved settings plus what the console needs to draw the form.
 type acornAIView struct {
 	aisettings.View
-	// Models are the choices for the model dropdown.
+	// Models are the models known without asking the provider: the default and the saved
+	// one. The console adds the provider's live list from /models.
 	Models []string `json:"models"`
 	// DefaultModel is what Acorn uses when no model is saved.
 	DefaultModel string `json:"defaultModel"`
@@ -65,8 +70,8 @@ func (s *Server) putAcornAI(w http.ResponseWriter, r *http.Request) {
 		httpkit.WriteError(w, http.StatusBadRequest, "send an apiKey or a model")
 		return
 	}
-	if body.Model != nil && *body.Model != "" && !slices.Contains(aisettings.Options(s.acornAIEnv.Model), *body.Model) {
-		httpkit.WriteError(w, http.StatusBadRequest, unknownAcornModel)
+	if body.Model != nil && (len(*body.Model) > maxModelID || strings.ContainsAny(*body.Model, " \t\r\n")) {
+		httpkit.WriteError(w, http.StatusBadRequest, invalidAcornModel)
 		return
 	}
 	s.saveAcornAI(w, r, aisettings.Update{APIKey: body.APIKey, Model: body.Model})
@@ -95,4 +100,26 @@ func (s *Server) saveAcornAI(w http.ResponseWriter, r *http.Request, update aise
 	}
 	slog.Info("acorn ai settings saved", "by", actor, "key", update.APIKey != nil, "model", update.Model != nil)
 	s.getAcornAI(w, r)
+}
+
+// listAcornModels asks OpenAI which chat models the key can use, newest first. It uses
+// the saved key, else OPENAI_API_KEY, so the dropdown shows what is really available.
+func (s *Server) listAcornModels(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), modelsTimeout)
+	defer cancel()
+	key := s.acornAIEnv.APIKey
+	if saved, err := s.acornAI.Get(ctx); err == nil && saved.APIKey != "" {
+		key = saved.APIKey
+	}
+	models, err := aisettings.ListModels(ctx, s.acornAIEnv.BaseURL, key)
+	switch {
+	case errors.Is(err, aisettings.ErrNoKey):
+		httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": []string{}, "reason": "Save an API key to load the model list."})
+		return
+	case err != nil:
+		slog.Warn("list acorn models", "error", err)
+		httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": []string{}, "reason": "Couldn't load the model list: " + err.Error() + "."})
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": models})
 }

@@ -1,6 +1,12 @@
 import { expect, test } from "bun:test";
 
-import { acornAIChange, acornAISource, effectiveModel, type AcornAISettings } from "./acorn-ai";
+import {
+  acornAIChange,
+  acornAISource,
+  effectiveModel,
+  modelOptions,
+  type AcornAISettings,
+} from "./acorn-ai";
 
 const base: AcornAISettings = {
   configured: false,
@@ -34,4 +40,14 @@ test("only what changed is sent", () => {
 
 test("choosing the default model clears the saved one", () => {
   expect(acornAIChange({ ...base, model: "gpt-4o" }, "", "gpt-4o-mini")).toEqual({ model: "" });
+});
+
+test("the dropdown lists live models and keeps the one in use", () => {
+  const settings = { ...base, models: ["gpt-4o-mini", "gpt-saved"] };
+  expect(modelOptions(settings, ["gpt-new", "gpt-4o-mini"])).toEqual([
+    "gpt-4o-mini",
+    "gpt-saved",
+    "gpt-new",
+  ]);
+  expect(modelOptions(settings, [])).toEqual(["gpt-4o-mini", "gpt-saved"]);
 });

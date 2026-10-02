@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -125,16 +128,53 @@ func TestModelPicksUpAChangeAndSurvivesALoadError(t *testing.T) {
 	}
 }
 
-func TestOptionsKeepEnvAndSavedModelsInTheList(t *testing.T) {
-	got := Options("gpt-env", "gpt-4o", "")
-	if got[0] != Models[0] || got[len(got)-1] != "gpt-env" || len(got) != len(Models)+1 {
+func TestOptionsDropBlanksAndRepeats(t *testing.T) {
+	got := Options("gpt-env", "", "gpt-4o", "gpt-env")
+	if len(got) != 2 || got[0] != "gpt-env" || got[1] != "gpt-4o" {
 		t.Errorf("options = %v", got)
 	}
-	if len(Options()) != len(Models) {
-		t.Error("no extras must give the plain catalog")
+}
+
+func TestListModelsKeepsChatModelsNewestFirst(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer sk-test" || r.URL.Path != "/v1/models" {
+			http.Error(w, "no", http.StatusUnauthorized)
+			return
+		}
+		_, _ = w.Write([]byte(`{"data":[
+			{"id":"text-embedding-3-large","created":50},
+			{"id":"gpt-5.6-sol","created":300},
+			{"id":"gpt-4o-mini","created":100},
+			{"id":"gpt-4o-realtime-preview","created":400},
+			{"id":"o4-mini","created":200},
+			{"id":"whisper-1","created":10},
+			{"id":"gpt-image-1","created":250}]}`))
+	}))
+	defer server.Close()
+
+	got, err := ListModels(context.Background(), server.URL+"/v1", "sk-test")
+	if err != nil {
+		t.Fatal(err)
 	}
-	Options("x")
-	if len(Models) != 5 {
-		t.Error("Options must not modify Models")
+	want := []string{"gpt-5.6-sol", "o4-mini", "gpt-4o-mini"}
+	if !slices.Equal(got, want) {
+		t.Errorf("models = %v, want %v", got, want)
+	}
+	if _, err := ListModels(context.Background(), server.URL+"/v1", "wrong"); err == nil {
+		t.Error("a rejected key must be an error")
+	}
+	if _, err := ListModels(context.Background(), server.URL+"/v1", " "); !errors.Is(err, ErrNoKey) {
+		t.Errorf("blank key = %v", err)
+	}
+}
+
+func TestListModelsFallsBackToEveryIDForOtherProviders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"id":"deepseek-chat","created":1},{"id":"deepseek-reasoner","created":2}]}`))
+	}))
+	defer server.Close()
+	got, err := ListModels(context.Background(), server.URL, "k")
+	if err != nil || len(got) != 2 || got[0] != "deepseek-reasoner" {
+		t.Errorf("models = %v, %v", got, err)
 	}
 }
