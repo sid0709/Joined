@@ -1,0 +1,108 @@
+# The production stack on the VPS. The deploy workflow (.github/workflows/deploy.yml)
+# copies this file and a .env built from the GitHub "production" environment to
+# /srv/joined, then pulls the images it just pushed and starts them.
+#
+# Joined (joinedhq.com) always runs. The other apps are ready but off: list them in
+# the COMPOSE_PROFILES variable (e.g. "scoutwell,admin") to start them.
+#
+# Every port binds to 127.0.0.1, so nothing is reachable from outside except
+# through nginx. Host ports are the dev ports + 3000.
+name: joined
+
+x-app: &app
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+x-api: &api
+  <<: *app
+  # MongoDB runs on the VPS itself, outside Docker.
+  extra_hosts: ["host.docker.internal:host-gateway"]
+
+services:
+  joined-backend:
+    <<: *api
+    image: ${IMAGE_REPO}:joined-backend-${IMAGE_TAG}
+    ports: ["127.0.0.1:11080:8080"]
+    environment:
+      MONGO_URI: ${MONGO_URI:-}
+      DEST_DB: ${DEST_DB:-OpenedDB}
+      CORS_ORIGINS: ${FRONTEND_ORIGIN}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
+      GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+  joined-frontend:
+    <<: *app
+    image: ${IMAGE_REPO}:joined-frontend-${IMAGE_TAG}
+    ports: ["127.0.0.1:6002:3000"]
+    depends_on: [joined-backend]
+    environment:
+      JOINED_API_URL: http://joined-backend:8080
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+
+  scoutwell-backend:
+    <<: *api
+    profiles: [scoutwell]
+    image: ${IMAGE_REPO}:scoutwell-backend-${IMAGE_TAG}
+    ports: ["127.0.0.1:11082:8080"]
+    environment:
+      MONGO_URI: ${MONGO_URI:-}
+      DEST_DB: ${DEST_DB:-OpenedDB}
+      CORS_ORIGINS: ${SCOUTWELL_ORIGIN:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_SIGNIN_REDIRECT_URL: ${SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL:-}
+
+  scoutwell-frontend:
+    <<: *app
+    profiles: [scoutwell]
+    image: ${IMAGE_REPO}:scoutwell-frontend-${IMAGE_TAG}
+    ports: ["127.0.0.1:6003:3000"]
+    depends_on: [scoutwell-backend]
+    environment:
+      SCOUTWELL_API_URL: http://scoutwell-backend:8080
+      SCOUT_PUBLIC_API_URL: ${SCOUT_PUBLIC_API_URL:-}
+      JOINED_WEB_URL: ${FRONTEND_ORIGIN}
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+
+  admin-backend:
+    <<: *api
+    profiles: [admin]
+    image: ${IMAGE_REPO}:admin-backend-${IMAGE_TAG}
+    ports: ["127.0.0.1:11081:8080"]
+    environment:
+      MONGO_URI: ${MONGO_URI:-}
+      DEST_DB: ${DEST_DB:-OpenedDB}
+      CORS_ORIGINS: ${ADMIN_ORIGIN:-}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+  admin-frontend:
+    <<: *app
+    profiles: [admin]
+    image: ${IMAGE_REPO}:admin-frontend-${IMAGE_TAG}
+    ports: ["127.0.0.1:6010:3000"]
+    depends_on: [admin-backend]
+    environment:
+      ADMIN_API_URL: http://admin-backend:8080
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      JOINED_WEB_URL: ${FRONTEND_ORIGIN}
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+
+  connected-frontend:
+    <<: *app
+    profiles: [connected]
+    image: ${IMAGE_REPO}:connected-frontend-${IMAGE_TAG}
+    # 6000 would follow the +3000 rule, but browsers refuse to open port 6000.
+    ports: ["127.0.0.1:6004:3000"]
+
+  joined-theme:
+    <<: *app
+    profiles: [theme]
+    image: ${IMAGE_REPO}:joined-theme-${IMAGE_TAG}
+    ports: ["127.0.0.1:6001:3000"]

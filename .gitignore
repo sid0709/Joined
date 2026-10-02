@@ -4,3 +4,9 @@ coverage/
 .unlighthouse/
 # Turborepo local cache
 .turbo/
+# Credentials never belong in the repo; production values live in GitHub's
+# "production" environment (see deploy/README.md).
+client_secret*.json
+*service-account*.json
+*.pem
+production.env
