@@ -24,24 +24,24 @@ func TestFoundProfileNeedsMoreThanANameAndWebsite(t *testing.T) {
 	}
 }
 
-func TestUntouchedCopyOnlyMatchesUneditedSourceCompanies(t *testing.T) {
-	filter := untouchedCopy()
+func TestUnresearchedCopyKeepsPublishedAndOwnedCompanies(t *testing.T) {
+	filter := unresearchedCopy()
 	keys := map[string]bool{}
 	for _, element := range filter {
 		keys[element.Key] = true
 	}
-	for _, key := range []string{"sourceId", researchedAtField, "overrides", "logoFile", "verificationStatus", "createdBy", "claimed"} {
+	for _, key := range []string{"sourceId", researchFoundField, "verificationStatus", "createdBy", "claimed"} {
 		if !keys[key] {
 			t.Errorf("filter does not check %s: %v", key, filter)
 		}
 	}
 }
 
-func TestWithoutIDKeepsEveryOtherField(t *testing.T) {
-	doc := bson.D{{Key: "_id", Value: bson.NewObjectID()}, {Key: "id", Value: "c1"}, {Key: "sourceId", Value: "s1"}}
-	got := withoutID(doc)
+func TestWithoutFieldsKeepsEveryOtherField(t *testing.T) {
+	doc := bson.D{{Key: "_id", Value: bson.NewObjectID()}, {Key: "id", Value: "c1"}, {Key: "research", Value: bson.D{}}, {Key: "sourceId", Value: "s1"}}
+	got := withoutFields(doc, "_id", "research")
 	if len(got) != 2 || stringField(got, "id") != "c1" || stringField(got, "sourceId") != "s1" {
-		t.Fatalf("withoutID = %v", got)
+		t.Fatalf("withoutFields = %v", got)
 	}
 	if stringField(got, "_id") != "" || stringField(got, "missing") != "" {
 		t.Fatalf("unexpected field in %v", got)

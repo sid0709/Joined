@@ -100,7 +100,7 @@ export function CompanyMigration() {
       ) : null}
       <MigrationStep
         title="1. Copy companies"
-        description={`Upserts every Athens company by its Athens id into ${staging} in parallel batches, keeping each company's public id and admin edits. Companies that are already published are updated in place, and untouched ones an earlier copy published unresearched move back to staging. Then links public jobs to their companies. Safe to run again.`}
+        description={`Upserts every Athens company by its Athens id into ${staging} in parallel batches, keeping each company's public id and admin edits. First moves every Athens company research has not published out of ${directory} back to staging, so the directory only holds researched companies. Companies research already published are updated in place. Then links public jobs to their companies. Safe to run again.`}
         run={runs[copyCompanies]}
         onCancel={() => stop(copyCompanies)}
         actions={

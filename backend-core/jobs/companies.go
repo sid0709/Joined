@@ -28,7 +28,7 @@ type CompanyCopyResult struct {
 	Staged int64 `json:"staged"`
 	// Refreshed is how many copied companies were already published and were updated there.
 	Refreshed int64 `json:"refreshed"`
-	// Unpublished is how many untouched companies moved from companies back to staging.
+	// Unpublished is how many unresearched companies moved from companies back to staging.
 	Unpublished int64  `json:"unpublished"`
 	Linked      int64  `json:"linked"`
 	Source      string `json:"source"`
@@ -94,9 +94,10 @@ type athensCompany struct {
 
 // CopyCompanies upserts every source company by its source id into staging, where it
 // waits for research to publish it, keeping each company's public id and admin edits.
-// A company that is already published is updated where it is. Untouched companies an
-// earlier copy wrote straight to companies move back to staging first. Then public
-// jobs are linked to their companies.
+// A company research already published is updated where it is. First, every source
+// company in companies that research has not published moves back to staging, so
+// companies holds only what research published. Then public jobs are linked to their
+// companies.
 func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCopyResult, error) {
 	if !s.companyCopyMu.TryLock() {
 		return CompanyCopyResult{}, ErrCopyInProgress
@@ -110,7 +111,7 @@ func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCo
 			return CompanyCopyResult{}, err
 		}
 	}
-	unpublished, err := s.unstageUntouched(ctx)
+	unpublished, err := s.unpublishUnresearched(ctx)
 	if err != nil {
 		return CompanyCopyResult{}, err
 	}

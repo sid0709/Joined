@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -35,31 +36,28 @@ func (s *Store) stagedCompanies() *mongo.Collection {
 	return s.client.Database(s.destDB).Collection(s.tempCompanies)
 }
 
-// untouchedCopy matches a source company the copy wrote straight to companies before
-// staging existed, that nobody has touched since: never researched, edited, given a
-// logo, claimed, verified, or owned.
-func untouchedCopy() bson.D {
-	absent := func(key string) bson.E {
-		return bson.E{Key: key, Value: bson.D{{Key: "$exists", Value: false}}}
-	}
+// unresearchedCopy matches a source company in companies that research has not
+// published: one an earlier copy wrote there directly, researched or not, before
+// staging existed. Companies a recruiter or staff have claimed, verified, or own stay.
+func unresearchedCopy() bson.D {
 	blank := func(key string) bson.E {
 		return bson.E{Key: key, Value: bson.D{{Key: "$in", Value: bson.A{nil, ""}}}}
 	}
 	return bson.D{
 		{Key: "sourceId", Value: bson.D{{Key: "$gt", Value: ""}}},
-		absent(researchedAtField),
-		absent("overrides"),
-		absent("logoFile"),
+		{Key: researchFoundField, Value: bson.D{{Key: "$ne", Value: true}}},
 		blank("verificationStatus"),
 		blank("createdBy"),
 		{Key: "claimed", Value: bson.D{{Key: "$ne", Value: true}}},
 	}
 }
 
-// unstageUntouched moves untouched source companies out of companies into staging,
-// unless another record points at them. It returns how many moved.
-func (s *Store) unstageUntouched(ctx context.Context) (int64, error) {
-	filter := untouchedCopy()
+// unpublishUnresearched moves source companies research has not published out of
+// companies into staging, unless another record points at them, so companies holds
+// only what research published. Each keeps its public id, so jobs stay linked, and
+// waits for research again. It returns how many moved.
+func (s *Store) unpublishUnresearched(ctx context.Context) (int64, error) {
+	filter := unresearchedCopy()
 	if s.companyRefs != nil {
 		refs, err := s.companyRefs(ctx)
 		if err != nil {
@@ -86,7 +84,7 @@ func (s *Store) unstageUntouched(ctx context.Context) (int64, error) {
 		for i, doc := range batch {
 			models[i] = mongo.NewReplaceOneModel().
 				SetFilter(bson.D{{Key: "sourceId", Value: stringField(doc, "sourceId")}}).
-				SetReplacement(withoutID(doc)).
+				SetReplacement(withoutFields(doc, "_id", "research")).
 				SetUpsert(true)
 			ids[i] = stringField(doc, "id")
 		}
@@ -95,7 +93,7 @@ func (s *Store) unstageUntouched(ctx context.Context) (int64, error) {
 		if _, err := s.stagedCompanies().BulkWrite(ctx, models, options.BulkWrite().SetOrdered(false)); err != nil {
 			return fmt.Errorf("stage companies: %w", err)
 		}
-		// The filter again, so a company edited meanwhile stays published.
+		// The filter again, so a company claimed meanwhile stays published.
 		removed, err := s.companies().DeleteMany(ctx, append(bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}}, filter...))
 		if err != nil {
 			return fmt.Errorf("unpublish staged companies: %w", err)
@@ -142,7 +140,7 @@ func (s *Store) dropPublishedFromStaging(ctx context.Context, published map[stri
 // publishStaged moves a staged company into companies as it stands. A company that is
 // already published stays as it is there, and its staged copy is dropped.
 func (s *Store) publishStaged(ctx context.Context, doc bson.D) error {
-	if _, err := s.companies().InsertOne(ctx, withoutID(doc)); err != nil && !mongo.IsDuplicateKeyError(err) {
+	if _, err := s.companies().InsertOne(ctx, withoutFields(doc, "_id")); err != nil && !mongo.IsDuplicateKeyError(err) {
 		return fmt.Errorf("publish company: %w", err)
 	}
 	if _, err := s.stagedCompanies().DeleteOne(ctx, bson.D{{Key: "id", Value: stringField(doc, "id")}}); err != nil {
@@ -176,10 +174,10 @@ func foundProfile(company CompanyWrite) bool {
 	return company.About != "" || company.Industry != "" || company.Size != ""
 }
 
-func withoutID(doc bson.D) bson.D {
+func withoutFields(doc bson.D, keys ...string) bson.D {
 	out := make(bson.D, 0, len(doc))
 	for _, element := range doc {
-		if element.Key != "_id" {
+		if !slices.Contains(keys, element.Key) {
 			out = append(out, element)
 		}
 	}
