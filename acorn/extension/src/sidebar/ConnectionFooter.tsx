@@ -59,6 +59,9 @@ export function ConnectionFooter({
               {connected ? "Socket connected" : signedIn ? "Socket offline" : "Sign in to connect"}
             </Text>
           </HStack>
+          <Text type="supporting" color="secondary">
+            Acorn v{import.meta.env.VITE_ACORN_VERSION}
+          </Text>
         </VStack>
       </Collapsible>
     </footer>

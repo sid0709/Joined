@@ -1,21 +1,4 @@
-/* Sidebar styles, split by section. Order matters: it is the cascade order. */
-@import "./styles/shell.css";
-@import "./styles/identity.css";
-@import "./styles/tabs-tools.css";
-@import "./styles/action-bar.css";
-@import "./styles/resume-upload-note.css";
-@import "./styles/qa.css";
-@import "./styles/plan-run.css";
-@import "./styles/inspect-panel.css";
-@import "./styles/fields-settings.css";
-@import "./styles/analyzed-tree.css";
-@import "./styles/status-bar.css";
-@import "./styles/error-boundary.css";
-@import "./styles/auth.css";
-@import "./styles/job-list.css";
-@import "./styles/resume-preview.css";
-@import "./styles/list-card-actions.css";
-@import "./styles/generate-progress.css";
-@import "./styles/list-card-mark.css";
-@import "./styles/face-guide.css";
-@import "./styles/list-card-copy.css";
+/* Acorn's own layout and pieces the design system has no equivalent for. */
+@import "./styles/layout.css";
+@import "./styles/list-card.css";
+@import "./styles/run-details.css";

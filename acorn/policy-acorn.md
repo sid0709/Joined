@@ -61,7 +61,7 @@ Acorn HTTP in `backend-core/acornapi` should compose the existing My Resume Edit
 
 ## 6. Change discipline
 
-- Bump the Acorn extension version (`extension/package.json` and `manifest.json`) on functional extension changes.
+- **Bump the Acorn extension version on every shipped change.** It lives only in `extension/package.json`; the build copies it into the manifest, `VITE_ACORN_VERSION`, and the build log. Rules: [`.claude/CLAUDE.md`](.claude/CLAUDE.md), [`.cursor/rules/acorn-versioning.mdc`](.cursor/rules/acorn-versioning.mdc).
 - Update `acorn/README.md` when routes or operator steps change.
 - Do not add Acorn items to `Athens/src/app/features/changelog/milestones.ts`.
 

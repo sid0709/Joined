@@ -1,0 +1,121 @@
+/* Side panel layout: header chrome, a scrolling middle, then the connection strip and
+   the sticky action bar in normal flow at the bottom. Components come from
+   @joined/design-system; this file only arranges them. */
+
+.sidebar-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+}
+
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+}
+
+.sidebar-chrome {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.welcome .brand-logo {
+  width: var(--acorn-face-brand-px);
+  height: var(--acorn-face-brand-px);
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.brand-user {
+  flex: 1;
+  min-width: 0;
+}
+
+.tools {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.sidebar-app.tab-qa .tools {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.sidebar-tab-panel[hidden],
+.sidebar-list-slot[hidden] {
+  display: none;
+}
+
+.sidebar-list-slot {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.worker-pool {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.worker-pool-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sidebar-after {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.sidebar-after:empty,
+.sidebar-app.tab-qa .sidebar-after,
+.sidebar-app.signed-in:not(.tab-qa) .sidebar-after {
+  display: none;
+}
+
+.status-bar {
+  flex-shrink: 0;
+  padding: var(--spacing-2) var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background-surface);
+}
+
+/* Last in the column even though it comes before the footer in the markup. */
+.acorn-action-bar {
+  order: 1;
+  flex-shrink: 0;
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background-surface);
+}
+
+.face-guide-modes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.face-guide-face {
+  flex-shrink: 0;
+  line-height: 0;
+}

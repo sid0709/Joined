@@ -1,0 +1,152 @@
+/* Acorn-only run detail: the segmented Generate / Recommend progress bar, the plan
+   step list, and preformatted text in the inspector, résumé preview, and Q&A answer. */
+
+.acorn-gen-progress {
+  --acorn-gen-gap: 3px;
+  --acorn-gen-height: 3px;
+
+  display: flex;
+  gap: var(--acorn-gen-gap);
+  height: var(--acorn-gen-height);
+}
+
+.acorn-gen-seg {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.acorn-gen-seg.is-done {
+  background: var(--color-text-primary);
+}
+
+.acorn-gen-seg.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  animation: acorn-gen-shimmer 1.15s var(--ease-standard) infinite;
+}
+
+.acorn-gen-seg.is-failed {
+  background: var(--color-error);
+}
+
+@keyframes acorn-gen-shimmer {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(280%);
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acorn-gen-seg.is-active::after {
+    animation: none;
+    width: 55%;
+  }
+}
+
+.plan-run-scroll {
+  --acorn-plan-max-height: 280px;
+
+  max-height: var(--acorn-plan-max-height);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+}
+
+.plan-run-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-step {
+  display: grid;
+  grid-template-columns: var(--spacing-7) 1fr auto;
+  gap: var(--spacing-0-5) var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.plan-step:last-child {
+  border-bottom: none;
+}
+
+.plan-step-idx,
+.plan-step-target {
+  color: var(--color-text-disabled);
+}
+
+.plan-step-action {
+  font-weight: 600;
+}
+
+.plan-step-status {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.plan-step-target,
+.plan-step-msg {
+  grid-column: 2 / -1;
+}
+
+.plan-step-msg {
+  color: var(--color-text-secondary);
+  word-break: break-word;
+}
+
+.status-ok .plan-step-status {
+  color: var(--color-text-primary);
+}
+
+.status-running .plan-step-status {
+  color: var(--color-accent);
+}
+
+.status-skipped .plan-step-status {
+  color: var(--color-text-disabled);
+}
+
+.status-blocked .plan-step-status,
+.status-failed .plan-step-status,
+.status-aborted .plan-step-status {
+  color: var(--color-error);
+}
+
+.inspect-pre,
+.qa-answer {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.inspect-pre {
+  font-family: var(--font-family-code);
+  font-size: var(--font-size-sm);
+}
+
+.resume-preview-frame {
+  --acorn-preview-min-height: 70vh;
+
+  width: 100%;
+  min-height: var(--acorn-preview-min-height);
+  border: 0;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-surface);
+}
