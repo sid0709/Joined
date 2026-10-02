@@ -24,7 +24,7 @@ func TestGoogleRoutesAnswer503UntilConfigured(t *testing.T) {
 			}
 		}
 	}
-	full := &GoogleSignIn{OAuth: half.OAuth, Roles: []string{auth.RoleScout}, RedirectURL: "http://localhost:3003/auth/google/callback"}
+	full := &GoogleSignIn{OAuth: half.OAuth, Roles: []string{auth.RoleScout}, RedirectURL: "http://localhost:6003/auth/google/callback"}
 	if !full.configured() {
 		t.Fatal("client, redirect URL, and a role should be enough")
 	}

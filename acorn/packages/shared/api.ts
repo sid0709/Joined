@@ -16,7 +16,7 @@ export type AcornHosts = {
 
 /** Development builds talk to the local servers (`bun run dev`); every other build to production. */
 export const ACORN_HOSTS = {
-  development: { api: "http://127.0.0.1:8083", joined: "http://localhost:3002" },
+  development: { api: "http://127.0.0.1:8083", joined: "http://localhost:6002" },
   production: { api: "https://api.joinedhq.com", joined: "https://joinedhq.com" },
 } as const satisfies Record<string, AcornHosts>;
 

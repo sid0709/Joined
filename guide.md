@@ -25,12 +25,12 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 
 | What                          | Command                             | URL                        |
 | ----------------------------- | ----------------------------------- | -------------------------- |
-| Everything (frontends + APIs) | `bun run dev`                       | 3000–3003, 3010, 8080–8083 |
-| Joined (job platform)         | `bun run dev:joined`                | http://localhost:3002      |
-| Joined app                    | `bun run dev:app`                   | http://localhost:3000      |
-| Design-system showcase        | `bun run dev:theme`                 | http://localhost:3001      |
-| Joined admin                  | `bun run dev:admin`                 | http://localhost:3010      |
-| Scoutwell                     | `bun run dev:scout`                 | http://localhost:3003      |
+| Everything (frontends + APIs) | `bun run dev`                       | 6001–6004, 6010, 8080–8083 |
+| Joined (job platform)         | `bun run dev:joined`                | http://localhost:6002      |
+| Joined app                    | `bun run dev:app`                   | http://localhost:6004      |
+| Design-system showcase        | `bun run dev:theme`                 | http://localhost:6001      |
+| Joined admin                  | `bun run dev:admin`                 | http://localhost:6010      |
+| Scoutwell                     | `bun run dev:scout`                 | http://localhost:6003      |
 | Joined API                    | `bun run dev:joined-api`            | http://127.0.0.1:8080      |
 | Admin API                     | `bun run dev:admin-api`             | http://127.0.0.1:8081      |
 | Scoutwell API                 | `bun run dev:scout-api`             | http://127.0.0.1:8082      |

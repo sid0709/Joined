@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sprite player</title>
+<title>Acorn rig</title>
+<link rel="preload" as="image" href="art/acorn-body.webp" />
 <style>
   :root {
     --bg: #f6f5f2;
@@ -12,12 +13,13 @@
     --muted: #6f6c66;
     --border: #e2dfd8;
     --accent: #2f6bff;
+    --on-accent: #ffffff;
     --checker-a: #ffffff;
     --checker-b: #ecebe7;
     --dark-stage: #1c1b19;
     --radius: 12px;
     --gap: 16px;
-    --stage: 320px;
+    --stage: 360px;
     color-scheme: light dark;
   }
   @media (prefers-color-scheme: dark) {
@@ -34,26 +36,14 @@
     }
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  }
-  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
-  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
-  .hint { color: var(--muted); margin: 0 0 var(--gap); }
-  .layout { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: var(--gap); align-items: start; }
-  @media (max-width: 720px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--gap); margin-bottom: var(--gap); }
+  h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  a { color: var(--accent); }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--gap); }
-
-  .stage {
-    position: relative;
-    width: min(var(--stage), 100%);
-    aspect-ratio: 1;
-    border-radius: 8px;
-    overflow: hidden;
-  }
+  .stage-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .stage { width: min(var(--stage), 100%); border-radius: 8px; display: block; }
   .bg-checker {
     background-color: var(--checker-a);
     background-image:
@@ -64,110 +54,88 @@
   }
   .bg-light { background: #ffffff; }
   .bg-dark { background: var(--dark-stage); }
-  .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .minis { display: flex; align-items: center; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 12px; }
-  .mini { position: relative; border-radius: 4px; overflow: hidden; }
-
-  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
-  .row:last-child { margin-bottom: 0; }
+  .minis { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+  .minis canvas { display: block; border-radius: 4px; }
+  .statuses { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: var(--gap); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
   label { color: var(--muted); }
-  input[type="number"] { width: 56px; }
-  input[type="range"] { flex: 1; min-width: 120px; }
-  button, select, input[type="number"] {
-    font: inherit;
-    color: var(--fg);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px 10px;
+  input[type="range"] { width: 160px; }
+  button, select {
+    font: inherit; color: var(--fg); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; cursor: pointer;
   }
-  button { cursor: pointer; }
   button:hover { border-color: var(--muted); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 72px; }
-  .counter { font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
-  .status { color: var(--muted); font-size: 12px; min-height: 18px; }
-
-  .sheet-wrap { margin-top: var(--gap); }
-  .sheet { position: relative; display: inline-block; max-width: 100%; cursor: crosshair; }
-  .sheet img { display: block; max-width: 100%; height: auto; }
-  .cursor { position: absolute; outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; pointer-events: none; }
-
-  .drop {
-    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
-    border: 3px dashed var(--accent);
-    font-size: 18px; font-weight: 600; color: var(--fg);
-    pointer-events: none;
-  }
-  body.dragging .drop { display: flex; }
+  button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .readout { font-variant-numeric: tabular-nums; min-width: 40px; color: var(--muted); }
 </style>
 </head>
 <body>
 <main>
-  <h1>Sprite player</h1>
-  <p class="hint">Drop a sprite sheet anywhere, pick a file, or paste with ⌘V. Space plays or pauses; ← → step one frame.</p>
-
-  <div class="layout">
-    <div class="card">
-      <div id="stage" class="stage bg-checker"></div>
+  <header>
+    <h1>Acorn</h1>
+    <a href="sheet.html">Sheet player →</a>
+  </header>
+  <div class="card">
+    <div class="stage-wrap">
+      <canvas id="stage" class="stage bg-checker"></canvas>
       <div class="minis">
-        <div id="mini28" class="mini bg-checker" style="width:28px;height:28px"></div>
-        <div id="mini18" class="mini bg-checker" style="width:18px;height:18px"></div>
+        <canvas id="mini28" class="bg-checker" style="width:28px"></canvas>
+        <canvas id="mini18" class="bg-checker" style="width:18px"></canvas>
         <span>28 / 18px</span>
       </div>
     </div>
-
-    <div class="card">
-      <div class="row">
-        <button id="play" class="primary">Pause</button>
-        <button id="prev" aria-label="Previous frame">◀</button>
-        <button id="next" aria-label="Next frame">▶</button>
-        <span id="counter" class="counter">1 / 1</span>
-      </div>
-      <div class="row">
-        <label for="fps">Speed</label>
-        <input id="fps" type="range" min="2" max="30" step="1" value="12" />
-        <span id="fpsOut" class="counter">12 fps</span>
-      </div>
-      <div class="row">
-        <label><input id="blend" type="checkbox" checked /> Blend frames</label>
-        <label for="mode">Order</label>
-        <select id="mode">
-          <option value="loop">Loop</option>
-          <option value="pingpong">Ping-pong</option>
-        </select>
-        <label for="bg">Stage</label>
-        <select id="bg">
-          <option value="checker">Checker</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </div>
-      <div class="row">
-        <label for="rows">Rows</label>
-        <input id="rows" type="number" min="1" max="64" value="8" />
-        <label for="cols">Cols</label>
-        <input id="cols" type="number" min="1" max="64" value="8" />
-        <button id="detect">Auto-detect</button>
-        <label><input id="skipEmpty" type="checkbox" checked /> Skip empty cells</label>
-      </div>
-      <div class="row">
-        <label for="statusPick">Status</label>
-        <select id="statusPick"></select>
-        <input id="file" type="file" accept="image/*" />
-      </div>
-      <div id="status" class="status"></div>
-    </div>
-  </div>
-
-  <div class="card sheet-wrap">
-    <div id="sheet" class="sheet">
-      <img id="sheetImg" alt="Sprite sheet" />
-      <div id="cursor" class="cursor"></div>
+    <div id="statuses" class="statuses" role="group" aria-label="Status"></div>
+    <div class="row">
+      <label for="speed">Speed</label>
+      <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1" />
+      <span id="speedOut" class="readout">1×</span>
+      <label for="bg">Stage</label>
+      <select id="bg">
+        <option value="checker">Checker</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
     </div>
   </div>
 </main>
-<div class="drop">Drop image to play it</div>
-<script src="player.js"></script>
+<script type="module">
+  import { mountAcorn, STATUSES } from "./rig.js";
+
+  const views = ["stage", "mini28", "mini18"].map((id) => document.getElementById(id));
+  const rigs = await Promise.all(views.map((c) => mountAcorn(c)));
+  const group = document.getElementById("statuses");
+  const speed = document.getElementById("speed");
+  const speedOut = document.getElementById("speedOut");
+  const bg = document.getElementById("bg");
+
+  function select(id) {
+    for (const r of rigs) r.setStatus(id);
+    for (const b of group.children) b.setAttribute("aria-pressed", String(b.dataset.id === id));
+  }
+  for (const s of STATUSES) {
+    const b = document.createElement("button");
+    b.textContent = s.label;
+    b.dataset.id = s.id;
+    b.addEventListener("click", () => select(s.id));
+    group.append(b);
+  }
+  select(STATUSES[0].id);
+
+  speed.addEventListener("input", () => {
+    speedOut.textContent = `${speed.value}×`;
+    for (const r of rigs) r.setSpeed(Number(speed.value));
+  });
+  bg.addEventListener("change", () => {
+    for (const el of views) {
+      el.classList.remove("bg-checker", "bg-light", "bg-dark");
+      el.classList.add(`bg-${bg.value}`);
+    }
+  });
+  window.addEventListener("resize", () => { for (const r of rigs) r.resize(); });
+  document.addEventListener("keydown", (e) => {
+    const n = Number(e.key);
+    if (n >= 1 && n <= STATUSES.length) select(STATUSES[n - 1].id);
+  });
+</script>
 </body>
 </html>

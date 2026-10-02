@@ -10,11 +10,11 @@ A **bun workspaces monorepo**:
 
 | Workspace               | What it is                                                                | Run it                                            |
 | ----------------------- | ------------------------------------------------------------------------- | ------------------------------------------------- |
-| `joined-frontend`       | Joined job platform — candidate and employer modes                        | `bun run dev:joined` → http://localhost:3002      |
-| `connected-frontend`    | Joined web app                                                            | `bun run dev:app` → http://localhost:3000         |
-| `joined-theme`          | Design-system showcase                                                    | `bun run dev:theme` → http://localhost:3001       |
-| `scoutwell-frontend`    | Scoutwell — scouts submit jobs and earn on outcomes                       | `bun run dev:scout` → http://localhost:3003       |
-| `admin-frontend`        | Admin console — review queue, scouts, jobs                                | `bun run dev:admin` → http://localhost:3010       |
+| `joined-frontend`       | Joined job platform — candidate and employer modes                        | `bun run dev:joined` → http://localhost:6002      |
+| `connected-frontend`    | Joined web app                                                            | `bun run dev:app` → http://localhost:6004         |
+| `joined-theme`          | Design-system showcase                                                    | `bun run dev:theme` → http://localhost:6001       |
+| `scoutwell-frontend`    | Scoutwell — scouts submit jobs and earn on outcomes                       | `bun run dev:scout` → http://localhost:6003       |
+| `admin-frontend`        | Admin console — review queue, scouts, jobs                                | `bun run dev:admin` → http://localhost:6010       |
 | `joined-backend`        | Joined API (Go) — accounts, job search, hunter and recruiter workspaces   | `bun run dev:joined-api` → http://127.0.0.1:8080  |
 | `admin-backend`         | Admin API (Go) — staff routes behind the admin console                    | `bun run dev:admin-api` → http://127.0.0.1:8081   |
 | `scoutwell-backend`     | Scoutwell API (Go) — scout accounts, submissions, partner API keys        | `bun run dev:scout-api` → http://127.0.0.1:8082   |

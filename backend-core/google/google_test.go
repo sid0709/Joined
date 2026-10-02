@@ -27,7 +27,7 @@ func client(f fakeGoogle) *Client {
 func TestAuthURLCarriesTheRequest(t *testing.T) {
 	c := &Client{ClientID: "id", ClientSecret: "secret"}
 	raw := c.AuthURL(AuthRequest{
-		RedirectURL:   "http://localhost:3002/api/auth/google/callback",
+		RedirectURL:   "http://localhost:6002/api/auth/google/callback",
 		Scopes:        []string{ScopeOpenID, ScopeEmail, ScopeCalendarEvents},
 		State:         "state-1",
 		CodeChallenge: "challenge",
@@ -40,7 +40,7 @@ func TestAuthURLCarriesTheRequest(t *testing.T) {
 	query := parsed.Query()
 	want := map[string]string{
 		"client_id":             "id",
-		"redirect_uri":          "http://localhost:3002/api/auth/google/callback",
+		"redirect_uri":          "http://localhost:6002/api/auth/google/callback",
 		"response_type":         "code",
 		"scope":                 "openid email " + ScopeCalendarEvents,
 		"state":                 "state-1",

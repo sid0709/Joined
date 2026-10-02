@@ -15,7 +15,7 @@ func TestAcceptSlotLocksAwaitingInterview(t *testing.T) {
 	if item.SelfScheduleToken == item.ID || !isScheduleToken(item.SelfScheduleToken) {
 		t.Fatalf("token = %q id = %q", item.SelfScheduleToken, item.ID)
 	}
-	wantURL := publicScheduleURL("http://127.0.0.1:3002", item.SelfScheduleToken)
+	wantURL := publicScheduleURL("http://127.0.0.1:6002", item.SelfScheduleToken)
 	if item.SelfScheduleURL != wantURL {
 		t.Fatalf("url = %q", item.SelfScheduleURL)
 	}
@@ -130,7 +130,7 @@ func TestLegacyScheduleURLRewritesToToken(t *testing.T) {
 		ID:              id,
 		SelfSchedule:    true,
 		CompanyStatus:   CompanyStatusAwaiting,
-		SelfScheduleURL: "http://127.0.0.1:3002/schedule/" + id + "?legacy=1",
+		SelfScheduleURL: "http://127.0.0.1:6002/schedule/" + id + "?legacy=1",
 	}
 	now := time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC)
 	if err := applySelfScheduleSecret(&item, "", now); err != nil {
@@ -201,7 +201,7 @@ func awaitingSelfSchedule(t *testing.T, now time.Time) Interview {
 		t.Fatal(err)
 	}
 	item.CompanyStatus = CompanyStatusAwaiting
-	if err := applySelfScheduleSecret(&item, "http://127.0.0.1:3002", now); err != nil {
+	if err := applySelfScheduleSecret(&item, "http://127.0.0.1:6002", now); err != nil {
 		t.Fatal(err)
 	}
 	return item

@@ -7,4 +7,4 @@ bun install
 bun run dev:scout
 ```
 
-Open [http://localhost:3003](http://localhost:3003). Demo login: `maya@scoutwell.local` / `scoutwell`.
+Open [http://localhost:6003](http://localhost:6003). Demo login: `maya@scoutwell.local` / `scoutwell`.

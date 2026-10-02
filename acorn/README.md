@@ -64,7 +64,7 @@ Open http://localhost:5173. The UI board still uses the old username/password si
 ### 4. Build & load the extension
 
 ```bash
-bun run dev:acorn     # development build, rebuilt on change: talks to 127.0.0.1:8083 and localhost:3002
+bun run dev:acorn     # development build, rebuilt on change: talks to 127.0.0.1:8083 and localhost:6002
 bun run build:acorn   # production build: talks to https://api.joinedhq.com and https://joinedhq.com
 ```
 

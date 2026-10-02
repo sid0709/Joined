@@ -193,11 +193,11 @@ func TestOfferApprovalRequestAndDecision(t *testing.T) {
 func TestMintEsignAndHirePacket(t *testing.T) {
 	now := time.Date(2026, 9, 29, 18, 0, 0, 0, time.UTC)
 	current := &candidate.OfferRecord{Status: candidate.OfferApproved}
-	next, esign, err := mintOfferEsign(current, "app 1", "http://127.0.0.1:3002/", "  Executive letter  ", now)
+	next, esign, err := mintOfferEsign(current, "app 1", "http://127.0.0.1:6002/", "  Executive letter  ", now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if esign.Status != candidate.OfferEsignPending || esign.DocumentTitle != "Executive letter" || esign.SignURL != "http://127.0.0.1:3002/offer/sign/app%201" {
+	if esign.Status != candidate.OfferEsignPending || esign.DocumentTitle != "Executive letter" || esign.SignURL != "http://127.0.0.1:6002/offer/sign/app%201" {
 		t.Fatalf("esign = %+v", esign)
 	}
 	if esign.SentAt == nil || !esign.SentAt.Equal(now) || next.Esign == nil || next.Status != candidate.OfferApproved {
