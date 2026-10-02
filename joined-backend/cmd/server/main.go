@@ -21,10 +21,10 @@ import (
 
 const (
 	defaultHTTPAddr       = "127.0.0.1:8080"
-	defaultFrontendOrigin = "http://localhost:3002"
+	defaultFrontendOrigin = "http://localhost:6002"
 )
 
-var defaultOrigins = []string{"http://127.0.0.1:3002", "http://localhost:3002"}
+var defaultOrigins = []string{"http://127.0.0.1:6002", "http://localhost:6002"}
 
 func main() {
 	config.LoadEnvFile()

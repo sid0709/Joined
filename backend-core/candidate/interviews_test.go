@@ -51,11 +51,11 @@ func TestBuildInterviewStillRequiresALockedTime(t *testing.T) {
 }
 
 func TestPublicScheduleURLUsesFrontendOrigin(t *testing.T) {
-	got := publicScheduleURL("http://127.0.0.1:3002/", "iv 1")
-	if got != "http://127.0.0.1:3002/schedule/iv%201" {
+	got := publicScheduleURL("http://127.0.0.1:6002/", "iv 1")
+	if got != "http://127.0.0.1:6002/schedule/iv%201" {
 		t.Fatalf("url = %q", got)
 	}
-	if publicScheduleURL("", "iv-1") != "" || publicScheduleURL("http://127.0.0.1:3002", "") != "" {
+	if publicScheduleURL("", "iv-1") != "" || publicScheduleURL("http://127.0.0.1:6002", "") != "" {
 		t.Fatal("expected an empty url without origin and id")
 	}
 }

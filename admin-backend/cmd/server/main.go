@@ -27,7 +27,7 @@ const (
 	defaultResearchWorkers = 128
 )
 
-var defaultOrigins = []string{"http://127.0.0.1:3010", "http://localhost:3010"}
+var defaultOrigins = []string{"http://127.0.0.1:6010", "http://localhost:6010"}
 
 func main() {
 	config.LoadEnvFile()

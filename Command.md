@@ -10,20 +10,22 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace               | Path                      | What it is                                                   | Dev port | Root dev script          |
-| ----------------------- | ------------------------- | ------------------------------------------------------------ | -------- | ------------------------ |
-| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)   | 3002     | `bun run dev:joined`     |
-| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                     | 3000     | `bun run dev:app`        |
-| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                             | 3001     | `bun run dev:theme`      |
-| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js) | 3010     | `bun run dev:admin`      |
-| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)   | 3003     | `bun run dev:scout`      |
-| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                        | 8080     | `bun run dev:joined-api` |
-| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                          | 8081     | `bun run dev:admin-api`  |
-| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners     | 8082     | `bun run dev:scout-api`  |
-| `backend-core`          | `backend-core/`           | Go code the three APIs share: domain stores, HTTP helpers    | —        | —                        |
-| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)         | —        | —                        |
+| Workspace               | Path                      | What it is                                                                            | Dev port | Root dev script           |
+| ----------------------- | ------------------------- | ------------------------------------------------------------------------------------- | -------- | ------------------------- |
+| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)                            | 6002     | `bun run dev:joined`      |
+| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                                              | 6004     | `bun run dev:app`         |
+| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                                                      | 6001     | `bun run dev:theme`       |
+| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js)                          | 6010     | `bun run dev:admin`       |
+| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)                            | 6003     | `bun run dev:scout`       |
+| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                                 | 8080     | `bun run dev:joined-api`  |
+| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                                   | 8081     | `bun run dev:admin-api`   |
+| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                              | 8082     | `bun run dev:scout-api`   |
+| `backend-core`          | `backend-core/`           | Go code every API shares, and its own server: api.joinedhq.com (Acorn under `/acorn`) | 8083     | `bun run dev:core-api`    |
+| `acorn-extension`       | `acorn/extension/`        | Acorn Chrome extension (Vite; load `acorn/extension/dist`)                            | —        | `bun run dev:acorn`       |
+| `acorn-ui-board`        | `acorn/ui-board/`         | Acorn UI board (Vite)                                                                 | 5173     | `bun run dev:acorn-board` |
+| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)                                  | —        | —                         |
 
-Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
+Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared `backend-core`, which also runs its own server for Acorn) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -167,35 +169,37 @@ bun run dev
 
 | Name                   | URL                   | Log prefix     |
 | ---------------------- | --------------------- | -------------- |
-| Joined app             | http://localhost:3000 | `[app]`        |
-| Design-system showcase | http://localhost:3001 | `[theme]`      |
-| Joined (job platform)  | http://localhost:3002 | `[joined]`     |
-| Joined admin           | http://localhost:3010 | `[admin]`      |
+| Joined app             | http://localhost:6004 | `[app]`        |
+| Design-system showcase | http://localhost:6001 | `[theme]`      |
+| Joined (job platform)  | http://localhost:6002 | `[joined]`     |
+| Joined admin           | http://localhost:6010 | `[admin]`      |
 | Joined API             | http://127.0.0.1:8080 | `[joined-api]` |
 | Admin API              | http://127.0.0.1:8081 | `[admin-api]`  |
 | Scoutwell API          | http://127.0.0.1:8082 | `[scout-api]`  |
+| Core API (Acorn)       | http://127.0.0.1:8083 | `[core-api]`   |
 
-Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.env.example`): `joined-backend/.env`, `admin-backend/.env`, `scoutwell-backend/.env`. Each needs `MONGO_URI`; an API without it exits and everything else keeps running. `bun run dev:api` starts only the three APIs.
+Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.env.example`): `joined-backend/.env`, `admin-backend/.env`, `scoutwell-backend/.env`, `backend-core/.env`. Each needs `MONGO_URI`; an API without it exits and everything else keeps running. `bun run dev:api` starts only the four APIs.
 
 ### Open one app
 
 | App                    | Command                  | Then open             |
 | ---------------------- | ------------------------ | --------------------- |
-| Joined (job platform)  | `bun run dev:joined`     | http://localhost:3002 |
-| Joined app             | `bun run dev:app`        | http://localhost:3000 |
-| Design-system showcase | `bun run dev:theme`      | http://localhost:3001 |
-| Joined admin           | `bun run dev:admin`      | http://localhost:3010 |
+| Joined (job platform)  | `bun run dev:joined`     | http://localhost:6002 |
+| Joined app             | `bun run dev:app`        | http://localhost:6004 |
+| Design-system showcase | `bun run dev:theme`      | http://localhost:6001 |
+| Joined admin           | `bun run dev:admin`      | http://localhost:6010 |
 | Joined API             | `bun run dev:joined-api` | http://127.0.0.1:8080 |
 | Admin API              | `bun run dev:admin-api`  | http://127.0.0.1:8081 |
 | Scoutwell API          | `bun run dev:scout-api`  | http://127.0.0.1:8082 |
+| Core API (Acorn)       | `bun run dev:core-api`   | http://127.0.0.1:8083 |
 
 On macOS, open a running app in the browser:
 
 ```bash
-open http://localhost:3002
-open http://localhost:3000
-open http://localhost:3001
-open http://localhost:3010
+open http://localhost:6002
+open http://localhost:6004
+open http://localhost:6001
+open http://localhost:6010
 open http://127.0.0.1:8080/health
 ```
 
@@ -229,13 +233,13 @@ bun --filter @joined/design-system <script>
 | All four frontends     | `bun run build:frontends` | start each `start:*`   |
 | Every workspace        | `bun run build`           | —                      |
 
-`start:joined` and `start:scout` pass `--port` **3002** and **3003** so they match dev and can run beside Connected on **3000**.
+`start:joined` and `start:scout` pass `--port` **6002** and **6003** so they match dev and can run beside Connected on **6004**.
 
 ### Troubleshooting
 
 - **Port already in use** — `bun run dev`, `bun run start:frontends`, and each `bun run dev:*` / `bun run start:*` stop whatever is listening on that app's port before starting. If something else grabbed the port afterward:
   ```bash
-  lsof -iTCP:3002 -sTCP:LISTEN
+  lsof -iTCP:6002 -sTCP:LISTEN
   ```
   ```bash
   kill <PID>
@@ -361,12 +365,12 @@ Build and start only that app (`bun run build:<app>` then `bun run start:<app>`)
 
 | App                    | Audit command                  | Site it scans                 |
 | ---------------------- | ------------------------------ | ----------------------------- |
-| Connected              | `bun run audit:app`            | http://localhost:3000         |
-| Joined                 | `bun run audit:joined`         | http://localhost:3002         |
-| Joined employer pages  | `bun run audit:joined:company` | http://localhost:3002/company |
-| Scoutwell              | `bun run audit:scout`          | http://localhost:3003         |
-| Joined admin           | `bun run audit:admin`          | http://localhost:3010         |
-| Design-system showcase | `bun run audit:theme`          | http://localhost:3001         |
+| Connected              | `bun run audit:app`            | http://localhost:6004         |
+| Joined                 | `bun run audit:joined`         | http://localhost:6002         |
+| Joined employer pages  | `bun run audit:joined:company` | http://localhost:6002/company |
+| Scoutwell              | `bun run audit:scout`          | http://localhost:6003         |
+| Joined admin           | `bun run audit:admin`          | http://localhost:6010         |
+| Design-system showcase | `bun run audit:theme`          | http://localhost:6001         |
 
 Any other site, including a deployed URL:
 
@@ -381,7 +385,7 @@ Each run writes a static HTML report under `.unlighthouse/<app>/` (gitignored). 
 `@unlighthouse/cli` does not install an `unlighthouse` command. Targets live in `tools/audit-frontends.mjs`; `bun run audit` uses `tools/audit-all-frontends.mjs`. For a faster, rougher pass on one site, leave dynamic sampling on:
 
 ```bash
-bun tools/unlighthouse.mjs --site http://localhost:3002
+bun tools/unlighthouse.mjs --site http://localhost:6002
 ```
 
 ---
@@ -432,16 +436,18 @@ git push -u origin feat/<short-name>
 | ------------------------------------- | -------------------------------------------------------------------------------------- |
 | Install everything                    | `bun install`                                                                          |
 | Run everything (frontends + APIs)     | `bun run dev`                                                                          |
-| Run Joined                            | `bun run dev:joined` → http://localhost:3002                                           |
-| Run the Joined app                    | `bun run dev:app` → http://localhost:3000                                              |
-| Run the design-system showcase        | `bun run dev:theme` → http://localhost:3001                                            |
-| Run the Joined admin UI               | `bun run dev:admin` → http://localhost:3010                                            |
+| Run Joined                            | `bun run dev:joined` → http://localhost:6002                                           |
+| Run the Joined app                    | `bun run dev:app` → http://localhost:6004                                              |
+| Run the design-system showcase        | `bun run dev:theme` → http://localhost:6001                                            |
+| Run the Joined admin UI               | `bun run dev:admin` → http://localhost:6010                                            |
 | Run every API                         | `bun run dev:api`                                                                      |
 | Run the Joined API                    | `bun run dev:joined-api` → http://127.0.0.1:8080                                       |
 | Run the admin API                     | `bun run dev:admin-api` → http://127.0.0.1:8081                                        |
 | Run the Scoutwell API                 | `bun run dev:scout-api` → http://127.0.0.1:8082                                        |
+| Run the core API (Acorn's `/acorn/*`) | `bun run dev:core-api` → http://127.0.0.1:8083                                         |
+| Build the Acorn extension / UI board  | `bun run build:acorn` (watch: `bun run dev:acorn`, `bun run dev:acorn-board`)          |
 | Test / vet every Go module            | `bun run test:go` · `bun run vet:go`                                                   |
-| Open a running app (macOS)            | `open http://localhost:3002`                                                           |
+| Open a running app (macOS)            | `open http://localhost:6002`                                                           |
 | Run any script in one workspace       | `bun --filter <workspace> <script>`                                                    |
 | Build / start all frontends for audit | `bun run build:frontends` then each `bun run start:*` (see §7)                         |
 | Add a library                         | Add to root `catalog`, then `"<lib>": "catalog:"` in the workspace, then `bun install` |

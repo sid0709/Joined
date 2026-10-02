@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Sheet player</title>
+    <style>
+      :root {
+        --bg: #f6f5f2;
+        --surface: #ffffff;
+        --fg: #1c1b19;
+        --muted: #6f6c66;
+        --border: #e2dfd8;
+        --accent: #2f6bff;
+        --checker-a: #ffffff;
+        --checker-b: #ecebe7;
+        --dark-stage: #1c1b19;
+        --radius: 12px;
+        --gap: 16px;
+        --stage: 320px;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141413;
+          --surface: #1d1d1b;
+          --fg: #f1efea;
+          --muted: #a29f97;
+          --border: #34332f;
+          --accent: #6f9bff;
+          --checker-a: #2a2a27;
+          --checker-b: #222220;
+          --dark-stage: #0d0d0c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      .hint {
+        color: var(--muted);
+        margin: 0 0 var(--gap);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+        gap: var(--gap);
+        align-items: start;
+      }
+      @media (max-width: 720px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--gap);
+      }
+
+      .stage {
+        position: relative;
+        width: min(var(--stage), 100%);
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .bg-checker {
+        background-color: var(--checker-a);
+        background-image:
+          linear-gradient(
+            45deg,
+            var(--checker-b) 25%,
+            transparent 25%,
+            transparent 75%,
+            var(--checker-b) 75%
+          ),
+          linear-gradient(
+            45deg,
+            var(--checker-b) 25%,
+            transparent 25%,
+            transparent 75%,
+            var(--checker-b) 75%
+          );
+        background-size: 16px 16px;
+        background-position:
+          0 0,
+          8px 8px;
+      }
+      .bg-light {
+        background: #ffffff;
+      }
+      .bg-dark {
+        background: var(--dark-stage);
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .minis {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .mini {
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .row:last-child {
+        margin-bottom: 0;
+      }
+      label {
+        color: var(--muted);
+      }
+      input[type="number"] {
+        width: 56px;
+      }
+      input[type="range"] {
+        flex: 1;
+        min-width: 120px;
+      }
+      button,
+      select,
+      input[type="number"] {
+        font: inherit;
+        color: var(--fg);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px 10px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--muted);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        min-width: 72px;
+      }
+      .counter {
+        font-variant-numeric: tabular-nums;
+        min-width: 64px;
+        text-align: right;
+      }
+      .status {
+        color: var(--muted);
+        font-size: 12px;
+        min-height: 18px;
+      }
+
+      .sheet-wrap {
+        margin-top: var(--gap);
+      }
+      .sheet {
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+        cursor: crosshair;
+      }
+      .sheet img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      .cursor {
+        position: absolute;
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+        border-radius: 4px;
+        pointer-events: none;
+      }
+
+      .drop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--accent) 18%, transparent);
+        border: 3px dashed var(--accent);
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--fg);
+        pointer-events: none;
+      }
+      body.dragging .drop {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Sheet player</h1>
+      <p class="hint">
+        Drop a sprite sheet anywhere, pick a file, or paste with ⌘V. Space plays or pauses; ← → step
+        one frame.
+      </p>
+
+      <div class="layout">
+        <div class="card">
+          <div id="stage" class="stage bg-checker"></div>
+          <div class="minis">
+            <div id="mini28" class="mini bg-checker" style="width: 28px; height: 28px"></div>
+            <div id="mini18" class="mini bg-checker" style="width: 18px; height: 18px"></div>
+            <span>28 / 18px</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <button id="play" class="primary">Pause</button>
+            <button id="prev" aria-label="Previous frame">◀</button>
+            <button id="next" aria-label="Next frame">▶</button>
+            <span id="counter" class="counter">1 / 1</span>
+          </div>
+          <div class="row">
+            <label for="fps">Speed</label>
+            <input id="fps" type="range" min="2" max="30" step="1" value="12" />
+            <span id="fpsOut" class="counter">12 fps</span>
+          </div>
+          <div class="row">
+            <label><input id="blend" type="checkbox" checked /> Blend frames</label>
+            <label for="mode">Order</label>
+            <select id="mode">
+              <option value="loop">Loop</option>
+              <option value="pingpong">Ping-pong</option>
+            </select>
+            <label for="bg">Stage</label>
+            <select id="bg">
+              <option value="checker">Checker</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="rows">Rows</label>
+            <input id="rows" type="number" min="1" max="64" value="8" />
+            <label for="cols">Cols</label>
+            <input id="cols" type="number" min="1" max="64" value="8" />
+            <button id="detect">Auto-detect</button>
+            <label><input id="skipEmpty" type="checkbox" checked /> Skip empty cells</label>
+          </div>
+          <div class="row">
+            <label for="statusPick">Status</label>
+            <select id="statusPick"></select>
+            <input id="file" type="file" accept="image/*" />
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+      </div>
+
+      <div class="card sheet-wrap">
+        <div id="sheet" class="sheet">
+          <img id="sheetImg" alt="Sprite sheet" />
+          <div id="cursor" class="cursor"></div>
+        </div>
+      </div>
+    </main>
+    <div class="drop">Drop image to play it</div>
+    <script type="module" src="./player.js"></script>
+  </body>
+</html>

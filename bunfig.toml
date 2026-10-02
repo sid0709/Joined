@@ -8,7 +8,5 @@ linker = "hoisted"
 # lines while functions stay above 80%. Keep functions strict; allow lines at 50%.
 coverageThreshold = { functions = 0.8, lines = 0.5 }
 coverageSkipTestFiles = true
-# Reference clones (see .gitignore) bring their own test setups.
-pathIgnorePatterns = ["AthensAI/**", "Oak/**"]
-# bash/ is the Oak project: its tests run, but it is not held to this repo's coverage bar.
-coveragePathIgnorePatterns = ["bash/**"]
+# acorn/ is the Acorn project: its tests run, but it is not held to this repo's coverage bar.
+coveragePathIgnorePatterns = ["acorn/**"]

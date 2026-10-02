@@ -1,0 +1,54 @@
+---
+description: Production coding standards — no hardcoding, modular structure, shared system design (no tests)
+alwaysApply: true
+---
+
+# Acorn Production Code Standards
+
+Write production-ready code only. Do **not** add tests, test files, test scripts, or test-only refactors unless the user explicitly asks.
+
+## Architecture (monorepo)
+
+Packages: `ui-board/`, `extension/`, `packages/shared/` (`@acorn/shared`), `packages/acorn-face/` (`@acorn/face`). The backend is Go, in `backend-core/acorn` and `backend-core/acornapi` at the repo root. Everything installs and runs with bun from the repo root; never npm.
+
+- Keep package boundaries clear: relay I/O, AI/prompt/schema in the Go backend, visualization/UX in `ui-board`, page DOM/runtime in `extension`.
+- Put cross-package contracts in `@acorn/shared` (types, event names, default hosts/URLs, shared constants). Do not redefine the same `DomNode` / payload types in multiple packages.
+- Prefer small modules with one job over growing god-files (e.g. `App.tsx`). Extract helpers, prompts, schemas, formatters, and protocol clients into named modules.
+
+## No hardcoding
+
+Never scatter magic values. Configure once, import everywhere.
+
+| Kind | Do | Don't |
+|------|----|--------|
+| Ports / base URLs | Env (`PORT`, `AI_PORT`, `VITE_*`) + shared defaults | Duplicate `http://localhost:3847` / `3848` in each app |
+| Secrets | `process.env` only (`OPENAI_API_KEY`, etc.) | Inline keys, tokens, credentials |
+| Model / profile paths | Env with a single named default (`OPENAI_MODEL`, `PROFILE_FILE_PATH`) | Repeat model ids / file names across packages |
+| Socket / message names | Shared constant maps (like extension `MSG`) | String literals copied across files |
+| Limits / timeouts | Named constants near the module that owns them | Inline timeouts/size caps copied ad hoc |
+| Domain data | Load from files/config (`profile.md`) | Embed long candidate data in code |
+
+```ts
+// ❌ BAD — duplicated literals
+const DEFAULT_SERVER = 'http://localhost:3847';
+
+// ✅ GOOD — shared config + env override
+import { acornHosts } from '@acorn/shared/api';
+const serverUrl = import.meta.env.VITE_ACORN_API_URL || acornHosts(import.meta.env.MODE).api;
+```
+
+## Modular, systemized structure
+
+- **Single source of truth**: one definition for types, defaults, and event names.
+- **Pure helpers**: formatting and tree transforms stay side-effect free and importable (follow `tree-export.ts`).
+- **Thin edges**: Express routes and React components orchestrate; they should not own protocol details.
+- **Named constants at top of owning module**; export when reused. Prefer `as const` maps for protocol enums.
+- **Fail clearly**: validate required input early with actionable errors.
+- **Match existing style**: TypeScript in UI/extension, ESM in backends; reuse local patterns before inventing new ones.
+
+## Production quality bar
+
+- Handle error paths with status/message useful to the caller; no empty `catch`.
+- Keep functions focused; if a block needs a comment to explain "what section this is", extract a function/module.
+- Avoid drive-by refactors unrelated to the task, but when touching duplicated constants/types, consolidate into `shared/` or a package-local config module.
+- Do not add markdown docs or tests unless requested.

@@ -22,5 +22,6 @@ export const workspaces = workspacePatterns
   .map((directory) => ({
     directory,
     name: JSON.parse(readFileSync(path.join(repoRoot, directory, "package.json"), "utf8")).name,
-    isApp: !directory.startsWith("packages/"),
+    // Libraries live in a packages/ folder: the root one, or a product's own (acorn/packages/*).
+    isApp: !/(^|\/)packages\//.test(directory),
   }));

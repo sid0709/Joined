@@ -123,7 +123,7 @@ func TestViewInterviewReturnsScheduleFields(t *testing.T) {
 		MeetingURL:            "https://meet.example.com/a",
 		ScheduleMode:          scheduleModePropose,
 		CompanyStatus:         interviewAwaiting,
-		SelfScheduleURL:       "http://127.0.0.1:3002/schedule/iv-1",
+		SelfScheduleURL:       "http://127.0.0.1:6002/schedule/iv-1",
 		SelfScheduleExpiresAt: expires,
 		ProposedSlots: []candidate.ProposedSlot{
 			{Date: "2026-10-05", Start: "09:00", End: "09:45"},
@@ -136,7 +136,7 @@ func TestViewInterviewReturnsScheduleFields(t *testing.T) {
 	if view.Where != "https://meet.example.com/a" || view.MeetingURL != view.Where {
 		t.Fatalf("join = %+v", view)
 	}
-	if view.SelfScheduleURL != "http://127.0.0.1:3002/schedule/iv-1" || len(view.ProposedSlots) != 1 {
+	if view.SelfScheduleURL != "http://127.0.0.1:6002/schedule/iv-1" || len(view.ProposedSlots) != 1 {
 		t.Fatalf("offer = %+v", view)
 	}
 	if view.SelfScheduleExpiresAt == nil || !view.SelfScheduleExpiresAt.Equal(expires) {
@@ -151,7 +151,7 @@ func TestViewInterviewReturnsScheduleFields(t *testing.T) {
 	locked := viewInterview(candidate.Interview{
 		Format:          "video",
 		CompanyStatus:   interviewScheduled,
-		SelfScheduleURL: "http://127.0.0.1:3002/schedule/iv-2",
+		SelfScheduleURL: "http://127.0.0.1:6002/schedule/iv-2",
 	}, "Designer")
 	if locked.SelfScheduleURL != "" {
 		t.Fatalf("locked url = %q", locked.SelfScheduleURL)

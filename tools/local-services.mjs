@@ -8,39 +8,39 @@ export const LOCAL_SERVICES = [
   {
     id: "connected-frontend",
     shortName: "app",
-    port: 3000,
+    port: 6004,
     color: "\x1b[36m",
     workspace: "connected-frontend",
-    startExtraArgs: [],
+    startExtraArgs: ["--port", "6004"],
   },
   {
     id: "joined-theme",
     shortName: "theme",
-    port: 3001,
+    port: 6001,
     color: "\x1b[35m",
     workspace: "joined-theme",
-    startExtraArgs: ["--port", "3001"],
+    startExtraArgs: ["--port", "6001"],
   },
   {
     id: "joined-frontend",
     shortName: "joined",
-    port: 3002,
+    port: 6002,
     color: "\x1b[32m",
     workspace: "joined-frontend",
-    startExtraArgs: ["--port", "3002"],
+    startExtraArgs: ["--port", "6002"],
   },
   {
     id: "scoutwell-frontend",
     shortName: "scout",
-    port: 3003,
+    port: 6003,
     color: "\x1b[36m",
     workspace: "scoutwell-frontend",
-    startExtraArgs: ["--port", "3003"],
+    startExtraArgs: ["--port", "6003"],
   },
   {
     id: "admin-frontend",
     shortName: "admin",
-    port: 3010,
+    port: 6010,
     color: "\x1b[33m",
     workspace: "admin-frontend",
     startExtraArgs: [],
@@ -65,6 +65,8 @@ export const API_SERVICES = [
   goService({ id: "joined-backend", shortName: "joined-api", port: 8080, color: "\x1b[34m" }),
   goService({ id: "admin-backend", shortName: "admin-api", port: 8081, color: "\x1b[93m" }),
   goService({ id: "scoutwell-backend", shortName: "scout-api", port: 8082, color: "\x1b[96m" }),
+  // backend-core's own server (api.joinedhq.com): Acorn's routes under /acorn.
+  goService({ id: "backend-core", shortName: "core-api", port: 8083, color: "\x1b[94m" }),
 ];
 
 /** Frontends audited by `bun run audit` (excludes theme). */

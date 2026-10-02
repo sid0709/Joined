@@ -14,7 +14,7 @@ func staffSignIn() StaffSignIn {
 	return StaffSignIn{
 		Accounts:    auth.NewStore(nil, "", ""),
 		OAuth:       &google.Client{ClientID: "id", ClientSecret: "secret"},
-		RedirectURL: "http://localhost:3010/auth/google/callback",
+		RedirectURL: "http://localhost:6010/auth/google/callback",
 		Domain:      "joinedhq.com",
 	}
 }

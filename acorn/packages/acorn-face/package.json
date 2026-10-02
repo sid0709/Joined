@@ -1,0 +1,20 @@
+{
+  "name": "@acorn/face",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "art": "bun --env-file=../../.env tools/generate-art.ts",
+    "art:prepare": "bun tools/prepare-art.ts",
+    "icons": "bun tools/export-icons.ts"
+  },
+  "devDependencies": {
+    "puppeteer": "catalog:",
+    "sharp": "catalog:",
+    "typescript": "catalog:"
+  }
+}

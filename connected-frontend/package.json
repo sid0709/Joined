@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 6004",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 6004",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix --max-warnings=0",
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"

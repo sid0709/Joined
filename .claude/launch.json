@@ -5,31 +5,37 @@
       "name": "next-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "connected-frontend", "dev"],
-      "port": 3000
+      "port": 6004
     },
     {
       "name": "theme-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "joined-theme", "dev"],
-      "port": 3001
+      "port": 6001
     },
     {
       "name": "joined-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "joined-frontend", "dev"],
-      "port": 3002
+      "port": 6002
     },
     {
       "name": "admin-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "admin-frontend", "dev"],
-      "port": 3010
+      "port": 6010
     },
     {
       "name": "scoutwell-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "scoutwell-frontend", "dev"],
-      "port": 3003
+      "port": 6003
+    },
+    {
+      "name": "acorn-demo",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "acorn/demo", "dev"],
+      "port": 5180
     }
   ]
 }

@@ -36,6 +36,17 @@ services:
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
+  # backend-core's own server: api.joinedhq.com. Acorn's extension calls /acorn/... on it.
+  backend-core:
+    <<: *api
+    image: ${IMAGE_REPO}:backend-core-${IMAGE_TAG}
+    ports: ["127.0.0.1:11083:8080"]
+    environment:
+      MONGO_URI: ${MONGO_URI:-}
+      DEST_DB: ${DEST_DB:-JoinedDB}
+      CORS_ORIGINS: ${FRONTEND_ORIGIN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
   joined-frontend:
     <<: *app
     image: ${IMAGE_REPO}:joined-frontend-${IMAGE_TAG}

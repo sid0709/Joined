@@ -3,7 +3,6 @@ go 1.26.4
 use (
 	./admin-backend
 	./backend-core
-	./bash/backend
 	./joined-backend
 	./scoutwell-backend
 )
