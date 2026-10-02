@@ -42,8 +42,8 @@ export function AdminShell({
 }: {
   overview: Overview | null;
   trust: TrustNavCounts;
-  /** Who is signed in; null when the API does not ask staff to sign in. */
-  staff: Staff | null;
+  /** Who is signed in. */
+  staff: Staff;
   children: ReactNode;
 }) {
   return (
@@ -62,7 +62,7 @@ export function AdminShell({
           }
           endContent={
             <HStack gap={2} vAlign="center">
-              {staff ? <StaffMenu staff={staff} /> : null}
+              <StaffMenu staff={staff} />
               <ThemeToggle />
             </HStack>
           }

@@ -1,16 +1,28 @@
 import { ApiError } from "@joined/scout";
-import { STAFF_SESSION_PATH, type StaffSession } from "@/lib/staff-session";
+import { STAFF_SESSION_PATH, type Staff, type StaffSession } from "@/lib/staff-session";
 import { adminGet } from "./api";
 
 /**
- * The staff session, or null when sign-in is required and nobody is signed in.
- * When the API does not require sign-in, staff is null but the console is open.
+ * Where this browser stands with the admin API:
+ * - signed-in: a live staff session.
+ * - signed-out: no session, or it expired.
+ * - not-set-up: the API has no Google client, so nobody can sign in.
+ * - unreachable: the API did not answer, so nothing can be checked.
  */
-export async function loadStaffSession(): Promise<StaffSession | null> {
+export type StaffAccess =
+  | { status: "signed-in"; staff: Staff }
+  | { status: "signed-out" }
+  | { status: "not-set-up" }
+  | { status: "unreachable" };
+
+/** Never throws: a page decides what to show for each status. */
+export async function loadStaffAccess(): Promise<StaffAccess> {
   try {
-    return await adminGet<StaffSession>(STAFF_SESSION_PATH);
+    const session = await adminGet<StaffSession>(STAFF_SESSION_PATH);
+    if (!session.required) return { status: "not-set-up" };
+    return session.staff ? { status: "signed-in", staff: session.staff } : { status: "signed-out" };
   } catch (cause) {
-    if (cause instanceof ApiError && cause.status === 401) return null;
-    throw cause;
+    if (cause instanceof ApiError && cause.status === 401) return { status: "signed-out" };
+    return { status: "unreachable" };
   }
 }

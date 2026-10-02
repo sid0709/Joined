@@ -53,7 +53,8 @@ func main() {
 		os.Exit(1)
 	}
 	defer p.Close()
-	migrateCatalog(p.Jobs, db.MongoURI)
+	// In the background, so the console can reach the API while it runs.
+	go migrateCatalog(p.Jobs, db.MongoURI)
 
 	if adminToken == "" {
 		slog.Warn("ADMIN_API_TOKEN is not set: staff endpoints accept unauthenticated requests")
@@ -91,8 +92,8 @@ func main() {
 }
 
 // migrateCatalog brings stored jobs and companies up to the current shape. Staff
-// own the catalog, so the admin API runs these. Each is idempotent; a failure is
-// logged and the server still starts.
+// own the catalog, so the admin API runs these. Each is idempotent and safe to run
+// beside requests; a failure is logged and the server keeps serving.
 func migrateCatalog(store *jobs.Store, mongoURI string) {
 	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), backfillTimeout)
 	updated, err := store.BackfillJobProvenance(backfillCtx)

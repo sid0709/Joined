@@ -149,6 +149,10 @@ func (s *Server) finishStaffGoogle(w http.ResponseWriter, r *http.Request) {
 		EmailVerified: profile.EmailVerified,
 		Name:          profile.Name,
 	}, profile.HostedDomain, s.staffAuth.Domain, now)
+	if errors.Is(err, auth.ErrNotStaff) {
+		// Say why in the log: a blank ADMIN_GOOGLE_DOMAIN refuses everyone.
+		slog.Warn("staff sign-in refused", "email", profile.Email, "workspace", profile.HostedDomain, "allowed", s.staffAuth.Domain)
+	}
 	if err != nil {
 		writeStaffGoogleFailure(w, err)
 		return
