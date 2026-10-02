@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { EmptyState, Text, VStack } from "@joined/design-system";
+import { Badge, EmptyState, HStack, Text, VStack } from "@joined/design-system";
 import { canContinueGenerate } from "@acorn/shared/generate-checkpoint";
 import { isFillPhaseBusy, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { FACE_WINK_MS } from "../acorn-face/constants";
@@ -11,19 +11,11 @@ import { customUiProgress } from "../pipeline/custom-generate-progress";
 import { customRecommendProgress } from "../pipeline/custom-recommend-progress";
 import { customTabHasResume, type AcornCustomTabBinding } from "../tab-custom-session";
 import type { TabPipelineMap } from "../tab-pipeline-session";
-import { customTabResumeLine } from "./custom-tab-resume";
+import { customTabResumeLine, hostOf } from "./custom-tab-resume";
 import { triggerResumeDownload } from "./download-resume";
-import { GenerateRunExtras } from "./GenerateRunExtras";
+import { runExtras } from "./run-extras";
 import { pushAcornNotice } from "./acorn-notice";
 import { SidebarListCard } from "./SidebarListCard";
-
-function hostOf(url: string): string {
-  try {
-    return new URL(url).host || url;
-  } catch {
-    return url || "Unknown page";
-  }
-}
 
 type CustomTabListProps = {
   tabs: AcornCustomTabBinding[];
@@ -64,12 +56,12 @@ export function CustomTabList({
 
   return (
     <VStack as="section" gap={3} className="worker-pool">
-      <VStack gap={0}>
-        <Text as="h3" weight="semibold">
+      <HStack gap={2} align="center">
+        <Text as="h2" weight="semibold">
           Remembered tabs
         </Text>
-        <Text type="supporting">{tabs.length === 1 ? "1 tab" : `${tabs.length} tabs`}</Text>
-      </VStack>
+        <Badge variant="neutral" label={tabs.length} />
+      </HStack>
       {tabs.length === 0 ? (
         <EmptyState
           isCompact
@@ -230,9 +222,8 @@ function CustomTabRow({
         label: `Forget ${label}`,
         onClick: onForget,
       }}
-    >
-      <GenerateRunExtras
-        progress={
+      {...runExtras({
+        progress:
           tab.generateProgress ??
           (recommending
             ? customRecommendProgress({
@@ -243,18 +234,17 @@ function CustomTabRow({
                 status: tab.generateStatus,
                 source: "custom",
                 checkpoint: tab.checkpoint,
-              }))
-        }
-        showBar={showBar}
-        canContinue={canContinue}
-        canRestart={canContinue && Boolean(tab.checkpoint?.completedSteps.length)}
-        canViewJd={canViewJd}
-        onContinue={() => onContinueGenerate?.(tab)}
-        onRestart={() => onRestartGenerate?.(tab)}
-        onViewJd={() => {
+              })),
+        showBar: showBar,
+        canContinue: canContinue,
+        canRestart: canContinue && Boolean(tab.checkpoint?.completedSteps.length),
+        canViewJd: canViewJd,
+        onContinue: () => onContinueGenerate?.(tab),
+        onRestart: () => onRestartGenerate?.(tab),
+        onViewJd: () => {
           if (jdText) onViewJd?.(tab, jdText);
-        }}
-      />
-    </SidebarListCard>
+        },
+      })}
+    />
   );
 }

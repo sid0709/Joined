@@ -12,7 +12,7 @@ import {
 import { MSG, type PipelineSource } from "../types";
 import { pushAcornNotice } from "./acorn-notice";
 import { sendMessage } from "./runtime";
-import type { AcornMainTab } from "./SidebarMainTabs";
+import type { AcornMainTab } from "./SidebarNav";
 import type { useTabSession } from "./use-tab-session";
 import type { AcornWorkerJob } from "./WorkerPoolList";
 
@@ -84,7 +84,7 @@ export function useTabWork({
           if (/sign in/i.test(err)) {
             setTabProgress(tabId, {
               phase: "idle",
-              message: "Sign in to Athens to run Acorn",
+              message: "Sign in to Joined to run Acorn",
             });
             pushAcornNotice({
               kind: "error",

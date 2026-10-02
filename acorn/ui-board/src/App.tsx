@@ -4,14 +4,14 @@ import type { ActionStep } from "./automation-types";
 import type { ClientInfo, DomNode, DomTreeMessage, HighlightPayload } from "./types";
 import { fetchRuntimeFile, requestAiAnalyze } from "./ai-client";
 import {
-  DEFAULT_ATHENS_API_URL,
+  DEFAULT_JOINED_API_URL,
   getAccessToken,
-  getAthensApiUrl,
+  getJoinedApiUrl,
   getAcornSession,
   acornSignIn,
   acornSignOut,
   ACORN_SOCKET_PATH,
-  setAthensApiUrl,
+  setJoinedApiUrl,
   type AcornStoredSession,
 } from "./auth/acorn-auth";
 import { formatMetaTreePreview, formatPureTreePreview, splitDomTree } from "./tree-export";
@@ -26,7 +26,7 @@ import type { ActionPlan, PauseDecision, PauseRequest, RunStepRecord } from "./p
 import "./App.css";
 
 export default function App() {
-  const [serverUrl, setServerUrl] = useState(() => getAthensApiUrl());
+  const [serverUrl, setServerUrl] = useState(() => getJoinedApiUrl());
   const [session, setSession] = useState<AcornStoredSession | null>(() => getAcornSession());
   const [authName, setAuthName] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -52,7 +52,7 @@ export default function App() {
   const pauseResolverRef = useRef<((decision: PauseDecision) => void) | null>(null);
 
   useEffect(() => {
-    setAthensApiUrl(serverUrl);
+    setJoinedApiUrl(serverUrl);
     const token = getAccessToken();
     if (!token || !session) {
       socketRef.current?.disconnect();
@@ -252,7 +252,7 @@ export default function App() {
   const handleAiAnalyze = async () => {
     if (!latestTree || !splitTrees || aiAnalyzeRunning) return;
     if (!session) {
-      showToast("Sign in to Athens first");
+      showToast("Sign in to Joined first");
       return;
     }
 
@@ -370,12 +370,12 @@ export default function App() {
         </div>
         <div className="header-right">
           <div className="server-input">
-            <label htmlFor="server">Athens API</label>
+            <label htmlFor="server">Joined API</label>
             <input
               id="server"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
-              placeholder={DEFAULT_ATHENS_API_URL}
+              placeholder={DEFAULT_JOINED_API_URL}
             />
           </div>
           {session ? (

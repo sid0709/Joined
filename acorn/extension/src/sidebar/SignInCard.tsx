@@ -1,27 +1,39 @@
-import { Button, Card, Text, VStack } from "@joined/design-system";
+import type { AcornFaceMode } from "@acorn/face";
+import { Button, Text, VStack } from "@joined/design-system";
+import { ACORN_FACE_HELP_PX } from "../acorn-face/constants";
+import { AcornFaceView } from "../acorn-face/AcornFaceView";
 
 type SignInCardProps = {
   authBusy: boolean;
+  faceMode: AcornFaceMode;
   onSignIn: () => void;
 };
 
-/** Signed-out card: Acorn shares the Joined session, so sign-in is one button. */
-export function SignInCard({ authBusy, onSignIn }: SignInCardProps) {
+/** Signed-out welcome: Acorn shares the Joined session, so sign-in is one button. */
+export function SignInCard({ authBusy, faceMode, onSignIn }: SignInCardProps) {
   return (
-    <Card padding={4}>
-      <VStack gap={3}>
-        <Text type="supporting">
-          Acorn uses your Joined account. Sign in to Joined in this browser, then continue.
+    <VStack gap={4} align="center" justify="center" className="acorn-welcome">
+      <AcornFaceView mode={faceMode} size={ACORN_FACE_HELP_PX} live label="Acorn" />
+      <VStack gap={1} align="center">
+        <Text as="h1" type="display-3" weight="semibold">
+          Acorn
         </Text>
-        <Button
-          variant="primary"
-          label={authBusy ? "Connecting…" : "Continue with Joined"}
-          isLoading={authBusy}
-          isDisabled={authBusy}
-          width="100%"
-          onClick={onSignIn}
-        />
+        <Text type="supporting" justify="center">
+          Fills job applications with your Joined profile and the right résumé.
+        </Text>
       </VStack>
-    </Card>
+      <Button
+        variant="primary"
+        size="lg"
+        label={authBusy ? "Connecting…" : "Continue with Joined"}
+        isLoading={authBusy}
+        isDisabled={authBusy}
+        width="100%"
+        onClick={onSignIn}
+      />
+      <Text type="supporting" color="secondary" justify="center">
+        Sign in to Joined in this browser first.
+      </Text>
+    </VStack>
   );
 }

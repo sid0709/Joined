@@ -1,6 +1,15 @@
 import { type ReactNode } from "react";
 import type { AcornFaceMode } from "@acorn/face";
-import { Card, Glyph, HStack, IconButton, Text, VStack } from "@joined/design-system";
+import {
+  Badge,
+  Card,
+  Glyph,
+  HStack,
+  IconButton,
+  MoreMenu,
+  Text,
+  VStack,
+} from "@joined/design-system";
 import { ListCardMark } from "../acorn-face/ListCardMark";
 
 export type SidebarListCardAction = {
@@ -28,23 +37,16 @@ type SidebarListCardProps = {
   download: SidebarListCardAction;
   preview: SidebarListCardAction;
   check: SidebarListCardAction;
-  children?: ReactNode;
+  /** Run actions that only apply sometimes (Continue, Start over, View JD). */
+  more?: SidebarListCardAction[];
+  /** A generate or recommend run in flight, under the row. */
+  progress?: ReactNode;
 };
 
-function CardIconButton({ action, glyph }: { action: SidebarListCardAction; glyph: ReactNode }) {
-  return (
-    <IconButton
-      variant="ghost"
-      size="sm"
-      icon={glyph}
-      label={action.label}
-      tooltip={action.title}
-      isDisabled={action.disabled}
-      onClick={action.onClick}
-    />
-  );
-}
-
+/**
+ * One Fill job or Custom tab. The whole row opens or focuses its tab; Preview stays one
+ * click away and everything else sits in the ⋯ menu.
+ */
 export function SidebarListCard({
   itemId,
   selected,
@@ -63,58 +65,94 @@ export function SidebarListCard({
   download,
   preview,
   check,
-  children,
+  more = [],
+  progress,
 }: SidebarListCardProps) {
+  const menuItems = [
+    ...more.map((action) => ({
+      label: action.label,
+      description: action.title !== action.label ? action.title : undefined,
+      isDisabled: action.disabled,
+      onClick: action.onClick,
+    })),
+    ...(more.length ? [{ type: "divider" as const }] : []),
+    {
+      label: download.title,
+      icon: <Glyph name="download" />,
+      isDisabled: download.disabled,
+      onClick: download.onClick,
+    },
+    {
+      label: check.title,
+      icon: <Glyph name="check" />,
+      isDisabled: check.disabled,
+      onClick: check.onClick,
+    },
+  ];
+
   return (
     <Card
       data-item-id={itemId}
       variant={selected ? "blue" : "default"}
       padding={3}
-      className={`acorn-list-card${attached && !selected ? " attached" : ""}${
+      className={`acorn-row${attached && !selected ? " attached" : ""}${
         marking ? " marking" : ""
       }${blocked ? " is-blocked" : ""}`}
     >
       <button
         type="button"
-        className="acorn-list-card-hit"
+        className="acorn-row-hit"
         disabled={open.disabled}
         aria-current={open.current ? "page" : undefined}
         aria-label={open.label}
         title={open.title}
         onClick={open.onClick}
       />
-      <HStack gap={3} align="center">
-        <ListCardMark
-          itemId={itemId}
-          logoUrl={logoUrl}
-          fallback={logoFallback}
-          faceMode={faceMode}
-          selected={selected}
-          label={`${title} status`}
-        />
-        <VStack gap={0} className="acorn-list-card-copy">
-          <Text weight="semibold" maxLines={1} hasTruncateTooltip>
-            {title}
-          </Text>
-          <Text type="supporting" maxLines={1}>
-            {subtitle}
-          </Text>
-          <Text
-            type="supporting"
-            color={resumeReady ? "primary" : "secondary"}
-            className={resumeFailed ? "acorn-list-card-failed" : undefined}
-            maxLines={1}
-          >
-            {resumeText}
-          </Text>
-        </VStack>
-        <HStack gap={0.5} className="acorn-list-card-actions">
-          <CardIconButton action={download} glyph={<Glyph name="download" />} />
-          <CardIconButton action={preview} glyph={<Glyph name="eye" />} />
-          <CardIconButton action={check} glyph={<Glyph name="check" />} />
+      <VStack gap={2}>
+        <HStack gap={3} align="center">
+          <ListCardMark
+            itemId={itemId}
+            logoUrl={logoUrl}
+            fallback={logoFallback}
+            faceMode={faceMode}
+            selected={selected}
+            label={`${title} status`}
+          />
+          <VStack gap={1} className="acorn-row-copy">
+            <Text weight="semibold" maxLines={1} hasTruncateTooltip>
+              {title}
+            </Text>
+            <Text type="supporting" maxLines={1}>
+              {subtitle}
+            </Text>
+            <span className="acorn-row-status">
+              <Badge
+                variant={resumeFailed ? "error" : resumeReady ? "green" : "neutral"}
+                label={resumeText}
+              />
+            </span>
+          </VStack>
+          <HStack gap={0.5} className="acorn-row-actions">
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={<Glyph name="eye" />}
+              label={preview.label}
+              tooltip={preview.title}
+              isDisabled={preview.disabled}
+              onClick={preview.onClick}
+            />
+            <MoreMenu
+              label={`More for ${title}`}
+              variant="ghost"
+              size="sm"
+              alignment="end"
+              items={menuItems}
+            />
+          </HStack>
         </HStack>
-      </HStack>
-      {children}
+        {progress ? <div className="acorn-row-progress">{progress}</div> : null}
+      </VStack>
     </Card>
   );
 }

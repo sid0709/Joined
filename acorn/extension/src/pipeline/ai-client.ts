@@ -2,7 +2,7 @@ import type { GenerateEnqueueCheckpoint } from "@acorn/shared/generate-checkpoin
 import { readStoredJobDescription } from "@acorn/shared/job-description";
 import type { AiUsageSummary } from "@acorn/shared/ai-usage";
 import type { ActionPlan, RuntimeAttachedFile } from "@acorn/shared/plan-runner/types";
-import { authHeaders, getAthensApiUrl } from "../auth/acorn-auth";
+import { authHeaders, getJoinedApiUrl } from "../auth/acorn-auth";
 
 export interface AiAnalyzePage {
   title?: string;
@@ -39,7 +39,7 @@ export async function requestAiAnalyze(
   payload: AiAnalyzeRequest,
   _apiUrl?: string,
 ): Promise<AiAnalyzeResponse> {
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/ai-analyze`, {
     method: "POST",
     headers: await authHeaders(),
@@ -104,22 +104,23 @@ function isNestMissingRoute(status: number, data: { message?: unknown; error?: u
 }
 
 const CUSTOM_EDITOR_UNAVAILABLE =
-  "Custom generate needs the My Resume Editor pipeline on this Athens host (stored config, template, and variables → Firestore file).";
+  "Custom generate needs the My Resume Editor pipeline on this Joined API host (stored config, template, and variables → Firestore file).";
 
 const CUSTOM_STORED_FILE_UNAVAILABLE =
   "Could not load the stored editor résumé. Custom preview, download, and Fill use the Firestore file from generate, not the default Word export.";
 
 const CUSTOM_PREVIEW_UNAVAILABLE =
-  "Résumé preview needs the stored editor file on this Athens host. Download and Fill use that same Firestore file.";
+  "Résumé preview needs the stored editor file on this Joined API host. Download and Fill use that same Firestore file.";
 
-const CUSTOM_EXTRACT_JD_UNAVAILABLE = "Custom generate needs JD extract on this Athens host.";
+const CUSTOM_EXTRACT_JD_UNAVAILABLE = "Custom generate needs JD extract on this Joined API host.";
 
-const CUSTOM_RECOMMEND_UNAVAILABLE = "Custom Recommend needs Library matching on this Athens host.";
+const CUSTOM_RECOMMEND_UNAVAILABLE =
+  "Custom Recommend needs Library matching on this Joined API host.";
 
 const CUSTOM_LIBRARY_FILE_UNAVAILABLE = "Could not load the recommended Library résumé.";
 
 export async function fetchRuntimeFile(_apiUrl?: string): Promise<RuntimeAttachedFile | null> {
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/runtime-file`, {
     headers: await authHeaders(),
   });
@@ -142,7 +143,7 @@ export async function fetchRecommendedResume(
 ): Promise<RuntimeAttachedFile | null> {
   const id = String(jobId || "").trim();
   if (!id) return null;
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(id)}/recommended-resume`, {
     headers: await authHeaders(),
   });
@@ -180,7 +181,7 @@ export const NO_STORED_JD = "This job has no stored job description";
 export async function fetchStoredJobDescription(jobId: string, _apiUrl?: string): Promise<string> {
   const id = String(jobId || "").trim();
   if (!id) throw new Error(NO_STORED_JD);
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -211,7 +212,7 @@ export async function fetchCustomResume(
 ): Promise<RuntimeAttachedFile | null> {
   const id = String(generationId || "").trim();
   if (!id) return null;
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/resumes/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -262,7 +263,7 @@ export async function extractCustomJd(
 ): Promise<ExtractCustomJdResult> {
   const pageText = typeof input === "string" ? input.trim() : String(input.pageText || "").trim();
   if (!pageText) throw new Error("No readable text on this tab");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const extractBody = { pageText };
   const res = await fetch(`${base}/acorn/custom/extract-jd`, {
     method: "POST",
@@ -294,11 +295,11 @@ export async function extractCustomJd(
 
 /**
  * Enqueue My Resume Editor generate with extracted JD prose.
- * Athens must apply the signed-in stored template and persist the file
+ * The Joined API must apply the signed-in stored template and persist the file
  * to Firestore — same pipeline as the editor, not renderDocx.
  *
  * Optional `jobId` associates the file with a Worker pool job (Fill).
- * Optional `checkpoint` asks Athens to skip completed section steps.
+ * Optional `checkpoint` asks the Joined API to skip completed section steps.
  */
 export async function enqueueCustomGenerate(
   input:
@@ -315,7 +316,7 @@ export async function enqueueCustomGenerate(
   if (!description) throw new Error("No job description to generate from");
   const jobId = typeof input === "string" ? null : String(input.jobId || "").trim() || null;
   const checkpoint = typeof input === "string" ? null : (input.checkpoint ?? null);
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/generate`, {
     method: "POST",
     headers: await authHeaders(),
@@ -360,7 +361,7 @@ export async function continueCustomGenerate(
   const existingId = String(input.inputId || "").trim();
   const description = String(input.jobDescription || "").trim();
   if (!description) throw new Error("No job description to generate from");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   if (existingId) {
     const res = await fetch(
       `${base}/acorn/custom/generate/${encodeURIComponent(existingId)}/continue`,
@@ -415,7 +416,7 @@ export async function pollCustomGenerate(
 ): Promise<CustomGeneratePoll> {
   const id = String(inputId || "").trim();
   if (!id) throw new Error("Missing generation input");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/generate/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -466,7 +467,7 @@ export async function requestQaAnswer(
 ): Promise<string> {
   const question = input.question.trim();
   if (!question) throw new Error("Enter a question");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/qa`, {
     method: "POST",
     headers: await authHeaders(),
@@ -508,7 +509,7 @@ export async function recommendCustomLibrary(
 ): Promise<CustomLibraryRecommendResult> {
   const jobDescription = input.jobDescription.trim();
   if (!jobDescription) throw new Error("No readable text on this tab");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/recommend`, {
     method: "POST",
     headers: await authHeaders(),
@@ -551,7 +552,7 @@ export async function fetchCustomLibraryResume(
 ): Promise<RuntimeAttachedFile | null> {
   const id = String(resumeId || "").trim();
   if (!id) return null;
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/library-resumes/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -589,7 +590,7 @@ export async function fetchCustomLibraryResumePreview(
 ): Promise<string> {
   const id = String(resumeId || "").trim();
   if (!id) throw new Error("Missing resume id");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(
     `${base}/acorn/custom/library-resumes/${encodeURIComponent(id)}/preview`,
     {
@@ -618,7 +619,7 @@ export async function fetchCustomResumePreview(
 ): Promise<string> {
   const id = String(generationId || "").trim();
   if (!id) throw new Error("Missing generation id");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/resumes/${encodeURIComponent(id)}/preview`, {
     headers: await authHeaders(),
   });
@@ -644,7 +645,7 @@ export async function fetchGeneratedResumePreview(
 ): Promise<string> {
   const id = String(jobId || "").trim();
   if (!id) throw new Error("Missing job id");
-  const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(id)}/resume-preview`, {
     headers: await authHeaders(),
   });

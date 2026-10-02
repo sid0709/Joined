@@ -1,70 +1,68 @@
-/* Side panel layout: header chrome, a scrolling middle, then the connection strip and
-   the sticky action bar in normal flow at the bottom. Components come from
-   @joined/design-system; this file only arranges them. */
+/* Side panel layout: a fixed top (header + PillNav), then one panel per tab. Jobs and
+   Tabs keep the Now card in view and scroll the list under it; Ask lets the chat scroll
+   itself. Components come from @joined/design-system; this file only arranges them. */
 
 .sidebar-app {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: var(--color-background-surface);
+  background: var(--color-background-body);
   color: var(--color-text-primary);
 }
 
-.sidebar-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+.acorn-top {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-4);
-}
-
-.sidebar-chrome {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  padding-bottom: var(--spacing-2);
+  background: var(--color-background-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
-.welcome .brand-logo {
+.acorn-header-face {
   width: var(--acorn-face-brand-px);
   height: var(--acorn-face-brand-px);
   flex-shrink: 0;
   line-height: 0;
 }
 
-.brand-user {
+.acorn-header-copy {
   flex: 1;
   min-width: 0;
 }
 
-.tools {
-  flex-shrink: 0;
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
 }
 
-.sidebar-app.tab-qa .tools {
+.acorn-panel {
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
 }
 
-.sidebar-tab-panel[hidden],
-.sidebar-list-slot[hidden] {
+.acorn-panel[hidden] {
   display: none;
 }
 
-.sidebar-list-slot {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
+.acorn-now {
+  flex-shrink: 0;
+}
+
+/* Generate and Recommend split the row under Fill. */
+.acorn-now-row > * {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .worker-pool {
@@ -78,35 +76,34 @@
   overflow-y: auto;
 }
 
+.acorn-group-heading {
+  padding-top: var(--spacing-1);
+}
+
+.sidebar-app.tab-qa .sidebar-scroll {
+  overflow: hidden;
+}
+
+.acorn-panel-ask,
+.acorn-ask {
+  min-height: 0;
+}
+
+.acorn-welcome {
+  flex: 1;
+  padding: var(--spacing-6) var(--spacing-2);
+  text-align: center;
+}
+
 .sidebar-after {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
-  padding-top: var(--spacing-2);
-  border-top: 1px solid var(--color-border);
 }
 
-.sidebar-after:empty,
-.sidebar-app.tab-qa .sidebar-after,
-.sidebar-app.signed-in:not(.tab-qa) .sidebar-after {
+.sidebar-after:empty {
   display: none;
-}
-
-.status-bar {
-  flex-shrink: 0;
-  padding: var(--spacing-2) var(--spacing-4);
-  border-top: 1px solid var(--color-border);
-  background: var(--color-background-surface);
-}
-
-/* Last in the column even though it comes before the footer in the markup. */
-.acorn-action-bar {
-  order: 1;
-  flex-shrink: 0;
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
-  border-top: 1px solid var(--color-border);
-  background: var(--color-background-surface);
 }
 
 .face-guide-modes {
@@ -118,10 +115,4 @@
 .face-guide-face {
   flex-shrink: 0;
   line-height: 0;
-}
-
-/* Fill page spans the bar; Generate and Recommend split the row under it. */
-.acorn-action-bar-row > * {
-  flex: 1 1 0;
-  min-width: 0;
 }

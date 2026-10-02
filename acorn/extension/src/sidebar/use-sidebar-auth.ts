@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  DEFAULT_ATHENS_API_URL,
-  getAthensApiUrl,
+  DEFAULT_JOINED_API_URL,
+  getJoinedApiUrl,
   getAcornSession,
   type AcornStoredSession,
 } from "../auth/acorn-auth";
@@ -11,13 +11,13 @@ import { sendMessage } from "./runtime";
 
 /** Sidebar sign-in state: API URL, Joined session, and the sign in / sign out actions. */
 export function useSidebarAuth({ onSignedOut }: { onSignedOut: () => void }) {
-  const [apiUrl, setApiUrl] = useState(DEFAULT_ATHENS_API_URL);
+  const [apiUrl, setApiUrl] = useState(DEFAULT_JOINED_API_URL);
   const [session, setSession] = useState<AcornStoredSession | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
 
   useEffect(() => {
     void (async () => {
-      setApiUrl(await getAthensApiUrl());
+      setApiUrl(await getJoinedApiUrl());
       setSession(await getAcornSession());
     })();
   }, []);

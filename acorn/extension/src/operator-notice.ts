@@ -14,18 +14,18 @@ export function socketErrorDetail(message: string): string {
     text.includes("timeout") ||
     text.includes("transport")
   ) {
-    return "Couldn’t reach Athens. Check the API URL and that the backend is running.";
+    return "Couldn’t reach Joined. Check the API URL and that the backend is running.";
   }
   if (text.includes("auth") || text.includes("unauthorized") || text.includes("jwt")) {
     return "Session expired. Sign in again.";
   }
-  return message.trim() || "Couldn’t reach Athens.";
+  return message.trim() || "Couldn’t reach Joined.";
 }
 
 export function networkErrorDetail(err: unknown, fallback: string): string {
   const message = err instanceof Error ? err.message : String(err ?? "");
   if (/failed to fetch|networkerror|load failed/i.test(message)) {
-    return "Couldn’t reach Athens. Check the API URL and that the backend is running.";
+    return "Couldn’t reach Joined. Check the API URL and that the backend is running.";
   }
   return message.trim() || fallback;
 }

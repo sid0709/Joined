@@ -1,7 +1,7 @@
 import { ACORN_SOCKET_PATH, acornHosts } from "@acorn/shared/api";
 
 /** Acorn's API: backend-core's server. Override per build with VITE_ACORN_API_URL. */
-export const DEFAULT_ATHENS_API_URL =
+export const DEFAULT_JOINED_API_URL =
   import.meta.env.VITE_ACORN_API_URL?.trim() || acornHosts(import.meta.env.MODE).api;
 export { ACORN_SOCKET_PATH };
 
@@ -13,15 +13,15 @@ export type AcornStoredSession = {
   expiresAt: string;
 };
 
-const API_URL_KEY = "acorn.athensApiUrl";
+const API_URL_KEY = "acorn.joinedApiUrl";
 const SESSION_KEY = "acorn.session";
 
-export function getAthensApiUrl(): string {
+export function getJoinedApiUrl(): string {
   const stored = localStorage.getItem(API_URL_KEY);
-  return (stored || DEFAULT_ATHENS_API_URL).replace(/\/$/, "");
+  return (stored || DEFAULT_JOINED_API_URL).replace(/\/$/, "");
 }
 
-export function setAthensApiUrl(url: string): void {
+export function setJoinedApiUrl(url: string): void {
   localStorage.setItem(API_URL_KEY, url.trim().replace(/\/$/, ""));
 }
 
@@ -56,7 +56,7 @@ export function getAccessToken(): string | null {
 export async function acornSignIn(
   name: string,
   password: string,
-  apiUrl = getAthensApiUrl(),
+  apiUrl = getJoinedApiUrl(),
 ): Promise<AcornStoredSession> {
   const base = apiUrl.replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/auth/signin`, {
@@ -85,13 +85,13 @@ export async function acornSignIn(
     profileId: data.session.profileId || "",
     expiresAt: data.session.expiresAt || "",
   };
-  setAthensApiUrl(base);
+  setJoinedApiUrl(base);
   setAcornSession(session);
   return session;
 }
 
 export async function acornSignOut(): Promise<void> {
-  const base = getAthensApiUrl();
+  const base = getJoinedApiUrl();
   const token = getAccessToken();
   if (token) {
     try {
@@ -108,7 +108,7 @@ export async function acornSignOut(): Promise<void> {
 
 export function authHeaders(): Record<string, string> {
   const token = getAccessToken();
-  if (!token) throw new Error("Sign in to Athens required");
+  if (!token) throw new Error("Sign in to Joined required");
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,

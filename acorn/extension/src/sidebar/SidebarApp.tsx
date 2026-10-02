@@ -5,16 +5,17 @@ import { countBusyWorkers, tabInputFromProgress } from "../acorn-face/director";
 import { useCompanionFace } from "../acorn-face/use-companion-face";
 import { pushAcornNotice } from "./acorn-notice";
 import { AnalyzedTreeSection } from "./AnalyzedTreeSection";
-import { ConnectionFooter } from "./ConnectionFooter";
+import { hostOf } from "./custom-tab-resume";
 import { CustomTabList } from "./CustomTabList";
 import { FaceGuidePanel } from "./FaceGuidePanel";
-import { IdentityBar } from "./IdentityBar";
 import { InspectPanel } from "./InspectPanel";
+import { NowCard } from "./NowCard";
 import { PlanRunSection } from "./PlanRunSection";
+import { QaPanel } from "./QaPanel";
 import { ResumePreviewPanel } from "./ResumePreviewPanel";
-import { SidebarActionBar } from "./SidebarActionBar";
-import type { AcornMainTab } from "./SidebarMainTabs";
-import { SidebarTools } from "./SidebarTools";
+import { SettingsDrawer } from "./SettingsDrawer";
+import { SidebarHeader } from "./SidebarHeader";
+import { SidebarNav, type AcornMainTab } from "./SidebarNav";
 import { SignInCard } from "./SignInCard";
 import { WorkerPoolList } from "./WorkerPoolList";
 import { actionBarState, isAnyTabWorking, isGenerateBusy } from "./sidebar-work-state";
@@ -44,7 +45,7 @@ export default function SidebarApp() {
 
   const [jdPreview, setJdPreview] = useState<{ title: string; text: string } | null>(null);
   const [mainTab, setMainTab] = useState<AcornMainTab>("fill");
-  const [connectionOpen, setConnectionOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [qaStatus, setQaStatus] = useState({ busy: false, error: false });
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -123,8 +124,6 @@ export default function SidebarApp() {
     openInspect,
   } = usePlanInspect({ activeTabId, ui, progress, patchTabUi });
 
-  const connectionLabel = connected ? "Connected" : session ? "Offline" : "Sign in";
-  const footerStatus = fillBusy ? progress.message : connectionLabel;
   const hasTree = Boolean(lastFetch);
   const companionMode = useCompanionFace({
     signedIn: Boolean(session),
@@ -140,7 +139,7 @@ export default function SidebarApp() {
     qaBusy: qaStatus.busy,
     qaError: qaStatus.error,
     inspectOpen: Boolean(ui.inspect || preview || helpOpen),
-    connectionOpen,
+    connectionOpen: settingsOpen,
     jobsLoading: workerJobsLoading,
     jobsEmpty:
       Boolean(session) &&
@@ -154,7 +153,6 @@ export default function SidebarApp() {
     marking: Boolean(markingJobId),
   });
 
-  const showActionBar = Boolean(session) && mainTab !== "qa" && !helpOpen;
   const customLocked = mainTab === "custom" && !customTab;
   const fillLocked = mainTab === "fill" && !tabJob;
   const rememberFirst = "Remember this tab first";
@@ -178,140 +176,218 @@ export default function SidebarApp() {
     generateBusy,
   });
 
+  const tabWorkJob = tabJob ? (workerJobs.find((job) => job.id === tabJob.jobId) ?? null) : null;
+  const headerContext =
+    mainTab === "custom" && customTab
+      ? hostOf(customTab.url)
+      : tabJob
+        ? `${tabJob.company} · ${tabJob.title}`
+        : "No job on this tab";
+  const nowActions = {
+    fill: {
+      label: fillLabel,
+      title: customLocked ? rememberFirst : fillLabel,
+      disabled: actionsOff,
+      onClick: () => void startPipeline(mainTab === "custom" ? "custom" : "fill"),
+    },
+    generate: {
+      label: generateLabel,
+      title: customLocked ? rememberFirst : fillLocked ? openJobFirst : generateLabel,
+      disabled: actionsOff || fillLocked,
+      onClick: () =>
+        void startCustomWork("generate", {
+          continue:
+            mainTab === "fill"
+              ? fillCanContinue && attachedJobGenerate?.workKind !== "recommend"
+              : customCanContinue && customTab?.workKind !== "recommend",
+        }),
+    },
+    recommend: {
+      label: recommendLabel,
+      title: customLocked ? rememberFirst : fillLocked ? openJobFirst : recommendLabel,
+      disabled: actionsOff || fillLocked,
+      onClick: () =>
+        void startCustomWork("recommend", {
+          continue:
+            mainTab === "fill"
+              ? fillCanContinue && attachedJobGenerate?.workKind === "recommend"
+              : customCanContinue && customTab?.workKind === "recommend",
+        }),
+    },
+    remember: {
+      label: customTab ? "Tab remembered" : "Remember this tab",
+      title: "Remember this tab for Custom",
+      disabled: !session || activeTabId == null || Boolean(customTab) || tabWorkBusy,
+      onClick: () => void rememberFocusedTab(),
+    },
+  };
+  const nowCard = (tab: "fill" | "custom") => (
+    <NowCard
+      mainTab={tab}
+      tabJob={tabJob}
+      job={tabWorkJob}
+      jobGenerate={attachedJobGenerate}
+      customTab={customTab}
+      progress={progress}
+      fillBusy={fillBusy}
+      {...nowActions}
+    />
+  );
+
   return (
-    <div
-      className={`sidebar-app${session ? " signed-in" : ""} tab-${
-        session ? mainTab : "fill"
-      }${showActionBar ? " has-fill-cta" : ""}${helpOpen ? " help-open" : ""}`}
-    >
-      <div className="sidebar-scroll">
-        <div className="sidebar-chrome">
-          <IdentityBar
-            session={session}
-            companionMode={companionMode}
-            workersMode={workersMode}
-            busyCounts={busyCounts}
-            busyTotal={busyTotal}
-            helpOpen={helpOpen}
-            signOutDisabled={authBusy || anyTabWorking}
-            onToggleHelp={() => setHelpOpen((open) => !open)}
-            onSignOut={() => void handleSignOut()}
-          />
-          {session ? null : <SignInCard authBusy={authBusy} onSignIn={() => void handleSignIn()} />}
-        </div>
-
-        {helpOpen ? (
-          <FaceGuidePanel thinking={busyCounts.thinking} working={busyCounts.working} />
-        ) : (
-          <>
-            <SidebarTools
-              signedIn={Boolean(session)}
-              mainTab={mainTab}
-              onTabChange={setMainTab}
-              tabJob={tabJob}
-              customTab={customTab}
-              activeTabId={activeTabId}
-              fillBusy={fillBusy}
-              tabWorkBusy={tabWorkBusy}
-              onQaStatus={setQaStatus}
-              onRemember={() => void rememberFocusedTab()}
+    <div className={`sidebar-app${session ? " signed-in" : ""} tab-${session ? mainTab : "fill"}`}>
+      {session ? (
+        <>
+          <div className="acorn-top">
+            <SidebarHeader
+              session={session}
+              companionMode={companionMode}
+              workersMode={workersMode}
+              busyCounts={busyCounts}
+              busyTotal={busyTotal}
+              connected={connected}
+              context={headerContext}
+              signOutDisabled={authBusy || anyTabWorking}
+              onOpenGuide={() => setHelpOpen(true)}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onSignOut={() => void handleSignOut()}
             />
+            <SidebarNav
+              value={mainTab}
+              onChange={setMainTab}
+              busyJobs={busyTotal}
+              rememberedTabs={customList.length}
+            />
+          </div>
 
-            {session ? (
-              <div className="sidebar-list-slot" hidden={mainTab !== "custom"}>
-                <CustomTabList
-                  tabs={customList}
-                  pipelines={pipelines}
-                  activeTabId={activeTabId}
-                  listActive={mainTab === "custom"}
-                  onFocus={(tabId) => void focusCustomTab(tabId)}
-                  onForget={(tabId) => void forgetCustomTab(tabId)}
-                  onPreview={openCustomResumePreview}
-                  onContinueGenerate={(tab) =>
-                    void startCustomWork(tab.workKind === "recommend" ? "recommend" : "generate", {
-                      continue: true,
-                      tab,
-                    })
-                  }
-                  onRestartGenerate={(tab) =>
-                    void startCustomWork(tab.workKind === "recommend" ? "recommend" : "generate", {
-                      continue: false,
-                      tab,
-                    })
-                  }
-                  onViewJd={(tab, jd) => setJdPreview({ title: tab.title || "Untitled", text: jd })}
-                />
-              </div>
+          <main className="sidebar-scroll">
+            <section
+              id="acorn-panel-fill"
+              className="acorn-panel"
+              aria-label="Jobs"
+              hidden={mainTab !== "fill"}
+            >
+              {nowCard("fill")}
+              <WorkerPoolList
+                jobs={workerJobs}
+                loading={workerJobsLoading}
+                error={workerJobsError}
+                selectedJobId={tabJob?.jobId ?? null}
+                attachments={attachments}
+                pipelines={pipelines}
+                generates={jobGenerates}
+                openingJobId={openingJobId}
+                markingJobId={markingJobId}
+                listKey={jobsListKey}
+                listActive={mainTab === "fill"}
+                onRefresh={() => void fetchWorkerJobs()}
+                onOpen={(job) => void openWorkerJob(job)}
+                onPreviewResume={openJobResumePreview}
+                onMarkApplied={(job) => void markJobApplied(job)}
+                onContinueGenerate={(job) =>
+                  void startJobWork(
+                    jobGenerates[job.id]?.workKind === "recommend" ? "recommend" : "generate",
+                    { continue: true, job },
+                  )
+                }
+                onRestartGenerate={(job) =>
+                  void startJobWork(
+                    jobGenerates[job.id]?.workKind === "recommend" ? "recommend" : "generate",
+                    { continue: false, job },
+                  )
+                }
+                onViewJd={(job, jd) => setJdPreview({ title: job.title, text: jd })}
+              />
+            </section>
+
+            <section
+              id="acorn-panel-qa"
+              className="acorn-panel acorn-panel-ask"
+              aria-label="Ask"
+              hidden={mainTab !== "qa"}
+            >
+              <QaPanel
+                signedIn
+                disabled={fillBusy}
+                onStatus={setQaStatus}
+                page={
+                  tabJob
+                    ? {
+                        job: {
+                          id: tabJob.jobId,
+                          title: tabJob.title,
+                          company: tabJob.company,
+                        },
+                      }
+                    : null
+                }
+              />
+            </section>
+
+            <section
+              id="acorn-panel-custom"
+              className="acorn-panel"
+              aria-label="Tabs"
+              hidden={mainTab !== "custom"}
+            >
+              {nowCard("custom")}
+              <CustomTabList
+                tabs={customList}
+                pipelines={pipelines}
+                activeTabId={activeTabId}
+                listActive={mainTab === "custom"}
+                onFocus={(tabId) => void focusCustomTab(tabId)}
+                onForget={(tabId) => void forgetCustomTab(tabId)}
+                onPreview={openCustomResumePreview}
+                onContinueGenerate={(tab) =>
+                  void startCustomWork(tab.workKind === "recommend" ? "recommend" : "generate", {
+                    continue: true,
+                    tab,
+                  })
+                }
+                onRestartGenerate={(tab) =>
+                  void startCustomWork(tab.workKind === "recommend" ? "recommend" : "generate", {
+                    continue: false,
+                    tab,
+                  })
+                }
+                onViewJd={(tab, jd) => setJdPreview({ title: tab.title || "Untitled", text: jd })}
+              />
+            </section>
+          </main>
+        </>
+      ) : (
+        <main className="sidebar-scroll">
+          <SignInCard
+            authBusy={authBusy}
+            faceMode={companionMode}
+            onSignIn={() => void handleSignIn()}
+          />
+          <div className="sidebar-after">
+            {lastFetch ? (
+              <AnalyzedTreeSection
+                lastFetch={lastFetch}
+                nodeCount={nodeCount}
+                hasTree={hasTree}
+                hasPlan={Boolean(plan)}
+                onInspect={openInspect}
+              />
             ) : null}
-
-            {session ? (
-              <div
-                className="sidebar-list-slot"
-                hidden={mainTab !== "fill"}
-                id="acorn-panel-fill"
-                role="tabpanel"
-                aria-labelledby="acorn-tab-fill"
-              >
-                <WorkerPoolList
-                  jobs={workerJobs}
-                  loading={workerJobsLoading}
-                  error={workerJobsError}
-                  selectedJobId={tabJob?.jobId ?? null}
-                  attachments={attachments}
-                  pipelines={pipelines}
-                  generates={jobGenerates}
-                  openingJobId={openingJobId}
-                  markingJobId={markingJobId}
-                  listKey={jobsListKey}
-                  listActive={mainTab === "fill"}
-                  onRefresh={() => void fetchWorkerJobs()}
-                  onOpen={(job) => void openWorkerJob(job)}
-                  onPreviewResume={openJobResumePreview}
-                  onMarkApplied={(job) => void markJobApplied(job)}
-                  onContinueGenerate={(job) =>
-                    void startJobWork(
-                      jobGenerates[job.id]?.workKind === "recommend" ? "recommend" : "generate",
-                      { continue: true, job },
-                    )
-                  }
-                  onRestartGenerate={(job) =>
-                    void startJobWork(
-                      jobGenerates[job.id]?.workKind === "recommend" ? "recommend" : "generate",
-                      { continue: false, job },
-                    )
-                  }
-                  onViewJd={(job, jd) => setJdPreview({ title: job.title, text: jd })}
-                />
-              </div>
+            {steps.length > 0 ? (
+              <PlanRunSection
+                plan={plan}
+                stepCount={steps.length}
+                stepSummary={stepSummary}
+                fillBusy={fillBusy}
+                visibleSteps={visibleSteps}
+                stepsListRef={stepsListRef}
+                hasMoreSteps={hasMoreSteps}
+                onLoadMore={loadMoreSteps}
+              />
             ) : null}
-
-            <div className="sidebar-after">
-              {lastFetch ? (
-                <AnalyzedTreeSection
-                  lastFetch={lastFetch}
-                  nodeCount={nodeCount}
-                  hasTree={hasTree}
-                  hasPlan={Boolean(plan)}
-                  onInspect={openInspect}
-                />
-              ) : null}
-
-              {steps.length > 0 ? (
-                <PlanRunSection
-                  plan={plan}
-                  stepCount={steps.length}
-                  stepSummary={stepSummary}
-                  fillBusy={fillBusy}
-                  visibleSteps={visibleSteps}
-                  stepsListRef={stepsListRef}
-                  hasMoreSteps={hasMoreSteps}
-                  onLoadMore={loadMoreSteps}
-                />
-              ) : null}
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+        </main>
+      )}
 
       {preview ? (
         <ResumePreviewPanel
@@ -347,47 +423,25 @@ export default function SidebarApp() {
         />
       ) : null}
 
-      {showActionBar ? (
-        <SidebarActionBar
-          fillPhase={progress.phase}
-          fillLabel={fillLabel}
-          generateLabel={generateLabel}
-          recommendLabel={recommendLabel}
-          fillDisabled={actionsOff}
-          generateDisabled={actionsOff || fillLocked}
-          recommendDisabled={actionsOff || fillLocked}
-          fillTitle={customLocked ? rememberFirst : fillLabel}
-          generateTitle={customLocked ? rememberFirst : fillLocked ? openJobFirst : generateLabel}
-          recommendTitle={customLocked ? rememberFirst : fillLocked ? openJobFirst : recommendLabel}
-          onFill={() => void startPipeline(mainTab === "custom" ? "custom" : "fill")}
-          onGenerate={() =>
-            void startCustomWork("generate", {
-              continue:
-                mainTab === "fill"
-                  ? fillCanContinue && attachedJobGenerate?.workKind !== "recommend"
-                  : customCanContinue && customTab?.workKind !== "recommend",
-            })
-          }
-          onRecommend={() =>
-            void startCustomWork("recommend", {
-              continue:
-                mainTab === "fill"
-                  ? fillCanContinue && attachedJobGenerate?.workKind === "recommend"
-                  : customCanContinue && customTab?.workKind === "recommend",
-            })
-          }
+      {/* Mounted only while open: the guide runs a live Acorn Face per mood. */}
+      {helpOpen ? (
+        <FaceGuidePanel
+          isOpen
+          onOpenChange={setHelpOpen}
+          thinking={busyCounts.thinking}
+          working={busyCounts.working}
         />
       ) : null}
-
-      <ConnectionFooter
-        phase={progress.phase}
-        connected={connected}
-        signedIn={Boolean(session)}
-        status={footerStatus}
-        apiUrl={apiUrl}
-        onApiUrlChange={setApiUrl}
-        onOpenChange={setConnectionOpen}
-      />
+      {settingsOpen ? (
+        <SettingsDrawer
+          isOpen
+          onOpenChange={setSettingsOpen}
+          connected={connected}
+          signedIn={Boolean(session)}
+          apiUrl={apiUrl}
+          onApiUrlChange={setApiUrl}
+        />
+      ) : null}
     </div>
   );
 }

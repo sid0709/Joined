@@ -1,8 +1,8 @@
 # Acorn Engineering Policy
 
-Read this file before planning, editing, or reviewing Acorn (`acorn/` and its Go backend). Parent product rules in [`../rule.md`](../rule.md) still apply. This file covers **extension session shape, fill, Custom, and reuse of Athens services**.
+Read this file before planning, editing, or reviewing Acorn (`acorn/` and its Go backend). Parent product rules in [`../rule.md`](../rule.md) still apply. This file covers **extension session shape, fill, Custom, and reuse of Joined services**.
 
-Acorn is internal. Do not list Acorn, Project Acorn, or acorn-update on the Athens in-app Changelog.
+Acorn is internal. Do not list Acorn, Project Acorn, or acorn-update on the Joined in-app Changelog.
 
 ---
 
@@ -46,12 +46,12 @@ Analyze → plan → run steps go through the existing pipeline. Custom Generate
 
 ---
 
-## 5. Reuse Athens services
+## 5. Reuse Joined services
 
 Acorn HTTP in `backend-core/acornapi` should compose the existing My Resume Editor generate + apply-template services, and Job Search Library recommend. Do not build a parallel résumé stack, Custom-only DOCX renderer, or a second recommend catalog.
 
 - Custom generate extracts a job description from the same formatted **pure tree** Fill sends to AI Analyze (`POST /acorn/custom/extract-jd` with `pageText` = `formatAnalyzeTrees().pureTree`). Fill generate uses the stored Worker pool `jobDescription` and does not call extract-jd. Enqueue the editor `resume_generation` path only when a JD is present, with the signed-in stored `ResumeConfig`. If no posting is present, refuse generate.
-- Generate is five steps: `load-jd`, `summary`, `skills`, `experience`, `finalize`. Acorn persists completed steps and `partialSections`. Continue sends `checkpoint: { completedSteps, resumeFrom, partialSections }` so Athens can skip finished AI sections. `POST /acorn/custom/generate/:inputId/continue` is preferred when an `inputId` exists; if that route is missing, enqueue a new generate with the same checkpoint body. Optional `jobId` on generate associates the Firestore file with the Worker pool job.
+- Generate is five steps: `load-jd`, `summary`, `skills`, `experience`, `finalize`. Acorn persists completed steps and `partialSections`. Continue sends `checkpoint: { completedSteps, resumeFrom, partialSections }` so the API can skip finished AI sections. `POST /acorn/custom/generate/:inputId/continue` is preferred when an `inputId` exists; if that route is missing, enqueue a new generate with the same checkpoint body. Optional `jobId` on generate associates the Firestore file with the Worker pool job.
 - On completion, apply the stored template/variables and persist the template-applied DOCX in Firestore (same kind of file the editor uploads to the Library).
 - Custom Recommend reuses `RecommendOneService.fromPageText` plus the analyzed Library catalog. It returns a Library `resumeId`; file download/preview/Fill read **that** Library file.
 - Custom generated-file download, HTML preview, attach, and Fill all read **the Firestore generate file**. Recommend-mode download, preview, attach, and Fill read the Library file. Worker Pool Fill still reads the Library upload (or generated Worker-pool file). Conversion stays on the server (`docxBufferToPreviewHtml` / mammoth) of the stored file, not `ResumeGenerationsService.renderDocx`.
@@ -63,7 +63,6 @@ Acorn HTTP in `backend-core/acornapi` should compose the existing My Resume Edit
 
 - **Bump the Acorn extension version on every shipped change.** It lives only in `extension/package.json`; the build copies it into the manifest, `VITE_ACORN_VERSION`, and the build log. Rules: [`.claude/CLAUDE.md`](.claude/CLAUDE.md), [`.cursor/rules/acorn-versioning.mdc`](.cursor/rules/acorn-versioning.mdc).
 - Update `acorn/README.md` when routes or operator steps change.
-- Do not add Acorn items to `Athens/src/app/features/changelog/milestones.ts`.
 
 ---
 

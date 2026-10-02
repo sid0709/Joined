@@ -1,23 +1,23 @@
-/* The Fill / Custom list card: a design-system Card whose whole surface opens or
+/* A Fill job or Custom tab row: a design-system Card whose whole surface opens or
    focuses the tab (a transparent button behind the content), plus Acorn's logo mark
    with the live Acorn Face badge. */
 
-.acorn-list-card {
+.acorn-row {
   --acorn-marking-opacity: 0.45;
   --acorn-mark-size: var(--spacing-8);
 
   position: relative;
 }
 
-.acorn-list-card.attached {
+.acorn-row.attached {
   border-color: var(--color-border-emphasized);
 }
 
-.acorn-list-card.marking {
+.acorn-row.marking {
   opacity: var(--acorn-marking-opacity);
 }
 
-.acorn-list-card-hit {
+.acorn-row-hit {
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -28,29 +28,34 @@
   cursor: pointer;
 }
 
-.acorn-list-card-hit:disabled {
+.acorn-row-hit:disabled {
   cursor: default;
 }
 
-.acorn-list-card-hit:focus-visible {
+.acorn-row-hit:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* Content sits above the hit area; only real controls take clicks. */
-.acorn-list-card-copy {
+.acorn-row-copy {
   flex: 1;
   min-width: 0;
   pointer-events: none;
 }
 
-.acorn-list-card-actions,
-.acorn-gen-extras {
+.acorn-row-actions,
+.acorn-row-progress {
   position: relative;
   z-index: 1;
 }
 
-.acorn-list-card-failed {
+.acorn-row-status {
+  display: flex;
+  min-width: 0;
+}
+
+.acorn-row-failed {
   color: var(--color-error);
 }
 

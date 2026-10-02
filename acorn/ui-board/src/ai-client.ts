@@ -1,4 +1,4 @@
-import { authHeaders, getAthensApiUrl } from "./auth/acorn-auth";
+import { authHeaders, getJoinedApiUrl } from "./auth/acorn-auth";
 import type { ActionPlan, RuntimeAttachedFile } from "./plan-runner/types";
 
 export interface AiAnalyzePage {
@@ -31,7 +31,7 @@ export interface AiAnalyzeResponse {
 }
 
 export async function requestAiAnalyze(payload: AiAnalyzeRequest): Promise<AiAnalyzeResponse> {
-  const base = getAthensApiUrl();
+  const base = getJoinedApiUrl();
   const res = await fetch(`${base}/acorn/ai-analyze`, {
     method: "POST",
     headers: authHeaders(),
@@ -51,7 +51,7 @@ export async function requestAiAnalyze(payload: AiAnalyzeRequest): Promise<AiAna
 }
 
 export async function fetchRuntimeFile(): Promise<RuntimeAttachedFile | null> {
-  const base = getAthensApiUrl();
+  const base = getJoinedApiUrl();
   const res = await fetch(`${base}/acorn/runtime-file`, {
     headers: authHeaders(),
   });
@@ -84,7 +84,7 @@ export async function requestQaAnswer(input: {
 }): Promise<string> {
   const question = input.question.trim();
   if (!question) throw new Error("Enter a question");
-  const base = getAthensApiUrl();
+  const base = getJoinedApiUrl();
   const res = await fetch(`${base}/acorn/qa`, {
     method: "POST",
     headers: authHeaders(),

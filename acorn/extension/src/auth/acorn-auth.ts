@@ -3,7 +3,7 @@ import { ACORN_SOCKET_PATH, acornHosts } from "@acorn/shared/api";
 const hosts = acornHosts(import.meta.env.MODE);
 
 /** Acorn's API: backend-core's server. Override per build with VITE_ACORN_API_URL. */
-export const DEFAULT_ATHENS_API_URL = import.meta.env.VITE_ACORN_API_URL?.trim() || hosts.api;
+export const DEFAULT_JOINED_API_URL = import.meta.env.VITE_ACORN_API_URL?.trim() || hosts.api;
 export { ACORN_SOCKET_PATH };
 
 /**
@@ -24,28 +24,28 @@ export type AcornStoredSession = {
 };
 
 const STORAGE_KEYS = {
-  apiUrl: "athensApiUrl",
+  apiUrl: "joinedApiUrl",
   session: "acornSession",
   signedOutToken: "acornSignedOutToken",
 } as const;
 
-export async function getAthensApiUrl(): Promise<string> {
+export async function getJoinedApiUrl(): Promise<string> {
   const stored = await chrome.storage.local.get([STORAGE_KEYS.apiUrl]);
   const value = stored[STORAGE_KEYS.apiUrl];
   return typeof value === "string" && value.trim()
     ? value.trim().replace(/\/$/, "")
-    : DEFAULT_ATHENS_API_URL;
+    : DEFAULT_JOINED_API_URL;
 }
 
 /** Socket.io origin: the API host. Routes and the engine path both sit under `/acorn` there. */
-export function athensSocketOrigin(apiUrl: string): string {
+export function joinedSocketOrigin(apiUrl: string): string {
   return apiUrl
     .trim()
     .replace(/\/api\/?$/, "")
     .replace(/\/$/, "");
 }
 
-export async function setAthensApiUrl(url: string): Promise<void> {
+export async function setJoinedApiUrl(url: string): Promise<void> {
   await chrome.storage.local.set({
     [STORAGE_KEYS.apiUrl]: url.trim().replace(/\/$/, ""),
   });
@@ -106,7 +106,7 @@ async function ownSignedOutToken(): Promise<string | null> {
 export async function syncJoinedSession(
   options: { apiUrl?: string; force?: boolean } = {},
 ): Promise<AcornAuthResult> {
-  const base = (options.apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
+  const base = (options.apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
   const token = await readJoinedToken();
   if (!token) {
     await clearAcornSession();
@@ -145,7 +145,7 @@ export async function syncJoinedSession(
       // The session lives as long as the Joined cookie; the backend rejects it when it ends.
       expiresAt: "",
     };
-    await setAthensApiUrl(base);
+    await setJoinedApiUrl(base);
     await chrome.storage.local.remove([STORAGE_KEYS.signedOutToken]);
     await setAcornSession(session);
     return { ok: true, session };

@@ -1,6 +1,6 @@
 import { canContinueGenerate } from "@acorn/shared/generate-checkpoint";
 import { isFillPhaseBusy, type PipelineProgress } from "@acorn/shared/pipeline-types";
-import type { AcornMainTab } from "./SidebarMainTabs";
+import type { AcornMainTab } from "./SidebarNav";
 import type { useTabSession } from "./use-tab-session";
 import type { AcornWorkerJob } from "./WorkerPoolList";
 

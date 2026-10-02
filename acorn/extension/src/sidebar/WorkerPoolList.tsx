@@ -1,5 +1,14 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Banner, Button, EmptyState, Glyph, HStack, Text, VStack } from "@joined/design-system";
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Badge,
+  Banner,
+  EmptyState,
+  Glyph,
+  HStack,
+  IconButton,
+  Text,
+  VStack,
+} from "@joined/design-system";
 import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { canContinueGenerate, formatGenerateFailure } from "@acorn/shared/generate-checkpoint";
 import { flashAcornFace } from "../acorn-face/face-flash";
@@ -10,7 +19,7 @@ import { FACE_WINK_MS } from "../acorn-face/constants";
 import { downloadJobResume, hasAssignedResume, resumeMetaText } from "./JobResumeActions";
 import { LoadMoreFooter } from "./LoadMoreFooter";
 import { SidebarListCard } from "./SidebarListCard";
-import { GenerateRunExtras } from "./GenerateRunExtras";
+import { runExtras } from "./run-extras";
 import { useShownCount } from "./use-shown-count";
 import type { AcornJobGenerateBinding } from "../tab-job-generate-session";
 import type { AcornWorkerJob } from "../worker-job";
@@ -18,6 +27,11 @@ import type { AcornWorkerJob } from "../worker-job";
 export type { AcornWorkerJob } from "../worker-job";
 
 const JOB_PAGE = 20;
+
+/** True where a group (ready / needs a résumé) begins in the sorted list. */
+function groupStartsAt(jobs: AcornWorkerJob[], index: number): boolean {
+  return index === 0 || hasAssignedResume(jobs[index]) !== hasAssignedResume(jobs[index - 1]);
+}
 
 /** Assigned resumes first; original order preserved within each group. */
 function sortJobsAssignedFirst(jobs: AcornWorkerJob[]): AcornWorkerJob[] {
@@ -88,23 +102,27 @@ function WorkerPoolListInner({
   return (
     <VStack as="section" gap={3} className="worker-pool">
       <HStack gap={2} align="center" justify="between">
-        <VStack gap={0}>
-          <Text as="h3" weight="semibold">
-            Jobs
+        <HStack gap={2} align="center">
+          <Text as="h2" weight="semibold">
+            Worker pool
           </Text>
-          <Text type="supporting">
-            {loading
-              ? "Loading…"
-              : hasMore
-                ? `${visibleJobs.length} of ${orderedJobs.length} jobs`
-                : `${orderedJobs.length} jobs`}
-          </Text>
-        </VStack>
-        <Button
-          variant="secondary"
+          <Badge
+            variant="neutral"
+            label={
+              loading
+                ? "Loading…"
+                : hasMore
+                  ? `${visibleJobs.length} of ${orderedJobs.length}`
+                  : orderedJobs.length
+            }
+          />
+        </HStack>
+        <IconButton
+          variant="ghost"
           size="sm"
           icon={<Glyph name="refresh" />}
-          label="Refresh"
+          label="Refresh jobs"
+          tooltip="Refresh"
           isDisabled={loading || Boolean(openingJobId) || Boolean(markingJobId)}
           onClick={onRefresh}
         />
@@ -124,27 +142,33 @@ function WorkerPoolListInner({
         className="worker-pool-list"
         aria-label="Worker pool jobs"
       >
-        {visibleJobs.map((job) => (
-          <WorkerJobCard
-            key={job.id}
-            job={job}
-            selected={selectedJobId === job.id}
-            attached={Boolean(attachments[job.id])}
-            progress={
-              attachments[job.id]
-                ? (pipelines[String(attachments[job.id].tabId)] ?? IDLE_PIPELINE_PROGRESS)
-                : IDLE_PIPELINE_PROGRESS
-            }
-            generate={generates[job.id] ?? null}
-            opening={openingJobId === job.id}
-            marking={markingJobId === job.id}
-            onOpen={onOpen}
-            onPreviewResume={onPreviewResume}
-            onMarkApplied={onMarkApplied}
-            onContinueGenerate={onContinueGenerate}
-            onRestartGenerate={onRestartGenerate}
-            onViewJd={onViewJd}
-          />
+        {visibleJobs.map((job, index) => (
+          <Fragment key={job.id}>
+            {groupStartsAt(visibleJobs, index) ? (
+              <Text as="h3" type="supporting" weight="semibold" className="acorn-group-heading">
+                {hasAssignedResume(job) ? "Ready to fill" : "Needs a résumé"}
+              </Text>
+            ) : null}
+            <WorkerJobCard
+              job={job}
+              selected={selectedJobId === job.id}
+              attached={Boolean(attachments[job.id])}
+              progress={
+                attachments[job.id]
+                  ? (pipelines[String(attachments[job.id].tabId)] ?? IDLE_PIPELINE_PROGRESS)
+                  : IDLE_PIPELINE_PROGRESS
+              }
+              generate={generates[job.id] ?? null}
+              opening={openingJobId === job.id}
+              marking={markingJobId === job.id}
+              onOpen={onOpen}
+              onPreviewResume={onPreviewResume}
+              onMarkApplied={onMarkApplied}
+              onContinueGenerate={onContinueGenerate}
+              onRestartGenerate={onRestartGenerate}
+              onViewJd={onViewJd}
+            />
+          </Fragment>
         ))}
         <LoadMoreFooter
           hasMore={hasMore}
@@ -308,20 +332,19 @@ function WorkerJobCard({
         disabled: opening || marking,
         onClick: () => onMarkApplied(job),
       }}
-    >
-      <GenerateRunExtras
-        progress={generate?.generateProgress ?? null}
-        showBar={showBar}
-        canContinue={canContinue}
-        canRestart={canContinue && Boolean(generate?.checkpoint?.completedSteps.length)}
-        canViewJd={canViewJd}
-        onContinue={() => onContinueGenerate?.(job)}
-        onRestart={() => onRestartGenerate?.(job)}
-        onViewJd={() => {
+      {...runExtras({
+        progress: generate?.generateProgress ?? null,
+        showBar: showBar,
+        canContinue: canContinue,
+        canRestart: canContinue && Boolean(generate?.checkpoint?.completedSteps.length),
+        canViewJd: canViewJd,
+        onContinue: () => onContinueGenerate?.(job),
+        onRestart: () => onRestartGenerate?.(job),
+        onViewJd: () => {
           if (jdText) onViewJd?.(job, jdText);
-        }}
-      />
-    </SidebarListCard>
+        },
+      })}
+    />
   );
 }
 

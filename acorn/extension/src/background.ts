@@ -3,7 +3,7 @@ import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 import {
   authHeaders,
   getAccessToken,
-  getAthensApiUrl,
+  getJoinedApiUrl,
   getAcornSession,
   isJoinedSessionCookie,
   acornSignIn,
@@ -59,6 +59,9 @@ import {
   type MatchOptionResponse,
   type PlanStepSocketPayload,
 } from "./types";
+
+/** Shown when a sidebar action needs the Joined session and there is none. */
+const SIGN_IN_FIRST = "Sign in to Joined in the Acorn sidebar first";
 
 let socketErrorToastAt = 0;
 const SOCKET_TOAST_MS = 12_000;
@@ -236,7 +239,7 @@ const socketHandlers: AcornSocketHandlers = {
       broadcastOperatorNotice({
         kind: "success",
         title: "Connected",
-        detail: "Athens socket is online.",
+        detail: "Connected to Joined.",
       });
     }
   },
@@ -338,7 +341,7 @@ chrome.cookies.onChanged.addListener(({ cookie }) => {
 void syncJoinedSession();
 
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.athensApiUrl || changes.acornSession) {
+  if (changes.joinedApiUrl || changes.acornSession) {
     scheduleConnectAcornSocket(socketHandlers);
   }
 });
@@ -401,7 +404,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: false, error: "Sign in required", jobs: [] });
           return;
         }
-        const base = await getAthensApiUrl();
+        const base = await getJoinedApiUrl();
         const res = await fetch(`${base}/acorn/jobs`, {
           headers: await authHeaders(),
         });
@@ -494,7 +497,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const attachedTabIds = await findTabIdsForJob(jobId);
         await unbindJobFromAllTabs(jobId);
         void closeTabsQuietly(attachedTabIds);
-        const base = await getAthensApiUrl();
+        const base = await getJoinedApiUrl();
         const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(jobId)}/mark-applied`, {
           method: "POST",
           headers: await authHeaders(),
@@ -674,9 +677,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const token = await getAccessToken();
         if (!token) {
-          throw new Error("Sign in to Athens in the Acorn sidebar first");
+          throw new Error(SIGN_IN_FIRST);
         }
-        const apiUrl = await getAthensApiUrl();
+        const apiUrl = await getJoinedApiUrl();
         await runCustomGenerate({
           tabId,
           apiUrl,
@@ -719,9 +722,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const token = await getAccessToken();
         if (!token) {
-          throw new Error("Sign in to Athens in the Acorn sidebar first");
+          throw new Error(SIGN_IN_FIRST);
         }
-        const apiUrl = await getAthensApiUrl();
+        const apiUrl = await getJoinedApiUrl();
         await runCustomRecommend({
           tabId,
           apiUrl,
@@ -756,9 +759,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const token = await getAccessToken();
         if (!token) {
-          throw new Error("Sign in to Athens in the Acorn sidebar first");
+          throw new Error(SIGN_IN_FIRST);
         }
-        const apiUrl = await getAthensApiUrl();
+        const apiUrl = await getJoinedApiUrl();
         const storedJd = typeof message.jobDescription === "string" ? message.jobDescription : null;
         const resume = Boolean(message.continue);
         if (message.type === MSG.START_JOB_RECOMMEND) {
@@ -831,12 +834,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           broadcastPipelineProgress(tabId, {
             phase: "error",
             message: "Sign in required",
-            error: "Sign in to Athens in the Acorn sidebar first",
+            error: SIGN_IN_FIRST,
           });
           return;
         }
 
-        const apiUrl = await getAthensApiUrl();
+        const apiUrl = await getJoinedApiUrl();
         await runFabPipeline({
           tabId,
           source,
@@ -870,7 +873,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const usageTabId = sender.tab?.id;
     (async () => {
       try {
-        const base = await getAthensApiUrl();
+        const base = await getJoinedApiUrl();
         const payload: Record<string, unknown> = {
           intendedValue: incoming.intendedValue,
           options: incoming.options.filter(
