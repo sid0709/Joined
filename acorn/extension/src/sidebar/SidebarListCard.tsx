@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import type { AcornFaceMode } from "@acorn/face";
+import { Card, Glyph, HStack, IconButton, Text, VStack } from "@joined/design-system";
 import { ListCardMark } from "../acorn-face/ListCardMark";
-import { CheckIcon, DownloadIcon, EyeIcon } from "./sidebar-icons";
 
 export type SidebarListCardAction = {
   title: string;
@@ -31,26 +31,17 @@ type SidebarListCardProps = {
   children?: ReactNode;
 };
 
-function CardIconButton({
-  className,
-  action,
-  children,
-}: {
-  className: string;
-  action: SidebarListCardAction;
-  children: ReactNode;
-}) {
+function CardIconButton({ action, glyph }: { action: SidebarListCardAction; glyph: ReactNode }) {
   return (
-    <button
-      type="button"
-      className={className}
-      disabled={action.disabled}
-      title={action.title}
-      aria-label={action.label}
+    <IconButton
+      variant="ghost"
+      size="sm"
+      icon={glyph}
+      label={action.label}
+      tooltip={action.title}
+      isDisabled={action.disabled}
       onClick={action.onClick}
-    >
-      {children}
-    </button>
+    />
   );
 }
 
@@ -75,22 +66,24 @@ export function SidebarListCard({
   children,
 }: SidebarListCardProps) {
   return (
-    <div
+    <Card
       data-item-id={itemId}
-      className={`worker-pool-item fill-job${selected ? " selected" : ""}${
-        attached && !selected ? " attached" : ""
-      }${marking ? " marking" : ""}${blocked ? " is-blocked" : ""}`}
+      variant={selected ? "blue" : "default"}
+      padding={3}
+      className={`acorn-list-card${attached && !selected ? " attached" : ""}${
+        marking ? " marking" : ""
+      }${blocked ? " is-blocked" : ""}`}
     >
       <button
         type="button"
-        className="worker-pool-card-hit"
+        className="acorn-list-card-hit"
         disabled={open.disabled}
         aria-current={open.current ? "page" : undefined}
         aria-label={open.label}
         title={open.title}
         onClick={open.onClick}
       />
-      <div className="worker-pool-open">
+      <HStack gap={3} align="center">
         <ListCardMark
           itemId={itemId}
           logoUrl={logoUrl}
@@ -99,35 +92,29 @@ export function SidebarListCard({
           selected={selected}
           label={`${title} status`}
         />
-        <span className="job-list-copy">
-          <strong className="worker-pool-title" title={title}>
+        <VStack gap={0} className="acorn-list-card-copy">
+          <Text weight="semibold" maxLines={1} hasTruncateTooltip>
             {title}
-          </strong>
-          <span className="worker-pool-company" title={subtitle}>
+          </Text>
+          <Text type="supporting" maxLines={1}>
             {subtitle}
-          </span>
-          <span
-            className={`worker-pool-resume${
-              resumeReady ? "" : resumeFailed ? " is-failed" : " muted"
-            }`}
-            title={resumeText}
+          </Text>
+          <Text
+            type="supporting"
+            color={resumeReady ? "primary" : "secondary"}
+            className={resumeFailed ? "acorn-list-card-failed" : undefined}
+            maxLines={1}
           >
             {resumeText}
-          </span>
-        </span>
-      </div>
-      <div className="worker-pool-actions">
-        <CardIconButton className="worker-pool-icon-btn" action={download}>
-          <DownloadIcon />
-        </CardIconButton>
-        <CardIconButton className="worker-pool-icon-btn" action={preview}>
-          <EyeIcon />
-        </CardIconButton>
-        <CardIconButton className="worker-pool-applied" action={check}>
-          <CheckIcon />
-        </CardIconButton>
-      </div>
+          </Text>
+        </VStack>
+        <HStack gap={0.5} className="acorn-list-card-actions">
+          <CardIconButton action={download} glyph={<Glyph name="download" />} />
+          <CardIconButton action={preview} glyph={<Glyph name="eye" />} />
+          <CardIconButton action={check} glyph={<Glyph name="check" />} />
+        </HStack>
+      </HStack>
       {children}
-    </div>
+    </Card>
   );
 }

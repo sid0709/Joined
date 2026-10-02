@@ -10,6 +10,7 @@
   "dependencies": {
     "@acorn/face": "workspace:*",
     "@acorn/shared": "workspace:*",
+    "@joined/design-system": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "socket.io-client": "catalog:"

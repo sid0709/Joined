@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { EmptyState, Text, VStack } from "@joined/design-system";
 import { canContinueGenerate } from "@acorn/shared/generate-checkpoint";
 import { isFillPhaseBusy, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { FACE_WINK_MS } from "../acorn-face/constants";
@@ -62,17 +63,27 @@ export function CustomTabList({
   }, [listActive, activeTabId, tabs.length]);
 
   return (
-    <section className="worker-pool">
-      <div className="worker-pool-head">
-        <div>
-          <h3>Remembered tabs</h3>
-          <p className="worker-pool-count">{tabs.length === 1 ? "1 tab" : `${tabs.length} tabs`}</p>
-        </div>
-      </div>
+    <VStack as="section" gap={3} className="worker-pool">
+      <VStack gap={0}>
+        <Text as="h3" weight="semibold">
+          Remembered tabs
+        </Text>
+        <Text type="supporting">{tabs.length === 1 ? "1 tab" : `${tabs.length} tabs`}</Text>
+      </VStack>
       {tabs.length === 0 ? (
-        <p className="hint">Remember the current tab to generate or recommend a résumé and Fill.</p>
+        <EmptyState
+          isCompact
+          title="No remembered tabs"
+          description="Remember the current tab to generate or recommend a résumé and Fill."
+        />
       ) : (
-        <nav ref={listRef} className="worker-pool-list" aria-label="Remembered Custom tabs">
+        <VStack
+          as="nav"
+          ref={listRef}
+          gap={2}
+          className="worker-pool-list"
+          aria-label="Remembered Custom tabs"
+        >
           {tabs.map((tab) => (
             <CustomTabRow
               key={tab.tabId}
@@ -87,9 +98,9 @@ export function CustomTabList({
               onViewJd={onViewJd}
             />
           ))}
-        </nav>
+        </VStack>
       )}
-    </section>
+    </VStack>
   );
 }
 

@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { Button, Text } from "@joined/design-system";
 import { QaPanel } from "./QaPanel";
 import { SidebarMainTabs, type AcornMainTab } from "./SidebarMainTabs";
 import type { useTabSession } from "./use-tab-session";
@@ -33,7 +34,13 @@ export function SidebarTools({
 }: SidebarToolsProps) {
   return (
     <section className="tools">
-      {signedIn ? <SidebarMainTabs value={mainTab} onChange={onTabChange} /> : <h3>Fill</h3>}
+      {signedIn ? (
+        <SidebarMainTabs value={mainTab} onChange={onTabChange} />
+      ) : (
+        <Text as="h3" weight="semibold">
+          Fill
+        </Text>
+      )}
       {signedIn ? (
         <div
           id="acorn-panel-qa"
@@ -70,14 +77,13 @@ export function SidebarTools({
           aria-labelledby="acorn-tab-custom"
           hidden={mainTab !== "custom"}
         >
-          <button
-            type="button"
-            className="tool-card"
+          <Button
+            variant="secondary"
+            label={customTab ? "Tab remembered" : "Remember tab"}
+            width="100%"
+            isDisabled={!signedIn || activeTabId == null || Boolean(customTab) || tabWorkBusy}
             onClick={onRemember}
-            disabled={!signedIn || activeTabId == null || Boolean(customTab) || tabWorkBusy}
-          >
-            <span className="tool-label">{customTab ? "Tab remembered" : "Remember tab"}</span>
-          </button>
+          />
         </div>
       ) : null}
     </section>

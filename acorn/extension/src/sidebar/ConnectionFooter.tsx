@@ -1,3 +1,4 @@
+import { Collapsible, HStack, StatusDot, Text, TextInput, VStack } from "@joined/design-system";
 import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 import { DEFAULT_ATHENS_API_URL, setAthensApiUrl } from "../auth/acorn-auth";
 
@@ -23,34 +24,43 @@ export function ConnectionFooter({
 }: ConnectionFooterProps) {
   return (
     <footer className={`status-bar phase-${phase}`}>
-      <details
-        className="acorn-connection-footer"
-        onToggle={(event) => onOpenChange((event.currentTarget as HTMLDetailsElement).open)}
-      >
-        <summary className="acorn-connection-summary">
-          <span className={`acorn-settings-dot ${connected ? "on" : "off"}`} aria-hidden="true" />
-          <span className="acorn-connection-title">Connection</span>
-          <span className="acorn-connection-state">{status}</span>
-        </summary>
-        <div className="acorn-connection-body">
-          <label className="field">
-            <span>Acorn API URL</span>
-            <input
-              value={apiUrl}
-              onChange={(e) => {
-                const value = e.target.value;
-                onApiUrlChange(value);
-                void setAthensApiUrl(value);
-              }}
-              placeholder={DEFAULT_ATHENS_API_URL}
+      <Collapsible
+        chevronPosition="end"
+        onOpenChange={onOpenChange}
+        trigger={
+          <HStack gap={2} align="center">
+            <StatusDot
+              variant={connected ? "success" : "neutral"}
+              label={connected ? "Connected" : "Offline"}
             />
-          </label>
-          <div className={`conn-status ${connected ? "on" : "off"}`}>
-            <span className="dot" />
-            {connected ? "Socket connected" : signedIn ? "Socket offline" : "Sign in to connect"}
-          </div>
-        </div>
-      </details>
+            <Text weight="semibold">Connection</Text>
+            <Text type="supporting" maxLines={1}>
+              {status}
+            </Text>
+          </HStack>
+        }
+      >
+        <VStack gap={2}>
+          <TextInput
+            label="Acorn API URL"
+            value={apiUrl}
+            onChange={(value) => {
+              onApiUrlChange(value);
+              void setAthensApiUrl(value);
+            }}
+            placeholder={DEFAULT_ATHENS_API_URL}
+          />
+          <HStack gap={2} align="center">
+            <StatusDot
+              variant={connected ? "success" : "neutral"}
+              label={connected ? "Socket connected" : "Socket offline"}
+            />
+            <Text type="supporting">
+              {connected ? "Socket connected" : signedIn ? "Socket offline" : "Sign in to connect"}
+            </Text>
+          </HStack>
+        </VStack>
+      </Collapsible>
     </footer>
   );
 }

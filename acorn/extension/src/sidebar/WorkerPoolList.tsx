@@ -1,4 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Banner, Button, EmptyState, Glyph, HStack, Text, VStack } from "@joined/design-system";
 import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { canContinueGenerate, formatGenerateFailure } from "@acorn/shared/generate-checkpoint";
 import { flashAcornFace } from "../acorn-face/face-flash";
@@ -85,32 +86,44 @@ function WorkerPoolListInner({
   }, [listActive, selectedJobId, shownCount]);
 
   return (
-    <section className="worker-pool">
-      <div className="worker-pool-head">
-        <div>
-          <h3>Jobs</h3>
-          <p className="worker-pool-count">
+    <VStack as="section" gap={3} className="worker-pool">
+      <HStack gap={2} align="center" justify="between">
+        <VStack gap={0}>
+          <Text as="h3" weight="semibold">
+            Jobs
+          </Text>
+          <Text type="supporting">
             {loading
               ? "Loading…"
               : hasMore
                 ? `${visibleJobs.length} of ${orderedJobs.length} jobs`
                 : `${orderedJobs.length} jobs`}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="tool-card worker-pool-refresh"
+          </Text>
+        </VStack>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<Glyph name="refresh" />}
+          label="Refresh"
+          isDisabled={loading || Boolean(openingJobId) || Boolean(markingJobId)}
           onClick={onRefresh}
-          disabled={loading || Boolean(openingJobId) || Boolean(markingJobId)}
-        >
-          Refresh
-        </button>
-      </div>
-      {error ? <p className="worker-pool-error">{error}</p> : null}
+        />
+      </HStack>
+      {error ? <Banner status="error" title="Couldn’t load jobs" description={error} /> : null}
       {!loading && !error && jobs.length === 0 ? (
-        <p className="hint">No jobs in Worker pool. In Job Search, move roles to Worker pool.</p>
+        <EmptyState
+          isCompact
+          title="No jobs in Worker pool"
+          description="In Job Search, move roles to Worker pool."
+        />
       ) : null}
-      <nav ref={listRef} className="worker-pool-list" aria-label="Worker pool jobs">
+      <VStack
+        as="nav"
+        ref={listRef}
+        gap={2}
+        className="worker-pool-list"
+        aria-label="Worker pool jobs"
+      >
         {visibleJobs.map((job) => (
           <WorkerJobCard
             key={job.id}
@@ -139,8 +152,8 @@ function WorkerPoolListInner({
           rootRef={listRef}
           label={`Load more (${visibleJobs.length} of ${orderedJobs.length})`}
         />
-      </nav>
-    </section>
+      </VStack>
+    </VStack>
   );
 }
 

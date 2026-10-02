@@ -1,3 +1,4 @@
+import { Badge, Button, Card, HStack, Text, VStack } from "@joined/design-system";
 import type { TabTreeSummary } from "./tab-tree-cache";
 import type { InspectKind } from "./use-tab-ui";
 
@@ -18,27 +19,47 @@ export function AnalyzedTreeSection({
   onInspect,
 }: AnalyzedTreeSectionProps) {
   return (
-    <section className="preview">
-      <h3>Analyzed tree</h3>
-      <div className="preview-card">
-        <div className="preview-title">{String(lastFetch.title ?? "Untitled")}</div>
-        <div className="preview-url">{String(lastFetch.url ?? "")}</div>
-        <div className="preview-meta">
-          <span>{nodeCount} nodes</span>
-          <span>{new Date(lastFetch.fetchedAt).toLocaleTimeString()}</span>
-        </div>
-        <div className="tree-actions">
-          <button type="button" disabled={!hasTree} onClick={() => onInspect("pure", "Pure Tree")}>
-            Pure Tree
-          </button>
-          <button type="button" disabled={!hasTree} onClick={() => onInspect("meta", "Meta Tree")}>
-            Meta Tree
-          </button>
-          <button type="button" disabled={!hasPlan} onClick={() => onInspect("plan", "AI Analyze")}>
-            {hasPlan ? "AI Analyze" : "AI Analyze (pending)"}
-          </button>
-        </div>
-      </div>
-    </section>
+    <Card padding={3}>
+      <VStack gap={2}>
+        <Text as="h3" weight="semibold">
+          Analyzed tree
+        </Text>
+        <VStack gap={0}>
+          <Text weight="semibold" maxLines={1}>
+            {String(lastFetch.title ?? "Untitled")}
+          </Text>
+          <Text type="supporting" maxLines={1}>
+            {String(lastFetch.url ?? "")}
+          </Text>
+        </VStack>
+        <HStack gap={2}>
+          <Badge variant="neutral" label={`${nodeCount} nodes`} />
+          <Text type="supporting">{new Date(lastFetch.fetchedAt).toLocaleTimeString()}</Text>
+        </HStack>
+        <HStack gap={1} wrap="wrap">
+          <Button
+            variant="secondary"
+            size="sm"
+            label="Pure Tree"
+            isDisabled={!hasTree}
+            onClick={() => onInspect("pure", "Pure Tree")}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            label="Meta Tree"
+            isDisabled={!hasTree}
+            onClick={() => onInspect("meta", "Meta Tree")}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            label={hasPlan ? "AI Analyze" : "AI Analyze (pending)"}
+            isDisabled={!hasPlan}
+            onClick={() => onInspect("plan", "AI Analyze")}
+          />
+        </HStack>
+      </VStack>
+    </Card>
   );
 }

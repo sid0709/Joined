@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Button } from "@joined/design-system";
 
 type LoadMoreFooterProps = {
   hasMore: boolean;
@@ -31,9 +32,7 @@ export function LoadMoreFooter({ hasMore, onLoadMore, label, rootRef }: LoadMore
 
   return (
     <div ref={sentinelRef} className="load-more-footer">
-      <button type="button" className="load-more-button" onClick={onLoadMore}>
-        {label}
-      </button>
+      <Button variant="ghost" size="sm" label={label} width="100%" onClick={onLoadMore} />
     </div>
   );
 }

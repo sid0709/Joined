@@ -1,3 +1,4 @@
+import { Button, HStack, VStack } from "@joined/design-system";
 import type { CustomUiProgress } from "../pipeline/custom-generate-progress";
 import { GenerateProgressBar } from "./GenerateProgressBar";
 
@@ -24,27 +25,21 @@ export function GenerateRunExtras({
 }: GenerateRunExtrasProps) {
   if (!showBar && !canContinue && !canViewJd && !canRestart) return null;
   return (
-    <div className="acorn-gen-extras">
+    <VStack gap={2} className="acorn-gen-extras">
       {showBar && progress ? <GenerateProgressBar progress={progress} /> : null}
       {canContinue || canViewJd || canRestart ? (
-        <div className="acorn-gen-actions">
+        <HStack gap={1} wrap="wrap">
           {canContinue ? (
-            <button type="button" className="worker-pool-resume-btn" onClick={onContinue}>
-              Continue
-            </button>
+            <Button variant="secondary" size="sm" label="Continue" onClick={onContinue} />
           ) : null}
           {canRestart ? (
-            <button type="button" className="worker-pool-resume-btn" onClick={onRestart}>
-              Start over
-            </button>
+            <Button variant="ghost" size="sm" label="Start over" onClick={onRestart} />
           ) : null}
           {canViewJd ? (
-            <button type="button" className="worker-pool-resume-btn" onClick={onViewJd}>
-              View JD
-            </button>
+            <Button variant="ghost" size="sm" label="View JD" onClick={onViewJd} />
           ) : null}
-        </div>
+        </HStack>
       ) : null}
-    </div>
+    </VStack>
   );
 }

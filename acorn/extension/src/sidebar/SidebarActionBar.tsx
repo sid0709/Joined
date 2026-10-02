@@ -1,5 +1,5 @@
+import { Button, Glyph, HStack } from "@joined/design-system";
 import type { PipelineProgress } from "@acorn/shared/pipeline-types";
-import { FillIcon, GenerateIcon, RecommendIcon } from "./sidebar-icons";
 
 type SidebarActionBarProps = {
   fillPhase: PipelineProgress["phase"];
@@ -33,37 +33,34 @@ export function SidebarActionBar({
   onRecommend,
 }: SidebarActionBarProps) {
   return (
-    <div className="acorn-booking-bar">
-      <button
-        type="button"
-        className="acorn-action-btn"
+    <HStack className="acorn-action-bar" gap={2} data-phase={fillPhase}>
+      <Button
+        variant="secondary"
+        icon={<Glyph name="sparkle" />}
+        label={generateLabel}
+        tooltip={generateTitle ?? generateLabel}
+        isDisabled={generateDisabled}
+        width="100%"
         onClick={onGenerate}
-        disabled={generateDisabled}
-        title={generateTitle ?? generateLabel}
-      >
-        <GenerateIcon />
-        <span>{generateLabel}</span>
-      </button>
-      <button
-        type="button"
-        className={`acorn-action-btn primary fill-card ${fillPhase}`}
+      />
+      <Button
+        variant="primary"
+        icon={<Glyph name="edit" />}
+        label={fillLabel}
+        tooltip={fillTitle ?? fillLabel}
+        isDisabled={fillDisabled}
+        width="100%"
         onClick={onFill}
-        disabled={fillDisabled}
-        title={fillTitle ?? fillLabel}
-      >
-        <FillIcon />
-        <span>{fillLabel}</span>
-      </button>
-      <button
-        type="button"
-        className="acorn-action-btn"
+      />
+      <Button
+        variant="secondary"
+        icon={<Glyph name="star" />}
+        label={recommendLabel}
+        tooltip={recommendTitle ?? recommendLabel}
+        isDisabled={recommendDisabled}
+        width="100%"
         onClick={onRecommend}
-        disabled={recommendDisabled}
-        title={recommendTitle ?? recommendLabel}
-      >
-        <RecommendIcon />
-        <span>{recommendLabel}</span>
-      </button>
-    </div>
+      />
+    </HStack>
   );
 }

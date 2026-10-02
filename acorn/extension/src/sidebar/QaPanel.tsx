@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Banner, Button, Card, HStack, Text, TextArea, VStack } from "@joined/design-system";
 import { FACE_SMILE_MS } from "../acorn-face/constants";
 import { flashAcornFace } from "../acorn-face/face-flash";
 import { requestQaAnswer, type AcornQaPage } from "../pipeline/ai-client";
@@ -46,17 +47,23 @@ export function QaPanel({ signedIn, page, disabled, showHeading = true, onStatus
   };
 
   return (
-    <section className="qa-panel">
-      {showHeading ? <h3>Q&amp;A</h3> : null}
-      <p className="hint">
+    <VStack as="section" gap={3} className="qa-panel">
+      {showHeading ? (
+        <Text as="h3" weight="semibold">
+          Q&amp;A
+        </Text>
+      ) : null}
+      <Text type="supporting">
         If Fill leaves a field blank, paste the question and copy a human-like answer.
-      </p>
-      <textarea
-        className="qa-question"
+      </Text>
+      <TextArea
+        label="Unanswered question"
+        isLabelHidden
         value={question}
-        onChange={(e) => setQuestion(e.target.value)}
+        onChange={(value) => setQuestion(value)}
         placeholder="Paste the unanswered field question…"
-        disabled={!signedIn || busy || disabled}
+        rows={4}
+        isDisabled={!signedIn || busy || disabled}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
@@ -64,26 +71,33 @@ export function QaPanel({ signedIn, page, disabled, showHeading = true, onStatus
           }
         }}
       />
-      <div className="qa-actions">
-        <button
-          type="button"
-          className="tool-card primary"
-          disabled={!signedIn || busy || disabled || !question.trim()}
+      <HStack gap={2}>
+        <Button
+          variant="primary"
+          label={busy ? "Writing…" : "Generate"}
+          isLoading={busy}
+          isDisabled={!signedIn || busy || disabled || !question.trim()}
+          width="100%"
           onClick={() => void generate()}
-        >
-          {busy ? "Writing…" : "Generate"}
-        </button>
-        <button
-          type="button"
-          className="tool-card"
-          disabled={!answer || busy}
+        />
+        <Button
+          variant="secondary"
+          label={copied ? "Copied" : "Copy"}
+          isDisabled={!answer || busy}
+          width="100%"
           onClick={() => void copy()}
-        >
-          {copied ? "Copied" : "Copy"}
-        </button>
-      </div>
-      {error ? <p className="qa-error">{error}</p> : null}
-      {answer ? <pre className="qa-answer">{answer}</pre> : null}
-    </section>
+        />
+      </HStack>
+      {error ? (
+        <Banner status="error" title="Couldn’t write an answer" description={error} />
+      ) : null}
+      {answer ? (
+        <Card variant="muted" padding={3}>
+          <Text as="p" textWrap="pretty" className="qa-answer">
+            {answer}
+          </Text>
+        </Card>
+      ) : null}
+    </VStack>
   );
 }

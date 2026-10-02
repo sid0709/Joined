@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 import type { AcornFaceMode } from "@acorn/face";
+import { Badge, Glyph, HStack, IconButton, Text } from "@joined/design-system";
 import type { AcornStoredSession } from "../auth/acorn-auth";
 import { ACORN_FACE_BADGE_PX, ACORN_FACE_BRAND_PX } from "../acorn-face/constants";
 import { AcornFaceView } from "../acorn-face/AcornFaceView";
 import type { countBusyWorkers } from "../acorn-face/director";
-import { HelpIcon, SignOutIcon } from "./sidebar-icons";
 
 type IdentityBarProps = {
   session: AcornStoredSession | null;
@@ -31,67 +31,73 @@ export function IdentityBar({
   onSignOut,
 }: IdentityBarProps) {
   return (
-    <section
+    <HStack
+      as="section"
       className="welcome"
+      gap={2}
+      align="center"
       style={{ "--acorn-face-brand-px": `${ACORN_FACE_BRAND_PX}px` } as CSSProperties}
     >
-      <div className="brand-bar">
-        <AcornFaceView
-          className="brand-logo"
-          mode={companionMode}
-          size={ACORN_FACE_BRAND_PX}
-          live
-          label="Acorn"
-        />
-        <h2>Acorn</h2>
-        {session ? (
-          <>
-            <p className="brand-user">{session.displayName}</p>
-            <div className="brand-actions">
-              <div
-                className={`brand-workers${busyTotal > 0 ? " is-busy" : ""}`}
-                role="status"
-                aria-live="polite"
-                title={
-                  busyTotal > 0
-                    ? `${busyTotal} working · ${busyCounts.thinking} thinking, ${busyCounts.working} filling`
-                    : "No workers in flight"
+      <AcornFaceView
+        className="brand-logo"
+        mode={companionMode}
+        size={ACORN_FACE_BRAND_PX}
+        live
+        label="Acorn"
+      />
+      <Text as="h2" type="large" weight="semibold">
+        Acorn
+      </Text>
+      {session ? (
+        <>
+          <Text className="brand-user" type="supporting" maxLines={1}>
+            {session.displayName}
+          </Text>
+          <HStack gap={1} align="center">
+            <span
+              role="status"
+              aria-live="polite"
+              aria-label={`${busyTotal} working`}
+              title={
+                busyTotal > 0
+                  ? `${busyTotal} working · ${busyCounts.thinking} thinking, ${busyCounts.working} filling`
+                  : "No workers in flight"
+              }
+            >
+              <Badge
+                variant={busyTotal > 0 ? "info" : "neutral"}
+                icon={
+                  <AcornFaceView
+                    mode={workersMode}
+                    size={ACORN_FACE_BADGE_PX}
+                    live={busyTotal > 0}
+                    label="Workers"
+                  />
                 }
-                aria-label={`${busyTotal} working`}
-              >
-                <AcornFaceView
-                  className="brand-workers-face"
-                  mode={workersMode}
-                  size={ACORN_FACE_BADGE_PX}
-                  live={busyTotal > 0}
-                  label="Workers"
-                />
-                <span className="brand-workers-count">{busyTotal}</span>
-              </div>
-              <button
-                type="button"
-                className={`brand-icon-btn${helpOpen ? " is-open" : ""}`}
-                onClick={onToggleHelp}
-                title={helpOpen ? "Close Acorn Face guide" : "Acorn Face guide"}
-                aria-label={helpOpen ? "Close Acorn Face guide" : "Acorn Face guide"}
-                aria-pressed={helpOpen}
-              >
-                <HelpIcon />
-              </button>
-              <button
-                type="button"
-                className="brand-icon-btn"
-                onClick={onSignOut}
-                disabled={signOutDisabled}
-                title="Sign out"
-                aria-label="Sign out"
-              >
-                <SignOutIcon />
-              </button>
-            </div>
-          </>
-        ) : null}
-      </div>
-    </section>
+                label={busyTotal}
+              />
+            </span>
+            <IconButton
+              variant={helpOpen ? "secondary" : "ghost"}
+              size="sm"
+              icon={<Glyph name="info" />}
+              label={helpOpen ? "Close Acorn Face guide" : "Acorn Face guide"}
+              tooltip={helpOpen ? "Close Acorn Face guide" : "Acorn Face guide"}
+              aria-pressed={helpOpen}
+              onClick={onToggleHelp}
+            />
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={<Glyph name="signOut" />}
+              label="Sign out"
+              tooltip="Sign out"
+              isDisabled={signOutDisabled}
+              onClick={onSignOut}
+            />
+          </HStack>
+        </>
+      ) : null}
+    </HStack>
   );
 }

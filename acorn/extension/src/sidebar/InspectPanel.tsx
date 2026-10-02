@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { Button, Drawer, HStack } from "@joined/design-system";
 import { LoadMoreFooter } from "./LoadMoreFooter";
 import { useShownCount } from "./use-shown-count";
 
@@ -21,34 +21,28 @@ export function InspectPanel({
   onCopy,
   onClose,
 }: InspectPanelProps) {
-  const bodyRef = useRef<HTMLDivElement>(null);
-
   return (
-    <div className="inspect-panel">
-      <header className="inspect-header">
-        <h3>{title}</h3>
-        <button type="button" className="inspect-close" onClick={onClose} aria-label="Close">
-          ✕
-        </button>
-      </header>
-      <div ref={bodyRef} className="inspect-body">
-        <pre className="inspect-pre">{lines.length ? lines.join("\n") : "(empty)"}</pre>
-        <LoadMoreFooter
-          hasMore={hasMore}
-          onLoadMore={onLoadMore}
-          rootRef={bodyRef}
-          label={`Load more (${lines.length} lines)`}
-        />
-      </div>
-      <footer className="inspect-footer">
-        <button type="button" onClick={() => void onCopy()}>
-          Copy
-        </button>
-        <button type="button" className="primary" onClick={onClose}>
-          Close
-        </button>
-      </footer>
-    </div>
+    <Drawer
+      isOpen
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={title}
+      size="full"
+      footer={
+        <HStack gap={2} justify="end">
+          <Button variant="secondary" label="Copy" onClick={() => void onCopy()} />
+          <Button variant="primary" label="Close" onClick={onClose} />
+        </HStack>
+      }
+    >
+      <pre className="inspect-pre">{lines.length ? lines.join("\n") : "(empty)"}</pre>
+      <LoadMoreFooter
+        hasMore={hasMore}
+        onLoadMore={onLoadMore}
+        label={`Load more (${lines.length} lines)`}
+      />
+    </Drawer>
   );
 }
 
