@@ -10,18 +10,13 @@ import (
 	"strings"
 	"time"
 	"unicode"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
-	minPasswordLength = 8
-	maxPasswordLength = 72
-	maxNameLength     = 80
-	maxURLLength      = 300
-	bcryptCost        = 12
-	sessionLifetime   = 30 * 24 * time.Hour
-	tokenBytes        = 32
+	maxNameLength   = 80
+	maxURLLength    = 300
+	sessionLifetime = 30 * 24 * time.Hour
+	tokenBytes      = 32
 
 	roleOwner  = "owner"
 	roleMember = "member"
@@ -38,7 +33,7 @@ const (
 
 var (
 	ErrEmailTaken   = errors.New("an account with that email already exists")
-	ErrInvalidLogin = errors.New("email or password is incorrect")
+	ErrInvalidLogin = errors.New("sign in required")
 	ErrInvalidInput = errors.New("check the form and try again")
 	ErrNotFound     = errors.New("not found")
 	ErrHasCompany   = errors.New("this account is already linked to a company")
@@ -108,14 +103,6 @@ type Session struct {
 	Company *Company `json:"company"`
 }
 
-type Signup struct {
-	Name     string
-	Email    string
-	Password string
-	Mode     string
-	Company  *CompanyChoice
-}
-
 // CompanyChoice is optional employer setup on an individual account.
 // Link joins a company already stored. Create starts a new company page.
 type CompanyChoice struct {
@@ -124,13 +111,15 @@ type CompanyChoice struct {
 	URL  string
 }
 
+// storedUser is an account. Sign in with Google is the only way in; accounts made
+// with a password before that still carry a passwordHash nothing reads, and link
+// their Google account the first time they sign in with it.
 type storedUser struct {
-	ID           string `bson:"id"`
-	Name         string `bson:"name"`
-	Email        string `bson:"email"`
-	PasswordHash string `bson:"passwordHash"`
-	Role         string `bson:"role,omitempty"`
-	// GoogleID links Sign in with Google. Accounts created that way have no password.
+	ID    string `bson:"id"`
+	Name  string `bson:"name"`
+	Email string `bson:"email"`
+	Role  string `bson:"role,omitempty"`
+	// GoogleID links Sign in with Google.
 	GoogleID  string    `bson:"googleId,omitempty"`
 	CreatedAt time.Time `bson:"createdAt"`
 }
@@ -157,48 +146,6 @@ type Membership struct {
 	Role       string
 	HiringRole string
 	CreatedAt  time.Time
-}
-
-func normalizeSignup(input Signup) (Signup, error) {
-	input.Name = strings.TrimSpace(input.Name)
-	input.Email = normalizeEmail(input.Email)
-	if input.Name == "" || len([]rune(input.Name)) > maxNameLength || input.Email == "" {
-		return Signup{}, ErrInvalidInput
-	}
-	if len(input.Password) < minPasswordLength || len(input.Password) > maxPasswordLength {
-		return Signup{}, ErrInvalidInput
-	}
-	switch input.Mode {
-	case "", RoleCandidate, RoleEmployee, RoleScout:
-	default:
-		return Signup{}, ErrInvalidInput
-	}
-	if input.Mode == RoleScout {
-		if input.Company != nil {
-			return Signup{}, ErrInvalidInput
-		}
-		return input, nil
-	}
-	if input.Mode == RoleCandidate {
-		input.Company = nil
-	}
-	if input.Company != nil {
-		choice, err := normalizeCompany(*input.Company)
-		if err != nil {
-			return Signup{}, err
-		}
-		input.Company = &choice
-		if input.Mode == "" {
-			input.Mode = RoleEmployee
-		}
-	}
-	if input.Mode == "" {
-		input.Mode = RoleCandidate
-	}
-	if input.Mode == RoleEmployee && input.Company == nil {
-		return Signup{}, ErrInvalidInput
-	}
-	return input, nil
 }
 
 func normalizeCompany(choice CompanyChoice) (CompanyChoice, error) {
@@ -236,18 +183,6 @@ func normalizeEmail(value string) string {
 		return ""
 	}
 	return strings.ToLower(parsed.Address)
-}
-
-func hashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
-}
-
-func checkPassword(hash, password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
 func newToken() (string, string, error) {

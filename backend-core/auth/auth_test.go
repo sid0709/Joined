@@ -2,67 +2,6 @@ package auth
 
 import "testing"
 
-func TestNormalizeSignupRejectsShortPassword(t *testing.T) {
-	_, err := normalizeSignup(Signup{Name: "Ada Lovelace", Email: "ada@example.com", Password: "short"})
-	if err != ErrInvalidInput {
-		t.Fatalf("err = %v", err)
-	}
-}
-
-func TestNormalizeSignupLowercasesEmail(t *testing.T) {
-	got, err := normalizeSignup(Signup{Name: "Ada Lovelace", Email: " Ada@Example.com ", Password: "long-enough"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got.Email != "ada@example.com" || got.Name != "Ada Lovelace" {
-		t.Fatalf("signup = %+v", got)
-	}
-}
-
-func TestNormalizeSignupEmployeeRequiresCompany(t *testing.T) {
-	_, err := normalizeSignup(Signup{
-		Name:     "Ada Lovelace",
-		Email:    "ada@example.com",
-		Password: "long-enough",
-		Mode:     RoleEmployee,
-	})
-	if err != ErrInvalidInput {
-		t.Fatalf("employee without company = %v", err)
-	}
-	got, err := normalizeSignup(Signup{
-		Name:     "Ada Lovelace",
-		Email:    "ada@example.com",
-		Password: "long-enough",
-		Mode:     RoleCandidate,
-		Company:  &CompanyChoice{Name: "Northwind"},
-	})
-	if err != nil || got.Company != nil || got.Mode != RoleCandidate {
-		t.Fatalf("candidate = %+v %v", got, err)
-	}
-}
-
-func TestNormalizeSignupScoutHasNoCompany(t *testing.T) {
-	_, err := normalizeSignup(Signup{
-		Name:     "Ada Lovelace",
-		Email:    "ada@example.com",
-		Password: "long-enough",
-		Mode:     RoleScout,
-		Company:  &CompanyChoice{Name: "Northwind"},
-	})
-	if err != ErrInvalidInput {
-		t.Fatalf("scout with company = %v", err)
-	}
-	got, err := normalizeSignup(Signup{
-		Name:     "Ada Lovelace",
-		Email:    "ada@example.com",
-		Password: "long-enough",
-		Mode:     RoleScout,
-	})
-	if err != nil || got.Mode != RoleScout || got.Company != nil {
-		t.Fatalf("scout = %+v %v", got, err)
-	}
-}
-
 func TestAllowsAudienceKeepsRolesApart(t *testing.T) {
 	if !AllowsAudience(AudienceJoined, RoleCandidate) || !AllowsAudience(AudienceJoined, RoleEmployee) {
 		t.Fatal("joined should accept hunters and recruiters")
@@ -107,15 +46,5 @@ func TestNormalizeCompanyRequiresOnePath(t *testing.T) {
 	got, err := normalizeCompany(CompanyChoice{Name: "Northwind", URL: "northwind.example"})
 	if err != nil || got.URL != "https://northwind.example" {
 		t.Fatalf("create = %+v %v", got, err)
-	}
-}
-
-func TestPasswordRoundTrip(t *testing.T) {
-	hash, err := hashPassword("long-enough")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !checkPassword(hash, "long-enough") || checkPassword(hash, "wrong-password") {
-		t.Fatal("password check mismatch")
 	}
 }

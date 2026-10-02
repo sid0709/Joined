@@ -93,7 +93,7 @@ func (s *Server) startStaffGoogle(w http.ResponseWriter, r *http.Request) {
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not start Google sign-in")
 		return
 	}
-	if err := s.staffAuth.Accounts.SaveGoogleState(r.Context(), state, verifier, time.Now()); err != nil {
+	if err := s.staffAuth.Accounts.SaveGoogleState(r.Context(), state, auth.GoogleState{Verifier: verifier}, time.Now()); err != nil {
 		slog.Error("save google state", "error", err)
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not start Google sign-in")
 		return
@@ -126,14 +126,14 @@ func (s *Server) finishStaffGoogle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	verifier, err := s.staffAuth.Accounts.TakeGoogleState(r.Context(), body.State, now)
+	saved, err := s.staffAuth.Accounts.TakeGoogleState(r.Context(), body.State, now)
 	if err != nil {
 		writeStaffGoogleFailure(w, err)
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), staffGoogleTimeout)
 	defer cancel()
-	token, err := s.staffAuth.OAuth.Exchange(ctx, body.Code, s.staffAuth.RedirectURL, verifier)
+	token, err := s.staffAuth.OAuth.Exchange(ctx, body.Code, s.staffAuth.RedirectURL, saved.Verifier)
 	if err != nil {
 		writeStaffGoogleFailure(w, err)
 		return

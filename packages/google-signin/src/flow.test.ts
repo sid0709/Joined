@@ -65,8 +65,13 @@ describe("finishGoogleSignIn", () => {
       "Content-Type": "application/json",
     });
     const started = answer(200, { url: "https://accounts.google.com/x", state: "s1" });
-    await startGoogleSignIn(API, { Authorization: "Bearer admin" });
-    expect(started.mock.calls[0]?.[1]?.headers).toEqual({ Authorization: "Bearer admin" });
+    await startGoogleSignIn(API, { headers: { Authorization: "Bearer admin" }, mode: "employee" });
+    const init = started.mock.calls[0]?.[1];
+    expect(init?.headers).toEqual({
+      Authorization: "Bearer admin",
+      "Content-Type": "application/json",
+    });
+    expect(JSON.parse(init?.body as string)).toEqual({ mode: "employee" });
   });
 
   test("refuses a redirect this browser did not start", async () => {

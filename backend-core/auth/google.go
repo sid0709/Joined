@@ -32,52 +32,66 @@ type GoogleIdentity struct {
 }
 
 type storedGoogleState struct {
-	State     string    `bson:"state"`
-	Verifier  string    `bson:"verifier"`
+	State    string `bson:"state"`
+	Verifier string `bson:"verifier"`
+	// Role is the kind of account to create if this sign-in is someone new.
+	Role      string    `bson:"role,omitempty"`
 	ExpiresAt time.Time `bson:"expiresAt"`
 }
 
-// SaveGoogleState remembers a sign-in in progress and its PKCE verifier.
-func (s *Store) SaveGoogleState(ctx context.Context, state, verifier string, now time.Time) error {
+// GoogleState is a sign-in in progress: its PKCE verifier, and the kind of account
+// to create if the person is new.
+type GoogleState struct {
+	Verifier string
+	Role     string
+}
+
+// SaveGoogleState remembers a sign-in in progress. Keeping the role here, not in the
+// browser, means the redirect back cannot change what kind of account is created.
+func (s *Store) SaveGoogleState(ctx context.Context, state string, saved GoogleState, now time.Time) error {
 	_, err := s.collection(googleStatesCollection).InsertOne(ctx, storedGoogleState{
 		State:     state,
-		Verifier:  verifier,
+		Verifier:  saved.Verifier,
+		Role:      saved.Role,
 		ExpiresAt: now.UTC().Add(googleStateTTL),
 	})
 	return err
 }
 
-// TakeGoogleState returns the verifier for state and forgets the state, so a
+// TakeGoogleState returns what was saved for state and forgets the state, so a
 // redirect can be used once.
-func (s *Store) TakeGoogleState(ctx context.Context, state string, now time.Time) (string, error) {
+func (s *Store) TakeGoogleState(ctx context.Context, state string, now time.Time) (GoogleState, error) {
 	if state == "" {
-		return "", ErrGoogleState
+		return GoogleState{}, ErrGoogleState
 	}
 	var record storedGoogleState
 	err := s.collection(googleStatesCollection).FindOneAndDelete(ctx, bson.D{{Key: "state", Value: state}}).Decode(&record)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return "", ErrGoogleState
+		return GoogleState{}, ErrGoogleState
 	}
 	if err != nil {
-		return "", err
+		return GoogleState{}, err
 	}
 	if !record.ExpiresAt.After(now) {
-		return "", ErrGoogleState
+		return GoogleState{}, ErrGoogleState
 	}
-	return record.Verifier, nil
+	return GoogleState{Verifier: record.Verifier, Role: record.Role}, nil
 }
 
-// GoogleSignin signs in the account behind a verified Google identity. Without
-// one, it creates an account of role with no password. An account that exists
-// must already have role: each app only signs in its own kind of account.
-func (s *Store) GoogleSignin(ctx context.Context, id GoogleIdentity, role string, now time.Time) (string, Session, error) {
+// GoogleSignin signs in the account behind a verified Google identity; Google is
+// the only way in. Someone new gets an account of newRole. An account that exists
+// keeps its own role, which audience (the app signing in) must accept.
+func (s *Store) GoogleSignin(ctx context.Context, id GoogleIdentity, audience, newRole string, now time.Time) (string, Session, error) {
 	email := normalizeEmail(id.Email)
 	if id.Subject == "" || email == "" || !id.EmailVerified {
 		return "", Session{}, ErrInvalidInput
 	}
 	user, err := s.googleUser(ctx, id.Subject, email)
 	if errors.Is(err, ErrNotFound) {
-		userID, err := s.createGoogleUser(ctx, id, email, role, now)
+		if !AllowsAudience(audience, newRole) {
+			return "", Session{}, ErrInvalidInput
+		}
+		userID, err := s.createGoogleUser(ctx, id, email, newRole, now)
 		if err != nil {
 			return "", Session{}, err
 		}
@@ -89,7 +103,7 @@ func (s *Store) GoogleSignin(ctx context.Context, id GoogleIdentity, role string
 	if err := s.ensureRole(ctx, &user); err != nil {
 		return "", Session{}, err
 	}
-	link, err := googleAccess(user, id.Subject, role)
+	link, err := googleAccess(user, id.Subject, audience)
 	if err != nil {
 		return "", Session{}, err
 	}
@@ -101,10 +115,11 @@ func (s *Store) GoogleSignin(ctx context.Context, id GoogleIdentity, role string
 	return s.issue(ctx, user.ID, now)
 }
 
-// googleAccess decides whether a Google identity may sign in to user, and
-// whether that sign-in links the Google account for the first time.
-func googleAccess(user storedUser, subject, role string) (bool, error) {
-	if user.Role != role {
+// googleAccess decides whether a Google identity may sign in to user from the app
+// audience, and whether that sign-in links the Google account for the first time.
+// An account made with a password before Google sign-in links on its first visit.
+func googleAccess(user storedUser, subject, audience string) (bool, error) {
+	if !AllowsAudience(audience, user.Role) {
 		return false, &RoleError{Role: user.Role}
 	}
 	switch user.GoogleID {

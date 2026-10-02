@@ -2,6 +2,9 @@ import { GOOGLE_ERROR_PARAM, type GoogleSignInError } from "./messages";
 import { decodeGoogleState } from "./state";
 
 const START_PATH = "/v1/auth/google/start";
+
+/** The sign-up form field naming the kind of account to create. */
+export const GOOGLE_MODE_FIELD = "mode";
 const CALLBACK_PATH = "/v1/auth/google/callback";
 
 export type GoogleStarted =
@@ -10,18 +13,23 @@ export type GoogleStarted =
 export type GoogleFinished =
   { ok: true; token: string; next: string } | { ok: false; error: GoogleSignInError; next: string };
 
-/**
- * Asks the app's API where to send the browser, and for the state to remember.
- * headers go with the call, for an API that wants its own credentials.
- */
+export type GoogleStartOptions = {
+  /** Sent with the call, for an API that wants its own credentials. */
+  headers?: Record<string, string>;
+  /** The kind of account to create if the person is new, e.g. "employee". */
+  mode?: string;
+};
+
+/** Asks the app's API where to send the browser, and for the state to remember. */
 export async function startGoogleSignIn(
   apiUrl: string,
-  headers: Record<string, string> = {},
+  { headers = {}, mode = "" }: GoogleStartOptions = {},
 ): Promise<GoogleStarted> {
   try {
     const response = await fetch(new URL(START_PATH, `${apiUrl}/`), {
       method: "POST",
-      headers,
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify(mode ? { mode } : {}),
       cache: "no-store",
     });
     if (!response.ok) return { ok: false, error: errorFor(response.status) };

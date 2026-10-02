@@ -1,12 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
-  Banner,
   Button,
   Card,
-  Divider,
   GoogleSignInButton,
   Heading,
   Link,
@@ -14,81 +11,22 @@ import {
   RadioListItem,
   Stack,
   Text,
-  TextInput,
 } from "@joined/design-system";
 import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
-import type { CompanyChoice } from "@/lib/auth/types";
-import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";
-import { CompanyFields, type HiringPath } from "./company-fields";
-
-const MIN_PASSWORD = 8;
 
 type AccountMode = "candidate" | "employee";
 type Step = "mode" | "account";
 
+/**
+ * Choose how you'll use Joined, then sign up with Google, the only way in. A
+ * recruiter links or creates their company on the hiring setup page next.
+ */
 export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boolean }) {
-  const router = useRouter();
   const [step, setStep] = useState<Step>(hiring ? "account" : "mode");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [mode, setMode] = useState<AccountMode>(hiring ? "employee" : "candidate");
-  const [path, setPath] = useState<HiringPath>("link");
-  const [company, setCompany] = useState<CompanyChoice | null>(null);
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-  const onChoice = useCallback((choice: CompanyChoice | null) => setCompany(choice), []);
   const signInHref = `${ROUTES.signIn}?next=${encodeURIComponent(nextPath)}`;
   const employee = mode === "employee";
-  const accountReady =
-    name.trim() !== "" &&
-    email.trim() !== "" &&
-    password.length >= MIN_PASSWORD &&
-    (!employee || company != null);
-
-  const chooseMode = (next: AccountMode) => {
-    setMode(next);
-    setError("");
-    if (next === "candidate") setCompany(null);
-  };
-
-  const submit = async () => {
-    if (password.length < MIN_PASSWORD) {
-      setError("Use at least 8 characters.");
-      return;
-    }
-    if (employee && !company) {
-      setError(
-        path === "link"
-          ? "Link a company, or create a new one. A company is required."
-          : "Enter the company name. Creating a company is required.",
-      );
-      return;
-    }
-    setPending(true);
-    setError("");
-    const response = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        mode,
-        ...(employee && company ? { company } : {}),
-      }),
-    });
-    setPending(false);
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(body?.error ?? "Could not create the account");
-      return;
-    }
-    writeStoredWorkspaceMode(employee ? "company" : "hunter");
-    router.push(employee ? ROUTES.company : nextPath);
-    router.refresh();
-  };
 
   return (
     <Card padding={6}>
@@ -104,17 +42,17 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
             <RadioList
               label="Join as"
               value={mode}
-              onChange={(value) => chooseMode(value as AccountMode)}
+              onChange={(value) => setMode(value as AccountMode)}
             >
               <RadioListItem
                 value="candidate"
                 label="Join as Candidate"
-                description="Search jobs and track your applications. Name, email, and password only."
+                description="Search jobs and track your applications."
               />
               <RadioListItem
                 value="employee"
                 label="Join as Employee"
-                description="Link a company we already have, or create a new company page."
+                description="Hire for your company. You’ll link it or create its page next."
               />
             </RadioList>
             <Button label="Continue" variant="primary" clickAction={() => setStep("account")} />
@@ -127,45 +65,24 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
               </Heading>
               <Text color="secondary">
                 {employee
-                  ? "Link a company already on Joined, or create a new one. If you don’t link a company, creating one is required."
-                  : "Use your Google account, or a name, email, and password."}
+                  ? "Sign up with your Google account. Next, link a company already on Joined or create its page."
+                  : "Sign up with your Google account."}
               </Text>
             </Stack>
-            {error ? <Banner status="error" title={error} /> : null}
-            {employee ? (
-              <CompanyFields path={path} onPath={setPath} onChoice={onChoice} />
-            ) : (
-              <>
-                <Stack gap={2}>
-                  <GoogleSignInButton
-                    action={GOOGLE_SIGNIN_ROUTE}
-                    next={nextPath}
-                    label="Sign up with Google"
-                  />
-                  <Text type="supporting" color="secondary">
-                    Google also asks to connect your calendar so interviews sync. You can skip it.
-                  </Text>
-                </Stack>
-                <Divider label="or" />
-              </>
-            )}
-            <TextInput label="Name" value={name} onChange={setName} />
-            <TextInput label="Email" type="email" value={email} onChange={setEmail} />
-            <TextInput label="Password" type="password" value={password} onChange={setPassword} />
-            <Button
-              label="Create account"
-              variant="primary"
-              clickAction={submit}
-              isDisabled={pending || !accountReady}
-            />
-            <Button
-              label="Back"
-              variant="ghost"
-              clickAction={() => {
-                setError("");
-                setStep("mode");
-              }}
-            />
+            <Stack gap={2}>
+              <GoogleSignInButton
+                action={GOOGLE_SIGNIN_ROUTE}
+                next={employee ? ROUTES.hiringSetup : nextPath}
+                mode={mode}
+                label="Sign up with Google"
+              />
+              {employee ? null : (
+                <Text type="supporting" color="secondary">
+                  Google also asks to connect your calendar so interviews sync. You can skip it.
+                </Text>
+              )}
+            </Stack>
+            <Button label="Back" variant="ghost" clickAction={() => setStep("mode")} />
           </>
         )}
         <Text color="secondary">

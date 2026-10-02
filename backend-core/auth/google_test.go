@@ -10,19 +10,20 @@ func TestGoogleAccessKeepsEachAppToItsAccounts(t *testing.T) {
 	cases := []struct {
 		name string
 		user storedUser
-		role string
+		app  string
 		link bool
 		err  error
 	}{
-		{"first Google sign-in links", storedUser{Role: RoleCandidate}, RoleCandidate, true, nil},
-		{"linked account signs in", storedUser{Role: RoleScout, GoogleID: "sub-1"}, RoleScout, false, nil},
-		{"recruiter on the hunter sign-in", storedUser{Role: RoleEmployee}, RoleCandidate, false, ErrWrongRole},
+		{"password account links on first Google sign-in", storedUser{Role: RoleCandidate}, AudienceJoined, true, nil},
+		{"recruiter signs in to Joined", storedUser{Role: RoleEmployee, GoogleID: "sub-1"}, AudienceJoined, false, nil},
+		{"linked scout signs in", storedUser{Role: RoleScout, GoogleID: "sub-1"}, RoleScout, false, nil},
+		{"scout on Joined", storedUser{Role: RoleScout}, AudienceJoined, false, ErrWrongRole},
 		{"hunter on Scoutwell", storedUser{Role: RoleCandidate, GoogleID: "sub-1"}, RoleScout, false, ErrWrongRole},
-		{"email held by another Google account", storedUser{Role: RoleCandidate, GoogleID: "sub-2"}, RoleCandidate, false, ErrGoogleMismatch},
+		{"email held by another Google account", storedUser{Role: RoleCandidate, GoogleID: "sub-2"}, AudienceJoined, false, ErrGoogleMismatch},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			link, err := googleAccess(tc.user, "sub-1", tc.role)
+			link, err := googleAccess(tc.user, "sub-1", tc.app)
 			if link != tc.link || !errors.Is(err, tc.err) {
 				t.Fatalf("got link=%v err=%v, want link=%v err=%v", link, err, tc.link, tc.err)
 			}

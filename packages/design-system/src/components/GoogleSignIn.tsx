@@ -41,6 +41,8 @@ export interface GoogleSignInButtonProps {
   action: string;
   /** Where to land after signing in. */
   next?: string;
+  /** The kind of account a sign-up creates, sent as the form's "mode" field. */
+  mode?: string;
   /** @default "Continue with Google" */
   label?: string;
 }
@@ -52,11 +54,13 @@ export interface GoogleSignInButtonProps {
 export function GoogleSignInButton({
   action,
   next = "",
+  mode,
   label = "Continue with Google",
 }: GoogleSignInButtonProps) {
   return (
     <form method="post" action={action}>
       <input type="hidden" name="next" value={next} />
+      {mode ? <input type="hidden" name="mode" value={mode} /> : null}
       <Button type="submit" label={label} icon={<GoogleMark />} width="100%" />
     </form>
   );

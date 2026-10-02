@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   const field = form?.get("next");
   const next = sameSiteNextPath(typeof field === "string" ? field : undefined, ROUTES.scouting);
-  const started = await startGoogleSignIn(adminApiUrl(), await adminHeaders());
+  const started = await startGoogleSignIn(adminApiUrl(), { headers: await adminHeaders() });
   if (!started.ok) return seeOther(signInErrorPath(ROUTES.signIn, started.error, next));
   (await cookies()).set(
     GOOGLE_STATE_COOKIE,

@@ -17,7 +17,7 @@ One account per real person, with one role, and identity assurance that rises on
 
 ## Sign-up and sign-in
 
-- Methods: email + one-time code, passkeys, Google, Microsoft. Password login MAY exist for legacy users of the current job site.
+- Method: Sign in with Google only, on Joined and Scoutwell, for sign-up and sign-in alike; the staff console uses Google Workspace accounts. There is no email-and-password login. An account created with a password earlier links to Google the first time its owner signs in with Google using the same verified email.
 - Single sign-on across `platform-web`, `connect-web`, `admin-web` (shared auth domain, e.g. `auth.<domain>`).
 - Access token: JWT, 15 min. Refresh token: rotating, 30 days, bound to device.
 - Existing job-site accounts MUST migrate without re-registration: map old user IDs to new UUIDs; keep a `legacy_user_id` column.
