@@ -82,12 +82,12 @@ export function CompanyMigration() {
             },
             {
               label: "Waiting",
-              value: formatCount(counts.waitingCompanies),
-              hint: `In ${counts.companyStaging}, not researched yet`,
+              value: formatCount(waiting),
+              hint: `In ${staging}, not researched yet`,
             },
             {
               label: "Not found",
-              value: formatCount(counts.notFoundCompanies),
+              value: formatCount(notFound),
               hint: "Research could not find them",
             },
             {
