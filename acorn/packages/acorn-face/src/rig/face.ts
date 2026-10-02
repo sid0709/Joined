@@ -1,5 +1,5 @@
 // One acorn on one canvas: mood state, motion, and drawing. Host-agnostic (main thread or worker).
-import type { AcornFaceMode } from "../types";
+import type { AcornFaceFraming, AcornFaceMode } from "../types";
 import { context2d, type AnyCanvas, type BodyArt, type Canvas2D, type Sprites } from "./art";
 import {
   BLINK_GAP,
@@ -70,6 +70,7 @@ export interface FaceOptions {
   cssSize: number;
   dpr: number;
   reducedMotion: boolean;
+  framing?: AcornFaceFraming;
 }
 
 export class Face {
@@ -81,6 +82,7 @@ export class Face {
   lastTick = -Infinity;
   private cssSize: number;
   private reducedMotion: boolean;
+  private framing: AcornFaceFraming;
   private t = 0;
   private modeT = 0;
   private pose: Pose;
@@ -103,6 +105,7 @@ export class Face {
     this.mode = opts.mode;
     this.cssSize = opts.cssSize;
     this.reducedMotion = opts.reducedMotion;
+    this.framing = opts.framing ?? "auto";
     this.pose = { ...REST_POSE, ...POSES[this.mode] };
     this.look = { x: this.pose.lookX, y: this.pose.lookY };
     this.fx = { ...NO_EFFECTS, ...EFFECTS[this.mode] };
@@ -153,6 +156,7 @@ export class Face {
   /* ---------- motion ---------- */
 
   private get roomy(): boolean {
+    if (this.framing !== "auto") return this.framing === "roomy";
     return this.cssSize >= ROOMY_MIN_CSS_PX;
   }
 

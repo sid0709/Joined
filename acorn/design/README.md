@@ -22,7 +22,7 @@ Do not add instructional copy, fetch/debug controls, or chevrons that duplicate 
 - **Cards, not rows with arrows.** Rounded 12px cards. Whole card opens or focuses the tab. Fill and Custom share one card: 32px company / tab icon with an 18px Acorn Face silhouette badge, title, subtitle, résumé status, trailing circular download, preview (eye), and check.
 - **Pills for controls.** Tabs, Refresh, Fill, icon buttons use `--athens-radius-pill`.
 - **One accent.** `--athens-brand` for the selected Fill or Custom card (solid fill, white type), connection dot, and primary CTA. Do not introduce a second accent.
-- **Icon-only when the label is obvious.** Sign out is a door/arrow icon, not a “Sign out” pill. Help is a `?` next to it. The worker chip (mini rabbit + count) stays in the identity row so busy thinking/working tabs are visible at a glance.
+- **Icon-only when the label is obvious.** Sign out is a door/arrow icon, not a “Sign out” pill. Help is a `?` next to it. The worker chip (mini acorn + count) stays in the identity row so busy thinking/working tabs are visible at a glance.
 - **Density in the shell, air in the list.** Collapse header and status. Give the job list the remaining height.
 - **Sticky primary action.** Generate, Fill page, and Recommend stay at the bottom. Connection replaces Idle in the status strip.
 - **Toasts for issues.** Sign-in, socket, and Fill failures are floating cards (icon + title + detail + dismiss). Never `throw` or `console.error` for expected operator failures — those show up as Chrome extension Errors.

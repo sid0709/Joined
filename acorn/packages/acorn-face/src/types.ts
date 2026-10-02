@@ -25,6 +25,12 @@ export interface AcornFaceHandle {
  */
 export type AcornFaceRenderer = "auto" | "worker" | "main";
 
+/**
+ * `roomy` leaves space around the body for bubbles, sparkles, and a shadow; `tight` fills the
+ * square with the acorn (badges, icons). `auto` picks by size.
+ */
+export type AcornFaceFraming = "auto" | "roomy" | "tight";
+
 export interface AcornFaceMountOptions {
   /** CSS size of the square face. Numbers are pixels. */
   size?: number | string;

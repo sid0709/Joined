@@ -5,5 +5,6 @@ export {
   type AcornFaceHandle,
   type AcornFaceMode,
   type AcornFaceMountOptions,
+  type AcornFaceFraming,
   type AcornFaceRenderer,
 } from "./types";

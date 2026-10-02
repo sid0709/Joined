@@ -62,8 +62,8 @@ Titles: 600, letter-spacing `-0.01em` to `-0.02em`. No all-caps section labels.
 
 ## Components
 
-- **Identity row:** 28px logo, 16px Acorn, truncated name, worker-count chip (18px rabbit + number), 32px Help, 32px sign out.
-- **List card (Fill and Custom):** Shared `SidebarListCard`. 32px company logo (Fill) or tab favicon (Custom) with an 18px Acorn Face silhouette badge hanging on the bottom-right corner (no plate). Both stay on screen; the rabbit follows that row’s mode. 1-line title ellipsis, subtitle on its own line (company / host), résumé status on a third truncated line, trailing circular 32px download, preview (eye), and check. Download and eye are disabled until a résumé exists. Fill check marks applied; Custom check forgets the tab. Selected: `--athens-brand` fill, `--athens-canvas` type, white-outline controls. No location, no chevron.
+- **Identity row:** 28px logo, 16px Acorn, truncated name, worker-count chip (18px acorn + number), 32px Help, 32px sign out.
+- **List card (Fill and Custom):** Shared `SidebarListCard`. 32px company logo (Fill) or tab favicon (Custom) with an 18px Acorn Face silhouette badge hanging on the bottom-right corner (no plate). Both stay on screen; the acorn follows that row’s mode. 1-line title ellipsis, subtitle on its own line (company / host), résumé status on a third truncated line, trailing circular 32px download, preview (eye), and check. Download and eye are disabled until a résumé exists. Fill check marks applied; Custom check forgets the tab. Selected: `--athens-brand` fill, `--athens-canvas` type, white-outline controls. No location, no chevron.
 - **Connection footer:** 8px status dot + “Connection” + state. Expand for API URL.
 - **Fill CTA:** three sticky pills above the footer — Generate, Fill page (primary), Recommend. Custom disables them until Remember tab.
 - **Notice toast:** floating card just above Fill. Spring in, drain bar, exit under 0.5s. Errors hold ~12s and wrap detail so Fill/DOM failures are readable. Error / success / info via `pushAcornNotice`. Do not throw for sign-in or socket failures.

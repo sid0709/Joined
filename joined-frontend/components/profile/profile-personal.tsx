@@ -45,7 +45,9 @@ export function ProfilePersonal({
           variant="secondary"
           size="sm"
           isDisabled={!name.trim() || !isAgeValid}
-          clickAction={() => save({ name, personal, links }, "Personal details saved")}
+          clickAction={async () => {
+            await save({ name, personal, links }, "Personal details saved");
+          }}
         />
       }
     >

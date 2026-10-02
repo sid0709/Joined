@@ -1,6 +1,8 @@
 package candidate
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -83,5 +85,23 @@ func TestApplyProfilePatchRejectsBadDetails(t *testing.T) {
 		if _, _, err := applyProfilePatch(current, patch); err == nil {
 			t.Errorf("%s: patch accepted", name)
 		}
+	}
+}
+
+func TestProfilePatchDecodesFlatDates(t *testing.T) {
+	var patch ProfilePatch
+	body := `{"education":[{"school":"MIT","startMonth":9,"startYear":2010,"endMonth":6,"endYear":2014}],
+		"experience":[{"role":"Engineer","company":"Uber","startMonth":1,"startYear":2022,"current":true}]}`
+	if err := json.Unmarshal([]byte(body), &patch); err != nil {
+		t.Fatal(err)
+	}
+	school := (*patch.Education)[0]
+	role := (*patch.Experience)[0]
+	if school.StartMonth != 9 || school.EndYear != 2014 || role.StartYear != 2022 || !role.Current {
+		t.Errorf("education = %+v, experience = %+v", school, role)
+	}
+	out, err := json.Marshal(role)
+	if err != nil || !strings.Contains(string(out), `"startYear":2022`) {
+		t.Errorf("dates must serialize flat: %s", out)
 	}
 }

@@ -1,27 +1,27 @@
 # Acorn face — placement and moments
 
-Wired in the extension (sidebar companion, per-card badges, worker-count chip, Help guide, selection-QA chip). Toolbar icons stay still PNGs. There is no floating rabbit on the employer page.
+Wired in the extension (sidebar companion, per-card badges, worker-count chip, Help guide, selection-QA chip). Toolbar icons stay still PNGs. There is no floating acorn on the employer page.
 
-The rabbit is Acorn’s mascot. It appears on operator surfaces in the sidebar and on the selection-QA chip. It never goes inside a form.
+The acorn is Acorn’s mascot: one painted body (`art/acorn-body.png` in the package) with eyes, lids, and effects drawn in code, so every frame is the same character. It appears on operator surfaces in the sidebar and on the selection-QA chip. It never goes inside a form.
 
 Lib: [`packages/acorn-face`](../packages/acorn-face). API: `mount(el)`, `setMode(name)`, `destroy()`. One mode at a time.
 
-Modes: `waiting` `thinking` `working` `sleeping` `smile` `wink` `sad`
+Modes: `waiting` `thinking` `working` `help` `smile` `wink` `sad` `sleeping` (the original seven plus `help`; never drop one)
 
 ---
 
 ## 1. Placement
 
-| Surface                      | Where                                       | Size              | Live?                                                                                               | Whose status                                                              |
-| ---------------------------- | ------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Chrome toolbar + store icons | `manifest.json` `action` / `icons`          | 16 / 48 / 128 PNG | **Still.** Chrome cannot run the SVG engine here. Export a `waiting` frame (identity rainbow).      | Brand only                                                                |
-| Sidebar identity row         | `AcornFaceView` in `SidebarApp`             | 28px              | Live                                                                                                | **Companion** — focused tab, else any-tab work, else session              |
-| Worker-count chip            | Identity row, before Help                   | 18px + number     | Live while any tab is thinking or working                                                           | **Pool** — unique `tabId`s in thinking/working                            |
-| Help guide                   | Sidebar page from the Help button           | ~148px each       | Live                                                                                                | **Catalog** — one face per mode                                           |
-| Fill list card               | 32px logo + 18px badge in `SidebarListCard` | 18px rabbit       | Live only if busy, selected, or on-screen and not `waiting`. Idle off-screen rows are a still pose. | **That job**                                                              |
-| Custom list card             | Same slot, same card component              | 18px rabbit       | Same as Fill                                                                                        | **That remembered tab**                                                   |
-| Selection-QA chip            | Existing chip in `selection-qa.ts`          | 18–32px           | Live while the chip is shown                                                                        | Q&A for this selection (same tab)                                         |
-| Notices / Fill pill / footer | —                                           | —                 | No rabbit                                                                                           | Facts stay on those surfaces. The face comments; it does not become them. |
+| Surface                      | Where                                       | Size              | Live?                                                                                                               | Whose status                                                              |
+| ---------------------------- | ------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Chrome toolbar + store icons | `manifest.json` `action` / `icons`          | 16 / 48 / 128 PNG | **Still.** Brand mark (growth chart). `renderStill` / `bun run icons` can export an acorn set if the brand changes. | Brand only                                                                |
+| Sidebar identity row         | `AcornFaceView` in `SidebarApp`             | 28px              | Live                                                                                                                | **Companion** — focused tab, else any-tab work, else session              |
+| Worker-count chip            | Identity row, before Help                   | 18px + number     | Live while any tab is thinking or working                                                                           | **Pool** — unique `tabId`s in thinking/working                            |
+| Help guide                   | Sidebar page from the Help button           | ~148px each       | Live                                                                                                                | **Catalog** — one face per mode                                           |
+| Fill list card               | 32px logo + 18px badge in `SidebarListCard` | 18px acorn        | Live only if busy, selected, or on-screen and not `waiting`. Idle off-screen rows are a still pose.                 | **That job**                                                              |
+| Custom list card             | Same slot, same card component              | 18px acorn        | Same as Fill                                                                                                        | **That remembered tab**                                                   |
+| Selection-QA chip            | Existing chip in `selection-qa.ts`          | 18–32px           | Live while the chip is shown                                                                                        | Q&A for this selection (same tab)                                         |
+| Notices / Fill pill / footer | —                                           | —                 | No acorn                                                                                                            | Facts stay on those surfaces. The face comments; it does not become them. |
 
 ### Identity row
 
@@ -29,13 +29,13 @@ Keep `h2` “Acorn”, display name, worker-count chip, Help, sign-out. The 28px
 
 ### List cards — logo plus badge
 
-Fill and Custom share `SidebarListCard`. The leading 32px slot is the **company logo** (Fill) or **tab favicon** (Custom). An 18px Acorn Face badge hangs on the bottom-right corner as a silhouette — no plate or colored circle. Both stay visible. The rabbit follows that row’s fill/generate mode.
+Fill and Custom share `SidebarListCard`. The leading 32px slot is the **company logo** (Fill) or **tab favicon** (Custom). An 18px Acorn Face badge hangs on the bottom-right corner as a silhouette — no plate or colored circle. Both stay visible. The acorn follows that row’s fill/generate mode.
 
 Job and page identity stay in type: title + subtitle (company or host) + résumé line. Do not add a second 32px column.
 
 `WorkerPoolList` must pass that job’s pipeline (via `attachments[job.id].tabId` → `pipelines[tabId]`). `CustomTabList` already has `generateStatus` and `pipelines[tabId]`. Count busy workers by unique `tabId` (fill wins if the same tab is also generating).
 
-Generate progress bars stay. The rabbit does not replace the bar.
+Generate progress bars stay. The acorn does not replace the bar.
 
 ### Toolbar
 
@@ -51,13 +51,13 @@ One function, three subjects:
 resolveMode(subject: 'companion' | 'row') → AcornFaceMode
 ```
 
-**Priority (high → low):** `working` → `thinking` → `sad` → one-shot (`smile` / `wink`) → `sleeping` → `waiting`
+**Priority (high → low):** `working` → `thinking` → `sad` → `help` → one-shot (`smile` / `wink`) → `sleeping` → `waiting`
 
-Hold poses: `waiting` `thinking` `working` `sleeping` `sad` last until the situation ends.
+Hold poses: `waiting` `thinking` `working` `help` `sleeping` `sad` last until the situation ends.
 
 One-shots: `smile` and `wink` last 0.5–1.0s (wink = one close–hold–open), then fall back to the hold pose underneath.
 
-`prefers-reduced-motion`: rest pose, no saccades / breath / additives. Mode palettes may still change.
+`prefers-reduced-motion`: each mood’s resting pose, no glances, breathing, hops, or drifting effects; the face stops redrawing once settled.
 
 Do not fake slits. Send `sleeping`. Do not loop wink as a hold.
 
@@ -80,15 +80,18 @@ Surfaces may disagree on purpose: header `working` (tab B generating) while row 
 
 ## 3. Mode looks
 
-| Mode       | Eyes                                      | Fur (lib palettes) |
-| ---------- | ----------------------------------------- | ------------------ |
-| `waiting`  | Round whites, blinks + saccades           | Identity rainbow   |
-| `thinking` | Whites roll up and inward, head tips back | Ice / periwinkle   |
-| `working`  | Narrow, fast blinks, busy scan            | Ember coral-red    |
-| `sleeping` | Both slits, slow breath                   | Dusk indigo        |
-| `smile`    | Outer corners up `\ /`                    | Peach-gold         |
-| `wink`     | Right eye slit close–hold–open            | Candy magenta      |
-| `sad`      | Inner corners up `/ \`, gaze drops        | Drained gray       |
+| Mode       | Eyes and body                                       | Effect (64px and up)   |
+| ---------- | --------------------------------------------------- | ---------------------- |
+| `waiting`  | Round eyes, glances around, blinks, breathes        | —                      |
+| `thinking` | Looks up and to the side, slight tilt               | Rising thought bubbles |
+| `working`  | Half-lidded, reading sweep left to right, small bob | —                      |
+| `help`     | Wide eyes, questioning head tilt                    | `?` bubble             |
+| `smile`    | Happy `^ ^` eyes, hop with squash and stretch       | Sparkles               |
+| `wink`     | Right eye `^`, playful lean                         | Twinkle by the eye     |
+| `sad`      | Lids slant inner-corner-up, gaze drops, sway        | Tear                   |
+| `sleeping` | Closed `‿ ‿` eyes, slow deep breathing              | Floating `z`s          |
+
+Below 64px the acorn fills its square (no effects, bigger eyes), so every mood reads from the eyes alone.
 
 ---
 
@@ -167,7 +170,7 @@ Hold times are for the director, not current product code.
 
 ### Fill card (that job)
 
-Need `tabId` from `attachments[job.id]`. Unattached idle jobs still get a rabbit (`waiting`).
+Need `tabId` from `attachments[job.id]`. Unattached idle jobs still get an acorn (`waiting`).
 
 | Situation                                | Mode            | Hold                        |
 | ---------------------------------------- | --------------- | --------------------------- |
@@ -228,12 +231,13 @@ Need `tabId` from `attachments[job.id]`. Unattached idle jobs still get a rabbit
 - Idle off-screen rows call `setPaused(true)`. Companion, Help faces, selected rows, and non-waiting rows stay live.
 - Worker Pool rows read `attachments[job.id].tabId` → `pipelines[tabId]`.
 - Extension version bumped with this ship. Toolbar stays still PNGs.
+- Rendering: one shared Web Worker draws every face on extension pages (OffscreenCanvas); content scripts on job sites fall back to the main thread. One frame loop per thread, frame-rate caps by size (24/30/60fps), and nothing runs for paused, off-screen, or hidden faces.
 
 ---
 
 ## 7. Do not
 
-- Insert the rabbit into `<form>` or a child form iframe.
+- Insert the acorn into `<form>` or a child form iframe.
 - Float a page HUD on the employer site.
 - Replace notices, the generate bar, or the Fill pill with the face.
 - Animate the Chrome toolbar with `rAF`.

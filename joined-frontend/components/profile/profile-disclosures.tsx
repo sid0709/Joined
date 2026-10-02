@@ -38,7 +38,9 @@ export function ProfileDisclosures({
           label="Save"
           variant="secondary"
           size="sm"
-          clickAction={() => save({ disclosures }, "Disclosures saved")}
+          clickAction={async () => {
+            await save({ disclosures }, "Disclosures saved");
+          }}
         />
       }
     >

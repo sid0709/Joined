@@ -1,27 +1,38 @@
 # `@acorn/face`
 
-Internal Lumen rabbit face for Acorn. Mounted in the side panel identity row, worker-count chip, Help guide, every Fill/Custom list-card badge, and the selection-QA chip. Toolbar icons stay still PNGs.
+The animated acorn. **This package is the only source of the animation**: the extension and `acorn/demo` both import it by name, so a change here shows up in both at once.
 
 ## API
 
 ```ts
-import { mount, ACORN_FACE_MODES, type AcornFaceMode } from "@acorn/face";
+import { mount, renderStill, ACORN_FACE_MODES, type AcornFaceMode } from "@acorn/face";
 
-const face = mount(document.querySelector("#face")!);
-face.setMode("waiting");
+const face = mount(el, { size: 28, mode: "waiting" });
+face.setMode("thinking");
+face.setPaused(true); // keeps the last frame
 face.destroy();
+
+const icon = await renderStill("smile", 128, { framing: "tight" }); // one still frame on a canvas
 ```
 
-Modes: `waiting` `thinking` `working` `sleeping` `smile` `wink` `sad`
+Modes: `waiting` `thinking` `working` `help` `smile` `wink` `sad` `sleeping`. Keep all eight; the extension's director relies on the original seven.
 
-One mode at a time. The head is a single path — ears do not move. No plate or rounded-rect backdrop; the silhouette fills the box. Modes drive the eyes (plus whole-head breath) and the **fur gradient**: waiting is the identity rainbow; thinking ice-blue; working ember red; sleeping dusk; smile peach-gold; wink magenta; sad drained gray. Rest eyes are round white circles (`r=21.75`). Thinking rolls both whites up and inward. Small slits follow the face line. Smile tilts `\ /`; sad tilts `/ \`. Wink closes one eye (sleeping slit) then opens it after a hold. No pupils, lids, or sockets.
+Options: `size` (CSS px or any CSS length), `mode`, `reducedMotion` (defaults to the OS setting), `renderer` (`auto` | `worker` | `main`).
 
-## Playground
+## How it's built
 
-```bash
-bun run dev:acorn-face   # from the repo root
-```
+- **One painted body**, generated once and embedded as a 14 KB AVIF (`src/assets/body.ts`). Eyes, lids, blinks, and effects are drawn in code, so every frame is the same character.
+- **Off the main thread:** faces draw into OffscreenCanvases inside one shared Web Worker. Where a worker can't run (content scripts on other sites, older browsers), the same code runs on the main thread.
+- **One frame loop per thread**, frame-rate caps by size (24 / 30 / 60 fps), and no work at all for paused, off-screen, or hidden faces. Reduced motion stops redrawing once a pose settles.
+- **Shared, pre-scaled sprites:** the body is scaled once per size and eye gradients are pre-rendered, so every 18px badge reuses the same bitmaps and each frame is a near 1:1 copy.
+- **Level of detail:** below 64px the acorn fills its square with bigger eyes and no effects; tiny eyes are drawn flat.
 
-Opens the chip board at http://localhost:5175.
+## Art
 
-Product wiring: [`docs/acorn-face-moments.md`](../../docs/acorn-face-moments.md).
+| Script                                | What it does                                                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `bun run art -- body <reference.png>` | Generates body drafts with the OpenAI Images API into `art/raw/` (needs `OPENAI_API_KEY` in `acorn/.env`). |
+| `bun run art:prepare`                 | Trims `art/acorn-body.png`, picks the smaller of WebP/AVIF, and embeds it in `src/assets/body.ts`.         |
+| `bun run icons -- <out-dir> [mode]`   | Renders 16/48/128 PNG icons from the live engine.                                                          |
+
+Eye placement and every motion number live in `src/rig/constants.ts` and `src/rig/poses.ts`.

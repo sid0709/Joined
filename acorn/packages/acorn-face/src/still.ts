@@ -1,6 +1,6 @@
 import { mainStage } from "./host/main-host";
 import { Face } from "./rig/face";
-import type { AcornFaceMode } from "./types";
+import type { AcornFaceFraming, AcornFaceMode } from "./types";
 
 /**
  * Draw one still frame of a mood's resting pose (no motion), e.g. for toolbar icons
@@ -9,7 +9,7 @@ import type { AcornFaceMode } from "./types";
 export async function renderStill(
   mode: AcornFaceMode,
   sizePx: number,
-  dpr = 1,
+  { dpr = 1, framing = "auto" }: { dpr?: number; framing?: AcornFaceFraming } = {},
 ): Promise<HTMLCanvasElement> {
   const { art, sprites } = await mainStage().ready;
   const canvas = document.createElement("canvas");
@@ -17,7 +17,7 @@ export async function renderStill(
     canvas,
     art,
     sprites,
-    { mode, cssSize: sizePx, dpr, reducedMotion: true },
+    { mode, cssSize: sizePx, dpr, reducedMotion: true, framing },
     () => {},
   );
   await face.prepare();
