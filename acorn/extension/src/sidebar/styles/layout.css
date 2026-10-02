@@ -119,3 +119,9 @@
   flex-shrink: 0;
   line-height: 0;
 }
+
+/* Fill page spans the bar; Generate and Recommend split the row under it. */
+.acorn-action-bar-row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}

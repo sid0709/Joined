@@ -1,4 +1,4 @@
-import { Button, Glyph, HStack } from "@joined/design-system";
+import { Button, Glyph, HStack, VStack } from "@joined/design-system";
 import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 
 type SidebarActionBarProps = {
@@ -33,16 +33,7 @@ export function SidebarActionBar({
   onRecommend,
 }: SidebarActionBarProps) {
   return (
-    <HStack className="acorn-action-bar" gap={2} data-phase={fillPhase}>
-      <Button
-        variant="secondary"
-        icon={<Glyph name="sparkle" />}
-        label={generateLabel}
-        tooltip={generateTitle ?? generateLabel}
-        isDisabled={generateDisabled}
-        width="100%"
-        onClick={onGenerate}
-      />
+    <VStack className="acorn-action-bar" gap={2} data-phase={fillPhase}>
       <Button
         variant="primary"
         icon={<Glyph name="edit" />}
@@ -52,15 +43,24 @@ export function SidebarActionBar({
         width="100%"
         onClick={onFill}
       />
-      <Button
-        variant="secondary"
-        icon={<Glyph name="star" />}
-        label={recommendLabel}
-        tooltip={recommendTitle ?? recommendLabel}
-        isDisabled={recommendDisabled}
-        width="100%"
-        onClick={onRecommend}
-      />
-    </HStack>
+      <HStack gap={2} className="acorn-action-bar-row">
+        <Button
+          variant="secondary"
+          icon={<Glyph name="sparkle" />}
+          label={generateLabel}
+          tooltip={generateTitle ?? generateLabel}
+          isDisabled={generateDisabled}
+          onClick={onGenerate}
+        />
+        <Button
+          variant="secondary"
+          icon={<Glyph name="star" />}
+          label={recommendLabel}
+          tooltip={recommendTitle ?? recommendLabel}
+          isDisabled={recommendDisabled}
+          onClick={onRecommend}
+        />
+      </HStack>
+    </VStack>
   );
 }

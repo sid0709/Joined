@@ -26,6 +26,7 @@ export function ConnectionFooter({
     <footer className={`status-bar phase-${phase}`}>
       <Collapsible
         chevronPosition="end"
+        defaultIsOpen={false}
         onOpenChange={onOpenChange}
         trigger={
           <HStack gap={2} align="center">

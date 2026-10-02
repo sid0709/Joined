@@ -36,6 +36,14 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "acorn/demo", "dev"],
       "port": 5180
+    },
+    {
+      "name": "acorn-sidebar-preview",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "/private/tmp/claude-501/-Users-robin-Desktop-Utils-OpenSeat/90b95b59-ed5c-47bf-8d99-fb4070b5681c/scratchpad/preview/serve.ts"
+      ],
+      "port": 5199
     }
   ]
 }

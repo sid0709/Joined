@@ -17,8 +17,14 @@ export function AcornNoticeHost() {
         autoHideDuration: noticeKindDuration(kind),
         body: (
           <VStack gap={0.5}>
-            <Text weight="semibold">{title}</Text>
-            {detail ? <Text type="supporting">{detail}</Text> : null}
+            <Text weight="semibold" color="inherit">
+              {title}
+            </Text>
+            {detail ? (
+              <Text type="supporting" color="inherit">
+                {detail}
+              </Text>
+            ) : null}
           </VStack>
         ),
       });
