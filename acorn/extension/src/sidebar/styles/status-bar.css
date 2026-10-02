@@ -1,0 +1,60 @@
+.status-bar {
+  flex-shrink: 0;
+  padding: 0;
+  background: var(--athens-canvas);
+  font-size: var(--athens-font-size-xs);
+  color: var(--athens-text-muted);
+  border-top: 1px solid var(--athens-border);
+}
+
+.sidebar-app.has-fill-cta .status-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 76px;
+  z-index: 11;
+  padding: 0;
+  background: var(--athens-canvas);
+}
+
+.acorn-connection-footer {
+  margin: 0;
+}
+
+.acorn-connection-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--athens-space-2);
+  padding: var(--athens-space-2) var(--athens-space-4);
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--athens-font-size-xs);
+  font-weight: 600;
+  color: var(--athens-text-secondary);
+}
+
+.acorn-connection-summary::-webkit-details-marker {
+  display: none;
+}
+
+.acorn-connection-summary .acorn-settings-dot {
+  margin-left: 0;
+}
+
+.acorn-connection-title {
+  color: var(--athens-text);
+}
+
+.acorn-connection-state {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--athens-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.acorn-connection-body {
+  padding: 0 var(--athens-space-4) var(--athens-space-3);
+}

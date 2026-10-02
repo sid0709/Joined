@@ -1,0 +1,122 @@
+.tree-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--athens-space-2);
+}
+
+.tree-actions button {
+  background: var(--athens-canvas);
+  border: 1px solid var(--athens-border);
+  color: var(--athens-text);
+  border-radius: var(--athens-radius-pill);
+  padding: var(--athens-space-2) var(--athens-space-3);
+  font-size: var(--athens-font-size-xs);
+  font-weight: 600;
+}
+
+.tree-actions button:not(:disabled):hover {
+  background: var(--athens-hover);
+}
+
+.tree-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.plan-goal {
+  margin: 0 0 var(--athens-space-2);
+  font-size: var(--athens-font-size-sm);
+  color: var(--athens-text-secondary);
+  line-height: 1.4;
+}
+
+.plan-run-summary {
+  display: flex;
+  gap: var(--athens-space-3);
+  flex-wrap: wrap;
+  font-size: var(--athens-font-size-xs);
+  color: var(--athens-text-muted);
+  margin-bottom: var(--athens-space-3);
+}
+
+.plan-run-live {
+  color: var(--athens-brand);
+  font-weight: 600;
+}
+
+.plan-run-scroll {
+  max-height: 280px;
+  overflow: auto;
+  background: var(--athens-canvas);
+  border: 1px solid var(--athens-border);
+  border-radius: var(--athens-radius-md);
+}
+
+.plan-run-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.plan-step {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 2px var(--athens-space-3);
+  padding: var(--athens-space-3) var(--athens-space-4);
+  border-bottom: 1px solid var(--athens-border);
+  font-size: var(--athens-font-size-xs);
+}
+
+.plan-step:last-child {
+  border-bottom: none;
+}
+
+.plan-step-idx {
+  color: var(--athens-text-muted);
+}
+
+.plan-step-action {
+  font-weight: 600;
+  color: var(--athens-text);
+}
+
+.plan-step-status {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--athens-text-secondary);
+}
+
+.plan-step-target {
+  grid-column: 2 / -1;
+  color: var(--athens-text-muted);
+}
+
+.plan-step-msg {
+  grid-column: 2 / -1;
+  color: var(--athens-text-secondary);
+  word-break: break-word;
+}
+
+.status-ok .plan-step-status {
+  color: var(--athens-text);
+}
+
+.status-running .plan-step-status {
+  color: var(--athens-brand);
+}
+
+.status-paused .plan-step-status {
+  color: var(--athens-text-secondary);
+}
+
+.status-skipped .plan-step-status {
+  color: var(--athens-text-muted);
+}
+
+.status-blocked .plan-step-status,
+.status-failed .plan-step-status,
+.status-aborted .plan-step-status {
+  color: var(--athens-danger);
+}

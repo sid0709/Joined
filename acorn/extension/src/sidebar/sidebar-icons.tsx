@@ -122,3 +122,17 @@ export function FillIcon() {
     </svg>
   );
 }
+
+export function SignOutIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" fill="none">
+      <path
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.5 4.5H6.2A1.7 1.7 0 0 0 4.5 6.2v7.6A1.7 1.7 0 0 0 6.2 15.5h2.3M11 6.5 14.5 10 11 13.5M14.5 10H8"
+      />
+    </svg>
+  );
+}

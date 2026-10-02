@@ -1,0 +1,116 @@
+.job-list-copy {
+  display: block;
+  min-width: 0;
+  padding-right: var(--athens-space-2);
+  overflow: hidden;
+}
+
+.worker-pool-title {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--athens-font-size-sm);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--athens-text);
+}
+
+.worker-pool-meta,
+.worker-pool-location,
+.worker-pool-resume {
+  font-size: var(--athens-font-size-xs);
+  color: var(--athens-text-secondary);
+}
+
+.worker-pool-item.fill-job .worker-pool-title,
+.worker-pool-item.fill-job .worker-pool-company,
+.worker-pool-item.fill-job .worker-pool-resume {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.worker-pool-item.fill-job .worker-pool-company {
+  font-size: var(--athens-font-size-xs);
+  color: var(--athens-text-secondary);
+}
+
+.worker-pool-item.fill-job .worker-pool-resume.is-failed {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  text-overflow: unset;
+  color: var(--athens-danger);
+  font-weight: 600;
+}
+
+.worker-pool-item.fill-job .worker-pool-resume:not(.muted):not(.is-failed) {
+  font-weight: 600;
+  color: var(--athens-text);
+}
+
+.worker-pool-item.fill-job.selected .worker-pool-resume.is-failed {
+  color: var(--athens-canvas);
+}
+
+.worker-pool-item.fill-job.selected .worker-pool-company,
+.worker-pool-item.fill-job.selected .worker-pool-resume,
+.worker-pool-item.fill-job.selected .worker-pool-resume:not(.muted) {
+  color: var(--athens-canvas);
+}
+
+.worker-pool-item.fill-job.selected .worker-pool-resume.muted {
+  color: rgb(255 255 255 / 78%);
+}
+
+.worker-pool-meta,
+.worker-pool-location,
+.worker-pool-tab {
+  display: inline;
+}
+
+.worker-pool-location::before {
+  content: " · ";
+  color: var(--athens-text-muted);
+}
+
+.worker-pool-tab::before {
+  content: " · ";
+  color: var(--athens-text-muted);
+  font-weight: 400;
+}
+
+.worker-pool-location,
+.worker-pool-resume.muted {
+  font-size: var(--athens-font-size-xs);
+  color: var(--athens-text-muted);
+}
+
+.worker-pool-resume:not(.muted) {
+  color: var(--athens-text-secondary);
+}
+
+.worker-pool-tab {
+  font-size: var(--athens-font-size-xs);
+  color: var(--athens-brand);
+  font-weight: 600;
+}
+
+.tab-job-chip {
+  font-size: var(--athens-font-size-sm);
+  color: var(--athens-text-secondary);
+  line-height: 1.4;
+  margin-bottom: var(--athens-space-1);
+}
+
+.tab-job-chip strong {
+  color: var(--athens-text);
+  font-weight: 600;
+}

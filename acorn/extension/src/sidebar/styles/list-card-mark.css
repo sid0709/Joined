@@ -1,0 +1,73 @@
+.acorn-face-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: visible;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.acorn-face-slot canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.list-card-mark {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.list-card-mark-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--athens-radius-sm);
+  background: var(--athens-surface-subtle);
+  border: 1px solid var(--athens-border);
+  overflow: hidden;
+}
+
+.list-card-mark-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.list-card-mark-fallback {
+  font-size: var(--athens-font-size-sm);
+  font-weight: 700;
+  color: var(--athens-text-secondary);
+}
+
+.acorn-face-badge {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  overflow: visible;
+  line-height: 0;
+  pointer-events: none;
+  background: none;
+}
+
+.acorn-face-badge .acorn-face-slot {
+  width: 100%;
+  height: 100%;
+}
+
+.worker-pool-item.fill-job.selected .list-card-mark-logo {
+  background: rgb(255 255 255 / 16%);
+  border-color: rgb(255 255 255 / 28%);
+}
+
+.worker-pool-item.fill-job.selected .list-card-mark-fallback {
+  color: var(--athens-canvas);
+}

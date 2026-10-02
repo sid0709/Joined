@@ -1,0 +1,32 @@
+.worker-pool-open:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.worker-pool-applied,
+.worker-pool-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  border-radius: var(--athens-radius-pill);
+  background: transparent;
+  color: var(--athens-text-muted);
+  border: 1px solid var(--athens-border);
+}
+
+.worker-pool-icon-btn:not(:disabled):hover,
+.worker-pool-applied:not(:disabled):hover {
+  background: var(--athens-brand-subtle);
+  border-color: var(--athens-brand-border);
+  color: var(--athens-brand);
+}
+
+.worker-pool-icon-btn:disabled,
+.worker-pool-applied:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

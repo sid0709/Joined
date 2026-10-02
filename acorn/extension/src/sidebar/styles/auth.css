@@ -1,0 +1,36 @@
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--athens-space-1);
+}
+
+.auth-hint {
+  margin: 0;
+  color: var(--athens-text-muted, inherit);
+  font-size: var(--athens-font-size-sm, 0.85em);
+}
+
+.auth-form .tool-card.primary {
+  margin-top: var(--athens-space-2);
+  min-height: 48px;
+  justify-content: center;
+}
+
+.auth-signed-in {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--athens-space-2);
+}
+
+.auth-signed-in .tool-card {
+  padding: var(--athens-space-2) var(--athens-space-4);
+  flex-direction: row;
+}
+
+.auth-user {
+  margin: 0;
+  font-size: var(--athens-font-size-sm);
+  color: var(--athens-text);
+}
