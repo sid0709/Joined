@@ -116,8 +116,8 @@
 }
 
 .welcome .brand-logo {
-  width: 28px;
-  height: 28px;
+  width: var(--acorn-face-brand-px);
+  height: var(--acorn-face-brand-px);
   flex-shrink: 0;
   overflow: visible;
   line-height: 0;
@@ -125,7 +125,7 @@
 
 .welcome .brand-logo svg {
   display: block;
-  width: 28px;
+  width: var(--acorn-face-brand-px);
   height: auto;
 }
 

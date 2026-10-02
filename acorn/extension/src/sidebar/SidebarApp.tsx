@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { canContinueGenerate } from "@acorn/shared/generate-checkpoint";
 import {
   IDLE_PIPELINE_PROGRESS,
@@ -935,7 +935,10 @@ export default function SidebarApp() {
     >
       <div className="sidebar-scroll">
         <div className="sidebar-chrome">
-          <section className="welcome">
+          <section
+            className="welcome"
+            style={{ "--acorn-face-brand-px": `${ACORN_FACE_BRAND_PX}px` } as CSSProperties}
+          >
             <div className="brand-bar">
               <AcornFaceView
                 className="brand-logo"

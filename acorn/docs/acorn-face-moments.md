@@ -25,7 +25,7 @@ Modes: `waiting` `thinking` `working` `help` `smile` `wink` `sad` `sleeping` (th
 
 ### Identity row
 
-Keep `h2` “Acorn”, display name, worker-count chip, Help, sign-out. The 28px mark is a mounted face, not `public/icon-128.png`. The chip always shows the number of unique tabs in `thinking` or `working` (including `0`). Help opens a page of large live faces for every mode; chrome stays.
+Keep `h2` “Acorn”, display name, worker-count chip, Help, sign-out. The 56px mark (`ACORN_FACE_BRAND_PX`) is a mounted face, not `public/icon-128.png`. The chip always shows the number of unique tabs in `thinking` or `working` (including `0`). Help opens a page of large live faces for every mode; chrome stays.
 
 ### List cards — logo plus badge
 
