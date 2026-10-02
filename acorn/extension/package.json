@@ -1,5 +1,5 @@
 {
-  "name": "bash-extension",
+  "name": "acorn-extension",
   "version": "1.7.0",
   "private": true,
   "type": "module",
@@ -8,8 +8,8 @@
     "build": "tsc && vite build"
   },
   "dependencies": {
-    "@bash/face": "workspace:*",
-    "@bash/shared": "workspace:*",
+    "@acorn/face": "workspace:*",
+    "@acorn/shared": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "socket.io-client": "catalog:"

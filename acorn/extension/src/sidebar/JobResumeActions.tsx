@@ -5,25 +5,25 @@ import {
 } from "../pipeline/ai-client";
 import { getJobGenerate } from "../tab-job-generate-session";
 import { triggerResumeDownload } from "./download-resume";
-import { pushBashNotice } from "./bash-notice";
-import type { BashWorkerJob } from "../worker-job";
+import { pushAcornNotice } from "./acorn-notice";
+import type { AcornWorkerJob } from "../worker-job";
 
-export function resumeLabel(job: BashWorkerJob): string | null {
+export function resumeLabel(job: AcornWorkerJob): string | null {
   if (job.generatedResume) return "Generated";
   if (job.recommendedResumeStack) return job.recommendedResumeStack;
   if (job.recommendedResumeId) return "assigned";
   return null;
 }
 
-export function hasAssignedResume(job: BashWorkerJob): boolean {
+export function hasAssignedResume(job: AcornWorkerJob): boolean {
   return Boolean(resumeLabel(job));
 }
 
-export function resumeMetaText(job: BashWorkerJob): string {
+export function resumeMetaText(job: AcornWorkerJob): string {
   return resumeLabel(job) ?? "No resume assigned";
 }
 
-export async function downloadJobResume(job: BashWorkerJob): Promise<void> {
+export async function downloadJobResume(job: AcornWorkerJob): Promise<void> {
   try {
     const gen = await getJobGenerate(job.id);
     const generationId = String(gen?.generationId || "").trim();
@@ -34,7 +34,7 @@ export async function downloadJobResume(job: BashWorkerJob): Promise<void> {
         ? await fetchCustomLibraryResume(libraryId)
         : await fetchRecommendedResume(job.id);
     if (!file?.base64 || !file.name) {
-      pushBashNotice({
+      pushAcornNotice({
         kind: "error",
         title: "Couldn’t download résumé",
         detail:
@@ -46,7 +46,7 @@ export async function downloadJobResume(job: BashWorkerJob): Promise<void> {
     }
     triggerResumeDownload(file);
   } catch (err) {
-    pushBashNotice({
+    pushAcornNotice({
       kind: "error",
       title: "Couldn’t download résumé",
       detail: err instanceof Error ? err.message : String(err),

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { requestQaAnswer, type BashQaPage } from "../ai-client";
+import { requestQaAnswer, type AcornQaPage } from "../ai-client";
 import "./QaBoard.css";
 
 type QaBoardProps = {
   signedIn: boolean;
-  page?: BashQaPage | null;
+  page?: AcornQaPage | null;
 };
 
 export function QaBoard({ signedIn, page }: QaBoardProps) {
@@ -41,7 +41,7 @@ export function QaBoard({ signedIn, page }: QaBoardProps) {
     <aside className="qa-board">
       <h3>Q&amp;A</h3>
       <p className="qa-hint">
-        Ask a leftover application question. Uses the same human-like writer as Bash text-field
+        Ask a leftover application question. Uses the same human-like writer as Acorn text-field
         fill.
       </p>
       <textarea

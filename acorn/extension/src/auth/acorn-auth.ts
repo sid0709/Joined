@@ -1,13 +1,13 @@
-import { BASH_SOCKET_PATH, bashHosts } from "@bash/shared/api";
+import { ACORN_SOCKET_PATH, acornHosts } from "@acorn/shared/api";
 
-const hosts = bashHosts(import.meta.env.MODE);
+const hosts = acornHosts(import.meta.env.MODE);
 
-/** Bash's API: backend-core's server. Override per build with VITE_BASH_API_URL. */
-export const DEFAULT_ATHENS_API_URL = import.meta.env.VITE_BASH_API_URL?.trim() || hosts.api;
-export { BASH_SOCKET_PATH };
+/** Acorn's API: backend-core's server. Override per build with VITE_ACORN_API_URL. */
+export const DEFAULT_ATHENS_API_URL = import.meta.env.VITE_ACORN_API_URL?.trim() || hosts.api;
+export { ACORN_SOCKET_PATH };
 
 /**
- * Bash has no accounts. It signs in with the Joined session: the token
+ * Acorn has no accounts. It signs in with the Joined session: the token
  * joined-frontend keeps in this cookie, which joined-backend and backend-core
  * both accept as a bearer token.
  */
@@ -15,7 +15,7 @@ export const JOINED_SESSION_COOKIE = "joined_session";
 /** Where joined-frontend runs. Override per build with VITE_JOINED_URL. */
 export const DEFAULT_JOINED_URL = import.meta.env.VITE_JOINED_URL?.trim() || hosts.joined;
 
-export type BashStoredSession = {
+export type AcornStoredSession = {
   accessToken: string;
   username: string;
   displayName: string;
@@ -25,8 +25,8 @@ export type BashStoredSession = {
 
 const STORAGE_KEYS = {
   apiUrl: "athensApiUrl",
-  session: "bashSession",
-  signedOutToken: "bashSignedOutToken",
+  session: "acornSession",
+  signedOutToken: "acornSignedOutToken",
 } as const;
 
 export async function getAthensApiUrl(): Promise<string> {
@@ -37,7 +37,7 @@ export async function getAthensApiUrl(): Promise<string> {
     : DEFAULT_ATHENS_API_URL;
 }
 
-/** Socket.io origin: the API host. Routes and the engine path both sit under `/bash` there. */
+/** Socket.io origin: the API host. Routes and the engine path both sit under `/acorn` there. */
 export function athensSocketOrigin(apiUrl: string): string {
   return apiUrl
     .trim()
@@ -51,32 +51,32 @@ export async function setAthensApiUrl(url: string): Promise<void> {
   });
 }
 
-export async function getBashSession(): Promise<BashStoredSession | null> {
+export async function getAcornSession(): Promise<AcornStoredSession | null> {
   const stored = await chrome.storage.local.get([STORAGE_KEYS.session]);
-  const session = stored[STORAGE_KEYS.session] as BashStoredSession | undefined;
+  const session = stored[STORAGE_KEYS.session] as AcornStoredSession | undefined;
   if (!session?.accessToken) return null;
   if (session.expiresAt && Date.parse(session.expiresAt) <= Date.now()) {
-    await clearBashSession();
+    await clearAcornSession();
     return null;
   }
   return session;
 }
 
-export async function setBashSession(session: BashStoredSession): Promise<void> {
+export async function setAcornSession(session: AcornStoredSession): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEYS.session]: session });
 }
 
-export async function clearBashSession(): Promise<void> {
+export async function clearAcornSession(): Promise<void> {
   await chrome.storage.local.remove([STORAGE_KEYS.session]);
 }
 
 export async function getAccessToken(): Promise<string | null> {
-  const session = await getBashSession();
+  const session = await getAcornSession();
   return session?.accessToken ?? null;
 }
 
-export type BashAuthResult =
-  { ok: true; session: BashStoredSession } | { ok: false; error: string };
+export type AcornAuthResult =
+  { ok: true; session: AcornStoredSession } | { ok: false; error: string };
 
 export const JOINED_SIGN_IN_REQUIRED = "Sign in to Joined in this browser first, then try again.";
 
@@ -96,24 +96,24 @@ async function ownSignedOutToken(): Promise<string | null> {
 }
 
 /**
- * Make Bash's session the Joined session. Reads the Joined cookie and asks Bash's
- * backend who it belongs to. With `force`, Bash signs back in even after the
- * person signed out of Bash on this Joined session.
+ * Make Acorn's session the Joined session. Reads the Joined cookie and asks Acorn's
+ * backend who it belongs to. With `force`, Acorn signs back in even after the
+ * person signed out of Acorn on this Joined session.
  */
 export async function syncJoinedSession(
   options: { apiUrl?: string; force?: boolean } = {},
-): Promise<BashAuthResult> {
+): Promise<AcornAuthResult> {
   const base = (options.apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
   const token = await readJoinedToken();
   if (!token) {
-    await clearBashSession();
+    await clearAcornSession();
     return { ok: false, error: JOINED_SIGN_IN_REQUIRED };
   }
   if (!options.force && token === (await ownSignedOutToken())) {
-    return { ok: false, error: "Signed out of Bash." };
+    return { ok: false, error: "Signed out of Acorn." };
   }
   try {
-    const res = await fetch(`${base}/bash/auth/me`, {
+    const res = await fetch(`${base}/acorn/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = (await res.json().catch(() => ({}))) as {
@@ -125,7 +125,7 @@ export async function syncJoinedSession(
       };
     };
     if (res.status === 401) {
-      await clearBashSession();
+      await clearAcornSession();
       return { ok: false, error: JOINED_SIGN_IN_REQUIRED };
     }
     if (!res.ok || !data.session) {
@@ -134,7 +134,7 @@ export async function syncJoinedSession(
         error: data.message || "Joined account is not a job hunter account.",
       };
     }
-    const session: BashStoredSession = {
+    const session: AcornStoredSession = {
       accessToken: token,
       username: data.session.username || "",
       displayName: data.session.displayName || data.session.username || "Joined",
@@ -144,14 +144,14 @@ export async function syncJoinedSession(
     };
     await setAthensApiUrl(base);
     await chrome.storage.local.remove([STORAGE_KEYS.signedOutToken]);
-    await setBashSession(session);
+    await setAcornSession(session);
     return { ok: true, session };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err ?? "");
     if (/failed to fetch|networkerror|load failed/i.test(message)) {
       return {
         ok: false,
-        error: "Couldn’t reach Bash. Check the API URL and that the backend is running.",
+        error: "Couldn’t reach Acorn. Check the API URL and that the backend is running.",
       };
     }
     return { ok: false, error: message || "Couldn’t sign in." };
@@ -159,20 +159,20 @@ export async function syncJoinedSession(
 }
 
 /** Sign in with the Joined session already in this browser. */
-export function bashSignIn(apiUrl?: string): Promise<BashAuthResult> {
+export function acornSignIn(apiUrl?: string): Promise<AcornAuthResult> {
   return syncJoinedSession({ apiUrl, force: true });
 }
 
 /**
- * Forget the session in Bash only. The Joined session is shared with joined-frontend,
- * so it stays; Bash will not sign back in on it until the person asks to.
+ * Forget the session in Acorn only. The Joined session is shared with joined-frontend,
+ * so it stays; Acorn will not sign back in on it until the person asks to.
  */
-export async function bashSignOut(): Promise<void> {
+export async function acornSignOut(): Promise<void> {
   const token = await getAccessToken();
   if (token) {
     await chrome.storage.local.set({ [STORAGE_KEYS.signedOutToken]: token });
   }
-  await clearBashSession();
+  await clearAcornSession();
 }
 
 /** True for a change to the Joined session cookie. */

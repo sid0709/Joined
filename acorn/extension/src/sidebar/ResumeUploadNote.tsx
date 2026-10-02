@@ -1,4 +1,4 @@
-import type { PipelineProgress } from "@bash/shared/pipeline-types";
+import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 
 type ResumeUploadNoteProps = {
   progress: PipelineProgress;

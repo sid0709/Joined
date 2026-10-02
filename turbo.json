@@ -18,7 +18,7 @@
         "SCOUTWELL_API_URL",
         "SCOUT_PUBLIC_API_URL",
         "JOINED_WEB_URL",
-        "VITE_BASH_API_URL",
+        "VITE_ACORN_API_URL",
         "VITE_JOINED_URL"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]

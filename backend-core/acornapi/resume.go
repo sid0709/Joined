@@ -1,10 +1,10 @@
-package bashapi
+package acornapi
 
 import (
 	"net/http"
 )
 
-// Résumé generation, recommendation and storage are not part of Bash's Go backend.
+// Résumé generation, recommendation and storage are not part of Acorn's Go backend.
 // These routes keep the extension's contract and answer with nothing: no file, no
 // match, no preview. The extension treats each as "no résumé available".
 

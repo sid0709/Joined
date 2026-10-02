@@ -3,16 +3,16 @@ description: Production coding standards — no hardcoding, modular structure, s
 alwaysApply: true
 ---
 
-# Bash Production Code Standards
+# Acorn Production Code Standards
 
 Write production-ready code only. Do **not** add tests, test files, test scripts, or test-only refactors unless the user explicitly asks.
 
 ## Architecture (monorepo)
 
-Packages: `ui-board/`, `extension/`, `packages/shared/` (`@bash/shared`), `packages/bash-face/` (`@bash/face`). The backend is Go, in `backend-core/bash` and `backend-core/bashapi` at the repo root. Everything installs and runs with bun from the repo root; never npm.
+Packages: `ui-board/`, `extension/`, `packages/shared/` (`@acorn/shared`), `packages/acorn-face/` (`@acorn/face`). The backend is Go, in `backend-core/acorn` and `backend-core/acornapi` at the repo root. Everything installs and runs with bun from the repo root; never npm.
 
 - Keep package boundaries clear: relay I/O, AI/prompt/schema in the Go backend, visualization/UX in `ui-board`, page DOM/runtime in `extension`.
-- Put cross-package contracts in `@bash/shared` (types, event names, default hosts/URLs, shared constants). Do not redefine the same `DomNode` / payload types in multiple packages.
+- Put cross-package contracts in `@acorn/shared` (types, event names, default hosts/URLs, shared constants). Do not redefine the same `DomNode` / payload types in multiple packages.
 - Prefer small modules with one job over growing god-files (e.g. `App.tsx`). Extract helpers, prompts, schemas, formatters, and protocol clients into named modules.
 
 ## No hardcoding
@@ -33,8 +33,8 @@ Never scatter magic values. Configure once, import everywhere.
 const DEFAULT_SERVER = 'http://localhost:3847';
 
 // ✅ GOOD — shared config + env override
-import { bashHosts } from '@bash/shared/api';
-const serverUrl = import.meta.env.VITE_BASH_API_URL || bashHosts(import.meta.env.MODE).api;
+import { acornHosts } from '@acorn/shared/api';
+const serverUrl = import.meta.env.VITE_ACORN_API_URL || acornHosts(import.meta.env.MODE).api;
 ```
 
 ## Modular, systemized structure

@@ -1,5 +1,5 @@
 import { mount } from "./engine";
-import { BASH_FACE_MODES, type BashFaceMode } from "./types";
+import { ACORN_FACE_MODES, type AcornFaceMode } from "./types";
 import "./demo.css";
 
 const app = document.querySelector("#app");
@@ -13,7 +13,7 @@ panel.className = "panel";
 
 const heading = document.createElement("header");
 heading.innerHTML = `
-  <p class="eyebrow">@bash/face</p>
+  <p class="eyebrow">@acorn/face</p>
   <h1>Lumen face playground</h1>
   <p class="lede">One silhouette. One mode at a time. Nothing here is wired into the live sidebar.</p>
 `;
@@ -21,7 +21,7 @@ heading.innerHTML = `
 const readout = document.createElement("p");
 readout.className = "readout";
 
-const modeRow = chipRow("Mode", BASH_FACE_MODES);
+const modeRow = chipRow("Mode", ACORN_FACE_MODES);
 
 const actions = document.createElement("div");
 actions.className = "actions";
@@ -39,7 +39,7 @@ panel.append(heading, readout, modeRow.section, actions);
 app.append(faceHost, panel);
 
 const face = mount(faceHost, { size: 420 });
-let mode: BashFaceMode = "waiting";
+let mode: AcornFaceMode = "waiting";
 let cycleTimer = 0;
 
 function paint(): void {
@@ -80,7 +80,7 @@ function chipRow<T extends string>(
 modeRow.section.addEventListener("click", (event) => {
   const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(".chip");
   if (!btn?.dataset.value) return;
-  mode = btn.dataset.value as BashFaceMode;
+  mode = btn.dataset.value as AcornFaceMode;
   paint();
 });
 
@@ -101,7 +101,7 @@ cycleBtn.addEventListener("click", () => {
   }
   let i = 0;
   const step = () => {
-    mode = BASH_FACE_MODES[i % BASH_FACE_MODES.length];
+    mode = ACORN_FACE_MODES[i % ACORN_FACE_MODES.length];
     paint();
     i += 1;
   };

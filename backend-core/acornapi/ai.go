@@ -1,4 +1,4 @@
-package bashapi
+package acornapi
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/backend-core/acorn"
 	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/bash"
 )
 
 func decode(w http.ResponseWriter, r *http.Request, dest any) bool {
@@ -22,16 +22,16 @@ func decode(w http.ResponseWriter, r *http.Request, dest any) bool {
 	return true
 }
 
-// writeBashError answers a failed model call: the caller's mistake, a missing
+// writeAcornError answers a failed model call: the caller's mistake, a missing
 // model key, or the model itself failing.
-func writeBashError(w http.ResponseWriter, route string, err error) {
+func writeAcornError(w http.ResponseWriter, route string, err error) {
 	switch {
-	case errors.Is(err, bash.ErrInvalid):
+	case errors.Is(err, acorn.ErrInvalid):
 		writeError(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, bash.ErrModelUnavailable):
+	case errors.Is(err, acorn.ErrModelUnavailable):
 		writeError(w, http.StatusServiceUnavailable, err.Error())
 	default:
-		slog.Warn("bash route failed", "route", route, "error", err)
+		slog.Warn("acorn route failed", "route", route, "error", err)
 		writeError(w, http.StatusBadGateway, err.Error())
 	}
 }
@@ -40,11 +40,11 @@ func writeBashError(w http.ResponseWriter, route string, err error) {
 func (s *Server) applicant(w http.ResponseWriter, r *http.Request, session auth.Session) (string, bool) {
 	profile, err := s.people.GetProfile(r.Context(), session.User.ID, time.Now())
 	if err != nil {
-		slog.Error("bash profile", "user", session.User.ID, "error", err)
+		slog.Error("acorn profile", "user", session.User.ID, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load the profile")
 		return "", false
 	}
-	return bash.ApplicantProfileText(session.User.ID, profile), true
+	return acorn.ApplicantProfileText(session.User.ID, profile), true
 }
 
 func (s *Server) aiAnalyze(w http.ResponseWriter, r *http.Request) {
@@ -64,9 +64,9 @@ func (s *Server) aiAnalyze(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := s.bash.Analyze(r.Context(), applicant, body.PureTree, body.Page)
+	result, err := s.acorn.Analyze(r.Context(), applicant, body.PureTree, body.Page)
 	if err != nil {
-		writeBashError(w, "ai-analyze", err)
+		writeAcornError(w, "ai-analyze", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -89,10 +89,10 @@ func (s *Server) matchOption(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "intendedValue and options are required")
 		return
 	}
-	result, err := s.bash.MatchOption(r.Context(), body.IntendedValue, body.Options, body.FieldLabel, body.TypedQuery)
+	result, err := s.acorn.MatchOption(r.Context(), body.IntendedValue, body.Options, body.FieldLabel, body.TypedQuery)
 	if err != nil {
 		// The extension falls back to its own matching, so a failure is data, not an HTTP error.
-		slog.Warn("bash match-option failed", "error", err)
+		slog.Warn("acorn match-option failed", "error", err)
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "matched_option": nil, "confidence": 0, "error": err.Error()})
 		return
 	}
@@ -115,9 +115,9 @@ func (s *Server) qa(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := s.bash.Answer(r.Context(), applicant, body.Question, body.Page)
+	result, err := s.acorn.Answer(r.Context(), applicant, body.Question, body.Page)
 	if err != nil {
-		writeBashError(w, "qa", err)
+		writeAcornError(w, "qa", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -151,13 +151,13 @@ func (s *Server) analyzeMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) writeJD(w http.ResponseWriter, r *http.Request, pageText string, meta any) {
-	if len([]rune(pageText)) > bash.PageTextMaxChars {
+	if len([]rune(pageText)) > acorn.PageTextMaxChars {
 		writeError(w, http.StatusBadRequest, "pageText is too long")
 		return
 	}
-	result, err := s.bash.ExtractJD(r.Context(), pageText, meta)
+	result, err := s.acorn.ExtractJD(r.Context(), pageText, meta)
 	if err != nil {
-		writeBashError(w, "extract-jd", err)
+		writeAcornError(w, "extract-jd", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)

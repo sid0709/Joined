@@ -1,4 +1,4 @@
-import type { DomTreeNode } from "@bash/shared/tree-export";
+import type { DomTreeNode } from "@acorn/shared/tree-export";
 
 export type TabTreeSummary = {
   url: string;

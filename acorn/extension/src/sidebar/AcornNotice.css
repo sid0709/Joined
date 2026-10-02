@@ -1,4 +1,4 @@
-.bash-notice-stack {
+.acorn-notice-stack {
   position: fixed;
   left: var(--athens-space-3);
   right: var(--athens-space-3);
@@ -10,8 +10,8 @@
   pointer-events: none;
 }
 
-.bash-notice {
-  --bash-notice-hold: 3500ms;
+.acorn-notice {
+  --acorn-notice-hold: 3500ms;
   pointer-events: auto;
   position: relative;
   display: flex;
@@ -23,14 +23,14 @@
   border-radius: var(--athens-radius-lg);
   box-shadow: var(--athens-shadow-raised);
   transform-origin: 50% 100%;
-  animation: bash-notice-in var(--athens-notice-enter) both;
+  animation: acorn-notice-in var(--athens-notice-enter) both;
 }
 
-.bash-notice.is-leaving {
-  animation: bash-notice-out var(--athens-notice-exit) both;
+.acorn-notice.is-leaving {
+  animation: acorn-notice-out var(--athens-notice-exit) both;
 }
 
-.bash-notice::after {
+.acorn-notice::after {
   content: "";
   position: absolute;
   left: var(--athens-space-4);
@@ -40,23 +40,23 @@
   transform-origin: left center;
   border-radius: var(--athens-radius-pill);
   background: var(--athens-brand);
-  animation: bash-notice-drain var(--bash-notice-hold) linear both;
+  animation: acorn-notice-drain var(--acorn-notice-hold) linear both;
 }
 
-.bash-notice.success::after {
+.acorn-notice.success::after {
   background: var(--athens-success);
 }
 
-.bash-notice.error::after {
+.acorn-notice.error::after {
   background: var(--athens-danger);
 }
 
-.bash-notice.is-leaving::after {
+.acorn-notice.is-leaving::after {
   animation: none;
   opacity: 0;
 }
 
-.bash-notice-icon {
+.acorn-notice-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,27 +69,27 @@
   font-weight: 700;
   line-height: 1;
   color: #fff;
-  animation: bash-notice-icon-pop var(--athens-notice-enter) both;
+  animation: acorn-notice-icon-pop var(--athens-notice-enter) both;
 }
 
-.bash-notice-icon.error {
+.acorn-notice-icon.error {
   background: var(--athens-danger);
 }
 
-.bash-notice-icon.success {
+.acorn-notice-icon.success {
   background: var(--athens-success);
 }
 
-.bash-notice-icon.info {
+.acorn-notice-icon.info {
   background: var(--athens-brand);
 }
 
-.bash-notice-copy {
+.acorn-notice-copy {
   flex: 1;
   min-width: 0;
 }
 
-.bash-notice-title {
+.acorn-notice-title {
   margin: 0;
   font-size: var(--athens-font-size-sm);
   font-weight: 600;
@@ -101,7 +101,7 @@
   overflow: hidden;
 }
 
-.bash-notice-detail {
+.acorn-notice-detail {
   margin: 1px 0 0;
   font-size: var(--athens-font-size-xs);
   line-height: 1.35;
@@ -112,7 +112,7 @@
   overflow: auto;
 }
 
-.bash-notice-close {
+.acorn-notice-close {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
@@ -124,12 +124,12 @@
   line-height: 1;
 }
 
-.bash-notice-close:hover {
+.acorn-notice-close:hover {
   color: var(--athens-text);
   background: var(--athens-hover);
 }
 
-@keyframes bash-notice-in {
+@keyframes acorn-notice-in {
   from {
     opacity: 0;
     transform: translateY(16px) scale(0.94);
@@ -144,7 +144,7 @@
   }
 }
 
-@keyframes bash-notice-out {
+@keyframes acorn-notice-out {
   from {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -155,7 +155,7 @@
   }
 }
 
-@keyframes bash-notice-icon-pop {
+@keyframes acorn-notice-icon-pop {
   from {
     opacity: 0;
     transform: scale(0.4);
@@ -170,7 +170,7 @@
   }
 }
 
-@keyframes bash-notice-drain {
+@keyframes acorn-notice-drain {
   from {
     transform: scaleX(1);
   }
@@ -180,10 +180,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bash-notice,
-  .bash-notice.is-leaving,
-  .bash-notice-icon,
-  .bash-notice::after {
+  .acorn-notice,
+  .acorn-notice.is-leaving,
+  .acorn-notice-icon,
+  .acorn-notice::after {
     animation: none;
   }
 }

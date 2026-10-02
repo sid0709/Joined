@@ -1,8 +1,8 @@
-# Bash design language
+# Acorn design language
 
-Bash UI follows Airbnb’s product language: a white canvas, near-black type, pill controls, rounded list cards, and a sticky primary action. Reference screens: [listing + Reserve bar](https://mobbin.com/screens/8a6b4476-52d7-4c85-965b-2a870b388eb3), [map listing card](https://mobbin.com/screens/24072f6f-71d3-47f1-92e3-3b63bf4b1b43), [search results](https://mobbin.com/screens/1f92134a-2b99-4027-ab7f-8f6ff087bdc6).
+Acorn UI follows Airbnb’s product language: a white canvas, near-black type, pill controls, rounded list cards, and a sticky primary action. Reference screens: [listing + Reserve bar](https://mobbin.com/screens/8a6b4476-52d7-4c85-965b-2a870b388eb3), [map listing card](https://mobbin.com/screens/24072f6f-71d3-47f1-92e3-3b63bf4b1b43), [search results](https://mobbin.com/screens/1f92134a-2b99-4027-ab7f-8f6ff087bdc6).
 
-Tokens live in [`tokens.md`](tokens.md) and `extension/src/sidebar/athens-tokens.css`. Cursor policy: [`.cursor/rules/bash-ui-design.mdc`](../.cursor/rules/bash-ui-design.mdc).
+Tokens live in [`tokens.md`](tokens.md) and `extension/src/sidebar/athens-tokens.css`. Cursor policy: [`.cursor/rules/acorn-ui-design.mdc`](../.cursor/rules/acorn-ui-design.mdc).
 
 ## Pattern
 
@@ -19,7 +19,7 @@ Do not add instructional copy, fetch/debug controls, or chevrons that duplicate 
 
 - **Canvas first.** White surfaces, hairline borders (`--athens-border`), no heavy chrome.
 - **Hierarchy by type, not boxes.** Title is 14px/600 near-black, one line with ellipsis. Subtitle (Fill company / Custom host) is 12px gray on its own line. Résumé status is a third truncated line.
-- **Cards, not rows with arrows.** Rounded 12px cards. Whole card opens or focuses the tab. Fill and Custom share one card: 32px company / tab icon with an 18px Bash Face silhouette badge, title, subtitle, résumé status, trailing circular download, preview (eye), and check.
+- **Cards, not rows with arrows.** Rounded 12px cards. Whole card opens or focuses the tab. Fill and Custom share one card: 32px company / tab icon with an 18px Acorn Face silhouette badge, title, subtitle, résumé status, trailing circular download, preview (eye), and check.
 - **Pills for controls.** Tabs, Refresh, Fill, icon buttons use `--athens-radius-pill`.
 - **One accent.** `--athens-brand` for the selected Fill or Custom card (solid fill, white type), connection dot, and primary CTA. Do not introduce a second accent.
 - **Icon-only when the label is obvious.** Sign out is a door/arrow icon, not a “Sign out” pill. Help is a `?` next to it. The worker chip (mini rabbit + count) stays in the identity row so busy thinking/working tabs are visible at a glance.
@@ -35,14 +35,14 @@ Match Airbnb’s floating status card ([location error](https://mobbin.com/scree
 - Left: 28px circle — `--athens-danger` + `!` (error), `--athens-success` + check (success), `--athens-brand` + `i` (info).
 - Bold 14px title, 12px secondary detail, trailing `×`. Title and detail clamp to one line.
 - Spring in (`--athens-notice-enter`), drain bar, then exit in under 0.5s (`--athens-notice-exit`) so the job list stays readable. Error toasts hold longer (~12s) so operators can read debug detail.
-- Use `pushBashNotice()` in the sidebar or `broadcastOperatorNotice()` from the service worker.
+- Use `pushAcornNotice()` in the sidebar or `broadcastOperatorNotice()` from the service worker.
 
 ## Do / don’t
 
-| Do                                                        | Don’t                                                    |
-| --------------------------------------------------------- | -------------------------------------------------------- |
-| Logo + Bash + name + workers + Help + sign out on one row | “Athens account” + “Signed in as” + Sign out pill        |
-| Connection in the footer                                  | Idle / Ready occupying the footer                        |
-| Click card to open                                        | `>` chevron next to the card                             |
-| Circular eye (preview) plus check (mark applied)          | Duplicate navigation affordances                         |
-| Tabs + list + Fill CTA                                    | Fetch DOM, “pick a Worker pool…”, “no job attached” copy |
+| Do                                                         | Don’t                                                    |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| Logo + Acorn + name + workers + Help + sign out on one row | “Athens account” + “Signed in as” + Sign out pill        |
+| Connection in the footer                                   | Idle / Ready occupying the footer                        |
+| Click card to open                                         | `>` chevron next to the card                             |
+| Circular eye (preview) plus check (mark applied)           | Duplicate navigation affordances                         |
+| Tabs + list + Fill CTA                                     | Fetch DOM, “pick a Worker pool…”, “no job attached” copy |

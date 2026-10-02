@@ -52,8 +52,6 @@ const ui = {
   sheet: $("sheet"),
   sheetImg: $("sheetImg"),
   cursor: $("cursor"),
-  interpolation: $("interpolation"),
-  order: $("order"),
 };
 
 const state = {
@@ -78,7 +76,7 @@ const state = {
   playing: true,
   last: 0,
   acc: 0,
-  /** Previous/current frame pair used for motion-aware crossfades. */
+  /** Cell index of the previous frame for the in-between transition. */
   previous: 0,
 };
 
@@ -132,15 +130,6 @@ function drawCell(v, cell, alpha) {
 function nextPos(pos, dir) {
   const n = state.frames.length;
   if (n <= 1) return { pos: 0, dir };
-  if (ui.order.value === "row") {
-    const cols = clampGrid(ui.cols.value);
-    const rowStart = Math.floor(pos / cols) * cols;
-    const rowEnd = Math.min(rowStart + cols, n);
-    const next = pos + dir;
-    if (next >= rowEnd) return { pos: Math.max(rowStart, rowEnd - 2), dir: -1 };
-    if (next < rowStart) return { pos: Math.min(rowEnd - 1, rowStart + 1), dir: 1 };
-    return { pos: next, dir };
-  }
   if (ui.mode.value === "loop") return { pos: (pos + 1) % n, dir: 1 };
   let p = pos + dir;
   let d = dir;
@@ -155,19 +144,54 @@ function nextPos(pos, dir) {
   return { pos: p, dir: d };
 }
 
+function drawInterpolated(v, fromIndex, toIndex, progress) {
+  const from = state.cells[fromIndex];
+  const to = state.cells[toIndex];
+  if (!from || !to || !state.source) return;
+  const t = progress * progress * (3 - 2 * progress);
+  const mix = (a, b) => a + (b - a) * t;
+  const cx = state.box.w / 2;
+  const cy = state.box.h / 2;
+  const scale = v.canvas.width / state.box.w;
+  const fromX = from.ax - from.x;
+  const fromY = from.ay - from.y;
+  const toX = to.ax - to.x;
+  const toY = to.ay - to.y;
+  // Frame anchors are content-centered so every pose shares the same center during the transition.
+  const fromW = from.w * scale;
+  const fromH = from.h * scale;
+  const toW = to.w * scale;
+  const toH = to.h * scale;
+  const fromLeft = (cx - fromX) * scale;
+  const fromTop = (cy - fromY) * scale;
+  const toLeft = (cx - toX) * scale;
+  const toTop = (cy - toY) * scale;
+  const x = mix(fromLeft, toLeft);
+  const y = mix(fromTop, toTop);
+  const w = mix(fromW, toW);
+  const h = mix(fromH, toH);
+  // Interpolate the position and scale of the character as one image. This avoids generating
+  // temporary canvases every display frame and eliminates the translucent double-image ghost.
+  v.ctx.save();
+  v.ctx.beginPath();
+  v.ctx.rect(x, y, w, h);
+  v.ctx.clip();
+  v.ctx.globalAlpha = 1 - t;
+  v.ctx.drawImage(state.source, from.x, from.y, from.w, from.h, x, y, w, h);
+  v.ctx.globalAlpha = t;
+  v.ctx.drawImage(state.source, to.x, to.y, to.w, to.h, x, y, w, h);
+  v.ctx.restore();
+}
+
 function render(progress) {
   if (!state.frames.length) return;
   const cur = state.frames[state.pos];
-  const upcoming = state.frames[nextPos(state.pos, state.dir).pos];
-  const fade =
-    state.playing && ui.blend.checked && ui.interpolation.value === "crossfade" ? progress : 0;
+  const previous = state.frames[state.previous] ?? cur;
+  const blend = state.playing && ui.blend.checked ? progress : 0;
   for (const v of views) {
     v.ctx.clearRect(0, 0, v.canvas.width, v.canvas.height);
-    if (fade > 0) {
-      // A normal overlaid blend ghosts two poses together. Fade between them instead, keeping
-      // their anchors aligned so the gaps and per-cell framing don't introduce extra jitter.
-      drawCell(v, state.previous, 1 - fade);
-      drawCell(v, cur, fade);
+    if (blend > 0 && previous !== cur) {
+      drawInterpolated(v, previous, cur, blend);
     } else {
       drawCell(v, cur, 1);
     }
@@ -562,14 +586,8 @@ ui.fps.addEventListener("input", () => {
   ui.fpsOut.textContent = `${ui.fps.value} fps`;
 });
 ui.blend.addEventListener("change", () => render(0));
-ui.interpolation.addEventListener("change", () => render(0));
 ui.mode.addEventListener("change", () => {
   state.dir = 1;
-});
-ui.order.addEventListener("change", () => {
-  state.dir = 1;
-  state.acc = 0;
-  render(0);
 });
 ui.rows.addEventListener("change", useManualGrid);
 ui.cols.addEventListener("change", useManualGrid);
@@ -633,7 +651,7 @@ document.addEventListener("paste", (e) => {
 function loadStatus(id) {
   const s = STATUSES.find((x) => x.id === id) ?? STATUSES[0];
   ui.statusPick.value = s.id;
-  load(s.src, s.src.split("/").pop(), { autodetect: true });
+  load(s.src, s.src.split("/").pop(), { autodetect: false });
 }
 
 for (const s of STATUSES) ui.statusPick.add(new Option(s.label, s.id));

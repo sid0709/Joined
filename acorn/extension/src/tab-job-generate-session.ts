@@ -1,9 +1,9 @@
-import type { GenerateCheckpoint } from "@bash/shared/generate-checkpoint";
-import { normalizeGenerateCheckpoint } from "@bash/shared/generate-checkpoint";
+import type { GenerateCheckpoint } from "@acorn/shared/generate-checkpoint";
+import { normalizeGenerateCheckpoint } from "@acorn/shared/generate-checkpoint";
 import type { CustomUiProgress } from "./pipeline/custom-generate-progress";
 import type { CustomGenerateStatus, CustomWorkKind } from "./tab-custom-session";
 
-export type BashJobGenerateBinding = {
+export type AcornJobGenerateBinding = {
   jobId: string;
   tabId: number | null;
   workKind: CustomWorkKind | null;
@@ -19,9 +19,9 @@ export type BashJobGenerateBinding = {
   jobDescription: string | null;
 };
 
-export const JOB_GENERATE_STORAGE_KEY = "bashJobGenerates";
+export const JOB_GENERATE_STORAGE_KEY = "acornJobGenerates";
 
-export type JobGenerateMap = Record<string, BashJobGenerateBinding>;
+export type JobGenerateMap = Record<string, AcornJobGenerateBinding>;
 
 function asWorkKind(value: unknown): CustomWorkKind | null {
   return value === "recommend" || value === "generate" ? value : null;
@@ -34,7 +34,7 @@ function asStatus(value: unknown): CustomGenerateStatus {
   return "idle";
 }
 
-function normalizeBinding(row: BashJobGenerateBinding): BashJobGenerateBinding {
+function normalizeBinding(row: AcornJobGenerateBinding): AcornJobGenerateBinding {
   return {
     ...row,
     tabId: typeof row.tabId === "number" && Number.isFinite(row.tabId) ? row.tabId : null,
@@ -52,7 +52,7 @@ function normalizeBinding(row: BashJobGenerateBinding): BashJobGenerateBinding {
   };
 }
 
-function emptyBinding(jobId: string): BashJobGenerateBinding {
+function emptyBinding(jobId: string): AcornJobGenerateBinding {
   return {
     jobId,
     tabId: null,
@@ -89,7 +89,7 @@ export async function listJobGenerates(): Promise<JobGenerateMap> {
   return readMap();
 }
 
-export async function getJobGenerate(jobId: string): Promise<BashJobGenerateBinding | null> {
+export async function getJobGenerate(jobId: string): Promise<AcornJobGenerateBinding | null> {
   const id = String(jobId || "").trim();
   if (!id) return null;
   const map = await readMap();
@@ -98,8 +98,8 @@ export async function getJobGenerate(jobId: string): Promise<BashJobGenerateBind
 
 export async function patchJobGenerate(
   jobId: string,
-  patch: Partial<Omit<BashJobGenerateBinding, "jobId">>,
-): Promise<BashJobGenerateBinding> {
+  patch: Partial<Omit<AcornJobGenerateBinding, "jobId">>,
+): Promise<AcornJobGenerateBinding> {
   const id = String(jobId || "").trim();
   if (!id) throw new Error("Missing job id");
   const map = await readMap();

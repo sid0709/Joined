@@ -1,18 +1,18 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { MSG, type BashNoticePayload } from "../types";
+import { MSG, type AcornNoticePayload } from "../types";
 import {
-  bindBashNoticePush,
+  bindAcornNoticePush,
   NOTICE_EXIT_MS,
   noticeKindDuration,
-  pushBashNotice,
-  type BashNotice,
-} from "./bash-notice";
-import "./BashNotice.css";
+  pushAcornNotice,
+  type AcornNotice,
+} from "./acorn-notice";
+import "./AcornNotice.css";
 
-function NoticeIcon({ kind }: { kind: BashNotice["kind"] }) {
+function NoticeIcon({ kind }: { kind: AcornNotice["kind"] }) {
   if (kind === "success") {
     return (
-      <span className="bash-notice-icon success" aria-hidden="true">
+      <span className="acorn-notice-icon success" aria-hidden="true">
         <svg viewBox="0 0 20 20" width="12" height="12" fill="none">
           <path
             stroke="#fff"
@@ -27,24 +27,24 @@ function NoticeIcon({ kind }: { kind: BashNotice["kind"] }) {
   }
   if (kind === "info") {
     return (
-      <span className="bash-notice-icon info" aria-hidden="true">
+      <span className="acorn-notice-icon info" aria-hidden="true">
         i
       </span>
     );
   }
   return (
-    <span className="bash-notice-icon error" aria-hidden="true">
+    <span className="acorn-notice-icon error" aria-hidden="true">
       !
     </span>
   );
 }
 
-export function BashNoticeHost() {
-  const [notices, setNotices] = useState<BashNotice[]>([]);
+export function AcornNoticeHost() {
+  const [notices, setNotices] = useState<AcornNotice[]>([]);
 
   useEffect(() => {
-    return bindBashNoticePush((payload) => {
-      const notice: BashNotice = {
+    return bindAcornNoticePush((payload) => {
+      const notice: AcornNotice = {
         ...payload,
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         phase: "in",
@@ -54,11 +54,11 @@ export function BashNoticeHost() {
   }, []);
 
   useEffect(() => {
-    const onMessage = (message: { type?: string; notice?: BashNoticePayload }) => {
+    const onMessage = (message: { type?: string; notice?: AcornNoticePayload }) => {
       if (message.type !== MSG.OPERATOR_NOTICE || !message.notice?.title) return;
       const { kind, title, detail } = message.notice;
       if (kind !== "error" && kind !== "success" && kind !== "info") return;
-      pushBashNotice({ kind, title, detail });
+      pushAcornNotice({ kind, title, detail });
     };
     chrome.runtime.onMessage.addListener(onMessage);
     return () => chrome.runtime.onMessage.removeListener(onMessage);
@@ -84,22 +84,22 @@ export function BashNoticeHost() {
   if (notices.length === 0) return null;
 
   return (
-    <div className="bash-notice-stack" aria-live="polite">
+    <div className="acorn-notice-stack" aria-live="polite">
       {notices.map((notice) => (
         <article
           key={notice.id}
-          className={`bash-notice ${notice.kind}${notice.phase === "out" ? " is-leaving" : ""}`}
+          className={`acorn-notice ${notice.kind}${notice.phase === "out" ? " is-leaving" : ""}`}
           role="status"
-          style={{ "--bash-notice-hold": `${noticeKindDuration(notice.kind)}ms` } as CSSProperties}
+          style={{ "--acorn-notice-hold": `${noticeKindDuration(notice.kind)}ms` } as CSSProperties}
         >
           <NoticeIcon kind={notice.kind} />
-          <div className="bash-notice-copy">
-            <p className="bash-notice-title">{notice.title}</p>
-            {notice.detail ? <p className="bash-notice-detail">{notice.detail}</p> : null}
+          <div className="acorn-notice-copy">
+            <p className="acorn-notice-title">{notice.title}</p>
+            {notice.detail ? <p className="acorn-notice-detail">{notice.detail}</p> : null}
           </div>
           <button
             type="button"
-            className="bash-notice-close"
+            className="acorn-notice-close"
             aria-label="Dismiss"
             onClick={() =>
               setNotices((prev) =>

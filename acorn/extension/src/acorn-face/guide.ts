@@ -1,7 +1,7 @@
-import type { BashFaceMode } from "@bash/face";
+import type { AcornFaceMode } from "@acorn/face";
 
-export const BASH_FACE_GUIDE: {
-  mode: BashFaceMode;
+export const ACORN_FACE_GUIDE: {
+  mode: AcornFaceMode;
   title: string;
   detail: string;
 }[] = [

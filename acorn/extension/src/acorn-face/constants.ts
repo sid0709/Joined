@@ -1,10 +1,10 @@
-export const BASH_FACE_BRAND_PX = 28;
-export const BASH_FACE_CARD_PX = 32;
-export const BASH_FACE_BADGE_PX = 18;
+export const ACORN_FACE_BRAND_PX = 28;
+export const ACORN_FACE_CARD_PX = 32;
+export const ACORN_FACE_BADGE_PX = 18;
 /** Fraction of the badge that hangs past the logo corner. */
-export const BASH_FACE_BADGE_OVERHANG = 0.28;
-export const BASH_FACE_HELP_PX = 148;
-export const BASH_FACE_CHIP_PX = 32;
+export const ACORN_FACE_BADGE_OVERHANG = 0.28;
+export const ACORN_FACE_HELP_PX = 148;
+export const ACORN_FACE_CHIP_PX = 32;
 
 export const FACE_SMILE_MS = 900;
 export const FACE_WINK_MS = 800;

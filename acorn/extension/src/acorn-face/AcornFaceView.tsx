@@ -1,23 +1,23 @@
 import { useEffect, useRef } from "react";
-import { mount, type BashFaceHandle, type BashFaceMode } from "@bash/face";
+import { mount, type AcornFaceHandle, type AcornFaceMode } from "@acorn/face";
 
-type BashFaceViewProps = {
-  mode: BashFaceMode;
+type AcornFaceViewProps = {
+  mode: AcornFaceMode;
   size: number;
   live?: boolean;
   className?: string;
   label?: string;
 };
 
-export function BashFaceView({
+export function AcornFaceView({
   mode,
   size,
   live = true,
   className,
-  label = "Bash face",
-}: BashFaceViewProps) {
+  label = "Acorn face",
+}: AcornFaceViewProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const faceRef = useRef<BashFaceHandle | null>(null);
+  const faceRef = useRef<AcornFaceHandle | null>(null);
 
   useEffect(() => {
     const el = hostRef.current;

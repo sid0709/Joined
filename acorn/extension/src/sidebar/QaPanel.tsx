@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { FACE_SMILE_MS } from "../bash-face/constants";
-import { flashBashFace } from "../bash-face/face-flash";
-import { requestQaAnswer, type BashQaPage } from "../pipeline/ai-client";
+import { FACE_SMILE_MS } from "../acorn-face/constants";
+import { flashAcornFace } from "../acorn-face/face-flash";
+import { requestQaAnswer, type AcornQaPage } from "../pipeline/ai-client";
 
 type QaPanelProps = {
   signedIn: boolean;
-  page?: BashQaPage | null;
+  page?: AcornQaPage | null;
   disabled?: boolean;
   showHeading?: boolean;
   onStatus?: (status: { busy: boolean; error: boolean }) => void;
@@ -41,7 +41,7 @@ export function QaPanel({ signedIn, page, disabled, showHeading = true, onStatus
     if (!answer) return;
     await navigator.clipboard.writeText(answer);
     setCopied(true);
-    flashBashFace({ mode: "smile", ms: FACE_SMILE_MS });
+    flashAcornFace({ mode: "smile", ms: FACE_SMILE_MS });
     setTimeout(() => setCopied(false), 1500);
   };
 

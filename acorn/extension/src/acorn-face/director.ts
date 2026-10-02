@@ -1,5 +1,5 @@
-import type { BashFaceMode } from "@bash/face";
-import type { PipelinePhase, PipelineProgress } from "@bash/shared/pipeline-types";
+import type { AcornFaceMode } from "@acorn/face";
+import type { PipelinePhase, PipelineProgress } from "@acorn/shared/pipeline-types";
 import { EXTRACT_LABEL, LOAD_JD_LABEL } from "../pipeline/custom-generate-progress";
 import type { CustomGenerateStatus } from "../tab-custom-session";
 
@@ -60,7 +60,7 @@ function generatingWork(status?: CustomGenerateStatus | null, label?: string | n
 export function holdFromFill(
   phase?: PipelinePhase | null,
   resumeSkipped = false,
-): BashFaceMode | null {
+): AcornFaceMode | null {
   if (phase === "analyzing") return "thinking";
   if (phase === "fetching" || phase === "running") return "working";
   if (phase === "error") return "sad";
@@ -72,7 +72,7 @@ export function holdFromGenerate(
   status?: CustomGenerateStatus | null,
   label?: string | null,
   hasResume = false,
-): BashFaceMode | null {
+): AcornFaceMode | null {
   if (generatingThink(status, label)) return "thinking";
   if (generatingWork(status, label)) return "working";
   if (status === "failed") return "sad";
@@ -83,7 +83,7 @@ export function holdFromGenerate(
 }
 
 /** Hold pose for one job / remembered tab. One-shots are applied by playback. */
-export function resolveRowHold(input: RowFaceInput): BashFaceMode {
+export function resolveRowHold(input: RowFaceInput): AcornFaceMode {
   if (input.marking) return "smile";
   if (input.opening || input.downloading) return "working";
   const fill = holdFromFill(input.fillPhase, input.resumeSkipped);
@@ -118,7 +118,7 @@ export function countBusyWorkers(
     generateProgress?: { label?: string } | null;
   }> = [],
 ): BusyWorkerCounts {
-  const modes = new Map<string, BashFaceMode>();
+  const modes = new Map<string, AcornFaceMode>();
   for (const [tabId, progress] of Object.entries(pipelines)) {
     const mode = holdFromFill(progress.phase, progress.resumeUpload?.status === "skipped");
     if (mode === "thinking" || mode === "working") modes.set(tabId, mode);
@@ -149,7 +149,7 @@ export function countBusyWorkers(
 }
 
 /** Hold pose for the focused tab. */
-export function resolveTabHold(input: TabFaceInput): BashFaceMode {
+export function resolveTabHold(input: TabFaceInput): AcornFaceMode {
   if (!input.signedIn) return "sleeping";
   const fill = holdFromFill(input.fillPhase, input.resumeSkipped);
   if (fill === "working" || fill === "thinking" || fill === "sad") return fill;
@@ -160,7 +160,7 @@ export function resolveTabHold(input: TabFaceInput): BashFaceMode {
 }
 
 /** Companion hold. One-shots (smile/wink/notice) overlay in playback. */
-export function resolveCompanionHold(input: CompanionFaceInput): BashFaceMode {
+export function resolveCompanionHold(input: CompanionFaceInput): AcornFaceMode {
   const focused = resolveTabHold(input.focused);
   if (focused === "working" || focused === "thinking" || focused === "sad") return focused;
   if (input.qaBusy) return "thinking";
@@ -202,12 +202,12 @@ export function tabInputFromProgress(
   };
 }
 
-export function isLiveRowMode(mode: BashFaceMode, selected: boolean): boolean {
+export function isLiveRowMode(mode: AcornFaceMode, selected: boolean): boolean {
   if (selected) return true;
   return mode !== "waiting";
 }
 
-export function mergeFaceShot(hold: BashFaceMode, shot: BashFaceMode | null): BashFaceMode {
+export function mergeFaceShot(hold: AcornFaceMode, shot: AcornFaceMode | null): AcornFaceMode {
   if (!shot) return hold;
   if (hold === "working" || hold === "thinking" || hold === "sad") return hold;
   return shot;

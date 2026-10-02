@@ -1,18 +1,18 @@
-import { formatDuration, formatUsd } from "@bash/shared/ai-usage";
-import { applyApplicantIdentityToActions } from "@bash/shared/plan-runner/applicant-identity";
-import { runActionPlan } from "@bash/shared/plan-runner/orchestrator";
+import { formatDuration, formatUsd } from "@acorn/shared/ai-usage";
+import { applyApplicantIdentityToActions } from "@acorn/shared/plan-runner/applicant-identity";
+import { runActionPlan } from "@acorn/shared/plan-runner/orchestrator";
 import type {
   ActionPlan,
   PauseRequest,
   PlanStepPayload,
   RunStepRecord,
-} from "@bash/shared/plan-runner/types";
-import type { PipelineProgress } from "@bash/shared/pipeline-types";
-import { formatAnalyzeTrees } from "@bash/shared/tree-export";
+} from "@acorn/shared/plan-runner/types";
+import type { PipelineProgress } from "@acorn/shared/pipeline-types";
+import { formatAnalyzeTrees } from "@acorn/shared/tree-export";
 import { sendPlanStepToTab, sendTabMessage } from "../tab-messaging";
 import { getTabJob } from "../tab-job-session";
 import { customTabHasResume, getCustomTab } from "../tab-custom-session";
-import { DEFAULT_ATHENS_API_URL } from "../auth/bash-auth";
+import { DEFAULT_ATHENS_API_URL } from "../auth/acorn-auth";
 import { MSG, type DomNode, type DomTreePayload, type PipelineSource } from "../types";
 import { fetchRuntimeFile, requestAiAnalyze } from "./ai-client";
 import { keepResumeIfSameSite, loadFillResume } from "./fill-resume";
@@ -86,8 +86,8 @@ function formatDomFetchFailure(tabId: number, attempts: DomFrameAttempt[]): stri
   );
   lines.push(
     unreachable
-      ? "No content script answered. Reload the Bash extension, then refresh this page."
-      : "Reload the Bash extension and refresh the page.",
+      ? "No content script answered. Reload the Acorn extension, then refresh this page."
+      : "Reload the Acorn extension and refresh the page.",
   );
   return lines.join("\n");
 }

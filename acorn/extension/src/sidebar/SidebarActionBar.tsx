@@ -1,4 +1,4 @@
-import type { PipelineProgress } from "@bash/shared/pipeline-types";
+import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 import { FillIcon, GenerateIcon, RecommendIcon } from "./sidebar-icons";
 
 type SidebarActionBarProps = {
@@ -33,10 +33,10 @@ export function SidebarActionBar({
   onRecommend,
 }: SidebarActionBarProps) {
   return (
-    <div className="bash-booking-bar">
+    <div className="acorn-booking-bar">
       <button
         type="button"
-        className="bash-action-btn"
+        className="acorn-action-btn"
         onClick={onGenerate}
         disabled={generateDisabled}
         title={generateTitle ?? generateLabel}
@@ -46,7 +46,7 @@ export function SidebarActionBar({
       </button>
       <button
         type="button"
-        className={`bash-action-btn primary fill-card ${fillPhase}`}
+        className={`acorn-action-btn primary fill-card ${fillPhase}`}
         onClick={onFill}
         disabled={fillDisabled}
         title={fillTitle ?? fillLabel}
@@ -56,7 +56,7 @@ export function SidebarActionBar({
       </button>
       <button
         type="button"
-        className="bash-action-btn"
+        className="acorn-action-btn"
         onClick={onRecommend}
         disabled={recommendDisabled}
         title={recommendTitle ?? recommendLabel}

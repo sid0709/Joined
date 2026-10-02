@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sid0709/OpenSeat/backend-core/acorn"
+	"github.com/sid0709/OpenSeat/backend-core/acornapi"
+	"github.com/sid0709/OpenSeat/backend-core/acornapi/gateway"
 	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/bash"
-	"github.com/sid0709/OpenSeat/backend-core/bashapi"
-	"github.com/sid0709/OpenSeat/backend-core/bashapi/gateway"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 )
 
@@ -20,12 +20,12 @@ func named(name string) http.Handler {
 }
 
 func TestRoutesSendEachPrefixToItsHandler(t *testing.T) {
-	handler := routes([]string{"http://localhost:5173"}, named("health"), named("bash"))
+	handler := routes([]string{"http://localhost:5173"}, named("health"), named("acorn"))
 	cases := []struct{ method, path, want string }{
 		{"GET", "/health", "health"},
-		{"GET", "/bash/health", "bash"},
-		{"POST", "/bash/ai-analyze", "bash"},
-		{"GET", gateway.Path + "/?EIO=4&transport=polling", "bash"},
+		{"GET", "/acorn/health", "acorn"},
+		{"POST", "/acorn/ai-analyze", "acorn"},
+		{"GET", gateway.Path + "/?EIO=4&transport=polling", "acorn"},
 	}
 	for _, c := range cases {
 		rec := httptest.NewRecorder()
@@ -42,15 +42,15 @@ func TestRoutesSendEachPrefixToItsHandler(t *testing.T) {
 	}
 }
 
-func TestSocketPathIsInsideTheBashPrefix(t *testing.T) {
-	if !strings.HasPrefix(gateway.Path, bashapi.Prefix+"/") {
-		t.Fatalf("gateway.Path %q is outside %q, so the server would not route it to Bash", gateway.Path, bashapi.Prefix)
+func TestSocketPathIsInsideTheAcornPrefix(t *testing.T) {
+	if !strings.HasPrefix(gateway.Path, acornapi.Prefix+"/") {
+		t.Fatalf("gateway.Path %q is outside %q, so the server would not route it to Acorn", gateway.Path, acornapi.Prefix)
 	}
 }
 
 func TestRoutesAllowListedOrigins(t *testing.T) {
-	handler := routes([]string{"http://localhost:5173"}, named("health"), named("bash"))
-	req := httptest.NewRequest("OPTIONS", "/bash/qa", nil)
+	handler := routes([]string{"http://localhost:5173"}, named("health"), named("acorn"))
+	req := httptest.NewRequest("OPTIONS", "/acorn/qa", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -76,12 +76,12 @@ func (noPeople) Apply(context.Context, string, candidate.ApplyInput, time.Time) 
 	return candidate.Application{}, nil
 }
 
-// The real Bash handler behind the real router: the extension's Engine.IO handshake
-// at gateway.Path and its plain routes both reach Bash.
-func TestBashAnswersThroughTheServer(t *testing.T) {
-	bashHandler, gw := bashapi.New(noSessions{}, noPeople{}, nil, bash.New(nil), bashapi.Options{})
+// The real Acorn handler behind the real router: the extension's Engine.IO handshake
+// at gateway.Path and its plain routes both reach Acorn.
+func TestAcornAnswersThroughTheServer(t *testing.T) {
+	acornHandler, gw := acornapi.New(noSessions{}, noPeople{}, nil, acorn.New(nil), acornapi.Options{})
 	t.Cleanup(gw.Close)
-	handler := routes(nil, named("health"), bashHandler)
+	handler := routes(nil, named("health"), acornHandler)
 
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest("GET", gateway.Path+"/?EIO=4&transport=polling", nil))
@@ -90,8 +90,8 @@ func TestBashAnswersThroughTheServer(t *testing.T) {
 	}
 
 	rec = httptest.NewRecorder()
-	handler.ServeHTTP(rec, httptest.NewRequest("GET", bashapi.Prefix+"/auth/me", nil))
+	handler.ServeHTTP(rec, httptest.NewRequest("GET", acornapi.Prefix+"/auth/me", nil))
 	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("signed-out /bash/auth/me = %d, want 401", rec.Code)
+		t.Fatalf("signed-out /acorn/auth/me = %d, want 401", rec.Code)
 	}
 }

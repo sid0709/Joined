@@ -386,7 +386,7 @@
   color: rgb(255 255 255 / 78%);
 }
 
-.bash-booking-bar {
+.acorn-booking-bar {
   position: fixed;
   left: 0;
   right: 0;
@@ -401,7 +401,7 @@
   border-top: 1px solid var(--athens-border);
 }
 
-.bash-action-btn {
+.acorn-action-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -421,7 +421,7 @@
     color var(--athens-transition-fast);
 }
 
-.bash-action-btn span {
+.acorn-action-btn span {
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
@@ -431,23 +431,23 @@
   line-height: 1.2;
 }
 
-.bash-action-btn:not(:disabled):hover {
+.acorn-action-btn:not(:disabled):hover {
   background: var(--athens-hover);
   border-color: var(--athens-border-strong);
 }
 
-.bash-action-btn.primary {
+.acorn-action-btn.primary {
   background: var(--athens-brand);
   border-color: var(--athens-brand);
   color: #ffffff;
 }
 
-.bash-action-btn.primary:not(:disabled):hover {
+.acorn-action-btn.primary:not(:disabled):hover {
   background: var(--athens-brand-strong);
   border-color: var(--athens-brand-strong);
 }
 
-.bash-action-btn:disabled {
+.acorn-action-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -471,13 +471,13 @@
     border-color var(--athens-transition-fast);
 }
 
-.bash-booking-bar .tool-icon,
-.bash-booking-bar .tool-hint {
+.acorn-booking-bar .tool-icon,
+.acorn-booking-bar .tool-hint {
   display: none;
 }
 
-.bash-booking-bar .fill-card span,
-.bash-action-btn.primary span {
+.acorn-booking-bar .fill-card span,
+.acorn-action-btn.primary span {
   font-size: var(--athens-font-size-sm);
   font-weight: 600;
   color: #ffffff;
@@ -867,14 +867,14 @@
   box-shadow: 0 0 0 3px var(--athens-brand-subtle);
 }
 
-.bash-settings {
+.acorn-settings {
   margin-top: var(--athens-space-2);
   border: 1px solid var(--athens-border);
   border-radius: var(--athens-radius-md);
   background: var(--athens-surface-subtle);
 }
 
-.bash-settings-toggle {
+.acorn-settings-toggle {
   display: flex;
   align-items: center;
   gap: var(--athens-space-2);
@@ -886,11 +886,11 @@
   color: var(--athens-text-secondary);
 }
 
-.bash-settings-toggle::-webkit-details-marker {
+.acorn-settings-toggle::-webkit-details-marker {
   display: none;
 }
 
-.bash-settings-toggle::before {
+.acorn-settings-toggle::before {
   content: "";
   width: 6px;
   height: 6px;
@@ -900,11 +900,11 @@
   transition: transform var(--athens-transition-fast);
 }
 
-.bash-settings[open] .bash-settings-toggle::before {
+.acorn-settings[open] .acorn-settings-toggle::before {
   transform: rotate(45deg);
 }
 
-.bash-settings-dot {
+.acorn-settings-dot {
   width: 8px;
   height: 8px;
   margin-left: auto;
@@ -912,18 +912,18 @@
   background: var(--athens-text-muted);
 }
 
-.bash-settings-dot.on {
+.acorn-settings-dot.on {
   background: var(--athens-brand);
 }
 
-.bash-settings-body {
+.acorn-settings-body {
   display: flex;
   flex-direction: column;
   gap: var(--athens-space-2);
   padding: 0 var(--athens-space-3) var(--athens-space-3);
 }
 
-.bash-settings-body .field {
+.acorn-settings-body .field {
   margin-bottom: 0;
 }
 
@@ -1027,11 +1027,11 @@
   background: var(--athens-canvas);
 }
 
-.bash-connection-footer {
+.acorn-connection-footer {
   margin: 0;
 }
 
-.bash-connection-summary {
+.acorn-connection-summary {
   display: flex;
   align-items: center;
   gap: var(--athens-space-2);
@@ -1043,19 +1043,19 @@
   color: var(--athens-text-secondary);
 }
 
-.bash-connection-summary::-webkit-details-marker {
+.acorn-connection-summary::-webkit-details-marker {
   display: none;
 }
 
-.bash-connection-summary .bash-settings-dot {
+.acorn-connection-summary .acorn-settings-dot {
   margin-left: 0;
 }
 
-.bash-connection-title {
+.acorn-connection-title {
   color: var(--athens-text);
 }
 
-.bash-connection-state {
+.acorn-connection-state {
   margin-left: auto;
   font-weight: 500;
   color: var(--athens-text-muted);
@@ -1065,7 +1065,7 @@
   max-width: 60%;
 }
 
-.bash-connection-body {
+.acorn-connection-body {
   padding: 0 var(--athens-space-4) var(--athens-space-3);
 }
 
@@ -1318,23 +1318,23 @@
   color: var(--athens-canvas);
 }
 
-.worker-pool-item.fill-job.selected .bash-gen-seg {
+.worker-pool-item.fill-job.selected .acorn-gen-seg {
   background: rgb(255 255 255 / 28%);
 }
 
-.worker-pool-item.fill-job.selected .bash-gen-seg.is-done {
+.worker-pool-item.fill-job.selected .acorn-gen-seg.is-done {
   background: var(--athens-canvas);
 }
 
-.worker-pool-item.fill-job.selected .bash-gen-seg.is-active::after {
+.worker-pool-item.fill-job.selected .acorn-gen-seg.is-active::after {
   background: var(--athens-canvas);
 }
 
-.bash-gen-seg.is-failed {
+.acorn-gen-seg.is-failed {
   background: var(--athens-danger);
 }
 
-.bash-gen-extras {
+.acorn-gen-extras {
   position: relative;
   z-index: 1;
   grid-column: 1 / -1;
@@ -1344,22 +1344,22 @@
   pointer-events: auto;
 }
 
-.bash-gen-actions {
+.acorn-gen-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--athens-space-2);
 }
 
-.worker-pool-item.fill-job.selected .bash-gen-seg.is-failed {
+.worker-pool-item.fill-job.selected .acorn-gen-seg.is-failed {
   background: var(--athens-canvas);
 }
 
-.worker-pool-item.fill-job.selected .bash-gen-actions .worker-pool-resume-btn {
+.worker-pool-item.fill-job.selected .acorn-gen-actions .worker-pool-resume-btn {
   color: var(--athens-canvas);
 }
 
-.worker-pool-item.fill-job .bash-gen-progress {
+.worker-pool-item.fill-job .acorn-gen-progress {
   grid-column: unset;
   margin: 0;
 }
@@ -1515,7 +1515,7 @@
   cursor: not-allowed;
 }
 
-.bash-gen-progress {
+.acorn-gen-progress {
   flex: 1 0 100%;
   display: flex;
   gap: 3px;
@@ -1523,7 +1523,7 @@
   margin: 2px 0 0;
 }
 
-.bash-gen-seg {
+.acorn-gen-seg {
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -1533,25 +1533,25 @@
   position: relative;
 }
 
-.bash-gen-seg.is-done {
+.acorn-gen-seg.is-done {
   background: var(--athens-text);
 }
 
-.bash-gen-seg.is-active {
+.acorn-gen-seg.is-active {
   background: var(--athens-border);
 }
 
-.bash-gen-seg.is-active::after {
+.acorn-gen-seg.is-active::after {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
   width: 42%;
   border-radius: inherit;
   background: var(--athens-brand);
-  animation: bash-gen-shimmer 1.15s ease-in-out infinite;
+  animation: acorn-gen-shimmer 1.15s ease-in-out infinite;
 }
 
-@keyframes bash-gen-shimmer {
+@keyframes acorn-gen-shimmer {
   0% {
     transform: translateX(-120%);
     opacity: 0.55;
@@ -1566,14 +1566,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bash-gen-seg.is-active::after {
+  .acorn-gen-seg.is-active::after {
     animation: none;
     width: 55%;
     opacity: 0.85;
   }
 }
 
-.bash-face-slot {
+.acorn-face-slot {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1583,7 +1583,7 @@
   pointer-events: none;
 }
 
-.bash-face-slot svg {
+.acorn-face-slot svg {
   display: block;
   width: 100%;
   height: auto;
@@ -1622,7 +1622,7 @@
   color: var(--athens-text-secondary);
 }
 
-.bash-face-badge {
+.acorn-face-badge {
   position: absolute;
   z-index: 1;
   right: 0;
@@ -1633,7 +1633,7 @@
   background: none;
 }
 
-.bash-face-badge .bash-face-slot {
+.acorn-face-badge .acorn-face-slot {
   width: 100%;
   height: 100%;
 }

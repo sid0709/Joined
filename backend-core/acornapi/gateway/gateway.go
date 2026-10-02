@@ -1,4 +1,4 @@
-// Package gateway is Bash's Socket.IO endpoint at /bash/socket.io: the side panel, the UI
+// Package gateway is Acorn's Socket.IO endpoint at /acorn/socket.io: the side panel, the UI
 // board and the extension meet here, one private room per Joined account.
 package gateway
 
@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	// Path is the Engine.IO path the extension connects to, inside bashapi.Prefix.
-	Path = "/bash/socket.io"
+	// Path is the Engine.IO path the extension connects to, inside acornapi.Prefix.
+	Path = "/acorn/socket.io"
 	// maxBuffer leaves headroom for DOM trees, which run a few MB after the serializer caps.
 	maxBuffer = 16e6
 
@@ -81,17 +81,17 @@ func (g *Gateway) authenticate(sock *socket.Socket, next func(*socket.ExtendedEr
 	}
 	token := Token(handshake.Auth, header)
 	if token == "" {
-		next(socket.NewExtendedError("Bash session required", nil))
+		next(socket.NewExtendedError("Acorn session required", nil))
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	account, err := g.auth(ctx, token)
 	if err != nil {
-		message := "Bash session expired or invalid"
+		message := "Acorn session expired or invalid"
 		if !errors.Is(err, ErrUnauthorized) {
-			slog.Error("bash socket auth", "error", err)
-			message = "Bash session could not be checked"
+			slog.Error("acorn socket auth", "error", err)
+			message = "Acorn session could not be checked"
 		}
 		next(socket.NewExtendedError(message, nil))
 		return
@@ -103,7 +103,7 @@ func (g *Gateway) authenticate(sock *socket.Socket, next func(*socket.ExtendedEr
 // ErrUnauthorized is the token is not a live session.
 var ErrUnauthorized = errors.New("unauthorized")
 
-func room(accountID string) socket.Room { return socket.Room("bash:acct:" + accountID) }
+func room(accountID string) socket.Room { return socket.Room("acorn:acct:" + accountID) }
 
 func queryValue(sock *socket.Socket, key string) string {
 	return sock.Handshake().Query.Query().Get(key)
@@ -126,7 +126,7 @@ func (g *Gateway) onConnection(sock *socket.Socket) {
 
 	sock.Join(r)
 	client := g.registry.Add(sock, Client{AccountID: account.ID, Type: kind, Name: name, ProfileID: account.ID, ApplierName: account.Name})
-	slog.Info("bash socket connected", "type", kind, "name", name, "id", client.ID)
+	slog.Info("acorn socket connected", "type", kind, "name", name, "id", client.ID)
 
 	_ = sock.Emit("connected", map[string]any{"id": client.ID, "type": kind, "clients": g.registry.SummaryFor(account.ID)})
 	_ = g.io.To(r).Emit("clients:update", g.registry.SummaryFor(account.ID))
@@ -166,7 +166,7 @@ func (g *Gateway) onConnection(sock *socket.Socket) {
 		if id, ok := payload["extensionId"].(string); ok && id != "" {
 			target, owned := g.registry.OwnedBy(id, account.ID)
 			if !owned {
-				slog.Warn("bash dom:highlight rejected cross-account target", "from", client.ID)
+				slog.Warn("acorn dom:highlight rejected cross-account target", "from", client.ID)
 				return
 			}
 			_ = target.socket.Emit("dom:highlight", out)
@@ -207,13 +207,13 @@ func (g *Gateway) onConnection(sock *socket.Socket) {
 			reply(ack, map[string]any{"ok": false, "error": "Missing tabId or step"})
 			return
 		}
-		slog.Info("bash dom:plan-step", "action", step["action"], "index", step["element_index"], "tab", payload["tabId"])
+		slog.Info("acorn dom:plan-step", "action", step["action"], "index", step["element_index"], "tab", payload["tabId"])
 		g.relay(account.ID, payload, "dom:plan-step", ack, planStepTimeout, true)
 	})
 
 	sock.On("disconnect", func(...any) {
 		g.registry.Remove(client.ID)
-		slog.Info("bash socket disconnected", "type", kind, "name", name, "id", client.ID)
+		slog.Info("acorn socket disconnected", "type", kind, "name", name, "id", client.ID)
 		_ = g.io.To(r).Emit("clients:update", g.registry.SummaryFor(account.ID))
 	})
 }

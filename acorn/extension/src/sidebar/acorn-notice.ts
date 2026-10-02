@@ -1,14 +1,14 @@
-import type { BashNoticeKind, BashNoticePayload } from "../types";
-import { flashFromNotice } from "../bash-face/face-flash";
+import type { AcornNoticeKind, AcornNoticePayload } from "../types";
+import { flashFromNotice } from "../acorn-face/face-flash";
 
-export type BashNoticePhase = "in" | "out";
+export type AcornNoticePhase = "in" | "out";
 
-export type BashNotice = BashNoticePayload & {
+export type AcornNotice = AcornNoticePayload & {
   id: string;
-  phase: BashNoticePhase;
+  phase: AcornNoticePhase;
 };
 
-type PushFn = (notice: BashNoticePayload) => void;
+type PushFn = (notice: AcornNoticePayload) => void;
 
 let pushImpl: PushFn | null = null;
 
@@ -21,18 +21,18 @@ const NOTICE_HOLD_MS = {
   error: 12000,
 } as const;
 
-export function bindBashNoticePush(fn: PushFn): () => void {
+export function bindAcornNoticePush(fn: PushFn): () => void {
   pushImpl = fn;
   return () => {
     if (pushImpl === fn) pushImpl = null;
   };
 }
 
-export function pushBashNotice(notice: BashNoticePayload): void {
+export function pushAcornNotice(notice: AcornNoticePayload): void {
   pushImpl?.(notice);
   flashFromNotice(notice.kind, notice.title);
 }
 
-export function noticeKindDuration(kind: BashNoticeKind): number {
+export function noticeKindDuration(kind: AcornNoticeKind): number {
   return NOTICE_HOLD_MS[kind];
 }

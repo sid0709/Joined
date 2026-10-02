@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { BashFaceView } from "../bash-face/BashFaceView";
+import { AcornFaceView } from "../acorn-face/AcornFaceView";
 
 interface Props {
   children: ReactNode;
@@ -20,7 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="error-boundary">
-          <BashFaceView mode="sad" size={32} live label="Bash" />
+          <AcornFaceView mode="sad" size={32} live label="Acorn" />
           <h3>Something went wrong</h3>
           <p>{this.state.error}</p>
           <button type="button" onClick={() => this.setState({ error: null })}>

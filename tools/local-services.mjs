@@ -65,7 +65,7 @@ export const API_SERVICES = [
   goService({ id: "joined-backend", shortName: "joined-api", port: 8080, color: "\x1b[34m" }),
   goService({ id: "admin-backend", shortName: "admin-api", port: 8081, color: "\x1b[93m" }),
   goService({ id: "scoutwell-backend", shortName: "scout-api", port: 8082, color: "\x1b[96m" }),
-  // backend-core's own server (api.joinedhq.com): Bash's routes under /bash.
+  // backend-core's own server (api.joinedhq.com): Acorn's routes under /acorn.
   goService({ id: "backend-core", shortName: "core-api", port: 8083, color: "\x1b[94m" }),
 ];
 

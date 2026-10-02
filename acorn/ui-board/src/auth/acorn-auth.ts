@@ -1,11 +1,11 @@
-import { BASH_SOCKET_PATH, bashHosts } from "@bash/shared/api";
+import { ACORN_SOCKET_PATH, acornHosts } from "@acorn/shared/api";
 
-/** Bash's API: backend-core's server. Override per build with VITE_BASH_API_URL. */
+/** Acorn's API: backend-core's server. Override per build with VITE_ACORN_API_URL. */
 export const DEFAULT_ATHENS_API_URL =
-  import.meta.env.VITE_BASH_API_URL?.trim() || bashHosts(import.meta.env.MODE).api;
-export { BASH_SOCKET_PATH };
+  import.meta.env.VITE_ACORN_API_URL?.trim() || acornHosts(import.meta.env.MODE).api;
+export { ACORN_SOCKET_PATH };
 
-export type BashStoredSession = {
+export type AcornStoredSession = {
   accessToken: string;
   username: string;
   displayName: string;
@@ -13,8 +13,8 @@ export type BashStoredSession = {
   expiresAt: string;
 };
 
-const API_URL_KEY = "bash.athensApiUrl";
-const SESSION_KEY = "bash.session";
+const API_URL_KEY = "acorn.athensApiUrl";
+const SESSION_KEY = "acorn.session";
 
 export function getAthensApiUrl(): string {
   const stored = localStorage.getItem(API_URL_KEY);
@@ -25,14 +25,14 @@ export function setAthensApiUrl(url: string): void {
   localStorage.setItem(API_URL_KEY, url.trim().replace(/\/$/, ""));
 }
 
-export function getBashSession(): BashStoredSession | null {
+export function getAcornSession(): AcornStoredSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const session = JSON.parse(raw) as BashStoredSession;
+    const session = JSON.parse(raw) as AcornStoredSession;
     if (!session?.accessToken) return null;
     if (session.expiresAt && Date.parse(session.expiresAt) <= Date.now()) {
-      clearBashSession();
+      clearAcornSession();
       return null;
     }
     return session;
@@ -41,25 +41,25 @@ export function getBashSession(): BashStoredSession | null {
   }
 }
 
-export function setBashSession(session: BashStoredSession): void {
+export function setAcornSession(session: AcornStoredSession): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
-export function clearBashSession(): void {
+export function clearAcornSession(): void {
   localStorage.removeItem(SESSION_KEY);
 }
 
 export function getAccessToken(): string | null {
-  return getBashSession()?.accessToken ?? null;
+  return getAcornSession()?.accessToken ?? null;
 }
 
-export async function bashSignIn(
+export async function acornSignIn(
   name: string,
   password: string,
   apiUrl = getAthensApiUrl(),
-): Promise<BashStoredSession> {
+): Promise<AcornStoredSession> {
   const base = apiUrl.replace(/\/$/, "");
-  const res = await fetch(`${base}/bash/auth/signin`, {
+  const res = await fetch(`${base}/acorn/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, password }),
@@ -78,7 +78,7 @@ export async function bashSignIn(
   if (!res.ok || !data.session?.accessToken) {
     throw new Error(data.message || `Sign in failed (${res.status})`);
   }
-  const session: BashStoredSession = {
+  const session: AcornStoredSession = {
     accessToken: data.session.accessToken,
     username: data.session.username || name,
     displayName: data.session.displayName || data.session.username || name,
@@ -86,16 +86,16 @@ export async function bashSignIn(
     expiresAt: data.session.expiresAt || "",
   };
   setAthensApiUrl(base);
-  setBashSession(session);
+  setAcornSession(session);
   return session;
 }
 
-export async function bashSignOut(): Promise<void> {
+export async function acornSignOut(): Promise<void> {
   const base = getAthensApiUrl();
   const token = getAccessToken();
   if (token) {
     try {
-      await fetch(`${base}/bash/auth/signout`, {
+      await fetch(`${base}/acorn/auth/signout`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -103,7 +103,7 @@ export async function bashSignOut(): Promise<void> {
       /* ignore */
     }
   }
-  clearBashSession();
+  clearAcornSession();
 }
 
 export function authHeaders(): Record<string, string> {

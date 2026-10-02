@@ -1,11 +1,11 @@
-import { sameApplyPage } from "@bash/shared/apply-site";
+import { sameApplyPage } from "@acorn/shared/apply-site";
 import { focusChromeTab } from "./focus-tab";
 import {
   bindTabJob,
   findTabIdsForJob,
   getTabJob,
   unbindTabJob,
-  type BashTabJobBinding,
+  type AcornTabJobBinding,
 } from "./tab-job-session";
 
 export type OpenWorkerJobResult = {
@@ -27,7 +27,7 @@ async function windowIdForTab(tabId: number | null): Promise<number | undefined>
 
 async function adoptTab(
   tabId: number,
-  job: BashTabJobBinding,
+  job: AcornTabJobBinding,
 ): Promise<OpenWorkerJobResult | null> {
   const focused = await focusChromeTab(tabId);
   if (!focused) {
@@ -55,7 +55,7 @@ async function findOpenTabMatchingApplyUrl(
 }
 
 async function openWorkerJobNow(args: {
-  job: BashTabJobBinding;
+  job: AcornTabJobBinding;
   preferredTabId: number | null;
   attachedTabId?: number | null;
 }): Promise<OpenWorkerJobResult> {
@@ -108,7 +108,7 @@ async function openWorkerJobNow(args: {
  * to a different URL.
  */
 export async function openWorkerJobInTab(args: {
-  job: BashTabJobBinding;
+  job: AcornTabJobBinding;
   preferredTabId: number | null;
   attachedTabId?: number | null;
 }): Promise<OpenWorkerJobResult> {

@@ -1,20 +1,20 @@
-import type { BashFaceMode } from "@bash/face";
+import type { AcornFaceMode } from "@acorn/face";
 import { FACE_SAD_PULSE_MS, FACE_SMILE_MS, FACE_WINK_MS } from "./constants";
 
-export type BashFaceFlash = {
-  mode: BashFaceMode;
+export type AcornFaceFlash = {
+  mode: AcornFaceMode;
   ms: number;
 };
 
-type Listener = (flash: BashFaceFlash) => void;
+type Listener = (flash: AcornFaceFlash) => void;
 
 const listeners = new Set<Listener>();
 
-export function flashBashFace(flash: BashFaceFlash): void {
+export function flashAcornFace(flash: AcornFaceFlash): void {
   for (const fn of listeners) fn(flash);
 }
 
-export function subscribeBashFaceFlash(fn: Listener): () => void {
+export function subscribeAcornFaceFlash(fn: Listener): () => void {
   listeners.add(fn);
   return () => {
     listeners.delete(fn);
@@ -23,20 +23,20 @@ export function subscribeBashFaceFlash(fn: Listener): () => void {
 
 export function flashFromNotice(kind: "error" | "success" | "info", title?: string): void {
   if (kind === "error") {
-    flashBashFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
+    flashAcornFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
     return;
   }
   if (kind === "success" && title === "Connected") {
-    flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
+    flashAcornFace({ mode: "wink", ms: FACE_WINK_MS });
     return;
   }
   if (kind === "success") {
-    flashBashFace({ mode: "smile", ms: FACE_SMILE_MS });
+    flashAcornFace({ mode: "smile", ms: FACE_SMILE_MS });
     return;
   }
   if (title === "Remember this tab first") {
-    flashBashFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
+    flashAcornFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
     return;
   }
-  flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
+  flashAcornFace({ mode: "wink", ms: FACE_WINK_MS });
 }

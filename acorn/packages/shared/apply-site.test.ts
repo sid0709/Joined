@@ -7,7 +7,7 @@ describe("sameApplyPage", () => {
     assert.equal(
       sameApplyPage(
         "https://boards.greenhouse.io/acme/jobs/123#app",
-        "https://boards.greenhouse.io/acme/jobs/123?utm_source=bash",
+        "https://boards.greenhouse.io/acme/jobs/123?utm_source=acorn",
       ),
       true,
     );

@@ -1,5 +1,5 @@
-import { formatDuration, formatUsd } from "@bash/shared/ai-usage";
-import type { PipelineProgress } from "@bash/shared/pipeline-types";
+import { formatDuration, formatUsd } from "@acorn/shared/ai-usage";
+import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 
 export function formatProgressStatus(progress: PipelineProgress): string {
   if (progress.phase === "idle") return progress.message || "Ready";

@@ -1,22 +1,22 @@
 import type { Socket } from "socket.io-client";
-import type { PipelineProgress } from "@bash/shared/pipeline-types";
+import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 import {
   authHeaders,
   getAccessToken,
   getAthensApiUrl,
-  getBashSession,
+  getAcornSession,
   isJoinedSessionCookie,
-  bashSignIn,
-  bashSignOut,
+  acornSignIn,
+  acornSignOut,
   syncJoinedSession,
-} from "./auth/bash-auth";
+} from "./auth/acorn-auth";
 import {
-  connectBashSocket,
-  getBashSocket,
-  isBashSocketConnected,
-  scheduleConnectBashSocket,
-  type BashSocketHandlers,
-} from "./bash-socket";
+  connectAcornSocket,
+  getAcornSocket,
+  isAcornSocketConnected,
+  scheduleConnectAcornSocket,
+  type AcornSocketHandlers,
+} from "./acorn-socket";
 import { matchOptionViaAnalyze } from "./pipeline/match-option-analyze";
 import { runFabPipeline } from "./pipeline/run-pipeline";
 import { runCustomGenerate } from "./pipeline/custom-generate";
@@ -47,10 +47,10 @@ import {
 import { getJobGenerate, patchJobGenerate } from "./tab-job-generate-session";
 import { clearTabPipeline, queueTabPipeline, rekeyTabPipeline } from "./tab-pipeline-session";
 import { broadcastOperatorNotice, socketErrorDetail } from "./operator-notice";
-import { mapBashWorkerJobs } from "./worker-job";
+import { mapAcornWorkerJobs } from "./worker-job";
 import {
   MSG,
-  BASH_SIDEBAR_PORT,
+  ACORN_SIDEBAR_PORT,
   type DomTreePayload,
   type ExecuteActionsPayload,
   type GetContentPayload,
@@ -119,15 +119,15 @@ async function resolvePreferredTabId(
 }
 
 function broadcastPipelineProgress(tabId: number, progress: PipelineProgress): void {
-  getBashSocket()?.emit("pipeline:progress", { tabId, progress });
+  getAcornSocket()?.emit("pipeline:progress", { tabId, progress });
   void queueTabPipeline(tabId, progress);
   chrome.runtime.sendMessage({ type: MSG.PIPELINE_PROGRESS, tabId, progress }, () => {
     void chrome.runtime.lastError;
   });
 }
 
-const KEEP_ALIVE_ALARM = "bash-socket-keep-alive";
-const WORK_KEEP_ALIVE_ALARM = "bash-work-keep-alive";
+const KEEP_ALIVE_ALARM = "acorn-socket-keep-alive";
+const WORK_KEEP_ALIVE_ALARM = "acorn-work-keep-alive";
 chrome.alarms.create(KEEP_ALIVE_ALARM, { periodInMinutes: 0.5 });
 
 function anyTabWorking(): boolean {
@@ -226,7 +226,7 @@ function bindSocketRelay(socket: Socket): void {
   });
 }
 
-const socketHandlers: BashSocketHandlers = {
+const socketHandlers: AcornSocketHandlers = {
   bindEvents: bindSocketRelay,
   onConnected: () => {
     const recovered = socketErrorToastAt > 0;
@@ -244,7 +244,7 @@ const socketHandlers: BashSocketHandlers = {
     pushSocketStatus(false);
   },
   onConnectError: (err) => {
-    if (isBashSocketConnected()) return;
+    if (isAcornSocketConnected()) return;
     pushSocketStatus(false);
     const now = Date.now();
     if (now - socketErrorToastAt < SOCKET_TOAST_MS) return;
@@ -258,13 +258,13 @@ const socketHandlers: BashSocketHandlers = {
 };
 
 function connectSocket(): Promise<void> {
-  return connectBashSocket(socketHandlers);
+  return connectAcornSocket(socketHandlers);
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === KEEP_ALIVE_ALARM) {
     if (sidebarPorts.size > 0) void chrome.runtime.getPlatformInfo();
-    if (!isBashSocketConnected()) void connectSocket().catch(() => undefined);
+    if (!isAcornSocketConnected()) void connectSocket().catch(() => undefined);
   }
   if (alarm.name === WORK_KEEP_ALIVE_ALARM) {
     if (anyTabWorking()) void chrome.runtime.getPlatformInfo();
@@ -273,12 +273,12 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== BASH_SIDEBAR_PORT) return;
+  if (port.name !== ACORN_SIDEBAR_PORT) return;
   sidebarPorts.add(port);
   try {
     port.postMessage({
       type: MSG.SOCKET_STATUS,
-      connected: isBashSocketConnected(),
+      connected: isAcornSocketConnected(),
     });
   } catch {
     sidebarPorts.delete(port);
@@ -338,25 +338,25 @@ chrome.cookies.onChanged.addListener(({ cookie }) => {
 void syncJoinedSession();
 
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.athensApiUrl || changes.bashSession) {
-    scheduleConnectBashSocket(socketHandlers);
+  if (changes.athensApiUrl || changes.acornSession) {
+    scheduleConnectAcornSocket(socketHandlers);
   }
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === MSG.SOCKET_STATUS) {
-    sendResponse({ connected: isBashSocketConnected() });
+    sendResponse({ connected: isAcornSocketConnected() });
     return true;
   }
 
   if (message.type === MSG.AUTH_STATUS) {
     void syncJoinedSession()
-      .then(getBashSession)
+      .then(getAcornSession)
       .then((session) => {
         sendResponse({
           signedIn: Boolean(session),
           session,
-          connected: isBashSocketConnected(),
+          connected: isAcornSocketConnected(),
         });
       });
     return true;
@@ -364,7 +364,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === MSG.AUTH_SIGNIN) {
     void (async () => {
-      const result = await bashSignIn(
+      const result = await acornSignIn(
         typeof message.apiUrl === "string" ? message.apiUrl : undefined,
       );
       if (!result.ok) {
@@ -380,7 +380,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === MSG.AUTH_SIGNOUT) {
     void (async () => {
       try {
-        await bashSignOut();
+        await acornSignOut();
         await connectSocket().catch(() => undefined);
         sendResponse({ ok: true });
       } catch (err) {
@@ -402,7 +402,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           return;
         }
         const base = await getAthensApiUrl();
-        const res = await fetch(`${base}/bash/jobs`, {
+        const res = await fetch(`${base}/acorn/jobs`, {
           headers: await authHeaders(),
         });
         const data = (await res.json().catch(() => ({}))) as {
@@ -419,7 +419,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
           return;
         }
-        sendResponse({ ok: true, jobs: mapBashWorkerJobs(data.jobs) });
+        sendResponse({ ok: true, jobs: mapAcornWorkerJobs(data.jobs) });
       } catch (err) {
         sendResponse({
           ok: false,
@@ -495,7 +495,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await unbindJobFromAllTabs(jobId);
         void closeTabsQuietly(attachedTabIds);
         const base = await getAthensApiUrl();
-        const res = await fetch(`${base}/bash/jobs/${encodeURIComponent(jobId)}/mark-applied`, {
+        const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(jobId)}/mark-applied`, {
           method: "POST",
           headers: await authHeaders(),
         });
@@ -544,9 +544,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === MSG.SELECTION_QA) {
     void (async () => {
       try {
-        const session = await getBashSession();
+        const session = await getAcornSession();
         if (!session) {
-          sendResponse({ ok: false, error: "Sign in to Bash" });
+          sendResponse({ ok: false, error: "Sign in to Acorn" });
           return;
         }
         const question = String(message.question || "").trim();
@@ -575,7 +575,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const detail = err instanceof Error ? err.message : String(err);
         sendResponse({
           ok: false,
-          error: /sign in/i.test(detail) ? "Sign in to Bash" : detail,
+          error: /sign in/i.test(detail) ? "Sign in to Acorn" : detail,
         });
       }
     })();
@@ -674,7 +674,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const token = await getAccessToken();
         if (!token) {
-          throw new Error("Sign in to Athens in the Bash sidebar first");
+          throw new Error("Sign in to Athens in the Acorn sidebar first");
         }
         const apiUrl = await getAthensApiUrl();
         await runCustomGenerate({
@@ -719,7 +719,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const token = await getAccessToken();
         if (!token) {
-          throw new Error("Sign in to Athens in the Bash sidebar first");
+          throw new Error("Sign in to Athens in the Acorn sidebar first");
         }
         const apiUrl = await getAthensApiUrl();
         await runCustomRecommend({
@@ -756,7 +756,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
         const token = await getAccessToken();
         if (!token) {
-          throw new Error("Sign in to Athens in the Bash sidebar first");
+          throw new Error("Sign in to Athens in the Acorn sidebar first");
         }
         const apiUrl = await getAthensApiUrl();
         const storedJd = typeof message.jobDescription === "string" ? message.jobDescription : null;
@@ -789,7 +789,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message.type === "bash:reconnect-socket") {
+  if (message.type === "acorn:reconnect-socket") {
     void connectSocket()
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
@@ -831,7 +831,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           broadcastPipelineProgress(tabId, {
             phase: "error",
             message: "Sign in required",
-            error: "Sign in to Athens in the Bash sidebar first",
+            error: "Sign in to Athens in the Acorn sidebar first",
           });
           return;
         }
@@ -843,7 +843,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           preferredFrameId: sender.tab ? (sender.frameId ?? null) : null,
           aiServerUrl: apiUrl,
           emitDomTree: (payload) => {
-            getBashSocket()?.emit("dom:tree", payload);
+            getAcornSocket()?.emit("dom:tree", payload);
           },
           onProgress: (progress) => {
             broadcastPipelineProgress(tabId, progress);
@@ -883,7 +883,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (typeof incoming.typedQuery === "string" && incoming.typedQuery.trim()) {
           payload.typedQuery = incoming.typedQuery;
         }
-        const res = await fetch(`${base}/bash/match-option`, {
+        const res = await fetch(`${base}/acorn/match-option`, {
           method: "POST",
           headers: await authHeaders(),
           body: JSON.stringify(payload),
@@ -949,7 +949,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const payload: DomTreePayload = { ...result, tabId };
 
         if (message.type === MSG.FETCH_AND_EMIT_DOM) {
-          getBashSocket()?.emit("dom:tree", payload);
+          getAcornSocket()?.emit("dom:tree", payload);
         }
 
         sendResponse(payload);

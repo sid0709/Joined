@@ -15,7 +15,7 @@ function isFormControl(el: Element): boolean {
 }
 
 /** When the page clones a stamped node, prefer the live form control. */
-function pickBashIdMatch(nodes: Element[]): Element | null {
+function pickAcornIdMatch(nodes: Element[]): Element | null {
   if (!nodes.length) return null;
   if (nodes.length === 1) return nodes[0];
   const controls = nodes.filter((el) => isFormControl(el) && isDisplayed(el));
@@ -25,21 +25,21 @@ function pickBashIdMatch(nodes: Element[]): Element | null {
   return controls[0] || displayed[0] || nodes[0];
 }
 
-function collectBashIdMatches(nodeId: number, root: Document | Element | ShadowRoot): Element[] {
+function collectAcornIdMatches(nodeId: number, root: Document | Element | ShadowRoot): Element[] {
   const found: Element[] = [];
   if ("querySelectorAll" in root) {
-    found.push(...Array.from(root.querySelectorAll(`[data-bash-id="${nodeId}"]`)));
+    found.push(...Array.from(root.querySelectorAll(`[data-acorn-id="${nodeId}"]`)));
   }
 
   const allElements = root.querySelectorAll("*");
   for (const child of Array.from(allElements)) {
     if (child.shadowRoot) {
-      found.push(...collectBashIdMatches(nodeId, child.shadowRoot));
+      found.push(...collectAcornIdMatches(nodeId, child.shadowRoot));
     }
     if (child.tagName === "IFRAME") {
       try {
         const doc = (child as HTMLIFrameElement).contentDocument;
-        if (doc) found.push(...collectBashIdMatches(nodeId, doc));
+        if (doc) found.push(...collectAcornIdMatches(nodeId, doc));
       } catch {
         // CORS blocked cross-origin iframe
       }
@@ -52,5 +52,5 @@ export function resolveElementByNodeId(
   nodeId: number,
   root: Document | Element | ShadowRoot = document,
 ): Element | null {
-  return pickBashIdMatch(collectBashIdMatches(nodeId, root));
+  return pickAcornIdMatch(collectAcornIdMatches(nodeId, root));
 }

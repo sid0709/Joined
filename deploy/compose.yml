@@ -36,7 +36,7 @@ services:
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
-  # backend-core's own server: api.joinedhq.com. Bash's extension calls /bash/... on it.
+  # backend-core's own server: api.joinedhq.com. Acorn's extension calls /acorn/... on it.
   backend-core:
     <<: *api
     image: ${IMAGE_REPO}:backend-core-${IMAGE_TAG}

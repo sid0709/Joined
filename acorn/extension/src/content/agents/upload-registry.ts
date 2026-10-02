@@ -1,14 +1,14 @@
-/** Remembers successful uploads by bash node id after the file input is remounted away. */
+/** Remembers successful uploads by acorn node id after the file input is remounted away. */
 
-const uploadedByBashId = new Map<string, string>();
+const uploadedByAcornId = new Map<string, string>();
 
-export function rememberUploadedFile(bashId: string | null | undefined, fileName: string): void {
-  if (!bashId || !fileName) return;
-  uploadedByBashId.set(String(bashId), fileName);
+export function rememberUploadedFile(acornId: string | null | undefined, fileName: string): void {
+  if (!acornId || !fileName) return;
+  uploadedByAcornId.set(String(acornId), fileName);
 }
 
-export function getRememberedUpload(bashId: number | string): string | null {
-  return uploadedByBashId.get(String(bashId)) ?? null;
+export function getRememberedUpload(acornId: number | string): string | null {
+  return uploadedByAcornId.get(String(acornId)) ?? null;
 }
 
 export function pageMentionsFilename(doc: Document, name: string): boolean {

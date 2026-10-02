@@ -1,6 +1,6 @@
-import { readStoredJobDescription } from "@bash/shared/job-description";
+import { readStoredJobDescription } from "@acorn/shared/job-description";
 
-export type BashWorkerJob = {
+export type AcornWorkerJob = {
   id: string;
   title: string;
   company: string;
@@ -28,7 +28,7 @@ function asNullableText(value: unknown): string | null {
   return text || null;
 }
 
-export function mapBashWorkerJob(raw: unknown): BashWorkerJob | null {
+export function mapAcornWorkerJob(raw: unknown): AcornWorkerJob | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
   const id = asText(row.id || row.jobId);
@@ -52,11 +52,11 @@ export function mapBashWorkerJob(raw: unknown): BashWorkerJob | null {
   };
 }
 
-export function mapBashWorkerJobs(raw: unknown): BashWorkerJob[] {
+export function mapAcornWorkerJobs(raw: unknown): AcornWorkerJob[] {
   if (!Array.isArray(raw)) return [];
-  const jobs: BashWorkerJob[] = [];
+  const jobs: AcornWorkerJob[] = [];
   for (const row of raw) {
-    const job = mapBashWorkerJob(row);
+    const job = mapAcornWorkerJob(row);
     if (job) jobs.push(job);
   }
   return jobs;

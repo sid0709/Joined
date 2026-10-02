@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import type { BashFaceMode } from "@bash/face";
-import { ListCardMark } from "../bash-face/ListCardMark";
+import type { AcornFaceMode } from "@acorn/face";
+import { ListCardMark } from "../acorn-face/ListCardMark";
 import { CheckIcon, DownloadIcon, EyeIcon } from "./sidebar-icons";
 
 export type SidebarListCardAction = {
@@ -16,7 +16,7 @@ type SidebarListCardProps = {
   attached?: boolean;
   blocked?: boolean;
   marking?: boolean;
-  faceMode: BashFaceMode;
+  faceMode: AcornFaceMode;
   logoUrl?: string;
   logoFallback: string;
   title: string;

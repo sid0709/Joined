@@ -5,7 +5,7 @@ import {
   markGenerateFailed,
   markStepDone,
   type GenerateCheckpoint,
-} from "@bash/shared/generate-checkpoint";
+} from "@acorn/shared/generate-checkpoint";
 import { broadcastOperatorNotice } from "../operator-notice";
 import { fetchCustomLibraryResume, recommendCustomLibrary } from "./ai-client";
 import { customRecommendProgress } from "./custom-recommend-progress";

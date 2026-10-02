@@ -1,8 +1,8 @@
-import { sameApplySite } from "@bash/shared/apply-site";
-import type { RuntimeAttachedFile } from "@bash/shared/plan-runner/types";
-import { customTabHasResume, type BashCustomTabBinding } from "../tab-custom-session";
+import { sameApplySite } from "@acorn/shared/apply-site";
+import type { RuntimeAttachedFile } from "@acorn/shared/plan-runner/types";
+import { customTabHasResume, type AcornCustomTabBinding } from "../tab-custom-session";
 import { getJobGenerate } from "../tab-job-generate-session";
-import type { BashTabJobBinding } from "../tab-job-session";
+import type { AcornTabJobBinding } from "../tab-job-session";
 import type { PipelineSource } from "../types";
 import { fetchCustomLibraryResume, fetchCustomResume, fetchRecommendedResume } from "./ai-client";
 
@@ -10,8 +10,8 @@ const WRONG_SITE = "Page is not this job's apply site — skipped resume upload"
 
 export async function loadFillResume(input: {
   source?: PipelineSource;
-  tabJob: BashTabJobBinding | null;
-  customTab?: BashCustomTabBinding | null;
+  tabJob: AcornTabJobBinding | null;
+  customTab?: AcornCustomTabBinding | null;
   customGenerationId?: string | null;
   apiUrl: string;
 }): Promise<{ file: RuntimeAttachedFile | null; skipReason: string | null }> {
@@ -70,7 +70,7 @@ export async function loadFillResume(input: {
 }
 
 async function loadCustomFillResume(input: {
-  customTab?: BashCustomTabBinding | null;
+  customTab?: AcornCustomTabBinding | null;
   customGenerationId?: string | null;
   apiUrl: string;
 }): Promise<{ file: RuntimeAttachedFile | null; skipReason: string | null }> {
@@ -122,7 +122,7 @@ async function loadCustomFillResume(input: {
 
 export function keepResumeIfSameSite(
   file: RuntimeAttachedFile | null,
-  tabJob: BashTabJobBinding | null,
+  tabJob: AcornTabJobBinding | null,
   pageUrl: string,
   skipReason: string | null,
 ): { file: RuntimeAttachedFile | null; skipReason: string | null } {

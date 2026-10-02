@@ -5,7 +5,7 @@
 
 import { waitMs } from "./agents/wait";
 
-/** Minimum fillable controls for a child frame to participate in Bash. */
+/** Minimum fillable controls for a child frame to participate in Acorn. */
 export const MIN_CHILD_FORM_CONTROLS = 2;
 /** How often to re-count controls while an SPA hydrates. */
 export const FORM_SURFACE_POLL_MS = 200;
@@ -61,7 +61,7 @@ export async function waitForFormSurface(
  * Frames that may serialize DOM / run plan steps.
  * Top frame always can; child frames only when they look like a form surface.
  */
-export function isBashDomFrame(): boolean {
+export function isAcornDomFrame(): boolean {
   if (window === window.top) return true;
   return formControlScore() >= MIN_CHILD_FORM_CONTROLS;
 }

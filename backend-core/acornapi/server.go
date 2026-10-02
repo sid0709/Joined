@@ -1,8 +1,8 @@
-// Package bashapi is Bash's HTTP API: every route and the Socket.IO gateway live
-// under Prefix, which backend-core's server hands to this package. Bash has no
+// Package acornapi is Acorn's HTTP API: every route and the Socket.IO gateway live
+// under Prefix, which backend-core's server hands to this package. Acorn has no
 // accounts of its own: it signs in with the Joined session that joined-frontend
 // and joined-backend share, and reads the applicant's profile from the same database.
-package bashapi
+package acornapi
 
 import (
 	"context"
@@ -12,17 +12,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/backend-core/acorn"
+	"github.com/sid0709/OpenSeat/backend-core/acornapi/gateway"
 	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/bash"
-	"github.com/sid0709/OpenSeat/backend-core/bashapi/gateway"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 const (
-	// Prefix is the path every Bash route starts with: api.joinedhq.com/bash/...
-	Prefix = "/bash"
+	// Prefix is the path every Acorn route starts with: api.joinedhq.com/acorn/...
+	Prefix = "/acorn"
 
 	// DefaultSessionCookie is the cookie joined-frontend keeps the Joined session token in.
 	DefaultSessionCookie = "joined_session"
@@ -36,7 +36,7 @@ type Sessions interface {
 	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
 }
 
-// People is the job hunter's workspace Bash reads and writes. *candidate.Store is the real one.
+// People is the job hunter's workspace Acorn reads and writes. *candidate.Store is the real one.
 type People interface {
 	GetProfile(ctx context.Context, userID string, now time.Time) (candidate.Profile, error)
 	SavedJobIDs(ctx context.Context, userID string) ([]string, error)
@@ -48,12 +48,12 @@ type Server struct {
 	accounts Sessions
 	people   People
 	listings *jobs.Store
-	bash     *bash.Service
+	acorn    *acorn.Service
 	files    RuntimeFile
 	cookie   string
 }
 
-// Options are the Bash API's settings. CORS is the server's: see backend-core/cmd/server.
+// Options are the Acorn API's settings. CORS is the server's: see backend-core/cmd/server.
 type Options struct {
 	// SessionCookie is the Joined session cookie's name.
 	SessionCookie string
@@ -61,40 +61,40 @@ type Options struct {
 	Runtime RuntimeFile
 }
 
-func New(accounts Sessions, people People, listings *jobs.Store, brain *bash.Service, opts Options) (http.Handler, *gateway.Gateway) {
-	s := &Server{accounts: accounts, people: people, listings: listings, bash: brain, files: opts.Runtime, cookie: opts.SessionCookie}
+func New(accounts Sessions, people People, listings *jobs.Store, brain *acorn.Service, opts Options) (http.Handler, *gateway.Gateway) {
+	s := &Server{accounts: accounts, people: people, listings: listings, acorn: brain, files: opts.Runtime, cookie: opts.SessionCookie}
 	if s.cookie == "" {
 		s.cookie = DefaultSessionCookie
 	}
 	gw := gateway.New(s.authenticateSocket)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /bash/health", s.health)
-	mux.HandleFunc("GET /bash/auth/me", s.me)
-	mux.HandleFunc("POST /bash/auth/signout", s.signOut)
+	mux.HandleFunc("GET /acorn/health", s.health)
+	mux.HandleFunc("GET /acorn/auth/me", s.me)
+	mux.HandleFunc("POST /acorn/auth/signout", s.signOut)
 
-	mux.HandleFunc("POST /bash/ai-analyze", s.aiAnalyze)
-	mux.HandleFunc("POST /bash/match-option", s.matchOption)
-	mux.HandleFunc("POST /bash/qa", s.qa)
-	mux.HandleFunc("GET /bash/runtime-file", s.runtimeFile)
+	mux.HandleFunc("POST /acorn/ai-analyze", s.aiAnalyze)
+	mux.HandleFunc("POST /acorn/match-option", s.matchOption)
+	mux.HandleFunc("POST /acorn/qa", s.qa)
+	mux.HandleFunc("GET /acorn/runtime-file", s.runtimeFile)
 
-	mux.HandleFunc("GET /bash/jobs", s.listJobs)
-	mux.HandleFunc("GET /bash/jobs/{jobId}", s.getJob)
-	mux.HandleFunc("POST /bash/jobs/{jobId}/generate", s.generateForJob)
-	mux.HandleFunc("POST /bash/jobs/{jobId}/mark-applied", s.markApplied)
-	mux.HandleFunc("GET /bash/jobs/{jobId}/resume-preview", s.emptyPreview)
-	mux.HandleFunc("GET /bash/jobs/{jobId}/recommended-resume", s.noJobResume)
+	mux.HandleFunc("GET /acorn/jobs", s.listJobs)
+	mux.HandleFunc("GET /acorn/jobs/{jobId}", s.getJob)
+	mux.HandleFunc("POST /acorn/jobs/{jobId}/generate", s.generateForJob)
+	mux.HandleFunc("POST /acorn/jobs/{jobId}/mark-applied", s.markApplied)
+	mux.HandleFunc("GET /acorn/jobs/{jobId}/resume-preview", s.emptyPreview)
+	mux.HandleFunc("GET /acorn/jobs/{jobId}/recommended-resume", s.noJobResume)
 
-	mux.HandleFunc("POST /bash/custom/extract-jd", s.extractJD)
-	mux.HandleFunc("POST /bash/custom/analyze-meta", s.analyzeMeta)
-	mux.HandleFunc("POST /bash/custom/generate", s.noGenerate)
-	mux.HandleFunc("POST /bash/custom/generate/{inputId}/continue", s.noContinue)
-	mux.HandleFunc("GET /bash/custom/generate/{inputId}", s.noPoll)
-	mux.HandleFunc("POST /bash/custom/recommend", s.noRecommend)
-	mux.HandleFunc("GET /bash/custom/library-resumes/{resumeId}/preview", s.emptyPreview)
-	mux.HandleFunc("GET /bash/custom/library-resumes/{resumeId}", s.noLibraryResume)
-	mux.HandleFunc("GET /bash/custom/resumes/{generationId}/preview", s.emptyPreview)
-	mux.HandleFunc("GET /bash/custom/resumes/{generationId}", s.noGeneratedResume)
+	mux.HandleFunc("POST /acorn/custom/extract-jd", s.extractJD)
+	mux.HandleFunc("POST /acorn/custom/analyze-meta", s.analyzeMeta)
+	mux.HandleFunc("POST /acorn/custom/generate", s.noGenerate)
+	mux.HandleFunc("POST /acorn/custom/generate/{inputId}/continue", s.noContinue)
+	mux.HandleFunc("GET /acorn/custom/generate/{inputId}", s.noPoll)
+	mux.HandleFunc("POST /acorn/custom/recommend", s.noRecommend)
+	mux.HandleFunc("GET /acorn/custom/library-resumes/{resumeId}/preview", s.emptyPreview)
+	mux.HandleFunc("GET /acorn/custom/library-resumes/{resumeId}", s.noLibraryResume)
+	mux.HandleFunc("GET /acorn/custom/resumes/{generationId}/preview", s.emptyPreview)
+	mux.HandleFunc("GET /acorn/custom/resumes/{generationId}", s.noGeneratedResume)
 
 	socket := gw.Handler()
 	mux.Handle(gateway.Path, socket)
@@ -122,7 +122,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request) (auth.Session, 
 		return auth.Session{}, false
 	}
 	if err != nil {
-		slog.Error("bash session", "error", err)
+		slog.Error("acorn session", "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load the session")
 		return auth.Session{}, false
 	}

@@ -21,7 +21,7 @@ import {
   WINK_HOLD_S,
   WINK_OPEN_S,
 } from "./geometry";
-import type { BashFaceMode } from "./types";
+import type { AcornFaceMode } from "./types";
 
 export interface Pose {
   x: number;
@@ -53,7 +53,7 @@ export interface FrameAdd {
 }
 
 export interface PerformanceState {
-  mode: BashFaceMode;
+  mode: AcornFaceMode;
   /** Seconds since the current mode was set. */
   modeT: number;
   /** Wall seconds for looping scripts. */
@@ -96,7 +96,7 @@ export function rand(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
-export function idlePolicy(mode: BashFaceMode): IdlePolicy {
+export function idlePolicy(mode: AcornFaceMode): IdlePolicy {
   if (mode === "waiting") {
     return {
       saccades: true,

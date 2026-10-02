@@ -1,4 +1,4 @@
-package bash
+package acorn
 
 import (
 	"context"
@@ -23,7 +23,7 @@ var ErrModelUnavailable = errors.New("the AI model is not configured")
 // ErrInvalid is a request the extension should fix, not retry.
 var ErrInvalid = errors.New("invalid request")
 
-// Model is the language model behind Bash: one JSON object per request, matching a schema.
+// Model is the language model behind Acorn: one JSON object per request, matching a schema.
 type Model interface {
 	JSON(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, error)
 	Model() string
@@ -104,7 +104,7 @@ func (s *Service) classifyIdentity(ctx context.Context, plan Plan) map[int]bool 
 			return indexes
 		}
 	}
-	slog.Warn("bash identity classify skipped", "error", err)
+	slog.Warn("acorn identity classify skipped", "error", err)
 	return nil
 }
 
@@ -127,7 +127,7 @@ func (s *Service) rewriteTyping(ctx context.Context, plan Plan, applicant string
 			return overlayTypingFills(plan, answers)
 		}
 	}
-	slog.Warn("bash typing-field rewrite skipped", "error", err)
+	slog.Warn("acorn typing-field rewrite skipped", "error", err)
 	return plan
 }
 

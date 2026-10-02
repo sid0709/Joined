@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Bash",
+  "name": "Acorn",
   "version": "1.7.0",
-  "description": "Fill forms from the Bash side panel and inspect DOM trees",
+  "description": "Fill forms from the Acorn side panel and inspect DOM trees",
   "permissions": [
     "activeTab",
     "storage",
@@ -40,7 +40,7 @@
     }
   ],
   "action": {
-    "default_title": "Open Bash side panel",
+    "default_title": "Open Acorn side panel",
     "default_icon": {
       "16": "public/icon-16.png",
       "48": "public/icon-48.png",

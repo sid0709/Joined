@@ -1,5 +1,5 @@
-const OVERLAY_ID = "bash-highlight-overlay";
-const STYLE_ID = "bash-highlight-style";
+const OVERLAY_ID = "acorn-highlight-overlay";
+const STYLE_ID = "acorn-highlight-style";
 
 let globalCleanup: (() => void) | null = null;
 
@@ -12,12 +12,12 @@ export function highlightElement(el: Element): void {
 
   const overlay = doc.createElement("div");
   overlay.id = OVERLAY_ID;
-  overlay.setAttribute("data-bash-inject", "true");
+  overlay.setAttribute("data-acorn-inject", "true");
 
   if (!doc.getElementById(STYLE_ID)) {
     const style = doc.createElement("style");
     style.id = STYLE_ID;
-    style.setAttribute("data-bash-inject", "true");
+    style.setAttribute("data-acorn-inject", "true");
     style.textContent = `
       #${OVERLAY_ID} {
         position: fixed;
@@ -52,7 +52,7 @@ export function highlightElement(el: Element): void {
   globalCleanup = () => {
     win.removeEventListener("scroll", reposition, true);
     win.removeEventListener("resize", reposition);
-    doc.querySelectorAll('[data-bash-inject="true"]').forEach((n) => n.remove());
+    doc.querySelectorAll('[data-acorn-inject="true"]').forEach((n) => n.remove());
   };
 }
 
@@ -62,5 +62,5 @@ export function clearHighlight(): void {
     globalCleanup = null;
   }
 
-  document.querySelectorAll('[data-bash-inject="true"]').forEach((n) => n.remove());
+  document.querySelectorAll('[data-acorn-inject="true"]').forEach((n) => n.remove());
 }

@@ -24,8 +24,8 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 Host ports are the dev ports + 3000, except `connected-frontend`: browsers refuse port 6000.
 Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect
 (`/v1/me/calendar/google/callback`) to the API on 11080. `api.joinedhq.com` goes to
-backend-core on 11083: Bash's extension calls `https://api.joinedhq.com/bash/...` and
-keeps a Socket.IO connection at `/bash/socket.io` ([`nginx/api.joinedhq.com.conf`](nginx/api.joinedhq.com.conf)).
+backend-core on 11083: Acorn's extension calls `https://api.joinedhq.com/acorn/...` and
+keeps a Socket.IO connection at `/acorn/socket.io` ([`nginx/api.joinedhq.com.conf`](nginx/api.joinedhq.com.conf)).
 
 ## GitHub `production` environment
 
@@ -94,7 +94,7 @@ On a VPS bootstrapped before this site existed, add it once, as root:
    `nginx -t && systemctl reload nginx`. Running `bootstrap-vps.sh` again does the same.
 3. HTTPS: `certbot --nginx -d api.joinedhq.com --redirect`.
 
-Check from any computer: `curl -s https://api.joinedhq.com/bash/health` prints `{"ok":true}`.
+Check from any computer: `curl -s https://api.joinedhq.com/acorn/health` prints `{"ok":true}`.
 
 Useful on the server, as `deploy`:
 

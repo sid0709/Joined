@@ -24,10 +24,10 @@ export function GenerateRunExtras({
 }: GenerateRunExtrasProps) {
   if (!showBar && !canContinue && !canViewJd && !canRestart) return null;
   return (
-    <div className="bash-gen-extras">
+    <div className="acorn-gen-extras">
       {showBar && progress ? <GenerateProgressBar progress={progress} /> : null}
       {canContinue || canViewJd || canRestart ? (
-        <div className="bash-gen-actions">
+        <div className="acorn-gen-actions">
           {canContinue ? (
             <button type="button" className="worker-pool-resume-btn" onClick={onContinue}>
               Continue

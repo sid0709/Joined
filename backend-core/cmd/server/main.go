@@ -1,6 +1,6 @@
 // Command server runs backend-core's own API, the one at api.joinedhq.com. Each
-// product it serves owns a path prefix: Bash's routes and Socket.IO gateway live
-// under /bash (see routes.go).
+// product it serves owns a path prefix: Acorn's routes and Socket.IO gateway live
+// under /acorn (see routes.go).
 package main
 
 import (
@@ -8,8 +8,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/sid0709/OpenSeat/backend-core/bash"
-	"github.com/sid0709/OpenSeat/backend-core/bashapi"
+	"github.com/sid0709/OpenSeat/backend-core/acorn"
+	"github.com/sid0709/OpenSeat/backend-core/acornapi"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
@@ -21,7 +21,7 @@ const (
 	defaultRuntimeKey = "runtime_file"
 )
 
-// Bash's UI board dev origins. The Bash extension is not a browser origin: it calls with host permissions.
+// Acorn's UI board dev origins. The Acorn extension is not a browser origin: it calls with host permissions.
 var defaultOrigins = []string{"http://127.0.0.1:5173", "http://localhost:5173"}
 
 func main() {
@@ -47,18 +47,18 @@ func main() {
 
 	model := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	if !model.Ready() {
-		slog.Warn("OPENAI_API_KEY is not set: Bash's AI routes will answer 503")
+		slog.Warn("OPENAI_API_KEY is not set: Acorn's AI routes will answer 503")
 	}
-	bashHandler, gateway := bashapi.New(p.Accounts, p.People, p.Jobs, bash.New(model), bashapi.Options{
-		SessionCookie: config.Env("JOINED_SESSION_COOKIE", bashapi.DefaultSessionCookie),
-		Runtime: bashapi.RuntimeFile{
-			Path: config.Env("BASH_RUNTIME_FILE_PATH", ""),
-			Key:  config.Env("BASH_RUNTIME_FILE_KEY", defaultRuntimeKey),
+	acornHandler, gateway := acornapi.New(p.Accounts, p.People, p.Jobs, acorn.New(model), acornapi.Options{
+		SessionCookie: config.Env("JOINED_SESSION_COOKIE", acornapi.DefaultSessionCookie),
+		Runtime: acornapi.RuntimeFile{
+			Path: config.Env("ACORN_RUNTIME_FILE_PATH", ""),
+			Key:  config.Env("ACORN_RUNTIME_FILE_KEY", defaultRuntimeKey),
 		},
 	})
 	defer gateway.Close()
 
-	handler := routes(server.Origins, httpkit.Health(p.Jobs), bashHandler)
+	handler := routes(server.Origins, httpkit.Health(p.Jobs), acornHandler)
 	if err := httpkit.Serve("core api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)

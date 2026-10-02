@@ -8,5 +8,5 @@ linker = "hoisted"
 # lines while functions stay above 80%. Keep functions strict; allow lines at 50%.
 coverageThreshold = { functions = 0.8, lines = 0.5 }
 coverageSkipTestFiles = true
-# bash/ is the Bash project: its tests run, but it is not held to this repo's coverage bar.
-coveragePathIgnorePatterns = ["bash/**"]
+# acorn/ is the Acorn project: its tests run, but it is not held to this repo's coverage bar.
+coveragePathIgnorePatterns = ["acorn/**"]

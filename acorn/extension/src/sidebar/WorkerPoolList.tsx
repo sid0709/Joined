@@ -1,47 +1,47 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@bash/shared/pipeline-types";
-import { canContinueGenerate, formatGenerateFailure } from "@bash/shared/generate-checkpoint";
-import { flashBashFace } from "../bash-face/face-flash";
-import { resolveRowHold } from "../bash-face/director";
-import { useCompletionSmile } from "../bash-face/use-completion-smile";
+import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@acorn/shared/pipeline-types";
+import { canContinueGenerate, formatGenerateFailure } from "@acorn/shared/generate-checkpoint";
+import { flashAcornFace } from "../acorn-face/face-flash";
+import { resolveRowHold } from "../acorn-face/director";
+import { useCompletionSmile } from "../acorn-face/use-completion-smile";
 import type { JobAttachment } from "../tab-job-session";
-import { FACE_WINK_MS } from "../bash-face/constants";
+import { FACE_WINK_MS } from "../acorn-face/constants";
 import { downloadJobResume, hasAssignedResume, resumeMetaText } from "./JobResumeActions";
 import { LoadMoreFooter } from "./LoadMoreFooter";
 import { SidebarListCard } from "./SidebarListCard";
 import { GenerateRunExtras } from "./GenerateRunExtras";
 import { useShownCount } from "./use-shown-count";
-import type { BashJobGenerateBinding } from "../tab-job-generate-session";
-import type { BashWorkerJob } from "../worker-job";
+import type { AcornJobGenerateBinding } from "../tab-job-generate-session";
+import type { AcornWorkerJob } from "../worker-job";
 
-export type { BashWorkerJob } from "../worker-job";
+export type { AcornWorkerJob } from "../worker-job";
 
 const JOB_PAGE = 20;
 
 /** Assigned resumes first; original order preserved within each group. */
-function sortJobsAssignedFirst(jobs: BashWorkerJob[]): BashWorkerJob[] {
+function sortJobsAssignedFirst(jobs: AcornWorkerJob[]): AcornWorkerJob[] {
   return [...jobs].sort((a, b) => Number(hasAssignedResume(b)) - Number(hasAssignedResume(a)));
 }
 
 type WorkerPoolListProps = {
-  jobs: BashWorkerJob[];
+  jobs: AcornWorkerJob[];
   loading: boolean;
   error: string | null;
   selectedJobId: string | null;
   attachments: Record<string, JobAttachment>;
   pipelines: Record<string, PipelineProgress>;
-  generates: Record<string, BashJobGenerateBinding>;
+  generates: Record<string, AcornJobGenerateBinding>;
   openingJobId: string | null;
   markingJobId: string | null;
   listKey: number;
   listActive?: boolean;
   onRefresh: () => void;
-  onOpen: (job: BashWorkerJob) => void;
-  onPreviewResume: (job: BashWorkerJob) => void;
-  onMarkApplied: (job: BashWorkerJob) => void;
-  onContinueGenerate?: (job: BashWorkerJob) => void;
-  onRestartGenerate?: (job: BashWorkerJob) => void;
-  onViewJd?: (job: BashWorkerJob, jd: string) => void;
+  onOpen: (job: AcornWorkerJob) => void;
+  onPreviewResume: (job: AcornWorkerJob) => void;
+  onMarkApplied: (job: AcornWorkerJob) => void;
+  onContinueGenerate?: (job: AcornWorkerJob) => void;
+  onRestartGenerate?: (job: AcornWorkerJob) => void;
+  onViewJd?: (job: AcornWorkerJob, jd: string) => void;
 };
 
 function WorkerPoolListInner({
@@ -159,19 +159,19 @@ function WorkerJobCard({
   onRestartGenerate,
   onViewJd,
 }: {
-  job: BashWorkerJob;
+  job: AcornWorkerJob;
   selected: boolean;
   attached: boolean;
   progress: PipelineProgress;
-  generate: BashJobGenerateBinding | null;
+  generate: AcornJobGenerateBinding | null;
   opening: boolean;
   marking: boolean;
-  onOpen: (job: BashWorkerJob) => void;
-  onPreviewResume: (job: BashWorkerJob) => void;
-  onMarkApplied: (job: BashWorkerJob) => void;
-  onContinueGenerate?: (job: BashWorkerJob) => void;
-  onRestartGenerate?: (job: BashWorkerJob) => void;
-  onViewJd?: (job: BashWorkerJob, jd: string) => void;
+  onOpen: (job: AcornWorkerJob) => void;
+  onPreviewResume: (job: AcornWorkerJob) => void;
+  onMarkApplied: (job: AcornWorkerJob) => void;
+  onContinueGenerate?: (job: AcornWorkerJob) => void;
+  onRestartGenerate?: (job: AcornWorkerJob) => void;
+  onViewJd?: (job: AcornWorkerJob, jd: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [winkToken, setWinkToken] = useState(0);
@@ -285,7 +285,7 @@ function WorkerJobCard({
         disabled: opening || marking || generating || !ready,
         onClick: () => {
           setWinkToken((n) => n + 1);
-          flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
+          flashAcornFace({ mode: "wink", ms: FACE_WINK_MS });
           onPreviewResume(job);
         },
       }}

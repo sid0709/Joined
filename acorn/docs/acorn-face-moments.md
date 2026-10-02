@@ -1,10 +1,10 @@
-# Bash face — placement and moments
+# Acorn face — placement and moments
 
 Wired in the extension (sidebar companion, per-card badges, worker-count chip, Help guide, selection-QA chip). Toolbar icons stay still PNGs. There is no floating rabbit on the employer page.
 
-The rabbit is Bash’s mascot. It appears on operator surfaces in the sidebar and on the selection-QA chip. It never goes inside a form.
+The rabbit is Acorn’s mascot. It appears on operator surfaces in the sidebar and on the selection-QA chip. It never goes inside a form.
 
-Lib: [`packages/bash-face`](../packages/bash-face). API: `mount(el)`, `setMode(name)`, `destroy()`. One mode at a time.
+Lib: [`packages/acorn-face`](../packages/acorn-face). API: `mount(el)`, `setMode(name)`, `destroy()`. One mode at a time.
 
 Modes: `waiting` `thinking` `working` `sleeping` `smile` `wink` `sad`
 
@@ -15,7 +15,7 @@ Modes: `waiting` `thinking` `working` `sleeping` `smile` `wink` `sad`
 | Surface                      | Where                                       | Size              | Live?                                                                                               | Whose status                                                              |
 | ---------------------------- | ------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Chrome toolbar + store icons | `manifest.json` `action` / `icons`          | 16 / 48 / 128 PNG | **Still.** Chrome cannot run the SVG engine here. Export a `waiting` frame (identity rainbow).      | Brand only                                                                |
-| Sidebar identity row         | `BashFaceView` in `SidebarApp`              | 28px              | Live                                                                                                | **Companion** — focused tab, else any-tab work, else session              |
+| Sidebar identity row         | `AcornFaceView` in `SidebarApp`             | 28px              | Live                                                                                                | **Companion** — focused tab, else any-tab work, else session              |
 | Worker-count chip            | Identity row, before Help                   | 18px + number     | Live while any tab is thinking or working                                                           | **Pool** — unique `tabId`s in thinking/working                            |
 | Help guide                   | Sidebar page from the Help button           | ~148px each       | Live                                                                                                | **Catalog** — one face per mode                                           |
 | Fill list card               | 32px logo + 18px badge in `SidebarListCard` | 18px rabbit       | Live only if busy, selected, or on-screen and not `waiting`. Idle off-screen rows are a still pose. | **That job**                                                              |
@@ -25,11 +25,11 @@ Modes: `waiting` `thinking` `working` `sleeping` `smile` `wink` `sad`
 
 ### Identity row
 
-Keep `h2` “Bash”, display name, worker-count chip, Help, sign-out. The 28px mark is a mounted face, not `public/icon-128.png`. The chip always shows the number of unique tabs in `thinking` or `working` (including `0`). Help opens a page of large live faces for every mode; chrome stays.
+Keep `h2` “Acorn”, display name, worker-count chip, Help, sign-out. The 28px mark is a mounted face, not `public/icon-128.png`. The chip always shows the number of unique tabs in `thinking` or `working` (including `0`). Help opens a page of large live faces for every mode; chrome stays.
 
 ### List cards — logo plus badge
 
-Fill and Custom share `SidebarListCard`. The leading 32px slot is the **company logo** (Fill) or **tab favicon** (Custom). An 18px Bash Face badge hangs on the bottom-right corner as a silhouette — no plate or colored circle. Both stay visible. The rabbit follows that row’s fill/generate mode.
+Fill and Custom share `SidebarListCard`. The leading 32px slot is the **company logo** (Fill) or **tab favicon** (Custom). An 18px Acorn Face badge hangs on the bottom-right corner as a silhouette — no plate or colored circle. Both stay visible. The rabbit follows that row’s fill/generate mode.
 
 Job and page identity stay in type: title + subtitle (company or host) + résumé line. Do not add a second 32px column.
 
@@ -48,7 +48,7 @@ Still `waiting` PNGs. Optional later: swap stills per session (working/sad) via 
 One function, three subjects:
 
 ```
-resolveMode(subject: 'companion' | 'row') → BashFaceMode
+resolveMode(subject: 'companion' | 'row') → AcornFaceMode
 ```
 
 **Priority (high → low):** `working` → `thinking` → `sad` → one-shot (`smile` / `wink`) → `sleeping` → `waiting`
@@ -224,7 +224,7 @@ Need `tabId` from `attachments[job.id]`. Unattached idle jobs still get a rabbit
 
 ## 6. Implementation notes
 
-- Sidebar: `BashFaceView` / `BashFaceSlot` / `FaceGuidePanel`. Modes: `bash-face/director.ts` (`countBusyWorkers` for the chip).
+- Sidebar: `AcornFaceView` / `AcornFaceSlot` / `FaceGuidePanel`. Modes: `acorn-face/director.ts` (`countBusyWorkers` for the chip).
 - Idle off-screen rows call `setPaused(true)`. Companion, Help faces, selected rows, and non-waiting rows stay live.
 - Worker Pool rows read `attachments[job.id].tabId` → `pipelines[tabId]`.
 - Extension version bumped with this ship. Toolbar stays still PNGs.

@@ -1,6 +1,6 @@
 import type { PlanStepPayload, PlanStepResult } from "../types";
-import { rewriteApplicantIdentityValue } from "@bash/shared/plan-runner/applicant-identity";
-import { isCustomResumeFile } from "@bash/shared/plan-runner/step-file";
+import { rewriteApplicantIdentityValue } from "@acorn/shared/plan-runner/applicant-identity";
+import { isCustomResumeFile } from "@acorn/shared/plan-runner/step-file";
 import { controlAlreadyMatches } from "./agents/already-filled";
 import { fillElement } from "./agents/fill";
 import { readControlValue } from "./agents/read-control-value";

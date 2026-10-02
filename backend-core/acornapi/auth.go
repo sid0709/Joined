@@ -1,4 +1,4 @@
-package bashapi
+package acornapi
 
 import (
 	"net/http"
@@ -30,7 +30,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// signOut does not end the Joined session: Bash shares it with joined-frontend, so
+// signOut does not end the Joined session: Acorn shares it with joined-frontend, so
 // revoking it here would sign the person out of Joined too. The client forgets its copy.
 func (s *Server) signOut(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.session(w, r); !ok {

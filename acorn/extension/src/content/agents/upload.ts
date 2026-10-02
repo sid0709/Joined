@@ -40,30 +40,30 @@ function listFileInputs(doc: Document = document): HTMLInputElement[] {
   );
 }
 
-/** Only treat another file input as a remount of THIS control — never a different bash-id field. */
+/** Only treat another file input as a remount of THIS control — never a different acorn-id field. */
 function findSuccessorInput(
   original: HTMLInputElement,
   target: HTMLInputElement,
-  bashId: string | null,
+  acornId: string | null,
   doc: Document,
 ): HTMLInputElement | null {
   const connected = listFileInputs(doc);
-  const sameBash = bashId
-    ? connected.find((node) => node.getAttribute("data-bash-id") === bashId)
+  const sameAcorn = acornId
+    ? connected.find((node) => node.getAttribute("data-acorn-id") === acornId)
     : null;
-  if (sameBash) return sameBash;
+  if (sameAcorn) return sameAcorn;
 
   const form = target.form || original.form;
   const pool = (form ? connected.filter((node) => node.form === form) : connected).filter(
     (node) => {
-      const id = node.getAttribute("data-bash-id");
-      // A different stamped bash id is a different field (e.g. cover letter vs resume).
-      if (id && bashId && id !== bashId) return false;
+      const id = node.getAttribute("data-acorn-id");
+      // A different stamped acorn id is a different field (e.g. cover letter vs resume).
+      if (id && acornId && id !== acornId) return false;
       return true;
     },
   );
 
-  const unstamped = pool.filter((node) => !node.getAttribute("data-bash-id"));
+  const unstamped = pool.filter((node) => !node.getAttribute("data-acorn-id"));
   if (original.name) {
     const byName = unstamped.find((node) => node.name === original.name);
     if (byName) return byName;
@@ -71,7 +71,7 @@ function findSuccessorInput(
 
   return (
     unstamped.find((node) => node !== target) ||
-    pool.find((node) => node !== target && !node.getAttribute("data-bash-id")) ||
+    pool.find((node) => node !== target && !node.getAttribute("data-acorn-id")) ||
     null
   );
 }
@@ -79,15 +79,15 @@ function findSuccessorInput(
 async function waitForUploadEvidence(
   doc: Document,
   fileName: string,
-  bashId: string | null,
+  acornId: string | null,
   maxMs = 4000,
 ): Promise<boolean> {
   const started = Date.now();
   while (Date.now() - started < maxMs) {
     if (pageMentionsFilename(doc, fileName)) return true;
 
-    if (bashId) {
-      const el = resolveElementByNodeId(Number(bashId));
+    if (acornId) {
+      const el = resolveElementByNodeId(Number(acornId));
       if (el instanceof HTMLInputElement && el.type === "file" && (el.files?.length ?? 0) > 0) {
         return true;
       }
@@ -97,7 +97,7 @@ async function waitForUploadEvidence(
       Array.from(node.files ?? []).some((f) => f.name === fileName),
     );
     if (withFile) {
-      if (bashId) withFile.setAttribute("data-bash-id", bashId);
+      if (acornId) withFile.setAttribute("data-acorn-id", acornId);
       return true;
     }
 
@@ -109,7 +109,7 @@ async function waitForUploadEvidence(
 async function persistUploadAcrossRemount(
   original: HTMLInputElement,
   fileObj: File,
-  bashId: string | null,
+  acornId: string | null,
 ): Promise<{ names: string[]; input: HTMLInputElement }> {
   const doc = original.ownerDocument || document;
   let target = original;
@@ -120,21 +120,21 @@ async function persistUploadAcrossRemount(
     await waitMs(150);
 
     if (target.isConnected && (target.files?.length ?? 0) > 0) {
-      if (bashId) target.setAttribute("data-bash-id", bashId);
-      rememberUploadedFile(bashId, fileName);
+      if (acornId) target.setAttribute("data-acorn-id", acornId);
+      rememberUploadedFile(acornId, fileName);
       return { names: Array.from(target.files ?? []).map((f) => f.name), input: target };
     }
 
     if (pageMentionsFilename(doc, fileName)) {
-      rememberUploadedFile(bashId, fileName);
+      rememberUploadedFile(acornId, fileName);
       return { names: [fileName], input: target };
     }
 
-    const successor = findSuccessorInput(original, target, bashId, doc);
+    const successor = findSuccessorInput(original, target, acornId, doc);
 
     if (successor && (successor.files?.length ?? 0) > 0) {
-      if (bashId) successor.setAttribute("data-bash-id", bashId);
-      rememberUploadedFile(bashId, fileName);
+      if (acornId) successor.setAttribute("data-acorn-id", acornId);
+      rememberUploadedFile(acornId, fileName);
       return {
         names: Array.from(successor.files ?? []).map((f) => f.name),
         input: successor,
@@ -143,7 +143,7 @@ async function persistUploadAcrossRemount(
 
     if (successor && successor !== target) {
       // Replacement of THIS control only — re-apply once onto unstamped/same-id successor.
-      if (bashId) successor.setAttribute("data-bash-id", bashId);
+      if (acornId) successor.setAttribute("data-acorn-id", acornId);
       target = successor;
       applyFiles(target, fileObj);
       continue;
@@ -153,11 +153,11 @@ async function persistUploadAcrossRemount(
     break;
   }
 
-  const evidenced = await waitForUploadEvidence(doc, fileName, bashId, 4000);
+  const evidenced = await waitForUploadEvidence(doc, fileName, acornId, 4000);
 
   if (evidenced) {
-    rememberUploadedFile(bashId, fileName);
-    const resolved = bashId ? resolveElementByNodeId(Number(bashId)) : null;
+    rememberUploadedFile(acornId, fileName);
+    const resolved = acornId ? resolveElementByNodeId(Number(acornId)) : null;
     const input =
       resolved instanceof HTMLInputElement
         ? resolved
@@ -175,14 +175,14 @@ export async function uploadFileToElement(el: Element, file: RuntimeAttachedFile
     throw new Error(`Upload target is not a file input (got <${el.tagName.toLowerCase()}>)`);
   }
 
-  const bashId = el.getAttribute("data-bash-id");
+  const acornId = el.getAttribute("data-acorn-id");
   const fileObj = buildFile(file);
-  const { names } = await persistUploadAcrossRemount(el, fileObj, bashId);
+  const { names } = await persistUploadAcrossRemount(el, fileObj, acornId);
 
   if (!names.length) {
     throw new Error("File was not attached to input");
   }
-  rememberUploadedFile(bashId, names[0]);
+  rememberUploadedFile(acornId, names[0]);
   await waitForUploadComplete(el.ownerDocument || document);
   return names.join(", ");
 }

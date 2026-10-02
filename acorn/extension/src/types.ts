@@ -20,44 +20,44 @@ export interface DomTreePayload {
   formScore?: number;
 }
 
-/** Long-lived side-panel port. Keeps the MV3 worker (and `/bash/socket.io` socket) alive. */
-export const BASH_SIDEBAR_PORT = "bash-sidebar";
+/** Long-lived side-panel port. Keeps the MV3 worker (and `/acorn/socket.io` socket) alive. */
+export const ACORN_SIDEBAR_PORT = "acorn-sidebar";
 
 export const MSG = {
-  FETCH_DOM: "bash:fetch-dom",
-  FETCH_AND_EMIT_DOM: "bash:fetch-and-emit-dom",
-  HIGHLIGHT: "bash:highlight",
-  CLEAR_HIGHLIGHT: "bash:clear-highlight",
-  GET_CONTENT: "bash:get-content",
-  EXECUTE_ACTIONS: "bash:execute-actions",
-  PLAN_STEP: "bash:plan-step",
-  MATCH_OPTION: "bash:match-option",
-  FILL_LEFTOVER_COMBOS: "bash:fill-leftover-combos",
-  START_PIPELINE: "bash:start-pipeline",
-  PIPELINE_PROGRESS: "bash:pipeline-progress",
-  SOCKET_STATUS: "bash:socket-status",
-  OPERATOR_NOTICE: "bash:operator-notice",
-  AUTH_STATUS: "bash:auth-status",
-  AUTH_SIGNIN: "bash:auth-signin",
-  AUTH_SIGNOUT: "bash:auth-signout",
-  LIST_WORKER_JOBS: "bash:list-worker-jobs",
-  OPEN_WORKER_JOB: "bash:open-worker-job",
-  MARK_JOB_APPLIED: "bash:mark-job-applied",
-  GET_TAB_JOB: "bash:get-tab-job",
-  REMEMBER_CUSTOM_TAB: "bash:remember-custom-tab",
-  FORGET_CUSTOM_TAB: "bash:forget-custom-tab",
-  FOCUS_CUSTOM_TAB: "bash:focus-custom-tab",
-  START_CUSTOM_GENERATE: "bash:start-custom-generate",
-  START_CUSTOM_RECOMMEND: "bash:start-custom-recommend",
-  START_JOB_GENERATE: "bash:start-job-generate",
-  START_JOB_RECOMMEND: "bash:start-job-recommend",
-  SELECTION_QA: "bash:selection-qa",
+  FETCH_DOM: "acorn:fetch-dom",
+  FETCH_AND_EMIT_DOM: "acorn:fetch-and-emit-dom",
+  HIGHLIGHT: "acorn:highlight",
+  CLEAR_HIGHLIGHT: "acorn:clear-highlight",
+  GET_CONTENT: "acorn:get-content",
+  EXECUTE_ACTIONS: "acorn:execute-actions",
+  PLAN_STEP: "acorn:plan-step",
+  MATCH_OPTION: "acorn:match-option",
+  FILL_LEFTOVER_COMBOS: "acorn:fill-leftover-combos",
+  START_PIPELINE: "acorn:start-pipeline",
+  PIPELINE_PROGRESS: "acorn:pipeline-progress",
+  SOCKET_STATUS: "acorn:socket-status",
+  OPERATOR_NOTICE: "acorn:operator-notice",
+  AUTH_STATUS: "acorn:auth-status",
+  AUTH_SIGNIN: "acorn:auth-signin",
+  AUTH_SIGNOUT: "acorn:auth-signout",
+  LIST_WORKER_JOBS: "acorn:list-worker-jobs",
+  OPEN_WORKER_JOB: "acorn:open-worker-job",
+  MARK_JOB_APPLIED: "acorn:mark-job-applied",
+  GET_TAB_JOB: "acorn:get-tab-job",
+  REMEMBER_CUSTOM_TAB: "acorn:remember-custom-tab",
+  FORGET_CUSTOM_TAB: "acorn:forget-custom-tab",
+  FOCUS_CUSTOM_TAB: "acorn:focus-custom-tab",
+  START_CUSTOM_GENERATE: "acorn:start-custom-generate",
+  START_CUSTOM_RECOMMEND: "acorn:start-custom-recommend",
+  START_JOB_GENERATE: "acorn:start-job-generate",
+  START_JOB_RECOMMEND: "acorn:start-job-recommend",
+  SELECTION_QA: "acorn:selection-qa",
 } as const;
 
-export type BashNoticeKind = "error" | "success" | "info";
+export type AcornNoticeKind = "error" | "success" | "info";
 
-export type BashNoticePayload = {
-  kind: BashNoticeKind;
+export type AcornNoticePayload = {
+  kind: AcornNoticeKind;
   title: string;
   detail?: string;
 };
@@ -78,7 +78,7 @@ export interface MatchOptionResponse {
   reason?: string;
   error?: string;
   model?: string;
-  usage?: import("@bash/shared/ai-usage").AiUsageSummary;
+  usage?: import("@acorn/shared/ai-usage").AiUsageSummary;
 }
 
 export type PlanStepActionType =

@@ -1,26 +1,26 @@
-import type { BashFaceMode } from "@bash/face";
-import { BASH_FACE_BADGE_OVERHANG, BASH_FACE_BADGE_PX } from "./constants";
-import { BashFaceSlot } from "./BashFaceSlot";
+import type { AcornFaceMode } from "@acorn/face";
+import { ACORN_FACE_BADGE_OVERHANG, ACORN_FACE_BADGE_PX } from "./constants";
+import { AcornFaceSlot } from "./AcornFaceSlot";
 
-type BashFaceBadgeProps = {
-  mode: BashFaceMode;
+type AcornFaceBadgeProps = {
+  mode: AcornFaceMode;
   selected?: boolean;
   label: string;
 };
 
-export function BashFaceBadge({ mode, selected = false, label }: BashFaceBadgeProps) {
-  const shift = `${BASH_FACE_BADGE_OVERHANG * 100}%`;
+export function AcornFaceBadge({ mode, selected = false, label }: AcornFaceBadgeProps) {
+  const shift = `${ACORN_FACE_BADGE_OVERHANG * 100}%`;
 
   return (
     <span
-      className="bash-face-badge"
+      className="acorn-face-badge"
       style={{
-        width: BASH_FACE_BADGE_PX,
-        height: BASH_FACE_BADGE_PX,
+        width: ACORN_FACE_BADGE_PX,
+        height: ACORN_FACE_BADGE_PX,
         transform: `translate(${shift}, ${shift})`,
       }}
     >
-      <BashFaceSlot mode={mode} selected={selected} size={BASH_FACE_BADGE_PX} label={label} />
+      <AcornFaceSlot mode={mode} selected={selected} size={ACORN_FACE_BADGE_PX} label={label} />
     </span>
   );
 }

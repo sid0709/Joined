@@ -2,16 +2,16 @@ import { MSG, type PlanStepPayload } from "../types";
 import { serializeDom } from "./dom-serializer";
 import { resolveElementByNodeId } from "./element-resolver";
 import { executeActions, getElementContent } from "./action-runner";
-import { MIN_CHILD_FORM_CONTROLS, isBashDomFrame, waitForFormSurface } from "./form-frame";
+import { MIN_CHILD_FORM_CONTROLS, isAcornDomFrame, waitForFormSurface } from "./form-frame";
 import { clearHighlight, highlightElement } from "./highlighter";
 import { fillLeftoverComboboxes } from "./agents/leftover-combobox";
 import { runPlanStep } from "./plan-step-runner";
 import { initSelectionQa } from "./selection-qa";
 
-const CONTENT_BOOT = "__bashContentBoot";
+const CONTENT_BOOT = "__acornContentBoot";
 
-type BashContentWindow = Window & { [CONTENT_BOOT]?: boolean };
-const contentWindow = window as BashContentWindow;
+type AcornContentWindow = Window & { [CONTENT_BOOT]?: boolean };
+const contentWindow = window as AcornContentWindow;
 
 if (!contentWindow[CONTENT_BOOT]) {
   contentWindow[CONTENT_BOOT] = true;
@@ -23,8 +23,8 @@ if (!contentWindow[CONTENT_BOOT]) {
         const isTop = window === window.top;
         const minScore = isTop ? 1 : MIN_CHILD_FORM_CONTROLS;
         const score = await waitForFormSurface(minScore);
-        const bashFrame = isTop || score >= MIN_CHILD_FORM_CONTROLS;
-        if (!bashFrame) {
+        const acornFrame = isTop || score >= MIN_CHILD_FORM_CONTROLS;
+        if (!acornFrame) {
           sendResponse({
             skipped: true,
             formScore: score,
@@ -54,7 +54,7 @@ if (!contentWindow[CONTENT_BOOT]) {
     }
 
     if (message.type === MSG.HIGHLIGHT) {
-      if (!isBashDomFrame()) return false;
+      if (!isAcornDomFrame()) return false;
 
       try {
         const el = resolveElementByNodeId(message.nodeId as number);
@@ -71,7 +71,7 @@ if (!contentWindow[CONTENT_BOOT]) {
     }
 
     if (message.type === MSG.GET_CONTENT) {
-      if (!isBashDomFrame()) return false;
+      if (!isAcornDomFrame()) return false;
 
       try {
         const content = getElementContent(
@@ -86,7 +86,7 @@ if (!contentWindow[CONTENT_BOOT]) {
     }
 
     if (message.type === MSG.EXECUTE_ACTIONS) {
-      if (!isBashDomFrame()) return false;
+      if (!isAcornDomFrame()) return false;
 
       executeActions(message.nodeId as number, message.steps)
         .then(() => sendResponse({ ok: true }))
@@ -96,7 +96,7 @@ if (!contentWindow[CONTENT_BOOT]) {
 
     if (message.type === MSG.PLAN_STEP) {
       // Non-form frames must not claim the async channel (that caused silent hangs).
-      if (!isBashDomFrame()) {
+      if (!isAcornDomFrame()) {
         sendResponse({ ok: false, skipped: true, error: "Not a form frame" });
         return false;
       }
@@ -135,7 +135,7 @@ if (!contentWindow[CONTENT_BOOT]) {
     }
 
     if (message.type === MSG.FILL_LEFTOVER_COMBOS) {
-      if (!isBashDomFrame()) {
+      if (!isAcornDomFrame()) {
         sendResponse({ ok: false, skipped: true, error: "Not a form frame" });
         return false;
       }
@@ -151,7 +151,7 @@ if (!contentWindow[CONTENT_BOOT]) {
     }
 
     if (message.type === MSG.CLEAR_HIGHLIGHT) {
-      if (!isBashDomFrame()) return false;
+      if (!isAcornDomFrame()) return false;
 
       clearHighlight();
       sendResponse({ ok: true });

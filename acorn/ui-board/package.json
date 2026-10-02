@@ -1,5 +1,5 @@
 {
-  "name": "bash-ui-board",
+  "name": "acorn-ui-board",
   "version": "1.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bash/shared": "workspace:*",
+    "@acorn/shared": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
     "socket.io-client": "catalog:"

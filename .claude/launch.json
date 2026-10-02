@@ -34,7 +34,7 @@
     {
       "name": "sprite-demo",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["bash/demo/serve.ts"],
+      "runtimeArgs": ["acorn/demo/serve.ts"],
       "port": 5180
     }
   ]

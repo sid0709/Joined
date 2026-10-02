@@ -7,13 +7,13 @@ import {
   DEFAULT_ATHENS_API_URL,
   getAccessToken,
   getAthensApiUrl,
-  getBashSession,
-  bashSignIn,
-  bashSignOut,
-  BASH_SOCKET_PATH,
+  getAcornSession,
+  acornSignIn,
+  acornSignOut,
+  ACORN_SOCKET_PATH,
   setAthensApiUrl,
-  type BashStoredSession,
-} from "./auth/bash-auth";
+  type AcornStoredSession,
+} from "./auth/acorn-auth";
 import { formatMetaTreePreview, formatPureTreePreview, splitDomTree } from "./tree-export";
 import { ActionBuilderModal } from "./components/ActionBuilderModal";
 import { ContentModal } from "./components/ContentModal";
@@ -27,7 +27,7 @@ import "./App.css";
 
 export default function App() {
   const [serverUrl, setServerUrl] = useState(() => getAthensApiUrl());
-  const [session, setSession] = useState<BashStoredSession | null>(() => getBashSession());
+  const [session, setSession] = useState<AcornStoredSession | null>(() => getAcornSession());
   const [authName, setAuthName] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
@@ -62,9 +62,9 @@ export default function App() {
     }
 
     const socket = io(serverUrl, {
-      path: BASH_SOCKET_PATH,
+      path: ACORN_SOCKET_PATH,
       auth: { token },
-      query: { type: "ui-board", name: "Bash UI Board" },
+      query: { type: "ui-board", name: "Acorn UI Board" },
       withCredentials: false,
       transports: ["websocket", "polling"],
     });
@@ -94,7 +94,7 @@ export default function App() {
   const handleSignIn = async () => {
     setAuthBusy(true);
     try {
-      const next = await bashSignIn(authName.trim(), authPassword, serverUrl);
+      const next = await acornSignIn(authName.trim(), authPassword, serverUrl);
       setSession(next);
       setAuthPassword("");
       showToast(`Signed in as ${next.displayName}`);
@@ -108,7 +108,7 @@ export default function App() {
   const handleSignOut = async () => {
     setAuthBusy(true);
     try {
-      await bashSignOut();
+      await acornSignOut();
       setSession(null);
       showToast("Signed out");
     } catch (err) {
@@ -362,9 +362,9 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <img className="logo" src="/logo.png" alt="Bash" width={44} height={44} />
+          <img className="logo" src="/logo.png" alt="Acorn" width={44} height={44} />
           <div>
-            <h1>Bash DOM Tree Board</h1>
+            <h1>Acorn DOM Tree Board</h1>
             <p className="subtitle">Live DOM snapshots from the Chrome extension</p>
           </div>
         </div>
@@ -487,7 +487,7 @@ export default function App() {
             <div className="empty-icon">⬡</div>
             <h2>Waiting for DOM tree</h2>
             <p>
-              Open the Bash Chrome extension on any page and click
+              Open the Acorn Chrome extension on any page and click
               <strong> Fetch DOM</strong> to see the tree here.
             </p>
           </div>

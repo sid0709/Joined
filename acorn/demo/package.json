@@ -1,0 +1,12 @@
+{
+  "name": "@joined/sprite-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun serve.ts",
+    "build": "bun build-sprites.ts"
+  },
+  "devDependencies": {
+    "sharp": "catalog:"
+  }
+}

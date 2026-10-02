@@ -1,4 +1,4 @@
-import type { BashFaceMode } from "./types";
+import type { AcornFaceMode } from "./types";
 
 /** Same stops as the original Lumen fur ramp. Offsets never change; only colors do. */
 export const FUR_STOP_OFFSETS = [
@@ -57,7 +57,7 @@ export interface RgbPalette {
  * wink — candy magenta.
  * sad — drained graphite.
  */
-export const MODE_PALETTES: Record<BashFaceMode, FacePalette> = {
+export const MODE_PALETTES: Record<AcornFaceMode, FacePalette> = {
   waiting: {
     fur: [
       "#78d6fc",

@@ -1,11 +1,11 @@
-# `@bash/face`
+# `@acorn/face`
 
-Internal Lumen rabbit face for Bash. Mounted in the side panel identity row, worker-count chip, Help guide, every Fill/Custom list-card badge, and the selection-QA chip. Toolbar icons stay still PNGs.
+Internal Lumen rabbit face for Acorn. Mounted in the side panel identity row, worker-count chip, Help guide, every Fill/Custom list-card badge, and the selection-QA chip. Toolbar icons stay still PNGs.
 
 ## API
 
 ```ts
-import { mount, BASH_FACE_MODES, type BashFaceMode } from "@bash/face";
+import { mount, ACORN_FACE_MODES, type AcornFaceMode } from "@acorn/face";
 
 const face = mount(document.querySelector("#face")!);
 face.setMode("waiting");
@@ -19,9 +19,9 @@ One mode at a time. The head is a single path — ears do not move. No plate or 
 ## Playground
 
 ```bash
-bun run dev:bash-face   # from the repo root
+bun run dev:acorn-face   # from the repo root
 ```
 
 Opens the chip board at http://localhost:5175.
 
-Product wiring: [`docs/bash-face-moments.md`](../../docs/bash-face-moments.md).
+Product wiring: [`docs/acorn-face-moments.md`](../../docs/acorn-face-moments.md).

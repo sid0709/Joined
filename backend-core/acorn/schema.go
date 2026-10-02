@@ -1,4 +1,4 @@
-package bash
+package acorn
 
 import (
 	"encoding/json"
@@ -35,7 +35,7 @@ func planActionSchema() map[string]any {
 func mustSchema(value map[string]any) json.RawMessage {
 	data, err := json.Marshal(value)
 	if err != nil {
-		panic("bash: schema: " + err.Error())
+		panic("acorn: schema: " + err.Error())
 	}
 	return data
 }

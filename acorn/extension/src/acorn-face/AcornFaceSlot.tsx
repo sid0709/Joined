@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { BashFaceMode } from "@bash/face";
-import { BASH_FACE_BADGE_PX } from "./constants";
+import type { AcornFaceMode } from "@acorn/face";
+import { ACORN_FACE_BADGE_PX } from "./constants";
 import { isLiveRowMode } from "./director";
-import { BashFaceView } from "./BashFaceView";
+import { AcornFaceView } from "./AcornFaceView";
 
-type BashFaceSlotProps = {
-  mode: BashFaceMode;
+type AcornFaceSlotProps = {
+  mode: AcornFaceMode;
   selected?: boolean;
   size?: number;
   label?: string;
@@ -13,13 +13,13 @@ type BashFaceSlotProps = {
   live?: boolean;
 };
 
-export function BashFaceSlot({
+export function AcornFaceSlot({
   mode,
   selected = false,
-  size = BASH_FACE_BADGE_PX,
+  size = ACORN_FACE_BADGE_PX,
   label,
   live: liveProp,
-}: BashFaceSlotProps) {
+}: AcornFaceSlotProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [onScreen, setOnScreen] = useState(true);
 
@@ -38,11 +38,11 @@ export function BashFaceSlot({
   return (
     <span
       ref={ref}
-      className="bash-face-slot"
+      className="acorn-face-slot"
       style={{ width: size, height: size }}
       aria-hidden={false}
     >
-      <BashFaceView mode={mode} size={size} live={live} label={label} />
+      <AcornFaceView mode={mode} size={size} live={live} label={label} />
     </span>
   );
 }

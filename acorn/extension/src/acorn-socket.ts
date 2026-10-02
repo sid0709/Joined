@@ -3,10 +3,10 @@ import {
   athensSocketOrigin,
   getAccessToken,
   getAthensApiUrl,
-  BASH_SOCKET_PATH,
-} from "./auth/bash-auth";
+  ACORN_SOCKET_PATH,
+} from "./auth/acorn-auth";
 
-export type BashSocketHandlers = {
+export type AcornSocketHandlers = {
   onConnected: () => void;
   onDisconnected: () => void;
   onConnectError: (err: Error) => void;
@@ -19,15 +19,15 @@ let identity = "";
 let inFlight = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function getBashSocket(): Socket | null {
+export function getAcornSocket(): Socket | null {
   return socket;
 }
 
-export function isBashSocketConnected(): boolean {
+export function isAcornSocketConnected(): boolean {
   return Boolean(socket?.connected);
 }
 
-export async function connectBashSocket(handlers: BashSocketHandlers): Promise<void> {
+export async function connectAcornSocket(handlers: AcornSocketHandlers): Promise<void> {
   const token = await getAccessToken();
   const origin = athensSocketOrigin(await getAthensApiUrl());
   const nextIdentity = token ? `${origin}|${token}` : "";
@@ -50,9 +50,9 @@ export async function connectBashSocket(handlers: BashSocketHandlers): Promise<v
   teardown();
 
   const next = io(origin, {
-    path: BASH_SOCKET_PATH,
+    path: ACORN_SOCKET_PATH,
     auth: { token },
-    query: { type: "extension", name: "Bash Extension" },
+    query: { type: "extension", name: "Acorn Extension" },
     transports: ["websocket", "polling"],
     upgrade: true,
     tryAllTransports: true,
@@ -81,17 +81,17 @@ export async function connectBashSocket(handlers: BashSocketHandlers): Promise<v
   next.on("connect_error", (err) => {
     if (gen !== generation || socket !== next) return;
     inFlight = false;
-    // Websocket probes can 400 until host nginx upgrades /bash/socket.io; polling may still be live.
+    // Websocket probes can 400 until host nginx upgrades /acorn/socket.io; polling may still be live.
     if (next.connected) return;
     handlers.onConnectError(err instanceof Error ? err : new Error(String(err)));
   });
 }
 
-export function scheduleConnectBashSocket(handlers: BashSocketHandlers, delayMs = 200): void {
+export function scheduleConnectAcornSocket(handlers: AcornSocketHandlers, delayMs = 200): void {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
-    void connectBashSocket(handlers);
+    void connectAcornSocket(handlers);
   }, delayMs);
 }
 

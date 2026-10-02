@@ -1,4 +1,4 @@
-// Static server for the sprite player: `bun bash/demo/serve.ts` → http://localhost:5180
+// Static server for the sprite player: `bun acorn/demo/serve.ts` → http://localhost:5180
 import { join, normalize } from "node:path";
 
 const PORT = Number(process.env.PORT ?? 5180);

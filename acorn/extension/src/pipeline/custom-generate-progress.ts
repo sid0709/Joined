@@ -4,7 +4,7 @@ import {
   isStepDone,
   type GenerateCheckpoint,
   type GenerateStepId,
-} from "@bash/shared/generate-checkpoint";
+} from "@acorn/shared/generate-checkpoint";
 
 export type GenerateSegment = "done" | "active" | "pending" | "failed";
 

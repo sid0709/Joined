@@ -26,8 +26,8 @@ import {
   type Pose,
 } from "./performances";
 import { formatPalette, MODE_PALETTES, paletteToRgb, tickPalette } from "./palettes";
-import { createFaceSvg, type BashFaceSvg } from "./svg";
-import type { BashFaceHandle, BashFaceMode, BashFaceMountOptions } from "./types";
+import { createFaceSvg, type AcornFaceSvg } from "./svg";
+import type { AcornFaceHandle, AcornFaceMode, AcornFaceMountOptions } from "./types";
 
 interface Channel {
   cur: number;
@@ -121,8 +121,8 @@ function readActor(a: Actor, add: Pose): Pose {
   };
 }
 
-export function mount(el: HTMLElement, options: BashFaceMountOptions = {}): BashFaceHandle {
-  const svg: BashFaceSvg = createFaceSvg();
+export function mount(el: HTMLElement, options: AcornFaceMountOptions = {}): AcornFaceHandle {
+  const svg: AcornFaceSvg = createFaceSvg();
   const size = options.size ?? 280;
   const reducedMotion = Boolean(options.reducedMotion);
   svg.root.style.width = typeof size === "number" ? `${size}px` : size;
@@ -133,7 +133,7 @@ export function mount(el: HTMLElement, options: BashFaceMountOptions = {}): Bash
   const eyeR = actor(K_EYE, RIGHT_LAG);
   const head = actor(K_HEAD, 1);
   const color = paletteToRgb(MODE_PALETTES.waiting);
-  let mode: BashFaceMode = "waiting";
+  let mode: AcornFaceMode = "waiting";
   let modeT = 0;
   let clock = 0;
   let saccadeIn = nextSaccadeDelay();
@@ -252,7 +252,7 @@ export function mount(el: HTMLElement, options: BashFaceMountOptions = {}): Bash
   raf = requestAnimationFrame(frame);
 
   return {
-    setMode(name: BashFaceMode) {
+    setMode(name: AcornFaceMode) {
       if (name === mode) return;
       mode = name;
       modeT = 0;

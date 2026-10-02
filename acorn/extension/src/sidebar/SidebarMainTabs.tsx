@@ -1,18 +1,18 @@
-export type BashMainTab = "fill" | "qa" | "custom";
+export type AcornMainTab = "fill" | "qa" | "custom";
 
 type SidebarMainTabsProps = {
-  value: BashMainTab;
-  onChange: (next: BashMainTab) => void;
+  value: AcornMainTab;
+  onChange: (next: AcornMainTab) => void;
 };
 
 export function SidebarMainTabs({ value, onChange }: SidebarMainTabsProps) {
   return (
-    <div className="sidebar-tabs" role="tablist" aria-label="Bash tools">
+    <div className="sidebar-tabs" role="tablist" aria-label="Acorn tools">
       <button
         type="button"
         role="tab"
-        id="bash-tab-fill"
-        aria-controls="bash-panel-fill"
+        id="acorn-tab-fill"
+        aria-controls="acorn-panel-fill"
         aria-selected={value === "fill"}
         className={value === "fill" ? "active" : undefined}
         onClick={() => onChange("fill")}
@@ -22,8 +22,8 @@ export function SidebarMainTabs({ value, onChange }: SidebarMainTabsProps) {
       <button
         type="button"
         role="tab"
-        id="bash-tab-qa"
-        aria-controls="bash-panel-qa"
+        id="acorn-tab-qa"
+        aria-controls="acorn-panel-qa"
         aria-selected={value === "qa"}
         className={value === "qa" ? "active" : undefined}
         onClick={() => onChange("qa")}
@@ -33,8 +33,8 @@ export function SidebarMainTabs({ value, onChange }: SidebarMainTabsProps) {
       <button
         type="button"
         role="tab"
-        id="bash-tab-custom"
-        aria-controls="bash-panel-custom"
+        id="acorn-tab-custom"
+        aria-controls="acorn-panel-custom"
         aria-selected={value === "custom"}
         className={value === "custom" ? "active" : undefined}
         onClick={() => onChange("custom")}
