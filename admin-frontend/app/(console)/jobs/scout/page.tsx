@@ -17,7 +17,6 @@ export default function ScoutJobsPage() {
         listPath={SCOUT_TEMP_JOBS_PATH}
         route={ROUTES.scoutJobs}
         analyzePath={`${SCOUT_TEMP_JOBS_PATH}/analyze`}
-        allowCopy={false}
         details={false}
         searchLabel="Search scout jobs"
         caption="Scout jobs"

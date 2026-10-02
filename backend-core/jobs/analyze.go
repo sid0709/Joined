@@ -40,24 +40,6 @@ type AnalyzeBatch struct {
 	Failed   []AnalyzeFailure `json:"failed"`
 }
 
-func (s *Store) AnalyzeSelected(ctx context.Context, reader ModelReader, tempJobIDs []string, now time.Time) (AnalyzeBatch, error) {
-	ids, err := normalizeSelection(tempJobIDs)
-	if err != nil {
-		return AnalyzeBatch{}, err
-	}
-	if reader == nil {
-		return AnalyzeBatch{}, openai.ErrMissingAPIKey
-	}
-	if !s.analyzeMu.TryLock() {
-		return AnalyzeBatch{}, ErrAnalyzeInProgress
-	}
-	defer s.analyzeMu.Unlock()
-
-	return analyzeAll(ctx, ids, analyzeConcurrency, reader.Model(), func(ctx context.Context, id string) (SearchRecord, error) {
-		return s.analyzeOne(ctx, reader, id, now)
-	})
-}
-
 // AnalyzeScoutSelected turns selected temp_scout_jobs into search records.
 func (s *Store) AnalyzeScoutSelected(ctx context.Context, reader ModelReader, ids []string, now time.Time) (AnalyzeBatch, error) {
 	ids, err := normalizeSelection(ids)
@@ -195,14 +177,6 @@ func normalizeSelection(ids []string) ([]string, error) {
 	return out, nil
 }
 
-func (s *Store) analyzeOne(ctx context.Context, reader ModelReader, tempJobID string, now time.Time) (SearchRecord, error) {
-	listing, err := s.listingForAnalysis(ctx, tempJobID)
-	if err != nil {
-		return SearchRecord{}, err
-	}
-	return s.writeAnalysis(ctx, reader, listing, now)
-}
-
 func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (SearchRecord, error) {
 	if originalDescription(listing.Description) == "" {
 		return SearchRecord{}, ErrMissingDescription
@@ -256,13 +230,6 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 		return SearchRecord{}, err
 	}
 	return record.view(now), nil
-}
-
-func (s *Store) listingForAnalysis(ctx context.Context, tempJobID string) (tempListing, error) {
-	if tempJobID == "" {
-		return s.nextTempListing(ctx)
-	}
-	return s.listingFrom(ctx, s.dest(), tempJobID)
 }
 
 func (s *Store) listingFrom(ctx context.Context, coll *mongo.Collection, idHex string) (tempListing, error) {

@@ -5,14 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"golang.org/x/sync/errgroup"
 )
 
-const companyCopyBatch = 400
+const (
+	companyCopyBatch = 500
+	// companyCopyWriters is how many company batches are written at once.
+	companyCopyWriters = 8
+	// linkBatch is how many public jobs are relinked to their companies per write.
+	linkBatch = 500
+)
 
 type CompanyCopyResult struct {
 	Copied int64  `json:"copied"`
@@ -77,11 +85,14 @@ type athensCompany struct {
 	JobIDs      []bson.ObjectID `bson:"jobIds"`
 }
 
-func (s *Store) CopyCompanies(ctx context.Context) (CompanyCopyResult, error) {
-	if !s.copyMu.TryLock() {
+// CopyCompanies upserts every source company by its source id, keeping each company's
+// public id and admin edits, then links public jobs to their companies.
+func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCopyResult, error) {
+	if !s.companyCopyMu.TryLock() {
 		return CompanyCopyResult{}, ErrCopyInProgress
 	}
-	defer s.copyMu.Unlock()
+	defer s.companyCopyMu.Unlock()
+	progress = orNoProgress(progress)
 
 	dest := s.companies()
 	if err := ensureCompanyIndexes(ctx, dest); err != nil {
@@ -91,94 +102,111 @@ func (s *Store) CopyCompanies(ctx context.Context) (CompanyCopyResult, error) {
 	if err != nil {
 		return CompanyCopyResult{}, err
 	}
-
-	cursor, err := s.sourceCompaniesColl().Find(ctx, bson.D{}, options.Find().SetBatchSize(companyCopyBatch))
+	source := s.sourceCompaniesColl()
+	if estimate, err := source.EstimatedDocumentCount(ctx); err == nil {
+		progress.Total(estimate)
+	}
+	cursor, err := source.Find(ctx, bson.D{}, options.Find().SetBatchSize(companyCopyBatch))
 	if err != nil {
 		return CompanyCopyResult{}, fmt.Errorf("read source companies: %w", err)
 	}
 	defer cursor.Close(ctx)
 
-	batch := make([]mongo.WriteModel, 0, companyCopyBatch)
-	var copied int64
-	flush := func() error {
-		if len(batch) == 0 {
+	group, groupCtx := errgroup.WithContext(ctx)
+	batches := make(chan []mongo.WriteModel, companyCopyWriters)
+	var copied atomic.Int64
+	for range companyCopyWriters {
+		group.Go(func() error {
+			for batch := range batches {
+				if _, err := dest.BulkWrite(groupCtx, batch, options.BulkWrite().SetOrdered(false)); err != nil {
+					return fmt.Errorf("write companies: %w", err)
+				}
+				progress.Done(int64(len(batch)))
+				copied.Add(int64(len(batch)))
+			}
 			return nil
-		}
-		if _, err := dest.BulkWrite(ctx, batch, options.BulkWrite().SetOrdered(false)); err != nil {
-			return fmt.Errorf("write companies: %w", err)
-		}
-		batch = batch[:0]
-		return nil
+		})
 	}
-
-	for cursor.Next(ctx) {
-		var source athensCompany
-		if err := cursor.Decode(&source); err != nil {
-			return CompanyCopyResult{}, fmt.Errorf("decode company: %w", err)
+	group.Go(func() error {
+		defer close(batches)
+		send := func(batch []mongo.WriteModel) error {
+			select {
+			case batches <- batch:
+				return nil
+			case <-groupCtx.Done():
+				return groupCtx.Err()
+			}
 		}
-		sourceID := source.ID.Hex()
-		if sourceID == "" {
-			continue
-		}
-		id := existing[sourceID]
-		if !isPublicID(id) {
-			id, err = newPublicID()
+		batch := make([]mongo.WriteModel, 0, companyCopyBatch)
+		for cursor.Next(groupCtx) {
+			var company athensCompany
+			if err := cursor.Decode(&company); err != nil {
+				return fmt.Errorf("decode company: %w", err)
+			}
+			model, err := upsertCompany(company, existing)
 			if err != nil {
-				return CompanyCopyResult{}, err
+				return err
 			}
-			existing[sourceID] = id
-		}
-		doc := storedCompany{
-			ID:          id,
-			SourceID:    sourceID,
-			CompanyName: source.CompanyName,
-			CompanyURL:  source.CompanyURL,
-			CompanyKey:  source.CompanyKey,
-			CompanyLogo: source.CompanyLogo,
-			JobCount:    source.JobCount,
-			JobIDs:      hexIDs(source.JobIDs),
-		}
-		// Source fields only. Admin edits live on `overrides` and must survive a resync.
-		batch = append(batch, mongo.NewUpdateOneModel().
-			SetFilter(bson.D{{Key: "sourceId", Value: sourceID}}).
-			SetUpdate(bson.D{{Key: "$set", Value: bson.D{
-				{Key: "id", Value: doc.ID},
-				{Key: "sourceId", Value: doc.SourceID},
-				{Key: "companyName", Value: doc.CompanyName},
-				{Key: "companyUrl", Value: doc.CompanyURL},
-				{Key: "companyKey", Value: doc.CompanyKey},
-				{Key: "companyLogo", Value: doc.CompanyLogo},
-				{Key: "jobCount", Value: doc.JobCount},
-				{Key: "jobIds", Value: doc.JobIDs},
-			}}}).
-			SetUpsert(true))
-		copied++
-		if len(batch) == companyCopyBatch {
-			if err := flush(); err != nil {
-				return CompanyCopyResult{}, err
-			}
-			if copied%2000 == 0 {
-				slog.Info("copying companies", "copied", copied)
+			batch = append(batch, model)
+			if len(batch) == companyCopyBatch {
+				if err := send(batch); err != nil {
+					return err
+				}
+				batch = make([]mongo.WriteModel, 0, companyCopyBatch)
 			}
 		}
-	}
-	if err := cursor.Err(); err != nil {
+		if err := cursor.Err(); err != nil {
+			return fmt.Errorf("read source companies: %w", err)
+		}
+		if len(batch) > 0 {
+			return send(batch)
+		}
+		return nil
+	})
+	if err := group.Wait(); err != nil {
 		return CompanyCopyResult{}, err
 	}
-	if err := flush(); err != nil {
-		return CompanyCopyResult{}, err
-	}
+	slog.Info("copied companies", "copied", copied.Load())
 
-	linked, err := s.linkJobsToCompanies(ctx)
+	linked, err := s.linkJobsToCompanies(ctx, existing)
 	if err != nil {
 		return CompanyCopyResult{}, err
 	}
 	return CompanyCopyResult{
-		Copied: copied,
+		Copied: copied.Load(),
 		Linked: linked,
 		Source: s.sourceDB + "." + s.sourceCompanies,
 		Dest:   s.destDB + "." + s.destCompanies,
 	}, nil
+}
+
+// upsertCompany writes a source company's own fields. Admin edits live on `overrides`
+// and must survive a resync. existing maps source ids to public ids and gains new ones;
+// only the reading goroutine touches it.
+func upsertCompany(source athensCompany, existing map[string]string) (mongo.WriteModel, error) {
+	sourceID := source.ID.Hex()
+	id := existing[sourceID]
+	if !isPublicID(id) {
+		var err error
+		id, err = newPublicID()
+		if err != nil {
+			return nil, err
+		}
+		existing[sourceID] = id
+	}
+	return mongo.NewUpdateOneModel().
+		SetFilter(bson.D{{Key: "sourceId", Value: sourceID}}).
+		SetUpdate(bson.D{{Key: "$set", Value: bson.D{
+			{Key: "id", Value: id},
+			{Key: "sourceId", Value: sourceID},
+			{Key: "companyName", Value: source.CompanyName},
+			{Key: "companyUrl", Value: source.CompanyURL},
+			{Key: "companyKey", Value: source.CompanyKey},
+			{Key: "companyLogo", Value: source.CompanyLogo},
+			{Key: "jobCount", Value: source.JobCount},
+			{Key: "jobIds", Value: hexIDs(source.JobIDs)},
+		}}}).
+		SetUpsert(true), nil
 }
 
 func (s *Store) CompanyPage(ctx context.Context, id string, now time.Time) (CompanyPage, error) {
@@ -268,46 +296,125 @@ func (s *Store) companyIDsBySource(ctx context.Context) (map[string]string, erro
 	return ids, cursor.Err()
 }
 
-func (s *Store) linkJobsToCompanies(ctx context.Context) (int64, error) {
-	cursor, err := s.structured().Find(ctx, bson.D{})
+// linkJobsToCompanies gives every public job a public id and its company's public id,
+// writing in batches. companyIDs maps source company ids to public ids.
+func (s *Store) linkJobsToCompanies(ctx context.Context, companyIDs map[string]string) (int64, error) {
+	cursor, err := s.structured().Find(ctx, bson.D{}, options.Find().SetProjection(bson.D{
+		{Key: "_id", Value: 1},
+		{Key: "tempJobId", Value: 1},
+		{Key: "job.id", Value: 1},
+		{Key: "job.companyId", Value: 1},
+	}))
 	if err != nil {
 		return 0, err
 	}
 	defer cursor.Close(ctx)
 
 	var linked int64
+	pending := make([]storedSearchJob, 0, linkBatch)
+	flush := func() error {
+		if len(pending) == 0 {
+			return nil
+		}
+		models, err := s.linkModels(ctx, pending, companyIDs)
+		if err != nil {
+			return err
+		}
+		if _, err := s.structured().BulkWrite(ctx, models, options.BulkWrite().SetOrdered(false)); err != nil {
+			return fmt.Errorf("link jobs: %w", err)
+		}
+		linked += int64(len(models))
+		pending = pending[:0]
+		return nil
+	}
 	for cursor.Next(ctx) {
 		var doc storedSearchJob
 		if err := cursor.Decode(&doc); err != nil {
 			return linked, err
 		}
+		pending = append(pending, doc)
+		if len(pending) == linkBatch {
+			if err := flush(); err != nil {
+				return linked, err
+			}
+		}
+	}
+	if err := cursor.Err(); err != nil {
+		return linked, err
+	}
+	return linked, flush()
+}
+
+// linkModels builds one update per job. Jobs without a company are matched through
+// their temp job's source company, read for the whole batch at once.
+func (s *Store) linkModels(ctx context.Context, docs []storedSearchJob, companyIDs map[string]string) ([]mongo.WriteModel, error) {
+	sources, err := s.tempCompanySources(ctx, docs)
+	if err != nil {
+		return nil, err
+	}
+	models := make([]mongo.WriteModel, 0, len(docs))
+	for _, doc := range docs {
 		publicID := doc.Job.ID
 		if !isPublicID(publicID) {
 			publicID, err = newPublicID()
 			if err != nil {
-				return linked, err
+				return nil, err
 			}
 		}
 		companyID := doc.Job.CompanyID
 		if companyID == "" {
-			companyID, err = s.companyIDForTempJob(ctx, doc.TempJobID)
-			if err != nil {
-				return linked, err
-			}
+			companyID = companyIDs[sources[doc.TempJobID]]
 		}
-		_, err = s.structured().UpdateOne(ctx, bson.D{{Key: "_id", Value: doc.ID}}, bson.D{
-			{Key: "$set", Value: bson.D{
-				{Key: "job.id", Value: publicID},
-				{Key: "job.companyId", Value: companyID},
-			}},
-			{Key: "$unset", Value: bson.D{{Key: "job.companySlug", Value: ""}}},
-		})
-		if err != nil {
-			return linked, fmt.Errorf("link job %s: %w", doc.TempJobID, err)
-		}
-		linked++
+		models = append(models, mongo.NewUpdateOneModel().
+			SetFilter(bson.D{{Key: "_id", Value: doc.ID}}).
+			SetUpdate(bson.D{
+				{Key: "$set", Value: bson.D{
+					{Key: "job.id", Value: publicID},
+					{Key: "job.companyId", Value: companyID},
+				}},
+				{Key: "$unset", Value: bson.D{{Key: "job.companySlug", Value: ""}}},
+			}))
 	}
-	return linked, cursor.Err()
+	return models, nil
+}
+
+// tempCompanySources maps the temp job ids of jobs without a company to their source
+// company ids.
+func (s *Store) tempCompanySources(ctx context.Context, docs []storedSearchJob) (map[string]string, error) {
+	ids := make([]bson.ObjectID, 0, len(docs))
+	for _, doc := range docs {
+		if doc.Job.CompanyID != "" {
+			continue
+		}
+		if id, err := bson.ObjectIDFromHex(doc.TempJobID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	sources := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return sources, nil
+	}
+	cursor, err := s.dest().Find(ctx,
+		bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}},
+		options.Find().SetProjection(bson.D{{Key: "companyId", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var row struct {
+			ID        bson.ObjectID `bson:"_id"`
+			CompanyID bson.ObjectID `bson:"companyId"`
+		}
+		if err := cursor.Decode(&row); err != nil {
+			return nil, err
+		}
+		if !row.CompanyID.IsZero() {
+			sources[row.ID.Hex()] = row.CompanyID.Hex()
+		}
+	}
+	return sources, cursor.Err()
 }
 
 func (s *Store) searchIdentity(ctx context.Context, listing tempListing) (string, string, error) {
@@ -364,21 +471,6 @@ func (s *Store) GetCatalogJob(ctx context.Context, id string, now time.Time) (ca
 		return catalogJob{}, err
 	}
 	return jobs[0], nil
-}
-
-func (s *Store) companyIDForTempJob(ctx context.Context, tempJobID string) (string, error) {
-	objectID, err := bson.ObjectIDFromHex(tempJobID)
-	if err != nil {
-		return "", nil
-	}
-	listing, err := s.tempListing(ctx, objectID)
-	if errors.Is(err, ErrNotFound) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return s.publicCompanyID(ctx, listing.CompanyID)
 }
 
 func (s *Store) publicCompanyID(ctx context.Context, source bson.ObjectID) (string, error) {

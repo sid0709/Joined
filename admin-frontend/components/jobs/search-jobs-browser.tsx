@@ -117,7 +117,7 @@ export function SearchJobsBrowser() {
       <PageHeader
         title="Jobs"
         description="The live job pool. Open a job to fix anything analysis or a scout got wrong; saves show on Joined right away."
-        action={<Button label="Analyze temp jobs" variant="secondary" href={ROUTES.tempJobs} />}
+        action={<Button label="Analyze temp jobs" variant="secondary" href={ROUTES.jobMigration} />}
       />
       <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
         <HStack width={360}>

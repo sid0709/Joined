@@ -42,7 +42,7 @@ are hidden in logs, variables are easier to read and edit.
 | `GOOGLE_CLIENT_ID`                                                                 | the OAuth client ID                                   | for Google features     |
 | `GOOGLE_REDIRECT_URL`                                                              | `https://joinedhq.com/v1/me/calendar/google/callback` | for the calendar        |
 | `GOOGLE_SIGNIN_REDIRECT_URL`                                                       | `https://joinedhq.com/api/auth/google/callback`       | for Sign in with Google |
-| `DEST_DB`                                                                          | `OpenedDB`                                            | optional (default)      |
+| `DEST_DB`                                                                          | `JoinedDB`                                            | optional (default)      |
 | `COMPOSE_PROFILES`                                                                 | e.g. `scoutwell,admin`                                | optional (Joined only)  |
 | `SCOUTWELL_ORIGIN`, `SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL`, `SCOUT_PUBLIC_API_URL` | Scoutwell's public URLs                               | with `scoutwell`        |
 | `ADMIN_ORIGIN`                                                                     | the admin console's URL                               | with `admin`            |
@@ -57,11 +57,12 @@ are hidden in logs, variables are easier to read and edit.
 | `MONGO_URI`            | the API's MongoDB connection string                             | for the API to start |
 | `GOOGLE_CLIENT_SECRET` | the OAuth client secret                                         | for Google features  |
 | `OPENAI_API_KEY`       | reads job descriptions                                          | optional             |
+| `DEEPSEEK_API_KEY`     | admin migration: analyzes jobs and researches companies         | with `admin`         |
 | `ADMIN_API_TOKEN`      | the admin API's bearer token                                    | with `admin`         |
 | `GEOAPIFY_API_KEY`     | address autocomplete                                            | optional             |
 
 Inside a container, the VPS itself is `host.docker.internal`, so a MongoDB running on
-the VPS is `mongodb://<user>:<password>@host.docker.internal:27017/OpenedDB?authSource=OpenedDB`.
+the VPS is `mongodb://<user>:<password>@host.docker.internal:27017/JoinedDB?authSource=JoinedDB`.
 
 ## The VPS
 

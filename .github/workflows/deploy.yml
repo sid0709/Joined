@@ -122,6 +122,7 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
           GEOAPIFY_API_KEY: ${{ secrets.GEOAPIFY_API_KEY }}
         run: |
@@ -140,8 +141,8 @@ jobs:
             for name in IMAGE_REPO IMAGE_TAG COMPOSE_PROFILES FRONTEND_ORIGIN \
               GOOGLE_CLIENT_ID GOOGLE_REDIRECT_URL GOOGLE_SIGNIN_REDIRECT_URL DEST_DB \
               SCOUTWELL_ORIGIN SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL SCOUT_PUBLIC_API_URL \
-              ADMIN_ORIGIN MONGO_URI GOOGLE_CLIENT_SECRET OPENAI_API_KEY ADMIN_API_TOKEN \
-              GEOAPIFY_API_KEY; do
+              ADMIN_ORIGIN MONGO_URI GOOGLE_CLIENT_SECRET OPENAI_API_KEY DEEPSEEK_API_KEY \
+              ADMIN_API_TOKEN GEOAPIFY_API_KEY; do
               put "$name"
             done
           } > production.env

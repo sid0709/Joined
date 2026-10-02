@@ -9,6 +9,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/admin-backend/internal/httpapi"
 	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/deepseek"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
@@ -19,6 +20,10 @@ const (
 	defaultHTTPAddr = "127.0.0.1:8081"
 	backfillTimeout = 2 * time.Minute
 	dropTimeout     = 30 * time.Second
+	// DeepSeek does not rate-limit by request count, so job reads run wide; each
+	// company research runs several web searches, so it runs narrower.
+	defaultAnalyzeWorkers  = 64
+	defaultResearchWorkers = 24
 )
 
 var defaultOrigins = []string{"http://127.0.0.1:3010", "http://localhost:3010"}
@@ -36,6 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 	ai := config.LoadOpenAI()
+	migrationAI := deepseek.New(config.LoadDeepSeek())
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 
 	p, err := platform.Open(context.Background(), db, platform.Options{})
@@ -49,10 +55,18 @@ func main() {
 	if adminToken == "" {
 		slog.Warn("ADMIN_API_TOKEN is not set: staff endpoints accept unauthenticated requests")
 	}
-	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
+	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
+	if !migrationAI.Ready() {
+		slog.Warn("DEEPSEEK_API_KEY is not set: migration analysis and company research are off")
+	}
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
 		Origins:    server.Origins,
 		AdminToken: adminToken,
+		Migration: httpapi.MigrationOptions{
+			Model:           migrationAI,
+			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
+			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
+		},
 	})
 	if err := httpkit.Serve("admin api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)

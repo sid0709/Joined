@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
+
+	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
 )
 
 const (
@@ -61,7 +62,7 @@ func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema 
 		if err == nil && status >= 200 && status < 300 {
 			return decoded.answer()
 		}
-		if err == nil && status != http.StatusTooManyRequests && status < http.StatusInternalServerError {
+		if err == nil && !llmhttp.Retryable(status) {
 			return nil, nil, statusError(status, decoded.errorMessage())
 		}
 		if err != nil && ctx.Err() != nil {
@@ -75,7 +76,7 @@ func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema 
 		if attempt == searchAttempts-1 {
 			break
 		}
-		if err := wait(ctx, retryDelay(attempt, retryAfter)); err != nil {
+		if err := llmhttp.Wait(ctx, llmhttp.RetryDelay(attempt, retryAfter)); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -93,11 +94,7 @@ func (c *Client) respond(ctx context.Context, body []byte) (responsesReply, int,
 	request.Header.Set("Authorization", "Bearer "+c.apiKey)
 	request.Header.Set("Content-Type", "application/json")
 
-	client := c.searchHTTP
-	if client == nil {
-		client = c.http
-	}
-	response, err := client.Do(request)
+	response, err := c.searchHTTP.Do(request)
 	if err != nil {
 		return responsesReply{}, 0, "", err
 	}
@@ -130,7 +127,7 @@ func (r responsesReply) answer() ([]byte, []string, error) {
 			case "output_text":
 				text.WriteString(part.Text)
 				for _, note := range part.Annotations {
-					link := cleanSourceURL(note.URL)
+					link := llmhttp.CleanSourceURL(note.URL)
 					if note.Type != "url_citation" || link == "" {
 						continue
 					}
@@ -157,23 +154,6 @@ func (r responsesReply) errorMessage() string {
 		return r.Error.Message
 	}
 	return ""
-}
-
-// cleanSourceURL drops tracking parameters and fragments so the same page is listed once.
-func cleanSourceURL(raw string) string {
-	parsed, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		return ""
-	}
-	query := parsed.Query()
-	for key := range query {
-		if strings.HasPrefix(strings.ToLower(key), "utm_") {
-			query.Del(key)
-		}
-	}
-	parsed.RawQuery = query.Encode()
-	parsed.Fragment = ""
-	return parsed.String()
 }
 
 type responsesRequest struct {

@@ -53,7 +53,10 @@ func (s *Server) autofillCompany(w http.ResponseWriter, r *http.Request) {
 		website = company.URL
 	}
 
-	researcher, _ := s.reader.(jobs.WebResearcher)
+	var researcher jobs.WebResearcher
+	if s.ai != nil {
+		researcher = s.ai
+	}
 	result, err := jobs.ResearchCompany(ctx, researcher, name, website)
 	if err != nil {
 		status, message := autofillFailure(err)
@@ -70,7 +73,7 @@ func (s *Server) autofillCompany(w http.ResponseWriter, r *http.Request) {
 func autofillFailure(err error) (int, string) {
 	switch {
 	case jobs.IsMissingAPIKey(err), errors.Is(err, jobs.ErrMissingResearcher):
-		return http.StatusServiceUnavailable, missingAPIKey
+		return http.StatusServiceUnavailable, missingMigrationKey
 	case errors.Is(err, jobs.ErrInvalidInput):
 		return http.StatusBadRequest, "Add a company name or a valid website first"
 	case errors.Is(err, context.DeadlineExceeded):

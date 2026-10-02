@@ -16,7 +16,6 @@ var (
 	ErrInvalidID         = errors.New("invalid job id")
 	ErrCopyInProgress    = errors.New("a copy is already running")
 	ErrAnalyzeInProgress = errors.New("an analysis is already running")
-	ErrNonePending       = errors.New("every temp job already has a search record")
 	ErrInvalidInput      = errors.New("check the form and try again")
 	ErrMissingResearcher = errors.New("web search is not configured")
 	// ErrMissingDescription stops a search record without its original job description.
@@ -48,6 +47,7 @@ type Store struct {
 	sourceCompanies      string
 	destCompanies        string
 	copyMu               sync.Mutex
+	companyCopyMu        sync.Mutex
 	analyzeMu            sync.Mutex
 }
 

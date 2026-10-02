@@ -58,13 +58,6 @@ export type TempJobList = {
   pageSize: number;
 };
 
-export type CopyResult = {
-  copied: number;
-  source: string;
-  destination: string;
-  indexes: number;
-};
-
 /** Fields an admin can correct on a scraped listing. Saved onto the temp job and, when analyzed, the public job. */
 export type TempJobPatch = {
   title: string;

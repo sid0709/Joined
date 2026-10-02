@@ -33,7 +33,7 @@ func main() {
 	defer cancel()
 
 	slog.Info("copying jobs", "source", cfg.SourceName(), "destination", cfg.DestName())
-	result, err := store.Copy(ctx)
+	result, err := store.Copy(ctx, nil)
 	if err != nil {
 		slog.Error("copy failed", "error", config.Redact(err, cfg.MongoURI))
 		os.Exit(1)

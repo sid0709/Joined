@@ -5,7 +5,8 @@ import { activeHref, ROUTES } from "./nav";
 test("the deepest matching link is active", () => {
   expect(activeHref("/scouting")).toBe(ROUTES.scouting);
   expect(activeHref("/scouting/queue")).toBe(ROUTES.queue);
-  expect(activeHref("/jobs/temp")).toBe(ROUTES.tempJobs);
+  expect(activeHref("/migration/jobs")).toBe(ROUTES.jobMigration);
+  expect(activeHref("/migration/companies")).toBe(ROUTES.companyMigration);
   expect(activeHref("/jobs/scout")).toBe(ROUTES.scoutJobs);
   expect(activeHref("/jobs")).toBe(ROUTES.jobs);
   expect(activeHref("/jobs/direct-review")).toBe(ROUTES.directReview);

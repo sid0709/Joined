@@ -8,16 +8,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
 )
 
 const (
 	requestTimeout = 90 * time.Second
 	maxAttempts    = 4
-	retryBase      = 500 * time.Millisecond
-	maxRetryWait   = 8 * time.Second
+	// schemaInstruction introduces the schema when the provider only promises valid JSON.
+	schemaInstruction = "\n\nReply with one JSON object and nothing else. It must match this JSON schema exactly, with every property present:\n"
 )
 
 var ErrMissingAPIKey = errors.New("OPENAI_API_KEY is not set")
@@ -27,6 +28,9 @@ type Client struct {
 	model       string
 	searchModel string
 	baseURL     string
+	missingKey  error
+	jsonObject  bool
+	noThinking  bool
 	http        *http.Client
 	searchHTTP  *http.Client
 }
@@ -36,43 +40,41 @@ func New(apiKey, model, baseURL string) *Client {
 		apiKey:     strings.TrimSpace(apiKey),
 		model:      model,
 		baseURL:    strings.TrimRight(baseURL, "/"),
-		http:       newHTTPClient(),
-		searchHTTP: &http.Client{Timeout: searchTimeout},
+		missingKey: ErrMissingAPIKey,
+		http:       llmhttp.NewClient(requestTimeout),
+		searchHTTP: llmhttp.NewClient(searchTimeout),
 	}
 }
 
-func newHTTPClient() *http.Client {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.MaxIdleConns = 128
-	transport.MaxIdleConnsPerHost = 128
-	transport.MaxConnsPerHost = 128
-	return &http.Client{Timeout: requestTimeout, Transport: transport}
+// ForProvider adapts the client to an OpenAI-compatible provider: missingKey is
+// returned without an API key and should wrap ErrMissingAPIKey. jsonObject asks for
+// plain JSON mode and puts the schema in the system prompt, for providers without
+// strict json_schema output. noThinking turns off the provider's reasoning mode.
+func (c *Client) ForProvider(missingKey error, jsonObject, noThinking bool) *Client {
+	c.missingKey = missingKey
+	c.jsonObject = jsonObject
+	c.noThinking = noThinking
+	return c
 }
 
 func (c *Client) Model() string {
 	return c.model
 }
 
+// Ready reports whether the client has an API key.
+func (c *Client) Ready() bool {
+	return c != nil && c.apiKey != ""
+}
+
 func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, error) {
-	if c == nil || c.apiKey == "" {
+	if c == nil {
 		return nil, ErrMissingAPIKey
 	}
+	if c.apiKey == "" {
+		return nil, c.missingKey
+	}
 
-	body, err := json.Marshal(chatRequest{
-		Model: c.model,
-		Messages: []chatMessage{
-			{Role: "system", Content: system},
-			{Role: "user", Content: user},
-		},
-		ResponseFormat: responseFormat{
-			Type: "json_schema",
-			JSONSchema: jsonSchemaBody{
-				Name:   "joined_job",
-				Strict: true,
-				Schema: schema,
-			},
-		},
-	})
+	body, err := json.Marshal(c.chatRequest(system, user, schema))
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +88,7 @@ func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawM
 			}
 			return []byte(content), nil
 		}
-		if err == nil && status != http.StatusTooManyRequests && status < http.StatusInternalServerError {
+		if err == nil && !llmhttp.Retryable(status) {
 			return nil, statusError(status, content)
 		}
 		if err != nil && ctx.Err() != nil {
@@ -101,7 +103,7 @@ func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawM
 		if attempt == maxAttempts-1 {
 			break
 		}
-		if err := wait(ctx, retryDelay(attempt, retryAfter)); err != nil {
+		if err := llmhttp.Wait(ctx, llmhttp.RetryDelay(attempt, retryAfter)); err != nil {
 			return nil, err
 		}
 	}
@@ -109,6 +111,32 @@ func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawM
 		last = fmt.Errorf("model request failed")
 	}
 	return nil, last
+}
+
+func (c *Client) chatRequest(system, user string, schema json.RawMessage) chatRequest {
+	request := chatRequest{
+		Model: c.model,
+		Messages: []chatMessage{
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
+		},
+		ResponseFormat: responseFormat{
+			Type: "json_schema",
+			JSONSchema: &jsonSchemaBody{
+				Name:   "joined_job",
+				Strict: true,
+				Schema: schema,
+			},
+		},
+	}
+	if c.jsonObject {
+		request.Messages[0].Content = system + schemaInstruction + string(schema)
+		request.ResponseFormat = responseFormat{Type: "json_object"}
+	}
+	if c.noThinking {
+		request.Thinking = &thinking{Type: "disabled"}
+	}
+	return request
 }
 
 func (c *Client) complete(ctx context.Context, body []byte) (string, int, string, error) {
@@ -150,36 +178,15 @@ func statusError(status int, message string) error {
 	return fmt.Errorf("model request failed (%d)", status)
 }
 
-func retryDelay(attempt int, retryAfter string) time.Duration {
-	if seconds, err := strconv.Atoi(strings.TrimSpace(retryAfter)); err == nil && seconds > 0 {
-		delay := time.Duration(seconds) * time.Second
-		if delay > maxRetryWait {
-			return maxRetryWait
-		}
-		return delay
-	}
-	delay := retryBase << attempt
-	if delay > maxRetryWait {
-		return maxRetryWait
-	}
-	return delay
-}
-
-func wait(ctx context.Context, delay time.Duration) error {
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
-}
-
 type chatRequest struct {
 	Model          string         `json:"model"`
 	Messages       []chatMessage  `json:"messages"`
 	ResponseFormat responseFormat `json:"response_format"`
+	Thinking       *thinking      `json:"thinking,omitempty"`
+}
+
+type thinking struct {
+	Type string `json:"type"`
 }
 
 type chatMessage struct {
@@ -188,8 +195,8 @@ type chatMessage struct {
 }
 
 type responseFormat struct {
-	Type       string         `json:"type"`
-	JSONSchema jsonSchemaBody `json:"json_schema"`
+	Type       string          `json:"type"`
+	JSONSchema *jsonSchemaBody `json:"json_schema,omitempty"`
 }
 
 type jsonSchemaBody struct {

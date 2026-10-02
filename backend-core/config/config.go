@@ -6,19 +6,23 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
 const (
 	defaultSourceDB            = "AthensDB"
 	defaultSourceCollection    = "jobs"
-	defaultDestDB              = "OpenedDB"
+	defaultDestDB              = "JoinedDB"
 	defaultDestCollection      = "temp_jobs"
 	defaultJobsCollection      = "jobs"
 	defaultSourceCompanies     = "companies"
 	defaultCompaniesCollection = "companies"
 	defaultOpenAIModel         = "gpt-4o-mini"
 	defaultOpenAIBaseURL       = "https://api.openai.com/v1"
+	defaultDeepSeekModel       = "deepseek-flash"
+	defaultDeepSeekBaseURL     = "https://api.deepseek.com"
+	defaultDeepSeekSearchURL   = "https://api.deepseek.com/anthropic"
 	envFileName                = ".env"
 )
 
@@ -49,6 +53,16 @@ type OpenAI struct {
 	// SearchModel answers web-search requests. Blank means Model.
 	SearchModel string
 	BaseURL     string
+}
+
+// DeepSeek is the model the admin migration uses to read job posts and to research
+// companies on the web. BaseURL serves chat completions; SearchURL is DeepSeek's
+// Anthropic-format endpoint, the one that runs web search on DeepSeek's side.
+type DeepSeek struct {
+	APIKey    string
+	Model     string
+	BaseURL   string
+	SearchURL string
 }
 
 // Google is the OAuth client from Google Cloud and where Sign in with Google
@@ -97,6 +111,15 @@ func LoadOpenAI() OpenAI {
 	}
 }
 
+func LoadDeepSeek() DeepSeek {
+	return DeepSeek{
+		APIKey:    strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
+		Model:     Env("DEEPSEEK_MODEL", defaultDeepSeekModel),
+		BaseURL:   Env("DEEPSEEK_BASE_URL", defaultDeepSeekBaseURL),
+		SearchURL: Env("DEEPSEEK_SEARCH_URL", defaultDeepSeekSearchURL),
+	}
+}
+
 func LoadGoogle() Google {
 	return Google{
 		ClientID:          Env("GOOGLE_CLIENT_ID", ""),
@@ -121,6 +144,15 @@ func LoadHTTP(defaultAddr string, defaultOrigins []string) (HTTP, error) {
 func Env(key, fallback string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+// EnvInt returns key as a positive whole number, or fallback when it is unset or not one.
+func EnvInt(key string, fallback int) int {
+	value, err := strconv.Atoi(Env(key, ""))
+	if err != nil || value < 1 {
 		return fallback
 	}
 	return value

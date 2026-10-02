@@ -8,7 +8,6 @@ export const ROUTES = {
   scout: (userId: string) => `/scouting/scouts/${userId}`,
   payouts: "/scouting/payouts",
   jobs: "/jobs",
-  tempJobs: "/jobs/temp",
   scoutJobs: "/jobs/scout",
   directReview: "/jobs/direct-review",
   directJob: (id: string) => `/jobs/direct-review/${id}`,
@@ -22,6 +21,8 @@ export const ROUTES = {
   fileReport: "/trust/reports/new",
   report: (id: string) => `/trust/reports/${id}`,
   retentionOps: "/ops",
+  jobMigration: "/migration/jobs",
+  companyMigration: "/migration/companies",
 } as const;
 
 export type NavLink = {
@@ -45,7 +46,6 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     title: "Job pool",
     links: [
       { href: ROUTES.jobs, label: "Jobs", icon: "folder" },
-      { href: ROUTES.tempJobs, label: "Temp", icon: "archive" },
       { href: ROUTES.scoutJobs, label: "Scout jobs", icon: "star" },
       { href: ROUTES.directReview, label: "Direct review", icon: "clock", badge: "directReview" },
     ],
@@ -71,6 +71,13 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
   {
     title: "Directory",
     links: [{ href: ROUTES.companies, label: "Companies", icon: "seat" }],
+  },
+  {
+    title: "Migration",
+    links: [
+      { href: ROUTES.jobMigration, label: "Jobs", icon: "archive" },
+      { href: ROUTES.companyMigration, label: "Companies", icon: "download" },
+    ],
   },
 ];
 

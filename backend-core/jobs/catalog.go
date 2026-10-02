@@ -336,36 +336,6 @@ func sanitizePay(pay Pay) Pay {
 	}, "")
 }
 
-func (s *Store) nextTempListing(ctx context.Context) (tempListing, error) {
-	cursor, err := s.dest().Aggregate(ctx, mongo.Pipeline{
-		bson.D{{Key: "$lookup", Value: bson.D{
-			{Key: "from", Value: s.structuredCollection},
-			{Key: "localField", Value: "_id"},
-			{Key: "foreignField", Value: "_id"},
-			{Key: "as", Value: "structured"},
-		}}},
-		bson.D{{Key: "$match", Value: bson.D{{Key: "structured", Value: bson.D{{Key: "$size", Value: 0}}}}}},
-		bson.D{{Key: "$sort", Value: bson.D{{Key: "postedAt", Value: -1}}}},
-		bson.D{{Key: "$limit", Value: 1}},
-		bson.D{{Key: "$project", Value: bson.D{{Key: "structured", Value: 0}}}},
-	})
-	if err != nil {
-		return tempListing{}, err
-	}
-	defer cursor.Close(ctx)
-	if !cursor.Next(ctx) {
-		if err := cursor.Err(); err != nil {
-			return tempListing{}, err
-		}
-		return tempListing{}, ErrNonePending
-	}
-	var listing tempListing
-	if err := cursor.Decode(&listing); err != nil {
-		return tempListing{}, err
-	}
-	return listing, nil
-}
-
 func (s *Store) tempListing(ctx context.Context, id bson.ObjectID) (tempListing, error) {
 	var listing tempListing
 	err := s.dest().FindOne(ctx, bson.D{{Key: "_id", Value: id}}).Decode(&listing)
