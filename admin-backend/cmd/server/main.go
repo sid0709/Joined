@@ -47,7 +47,7 @@ func main() {
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 
-	p, err := platform.Open(context.Background(), db, platform.Options{})
+	p, err := platform.Open(context.Background(), db, platform.Options{SettingsKey: config.Env("SETTINGS_ENCRYPTION_KEY", "")})
 	if err != nil {
 		slog.Error("platform", "error", config.Redact(err, db.MongoURI))
 		os.Exit(1)
@@ -79,6 +79,8 @@ func main() {
 		Origins:    server.Origins,
 		AdminToken: adminToken,
 		Staff:      staff,
+		AcornAI:    p.AISettings,
+		AcornAIEnv: ai,
 		Migration: httpapi.MigrationOptions{
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),

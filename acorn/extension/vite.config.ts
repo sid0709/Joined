@@ -9,6 +9,8 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   base: "./",
+  // Acorn's VITE_* settings live in acorn/.env, shared with the UI board.
+  envDir: path.resolve(rootDir, ".."),
   plugins: [react(), crx({ manifest })],
   // One node_modules, at the repo root: keep Vite's cache there, not in this workspace.
   cacheDir: path.resolve(rootDir, "../../node_modules/.vite/acorn-extension"),

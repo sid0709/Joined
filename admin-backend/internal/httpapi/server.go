@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/admin-backend/internal/migration"
+	"github.com/sid0709/OpenSeat/backend-core/aisettings"
+	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
@@ -28,6 +30,8 @@ type Server struct {
 	ai              MigrationModel
 	migration       *migration.Runner
 	staffAuth       StaffSignIn
+	acornAI         *aisettings.Store
+	acornAIEnv      config.OpenAI
 	analyzeWorkers  int
 	researchWorkers int
 	adminToken      string
@@ -42,6 +46,11 @@ type Options struct {
 	// Staff turns on Sign in with Google for the console. Once it is set up, every
 	// route but sign-in needs a staff session as well as the admin token.
 	Staff StaffSignIn
+	// AcornAI holds the API key and model Acorn's AI routes use, set from the console.
+	AcornAI *aisettings.Store
+	// AcornAIEnv is the environment's OpenAI settings: the model Acorn uses until one
+	// is saved, and whether OPENAI_API_KEY already covers a missing saved key.
+	AcornAIEnv config.OpenAI
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -55,6 +64,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		analyzeWorkers:  opts.Migration.AnalyzeWorkers,
 		researchWorkers: opts.Migration.ResearchWorkers,
 		staffAuth:       opts.Staff,
+		acornAI:         opts.AcornAI,
+		acornAIEnv:      opts.AcornAIEnv,
 		adminToken:      opts.AdminToken,
 	}
 	api := http.NewServeMux()
@@ -78,6 +89,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerMigration(api)
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
+	server.registerAcornAI(api)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", httpkit.Health(store))

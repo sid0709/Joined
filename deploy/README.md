@@ -56,19 +56,20 @@ are hidden in logs, variables are easier to read and edit.
 
 **Secrets** (encrypted, never shown again):
 
-| Name                             | Value                                                           | Needed               |
-| -------------------------------- | --------------------------------------------------------------- | -------------------- |
-| `VPS_SSH_KEY`                    | the private deploy key (`~/.ssh/joinedhq_deploy_ed25519`)       | yes                  |
-| `VPS_KNOWN_HOSTS`                | the VPS host key line, so the deploy refuses an impostor server | yes                  |
-| `DOCKERHUB_TOKEN`                | a Docker Hub personal access token with Read & Write            | yes                  |
-| `MONGO_URI`                      | the API's MongoDB connection string                             | for the API to start |
-| `GOOGLE_CLIENT_SECRET`           | the OAuth client secret                                         | for Google features  |
-| `OPENAI_API_KEY`                 | reads job descriptions                                          | optional             |
-| `DEEPSEEK_API_KEY`               | admin migration: analyzes jobs and researches companies         | with `admin`         |
-| `SCOUTWELL_GOOGLE_CLIENT_SECRET` | Scoutwell's OAuth client secret                                 | with `scoutwell`     |
-| `ADMIN_GOOGLE_CLIENT_SECRET`     | the admin OAuth client secret                                   | with `admin`         |
-| `ADMIN_API_TOKEN`                | the admin API's bearer token                                    | with `admin`         |
-| `GEOAPIFY_API_KEY`               | address autocomplete                                            | optional             |
+| Name                             | Value                                                                                                                           | Needed               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `VPS_SSH_KEY`                    | the private deploy key (`~/.ssh/joinedhq_deploy_ed25519`)                                                                       | yes                  |
+| `VPS_KNOWN_HOSTS`                | the VPS host key line, so the deploy refuses an impostor server                                                                 | yes                  |
+| `DOCKERHUB_TOKEN`                | a Docker Hub personal access token with Read & Write                                                                            | yes                  |
+| `MONGO_URI`                      | the API's MongoDB connection string                                                                                             | for the API to start |
+| `GOOGLE_CLIENT_SECRET`           | the OAuth client secret                                                                                                         | for Google features  |
+| `OPENAI_API_KEY`                 | reads job descriptions; fallback for Acorn's AI                                                                                 | optional             |
+| `SETTINGS_ENCRYPTION_KEY`        | seals the OpenAI key staff save in the admin console (`openssl rand -base64 32`); same value for backend-core and admin-backend | for Acorn's AI       |
+| `DEEPSEEK_API_KEY`               | admin migration: analyzes jobs and researches companies                                                                         | with `admin`         |
+| `SCOUTWELL_GOOGLE_CLIENT_SECRET` | Scoutwell's OAuth client secret                                                                                                 | with `scoutwell`     |
+| `ADMIN_GOOGLE_CLIENT_SECRET`     | the admin OAuth client secret                                                                                                   | with `admin`         |
+| `ADMIN_API_TOKEN`                | the admin API's bearer token                                                                                                    | with `admin`         |
+| `GEOAPIFY_API_KEY`               | address autocomplete                                                                                                            | optional             |
 
 Inside a container, the VPS itself is `host.docker.internal`, so a MongoDB running on
 the VPS is `mongodb://<user>:<password>@host.docker.internal:27017/JoinedDB?authSource=JoinedDB`.

@@ -10,9 +10,9 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/acorn"
 	"github.com/sid0709/OpenSeat/backend-core/acornapi"
+	"github.com/sid0709/OpenSeat/backend-core/aisettings"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 )
 
@@ -38,16 +38,17 @@ func main() {
 	}
 	ai := config.LoadOpenAI()
 
-	p, err := platform.Open(context.Background(), db, platform.Options{})
+	p, err := platform.Open(context.Background(), db, platform.Options{SettingsKey: config.Env("SETTINGS_ENCRYPTION_KEY", "")})
 	if err != nil {
 		slog.Error("platform", "error", config.Redact(err, db.MongoURI))
 		os.Exit(1)
 	}
 	defer p.Close()
 
-	model := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
+	// Staff save the key in the admin console; OPENAI_API_KEY is the fallback.
+	model := aisettings.NewModel(p.AISettings, ai)
 	if !model.Ready() {
-		slog.Warn("OPENAI_API_KEY is not set: Acorn's AI routes will answer 503")
+		slog.Warn("No AI key yet: Acorn's AI routes answer 503 until staff save one in the admin console or OPENAI_API_KEY is set")
 	}
 	acornHandler, gateway := acornapi.New(p.Accounts, p.People, p.Jobs, acorn.New(model), acornapi.Options{
 		SessionCookie: config.Env("JOINED_SESSION_COOKIE", acornapi.DefaultSessionCookie),
