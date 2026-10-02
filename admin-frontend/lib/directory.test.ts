@@ -3,11 +3,13 @@ import { expect, test } from "bun:test";
 import {
   COMPLETION_HIGH,
   COMPLETION_MID,
+  choiceOptions,
   COMPLETION_OPTIONS,
   completionTier,
   directoryParams,
   sortValues,
   tableSort,
+  yesNoOptions,
   type DirectoryFilter,
 } from "./directory";
 
@@ -49,4 +51,17 @@ test("completionTier colors complete, partial, and thin", () => {
   expect(completionTier(COMPLETION_HIGH)).toBe("success");
   expect(completionTier(COMPLETION_MID)).toBe("warning");
   expect(completionTier(COMPLETION_MID - 1)).toBe("error");
+});
+
+test("yesNoOptions and choiceOptions lead with the any option", () => {
+  expect(yesNoOptions("Any", "Yes", "No")).toEqual([
+    { value: "", label: "Any" },
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+  ]);
+  expect(choiceOptions("Any", ["a", "b"])).toEqual([
+    { value: "", label: "Any" },
+    { value: "a", label: "a" },
+    { value: "b", label: "b" },
+  ]);
 });
