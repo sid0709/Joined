@@ -1,4 +1,4 @@
-export type OakTabJobBinding = {
+export type BashTabJobBinding = {
   jobId: string;
   resumeId: string | null;
   resumeStack: string | null;
@@ -12,9 +12,9 @@ export type JobAttachment = {
   active: boolean;
 };
 
-export const TAB_JOBS_STORAGE_KEY = "oakTabJobs";
+export const TAB_JOBS_STORAGE_KEY = "bashTabJobs";
 
-export type TabJobMap = Record<string, OakTabJobBinding>;
+export type TabJobMap = Record<string, BashTabJobBinding>;
 
 async function readMap(): Promise<TabJobMap> {
   const stored = await chrome.storage.session.get(TAB_JOBS_STORAGE_KEY);
@@ -27,10 +27,10 @@ export async function listTabJobs(): Promise<TabJobMap> {
 }
 
 const JOB_TOMBSTONE_MS = 2_000;
-const jobTombstones = new Map<number, OakTabJobBinding>();
+const jobTombstones = new Map<number, BashTabJobBinding>();
 const jobTombstoneTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
-function rememberJobTombstone(tabId: number, job: OakTabJobBinding): void {
+function rememberJobTombstone(tabId: number, job: BashTabJobBinding): void {
   jobTombstones.set(tabId, job);
   const prev = jobTombstoneTimers.get(tabId);
   if (prev) clearTimeout(prev);
@@ -43,7 +43,7 @@ function rememberJobTombstone(tabId: number, job: OakTabJobBinding): void {
   );
 }
 
-function takeJobTombstone(tabId: number): OakTabJobBinding | null {
+function takeJobTombstone(tabId: number): BashTabJobBinding | null {
   const job = jobTombstones.get(tabId) ?? null;
   jobTombstones.delete(tabId);
   const timer = jobTombstoneTimers.get(tabId);
@@ -54,7 +54,7 @@ function takeJobTombstone(tabId: number): OakTabJobBinding | null {
   return job;
 }
 
-export async function bindTabJob(tabId: number, job: OakTabJobBinding): Promise<void> {
+export async function bindTabJob(tabId: number, job: BashTabJobBinding): Promise<void> {
   const map = await readMap();
   const key = String(tabId);
   for (const [tabKey, row] of Object.entries(map)) {
@@ -65,7 +65,7 @@ export async function bindTabJob(tabId: number, job: OakTabJobBinding): Promise<
   await chrome.storage.session.set({ [TAB_JOBS_STORAGE_KEY]: map });
 }
 
-export async function getTabJob(tabId: number): Promise<OakTabJobBinding | null> {
+export async function getTabJob(tabId: number): Promise<BashTabJobBinding | null> {
   const map = await readMap();
   return map[String(tabId)] ?? null;
 }

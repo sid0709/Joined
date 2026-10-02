@@ -1,4 +1,4 @@
-# Oak design tokens
+# Bash design tokens
 
 Source of truth: `extension/src/sidebar/athens-tokens.css` (`:root`). Import those variables. Do not add new hex values in components.
 
@@ -8,7 +8,7 @@ Source of truth: `extension/src/sidebar/athens-tokens.css` (`:root`). Import tho
 | ------------------------- | -------------------- | -------------------------------------------------- |
 | `--athens-canvas`         | `#ffffff`            | App background, cards, selected tab chip           |
 | `--athens-surface-subtle` | `#f7f7f7`            | Tab track, logo fallback, muted fills              |
-| `--athens-text`           | `#0d0d0d`            | Titles, Oak wordmark, primary copy                 |
+| `--athens-text`           | `#0d0d0d`            | Titles, Bash wordmark, primary copy                |
 | `--athens-text-secondary` | `#5d5d5d`            | Display name, job meta                             |
 | `--athens-text-muted`     | `#8e8e8e`            | Footer status, placeholders, check icon            |
 | `--athens-border`         | `#dedede`            | Card and hairline borders                          |
@@ -22,7 +22,7 @@ Source of truth: `extension/src/sidebar/athens-tokens.css` (`:root`). Import tho
 | `--athens-success`        | `#0e8a3a`            | Success toast icon                                 |
 | `--athens-focus`          | `#1f6feb`            | Focus ring                                         |
 
-Airbnb’s product pink is not Oak’s brand. Keep `--athens-brand` as the single accent.
+Airbnb’s product pink is not Bash’s brand. Keep `--athens-brand` as the single accent.
 
 ## Space
 
@@ -47,7 +47,7 @@ Shell padding is 12–16px. Card padding is 8–12px. List gap is 8px.
 | ----------------------- | ---- | ------------------------------ |
 | `--athens-font-size-xs` | 12px | Meta, tabs, footer             |
 | `--athens-font-size-sm` | 14px | Job title, body                |
-| `--athens-font-size-md` | 16px | Oak wordmark, Fill label       |
+| `--athens-font-size-md` | 16px | Bash wordmark, Fill label      |
 | `--athens-font-size-lg` | 20px | Rare; prefer md in the sidebar |
 
 Titles: 600, letter-spacing `-0.01em` to `-0.02em`. No all-caps section labels.
@@ -62,8 +62,8 @@ Titles: 600, letter-spacing `-0.01em` to `-0.02em`. No all-caps section labels.
 
 ## Components
 
-- **Identity row:** 28px logo, 16px Oak, truncated name, worker-count chip (18px rabbit + number), 32px Help, 32px sign out.
-- **List card (Fill and Custom):** Shared `SidebarListCard`. 32px company logo (Fill) or tab favicon (Custom) with an 18px Oak Face silhouette badge hanging on the bottom-right corner (no plate). Both stay on screen; the rabbit follows that row’s mode. 1-line title ellipsis, subtitle on its own line (company / host), résumé status on a third truncated line, trailing circular 32px download, preview (eye), and check. Download and eye are disabled until a résumé exists. Fill check marks applied; Custom check forgets the tab. Selected: `--athens-brand` fill, `--athens-canvas` type, white-outline controls. No location, no chevron.
+- **Identity row:** 28px logo, 16px Bash, truncated name, worker-count chip (18px rabbit + number), 32px Help, 32px sign out.
+- **List card (Fill and Custom):** Shared `SidebarListCard`. 32px company logo (Fill) or tab favicon (Custom) with an 18px Bash Face silhouette badge hanging on the bottom-right corner (no plate). Both stay on screen; the rabbit follows that row’s mode. 1-line title ellipsis, subtitle on its own line (company / host), résumé status on a third truncated line, trailing circular 32px download, preview (eye), and check. Download and eye are disabled until a résumé exists. Fill check marks applied; Custom check forgets the tab. Selected: `--athens-brand` fill, `--athens-canvas` type, white-outline controls. No location, no chevron.
 - **Connection footer:** 8px status dot + “Connection” + state. Expand for API URL.
 - **Fill CTA:** three sticky pills above the footer — Generate, Fill page (primary), Recommend. Custom disables them until Remember tab.
-- **Notice toast:** floating card just above Fill. Spring in, drain bar, exit under 0.5s. Errors hold ~12s and wrap detail so Fill/DOM failures are readable. Error / success / info via `pushOakNotice`. Do not throw for sign-in or socket failures.
+- **Notice toast:** floating card just above Fill. Spring in, drain bar, exit under 0.5s. Errors hold ~12s and wrap detail so Fill/DOM failures are readable. Error / success / info via `pushBashNotice`. Do not throw for sign-in or socket failures.

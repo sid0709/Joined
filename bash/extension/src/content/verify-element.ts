@@ -365,7 +365,7 @@ function pickRelocateMatch(
 }
 
 /**
- * After upload/parse remounts the form, oak-ids go stale. Re-find the control
+ * After upload/parse remounts the form, bash-ids go stale. Re-find the control
  * by planned label + role (and option value when the plan targeted an option).
  */
 export function relocateElementByPlan(

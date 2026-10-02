@@ -1,5 +1,5 @@
-const OVERLAY_ID = "oak-highlight-overlay";
-const STYLE_ID = "oak-highlight-style";
+const OVERLAY_ID = "bash-highlight-overlay";
+const STYLE_ID = "bash-highlight-style";
 
 let globalCleanup: (() => void) | null = null;
 
@@ -12,12 +12,12 @@ export function highlightElement(el: Element): void {
 
   const overlay = doc.createElement("div");
   overlay.id = OVERLAY_ID;
-  overlay.setAttribute("data-oak-inject", "true");
+  overlay.setAttribute("data-bash-inject", "true");
 
   if (!doc.getElementById(STYLE_ID)) {
     const style = doc.createElement("style");
     style.id = STYLE_ID;
-    style.setAttribute("data-oak-inject", "true");
+    style.setAttribute("data-bash-inject", "true");
     style.textContent = `
       #${OVERLAY_ID} {
         position: fixed;
@@ -52,7 +52,7 @@ export function highlightElement(el: Element): void {
   globalCleanup = () => {
     win.removeEventListener("scroll", reposition, true);
     win.removeEventListener("resize", reposition);
-    doc.querySelectorAll('[data-oak-inject="true"]').forEach((n) => n.remove());
+    doc.querySelectorAll('[data-bash-inject="true"]').forEach((n) => n.remove());
   };
 }
 
@@ -62,5 +62,5 @@ export function clearHighlight(): void {
     globalCleanup = null;
   }
 
-  document.querySelectorAll('[data-oak-inject="true"]').forEach((n) => n.remove());
+  document.querySelectorAll('[data-bash-inject="true"]').forEach((n) => n.remove());
 }

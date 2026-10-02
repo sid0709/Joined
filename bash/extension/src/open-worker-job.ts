@@ -1,11 +1,11 @@
-import { sameApplyPage } from "../../shared/apply-site";
+import { sameApplyPage } from "@bash/shared/apply-site";
 import { focusChromeTab } from "./focus-tab";
 import {
   bindTabJob,
   findTabIdsForJob,
   getTabJob,
   unbindTabJob,
-  type OakTabJobBinding,
+  type BashTabJobBinding,
 } from "./tab-job-session";
 
 export type OpenWorkerJobResult = {
@@ -25,7 +25,10 @@ async function windowIdForTab(tabId: number | null): Promise<number | undefined>
   }
 }
 
-async function adoptTab(tabId: number, job: OakTabJobBinding): Promise<OpenWorkerJobResult | null> {
+async function adoptTab(
+  tabId: number,
+  job: BashTabJobBinding,
+): Promise<OpenWorkerJobResult | null> {
   const focused = await focusChromeTab(tabId);
   if (!focused) {
     await unbindTabJob(tabId);
@@ -52,7 +55,7 @@ async function findOpenTabMatchingApplyUrl(
 }
 
 async function openWorkerJobNow(args: {
-  job: OakTabJobBinding;
+  job: BashTabJobBinding;
   preferredTabId: number | null;
   attachedTabId?: number | null;
 }): Promise<OpenWorkerJobResult> {
@@ -105,7 +108,7 @@ async function openWorkerJobNow(args: {
  * to a different URL.
  */
 export async function openWorkerJobInTab(args: {
-  job: OakTabJobBinding;
+  job: BashTabJobBinding;
   preferredTabId: number | null;
   attachedTabId?: number | null;
 }): Promise<OpenWorkerJobResult> {

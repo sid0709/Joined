@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import type { OakFaceMode } from "@oak/face";
+import type { BashFaceMode } from "@bash/face";
 import { FACE_AFK_MS, FACE_EMPTY_SLEEP_MS, FACE_SMILE_MS, FACE_THINK_GLANCE_MS } from "./constants";
 import { resolveCompanionHold, mergeFaceShot, type CompanionFaceInput } from "./director";
-import { subscribeOakFaceFlash } from "./face-flash";
+import { subscribeBashFaceFlash } from "./face-flash";
 
 export function useCompanionFace(
   input: Omit<CompanionFaceInput, "afk" | "emptyIdle">,
-): OakFaceMode {
+): BashFaceMode {
   const [afk, setAfk] = useState(false);
   const [emptyIdle, setEmptyIdle] = useState(false);
-  const [shot, setShot] = useState<OakFaceMode | null>(null);
+  const [shot, setShot] = useState<BashFaceMode | null>(null);
   const [firstGlance, setFirstGlance] = useState(true);
   const signedInRef = useRef(input.signedIn);
 
@@ -31,7 +31,7 @@ export function useCompanionFace(
   }, [input.signedIn]);
 
   useEffect(() => {
-    return subscribeOakFaceFlash((flash) => {
+    return subscribeBashFaceFlash((flash) => {
       setShot(flash.mode);
       window.setTimeout(() => setShot(null), flash.ms);
     });

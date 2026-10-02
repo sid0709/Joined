@@ -1,23 +1,23 @@
 import { useEffect, useRef } from "react";
-import { mount, type OakFaceHandle, type OakFaceMode } from "@oak/face";
+import { mount, type BashFaceHandle, type BashFaceMode } from "@bash/face";
 
-type OakFaceViewProps = {
-  mode: OakFaceMode;
+type BashFaceViewProps = {
+  mode: BashFaceMode;
   size: number;
   live?: boolean;
   className?: string;
   label?: string;
 };
 
-export function OakFaceView({
+export function BashFaceView({
   mode,
   size,
   live = true,
   className,
-  label = "Oak face",
-}: OakFaceViewProps) {
+  label = "Bash face",
+}: BashFaceViewProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const faceRef = useRef<OakFaceHandle | null>(null);
+  const faceRef = useRef<BashFaceHandle | null>(null);
 
   useEffect(() => {
     const el = hostRef.current;

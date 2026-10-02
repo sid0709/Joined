@@ -15,7 +15,7 @@ function el<K extends keyof SVGElementTagNameMap>(
   return node;
 }
 
-export interface OakFaceSvg {
+export interface BashFaceSvg {
   root: SVGSVGElement;
   head: SVGGElement;
   eyeL: SVGGElement;
@@ -23,8 +23,8 @@ export interface OakFaceSvg {
   applyFur(fur: readonly string[]): void;
 }
 
-export function createFaceSvg(): OakFaceSvg {
-  const uid = `oak-face-${++faceSerial}`;
+export function createFaceSvg(): BashFaceSvg {
+  const uid = `bash-face-${++faceSerial}`;
   const furId = `${uid}-fur`;
   const grainId = `${uid}-grain`;
 
@@ -32,7 +32,7 @@ export function createFaceSvg(): OakFaceSvg {
     viewBox: `${HEAD_VIEW.x} ${HEAD_VIEW.y} ${HEAD_VIEW.size} ${HEAD_VIEW.size}`,
     xmlns: NS,
     role: "img",
-    "aria-label": "Oak face",
+    "aria-label": "Bash face",
   });
   root.style.display = "block";
   root.style.overflow = "visible";
@@ -109,17 +109,17 @@ export function createFaceSvg(): OakFaceSvg {
   defs.append(fur, grain);
   root.appendChild(defs);
 
-  const head = el("g", { class: "oak-face-head" });
+  const head = el("g", { class: "bash-face-head" });
   head.appendChild(
     el("path", {
-      class: "oak-face-body",
+      class: "bash-face-body",
       d: HEAD_PATH,
       fill: `url(#${furId})`,
       filter: `url(#${grainId})`,
     }),
   );
 
-  const eyeL = el("g", { class: "oak-face-eye-l" });
+  const eyeL = el("g", { class: "bash-face-eye-l" });
   eyeL.appendChild(
     el("ellipse", {
       cx: EYE_L.x,
@@ -130,7 +130,7 @@ export function createFaceSvg(): OakFaceSvg {
     }),
   );
 
-  const eyeR = el("g", { class: "oak-face-eye-r" });
+  const eyeR = el("g", { class: "bash-face-eye-r" });
   eyeR.appendChild(
     el("ellipse", {
       cx: EYE_R.x,

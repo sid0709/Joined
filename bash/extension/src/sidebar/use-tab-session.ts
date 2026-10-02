@@ -3,7 +3,7 @@ import {
   IDLE_PIPELINE_PROGRESS,
   mergePipelineProgress,
   type PipelineProgress,
-} from "../../../shared/pipeline-types";
+} from "@bash/shared/pipeline-types";
 import {
   listTabJobs,
   TAB_JOBS_STORAGE_KEY,
@@ -14,7 +14,7 @@ import {
   listCustomTabs,
   TAB_CUSTOM_STORAGE_KEY,
   type CustomTabMap,
-  type OakCustomTabBinding,
+  type BashCustomTabBinding,
 } from "../tab-custom-session";
 import {
   JOB_GENERATE_STORAGE_KEY,
@@ -99,7 +99,7 @@ export function useTabSession(activeTabId: number | null) {
 
   const tabKey = activeTabId != null ? String(activeTabId) : null;
   const tabJob = tabKey ? (tabJobs[tabKey] ?? null) : null;
-  const customTab: OakCustomTabBinding | null = tabKey ? (customTabs[tabKey] ?? null) : null;
+  const customTab: BashCustomTabBinding | null = tabKey ? (customTabs[tabKey] ?? null) : null;
   const progress = tabKey ? (pipelines[tabKey] ?? IDLE_PIPELINE_PROGRESS) : IDLE_PIPELINE_PROGRESS;
 
   const attachments = useMemo(() => {

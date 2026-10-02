@@ -4,4 +4,4 @@ export {
   splitDomTree,
   type MetaNode,
   type PureNode,
-} from "../../shared/tree-export";
+} from "@bash/shared/tree-export";

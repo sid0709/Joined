@@ -1,8 +1,8 @@
-import type { GenerateEnqueueCheckpoint } from "../../../shared/generate-checkpoint";
-import { readStoredJobDescription } from "../../../shared/job-description";
-import type { AiUsageSummary } from "../../../shared/ai-usage";
-import type { ActionPlan, RuntimeAttachedFile } from "../../../shared/plan-runner/types";
-import { authHeaders, getAthensApiUrl } from "../auth/oak-auth";
+import type { GenerateEnqueueCheckpoint } from "@bash/shared/generate-checkpoint";
+import { readStoredJobDescription } from "@bash/shared/job-description";
+import type { AiUsageSummary } from "@bash/shared/ai-usage";
+import type { ActionPlan, RuntimeAttachedFile } from "@bash/shared/plan-runner/types";
+import { authHeaders, getAthensApiUrl } from "../auth/bash-auth";
 
 export interface AiAnalyzePage {
   title?: string;
@@ -40,7 +40,7 @@ export async function requestAiAnalyze(
   _apiUrl?: string,
 ): Promise<AiAnalyzeResponse> {
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/ai-analyze`, {
+  const res = await fetch(`${base}/bash/ai-analyze`, {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify(payload),
@@ -120,7 +120,7 @@ const CUSTOM_LIBRARY_FILE_UNAVAILABLE = "Could not load the recommended Library 
 
 export async function fetchRuntimeFile(_apiUrl?: string): Promise<RuntimeAttachedFile | null> {
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/runtime-file`, {
+  const res = await fetch(`${base}/bash/runtime-file`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -143,7 +143,7 @@ export async function fetchRecommendedResume(
   const id = String(jobId || "").trim();
   if (!id) return null;
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/jobs/${encodeURIComponent(id)}/recommended-resume`, {
+  const res = await fetch(`${base}/bash/jobs/${encodeURIComponent(id)}/recommended-resume`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -181,7 +181,7 @@ export async function fetchStoredJobDescription(jobId: string, _apiUrl?: string)
   const id = String(jobId || "").trim();
   if (!id) throw new Error(NO_STORED_JD);
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/jobs/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${base}/bash/jobs/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -212,7 +212,7 @@ export async function fetchCustomResume(
   const id = String(generationId || "").trim();
   if (!id) return null;
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/custom/resumes/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${base}/bash/custom/resumes/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -264,7 +264,7 @@ export async function extractCustomJd(
   if (!pageText) throw new Error("No readable text on this tab");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
   const extractBody = { pageText };
-  const res = await fetch(`${base}/api/oak/custom/extract-jd`, {
+  const res = await fetch(`${base}/bash/custom/extract-jd`, {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify(extractBody),
@@ -316,7 +316,7 @@ export async function enqueueCustomGenerate(
   const jobId = typeof input === "string" ? null : String(input.jobId || "").trim() || null;
   const checkpoint = typeof input === "string" ? null : (input.checkpoint ?? null);
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/custom/generate`, {
+  const res = await fetch(`${base}/bash/custom/generate`, {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify({
@@ -363,7 +363,7 @@ export async function continueCustomGenerate(
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
   if (existingId) {
     const res = await fetch(
-      `${base}/api/oak/custom/generate/${encodeURIComponent(existingId)}/continue`,
+      `${base}/bash/custom/generate/${encodeURIComponent(existingId)}/continue`,
       {
         method: "POST",
         headers: await authHeaders(),
@@ -416,7 +416,7 @@ export async function pollCustomGenerate(
   const id = String(inputId || "").trim();
   if (!id) throw new Error("Missing generation input");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/custom/generate/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${base}/bash/custom/generate/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -450,7 +450,7 @@ export async function pollCustomGenerate(
   };
 }
 
-export type OakQaPage = {
+export type BashQaPage = {
   title?: string;
   url?: string;
   job?: {
@@ -461,13 +461,13 @@ export type OakQaPage = {
 };
 
 export async function requestQaAnswer(
-  input: { question: string; page?: OakQaPage | null },
+  input: { question: string; page?: BashQaPage | null },
   _apiUrl?: string,
 ): Promise<string> {
   const question = input.question.trim();
   if (!question) throw new Error("Enter a question");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/qa`, {
+  const res = await fetch(`${base}/bash/qa`, {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify({
@@ -509,7 +509,7 @@ export async function recommendCustomLibrary(
   const jobDescription = input.jobDescription.trim();
   if (!jobDescription) throw new Error("No readable text on this tab");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/custom/recommend`, {
+  const res = await fetch(`${base}/bash/custom/recommend`, {
     method: "POST",
     headers: await authHeaders(),
     body: JSON.stringify({
@@ -552,7 +552,7 @@ export async function fetchCustomLibraryResume(
   const id = String(resumeId || "").trim();
   if (!id) return null;
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/custom/library-resumes/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${base}/bash/custom/library-resumes/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -590,10 +590,9 @@ export async function fetchCustomLibraryResumePreview(
   const id = String(resumeId || "").trim();
   if (!id) throw new Error("Missing resume id");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(
-    `${base}/api/oak/custom/library-resumes/${encodeURIComponent(id)}/preview`,
-    { headers: await authHeaders() },
-  );
+  const res = await fetch(`${base}/bash/custom/library-resumes/${encodeURIComponent(id)}/preview`, {
+    headers: await authHeaders(),
+  });
   const data = (await res.json().catch(() => ({}))) as {
     html?: string;
     error?: string;
@@ -617,7 +616,7 @@ export async function fetchCustomResumePreview(
   const id = String(generationId || "").trim();
   if (!id) throw new Error("Missing generation id");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/custom/resumes/${encodeURIComponent(id)}/preview`, {
+  const res = await fetch(`${base}/bash/custom/resumes/${encodeURIComponent(id)}/preview`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -643,7 +642,7 @@ export async function fetchGeneratedResumePreview(
   const id = String(jobId || "").trim();
   if (!id) throw new Error("Missing job id");
   const base = (_apiUrl || (await getAthensApiUrl())).replace(/\/$/, "");
-  const res = await fetch(`${base}/api/oak/jobs/${encodeURIComponent(id)}/resume-preview`, {
+  const res = await fetch(`${base}/bash/jobs/${encodeURIComponent(id)}/resume-preview`, {
     headers: await authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {

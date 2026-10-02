@@ -1,18 +1,18 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { MSG, type OakNoticePayload } from "../types";
+import { MSG, type BashNoticePayload } from "../types";
 import {
-  bindOakNoticePush,
+  bindBashNoticePush,
   NOTICE_EXIT_MS,
   noticeKindDuration,
-  pushOakNotice,
-  type OakNotice,
-} from "./oak-notice";
-import "./OakNotice.css";
+  pushBashNotice,
+  type BashNotice,
+} from "./bash-notice";
+import "./BashNotice.css";
 
-function NoticeIcon({ kind }: { kind: OakNotice["kind"] }) {
+function NoticeIcon({ kind }: { kind: BashNotice["kind"] }) {
   if (kind === "success") {
     return (
-      <span className="oak-notice-icon success" aria-hidden="true">
+      <span className="bash-notice-icon success" aria-hidden="true">
         <svg viewBox="0 0 20 20" width="12" height="12" fill="none">
           <path
             stroke="#fff"
@@ -27,24 +27,24 @@ function NoticeIcon({ kind }: { kind: OakNotice["kind"] }) {
   }
   if (kind === "info") {
     return (
-      <span className="oak-notice-icon info" aria-hidden="true">
+      <span className="bash-notice-icon info" aria-hidden="true">
         i
       </span>
     );
   }
   return (
-    <span className="oak-notice-icon error" aria-hidden="true">
+    <span className="bash-notice-icon error" aria-hidden="true">
       !
     </span>
   );
 }
 
-export function OakNoticeHost() {
-  const [notices, setNotices] = useState<OakNotice[]>([]);
+export function BashNoticeHost() {
+  const [notices, setNotices] = useState<BashNotice[]>([]);
 
   useEffect(() => {
-    return bindOakNoticePush((payload) => {
-      const notice: OakNotice = {
+    return bindBashNoticePush((payload) => {
+      const notice: BashNotice = {
         ...payload,
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         phase: "in",
@@ -54,11 +54,11 @@ export function OakNoticeHost() {
   }, []);
 
   useEffect(() => {
-    const onMessage = (message: { type?: string; notice?: OakNoticePayload }) => {
+    const onMessage = (message: { type?: string; notice?: BashNoticePayload }) => {
       if (message.type !== MSG.OPERATOR_NOTICE || !message.notice?.title) return;
       const { kind, title, detail } = message.notice;
       if (kind !== "error" && kind !== "success" && kind !== "info") return;
-      pushOakNotice({ kind, title, detail });
+      pushBashNotice({ kind, title, detail });
     };
     chrome.runtime.onMessage.addListener(onMessage);
     return () => chrome.runtime.onMessage.removeListener(onMessage);
@@ -84,22 +84,22 @@ export function OakNoticeHost() {
   if (notices.length === 0) return null;
 
   return (
-    <div className="oak-notice-stack" aria-live="polite">
+    <div className="bash-notice-stack" aria-live="polite">
       {notices.map((notice) => (
         <article
           key={notice.id}
-          className={`oak-notice ${notice.kind}${notice.phase === "out" ? " is-leaving" : ""}`}
+          className={`bash-notice ${notice.kind}${notice.phase === "out" ? " is-leaving" : ""}`}
           role="status"
-          style={{ "--oak-notice-hold": `${noticeKindDuration(notice.kind)}ms` } as CSSProperties}
+          style={{ "--bash-notice-hold": `${noticeKindDuration(notice.kind)}ms` } as CSSProperties}
         >
           <NoticeIcon kind={notice.kind} />
-          <div className="oak-notice-copy">
-            <p className="oak-notice-title">{notice.title}</p>
-            {notice.detail ? <p className="oak-notice-detail">{notice.detail}</p> : null}
+          <div className="bash-notice-copy">
+            <p className="bash-notice-title">{notice.title}</p>
+            {notice.detail ? <p className="bash-notice-detail">{notice.detail}</p> : null}
           </div>
           <button
             type="button"
-            className="oak-notice-close"
+            className="bash-notice-close"
             aria-label="Dismiss"
             onClick={() =>
               setNotices((prev) =>

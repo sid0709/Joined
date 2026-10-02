@@ -11,4 +11,4 @@ export type {
   RunReport,
   RunStepRecord,
   RunStepStatus,
-} from "../../../shared/plan-runner/types";
+} from "@bash/shared/plan-runner/types";

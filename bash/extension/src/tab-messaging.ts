@@ -109,7 +109,7 @@ export async function sendPlanStepToTab(
     ok: false,
     error:
       main?.error ||
-      "No content-script frame answered plan-step. Reload the Oak extension and refresh the page.",
+      "No content-script frame answered plan-step. Reload the Bash extension and refresh the page.",
   };
 }
 

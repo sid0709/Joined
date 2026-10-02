@@ -1,7 +1,7 @@
 export { mount } from "./engine";
 export {
-  OAK_FACE_MODES,
-  type OakFaceHandle,
-  type OakFaceMode,
-  type OakFaceMountOptions,
+  BASH_FACE_MODES,
+  type BashFaceHandle,
+  type BashFaceMode,
+  type BashFaceMountOptions,
 } from "./types";

@@ -1,6 +1,6 @@
-import { MSG, type OakNoticePayload } from "./types";
+import { MSG, type BashNoticePayload } from "./types";
 
-export function broadcastOperatorNotice(notice: OakNoticePayload): void {
+export function broadcastOperatorNotice(notice: BashNoticePayload): void {
   chrome.runtime.sendMessage({ type: MSG.OPERATOR_NOTICE, notice }, () => {
     void chrome.runtime.lastError;
   });

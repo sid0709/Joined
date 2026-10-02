@@ -1,12 +1,12 @@
 import { useState } from "react";
-import type { OakFaceMode } from "@oak/face";
-import { OakFaceBadge } from "./OakFaceBadge";
+import type { BashFaceMode } from "@bash/face";
+import { BashFaceBadge } from "./BashFaceBadge";
 
 type ListCardMarkProps = {
   itemId: string;
   logoUrl?: string;
   fallback: string;
-  faceMode: OakFaceMode;
+  faceMode: BashFaceMode;
   selected: boolean;
   label: string;
 };
@@ -38,7 +38,7 @@ export function ListCardMark({ logoUrl, fallback, faceMode, selected, label }: L
   return (
     <span className="list-card-mark">
       <ListCardLogo logoUrl={logoUrl} fallback={fallback} />
-      <OakFaceBadge mode={faceMode} selected={selected} label={label} />
+      <BashFaceBadge mode={faceMode} selected={selected} label={label} />
     </span>
   );
 }

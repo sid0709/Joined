@@ -1,18 +1,18 @@
-export type OakMainTab = "fill" | "qa" | "custom";
+export type BashMainTab = "fill" | "qa" | "custom";
 
 type SidebarMainTabsProps = {
-  value: OakMainTab;
-  onChange: (next: OakMainTab) => void;
+  value: BashMainTab;
+  onChange: (next: BashMainTab) => void;
 };
 
 export function SidebarMainTabs({ value, onChange }: SidebarMainTabsProps) {
   return (
-    <div className="sidebar-tabs" role="tablist" aria-label="Oak tools">
+    <div className="sidebar-tabs" role="tablist" aria-label="Bash tools">
       <button
         type="button"
         role="tab"
-        id="oak-tab-fill"
-        aria-controls="oak-panel-fill"
+        id="bash-tab-fill"
+        aria-controls="bash-panel-fill"
         aria-selected={value === "fill"}
         className={value === "fill" ? "active" : undefined}
         onClick={() => onChange("fill")}
@@ -22,8 +22,8 @@ export function SidebarMainTabs({ value, onChange }: SidebarMainTabsProps) {
       <button
         type="button"
         role="tab"
-        id="oak-tab-qa"
-        aria-controls="oak-panel-qa"
+        id="bash-tab-qa"
+        aria-controls="bash-panel-qa"
         aria-selected={value === "qa"}
         className={value === "qa" ? "active" : undefined}
         onClick={() => onChange("qa")}
@@ -33,8 +33,8 @@ export function SidebarMainTabs({ value, onChange }: SidebarMainTabsProps) {
       <button
         type="button"
         role="tab"
-        id="oak-tab-custom"
-        aria-controls="oak-panel-custom"
+        id="bash-tab-custom"
+        aria-controls="bash-panel-custom"
         aria-selected={value === "custom"}
         className={value === "custom" ? "active" : undefined}
         onClick={() => onChange("custom")}

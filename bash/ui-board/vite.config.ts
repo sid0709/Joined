@@ -7,13 +7,9 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      "@oak/shared": path.resolve(rootDir, "../shared"),
-    },
-  },
+  // One node_modules, at the repo root: keep Vite's cache there, not in this workspace.
+  cacheDir: path.resolve(rootDir, "../../node_modules/.vite/bash-ui-board"),
   server: {
     port: 5173,
-    fs: { allow: [rootDir, path.resolve(rootDir, "..")] },
   },
 });

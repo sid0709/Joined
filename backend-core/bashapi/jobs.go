@@ -1,4 +1,4 @@
-package httpapi
+package bashapi
 
 import (
 	"context"
@@ -25,7 +25,7 @@ const (
 )
 
 // workerJob is one Worker pool row for the extension's side panel. The résumé
-// fields are present and empty: Oak does not generate or recommend résumés.
+// fields are present and empty: Bash does not generate or recommend résumés.
 type workerJob struct {
 	ID                      string  `json:"id"`
 	Title                   string  `json:"title"`
@@ -92,7 +92,7 @@ func (s *Server) listJobs(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	ids, err := s.workerPoolIDs(ctx, session.User.ID)
 	if err != nil {
-		slog.Error("oak worker pool", "user", session.User.ID, "error", err)
+		slog.Error("bash worker pool", "user", session.User.ID, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load jobs")
 		return
 	}
@@ -112,7 +112,7 @@ func (s *Server) listJobs(w http.ResponseWriter, r *http.Request) {
 			row, err := s.workerJob(ctx, id)
 			if err != nil {
 				if !errors.Is(err, jobs.ErrNotFound) {
-					slog.Warn("oak worker pool job", "job", id, "error", err)
+					slog.Warn("bash worker pool job", "job", id, "error", err)
 				}
 				return
 			}
@@ -138,7 +138,7 @@ func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("jobId")
 	ids, err := s.workerPoolIDs(r.Context(), session.User.ID)
 	if err != nil {
-		slog.Error("oak worker pool", "user", session.User.ID, "error", err)
+		slog.Error("bash worker pool", "user", session.User.ID, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load the job")
 		return
 	}
@@ -152,7 +152,7 @@ func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		slog.Error("oak worker pool job", "job", id, "error", err)
+		slog.Error("bash worker pool job", "job", id, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load the job")
 		return
 	}
@@ -175,7 +175,7 @@ func (s *Server) markApplied(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, candidate.ErrInvalidInput):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:
-		slog.Error("oak mark applied", "job", input.JobID, "error", err)
+		slog.Error("bash mark applied", "job", input.JobID, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not mark the job applied")
 	}
 }

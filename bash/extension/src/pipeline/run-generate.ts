@@ -9,7 +9,7 @@ import {
   sectionsRemaining,
   toGenerateEnqueueCheckpoint,
   type GenerateCheckpoint,
-} from "../../../shared/generate-checkpoint";
+} from "@bash/shared/generate-checkpoint";
 import type { CustomGenerateStatus, CustomWorkKind } from "../tab-custom-session";
 import { broadcastOperatorNotice } from "../operator-notice";
 import {

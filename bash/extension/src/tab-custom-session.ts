@@ -1,5 +1,5 @@
-import type { GenerateCheckpoint } from "../../shared/generate-checkpoint";
-import { normalizeGenerateCheckpoint } from "../../shared/generate-checkpoint";
+import type { GenerateCheckpoint } from "@bash/shared/generate-checkpoint";
+import { normalizeGenerateCheckpoint } from "@bash/shared/generate-checkpoint";
 import type { CustomUiProgress } from "./pipeline/custom-generate-progress";
 
 export type CustomGenerateStatus = "idle" | "queued" | "running" | "completed" | "failed";
@@ -7,7 +7,7 @@ export type CustomGenerateStatus = "idle" | "queued" | "running" | "completed" |
 export type CustomResumeMode = "generate" | "recommend";
 export type CustomWorkKind = "generate" | "recommend";
 
-export type OakCustomTabBinding = {
+export type BashCustomTabBinding = {
   tabId: number;
   url: string;
   title: string;
@@ -36,9 +36,9 @@ export type CustomTabAttachment = {
   active: boolean;
 };
 
-export const TAB_CUSTOM_STORAGE_KEY = "oakCustomTabs";
+export const TAB_CUSTOM_STORAGE_KEY = "bashCustomTabs";
 
-export type CustomTabMap = Record<string, OakCustomTabBinding>;
+export type CustomTabMap = Record<string, BashCustomTabBinding>;
 
 function asResumeMode(value: unknown): CustomResumeMode {
   return value === "recommend" ? "recommend" : "generate";
@@ -48,7 +48,7 @@ function asWorkKind(value: unknown): CustomWorkKind | null {
   return value === "recommend" || value === "generate" ? value : null;
 }
 
-function normalizeBinding(row: OakCustomTabBinding): OakCustomTabBinding {
+function normalizeBinding(row: BashCustomTabBinding): BashCustomTabBinding {
   return {
     ...row,
     favIconUrl: row.favIconUrl ?? null,
@@ -63,7 +63,7 @@ function normalizeBinding(row: OakCustomTabBinding): OakCustomTabBinding {
   };
 }
 
-export function customTabHasResume(tab: OakCustomTabBinding): boolean {
+export function customTabHasResume(tab: BashCustomTabBinding): boolean {
   return tab.resumeMode === "recommend"
     ? Boolean(String(tab.recommendedResumeId || "").trim())
     : Boolean(String(tab.generationId || "").trim());
@@ -88,7 +88,7 @@ export async function listCustomTabs(): Promise<CustomTabMap> {
   return readMap();
 }
 
-export async function getCustomTab(tabId: number): Promise<OakCustomTabBinding | null> {
+export async function getCustomTab(tabId: number): Promise<BashCustomTabBinding | null> {
   const map = await readMap();
   return map[String(tabId)] ?? null;
 }
@@ -99,12 +99,12 @@ export async function rememberCustomTab(input: {
   title: string;
   favIconUrl?: string | null;
   resumeMode?: CustomResumeMode;
-}): Promise<OakCustomTabBinding> {
+}): Promise<BashCustomTabBinding> {
   const map = await readMap();
   const key = String(input.tabId);
   const existing = map[key];
   const favIconUrl = input.favIconUrl?.trim() || existing?.favIconUrl || null;
-  const next: OakCustomTabBinding = existing
+  const next: BashCustomTabBinding = existing
     ? {
         ...existing,
         url: input.url || existing.url,
@@ -138,8 +138,8 @@ export async function rememberCustomTab(input: {
 
 export async function patchCustomTab(
   tabId: number,
-  patch: Partial<Omit<OakCustomTabBinding, "tabId">>,
-): Promise<OakCustomTabBinding | null> {
+  patch: Partial<Omit<BashCustomTabBinding, "tabId">>,
+): Promise<BashCustomTabBinding | null> {
   const map = await readMap();
   const key = String(tabId);
   const existing = map[key];

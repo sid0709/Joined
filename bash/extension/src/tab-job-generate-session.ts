@@ -1,9 +1,9 @@
-import type { GenerateCheckpoint } from "../../shared/generate-checkpoint";
-import { normalizeGenerateCheckpoint } from "../../shared/generate-checkpoint";
+import type { GenerateCheckpoint } from "@bash/shared/generate-checkpoint";
+import { normalizeGenerateCheckpoint } from "@bash/shared/generate-checkpoint";
 import type { CustomUiProgress } from "./pipeline/custom-generate-progress";
 import type { CustomGenerateStatus, CustomWorkKind } from "./tab-custom-session";
 
-export type OakJobGenerateBinding = {
+export type BashJobGenerateBinding = {
   jobId: string;
   tabId: number | null;
   workKind: CustomWorkKind | null;
@@ -19,9 +19,9 @@ export type OakJobGenerateBinding = {
   jobDescription: string | null;
 };
 
-export const JOB_GENERATE_STORAGE_KEY = "oakJobGenerates";
+export const JOB_GENERATE_STORAGE_KEY = "bashJobGenerates";
 
-export type JobGenerateMap = Record<string, OakJobGenerateBinding>;
+export type JobGenerateMap = Record<string, BashJobGenerateBinding>;
 
 function asWorkKind(value: unknown): CustomWorkKind | null {
   return value === "recommend" || value === "generate" ? value : null;
@@ -34,7 +34,7 @@ function asStatus(value: unknown): CustomGenerateStatus {
   return "idle";
 }
 
-function normalizeBinding(row: OakJobGenerateBinding): OakJobGenerateBinding {
+function normalizeBinding(row: BashJobGenerateBinding): BashJobGenerateBinding {
   return {
     ...row,
     tabId: typeof row.tabId === "number" && Number.isFinite(row.tabId) ? row.tabId : null,
@@ -52,7 +52,7 @@ function normalizeBinding(row: OakJobGenerateBinding): OakJobGenerateBinding {
   };
 }
 
-function emptyBinding(jobId: string): OakJobGenerateBinding {
+function emptyBinding(jobId: string): BashJobGenerateBinding {
   return {
     jobId,
     tabId: null,
@@ -89,7 +89,7 @@ export async function listJobGenerates(): Promise<JobGenerateMap> {
   return readMap();
 }
 
-export async function getJobGenerate(jobId: string): Promise<OakJobGenerateBinding | null> {
+export async function getJobGenerate(jobId: string): Promise<BashJobGenerateBinding | null> {
   const id = String(jobId || "").trim();
   if (!id) return null;
   const map = await readMap();
@@ -98,8 +98,8 @@ export async function getJobGenerate(jobId: string): Promise<OakJobGenerateBindi
 
 export async function patchJobGenerate(
   jobId: string,
-  patch: Partial<Omit<OakJobGenerateBinding, "jobId">>,
-): Promise<OakJobGenerateBinding> {
+  patch: Partial<Omit<BashJobGenerateBinding, "jobId">>,
+): Promise<BashJobGenerateBinding> {
   const id = String(jobId || "").trim();
   if (!id) throw new Error("Missing job id");
   const map = await readMap();

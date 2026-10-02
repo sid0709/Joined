@@ -1,7 +1,7 @@
-import type { OakFaceMode } from "@oak/face";
+import type { BashFaceMode } from "@bash/face";
 
-export const OAK_FACE_GUIDE: {
-  mode: OakFaceMode;
+export const BASH_FACE_GUIDE: {
+  mode: BashFaceMode;
   title: string;
   detail: string;
 }[] = [

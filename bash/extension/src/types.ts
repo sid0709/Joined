@@ -20,49 +20,44 @@ export interface DomTreePayload {
   formScore?: number;
 }
 
-/** @deprecated use DEFAULT_ATHENS_API_URL from auth/oak-auth */
-export const DEFAULT_SERVER = "https://athensai.remotepairnet.net";
-/** @deprecated same host as athens-backend */
-export const DEFAULT_AI_SERVER = "https://athensai.remotepairnet.net";
-
-/** Long-lived side-panel port. Keeps the MV3 worker (and `/oak` socket) alive. */
-export const OAK_SIDEBAR_PORT = "oak-sidebar";
+/** Long-lived side-panel port. Keeps the MV3 worker (and `/bash/socket.io` socket) alive. */
+export const BASH_SIDEBAR_PORT = "bash-sidebar";
 
 export const MSG = {
-  FETCH_DOM: "oak:fetch-dom",
-  FETCH_AND_EMIT_DOM: "oak:fetch-and-emit-dom",
-  HIGHLIGHT: "oak:highlight",
-  CLEAR_HIGHLIGHT: "oak:clear-highlight",
-  GET_CONTENT: "oak:get-content",
-  EXECUTE_ACTIONS: "oak:execute-actions",
-  PLAN_STEP: "oak:plan-step",
-  MATCH_OPTION: "oak:match-option",
-  FILL_LEFTOVER_COMBOS: "oak:fill-leftover-combos",
-  START_PIPELINE: "oak:start-pipeline",
-  PIPELINE_PROGRESS: "oak:pipeline-progress",
-  SOCKET_STATUS: "oak:socket-status",
-  OPERATOR_NOTICE: "oak:operator-notice",
-  AUTH_STATUS: "oak:auth-status",
-  AUTH_SIGNIN: "oak:auth-signin",
-  AUTH_SIGNOUT: "oak:auth-signout",
-  LIST_WORKER_JOBS: "oak:list-worker-jobs",
-  OPEN_WORKER_JOB: "oak:open-worker-job",
-  MARK_JOB_APPLIED: "oak:mark-job-applied",
-  GET_TAB_JOB: "oak:get-tab-job",
-  REMEMBER_CUSTOM_TAB: "oak:remember-custom-tab",
-  FORGET_CUSTOM_TAB: "oak:forget-custom-tab",
-  FOCUS_CUSTOM_TAB: "oak:focus-custom-tab",
-  START_CUSTOM_GENERATE: "oak:start-custom-generate",
-  START_CUSTOM_RECOMMEND: "oak:start-custom-recommend",
-  START_JOB_GENERATE: "oak:start-job-generate",
-  START_JOB_RECOMMEND: "oak:start-job-recommend",
-  SELECTION_QA: "oak:selection-qa",
+  FETCH_DOM: "bash:fetch-dom",
+  FETCH_AND_EMIT_DOM: "bash:fetch-and-emit-dom",
+  HIGHLIGHT: "bash:highlight",
+  CLEAR_HIGHLIGHT: "bash:clear-highlight",
+  GET_CONTENT: "bash:get-content",
+  EXECUTE_ACTIONS: "bash:execute-actions",
+  PLAN_STEP: "bash:plan-step",
+  MATCH_OPTION: "bash:match-option",
+  FILL_LEFTOVER_COMBOS: "bash:fill-leftover-combos",
+  START_PIPELINE: "bash:start-pipeline",
+  PIPELINE_PROGRESS: "bash:pipeline-progress",
+  SOCKET_STATUS: "bash:socket-status",
+  OPERATOR_NOTICE: "bash:operator-notice",
+  AUTH_STATUS: "bash:auth-status",
+  AUTH_SIGNIN: "bash:auth-signin",
+  AUTH_SIGNOUT: "bash:auth-signout",
+  LIST_WORKER_JOBS: "bash:list-worker-jobs",
+  OPEN_WORKER_JOB: "bash:open-worker-job",
+  MARK_JOB_APPLIED: "bash:mark-job-applied",
+  GET_TAB_JOB: "bash:get-tab-job",
+  REMEMBER_CUSTOM_TAB: "bash:remember-custom-tab",
+  FORGET_CUSTOM_TAB: "bash:forget-custom-tab",
+  FOCUS_CUSTOM_TAB: "bash:focus-custom-tab",
+  START_CUSTOM_GENERATE: "bash:start-custom-generate",
+  START_CUSTOM_RECOMMEND: "bash:start-custom-recommend",
+  START_JOB_GENERATE: "bash:start-job-generate",
+  START_JOB_RECOMMEND: "bash:start-job-recommend",
+  SELECTION_QA: "bash:selection-qa",
 } as const;
 
-export type OakNoticeKind = "error" | "success" | "info";
+export type BashNoticeKind = "error" | "success" | "info";
 
-export type OakNoticePayload = {
-  kind: OakNoticeKind;
+export type BashNoticePayload = {
+  kind: BashNoticeKind;
   title: string;
   detail?: string;
 };
@@ -83,7 +78,7 @@ export interface MatchOptionResponse {
   reason?: string;
   error?: string;
   model?: string;
-  usage?: import("../../shared/ai-usage").AiUsageSummary;
+  usage?: import("@bash/shared/ai-usage").AiUsageSummary;
 }
 
 export type PlanStepActionType =

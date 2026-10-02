@@ -44,7 +44,7 @@ const MAX_TEXT = 120;
 
 const OPTION_LIST_TAGS = new Set(["SELECT", "OPTGROUP", "DATALIST"]);
 
-let oakIdCounter = 0;
+let bashIdCounter = 0;
 let childCapHits = 0;
 let depthCapHits = 0;
 let fillableHits = 0;
@@ -89,13 +89,13 @@ function getChildNodes(el: Element): Node[] {
 }
 
 export function serializeDom(root?: Element): DomNode {
-  oakIdCounter = 0;
+  bashIdCounter = 0;
   childCapHits = 0;
   depthCapHits = 0;
   fillableHits = 0;
 
-  // Clean up old Oak IDs across the whole document (including iframes)
-  document.querySelectorAll("[data-oak-id]").forEach((el) => el.removeAttribute("data-oak-id"));
+  // Clean up old Bash IDs across the whole document (including iframes)
+  document.querySelectorAll("[data-bash-id]").forEach((el) => el.removeAttribute("data-bash-id"));
 
   const candidates = [root, document.body, document.documentElement].filter(
     (el): el is Element => el != null,
@@ -207,8 +207,8 @@ function serializeNode(el: Element, depth: number): DomNode[] {
     return processedChildren;
   }
 
-  const nodeId = ++oakIdCounter;
-  el.setAttribute("data-oak-id", String(nodeId));
+  const nodeId = ++bashIdCounter;
+  el.setAttribute("data-bash-id", String(nodeId));
   const role = (el.getAttribute("role") || "").toLowerCase();
   if (
     tag === "input" ||

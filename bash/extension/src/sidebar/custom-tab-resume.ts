@@ -1,12 +1,12 @@
-import { formatGenerateFailure } from "../../../shared/generate-checkpoint";
-import { customTabHasResume, type OakCustomTabBinding } from "../tab-custom-session";
+import { formatGenerateFailure } from "@bash/shared/generate-checkpoint";
+import { customTabHasResume, type BashCustomTabBinding } from "../tab-custom-session";
 
 const RESUME_GENERATED = "Resume generated";
 const RESUME_EMPTY_GENERATE = "Not generated...";
 const RESUME_EMPTY_RECOMMEND = "No resume assigned";
 
 export function customTabResumeLine(
-  tab: OakCustomTabBinding,
+  tab: BashCustomTabBinding,
   filling: boolean,
 ): { text: string; ready: boolean; failed: boolean } {
   const recommending = tab.resumeMode === "recommend";

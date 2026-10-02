@@ -1,6 +1,6 @@
-import { readStoredJobDescription } from "../../shared/job-description";
+import { readStoredJobDescription } from "@bash/shared/job-description";
 
-export type OakWorkerJob = {
+export type BashWorkerJob = {
   id: string;
   title: string;
   company: string;
@@ -28,7 +28,7 @@ function asNullableText(value: unknown): string | null {
   return text || null;
 }
 
-export function mapOakWorkerJob(raw: unknown): OakWorkerJob | null {
+export function mapBashWorkerJob(raw: unknown): BashWorkerJob | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const row = raw as Record<string, unknown>;
   const id = asText(row.id || row.jobId);
@@ -52,11 +52,11 @@ export function mapOakWorkerJob(raw: unknown): OakWorkerJob | null {
   };
 }
 
-export function mapOakWorkerJobs(raw: unknown): OakWorkerJob[] {
+export function mapBashWorkerJobs(raw: unknown): BashWorkerJob[] {
   if (!Array.isArray(raw)) return [];
-  const jobs: OakWorkerJob[] = [];
+  const jobs: BashWorkerJob[] = [];
   for (const row of raw) {
-    const job = mapOakWorkerJob(row);
+    const job = mapBashWorkerJob(row);
     if (job) jobs.push(job);
   }
   return jobs;

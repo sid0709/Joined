@@ -1,4 +1,4 @@
-.oak-notice-stack {
+.bash-notice-stack {
   position: fixed;
   left: var(--athens-space-3);
   right: var(--athens-space-3);
@@ -10,8 +10,8 @@
   pointer-events: none;
 }
 
-.oak-notice {
-  --oak-notice-hold: 3500ms;
+.bash-notice {
+  --bash-notice-hold: 3500ms;
   pointer-events: auto;
   position: relative;
   display: flex;
@@ -23,14 +23,14 @@
   border-radius: var(--athens-radius-lg);
   box-shadow: var(--athens-shadow-raised);
   transform-origin: 50% 100%;
-  animation: oak-notice-in var(--athens-notice-enter) both;
+  animation: bash-notice-in var(--athens-notice-enter) both;
 }
 
-.oak-notice.is-leaving {
-  animation: oak-notice-out var(--athens-notice-exit) both;
+.bash-notice.is-leaving {
+  animation: bash-notice-out var(--athens-notice-exit) both;
 }
 
-.oak-notice::after {
+.bash-notice::after {
   content: "";
   position: absolute;
   left: var(--athens-space-4);
@@ -40,23 +40,23 @@
   transform-origin: left center;
   border-radius: var(--athens-radius-pill);
   background: var(--athens-brand);
-  animation: oak-notice-drain var(--oak-notice-hold) linear both;
+  animation: bash-notice-drain var(--bash-notice-hold) linear both;
 }
 
-.oak-notice.success::after {
+.bash-notice.success::after {
   background: var(--athens-success);
 }
 
-.oak-notice.error::after {
+.bash-notice.error::after {
   background: var(--athens-danger);
 }
 
-.oak-notice.is-leaving::after {
+.bash-notice.is-leaving::after {
   animation: none;
   opacity: 0;
 }
 
-.oak-notice-icon {
+.bash-notice-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,27 +69,27 @@
   font-weight: 700;
   line-height: 1;
   color: #fff;
-  animation: oak-notice-icon-pop var(--athens-notice-enter) both;
+  animation: bash-notice-icon-pop var(--athens-notice-enter) both;
 }
 
-.oak-notice-icon.error {
+.bash-notice-icon.error {
   background: var(--athens-danger);
 }
 
-.oak-notice-icon.success {
+.bash-notice-icon.success {
   background: var(--athens-success);
 }
 
-.oak-notice-icon.info {
+.bash-notice-icon.info {
   background: var(--athens-brand);
 }
 
-.oak-notice-copy {
+.bash-notice-copy {
   flex: 1;
   min-width: 0;
 }
 
-.oak-notice-title {
+.bash-notice-title {
   margin: 0;
   font-size: var(--athens-font-size-sm);
   font-weight: 600;
@@ -101,7 +101,7 @@
   overflow: hidden;
 }
 
-.oak-notice-detail {
+.bash-notice-detail {
   margin: 1px 0 0;
   font-size: var(--athens-font-size-xs);
   line-height: 1.35;
@@ -112,7 +112,7 @@
   overflow: auto;
 }
 
-.oak-notice-close {
+.bash-notice-close {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
@@ -124,12 +124,12 @@
   line-height: 1;
 }
 
-.oak-notice-close:hover {
+.bash-notice-close:hover {
   color: var(--athens-text);
   background: var(--athens-hover);
 }
 
-@keyframes oak-notice-in {
+@keyframes bash-notice-in {
   from {
     opacity: 0;
     transform: translateY(16px) scale(0.94);
@@ -144,7 +144,7 @@
   }
 }
 
-@keyframes oak-notice-out {
+@keyframes bash-notice-out {
   from {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -155,7 +155,7 @@
   }
 }
 
-@keyframes oak-notice-icon-pop {
+@keyframes bash-notice-icon-pop {
   from {
     opacity: 0;
     transform: scale(0.4);
@@ -170,7 +170,7 @@
   }
 }
 
-@keyframes oak-notice-drain {
+@keyframes bash-notice-drain {
   from {
     transform: scaleX(1);
   }
@@ -180,10 +180,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .oak-notice,
-  .oak-notice.is-leaving,
-  .oak-notice-icon,
-  .oak-notice::after {
+  .bash-notice,
+  .bash-notice.is-leaving,
+  .bash-notice-icon,
+  .bash-notice::after {
     animation: none;
   }
 }

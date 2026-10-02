@@ -1,4 +1,4 @@
-package httpapi
+package bashapi
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/bash/backend/internal/oak"
+	"github.com/sid0709/OpenSeat/backend-core/bash"
 )
 
 func decode(w http.ResponseWriter, r *http.Request, dest any) bool {
@@ -22,16 +22,16 @@ func decode(w http.ResponseWriter, r *http.Request, dest any) bool {
 	return true
 }
 
-// writeOakError answers a failed model call: the caller's mistake, a missing
+// writeBashError answers a failed model call: the caller's mistake, a missing
 // model key, or the model itself failing.
-func writeOakError(w http.ResponseWriter, route string, err error) {
+func writeBashError(w http.ResponseWriter, route string, err error) {
 	switch {
-	case errors.Is(err, oak.ErrInvalid):
+	case errors.Is(err, bash.ErrInvalid):
 		writeError(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, oak.ErrModelUnavailable):
+	case errors.Is(err, bash.ErrModelUnavailable):
 		writeError(w, http.StatusServiceUnavailable, err.Error())
 	default:
-		slog.Warn("oak route failed", "route", route, "error", err)
+		slog.Warn("bash route failed", "route", route, "error", err)
 		writeError(w, http.StatusBadGateway, err.Error())
 	}
 }
@@ -40,11 +40,11 @@ func writeOakError(w http.ResponseWriter, route string, err error) {
 func (s *Server) applicant(w http.ResponseWriter, r *http.Request, session auth.Session) (string, bool) {
 	profile, err := s.people.GetProfile(r.Context(), session.User.ID, time.Now())
 	if err != nil {
-		slog.Error("oak profile", "user", session.User.ID, "error", err)
+		slog.Error("bash profile", "user", session.User.ID, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load the profile")
 		return "", false
 	}
-	return oak.ApplicantProfileText(session.User.ID, profile), true
+	return bash.ApplicantProfileText(session.User.ID, profile), true
 }
 
 func (s *Server) aiAnalyze(w http.ResponseWriter, r *http.Request) {
@@ -64,9 +64,9 @@ func (s *Server) aiAnalyze(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := s.oak.Analyze(r.Context(), applicant, body.PureTree, body.Page)
+	result, err := s.bash.Analyze(r.Context(), applicant, body.PureTree, body.Page)
 	if err != nil {
-		writeOakError(w, "ai-analyze", err)
+		writeBashError(w, "ai-analyze", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -89,10 +89,10 @@ func (s *Server) matchOption(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "intendedValue and options are required")
 		return
 	}
-	result, err := s.oak.MatchOption(r.Context(), body.IntendedValue, body.Options, body.FieldLabel, body.TypedQuery)
+	result, err := s.bash.MatchOption(r.Context(), body.IntendedValue, body.Options, body.FieldLabel, body.TypedQuery)
 	if err != nil {
 		// The extension falls back to its own matching, so a failure is data, not an HTTP error.
-		slog.Warn("oak match-option failed", "error", err)
+		slog.Warn("bash match-option failed", "error", err)
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "matched_option": nil, "confidence": 0, "error": err.Error()})
 		return
 	}
@@ -115,9 +115,9 @@ func (s *Server) qa(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	result, err := s.oak.Answer(r.Context(), applicant, body.Question, body.Page)
+	result, err := s.bash.Answer(r.Context(), applicant, body.Question, body.Page)
 	if err != nil {
-		writeOakError(w, "qa", err)
+		writeBashError(w, "qa", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -151,13 +151,13 @@ func (s *Server) analyzeMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) writeJD(w http.ResponseWriter, r *http.Request, pageText string, meta any) {
-	if len([]rune(pageText)) > oak.PageTextMaxChars {
+	if len([]rune(pageText)) > bash.PageTextMaxChars {
 		writeError(w, http.StatusBadRequest, "pageText is too long")
 		return
 	}
-	result, err := s.oak.ExtractJD(r.Context(), pageText, meta)
+	result, err := s.bash.ExtractJD(r.Context(), pageText, meta)
 	if err != nil {
-		writeOakError(w, "extract-jd", err)
+		writeBashError(w, "extract-jd", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)

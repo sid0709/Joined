@@ -1,11 +1,11 @@
 import type { RuntimeAttachedFile } from "../../types";
 import { uploadFileToElement } from "./upload";
-import { isCustomResumeFile } from "../../../../shared/plan-runner/step-file";
+import { isCustomResumeFile } from "@bash/shared/plan-runner/step-file";
 import {
   documentFieldKind,
   labelLooksLikeOtherDocument,
   type DocumentFieldKind,
-} from "../../../../shared/plan-runner/resume-field";
+} from "@bash/shared/plan-runner/resume-field";
 
 function isFileInput(el: Element): el is HTMLInputElement {
   return el instanceof HTMLInputElement && el.type === "file";

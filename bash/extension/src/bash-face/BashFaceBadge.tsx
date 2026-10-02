@@ -1,26 +1,26 @@
-import type { OakFaceMode } from "@oak/face";
-import { OAK_FACE_BADGE_OVERHANG, OAK_FACE_BADGE_PX } from "./constants";
-import { OakFaceSlot } from "./OakFaceSlot";
+import type { BashFaceMode } from "@bash/face";
+import { BASH_FACE_BADGE_OVERHANG, BASH_FACE_BADGE_PX } from "./constants";
+import { BashFaceSlot } from "./BashFaceSlot";
 
-type OakFaceBadgeProps = {
-  mode: OakFaceMode;
+type BashFaceBadgeProps = {
+  mode: BashFaceMode;
   selected?: boolean;
   label: string;
 };
 
-export function OakFaceBadge({ mode, selected = false, label }: OakFaceBadgeProps) {
-  const shift = `${OAK_FACE_BADGE_OVERHANG * 100}%`;
+export function BashFaceBadge({ mode, selected = false, label }: BashFaceBadgeProps) {
+  const shift = `${BASH_FACE_BADGE_OVERHANG * 100}%`;
 
   return (
     <span
-      className="oak-face-badge"
+      className="bash-face-badge"
       style={{
-        width: OAK_FACE_BADGE_PX,
-        height: OAK_FACE_BADGE_PX,
+        width: BASH_FACE_BADGE_PX,
+        height: BASH_FACE_BADGE_PX,
         transform: `translate(${shift}, ${shift})`,
       }}
     >
-      <OakFaceSlot mode={mode} selected={selected} size={OAK_FACE_BADGE_PX} label={label} />
+      <BashFaceSlot mode={mode} selected={selected} size={BASH_FACE_BADGE_PX} label={label} />
     </span>
   );
 }

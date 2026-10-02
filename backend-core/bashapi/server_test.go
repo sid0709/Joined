@@ -1,4 +1,4 @@
-package httpapi
+package bashapi
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/bash"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/bash/backend/internal/oak"
 )
 
 type fakeSessions map[string]auth.Session
@@ -55,7 +55,7 @@ func newTestServer(t *testing.T, model fakeModel) (http.Handler, *fakePeople) {
 		"hunter":    {User: auth.User{ID: "u1", Name: "Jordan Lee", Email: "j@example.com", Role: auth.RoleCandidate}},
 		"recruiter": {User: auth.User{ID: "u2", Role: auth.RoleEmployee}},
 	}
-	handler, gw := New(sessions, people, nil, oak.New(model), Options{})
+	handler, gw := New(sessions, people, nil, bash.New(model), Options{})
 	t.Cleanup(gw.Close)
 	return handler, people
 }
@@ -91,7 +91,7 @@ func TestSessionFromBearerOrJoinedCookie(t *testing.T) {
 		{"recruiter is not a job hunter", bearer("recruiter"), "", http.StatusForbidden},
 	}
 	for _, c := range cases {
-		if got := call(handler, "GET", "/api/oak/auth/me", "", c.header, c.cookie).Code; got != c.want {
+		if got := call(handler, "GET", "/bash/auth/me", "", c.header, c.cookie).Code; got != c.want {
 			t.Errorf("%s: status %d, want %d", c.name, got, c.want)
 		}
 	}
@@ -102,7 +102,7 @@ func TestMeReturnsJoinedAccount(t *testing.T) {
 	var body struct {
 		Session map[string]string `json:"session"`
 	}
-	rec := call(handler, "GET", "/api/oak/auth/me", "", bearer("hunter"), "")
+	rec := call(handler, "GET", "/bash/auth/me", "", bearer("hunter"), "")
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestMeReturnsJoinedAccount(t *testing.T) {
 
 func TestHealthNeedsNoSession(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{})
-	rec := call(handler, "GET", "/api/oak/health", "", nil, "")
+	rec := call(handler, "GET", "/bash/health", "", nil, "")
 	if rec.Code != http.StatusOK || strings.TrimSpace(rec.Body.String()) != `{"ok":true}` {
 		t.Fatalf("health = %d %s", rec.Code, rec.Body)
 	}
@@ -122,12 +122,12 @@ func TestHealthNeedsNoSession(t *testing.T) {
 func TestResumeRoutesReturnEmpty(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{})
 	cases := []struct{ method, path, wantKey string }{
-		{"GET", "/api/oak/jobs/j1/recommended-resume", "success"},
-		{"GET", "/api/oak/jobs/j1/resume-preview", "html"},
-		{"POST", "/api/oak/custom/generate", "inputId"},
-		{"POST", "/api/oak/custom/recommend", "recommendedResumeId"},
-		{"GET", "/api/oak/custom/resumes/g1", "success"},
-		{"GET", "/api/oak/custom/library-resumes/r1", "success"},
+		{"GET", "/bash/jobs/j1/recommended-resume", "success"},
+		{"GET", "/bash/jobs/j1/resume-preview", "html"},
+		{"POST", "/bash/custom/generate", "inputId"},
+		{"POST", "/bash/custom/recommend", "recommendedResumeId"},
+		{"GET", "/bash/custom/resumes/g1", "success"},
+		{"GET", "/bash/custom/library-resumes/r1", "success"},
 	}
 	for _, c := range cases {
 		rec := call(handler, c.method, c.path, "{}", bearer("hunter"), "")
@@ -150,48 +150,48 @@ func TestResumeRoutesReturnEmpty(t *testing.T) {
 func TestAnalyzeUsesProfileAndNeverReturnsResumeGate(t *testing.T) {
 	plan := `{"goal":"g","actions":[],"forbidden_actions":[],"validation":{"required_element_indexes":[],"stop_before_submit":true},"unresolved_items":[]}`
 	handler, _ := newTestServer(t, fakeModel{reply: plan})
-	rec := call(handler, "POST", "/api/oak/ai-analyze", `{"pureTree":"input[1]","page":{"url":"https://x"}}`, bearer("hunter"), "")
+	rec := call(handler, "POST", "/bash/ai-analyze", `{"pureTree":"input[1]","page":{"url":"https://x"}}`, bearer("hunter"), "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
 	if !strings.Contains(rec.Body.String(), `"ok":true`) {
 		t.Fatalf("body = %s", rec.Body)
 	}
-	if got := call(handler, "POST", "/api/oak/ai-analyze", `{"pureTree":""}`, bearer("hunter"), "").Code; got != http.StatusBadRequest {
+	if got := call(handler, "POST", "/bash/ai-analyze", `{"pureTree":""}`, bearer("hunter"), "").Code; got != http.StatusBadRequest {
 		t.Errorf("empty tree status %d, want 400", got)
 	}
 }
 
 func TestMatchOptionFailureIsData(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{reply: "not json"})
-	rec := call(handler, "POST", "/api/oak/match-option", `{"intendedValue":"No","options":["Yes","No"]}`, bearer("hunter"), "")
+	rec := call(handler, "POST", "/bash/match-option", `{"intendedValue":"No","options":["Yes","No"]}`, bearer("hunter"), "")
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"ok":false`) {
 		t.Fatalf("got %d %s", rec.Code, rec.Body)
 	}
-	if got := call(handler, "POST", "/api/oak/match-option", `{"intendedValue":"","options":[]}`, bearer("hunter"), "").Code; got != http.StatusBadRequest {
+	if got := call(handler, "POST", "/bash/match-option", `{"intendedValue":"","options":[]}`, bearer("hunter"), "").Code; got != http.StatusBadRequest {
 		t.Errorf("missing fields status %d, want 400", got)
 	}
 }
 
 func TestMarkApplied(t *testing.T) {
 	handler, people := newTestServer(t, fakeModel{})
-	if rec := call(handler, "POST", "/api/oak/jobs/j1/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
+	if rec := call(handler, "POST", "/bash/jobs/j1/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("mark applied: %d %s", rec.Code, rec.Body)
 	}
 	if len(people.applied) != 1 || people.applied[0] != "j1:"+candidate.StageApplied {
 		t.Fatalf("applied = %v", people.applied)
 	}
-	if rec := call(handler, "POST", "/api/oak/jobs/dup/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
+	if rec := call(handler, "POST", "/bash/jobs/dup/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("already applied should still succeed: %d", rec.Code)
 	}
 }
 
 func TestSignOutKeepsJoinedSession(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{})
-	if rec := call(handler, "POST", "/api/oak/auth/signout", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
+	if rec := call(handler, "POST", "/bash/auth/signout", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("signout: %d", rec.Code)
 	}
-	if rec := call(handler, "GET", "/api/oak/auth/me", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
-		t.Fatalf("the shared Joined session must survive an Oak sign-out: %d", rec.Code)
+	if rec := call(handler, "GET", "/bash/auth/me", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
+		t.Fatalf("the shared Joined session must survive an Bash sign-out: %d", rec.Code)
 	}
 }

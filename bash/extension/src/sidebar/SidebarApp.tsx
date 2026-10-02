@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { canContinueGenerate } from "../../../shared/generate-checkpoint";
+import { canContinueGenerate } from "@bash/shared/generate-checkpoint";
 import {
   IDLE_PIPELINE_PROGRESS,
   isFillPhaseBusy,
   mergePipelineProgress,
   type PipelineProgress,
-} from "../../../shared/pipeline-types";
-import type { ActionPlan, RunStepRecord } from "../../../shared/plan-runner/types";
+} from "@bash/shared/pipeline-types";
+import type { ActionPlan, RunStepRecord } from "@bash/shared/plan-runner/types";
 import {
   collectLines,
   formatMetaTreePreview,
@@ -15,14 +15,14 @@ import {
   iteratePureTreeLines,
   splitDomTree,
   type DomTreeNode,
-} from "../../../shared/tree-export";
+} from "@bash/shared/tree-export";
 import {
   DEFAULT_ATHENS_API_URL,
   getAthensApiUrl,
-  getOakSession,
+  getBashSession,
   setAthensApiUrl,
-  type OakStoredSession,
-} from "../auth/oak-auth";
+  type BashStoredSession,
+} from "../auth/bash-auth";
 import {
   fetchCustomLibraryResume,
   fetchCustomLibraryResumePreview,
@@ -35,14 +35,14 @@ import {
   customTabHasResume,
   patchCustomTab,
   type CustomResumeMode,
-  type OakCustomTabBinding,
+  type BashCustomTabBinding,
 } from "../tab-custom-session";
-import { MSG, OAK_SIDEBAR_PORT, type DomNode, type PipelineSource } from "../types";
+import { MSG, BASH_SIDEBAR_PORT, type DomNode, type PipelineSource } from "../types";
 import { InspectPanel, useInspectWindow } from "./InspectPanel";
 import { LoadMoreFooter } from "./LoadMoreFooter";
 import { QaPanel } from "./QaPanel";
 import { ResumePreviewPanel, type ResumePreviewDownload } from "./ResumePreviewPanel";
-import { SidebarMainTabs, type OakMainTab } from "./SidebarMainTabs";
+import { SidebarMainTabs, type BashMainTab } from "./SidebarMainTabs";
 import { sendMessage } from "./runtime";
 import { clearTabTree, getTabTree, setTabTree, type TabTreeSummary } from "./tab-tree-cache";
 import { useActiveTabId } from "./use-active-tab";
@@ -50,14 +50,14 @@ import { useShownCount } from "./use-shown-count";
 import { useTabSession } from "./use-tab-session";
 import { CustomTabList } from "./CustomTabList";
 import { FaceGuidePanel } from "./FaceGuidePanel";
-import { pushOakNotice } from "./oak-notice";
+import { pushBashNotice } from "./bash-notice";
 import { HelpIcon } from "./sidebar-icons";
 import { SidebarActionBar } from "./SidebarActionBar";
-import { WorkerPoolList, type OakWorkerJob } from "./WorkerPoolList";
-import { OAK_FACE_BADGE_PX, OAK_FACE_BRAND_PX } from "../oak-face/constants";
-import { countBusyWorkers, tabInputFromProgress } from "../oak-face/director";
-import { OakFaceView } from "../oak-face/OakFaceView";
-import { useCompanionFace } from "../oak-face/use-companion-face";
+import { WorkerPoolList, type BashWorkerJob } from "./WorkerPoolList";
+import { BASH_FACE_BADGE_PX, BASH_FACE_BRAND_PX } from "../bash-face/constants";
+import { countBusyWorkers, tabInputFromProgress } from "../bash-face/director";
+import { BashFaceView } from "../bash-face/BashFaceView";
+import { useCompanionFace } from "../bash-face/use-companion-face";
 import "./SidebarApp.css";
 
 type InspectKind = "pure" | "meta" | "plan";
@@ -95,11 +95,11 @@ export default function SidebarApp() {
   } = useTabSession(activeTabId);
 
   const [apiUrl, setApiUrl] = useState(DEFAULT_ATHENS_API_URL);
-  const [session, setSession] = useState<OakStoredSession | null>(null);
+  const [session, setSession] = useState<BashStoredSession | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
   const [connected, setConnected] = useState(false);
   const [tabUi, setTabUi] = useState<Record<string, TabUi>>({});
-  const [workerJobs, setWorkerJobs] = useState<OakWorkerJob[]>([]);
+  const [workerJobs, setWorkerJobs] = useState<BashWorkerJob[]>([]);
   const [workerJobsLoading, setWorkerJobsLoading] = useState(false);
   const [workerJobsError, setWorkerJobsError] = useState<string | null>(null);
   const [openingJobId, setOpeningJobId] = useState<string | null>(null);
@@ -107,7 +107,7 @@ export default function SidebarApp() {
   const [jobsListKey, setJobsListKey] = useState(0);
   const [preview, setPreview] = useState<ResumePreviewRequest | null>(null);
   const [jdPreview, setJdPreview] = useState<{ title: string; text: string } | null>(null);
-  const [mainTab, setMainTab] = useState<OakMainTab>("fill");
+  const [mainTab, setMainTab] = useState<BashMainTab>("fill");
   const [connectionOpen, setConnectionOpen] = useState(false);
   const [qaStatus, setQaStatus] = useState({ busy: false, error: false });
   const [remembering, setRemembering] = useState(false);
@@ -142,7 +142,7 @@ export default function SidebarApp() {
 
   useEffect(() => {
     if (!fillErrorText) return;
-    pushOakNotice({
+    pushBashNotice({
       kind: "error",
       title: "Fill couldn’t finish",
       detail: fillErrorText,
@@ -162,7 +162,7 @@ export default function SidebarApp() {
   }, []);
 
   const openJobResumePreview = useCallback(
-    (job: OakWorkerJob) => {
+    (job: BashWorkerJob) => {
       const generationId = String(jobGenerates[job.id]?.generationId || "").trim();
       setPreview({
         title: job.title,
@@ -194,7 +194,7 @@ export default function SidebarApp() {
     [jobGenerates],
   );
 
-  const openCustomResumePreview = useCallback((tab: OakCustomTabBinding) => {
+  const openCustomResumePreview = useCallback((tab: BashCustomTabBinding) => {
     if (tab.resumeMode === "recommend") {
       const resumeId = String(tab.recommendedResumeId || "").trim();
       if (!resumeId) return;
@@ -244,7 +244,7 @@ export default function SidebarApp() {
   useEffect(() => {
     void (async () => {
       setApiUrl(await getAthensApiUrl());
-      setSession(await getOakSession());
+      setSession(await getBashSession());
     })();
   }, []);
 
@@ -269,7 +269,7 @@ export default function SidebarApp() {
 
     const attach = () => {
       if (cancelled) return;
-      port = chrome.runtime.connect({ name: OAK_SIDEBAR_PORT });
+      port = chrome.runtime.connect({ name: BASH_SIDEBAR_PORT });
       port.onMessage.addListener((message: { type?: string; connected?: boolean }) => {
         if (message?.type === MSG.SOCKET_STATUS) {
           setConnected(Boolean(message.connected));
@@ -357,13 +357,13 @@ export default function SidebarApp() {
       const res = await sendMessage<{
         ok?: boolean;
         error?: string;
-        session?: OakStoredSession;
+        session?: BashStoredSession;
       }>({
         type: MSG.AUTH_SIGNIN,
         apiUrl,
       });
       if (!res?.ok || !res.session) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t sign in",
           detail: res?.error || "Sign in to Joined in this browser first.",
@@ -371,13 +371,13 @@ export default function SidebarApp() {
         return;
       }
       setSession(res.session);
-      pushOakNotice({
+      pushBashNotice({
         kind: "success",
         title: "Signed in",
         detail: `Welcome back, ${res.session.displayName}.`,
       });
     } catch (err) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t sign in",
         detail: err instanceof Error ? err.message : String(err),
@@ -394,7 +394,7 @@ export default function SidebarApp() {
         type: MSG.AUTH_SIGNOUT,
       });
       if (!res?.ok) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t sign out",
           detail: res?.error || "Try again in a moment.",
@@ -403,9 +403,9 @@ export default function SidebarApp() {
       }
       setSession(null);
       setHelpOpen(false);
-      pushOakNotice({ kind: "success", title: "Signed out" });
+      pushBashNotice({ kind: "success", title: "Signed out" });
     } catch (err) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t sign out",
         detail: err instanceof Error ? err.message : String(err),
@@ -422,10 +422,10 @@ export default function SidebarApp() {
       const res = await sendMessage<{
         ok?: boolean;
         error?: string;
-        jobs?: OakWorkerJob[];
+        jobs?: BashWorkerJob[];
       }>({ type: MSG.LIST_WORKER_JOBS });
       if (!res?.ok) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t load jobs",
           detail: res?.error || "Refresh and try again.",
@@ -436,7 +436,7 @@ export default function SidebarApp() {
       setWorkerJobs(Array.isArray(res.jobs) ? res.jobs : []);
     } catch (err) {
       setWorkerJobs([]);
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t load jobs",
         detail: err instanceof Error ? err.message : String(err),
@@ -458,7 +458,7 @@ export default function SidebarApp() {
   }, [session, fetchWorkerJobs]);
 
   const openWorkerJob = useCallback(
-    async (job: OakWorkerJob) => {
+    async (job: BashWorkerJob) => {
       setOpeningJobId(job.id);
       try {
         const res = await sendMessage<{
@@ -478,7 +478,7 @@ export default function SidebarApp() {
           company: job.company,
         });
         if (!res?.ok) {
-          pushOakNotice({
+          pushBashNotice({
             kind: "error",
             title: "Couldn’t open job",
             detail: res?.error || "This job has no apply URL.",
@@ -486,13 +486,13 @@ export default function SidebarApp() {
           return;
         }
         if (res.reused) return;
-        pushOakNotice({
+        pushBashNotice({
           kind: "success",
           title: "Opened apply page",
           detail: `${job.company} — ${job.title}`,
         });
       } catch (err) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t open job",
           detail: err instanceof Error ? err.message : String(err),
@@ -505,7 +505,7 @@ export default function SidebarApp() {
   );
 
   const markJobApplied = useCallback(
-    async (job: OakWorkerJob) => {
+    async (job: BashWorkerJob) => {
       setMarkingJobId(job.id);
       setWorkerJobs((prev) => prev.filter((row) => row.id !== job.id));
       const attachedTabId = attachments[job.id]?.tabId;
@@ -520,7 +520,7 @@ export default function SidebarApp() {
         if (!res?.ok) {
           throw new Error(res?.error || "Failed to mark as applied");
         }
-        pushOakNotice({
+        pushBashNotice({
           kind: "success",
           title: "Marked applied",
           detail: `${job.company} — ${job.title}`,
@@ -530,7 +530,7 @@ export default function SidebarApp() {
           if (prev.some((row) => row.id === job.id)) return prev;
           return [job, ...prev];
         });
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t mark applied",
           detail: err instanceof Error ? err.message : String(err),
@@ -547,7 +547,7 @@ export default function SidebarApp() {
       const tabId = activeTabId;
       if (tabWorkBusy || tabId == null) return;
       if (source === "custom" && !customTab) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "info",
           title: "Remember this tab first",
           detail: "Custom Fill only runs on a remembered tab.",
@@ -566,9 +566,9 @@ export default function SidebarApp() {
           if (/sign in/i.test(err)) {
             setTabProgress(tabId, {
               phase: "idle",
-              message: "Sign in to Athens to run Oak",
+              message: "Sign in to Athens to run Bash",
             });
-            pushOakNotice({
+            pushBashNotice({
               kind: "error",
               title: "Sign in required",
               detail: "Sign in to run Fill.",
@@ -605,16 +605,16 @@ export default function SidebarApp() {
         resumeMode: customResumeMode,
       });
       if (!res?.ok) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t remember tab",
           detail: res?.error || "Try again on this page.",
         });
         return;
       }
-      pushOakNotice({ kind: "success", title: "Tab remembered" });
+      pushBashNotice({ kind: "success", title: "Tab remembered" });
     } catch (err) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t remember tab",
         detail: err instanceof Error ? err.message : String(err),
@@ -632,14 +632,14 @@ export default function SidebarApp() {
         tabId,
       });
       if (!res?.ok) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t forget tab",
           detail: res?.error || "Try again.",
         });
       }
     } catch (err) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t forget tab",
         detail: err instanceof Error ? err.message : String(err),
@@ -654,14 +654,14 @@ export default function SidebarApp() {
         tabId,
       });
       if (!res?.ok) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t switch tab",
           detail: res?.error || "That tab is no longer open.",
         });
       }
     } catch (err) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t switch tab",
         detail: err instanceof Error ? err.message : String(err),
@@ -670,10 +670,10 @@ export default function SidebarApp() {
   }, []);
 
   const startJobWork = useCallback(
-    async (mode: CustomResumeMode, opts: { continue?: boolean; job?: OakWorkerJob } = {}) => {
+    async (mode: CustomResumeMode, opts: { continue?: boolean; job?: BashWorkerJob } = {}) => {
       const job = opts.job ?? workerJobs.find((row) => row.id === tabJob?.jobId) ?? null;
       if (!job) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "info",
           title: "Open a Worker pool job first",
           detail: "Fill Generate uses the stored JD on that list item.",
@@ -690,14 +690,14 @@ export default function SidebarApp() {
           jobDescription: job.jobDescription,
         });
         if (!res?.ok) {
-          pushOakNotice({
+          pushBashNotice({
             kind: "error",
             title: mode === "recommend" ? "Couldn’t recommend" : "Couldn’t generate",
             detail: res?.error || "Try again.",
           });
         }
       } catch (err) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: mode === "recommend" ? "Couldn’t recommend" : "Couldn’t generate",
           detail: err instanceof Error ? err.message : String(err),
@@ -710,7 +710,7 @@ export default function SidebarApp() {
   const startCustomWork = useCallback(
     async (
       mode: CustomResumeMode,
-      opts: { continue?: boolean; tab?: OakCustomTabBinding } = {},
+      opts: { continue?: boolean; tab?: BashCustomTabBinding } = {},
     ) => {
       const tabId = opts.tab?.tabId ?? activeTabId;
       if (tabId == null) return;
@@ -729,7 +729,7 @@ export default function SidebarApp() {
             resumeMode: mode,
           });
           if (!remembered?.ok) {
-            pushOakNotice({
+            pushBashNotice({
               kind: "error",
               title: mode === "recommend" ? "Couldn’t recommend" : "Couldn’t generate",
               detail: remembered?.error || "Try again on this page.",
@@ -745,14 +745,14 @@ export default function SidebarApp() {
           continue: Boolean(opts.continue),
         });
         if (!res?.ok) {
-          pushOakNotice({
+          pushBashNotice({
             kind: "error",
             title: mode === "recommend" ? "Couldn’t recommend" : "Couldn’t generate",
             detail: res?.error || "Try again on this page.",
           });
         }
       } catch (err) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: mode === "recommend" ? "Couldn’t recommend" : "Couldn’t generate",
           detail: err instanceof Error ? err.message : String(err),
@@ -937,14 +937,14 @@ export default function SidebarApp() {
         <div className="sidebar-chrome">
           <section className="welcome">
             <div className="brand-bar">
-              <OakFaceView
+              <BashFaceView
                 className="brand-logo"
                 mode={companionMode}
-                size={OAK_FACE_BRAND_PX}
+                size={BASH_FACE_BRAND_PX}
                 live
-                label="Oak"
+                label="Bash"
               />
-              <h2>Oak</h2>
+              <h2>Bash</h2>
               {session ? (
                 <>
                   <p className="brand-user">{session.displayName}</p>
@@ -960,10 +960,10 @@ export default function SidebarApp() {
                       }
                       aria-label={`${busyTotal} working`}
                     >
-                      <OakFaceView
+                      <BashFaceView
                         className="brand-workers-face"
                         mode={workersMode}
-                        size={OAK_FACE_BADGE_PX}
+                        size={BASH_FACE_BADGE_PX}
                         live={busyTotal > 0}
                         label="Workers"
                       />
@@ -973,8 +973,8 @@ export default function SidebarApp() {
                       type="button"
                       className={`brand-icon-btn${helpOpen ? " is-open" : ""}`}
                       onClick={() => setHelpOpen((open) => !open)}
-                      title={helpOpen ? "Close Oak Face guide" : "Oak Face guide"}
-                      aria-label={helpOpen ? "Close Oak Face guide" : "Oak Face guide"}
+                      title={helpOpen ? "Close Bash Face guide" : "Bash Face guide"}
+                      aria-label={helpOpen ? "Close Bash Face guide" : "Bash Face guide"}
                       aria-pressed={helpOpen}
                     >
                       <HelpIcon />
@@ -999,7 +999,7 @@ export default function SidebarApp() {
             <section className="connection">
               <div className="auth-form">
                 <p className="auth-hint">
-                  Oak uses your Joined account. Sign in to Joined in this browser, then continue.
+                  Bash uses your Joined account. Sign in to Joined in this browser, then continue.
                 </p>
                 <button
                   type="button"
@@ -1022,10 +1022,10 @@ export default function SidebarApp() {
               {session ? <SidebarMainTabs value={mainTab} onChange={setMainTab} /> : <h3>Fill</h3>}
               {session ? (
                 <div
-                  id="oak-panel-qa"
+                  id="bash-panel-qa"
                   className="sidebar-tab-panel"
                   role="tabpanel"
-                  aria-labelledby="oak-tab-qa"
+                  aria-labelledby="bash-tab-qa"
                   hidden={mainTab !== "qa"}
                 >
                   <QaPanel
@@ -1050,10 +1050,10 @@ export default function SidebarApp() {
 
               {session ? (
                 <div
-                  id="oak-panel-custom"
+                  id="bash-panel-custom"
                   className="sidebar-tab-panel"
                   role="tabpanel"
-                  aria-labelledby="oak-tab-custom"
+                  aria-labelledby="bash-tab-custom"
                   hidden={mainTab !== "custom"}
                 >
                   <button
@@ -1101,9 +1101,9 @@ export default function SidebarApp() {
               <div
                 className="sidebar-list-slot"
                 hidden={mainTab !== "fill"}
-                id="oak-panel-fill"
+                id="bash-panel-fill"
                 role="tabpanel"
-                aria-labelledby="oak-tab-fill"
+                aria-labelledby="bash-tab-fill"
               >
                 <WorkerPoolList
                   jobs={workerJobs}
@@ -1284,17 +1284,17 @@ export default function SidebarApp() {
 
       <footer className={`status-bar phase-${progress.phase}`}>
         <details
-          className="oak-connection-footer"
+          className="bash-connection-footer"
           onToggle={(event) => setConnectionOpen((event.currentTarget as HTMLDetailsElement).open)}
         >
-          <summary className="oak-connection-summary">
-            <span className={`oak-settings-dot ${connected ? "on" : "off"}`} aria-hidden="true" />
-            <span className="oak-connection-title">Connection</span>
-            <span className="oak-connection-state">{footerStatus}</span>
+          <summary className="bash-connection-summary">
+            <span className={`bash-settings-dot ${connected ? "on" : "off"}`} aria-hidden="true" />
+            <span className="bash-connection-title">Connection</span>
+            <span className="bash-connection-state">{footerStatus}</span>
           </summary>
-          <div className="oak-connection-body">
+          <div className="bash-connection-body">
             <label className="field">
-              <span>Oak API URL</span>
+              <span>Bash API URL</span>
               <input
                 value={apiUrl}
                 onChange={(e) => {

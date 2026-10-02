@@ -40,30 +40,30 @@ function listFileInputs(doc: Document = document): HTMLInputElement[] {
   );
 }
 
-/** Only treat another file input as a remount of THIS control — never a different oak-id field. */
+/** Only treat another file input as a remount of THIS control — never a different bash-id field. */
 function findSuccessorInput(
   original: HTMLInputElement,
   target: HTMLInputElement,
-  oakId: string | null,
+  bashId: string | null,
   doc: Document,
 ): HTMLInputElement | null {
   const connected = listFileInputs(doc);
-  const sameOak = oakId
-    ? connected.find((node) => node.getAttribute("data-oak-id") === oakId)
+  const sameBash = bashId
+    ? connected.find((node) => node.getAttribute("data-bash-id") === bashId)
     : null;
-  if (sameOak) return sameOak;
+  if (sameBash) return sameBash;
 
   const form = target.form || original.form;
   const pool = (form ? connected.filter((node) => node.form === form) : connected).filter(
     (node) => {
-      const id = node.getAttribute("data-oak-id");
-      // A different stamped oak id is a different field (e.g. cover letter vs resume).
-      if (id && oakId && id !== oakId) return false;
+      const id = node.getAttribute("data-bash-id");
+      // A different stamped bash id is a different field (e.g. cover letter vs resume).
+      if (id && bashId && id !== bashId) return false;
       return true;
     },
   );
 
-  const unstamped = pool.filter((node) => !node.getAttribute("data-oak-id"));
+  const unstamped = pool.filter((node) => !node.getAttribute("data-bash-id"));
   if (original.name) {
     const byName = unstamped.find((node) => node.name === original.name);
     if (byName) return byName;
@@ -71,7 +71,7 @@ function findSuccessorInput(
 
   return (
     unstamped.find((node) => node !== target) ||
-    pool.find((node) => node !== target && !node.getAttribute("data-oak-id")) ||
+    pool.find((node) => node !== target && !node.getAttribute("data-bash-id")) ||
     null
   );
 }
@@ -79,15 +79,15 @@ function findSuccessorInput(
 async function waitForUploadEvidence(
   doc: Document,
   fileName: string,
-  oakId: string | null,
+  bashId: string | null,
   maxMs = 4000,
 ): Promise<boolean> {
   const started = Date.now();
   while (Date.now() - started < maxMs) {
     if (pageMentionsFilename(doc, fileName)) return true;
 
-    if (oakId) {
-      const el = resolveElementByNodeId(Number(oakId));
+    if (bashId) {
+      const el = resolveElementByNodeId(Number(bashId));
       if (el instanceof HTMLInputElement && el.type === "file" && (el.files?.length ?? 0) > 0) {
         return true;
       }
@@ -97,7 +97,7 @@ async function waitForUploadEvidence(
       Array.from(node.files ?? []).some((f) => f.name === fileName),
     );
     if (withFile) {
-      if (oakId) withFile.setAttribute("data-oak-id", oakId);
+      if (bashId) withFile.setAttribute("data-bash-id", bashId);
       return true;
     }
 
@@ -109,7 +109,7 @@ async function waitForUploadEvidence(
 async function persistUploadAcrossRemount(
   original: HTMLInputElement,
   fileObj: File,
-  oakId: string | null,
+  bashId: string | null,
 ): Promise<{ names: string[]; input: HTMLInputElement }> {
   const doc = original.ownerDocument || document;
   let target = original;
@@ -120,21 +120,21 @@ async function persistUploadAcrossRemount(
     await waitMs(150);
 
     if (target.isConnected && (target.files?.length ?? 0) > 0) {
-      if (oakId) target.setAttribute("data-oak-id", oakId);
-      rememberUploadedFile(oakId, fileName);
+      if (bashId) target.setAttribute("data-bash-id", bashId);
+      rememberUploadedFile(bashId, fileName);
       return { names: Array.from(target.files ?? []).map((f) => f.name), input: target };
     }
 
     if (pageMentionsFilename(doc, fileName)) {
-      rememberUploadedFile(oakId, fileName);
+      rememberUploadedFile(bashId, fileName);
       return { names: [fileName], input: target };
     }
 
-    const successor = findSuccessorInput(original, target, oakId, doc);
+    const successor = findSuccessorInput(original, target, bashId, doc);
 
     if (successor && (successor.files?.length ?? 0) > 0) {
-      if (oakId) successor.setAttribute("data-oak-id", oakId);
-      rememberUploadedFile(oakId, fileName);
+      if (bashId) successor.setAttribute("data-bash-id", bashId);
+      rememberUploadedFile(bashId, fileName);
       return {
         names: Array.from(successor.files ?? []).map((f) => f.name),
         input: successor,
@@ -143,7 +143,7 @@ async function persistUploadAcrossRemount(
 
     if (successor && successor !== target) {
       // Replacement of THIS control only — re-apply once onto unstamped/same-id successor.
-      if (oakId) successor.setAttribute("data-oak-id", oakId);
+      if (bashId) successor.setAttribute("data-bash-id", bashId);
       target = successor;
       applyFiles(target, fileObj);
       continue;
@@ -153,11 +153,11 @@ async function persistUploadAcrossRemount(
     break;
   }
 
-  const evidenced = await waitForUploadEvidence(doc, fileName, oakId, 4000);
+  const evidenced = await waitForUploadEvidence(doc, fileName, bashId, 4000);
 
   if (evidenced) {
-    rememberUploadedFile(oakId, fileName);
-    const resolved = oakId ? resolveElementByNodeId(Number(oakId)) : null;
+    rememberUploadedFile(bashId, fileName);
+    const resolved = bashId ? resolveElementByNodeId(Number(bashId)) : null;
     const input =
       resolved instanceof HTMLInputElement
         ? resolved
@@ -175,14 +175,14 @@ export async function uploadFileToElement(el: Element, file: RuntimeAttachedFile
     throw new Error(`Upload target is not a file input (got <${el.tagName.toLowerCase()}>)`);
   }
 
-  const oakId = el.getAttribute("data-oak-id");
+  const bashId = el.getAttribute("data-bash-id");
   const fileObj = buildFile(file);
-  const { names } = await persistUploadAcrossRemount(el, fileObj, oakId);
+  const { names } = await persistUploadAcrossRemount(el, fileObj, bashId);
 
   if (!names.length) {
     throw new Error("File was not attached to input");
   }
-  rememberUploadedFile(oakId, names[0]);
+  rememberUploadedFile(bashId, names[0]);
   await waitForUploadComplete(el.ownerDocument || document);
   return names.join(", ");
 }

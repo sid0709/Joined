@@ -3,7 +3,7 @@ description: Production coding standards — no hardcoding, modular structure, s
 alwaysApply: true
 ---
 
-# Oak Production Code Standards
+# Bash Production Code Standards
 
 Write production-ready code only. Do **not** add tests, test files, test scripts, or test-only refactors unless the user explicitly asks.
 

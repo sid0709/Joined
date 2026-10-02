@@ -5,25 +5,25 @@ import {
 } from "../pipeline/ai-client";
 import { getJobGenerate } from "../tab-job-generate-session";
 import { triggerResumeDownload } from "./download-resume";
-import { pushOakNotice } from "./oak-notice";
-import type { OakWorkerJob } from "../worker-job";
+import { pushBashNotice } from "./bash-notice";
+import type { BashWorkerJob } from "../worker-job";
 
-export function resumeLabel(job: OakWorkerJob): string | null {
+export function resumeLabel(job: BashWorkerJob): string | null {
   if (job.generatedResume) return "Generated";
   if (job.recommendedResumeStack) return job.recommendedResumeStack;
   if (job.recommendedResumeId) return "assigned";
   return null;
 }
 
-export function hasAssignedResume(job: OakWorkerJob): boolean {
+export function hasAssignedResume(job: BashWorkerJob): boolean {
   return Boolean(resumeLabel(job));
 }
 
-export function resumeMetaText(job: OakWorkerJob): string {
+export function resumeMetaText(job: BashWorkerJob): string {
   return resumeLabel(job) ?? "No resume assigned";
 }
 
-export async function downloadJobResume(job: OakWorkerJob): Promise<void> {
+export async function downloadJobResume(job: BashWorkerJob): Promise<void> {
   try {
     const gen = await getJobGenerate(job.id);
     const generationId = String(gen?.generationId || "").trim();
@@ -34,7 +34,7 @@ export async function downloadJobResume(job: OakWorkerJob): Promise<void> {
         ? await fetchCustomLibraryResume(libraryId)
         : await fetchRecommendedResume(job.id);
     if (!file?.base64 || !file.name) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t download résumé",
         detail:
@@ -46,7 +46,7 @@ export async function downloadJobResume(job: OakWorkerJob): Promise<void> {
     }
     triggerResumeDownload(file);
   } catch (err) {
-    pushOakNotice({
+    pushBashNotice({
       kind: "error",
       title: "Couldn’t download résumé",
       detail: err instanceof Error ? err.message : String(err),

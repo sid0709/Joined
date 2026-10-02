@@ -1,4 +1,1 @@
-export {
-  collectForbiddenIndexes,
-  targetsForbiddenIndex,
-} from "../../../shared/plan-runner/forbidden";
+export { collectForbiddenIndexes, targetsForbiddenIndex } from "@bash/shared/plan-runner/forbidden";

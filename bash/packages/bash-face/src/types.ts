@@ -1,4 +1,4 @@
-export const OAK_FACE_MODES = [
+export const BASH_FACE_MODES = [
   "waiting",
   "thinking",
   "working",
@@ -8,16 +8,16 @@ export const OAK_FACE_MODES = [
   "sad",
 ] as const;
 
-export type OakFaceMode = (typeof OAK_FACE_MODES)[number];
+export type BashFaceMode = (typeof BASH_FACE_MODES)[number];
 
-export interface OakFaceHandle {
-  setMode(name: OakFaceMode): void;
+export interface BashFaceHandle {
+  setMode(name: BashFaceMode): void;
   /** Stop the rAF loop; keep the last painted pose. */
   setPaused(paused: boolean): void;
   destroy(): void;
 }
 
-export interface OakFaceMountOptions {
+export interface BashFaceMountOptions {
   /** CSS width of the SVG. Height follows the square viewBox. */
   size?: number | string;
   /** Skip saccades, breath, and other additives. Palettes still change. */

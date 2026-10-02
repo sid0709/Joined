@@ -1,7 +1,8 @@
-// Package httpapi is Oak's HTTP API under /api/oak. Oak has no accounts of its
-// own: it signs in with the Joined session that joined-frontend and joined-backend
-// share, and reads the applicant's profile from the same database.
-package httpapi
+// Package bashapi is Bash's HTTP API: every route and the Socket.IO gateway live
+// under Prefix, which backend-core's server hands to this package. Bash has no
+// accounts of its own: it signs in with the Joined session that joined-frontend
+// and joined-backend share, and reads the applicant's profile from the same database.
+package bashapi
 
 import (
 	"context"
@@ -12,14 +13,17 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/bash"
+	"github.com/sid0709/OpenSeat/backend-core/bashapi/gateway"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/bash/backend/internal/gateway"
-	"github.com/sid0709/OpenSeat/bash/backend/internal/oak"
 )
 
 const (
+	// Prefix is the path every Bash route starts with: api.joinedhq.com/bash/...
+	Prefix = "/bash"
+
 	// DefaultSessionCookie is the cookie joined-frontend keeps the Joined session token in.
 	DefaultSessionCookie = "joined_session"
 
@@ -32,7 +36,7 @@ type Sessions interface {
 	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
 }
 
-// People is the job hunter's workspace Oak reads and writes. *candidate.Store is the real one.
+// People is the job hunter's workspace Bash reads and writes. *candidate.Store is the real one.
 type People interface {
 	GetProfile(ctx context.Context, userID string, now time.Time) (candidate.Profile, error)
 	SavedJobIDs(ctx context.Context, userID string) ([]string, error)
@@ -44,60 +48,58 @@ type Server struct {
 	accounts Sessions
 	people   People
 	listings *jobs.Store
-	oak      *oak.Service
+	bash     *bash.Service
 	files    RuntimeFile
 	cookie   string
 }
 
-// Options are the HTTP server's settings.
+// Options are the Bash API's settings. CORS is the server's: see backend-core/cmd/server.
 type Options struct {
-	// Origins are the browser origins allowed to call the API (the UI board).
-	Origins []string
 	// SessionCookie is the Joined session cookie's name.
 	SessionCookie string
 	// Runtime is the file the extension attaches when no résumé is available.
 	Runtime RuntimeFile
 }
 
-func New(accounts Sessions, people People, listings *jobs.Store, brain *oak.Service, opts Options) (http.Handler, *gateway.Gateway) {
-	s := &Server{accounts: accounts, people: people, listings: listings, oak: brain, files: opts.Runtime, cookie: opts.SessionCookie}
+func New(accounts Sessions, people People, listings *jobs.Store, brain *bash.Service, opts Options) (http.Handler, *gateway.Gateway) {
+	s := &Server{accounts: accounts, people: people, listings: listings, bash: brain, files: opts.Runtime, cookie: opts.SessionCookie}
 	if s.cookie == "" {
 		s.cookie = DefaultSessionCookie
 	}
 	gw := gateway.New(s.authenticateSocket)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/oak/health", s.health)
-	mux.HandleFunc("GET /api/oak/auth/me", s.me)
-	mux.HandleFunc("POST /api/oak/auth/signout", s.signOut)
+	mux.HandleFunc("GET /bash/health", s.health)
+	mux.HandleFunc("GET /bash/auth/me", s.me)
+	mux.HandleFunc("POST /bash/auth/signout", s.signOut)
 
-	mux.HandleFunc("POST /api/oak/ai-analyze", s.aiAnalyze)
-	mux.HandleFunc("POST /api/oak/match-option", s.matchOption)
-	mux.HandleFunc("POST /api/oak/qa", s.qa)
-	mux.HandleFunc("GET /api/oak/runtime-file", s.runtimeFile)
+	mux.HandleFunc("POST /bash/ai-analyze", s.aiAnalyze)
+	mux.HandleFunc("POST /bash/match-option", s.matchOption)
+	mux.HandleFunc("POST /bash/qa", s.qa)
+	mux.HandleFunc("GET /bash/runtime-file", s.runtimeFile)
 
-	mux.HandleFunc("GET /api/oak/jobs", s.listJobs)
-	mux.HandleFunc("GET /api/oak/jobs/{jobId}", s.getJob)
-	mux.HandleFunc("POST /api/oak/jobs/{jobId}/generate", s.generateForJob)
-	mux.HandleFunc("POST /api/oak/jobs/{jobId}/mark-applied", s.markApplied)
-	mux.HandleFunc("GET /api/oak/jobs/{jobId}/resume-preview", s.emptyPreview)
-	mux.HandleFunc("GET /api/oak/jobs/{jobId}/recommended-resume", s.noJobResume)
+	mux.HandleFunc("GET /bash/jobs", s.listJobs)
+	mux.HandleFunc("GET /bash/jobs/{jobId}", s.getJob)
+	mux.HandleFunc("POST /bash/jobs/{jobId}/generate", s.generateForJob)
+	mux.HandleFunc("POST /bash/jobs/{jobId}/mark-applied", s.markApplied)
+	mux.HandleFunc("GET /bash/jobs/{jobId}/resume-preview", s.emptyPreview)
+	mux.HandleFunc("GET /bash/jobs/{jobId}/recommended-resume", s.noJobResume)
 
-	mux.HandleFunc("POST /api/oak/custom/extract-jd", s.extractJD)
-	mux.HandleFunc("POST /api/oak/custom/analyze-meta", s.analyzeMeta)
-	mux.HandleFunc("POST /api/oak/custom/generate", s.noGenerate)
-	mux.HandleFunc("POST /api/oak/custom/generate/{inputId}/continue", s.noContinue)
-	mux.HandleFunc("GET /api/oak/custom/generate/{inputId}", s.noPoll)
-	mux.HandleFunc("POST /api/oak/custom/recommend", s.noRecommend)
-	mux.HandleFunc("GET /api/oak/custom/library-resumes/{resumeId}/preview", s.emptyPreview)
-	mux.HandleFunc("GET /api/oak/custom/library-resumes/{resumeId}", s.noLibraryResume)
-	mux.HandleFunc("GET /api/oak/custom/resumes/{generationId}/preview", s.emptyPreview)
-	mux.HandleFunc("GET /api/oak/custom/resumes/{generationId}", s.noGeneratedResume)
+	mux.HandleFunc("POST /bash/custom/extract-jd", s.extractJD)
+	mux.HandleFunc("POST /bash/custom/analyze-meta", s.analyzeMeta)
+	mux.HandleFunc("POST /bash/custom/generate", s.noGenerate)
+	mux.HandleFunc("POST /bash/custom/generate/{inputId}/continue", s.noContinue)
+	mux.HandleFunc("GET /bash/custom/generate/{inputId}", s.noPoll)
+	mux.HandleFunc("POST /bash/custom/recommend", s.noRecommend)
+	mux.HandleFunc("GET /bash/custom/library-resumes/{resumeId}/preview", s.emptyPreview)
+	mux.HandleFunc("GET /bash/custom/library-resumes/{resumeId}", s.noLibraryResume)
+	mux.HandleFunc("GET /bash/custom/resumes/{generationId}/preview", s.emptyPreview)
+	mux.HandleFunc("GET /bash/custom/resumes/{generationId}", s.noGeneratedResume)
 
 	socket := gw.Handler()
 	mux.Handle(gateway.Path, socket)
 	mux.Handle(gateway.Path+"/", socket)
-	return httpkit.CORS(opts.Origins, mux), gw
+	return mux, gw
 }
 
 // token is the Joined session token: a bearer header from the extension, or the
@@ -120,7 +122,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request) (auth.Session, 
 		return auth.Session{}, false
 	}
 	if err != nil {
-		slog.Error("oak session", "error", err)
+		slog.Error("bash session", "error", err)
 		writeError(w, http.StatusInternalServerError, "could not load the session")
 		return auth.Session{}, false
 	}

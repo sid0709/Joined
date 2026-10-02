@@ -1,4 +1,4 @@
-import { authHeaders, getAthensApiUrl } from "./auth/oak-auth";
+import { authHeaders, getAthensApiUrl } from "./auth/bash-auth";
 import type { ActionPlan, RuntimeAttachedFile } from "./plan-runner/types";
 
 export interface AiAnalyzePage {
@@ -32,7 +32,7 @@ export interface AiAnalyzeResponse {
 
 export async function requestAiAnalyze(payload: AiAnalyzeRequest): Promise<AiAnalyzeResponse> {
   const base = getAthensApiUrl();
-  const res = await fetch(`${base}/api/oak/ai-analyze`, {
+  const res = await fetch(`${base}/bash/ai-analyze`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -52,7 +52,7 @@ export async function requestAiAnalyze(payload: AiAnalyzeRequest): Promise<AiAna
 
 export async function fetchRuntimeFile(): Promise<RuntimeAttachedFile | null> {
   const base = getAthensApiUrl();
-  const res = await fetch(`${base}/api/oak/runtime-file`, {
+  const res = await fetch(`${base}/bash/runtime-file`, {
     headers: authHeaders(),
   });
   const data = (await res.json().catch(() => ({}))) as {
@@ -68,7 +68,7 @@ export async function fetchRuntimeFile(): Promise<RuntimeAttachedFile | null> {
   return data.file ?? null;
 }
 
-export type OakQaPage = {
+export type BashQaPage = {
   title?: string;
   url?: string;
   job?: {
@@ -80,12 +80,12 @@ export type OakQaPage = {
 
 export async function requestQaAnswer(input: {
   question: string;
-  page?: OakQaPage | null;
+  page?: BashQaPage | null;
 }): Promise<string> {
   const question = input.question.trim();
   if (!question) throw new Error("Enter a question");
   const base = getAthensApiUrl();
-  const res = await fetch(`${base}/api/oak/qa`, {
+  const res = await fetch(`${base}/bash/qa`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({

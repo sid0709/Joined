@@ -3,7 +3,7 @@ import {
   runActionPlan as runSharedActionPlan,
   type OrchestratorHooks,
   type RunPlanOptions as SharedRunPlanOptions,
-} from "../../../shared/plan-runner/orchestrator";
+} from "@bash/shared/plan-runner/orchestrator";
 import type {
   ActionPlan,
   PlanStepPayload,

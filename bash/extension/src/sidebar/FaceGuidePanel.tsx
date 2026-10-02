@@ -1,6 +1,6 @@
-import { OAK_FACE_HELP_PX } from "../oak-face/constants";
-import { OAK_FACE_GUIDE } from "../oak-face/guide";
-import { OakFaceView } from "../oak-face/OakFaceView";
+import { BASH_FACE_HELP_PX } from "../bash-face/constants";
+import { BASH_FACE_GUIDE } from "../bash-face/guide";
+import { BashFaceView } from "../bash-face/BashFaceView";
 
 type FaceGuidePanelProps = {
   thinking: number;
@@ -11,7 +11,7 @@ export function FaceGuidePanel({ thinking, working }: FaceGuidePanelProps) {
   const total = thinking + working;
 
   return (
-    <section className="face-guide" aria-label="Oak Face guide">
+    <section className="face-guide" aria-label="Bash Face guide">
       <p className="hint">Each pose the rabbit uses while Fill or Custom is in flight.</p>
       <div className="face-guide-stats">
         <div className="face-guide-stat">
@@ -28,12 +28,12 @@ export function FaceGuidePanel({ thinking, working }: FaceGuidePanelProps) {
         </div>
       </div>
       <ul className="face-guide-modes">
-        {OAK_FACE_GUIDE.map((row) => (
+        {BASH_FACE_GUIDE.map((row) => (
           <li key={row.mode} className="face-guide-mode">
-            <OakFaceView
+            <BashFaceView
               className="face-guide-face"
               mode={row.mode}
-              size={OAK_FACE_HELP_PX}
+              size={BASH_FACE_HELP_PX}
               live
               label={row.title}
             />

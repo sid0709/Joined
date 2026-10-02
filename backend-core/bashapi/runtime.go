@@ -1,4 +1,4 @@
-package httpapi
+package bashapi
 
 import (
 	"encoding/base64"
@@ -22,7 +22,7 @@ func (s *Server) runtimeFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.files.Path == "" {
-		writeError(w, http.StatusNotFound, "OAK_RUNTIME_FILE_PATH is not set")
+		writeError(w, http.StatusNotFound, "BASH_RUNTIME_FILE_PATH is not set")
 		return
 	}
 	data, err := os.ReadFile(s.files.Path)

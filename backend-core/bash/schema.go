@@ -1,4 +1,4 @@
-package oak
+package bash
 
 import (
 	"encoding/json"
@@ -35,7 +35,7 @@ func planActionSchema() map[string]any {
 func mustSchema(value map[string]any) json.RawMessage {
 	data, err := json.Marshal(value)
 	if err != nil {
-		panic("oak: schema: " + err.Error())
+		panic("bash: schema: " + err.Error())
 	}
 	return data
 }

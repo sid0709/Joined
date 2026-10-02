@@ -3,10 +3,10 @@ import {
   athensSocketOrigin,
   getAccessToken,
   getAthensApiUrl,
-  OAK_SOCKET_PATH,
-} from "./auth/oak-auth";
+  BASH_SOCKET_PATH,
+} from "./auth/bash-auth";
 
-export type OakSocketHandlers = {
+export type BashSocketHandlers = {
   onConnected: () => void;
   onDisconnected: () => void;
   onConnectError: (err: Error) => void;
@@ -19,15 +19,15 @@ let identity = "";
 let inFlight = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-export function getOakSocket(): Socket | null {
+export function getBashSocket(): Socket | null {
   return socket;
 }
 
-export function isOakSocketConnected(): boolean {
+export function isBashSocketConnected(): boolean {
   return Boolean(socket?.connected);
 }
 
-export async function connectOakSocket(handlers: OakSocketHandlers): Promise<void> {
+export async function connectBashSocket(handlers: BashSocketHandlers): Promise<void> {
   const token = await getAccessToken();
   const origin = athensSocketOrigin(await getAthensApiUrl());
   const nextIdentity = token ? `${origin}|${token}` : "";
@@ -50,9 +50,9 @@ export async function connectOakSocket(handlers: OakSocketHandlers): Promise<voi
   teardown();
 
   const next = io(origin, {
-    path: OAK_SOCKET_PATH,
+    path: BASH_SOCKET_PATH,
     auth: { token },
-    query: { type: "extension", name: "Oak Extension" },
+    query: { type: "extension", name: "Bash Extension" },
     transports: ["websocket", "polling"],
     upgrade: true,
     tryAllTransports: true,
@@ -81,17 +81,17 @@ export async function connectOakSocket(handlers: OakSocketHandlers): Promise<voi
   next.on("connect_error", (err) => {
     if (gen !== generation || socket !== next) return;
     inFlight = false;
-    // Websocket probes can 400 until host nginx upgrades /oak; polling may still be live.
+    // Websocket probes can 400 until host nginx upgrades /bash/socket.io; polling may still be live.
     if (next.connected) return;
     handlers.onConnectError(err instanceof Error ? err : new Error(String(err)));
   });
 }
 
-export function scheduleConnectOakSocket(handlers: OakSocketHandlers, delayMs = 200): void {
+export function scheduleConnectBashSocket(handlers: BashSocketHandlers, delayMs = 200): void {
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
-    void connectOakSocket(handlers);
+    void connectBashSocket(handlers);
   }, delayMs);
 }
 

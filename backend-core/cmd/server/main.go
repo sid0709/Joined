@@ -1,4 +1,6 @@
-// Command server runs Oak's API: the /api/oak routes and the /oak Socket.IO gateway.
+// Command server runs backend-core's own API, the one at api.joinedhq.com. Each
+// product it serves owns a path prefix: Bash's routes and Socket.IO gateway live
+// under /bash (see routes.go).
 package main
 
 import (
@@ -6,20 +8,20 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/sid0709/OpenSeat/backend-core/bash"
+	"github.com/sid0709/OpenSeat/backend-core/bashapi"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
-	"github.com/sid0709/OpenSeat/bash/backend/internal/httpapi"
-	"github.com/sid0709/OpenSeat/bash/backend/internal/oak"
 )
 
 const (
-	defaultHTTPAddr   = "127.0.0.1:8980"
+	defaultHTTPAddr   = "127.0.0.1:8083"
 	defaultRuntimeKey = "runtime_file"
 )
 
-// The UI board's dev origins. The extension is not a browser origin: it calls with host permissions.
+// Bash's UI board dev origins. The Bash extension is not a browser origin: it calls with host permissions.
 var defaultOrigins = []string{"http://127.0.0.1:5173", "http://localhost:5173"}
 
 func main() {
@@ -45,19 +47,19 @@ func main() {
 
 	model := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	if !model.Ready() {
-		slog.Warn("OPENAI_API_KEY is not set: Oak's AI routes will answer 503")
+		slog.Warn("OPENAI_API_KEY is not set: Bash's AI routes will answer 503")
 	}
-	handler, gateway := httpapi.New(p.Accounts, p.People, p.Jobs, oak.New(model), httpapi.Options{
-		Origins:       server.Origins,
-		SessionCookie: config.Env("JOINED_SESSION_COOKIE", httpapi.DefaultSessionCookie),
-		Runtime: httpapi.RuntimeFile{
-			Path: config.Env("OAK_RUNTIME_FILE_PATH", ""),
-			Key:  config.Env("OAK_RUNTIME_FILE_KEY", defaultRuntimeKey),
+	bashHandler, gateway := bashapi.New(p.Accounts, p.People, p.Jobs, bash.New(model), bashapi.Options{
+		SessionCookie: config.Env("JOINED_SESSION_COOKIE", bashapi.DefaultSessionCookie),
+		Runtime: bashapi.RuntimeFile{
+			Path: config.Env("BASH_RUNTIME_FILE_PATH", ""),
+			Key:  config.Env("BASH_RUNTIME_FILE_KEY", defaultRuntimeKey),
 		},
 	})
 	defer gateway.Close()
 
-	if err := httpkit.Serve("oak api", server.Addr, handler); err != nil {
+	handler := routes(server.Origins, httpkit.Health(p.Jobs), bashHandler)
+	if err := httpkit.Serve("core api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}

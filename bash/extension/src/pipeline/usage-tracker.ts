@@ -1,4 +1,4 @@
-import type { AiUsageSummary } from "../../../shared/ai-usage";
+import type { AiUsageSummary } from "@bash/shared/ai-usage";
 
 /** Per-tab usage buckets so parallel pipelines don't mix costs. */
 const activeByTab = new Map<number, AiUsageSummary>();

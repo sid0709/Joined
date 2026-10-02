@@ -1,47 +1,47 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "../../../shared/pipeline-types";
-import { canContinueGenerate, formatGenerateFailure } from "../../../shared/generate-checkpoint";
-import { flashOakFace } from "../oak-face/face-flash";
-import { resolveRowHold } from "../oak-face/director";
-import { useCompletionSmile } from "../oak-face/use-completion-smile";
+import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@bash/shared/pipeline-types";
+import { canContinueGenerate, formatGenerateFailure } from "@bash/shared/generate-checkpoint";
+import { flashBashFace } from "../bash-face/face-flash";
+import { resolveRowHold } from "../bash-face/director";
+import { useCompletionSmile } from "../bash-face/use-completion-smile";
 import type { JobAttachment } from "../tab-job-session";
-import { FACE_WINK_MS } from "../oak-face/constants";
+import { FACE_WINK_MS } from "../bash-face/constants";
 import { downloadJobResume, hasAssignedResume, resumeMetaText } from "./JobResumeActions";
 import { LoadMoreFooter } from "./LoadMoreFooter";
 import { SidebarListCard } from "./SidebarListCard";
 import { GenerateRunExtras } from "./GenerateRunExtras";
 import { useShownCount } from "./use-shown-count";
-import type { OakJobGenerateBinding } from "../tab-job-generate-session";
-import type { OakWorkerJob } from "../worker-job";
+import type { BashJobGenerateBinding } from "../tab-job-generate-session";
+import type { BashWorkerJob } from "../worker-job";
 
-export type { OakWorkerJob } from "../worker-job";
+export type { BashWorkerJob } from "../worker-job";
 
 const JOB_PAGE = 20;
 
 /** Assigned resumes first; original order preserved within each group. */
-function sortJobsAssignedFirst(jobs: OakWorkerJob[]): OakWorkerJob[] {
+function sortJobsAssignedFirst(jobs: BashWorkerJob[]): BashWorkerJob[] {
   return [...jobs].sort((a, b) => Number(hasAssignedResume(b)) - Number(hasAssignedResume(a)));
 }
 
 type WorkerPoolListProps = {
-  jobs: OakWorkerJob[];
+  jobs: BashWorkerJob[];
   loading: boolean;
   error: string | null;
   selectedJobId: string | null;
   attachments: Record<string, JobAttachment>;
   pipelines: Record<string, PipelineProgress>;
-  generates: Record<string, OakJobGenerateBinding>;
+  generates: Record<string, BashJobGenerateBinding>;
   openingJobId: string | null;
   markingJobId: string | null;
   listKey: number;
   listActive?: boolean;
   onRefresh: () => void;
-  onOpen: (job: OakWorkerJob) => void;
-  onPreviewResume: (job: OakWorkerJob) => void;
-  onMarkApplied: (job: OakWorkerJob) => void;
-  onContinueGenerate?: (job: OakWorkerJob) => void;
-  onRestartGenerate?: (job: OakWorkerJob) => void;
-  onViewJd?: (job: OakWorkerJob, jd: string) => void;
+  onOpen: (job: BashWorkerJob) => void;
+  onPreviewResume: (job: BashWorkerJob) => void;
+  onMarkApplied: (job: BashWorkerJob) => void;
+  onContinueGenerate?: (job: BashWorkerJob) => void;
+  onRestartGenerate?: (job: BashWorkerJob) => void;
+  onViewJd?: (job: BashWorkerJob, jd: string) => void;
 };
 
 function WorkerPoolListInner({
@@ -159,19 +159,19 @@ function WorkerJobCard({
   onRestartGenerate,
   onViewJd,
 }: {
-  job: OakWorkerJob;
+  job: BashWorkerJob;
   selected: boolean;
   attached: boolean;
   progress: PipelineProgress;
-  generate: OakJobGenerateBinding | null;
+  generate: BashJobGenerateBinding | null;
   opening: boolean;
   marking: boolean;
-  onOpen: (job: OakWorkerJob) => void;
-  onPreviewResume: (job: OakWorkerJob) => void;
-  onMarkApplied: (job: OakWorkerJob) => void;
-  onContinueGenerate?: (job: OakWorkerJob) => void;
-  onRestartGenerate?: (job: OakWorkerJob) => void;
-  onViewJd?: (job: OakWorkerJob, jd: string) => void;
+  onOpen: (job: BashWorkerJob) => void;
+  onPreviewResume: (job: BashWorkerJob) => void;
+  onMarkApplied: (job: BashWorkerJob) => void;
+  onContinueGenerate?: (job: BashWorkerJob) => void;
+  onRestartGenerate?: (job: BashWorkerJob) => void;
+  onViewJd?: (job: BashWorkerJob, jd: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [winkToken, setWinkToken] = useState(0);
@@ -285,7 +285,7 @@ function WorkerJobCard({
         disabled: opening || marking || generating || !ready,
         onClick: () => {
           setWinkToken((n) => n + 1);
-          flashOakFace({ mode: "wink", ms: FACE_WINK_MS });
+          flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
           onPreviewResume(job);
         },
       }}

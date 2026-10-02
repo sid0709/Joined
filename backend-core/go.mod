@@ -3,16 +3,33 @@ module github.com/sid0709/OpenSeat/backend-core
 go 1.26.4
 
 require (
+	github.com/zishang520/socket.io/servers/socket/v3 v3.0.6
+	github.com/zishang520/socket.io/v3 v3.0.6
 	go.mongodb.org/mongo-driver/v2 v2.9.1
-	golang.org/x/crypto v0.53.0
-	golang.org/x/sync v0.21.0
+	golang.org/x/sync v0.23.0
 )
 
 require (
-	github.com/klauspost/compress v1.19.2 // indirect
+	github.com/andybalholm/brotli v1.2.4 // indirect
+	github.com/dunglas/httpsfv v1.1.1 // indirect
+	github.com/gookit/color v1.6.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/klauspost/compress v1.20.0 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.62.0 // indirect
+	github.com/quic-go/webtransport-go v0.13.0 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.2.0 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
+	github.com/xo/terminfo v1.2.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	github.com/zishang520/socket.io/parsers/engine/v3 v3.0.6 // indirect
+	github.com/zishang520/socket.io/parsers/socket/v3 v3.0.6 // indirect
+	github.com/zishang520/socket.io/servers/engine/v3 v3.0.6 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 )

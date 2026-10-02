@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { OakFaceMode } from "@oak/face";
-import { OAK_FACE_BADGE_PX } from "./constants";
+import type { BashFaceMode } from "@bash/face";
+import { BASH_FACE_BADGE_PX } from "./constants";
 import { isLiveRowMode } from "./director";
-import { OakFaceView } from "./OakFaceView";
+import { BashFaceView } from "./BashFaceView";
 
-type OakFaceSlotProps = {
-  mode: OakFaceMode;
+type BashFaceSlotProps = {
+  mode: BashFaceMode;
   selected?: boolean;
   size?: number;
   label?: string;
@@ -13,13 +13,13 @@ type OakFaceSlotProps = {
   live?: boolean;
 };
 
-export function OakFaceSlot({
+export function BashFaceSlot({
   mode,
   selected = false,
-  size = OAK_FACE_BADGE_PX,
+  size = BASH_FACE_BADGE_PX,
   label,
   live: liveProp,
-}: OakFaceSlotProps) {
+}: BashFaceSlotProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const [onScreen, setOnScreen] = useState(true);
 
@@ -38,11 +38,11 @@ export function OakFaceSlot({
   return (
     <span
       ref={ref}
-      className="oak-face-slot"
+      className="bash-face-slot"
       style={{ width: size, height: size }}
       aria-hidden={false}
     >
-      <OakFaceView mode={mode} size={size} live={live} label={label} />
+      <BashFaceView mode={mode} size={size} live={live} label={label} />
     </span>
   );
 }

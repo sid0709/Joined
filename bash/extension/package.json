@@ -1,25 +1,26 @@
 {
-  "name": "oak-extension",
-  "version": "1.6.41",
+  "name": "bash-extension",
+  "version": "1.7.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "vite build --watch --mode development",
     "build": "tsc && vite build"
   },
   "dependencies": {
-    "@oak/face": "*",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "socket.io-client": "^4.8.1"
+    "@bash/face": "workspace:*",
+    "@bash/shared": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "socket.io-client": "catalog:"
   },
   "devDependencies": {
-    "@crxjs/vite-plugin": "^2.0.0-beta.28",
-    "@types/chrome": "^0.0.287",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "^5.7.2",
-    "vite": "^6.0.3"
+    "@crxjs/vite-plugin": "catalog:",
+    "@types/chrome": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
   }
 }

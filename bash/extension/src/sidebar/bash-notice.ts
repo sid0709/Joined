@@ -1,14 +1,14 @@
-import type { OakNoticeKind, OakNoticePayload } from "../types";
-import { flashFromNotice } from "../oak-face/face-flash";
+import type { BashNoticeKind, BashNoticePayload } from "../types";
+import { flashFromNotice } from "../bash-face/face-flash";
 
-export type OakNoticePhase = "in" | "out";
+export type BashNoticePhase = "in" | "out";
 
-export type OakNotice = OakNoticePayload & {
+export type BashNotice = BashNoticePayload & {
   id: string;
-  phase: OakNoticePhase;
+  phase: BashNoticePhase;
 };
 
-type PushFn = (notice: OakNoticePayload) => void;
+type PushFn = (notice: BashNoticePayload) => void;
 
 let pushImpl: PushFn | null = null;
 
@@ -21,18 +21,18 @@ const NOTICE_HOLD_MS = {
   error: 12000,
 } as const;
 
-export function bindOakNoticePush(fn: PushFn): () => void {
+export function bindBashNoticePush(fn: PushFn): () => void {
   pushImpl = fn;
   return () => {
     if (pushImpl === fn) pushImpl = null;
   };
 }
 
-export function pushOakNotice(notice: OakNoticePayload): void {
+export function pushBashNotice(notice: BashNoticePayload): void {
   pushImpl?.(notice);
   flashFromNotice(notice.kind, notice.title);
 }
 
-export function noticeKindDuration(kind: OakNoticeKind): number {
+export function noticeKindDuration(kind: BashNoticeKind): number {
   return NOTICE_HOLD_MS[kind];
 }

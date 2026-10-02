@@ -1,5 +1,5 @@
-import type { RunStepRecord, RuntimeAttachedFile } from "../../../shared/plan-runner/types";
-import type { PipelineProgress } from "../../../shared/pipeline-types";
+import type { RunStepRecord, RuntimeAttachedFile } from "@bash/shared/plan-runner/types";
+import type { PipelineProgress } from "@bash/shared/pipeline-types";
 
 export function buildResumeUploadProgress(args: {
   recommendedResume: RuntimeAttachedFile | null;

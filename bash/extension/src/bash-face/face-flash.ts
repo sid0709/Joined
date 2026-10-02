@@ -1,20 +1,20 @@
-import type { OakFaceMode } from "@oak/face";
+import type { BashFaceMode } from "@bash/face";
 import { FACE_SAD_PULSE_MS, FACE_SMILE_MS, FACE_WINK_MS } from "./constants";
 
-export type OakFaceFlash = {
-  mode: OakFaceMode;
+export type BashFaceFlash = {
+  mode: BashFaceMode;
   ms: number;
 };
 
-type Listener = (flash: OakFaceFlash) => void;
+type Listener = (flash: BashFaceFlash) => void;
 
 const listeners = new Set<Listener>();
 
-export function flashOakFace(flash: OakFaceFlash): void {
+export function flashBashFace(flash: BashFaceFlash): void {
   for (const fn of listeners) fn(flash);
 }
 
-export function subscribeOakFaceFlash(fn: Listener): () => void {
+export function subscribeBashFaceFlash(fn: Listener): () => void {
   listeners.add(fn);
   return () => {
     listeners.delete(fn);
@@ -23,20 +23,20 @@ export function subscribeOakFaceFlash(fn: Listener): () => void {
 
 export function flashFromNotice(kind: "error" | "success" | "info", title?: string): void {
   if (kind === "error") {
-    flashOakFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
+    flashBashFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
     return;
   }
   if (kind === "success" && title === "Connected") {
-    flashOakFace({ mode: "wink", ms: FACE_WINK_MS });
+    flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
     return;
   }
   if (kind === "success") {
-    flashOakFace({ mode: "smile", ms: FACE_SMILE_MS });
+    flashBashFace({ mode: "smile", ms: FACE_SMILE_MS });
     return;
   }
   if (title === "Remember this tab first") {
-    flashOakFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
+    flashBashFace({ mode: "sad", ms: FACE_SAD_PULSE_MS });
     return;
   }
-  flashOakFace({ mode: "wink", ms: FACE_WINK_MS });
+  flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
 }

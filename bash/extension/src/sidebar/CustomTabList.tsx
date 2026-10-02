@@ -1,19 +1,19 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { canContinueGenerate } from "../../../shared/generate-checkpoint";
-import { isFillPhaseBusy, type PipelineProgress } from "../../../shared/pipeline-types";
-import { FACE_WINK_MS } from "../oak-face/constants";
-import { resolveRowHold } from "../oak-face/director";
-import { flashOakFace } from "../oak-face/face-flash";
-import { useCompletionSmile } from "../oak-face/use-completion-smile";
+import { canContinueGenerate } from "@bash/shared/generate-checkpoint";
+import { isFillPhaseBusy, type PipelineProgress } from "@bash/shared/pipeline-types";
+import { FACE_WINK_MS } from "../bash-face/constants";
+import { resolveRowHold } from "../bash-face/director";
+import { flashBashFace } from "../bash-face/face-flash";
+import { useCompletionSmile } from "../bash-face/use-completion-smile";
 import { fetchCustomLibraryResume, fetchCustomResume } from "../pipeline/ai-client";
 import { customUiProgress } from "../pipeline/custom-generate-progress";
 import { customRecommendProgress } from "../pipeline/custom-recommend-progress";
-import { customTabHasResume, type OakCustomTabBinding } from "../tab-custom-session";
+import { customTabHasResume, type BashCustomTabBinding } from "../tab-custom-session";
 import type { TabPipelineMap } from "../tab-pipeline-session";
 import { customTabResumeLine } from "./custom-tab-resume";
 import { triggerResumeDownload } from "./download-resume";
 import { GenerateRunExtras } from "./GenerateRunExtras";
-import { pushOakNotice } from "./oak-notice";
+import { pushBashNotice } from "./bash-notice";
 import { SidebarListCard } from "./SidebarListCard";
 
 function hostOf(url: string): string {
@@ -25,16 +25,16 @@ function hostOf(url: string): string {
 }
 
 type CustomTabListProps = {
-  tabs: OakCustomTabBinding[];
+  tabs: BashCustomTabBinding[];
   pipelines: TabPipelineMap;
   activeTabId: number | null;
   listActive?: boolean;
   onFocus: (tabId: number) => void;
   onForget: (tabId: number) => void;
-  onPreview: (tab: OakCustomTabBinding) => void;
-  onContinueGenerate?: (tab: OakCustomTabBinding) => void;
-  onRestartGenerate?: (tab: OakCustomTabBinding) => void;
-  onViewJd?: (tab: OakCustomTabBinding, jd: string) => void;
+  onPreview: (tab: BashCustomTabBinding) => void;
+  onContinueGenerate?: (tab: BashCustomTabBinding) => void;
+  onRestartGenerate?: (tab: BashCustomTabBinding) => void;
+  onViewJd?: (tab: BashCustomTabBinding, jd: string) => void;
 };
 
 export function CustomTabList({
@@ -104,15 +104,15 @@ function CustomTabRow({
   onRestartGenerate,
   onViewJd,
 }: {
-  tab: OakCustomTabBinding;
+  tab: BashCustomTabBinding;
   progress?: PipelineProgress;
   selected: boolean;
   onFocus: () => void;
   onForget: () => void;
   onPreview: () => void;
-  onContinueGenerate?: (tab: OakCustomTabBinding) => void;
-  onRestartGenerate?: (tab: OakCustomTabBinding) => void;
-  onViewJd?: (tab: OakCustomTabBinding, jd: string) => void;
+  onContinueGenerate?: (tab: BashCustomTabBinding) => void;
+  onRestartGenerate?: (tab: BashCustomTabBinding) => void;
+  onViewJd?: (tab: BashCustomTabBinding, jd: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [winkToken, setWinkToken] = useState(0);
@@ -152,7 +152,7 @@ function CustomTabRow({
         ? await fetchCustomLibraryResume(String(tab.recommendedResumeId || ""))
         : await fetchCustomResume(String(tab.generationId || ""));
       if (!file?.base64 || !file.name) {
-        pushOakNotice({
+        pushBashNotice({
           kind: "error",
           title: "Couldn’t download résumé",
           detail: recommending
@@ -163,7 +163,7 @@ function CustomTabRow({
       }
       triggerResumeDownload(file);
     } catch (err) {
-      pushOakNotice({
+      pushBashNotice({
         kind: "error",
         title: "Couldn’t download résumé",
         detail: err instanceof Error ? err.message : String(err),
@@ -210,7 +210,7 @@ function CustomTabRow({
         disabled: !ready || busy,
         onClick: () => {
           setWinkToken((n) => n + 1);
-          flashOakFace({ mode: "wink", ms: FACE_WINK_MS });
+          flashBashFace({ mode: "wink", ms: FACE_WINK_MS });
           onPreview();
         },
       }}

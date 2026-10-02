@@ -2,9 +2,9 @@ import {
   IDLE_PIPELINE_PROGRESS,
   mergePipelineProgress,
   type PipelineProgress,
-} from "../../shared/pipeline-types";
+} from "@bash/shared/pipeline-types";
 
-export const TAB_PIPELINES_STORAGE_KEY = "oakTabPipelines";
+export const TAB_PIPELINES_STORAGE_KEY = "bashTabPipelines";
 
 export type TabPipelineMap = Record<string, PipelineProgress>;
 

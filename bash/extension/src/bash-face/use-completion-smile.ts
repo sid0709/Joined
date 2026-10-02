@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import type { OakFaceMode } from "@oak/face";
-import type { PipelinePhase } from "../../../shared/pipeline-types";
+import type { BashFaceMode } from "@bash/face";
+import type { PipelinePhase } from "@bash/shared/pipeline-types";
 import type { CustomGenerateStatus } from "../tab-custom-session";
 import { FACE_SMILE_MS, FACE_WINK_MS } from "./constants";
 import { mergeFaceShot } from "./director";
 
 /** Smile once when fill or generate completes. */
 export function useCompletionSmile(input: {
-  hold: OakFaceMode;
+  hold: BashFaceMode;
   fillPhase?: PipelinePhase | null;
   generateStatus?: CustomGenerateStatus | null;
   winkToken?: number;
-}): OakFaceMode {
-  const [shot, setShot] = useState<OakFaceMode | null>(null);
+}): BashFaceMode {
+  const [shot, setShot] = useState<BashFaceMode | null>(null);
   const prevFill = useRef(input.fillPhase);
   const prevGen = useRef(input.generateStatus);
   const prevWink = useRef(input.winkToken);

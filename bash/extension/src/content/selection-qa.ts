@@ -1,17 +1,17 @@
 import { MSG } from "../types";
-import { mount, type OakFaceHandle } from "@oak/face";
-import { FACE_SMILE_MS, FACE_WINK_MS, OAK_FACE_CHIP_PX } from "../oak-face/constants";
+import { mount, type BashFaceHandle } from "@bash/face";
+import { FACE_SMILE_MS, FACE_WINK_MS, BASH_FACE_CHIP_PX } from "../bash-face/constants";
 
 const MIN_SELECTION_CHARS = 8;
 const MAX_SELECTION_CHARS = 8000;
-const CHIP_SIZE_PX = OAK_FACE_CHIP_PX;
+const CHIP_SIZE_PX = BASH_FACE_CHIP_PX;
 const CHIP_OFFSET_PX = 8;
 const VIEWPORT_PAD_PX = 4;
 const POPOVER_WIDTH_PX = 280;
 const POPOVER_MAX_HEIGHT_PX = 240;
 const OVERLAY_Z_INDEX = 2_147_483_646;
 const COPIED_MS = 1500;
-const HOST_ID = "oak-selection-qa-host";
+const HOST_ID = "bash-selection-qa-host";
 
 /** Page overlay cannot use sidebar CSS variables; mirror tokens.md. */
 const COLOR = {
@@ -36,7 +36,7 @@ type OverlayState = {
   status: HTMLParagraphElement;
   answer: HTMLPreElement;
   copyBtn: HTMLButtonElement;
-  face: OakFaceHandle | null;
+  face: BashFaceHandle | null;
   question: string;
   popoverOpen: boolean;
   busy: boolean;
@@ -149,7 +149,7 @@ function ensureOverlay(): OverlayState {
 
   const host = document.createElement("div");
   host.id = HOST_ID;
-  host.setAttribute("data-oak-inject", "true");
+  host.setAttribute("data-bash-inject", "true");
   host.style.cssText = [
     "position:fixed",
     "top:0",
@@ -167,8 +167,8 @@ function ensureOverlay(): OverlayState {
   const chip = document.createElement("button");
   chip.type = "button";
   chip.className = "chip";
-  chip.title = "Ask Oak";
-  chip.setAttribute("aria-label", "Ask Oak about this selection");
+  chip.title = "Ask Bash";
+  chip.setAttribute("aria-label", "Ask Bash about this selection");
   const faceHost = document.createElement("span");
   faceHost.style.cssText = `display:flex;width:${CHIP_SIZE_PX}px;height:${CHIP_SIZE_PX}px;line-height:0;`;
   chip.append(faceHost);
@@ -179,11 +179,11 @@ function ensureOverlay(): OverlayState {
   const popover = document.createElement("div");
   popover.className = "popover";
   popover.setAttribute("role", "dialog");
-  popover.setAttribute("aria-label", "Oak Q&A");
+  popover.setAttribute("aria-label", "Bash Q&A");
 
   const title = document.createElement("p");
   title.className = "title";
-  title.textContent = "Oak";
+  title.textContent = "Bash";
 
   const status = document.createElement("p");
   status.className = "status";
@@ -369,7 +369,7 @@ function requestSelectionQa(
         },
         (res: { ok?: boolean; answer?: string; error?: string } | undefined) => {
           if (chrome.runtime.lastError) {
-            resolve({ ok: false, error: "Oak is unavailable on this page." });
+            resolve({ ok: false, error: "Bash is unavailable on this page." });
             return;
           }
           resolve({
@@ -380,7 +380,7 @@ function requestSelectionQa(
         },
       );
     } catch {
-      resolve({ ok: false, error: "Oak is unavailable on this page." });
+      resolve({ ok: false, error: "Bash is unavailable on this page." });
     }
   });
 }

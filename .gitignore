@@ -11,6 +11,3 @@ client_secret*.json
 *.pem
 production.env
 
-# Reference clones of other repositories; they are not part of this workspace.
-/AthensAI/
-/Oak/

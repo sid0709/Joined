@@ -1,5 +1,5 @@
-import { PAGE_TEXT_MAX_CHARS } from "../../../shared/page-text";
-import { formatAnalyzeTrees, type DomTreeNode } from "../../../shared/tree-export";
+import { PAGE_TEXT_MAX_CHARS } from "@bash/shared/page-text";
+import { formatAnalyzeTrees, type DomTreeNode } from "@bash/shared/tree-export";
 import { extractCustomJd } from "./ai-client";
 import { fetchDomFromTab } from "./run-pipeline";
 

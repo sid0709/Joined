@@ -77,7 +77,7 @@ function TreeNode({
       {hasChildren &&
         node.children.map((child, i) => (
           <TreeNode
-            key={`oak-node-${child.nodeId}`}
+            key={`bash-node-${child.nodeId}`}
             node={child}
             depth={depth + 1}
             isLast={i === node.children.length - 1}

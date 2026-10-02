@@ -1,14 +1,14 @@
-/** Remembers successful uploads by oak node id after the file input is remounted away. */
+/** Remembers successful uploads by bash node id after the file input is remounted away. */
 
-const uploadedByOakId = new Map<string, string>();
+const uploadedByBashId = new Map<string, string>();
 
-export function rememberUploadedFile(oakId: string | null | undefined, fileName: string): void {
-  if (!oakId || !fileName) return;
-  uploadedByOakId.set(String(oakId), fileName);
+export function rememberUploadedFile(bashId: string | null | undefined, fileName: string): void {
+  if (!bashId || !fileName) return;
+  uploadedByBashId.set(String(bashId), fileName);
 }
 
-export function getRememberedUpload(oakId: number | string): string | null {
-  return uploadedByOakId.get(String(oakId)) ?? null;
+export function getRememberedUpload(bashId: number | string): string | null {
+  return uploadedByBashId.get(String(bashId)) ?? null;
 }
 
 export function pageMentionsFilename(doc: Document, name: string): boolean {
