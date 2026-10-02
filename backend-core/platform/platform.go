@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sid0709/OpenSeat/backend-core/aisettings"
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/config"
@@ -29,12 +30,17 @@ type Platform struct {
 	Hiring   *employer.Store
 	Scouts   *scout.Store
 	Staff    *staff.Store
+	// AISettings holds the model settings staff save in the admin console.
+	AISettings *aisettings.Store
 }
 
 // Options are the parts of the platform only some services configure.
 type Options struct {
 	// Calendar connects job hunters' Google calendars. Nil leaves it unconfigured.
 	Calendar *candidate.Google
+	// SettingsKey is the base64 AES-256 key that seals secrets saved in the database
+	// (SETTINGS_ENCRYPTION_KEY). Blank leaves saving a secret unavailable.
+	SettingsKey string
 }
 
 // Open connects to the database, builds every store, and ensures their indexes.
@@ -42,6 +48,11 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 	client, err := database.Connect(ctx, db.MongoURI)
 	if err != nil {
 		return nil, fmt.Errorf("mongo: %w", err)
+	}
+	box, err := aisettings.NewBox(opts.SettingsKey)
+	if err != nil {
+		_ = client.Disconnect(ctx)
+		return nil, err
 	}
 	calendar := opts.Calendar
 	if calendar == nil {
@@ -65,6 +76,8 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		Hiring:   hiring,
 		Scouts:   scouts,
 		Staff:    moderation,
+
+		AISettings: aisettings.NewStore(client, db.DestDB, box),
 	}
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()

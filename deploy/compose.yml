@@ -46,6 +46,8 @@ services:
       DEST_DB: ${DEST_DB:-JoinedDB}
       CORS_ORIGINS: ${FRONTEND_ORIGIN}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Opens the API key staff save in the admin console. Same value as admin-backend.
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
 
   joined-frontend:
     <<: *app
@@ -92,6 +94,7 @@ services:
       CORS_ORIGINS: ${ADMIN_ORIGIN:-}
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       GOOGLE_CLIENT_ID: ${ADMIN_GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${ADMIN_GOOGLE_CLIENT_SECRET:-}
