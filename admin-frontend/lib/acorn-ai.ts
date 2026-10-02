@@ -1,4 +1,5 @@
 export const ACORN_AI_PATH = "/v1/admin/acorn-ai";
+export const ACORN_AI_MODELS_PATH = `${ACORN_AI_PATH}/models`;
 
 /** What GET /v1/admin/acorn-ai says about Acorn's model settings. The key itself never comes back. */
 export type AcornAISettings = {
@@ -16,6 +17,21 @@ export type AcornAISettings = {
   /** True when the API's OPENAI_API_KEY covers a missing saved key. */
   envKey: boolean;
 };
+
+/** GET /v1/admin/acorn-ai/models: the chat models the key can use, newest first. */
+export type AcornAIModels = {
+  models: string[];
+  /** Why the list is empty, when it is. */
+  reason?: string;
+};
+
+/**
+ * The dropdown's choices: the provider's live list, plus the default and the saved
+ * model so the one in use is always there, even before the list loads.
+ */
+export function modelOptions(settings: AcornAISettings, live: string[]) {
+  return [...new Set([...settings.models, ...live].filter(Boolean))];
+}
 
 export type AcornAISource = "saved" | "environment" | "none";
 

@@ -16,10 +16,13 @@ import {
 } from "@joined/design-system";
 import { adminSend } from "@/lib/api";
 import {
+  ACORN_AI_MODELS_PATH,
   ACORN_AI_PATH,
   acornAIChange,
   acornAISource,
   effectiveModel,
+  modelOptions,
+  type AcornAIModels,
   type AcornAISettings,
 } from "@/lib/acorn-ai";
 import { formatDateTime } from "@/lib/format";
@@ -35,6 +38,7 @@ const SOURCE_BADGE = {
 export function AcornAISettingsForm() {
   const toast = useToast();
   const { result, loading, error, reload } = useAdminQuery<AcornAISettings>(ACORN_AI_PATH);
+  const live = useAdminQuery<AcornAIModels>(ACORN_AI_MODELS_PATH);
   const [key, setKey] = useState("");
   // The dropdown shows the saved model until staff pick another.
   const [chosen, setChosen] = useState<string | null>(null);
@@ -49,6 +53,7 @@ export function AcornAISettingsForm() {
       setKey("");
       setChosen(null);
       reload();
+      live.reload();
       toast({ body: done });
     } catch (cause) {
       setFailure(cause instanceof Error ? cause.message : "Could not save the settings.");
@@ -104,11 +109,14 @@ export function AcornAISettingsForm() {
           <Selector
             label="Model"
             description={
-              result
-                ? `Default: ${result.defaultModel}. Used for every Acorn AI request.`
-                : undefined
+              live.result?.reason ||
+              (result
+                ? `Default: ${result.defaultModel}. Newest first, from your OpenAI account.`
+                : undefined)
             }
-            options={(result?.models ?? []).map((value) => ({ value, label: value }))}
+            options={(result ? modelOptions(result, live.result?.models ?? []) : []).map(
+              (value) => ({ value, label: value }),
+            )}
             value={model}
             onChange={setChosen}
             isDisabled={loading || !result}
