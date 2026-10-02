@@ -79,6 +79,9 @@ export type AcornAuthResult =
   { ok: true; session: AcornStoredSession } | { ok: false; error: string };
 
 export const JOINED_SIGN_IN_REQUIRED = "Sign in to Joined in this browser first, then try again.";
+/** The Joined cookie is there, but Acorn's backend doesn't know the session behind it. */
+export const JOINED_SESSION_REJECTED =
+  "Acorn didn’t accept your Joined session. Sign in to Joined again, then try again.";
 
 /** The Joined session token in the browser's cookie jar, or null when signed out of Joined. */
 async function readJoinedToken(): Promise<string | null> {
@@ -126,7 +129,7 @@ export async function syncJoinedSession(
     };
     if (res.status === 401) {
       await clearAcornSession();
-      return { ok: false, error: JOINED_SIGN_IN_REQUIRED };
+      return { ok: false, error: JOINED_SESSION_REJECTED };
     }
     if (!res.ok || !data.session) {
       return {

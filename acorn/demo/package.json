@@ -4,7 +4,6 @@
   "type": "module",
   "scripts": {
     "dev": "bun serve.ts",
-    "build": "bun build-sprites.ts",
     "art": "bun --env-file=../.env generate-art.ts",
     "art:prepare": "bun prepare-art.ts"
   },
