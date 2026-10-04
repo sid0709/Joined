@@ -4,20 +4,10 @@ import { customTabHasResume } from "../tab-custom-session";
 import { countBusyWorkers, tabInputFromProgress } from "../acorn-face/director";
 import { useCompanionFace } from "../acorn-face/use-companion-face";
 import { pushAcornNotice } from "./acorn-notice";
-import { AnalyzedTreeSection } from "./AnalyzedTreeSection";
 import { hostOf } from "./custom-tab-resume";
-import { CustomTabList } from "./CustomTabList";
-import { FaceGuidePanel } from "./FaceGuidePanel";
-import { InspectPanel } from "./InspectPanel";
 import { NowCard } from "./NowCard";
-import { PlanRunSection } from "./PlanRunSection";
-import { QaPanel } from "./QaPanel";
-import { ResumePreviewPanel } from "./ResumePreviewPanel";
-import { SettingsDrawer } from "./SettingsDrawer";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNav, type AcornMainTab } from "./SidebarNav";
-import { SignInCard } from "./SignInCard";
-import { WorkerPoolList } from "./WorkerPoolList";
 import { actionBarState, isAnyTabWorking, isGenerateBusy } from "./sidebar-work-state";
 import { useActiveTabId } from "./use-active-tab";
 import { usePlanInspect } from "./use-plan-inspect";
@@ -28,6 +18,12 @@ import { useTabSession } from "./use-tab-session";
 import { useTabUi } from "./use-tab-ui";
 import { useTabWork } from "./use-tab-work";
 import { useWorkerJobs } from "./use-worker-jobs";
+import { AskPanel } from "./AskPanel";
+import { CustomPanel } from "./CustomPanel";
+import { JobsPanel } from "./JobsPanel";
+import { SidebarOverlays } from "./SidebarOverlays";
+import { SignedOutView } from "./SignedOutView";
+import type { JdPreview } from "./sidebar-panel-types";
 import "./SidebarApp.css";
 
 export default function SidebarApp() {
@@ -43,7 +39,7 @@ export default function SidebarApp() {
     setPipelines,
   } = useTabSession(activeTabId);
 
-  const [jdPreview, setJdPreview] = useState<{ title: string; text: string } | null>(null);
+  const [jdPreview, setJdPreview] = useState<JdPreview | null>(null);
   const [mainTab, setMainTab] = useState<AcornMainTab>("fill");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [qaStatus, setQaStatus] = useState({ busy: false, error: false });
@@ -261,187 +257,88 @@ export default function SidebarApp() {
           </div>
 
           <main className="sidebar-scroll">
-            <section
-              id="acorn-panel-fill"
-              className="acorn-panel"
-              aria-label="Jobs"
-              hidden={mainTab !== "fill"}
-            >
-              {nowCard("fill")}
-              <WorkerPoolList
-                jobs={workerJobs}
-                loading={workerJobsLoading}
-                error={workerJobsError}
-                selectedJobId={tabJob?.jobId ?? null}
-                attachments={attachments}
-                pipelines={pipelines}
-                generates={jobGenerates}
-                openingJobId={openingJobId}
-                markingJobId={markingJobId}
-                listKey={jobsListKey}
-                listActive={mainTab === "fill"}
-                onRefresh={() => void fetchWorkerJobs()}
-                onOpen={(job) => void openWorkerJob(job)}
-                onPreviewResume={openJobResumePreview}
-                onMarkApplied={(job) => void markJobApplied(job)}
-                onContinueGenerate={(job) =>
-                  void startJobWork(
-                    jobGenerates[job.id]?.workKind === "recommend" ? "recommend" : "generate",
-                    { continue: true, job },
-                  )
-                }
-                onRestartGenerate={(job) =>
-                  void startJobWork(
-                    jobGenerates[job.id]?.workKind === "recommend" ? "recommend" : "generate",
-                    { continue: false, job },
-                  )
-                }
-                onViewJd={(job, jd) => setJdPreview({ title: job.title, text: jd })}
-              />
-            </section>
+            <JobsPanel
+              mainTab={mainTab}
+              nowCard={nowCard("fill")}
+              workerJobs={workerJobs}
+              workerJobsLoading={workerJobsLoading}
+              workerJobsError={workerJobsError}
+              openingJobId={openingJobId}
+              markingJobId={markingJobId}
+              jobsListKey={jobsListKey}
+              fetchWorkerJobs={fetchWorkerJobs}
+              openWorkerJob={openWorkerJob}
+              markJobApplied={markJobApplied}
+              tabJob={tabJob}
+              attachments={attachments}
+              pipelines={pipelines}
+              jobGenerates={jobGenerates}
+              openJobResumePreview={openJobResumePreview}
+              startJobWork={startJobWork}
+              setJdPreview={setJdPreview}
+            />
 
-            <section
-              id="acorn-panel-qa"
-              className="acorn-panel acorn-panel-ask"
-              aria-label="Ask"
-              hidden={mainTab !== "qa"}
-            >
-              <QaPanel
-                signedIn
-                disabled={fillBusy}
-                onStatus={setQaStatus}
-                page={
-                  tabJob
-                    ? {
-                        job: {
-                          id: tabJob.jobId,
-                          title: tabJob.title,
-                          company: tabJob.company,
-                        },
-                      }
-                    : null
-                }
-              />
-            </section>
+            <AskPanel
+              mainTab={mainTab}
+              fillBusy={fillBusy}
+              setQaStatus={setQaStatus}
+              tabJob={tabJob}
+            />
 
-            <section
-              id="acorn-panel-custom"
-              className="acorn-panel"
-              aria-label="Tabs"
-              hidden={mainTab !== "custom"}
-            >
-              {nowCard("custom")}
-              <CustomTabList
-                tabs={customList}
-                pipelines={pipelines}
-                activeTabId={activeTabId}
-                listActive={mainTab === "custom"}
-                onFocus={(tabId) => void focusCustomTab(tabId)}
-                onForget={(tabId) => void forgetCustomTab(tabId)}
-                onPreview={openCustomResumePreview}
-                onContinueGenerate={(tab) =>
-                  void startCustomWork(tab.workKind === "recommend" ? "recommend" : "generate", {
-                    continue: true,
-                    tab,
-                  })
-                }
-                onRestartGenerate={(tab) =>
-                  void startCustomWork(tab.workKind === "recommend" ? "recommend" : "generate", {
-                    continue: false,
-                    tab,
-                  })
-                }
-                onViewJd={(tab, jd) => setJdPreview({ title: tab.title || "Untitled", text: jd })}
-              />
-            </section>
+            <CustomPanel
+              mainTab={mainTab}
+              nowCard={nowCard("custom")}
+              customList={customList}
+              pipelines={pipelines}
+              activeTabId={activeTabId}
+              focusCustomTab={focusCustomTab}
+              forgetCustomTab={forgetCustomTab}
+              startCustomWork={startCustomWork}
+              openCustomResumePreview={openCustomResumePreview}
+              setJdPreview={setJdPreview}
+            />
           </main>
         </>
       ) : (
-        <main className="sidebar-scroll">
-          <SignInCard
-            authBusy={authBusy}
-            faceMode={companionMode}
-            onSignIn={() => void handleSignIn()}
-          />
-          <div className="sidebar-after">
-            {lastFetch ? (
-              <AnalyzedTreeSection
-                lastFetch={lastFetch}
-                nodeCount={nodeCount}
-                hasTree={hasTree}
-                hasPlan={Boolean(plan)}
-                onInspect={openInspect}
-              />
-            ) : null}
-            {steps.length > 0 ? (
-              <PlanRunSection
-                plan={plan}
-                stepCount={steps.length}
-                stepSummary={stepSummary}
-                fillBusy={fillBusy}
-                visibleSteps={visibleSteps}
-                stepsListRef={stepsListRef}
-                hasMoreSteps={hasMoreSteps}
-                onLoadMore={loadMoreSteps}
-              />
-            ) : null}
-          </div>
-        </main>
+        <SignedOutView
+          authBusy={authBusy}
+          handleSignIn={handleSignIn}
+          companionMode={companionMode}
+          fillBusy={fillBusy}
+          hasTree={hasTree}
+          lastFetch={lastFetch}
+          nodeCount={nodeCount}
+          plan={plan}
+          steps={steps}
+          stepSummary={stepSummary}
+          visibleSteps={visibleSteps}
+          stepsListRef={stepsListRef}
+          hasMoreSteps={hasMoreSteps}
+          loadMoreSteps={loadMoreSteps}
+          openInspect={openInspect}
+        />
       )}
 
-      {preview ? (
-        <ResumePreviewPanel
-          title={preview.title}
-          sourceKey={preview.sourceKey}
-          loadHtml={preview.loadHtml}
-          downloadFile={preview.downloadFile}
-          onClose={() => setPreview(null)}
-        />
-      ) : null}
-
-      {jdPreview ? (
-        <InspectPanel
-          title={`Job description · ${jdPreview.title}`}
-          lines={jdPreview.text.split("\n")}
-          hasMore={false}
-          onLoadMore={() => undefined}
-          onCopy={() => navigator.clipboard.writeText(jdPreview.text)}
-          onClose={() => setJdPreview(null)}
-        />
-      ) : null}
-
-      {ui.inspect && inspectView ? (
-        <InspectPanel
-          title={ui.inspect.title}
-          lines={inspectView.lines}
-          hasMore={inspectView.hasMore}
-          onLoadMore={inspectWindow.loadMore}
-          onCopy={inspectView.copy}
-          onClose={() => {
-            if (activeTabId != null) patchTabUi(activeTabId, { inspect: null });
-          }}
-        />
-      ) : null}
-
-      {/* Mounted only while open: the guide runs a live Acorn Face per mood. */}
-      {helpOpen ? (
-        <FaceGuidePanel
-          isOpen
-          onOpenChange={setHelpOpen}
-          thinking={busyCounts.thinking}
-          working={busyCounts.working}
-        />
-      ) : null}
-      {settingsOpen ? (
-        <SettingsDrawer
-          isOpen
-          onOpenChange={setSettingsOpen}
-          connected={connected}
-          signedIn={Boolean(session)}
-          apiUrl={apiUrl}
-          onApiUrlChange={setApiUrl}
-        />
-      ) : null}
+      <SidebarOverlays
+        activeTabId={activeTabId}
+        preview={preview}
+        setPreview={setPreview}
+        jdPreview={jdPreview}
+        setJdPreview={setJdPreview}
+        ui={ui}
+        patchTabUi={patchTabUi}
+        inspectView={inspectView}
+        inspectWindow={inspectWindow}
+        helpOpen={helpOpen}
+        setHelpOpen={setHelpOpen}
+        busyCounts={busyCounts}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpen}
+        connected={connected}
+        session={session}
+        apiUrl={apiUrl}
+        setApiUrl={setApiUrl}
+      />
     </div>
   );
 }
