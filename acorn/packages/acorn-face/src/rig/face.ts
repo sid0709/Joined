@@ -4,43 +4,31 @@ import { context2d, type AnyCanvas, type BodyArt, type Canvas2D, type Sprites } 
 import {
   BLINK_GAP,
   BLINK_SECONDS,
-  BUBBLE,
-  BUBBLE_EDGE,
   DOUBLE_BLINK_CHANCE,
   DOUBLE_BLINK_GAP,
   EYE_L,
   EYE_R,
   EYE_RX,
-  EYE_RY,
-  FLAT_IRIS,
   FPS_MAX,
   FPS_TIERS,
   FX_RATE,
   GLANCE_GAP,
-  GLYPH_FONT,
-  HIGHLIGHT,
   HOP_HEIGHT,
   HOP_SECONDS,
-  INK,
-  IRIS,
-  LID_SHADOW,
   LOOK_RATE,
-  LOW_DETAIL_EYE_PX,
   PIVOT,
   POSE_RATE,
   ROOMY_BODY,
   ROOMY_GROUND,
   ROOMY_MIN_CSS_PX,
   SHADOW,
-  SNORE,
-  SOCKET_ALPHA,
-  SPARKLE,
-  TEAR,
-  TEAR_HIGHLIGHT,
   TIGHT_BODY,
   TIGHT_EYE_SCALE,
   TIGHT_MOTION,
 } from "./constants";
+import { drawEffects, drawTear } from "./draw-effects";
+import { drawEye } from "./draw-eye";
+import { approach, rand, smooth } from "./math";
 import {
   EFFECTS,
   NO_BLINK,
@@ -52,14 +40,6 @@ import {
   type PoseKey,
 } from "./poses";
 
-const rand = (a: number, b: number) => a + Math.random() * (b - a);
-const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-const smooth = (u: number) => {
-  const v = clamp01(u);
-  return v * v * (3 - 2 * v);
-};
-const approach = (cur: number, goal: number, rate: number, dt: number) =>
-  cur + (goal - cur) * (1 - Math.exp(-rate * dt));
 const POSE_KEYS = Object.keys(REST_POSE) as PoseKey[];
 const EFFECT_KEYS = Object.keys(NO_EFFECTS) as (keyof Effects)[];
 /** Reduced motion: stop redrawing once a new pose has had this long to settle. */
@@ -331,263 +311,11 @@ export class Face {
     this.needsBody = scaled === null;
     g.drawImage(scaled ?? this.art.image, 0, 0, W, H);
     const eyePx = EYE_RX * W * p.eyeScale * k;
-    this.drawEye(EYE_L.x * W, EYE_L.y * H, -1, p, p.happyL, blink, eyePx);
-    this.drawEye(EYE_R.x * W, EYE_R.y * H, 1, p, p.happyR, blink, eyePx);
-    if (this.fx.tear > 0.01) this.drawTear();
+    drawEye(g, this.art, this.sprites, EYE_L.x * W, EYE_L.y * H, -1, p, p.happyL, blink, eyePx);
+    drawEye(g, this.art, this.sprites, EYE_R.x * W, EYE_R.y * H, 1, p, p.happyR, blink, eyePx);
+    if (this.fx.tear > 0.01) drawTear(g, this.art, this.t, this.fx);
     g.restore();
 
-    if (roomy) this.drawEffects(p);
-  }
-
-  /** One eye. `side` is -1 for the left eye, +1 for the right; inner corners face the middle. */
-  private drawEye(
-    cx: number,
-    cy: number,
-    side: number,
-    p: Pose,
-    happy: number,
-    blink: number,
-    eyePx: number,
-  ): void {
-    const g = this.ctx;
-    const { W } = this.art;
-    const rx = EYE_RX * W * p.eyeScale;
-    const ry = EYE_RY * W * p.eyeScale;
-    const open = p.open * (1 - blink);
-    const closed = Math.max(happy, p.sleep);
-    const lowDetail = eyePx < LOW_DETAIL_EYE_PX;
-
-    if (closed < 1) {
-      g.save();
-      g.globalAlpha = (1 - closed) * SOCKET_ALPHA;
-      g.fillStyle = this.art.skinDark;
-      g.beginPath();
-      g.ellipse(cx, cy, rx * 1.035, ry * 1.03, 0, 0, Math.PI * 2);
-      g.fill();
-      g.globalAlpha = 1 - closed;
-
-      g.beginPath();
-      g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-      g.save();
-      g.clip();
-      const ir = rx * IRIS;
-      const ix = cx + p.lookX * (rx - ir * 0.8);
-      const iy = cy + p.lookY * (ry - ir * 0.8);
-      if (lowDetail) {
-        g.fillStyle = "#fff";
-        g.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
-        g.fillStyle = FLAT_IRIS;
-        g.beginPath();
-        g.arc(ix, iy, ir, 0, Math.PI * 2);
-        g.fill();
-        g.fillStyle = HIGHLIGHT;
-        g.beginPath();
-        g.arc(ix - ir * 0.3, iy - ir * 0.35, ir * 0.3, 0, Math.PI * 2);
-        g.fill();
-      } else {
-        const eye = this.sprites.eye(eyePx, (eyePx * ry) / rx);
-        g.drawImage(eye.sclera, cx - rx, cy - ry, rx * 2, ry * 2);
-        g.drawImage(eye.iris, ix - ir, iy - ir, ir * 2, ir * 2);
-      }
-
-      // upper lid comes down with `open` and tilts inner-corner-up when sad
-      const lidY = -ry + (1 - open) * ry * 2.05;
-      g.translate(cx, cy);
-      g.rotate(side * p.sad * 0.34);
-      g.fillStyle = this.art.skin;
-      g.fillRect(-rx * 1.6, -ry * 1.6, rx * 3.2, lidY + ry * 1.6);
-      if (open < 0.98) {
-        g.fillStyle = LID_SHADOW;
-        g.fillRect(-rx * 1.6, lidY, rx * 3.2, ry * 0.18);
-        g.strokeStyle = INK;
-        g.lineWidth = ry * 0.1;
-        g.beginPath();
-        g.moveTo(-rx * 1.6, lidY);
-        g.lineTo(rx * 1.6, lidY);
-        g.stroke();
-      }
-      if (p.squint > 0) {
-        g.fillStyle = this.art.skin;
-        g.fillRect(-rx * 1.6, ry - p.squint * ry * 1.1, rx * 3.2, ry * 1.6);
-      }
-      g.restore();
-      g.restore();
-    }
-
-    g.save();
-    g.strokeStyle = INK;
-    g.lineCap = "round";
-    g.lineWidth = rx * (lowDetail ? 0.3 : 0.24);
-    if (happy > 0.01) {
-      g.globalAlpha = happy;
-      g.beginPath();
-      g.moveTo(cx - rx * 0.72, cy + ry * 0.2);
-      g.quadraticCurveTo(cx, cy - ry * 0.75, cx + rx * 0.72, cy + ry * 0.2);
-      g.stroke();
-    }
-    if (p.sleep > 0.01) {
-      g.globalAlpha = p.sleep * (1 - happy);
-      g.beginPath();
-      g.moveTo(cx - rx * 0.7, cy - ry * 0.05);
-      g.quadraticCurveTo(cx, cy + ry * 0.55, cx + rx * 0.7, cy - ry * 0.05);
-      g.stroke();
-    }
-    g.restore();
-  }
-
-  private drawTear(): void {
-    const { W, H } = this.art;
-    const u = (this.t % 2.6) / 2.6;
-    const slide = smooth((u - 0.18) / 0.55);
-    this.tearDrop(
-      (EYE_L.x - EYE_RX * 0.55) * W,
-      EYE_L.y * H + EYE_RY * W * 0.9 + slide * 0.16 * H,
-      0.03 * W * smooth(u / 0.18),
-      this.fx.tear * (1 - smooth((u - 0.62) / 0.2)),
-    );
-  }
-
-  private drawEffects(p: Pose): void {
-    const g = this.ctx;
-    const { W, H } = this.art;
-    const t = this.t;
-    const fx = this.fx;
-    const lift = p.y * H;
-
-    if (fx.sparkles > 0.01) {
-      const spots: [number, number, number][] = [
-        [0.1, 0.18, 0],
-        [0.92, 0.3, 1.7],
-        [0.96, 0.72, 3.1],
-        [0.04, 0.62, 4.4],
-        [0.78, -0.05, 5.6],
-      ];
-      for (const [sx, sy, ph] of spots) {
-        this.sparkle(
-          sx * W,
-          sy * H + lift * 0.4,
-          0.06 * W * Math.max(0, Math.sin(t * 3.2 + ph)),
-          fx.sparkles,
-        );
-      }
-    }
-    if (fx.twinkle > 0.01) {
-      const pulse = 0.6 + 0.4 * Math.sin(t * 5);
-      this.sparkle((EYE_R.x + 0.2) * W, (EYE_R.y - 0.22) * H, 0.07 * W * pulse, fx.twinkle);
-    }
-    if (fx.thought > 0.01) {
-      const u = (t % 2.4) / 2.4;
-      const dots: [number, number, number][] = [
-        [0.86, 0.06, 0.03],
-        [0.98, -0.05, 0.045],
-        [1.12, -0.17, 0.065],
-      ];
-      dots.forEach(([dx, dy, r], i) => {
-        const on = smooth((u - i * 0.18) / 0.12) * (1 - smooth((u - 0.85) / 0.15));
-        this.bubble(dx * W, dy * H + lift, r * W * (0.6 + 0.4 * on), fx.thought * on);
-      });
-    }
-    if (fx.question > 0.01) {
-      const bx = 1.08 * W;
-      const by = -0.08 * H + Math.sin(t * 2.4) * 0.012 * H;
-      const r = 0.12 * W;
-      this.bubble(0.9 * W, 0.08 * H, 0.03 * W, fx.question);
-      this.bubble(bx, by, r, fx.question);
-      this.glyph("?", bx, by + r * 0.06, r * 1.25, INK, fx.question);
-    }
-    if (fx.snore > 0.01) {
-      for (let i = 0; i < 3; i++) {
-        const u = (t * 0.4 + i / 3) % 1;
-        const size = 0.07 * W + u * 0.07 * W;
-        this.glyph(
-          "z",
-          (0.84 + u * 0.28) * W,
-          (0.16 - u * 0.3) * H + lift,
-          size,
-          SNORE,
-          fx.snore * Math.sin(u * Math.PI),
-        );
-      }
-    }
-    g.globalAlpha = 1;
-  }
-
-  /* ---------- effect shapes ---------- */
-
-  private sparkle(x: number, y: number, s: number, alpha: number): void {
-    if (s <= 0 || alpha <= 0) return;
-    const g = this.ctx;
-    g.save();
-    g.globalAlpha = alpha;
-    g.translate(x, y);
-    const grad = g.createRadialGradient(0, 0, 0, 0, 0, s);
-    grad.addColorStop(0, SPARKLE[0]);
-    grad.addColorStop(0.35, SPARKLE[1]);
-    grad.addColorStop(1, SPARKLE[2]);
-    g.fillStyle = grad;
-    const w = s * 0.24;
-    g.beginPath();
-    g.moveTo(0, -s);
-    g.quadraticCurveTo(w, -w, s, 0);
-    g.quadraticCurveTo(w, w, 0, s);
-    g.quadraticCurveTo(-w, w, -s, 0);
-    g.quadraticCurveTo(-w, -w, 0, -s);
-    g.fill();
-    g.restore();
-  }
-
-  private tearDrop(x: number, y: number, s: number, alpha: number): void {
-    if (s <= 0 || alpha <= 0) return;
-    const g = this.ctx;
-    g.save();
-    g.globalAlpha = alpha;
-    g.translate(x, y);
-    const grad = g.createLinearGradient(0, -s, 0, s);
-    grad.addColorStop(0, TEAR[0]);
-    grad.addColorStop(0.5, TEAR[1]);
-    grad.addColorStop(1, TEAR[2]);
-    g.fillStyle = grad;
-    g.beginPath();
-    g.moveTo(0, -s * 1.3);
-    g.bezierCurveTo(s * 0.4, -s * 0.5, s * 0.8, 0, s * 0.8, s * 0.3);
-    g.arc(0, s * 0.3, s * 0.8, 0, Math.PI, false);
-    g.bezierCurveTo(-s * 0.8, 0, -s * 0.4, -s * 0.5, 0, -s * 1.3);
-    g.fill();
-    g.fillStyle = TEAR_HIGHLIGHT;
-    g.beginPath();
-    g.arc(-s * 0.28, s * 0.15, s * 0.2, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
-  }
-
-  private bubble(x: number, y: number, r: number, alpha: number): void {
-    const g = this.ctx;
-    g.globalAlpha = clamp01(alpha);
-    g.fillStyle = BUBBLE;
-    g.strokeStyle = BUBBLE_EDGE;
-    g.lineWidth = r * 0.08;
-    g.beginPath();
-    g.arc(x, y, r, 0, Math.PI * 2);
-    g.fill();
-    g.stroke();
-    g.globalAlpha = 1;
-  }
-
-  private glyph(
-    text: string,
-    x: number,
-    y: number,
-    size: number,
-    color: string,
-    alpha: number,
-  ): void {
-    const g = this.ctx;
-    g.globalAlpha = clamp01(alpha);
-    g.fillStyle = color;
-    g.font = `700 ${Math.round(size)}px ${GLYPH_FONT}`;
-    g.textAlign = "center";
-    g.textBaseline = "middle";
-    g.fillText(text, x, y);
-    g.globalAlpha = 1;
+    if (roomy) drawEffects(g, this.art, this.t, this.fx, p);
   }
 }
