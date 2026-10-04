@@ -46,7 +46,7 @@ func (h Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/auth/session", h.session)
 }
 
-// RegisterCompanies adds linking an account to a company and the search behind it.
+// RegisterCompanies adds creating a company, redeeming an invite, and listing those invites.
 func (h Handlers) RegisterCompanies(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/company", h.attachCompany)
 	mux.HandleFunc("GET /v1/auth/companies", h.searchCompanies)
@@ -114,10 +114,14 @@ func (h Handlers) attachCompany(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handlers) searchCompanies(w http.ResponseWriter, r *http.Request) {
-	companies, err := h.Accounts.SearchCompanies(r.Context(), r.URL.Query().Get("q"))
+	companies, err := h.Accounts.InvitedCompanies(r.Context(), httpkit.BearerToken(r), time.Now())
+	if errors.Is(err, auth.ErrInvalidLogin) || errors.Is(err, auth.ErrWrongRole) {
+		writeAuthResult(w, "", auth.Session{}, err)
+		return
+	}
 	if err != nil {
-		slog.Error("search companies", "error", err)
-		httpkit.WriteError(w, http.StatusInternalServerError, "could not search companies")
+		slog.Error("invited companies", "error", err)
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not load company invites")
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"companies": companies})
@@ -143,7 +147,7 @@ func writeAuthResult(w http.ResponseWriter, token string, session auth.Session, 
 		httpkit.WriteError(w, http.StatusNotFound, "company not found")
 	case errors.Is(err, auth.ErrHasCompany), errors.Is(err, auth.ErrGoogleMismatch):
 		httpkit.WriteError(w, http.StatusConflict, err.Error())
-	case errors.Is(err, auth.ErrWrongRole):
+	case errors.Is(err, auth.ErrWrongRole), errors.Is(err, auth.ErrInviteRequired):
 		httpkit.WriteError(w, http.StatusForbidden, err.Error())
 	default:
 		slog.Error("auth", "error", err)

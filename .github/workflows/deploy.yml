@@ -1,11 +1,14 @@
 name: Deploy
 
-# Every merge to main builds every service's image, pushes it to Docker Hub, and
-# rolls the VPS onto it. Settings come from the GitHub "production" environment;
-# deploy/README.md lists them. Each non-secret setting may be stored as either a
-# variable or a secret.
+# A successful CI run on main builds every service's image, pushes it to Docker Hub,
+# and rolls the VPS onto the commit CI tested. Settings come from the GitHub
+# "production" environment; deploy/README.md lists them. Each non-secret setting may
+# be stored as either a variable or a secret. workflow_dispatch deploys the selected
+# ref without waiting on CI.
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -18,11 +21,36 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_TAG: sha-${{ github.sha }}
+  # workflow_run's github.sha is the default-branch tip, which can move past the
+  # commit CI tested. Deploy that tested commit. A manual run uses github.sha.
+  IMAGE_TAG: sha-${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
+  ci-succeeded:
+    name: CI succeeded
+    # Pull-request CI uses this workflow name too. Only a push to main, or a manual
+    # run, should reach the image build.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require a successful CI run
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual deploy of ${{ github.sha }}"
+            exit 0
+          fi
+          if [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "::error::CI conclusion is ${{ github.event.workflow_run.conclusion }}. Deploy waits until CI succeeds."
+            exit 1
+          fi
+          echo "CI passed for ${{ github.event.workflow_run.head_sha }}"
+
   images:
     name: Image ${{ matrix.service }}
+    needs: ci-succeeded
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
@@ -41,6 +69,8 @@ jobs:
           - { service: joined-theme, dockerfile: docker/next-app.Dockerfile, arg: APP }
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: docker/setup-buildx-action@v4
       - uses: docker/login-action@v4
         with:
@@ -76,6 +106,8 @@ jobs:
       DEPLOY_DIR: /srv/joined
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up SSH
         env:

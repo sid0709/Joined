@@ -308,6 +308,7 @@ bun test tests
 | Typecheck all workspaces                  | `typecheck` in all four workspaces                                          |
 | One version per library, one node_modules | `check:deps`                                                                |
 | Test and coverage                         | `bun run test` (includes `tests/dependency-policy.test.js`)                 |
+| Vet and test Go                           | `bun run vet:go` then `bun run test:go`                                     |
 | Build applications                        | Production build of all three apps                                          |
 | Commit conventions                        | commitlint on every commit and the PR title                                 |
 

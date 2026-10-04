@@ -1,30 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  HStack,
-  Icon,
-  RadioList,
-  RadioListItem,
-  Stack,
-  Text,
-  TextInput,
-  Typeahead,
-  icons,
-  type SearchSource,
-  type SearchableItem,
-} from "@joined/design-system";
+import { useEffect, useState } from "react";
+import { RadioList, RadioListItem, Stack, Text, TextInput } from "@joined/design-system";
 import type { CompanyChoice, CompanyOption } from "@/lib/auth/types";
-import { CompanyLogo } from "@/components/jobs/company-logo";
-
-const SEARCH_DELAY_MS = 250;
-const MIN_QUERY = 2;
 
 export type HiringPath = "link" | "create";
 
-type CompanyItem = SearchableItem<{ url?: string; logo?: string }>;
-
-/** Join a company already in Joined, or start a new company page. */
+/** Join a company that invited this account, or start a new company page. */
 export function CompanyFields({
   path,
   onPath,
@@ -34,68 +16,89 @@ export function CompanyFields({
   onPath: (path: HiringPath) => void;
   onChoice: (choice: CompanyChoice | null) => void;
 }) {
-  const [selected, setSelected] = useState<CompanyItem | null>(null);
+  const [invites, setInvites] = useState<CompanyOption[] | null>(null);
+  const [selectedID, setSelectedID] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
-  const companies = useMemo(() => companySearch(), []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch("/api/auth/companies", { signal: controller.signal });
+        if (!response.ok) {
+          setLoadError("Could not load company invites.");
+          setInvites([]);
+          return;
+        }
+        const body = (await response.json()) as { companies?: CompanyOption[] };
+        setInvites(body.companies ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLoadError("Could not load company invites.");
+        setInvites([]);
+      }
+    })();
+    return () => controller.abort();
+  }, []);
 
   const choosePath = (next: HiringPath) => {
     onPath(next);
     if (next === "link") {
-      onChoice(selected ? { id: selected.id } : null);
+      const invited = invites?.find((company) => company.id === selectedID);
+      onChoice(invited ? { id: invited.id } : null);
       return;
     }
     onChoice(name.trim() ? { name: name.trim(), url: url.trim() } : null);
   };
+
+  const pending = invites ?? [];
 
   return (
     <Stack gap={4}>
       <RadioList label="Company" value={path} onChange={(value) => choosePath(value as HiringPath)}>
         <RadioListItem
           value="link"
-          label="Link a company already on Joined"
-          description="Join a company page that already exists."
+          label="Join a company that invited you"
+          description="An owner must invite your work email before you can join an existing company."
         />
         <RadioListItem
           value="create"
           label="Create a new company"
-          description="Required if you don’t link an existing company."
+          description="Required if you don’t have an invite."
         />
       </RadioList>
 
       {path === "link" ? (
-        <Typeahead
-          label="Find a company"
-          placeholder="Company name"
-          searchSource={companies}
-          value={selected}
-          onChange={(company) => {
-            setSelected(company);
-            onChoice(company ? { id: company.id } : null);
-          }}
-          minQueryLength={MIN_QUERY}
-          debounceMs={SEARCH_DELAY_MS}
-          emptySearchResultsText="No companies match."
-          startIcon={<Icon icon={icons.search} />}
-          renderItem={(company) => (
-            <HStack gap={2} vAlign="center">
-              <CompanyLogo
-                name={company.label}
-                companyId={company.id}
-                src={company.auxiliaryData?.logo}
-                size={32}
-              />
-              <Stack gap={0}>
-                <Text>{company.label}</Text>
-                {company.auxiliaryData?.url ? (
-                  <Text type="supporting" color="secondary">
-                    {company.auxiliaryData.url}
-                  </Text>
-                ) : null}
-              </Stack>
-            </HStack>
-          )}
-        />
+        <Stack gap={2}>
+          {invites === null ? <Text color="secondary">Loading invites…</Text> : null}
+          {loadError ? <Text color="secondary">{loadError}</Text> : null}
+          {invites !== null && pending.length === 0 && !loadError ? (
+            <Text color="secondary">
+              No invites yet. Ask an owner to invite your work email, or create a new company.
+            </Text>
+          ) : null}
+          {pending.length > 0 ? (
+            <RadioList
+              label="Invites"
+              value={selectedID}
+              onChange={(value) => {
+                setSelectedID(value);
+                onChoice({ id: value });
+              }}
+            >
+              {pending.map((company) => (
+                <RadioListItem
+                  key={company.id}
+                  value={company.id}
+                  label={company.name}
+                  description={company.url ?? ""}
+                />
+              ))}
+            </RadioList>
+          ) : null}
+        </Stack>
       ) : (
         <Stack gap={3}>
           <TextInput
@@ -120,34 +123,4 @@ export function CompanyFields({
       )}
     </Stack>
   );
-}
-
-function companySearch(): SearchSource<CompanyItem> {
-  let controller: AbortController | null = null;
-  return {
-    bootstrap: () => [],
-    cancel() {
-      controller?.abort();
-    },
-    async search(query) {
-      controller?.abort();
-      controller = new AbortController();
-      const signal = controller.signal;
-      try {
-        const response = await fetch(`/api/auth/companies?q=${encodeURIComponent(query)}`, {
-          signal,
-        });
-        if (!response.ok) return [];
-        const body = (await response.json()) as { companies?: CompanyOption[] };
-        return (body.companies ?? []).map((company) => ({
-          id: company.id,
-          label: company.name,
-          auxiliaryData: { url: company.url, logo: company.logo },
-        }));
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") throw error;
-        return [];
-      }
-    },
-  };
 }

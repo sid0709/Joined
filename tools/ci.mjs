@@ -19,6 +19,10 @@ const jobs = {
   typecheck: [["bun", "run", "typecheck"]],
   dependencies: [["bun", "run", "check:deps"]],
   test: [["bun", "run", "test"]],
+  go: [
+    ["bun", "run", "vet:go"],
+    ["bun", "run", "test:go"],
+  ],
   build: [["bun", "run", "build"]],
   // CI validates the pull request's commits and title itself; locally we check what this branch
   // adds on top of the base branch.
