@@ -5,6 +5,9 @@ export const MIGRATION_PATH = "/v1/migration";
 export const MIGRATION_POLL_MS = 2_000;
 /** Most temp jobs one hand-picked analysis takes; matches the admin API. */
 export const MAX_MIGRATION_SELECTION = 1_000;
+/** Page sizes on the job and company migration lists. The largest matches one selection. */
+export const MIGRATION_PAGE_SIZES = [25, 50, 100, 250, 500, 1_000] as const;
+export const MIGRATION_PAGE_SIZE = MIGRATION_PAGE_SIZES[0];
 export const MIGRATION_TASKS = {
   copyJobs: "jobs-copy",
   analyzeJobs: "jobs-analyze",

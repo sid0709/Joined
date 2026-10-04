@@ -20,12 +20,11 @@ import {
   type TableColumn,
 } from "@joined/design-system";
 import { CompanyMark } from "@/components/jobs/company-mark";
+import { PageSelectButton } from "@/components/page-select-button";
 import { SearchBox } from "@/components/search-box";
 import {
   STAGED_COMPANY_STATUS,
-  TEMP_COMPANIES_PAGE_SIZE,
   TEMP_COMPANIES_PATH,
-  TEMP_COMPANY_PAGE_SIZES,
   stagedCompanyStatusLabel,
   type StagedCompany,
   type StagedCompanyList,
@@ -33,13 +32,17 @@ import {
 } from "@/lib/company";
 import { formatCount, formatDate, positiveInt } from "@/lib/format";
 import { listingHref } from "@/lib/listing";
-import { MAX_MIGRATION_SELECTION } from "@/lib/migration";
+import {
+  MAX_MIGRATION_SELECTION,
+  MIGRATION_PAGE_SIZE,
+  MIGRATION_PAGE_SIZES,
+} from "@/lib/migration";
 import { ROUTES } from "@/lib/nav";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
 type Notice = { status: "success" | "error"; title: string };
 
-const PAGE_SIZE_OPTIONS = TEMP_COMPANY_PAGE_SIZES.map((size) => ({
+const PAGE_SIZE_OPTIONS = MIGRATION_PAGE_SIZES.map((size) => ({
   value: String(size),
   label: `${size} per page`,
 }));
@@ -51,9 +54,7 @@ const STATUS_VARIANT: Record<StagedCompanyStatus, BadgeVariant> = {
 
 function pageSizeOption(value: string | null) {
   const parsed = Number(value);
-  return TEMP_COMPANY_PAGE_SIZES.some((size) => size === parsed)
-    ? parsed
-    : TEMP_COMPANIES_PAGE_SIZE;
+  return MIGRATION_PAGE_SIZES.some((size) => size === parsed) ? parsed : MIGRATION_PAGE_SIZE;
 }
 
 type TempCompaniesBrowserProps = {
@@ -215,13 +216,20 @@ export function TempCompaniesBrowser({
               value={hideNotFound}
               onChange={(checked) => go({ hide: checked ? "notFound" : null, page: 1 })}
             />
+            {onResearch ? (
+              <PageSelectButton
+                selected={selected}
+                pageIds={(result?.companies ?? []).map((company) => company.id)}
+                onChange={setSelected}
+              />
+            ) : null}
             <Selector
               label="Companies per page"
               isLabelHidden
               options={PAGE_SIZE_OPTIONS}
               value={String(pageSize)}
               onChange={(value) =>
-                go({ size: Number(value) === TEMP_COMPANIES_PAGE_SIZE ? null : value, page: 1 })
+                go({ size: Number(value) === MIGRATION_PAGE_SIZE ? null : value, page: 1 })
               }
             />
             <Text type="supporting" color="secondary">
