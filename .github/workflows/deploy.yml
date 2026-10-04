@@ -1,10 +1,12 @@
 name: Deploy
 
-# A successful CI run on main builds every service's image, pushes it to Docker Hub,
-# and rolls the VPS onto the commit CI tested. Settings come from the GitHub
-# "production" environment; deploy/README.md lists them. Each non-secret setting may
-# be stored as either a variable or a secret. workflow_dispatch deploys the selected
-# ref without waiting on CI.
+# A successful CI run on main builds the images whose inputs changed, retags the
+# rest from <service>-latest onto this commit, and rolls the VPS onto the commit CI
+# tested. Compose pulls every service at sha-<commit>, so an unchanged service still
+# gets that tag. Settings come from the GitHub "production" environment;
+# deploy/README.md lists them. Each non-secret setting may be stored as either a
+# variable or a secret. workflow_dispatch builds every image, because latest may
+# already be newer than the commit being rolled out.
 on:
   workflow_run:
     workflows: ["CI"]
@@ -48,25 +50,45 @@ jobs:
           fi
           echo "CI passed for ${{ github.event.workflow_run.head_sha }}"
 
+  plan:
+    name: Choose images
+    needs: ci-succeeded
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      has_build: ${{ steps.plan.outputs.has_build }}
+      has_retag: ${{ steps.plan.outputs.has_retag }}
+      retag_csv: ${{ steps.plan.outputs.retag_csv }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # The plan diffs this commit against its first parent. A merge commit's
+          # first parent is the previous main tip, so the diff is the whole pull request.
+          fetch-depth: 2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            bun tools/image-plan.mjs --all --github-output
+          else
+            git diff --name-only HEAD^ HEAD | bun tools/image-plan.mjs --github-output
+          fi
+
   images:
     name: Image ${{ matrix.service }}
-    needs: ci-succeeded
+    needs: plan
+    if: needs.plan.outputs.has_build == 'true'
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
     strategy:
       fail-fast: true
       matrix:
-        include:
-          - { service: joined-backend, dockerfile: docker/go-service.Dockerfile, arg: SERVICE }
-          - { service: admin-backend, dockerfile: docker/go-service.Dockerfile, arg: SERVICE }
-          - { service: scoutwell-backend, dockerfile: docker/go-service.Dockerfile, arg: SERVICE }
-          - { service: backend-core, dockerfile: docker/go-service.Dockerfile, arg: SERVICE }
-          - { service: joined-frontend, dockerfile: docker/next-app.Dockerfile, arg: APP }
-          - { service: admin-frontend, dockerfile: docker/next-app.Dockerfile, arg: APP }
-          - { service: scoutwell-frontend, dockerfile: docker/next-app.Dockerfile, arg: APP }
-          - { service: connected-frontend, dockerfile: docker/next-app.Dockerfile, arg: APP }
-          - { service: joined-theme, dockerfile: docker/next-app.Dockerfile, arg: APP }
+        include: ${{ fromJson(needs.plan.outputs.build) }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -91,9 +113,46 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
+  retag:
+    name: Retag unchanged images
+    needs: plan
+    if: needs.plan.outputs.has_retag == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Point this commit's tag at the previous image
+        env:
+          IMAGE_REPO: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}/joined
+          RETAG: ${{ needs.plan.outputs.retag_csv }}
+        run: |
+          # Registry-side copy. The VPS already has these layers, and Compose
+          # still pulls sha-<commit> for every service.
+          IFS=',' read -ra services <<< "$RETAG"
+          for service in "${services[@]}"; do
+            source="${IMAGE_REPO}:${service}-latest"
+            dest="${IMAGE_REPO}:${service}-${IMAGE_TAG}"
+            echo "retag $source -> $dest"
+            if ! docker buildx imagetools create -t "$dest" "$source"; then
+              echo "::error::${source} does not exist. Run Deploy manually to build every image."
+              exit 1
+            fi
+          done
+
   deploy:
     name: Deploy to the VPS
-    needs: images
+    needs: [ci-succeeded, plan, images, retag]
+    if: >-
+      always() &&
+      needs.ci-succeeded.result == 'success' &&
+      needs.plan.result == 'success' &&
+      (needs.images.result == 'success' || needs.images.result == 'skipped') &&
+      (needs.retag.result == 'success' || needs.retag.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: production
