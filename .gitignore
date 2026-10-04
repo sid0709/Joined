@@ -2,6 +2,7 @@
 node_modules/
 coverage/
 .unlighthouse/
+dist/
 # Turborepo local cache
 .turbo/
 # Credentials never belong in the repo; production values live in GitHub's
