@@ -137,13 +137,29 @@ func (s *Store) AttachCompany(ctx context.Context, token string, choice CompanyC
 	if err != nil {
 		return Session{}, err
 	}
+	inviteRole := ""
 	if choice.ID != "" {
-		if _, _, err := s.companyByID(ctx, choice.ID); err != nil {
+		inviteRole, err = s.pendingInviteRole(ctx, choice.ID, session.User.Email)
+		if err != nil {
 			return Session{}, err
 		}
 	}
-	if err := s.attach(ctx, session.User.ID, choice, now); err != nil {
+	memberRole, hiringRole, err := MembershipForJoin(choice.ID != "", inviteRole)
+	if err != nil {
 		return Session{}, err
+	}
+	if choice.ID != "" {
+		if _, _, err = s.companyByID(ctx, choice.ID); err != nil {
+			return Session{}, err
+		}
+	}
+	if err := s.attach(ctx, session.User.ID, choice, memberRole, hiringRole, now); err != nil {
+		return Session{}, err
+	}
+	if choice.ID != "" {
+		if err := s.deletePendingInvite(ctx, choice.ID, session.User.Email); err != nil {
+			return Session{}, err
+		}
 	}
 	return s.view(ctx, session.User.ID)
 }
@@ -206,6 +222,8 @@ func (s *Store) removeMembership(ctx context.Context, userID, companyID string) 
 	return err
 }
 
+// SearchCompanies is the scout company name search. Joined hiring setup does not
+// use it; that list is InvitedCompanies.
 func (s *Store) SearchCompanies(ctx context.Context, query string) ([]Company, error) {
 	query = strings.TrimSpace(query)
 	if len([]rune(query)) < minCompanyQuery {
@@ -268,11 +286,9 @@ func (s *Store) issue(ctx context.Context, userID string, now time.Time) (string
 	return token, session, nil
 }
 
-func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice, now time.Time) error {
+func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice, memberRole, hiringRole string, now time.Time) error {
 	companyID := choice.ID
-	role := roleMember
 	if companyID == "" {
-		role = roleOwner
 		id, err := newPublicID()
 		if err != nil {
 			return err
@@ -297,12 +313,14 @@ func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice,
 			return err
 		}
 	}
-	_, err := s.collection(membersCollection).InsertOne(ctx, storedMember{
-		UserID:    userID,
-		CompanyID: companyID,
-		Role:      role,
-		CreatedAt: now.UTC(),
-	})
+	member := storedMember{
+		UserID:     userID,
+		CompanyID:  companyID,
+		Role:       memberRole,
+		HiringRole: hiringRole,
+		CreatedAt:  now.UTC(),
+	}
+	_, err := s.collection(membersCollection).InsertOne(ctx, member)
 	if mongo.IsDuplicateKeyError(err) {
 		return ErrHasCompany
 	}

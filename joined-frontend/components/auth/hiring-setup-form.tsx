@@ -8,7 +8,7 @@ import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { ROUTES } from "@/lib/routes";
 import { CompanyFields, type HiringPath } from "./company-fields";
 
-/** After an individual account exists: join a stored company or create the company page. */
+/** After an individual account exists: redeem a company invite or create the company page. */
 export function HiringSetupForm() {
   const router = useRouter();
   const [path, setPath] = useState<HiringPath>("link");
@@ -19,7 +19,9 @@ export function HiringSetupForm() {
 
   const submit = async () => {
     if (!company) {
-      setError(path === "link" ? "Choose a company to link." : "Enter the company name.");
+      setError(
+        path === "link" ? "Choose the company that invited you." : "Enter the company name.",
+      );
       return;
     }
     setPending(true);
@@ -46,8 +48,8 @@ export function HiringSetupForm() {
         <Stack gap={1}>
           <Heading level={1}>Set up hiring</Heading>
           <Text color="secondary">
-            Your account stays personal. Link a company already on Joined, or create the company
-            page.
+            Your account stays personal. Join a company that invited your work email, or create the
+            company page.
           </Text>
         </Stack>
         {error ? <Banner status="error" title={error} /> : null}

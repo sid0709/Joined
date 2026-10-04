@@ -32,12 +32,13 @@ const (
 )
 
 var (
-	ErrEmailTaken   = errors.New("an account with that email already exists")
-	ErrInvalidLogin = errors.New("sign in required")
-	ErrInvalidInput = errors.New("check the form and try again")
-	ErrNotFound     = errors.New("not found")
-	ErrHasCompany   = errors.New("this account is already linked to a company")
-	ErrWrongRole    = errors.New("this email is registered as a different kind of account")
+	ErrEmailTaken     = errors.New("an account with that email already exists")
+	ErrInvalidLogin   = errors.New("sign in required")
+	ErrInvalidInput   = errors.New("check the form and try again")
+	ErrNotFound       = errors.New("not found")
+	ErrHasCompany     = errors.New("this account is already linked to a company")
+	ErrWrongRole      = errors.New("this email is registered as a different kind of account")
+	ErrInviteRequired = errors.New("an owner must invite you before you can join this company")
 )
 
 // RoleError is a sign-in or action from the wrong app for this account.
@@ -104,7 +105,7 @@ type Session struct {
 }
 
 // CompanyChoice is optional employer setup on an individual account.
-// Link joins a company already stored. Create starts a new company page.
+// An id redeems a pending invite for a company already stored. A name starts a new company page.
 type CompanyChoice struct {
 	ID   string
 	Name string
