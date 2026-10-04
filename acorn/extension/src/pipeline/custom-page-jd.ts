@@ -1,6 +1,6 @@
 import { PAGE_TEXT_MAX_CHARS } from "@acorn/shared/page-text";
 import { formatAnalyzeTrees, type DomTreeNode } from "@acorn/shared/tree-export";
-import { extractCustomJd } from "./ai-client";
+import { extractCustomJd } from "./api/custom-generate";
 import { fetchDomFromTab } from "./run-pipeline";
 
 export const NO_JD = "No job description on this page";

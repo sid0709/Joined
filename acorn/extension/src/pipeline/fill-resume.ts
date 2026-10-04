@@ -4,7 +4,9 @@ import { customTabHasResume, type AcornCustomTabBinding } from "../tab-custom-se
 import { getJobGenerate } from "../tab-job-generate-session";
 import type { AcornTabJobBinding } from "../tab-job-session";
 import type { PipelineSource } from "../types";
-import { fetchCustomLibraryResume, fetchCustomResume, fetchRecommendedResume } from "./ai-client";
+import { fetchCustomResume } from "./api/custom-files";
+import { fetchCustomLibraryResume } from "./api/custom-library";
+import { fetchRecommendedResume } from "./api/job-files";
 
 const WRONG_SITE = "Page is not this job's apply site — skipped resume upload";
 

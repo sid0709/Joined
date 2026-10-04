@@ -13,7 +13,7 @@ import {
 } from "@joined/design-system";
 import { FACE_SMILE_MS } from "../acorn-face/constants";
 import { flashAcornFace } from "../acorn-face/face-flash";
-import { requestQaAnswer, type AcornQaPage } from "../pipeline/ai-client";
+import { requestQaAnswer, type AcornQaPage } from "../pipeline/api/qa";
 
 type QaPanelProps = {
   signedIn: boolean;

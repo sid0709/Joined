@@ -1,5 +1,5 @@
 import { getAcornSession } from "../../auth/acorn-auth";
-import { requestQaAnswer } from "../../pipeline/ai-client";
+import { requestQaAnswer } from "../../pipeline/api/qa";
 import { getTabJob } from "../../tab-job-session";
 import type { RuntimeMessage, SendResponse } from "./shared";
 

@@ -14,7 +14,8 @@ import { getTabJob } from "../tab-job-session";
 import { customTabHasResume, getCustomTab } from "../tab-custom-session";
 import { DEFAULT_JOINED_API_URL } from "../auth/acorn-auth";
 import { MSG, type DomNode, type DomTreePayload, type PipelineSource } from "../types";
-import { fetchRuntimeFile, requestAiAnalyze } from "./ai-client";
+import { requestAiAnalyze } from "./api/analyze";
+import { fetchRuntimeFile } from "./api/job-files";
 import { keepResumeIfSameSite, loadFillResume } from "./fill-resume";
 import { buildResumeUploadProgress } from "./resume-upload-status";
 import {
