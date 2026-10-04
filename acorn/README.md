@@ -2,7 +2,7 @@
 
 Chrome extension + React UI board for capturing page DOM trees, generating structured AI action plans, and running fill automation.
 
-**The backend is backend-core's server**, at `https://api.joinedhq.com` in production: every Acorn route is under `/acorn` (`/acorn/*`) and the Socket.IO gateway is at `/acorn/socket.io`. The Go code lives in [`backend-core/acorn`](../backend-core/acorn) and [`backend-core/acornapi`](../backend-core/acornapi/README.md). It was ported from `athens-backend` in [sid0709/AthensAI](https://github.com/sid0709/AthensAI).
+**The backend is backend-core's server**, at `https://api.joinedhq.com` in production: every Acorn route is under `/acorn` (`/acorn/*`) and the Socket.IO gateway is at `/acorn/socket.io`. The Go code lives in [`backend-core/acorn`](../backend-core/acorn) and [`backend-core/acornapi`](../backend-core/acornapi/README.md). It was ported from the original TypeScript backend.
 
 Engineering policy: [`policy-acorn.md`](policy-acorn.md). Parent rules: [`../rule.md`](../rule.md).
 
@@ -126,7 +126,7 @@ Acorn does not render a Custom-only résumé. `POST /acorn/custom/generate` must
 7. Poll returns `generationId` plus `resumeId` of the stored file, plus `partialSections` while running.
 8. `GET /acorn/custom/resumes/:generationId` and `/preview` return/convert **that** file.
 
-Acorn persists checkpoints locally (`chrome.storage.session`) per Custom tab and per Worker pool job so Continue works even if Athens has not deployed continue yet — JD extract is skipped on Acorn’s side; section skip still needs the checkpoint fields above.
+Acorn persists checkpoints locally (`chrome.storage.session`) per Custom tab and per Worker pool job so Continue works even if the API has not deployed continue yet — JD extract is skipped on Acorn’s side; section skip still needs the checkpoint fields above.
 
 ### Custom recommend backend contract
 

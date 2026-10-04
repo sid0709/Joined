@@ -1,48 +1,33 @@
 # Acorn design language
 
-Acorn UI follows Airbnb’s product language: a white canvas, near-black type, pill controls, rounded list cards, and a sticky primary action. Reference screens: [listing + Reserve bar](https://mobbin.com/screens/8a6b4476-52d7-4c85-965b-2a870b388eb3), [map listing card](https://mobbin.com/screens/24072f6f-71d3-47f1-92e3-3b63bf4b1b43), [search results](https://mobbin.com/screens/1f92134a-2b99-4027-ab7f-8f6ff087bdc6).
+Acorn's side panel is built from **`@joined/design-system`**, the same components and tokens as every other Joined app. It imports `@joined/design-system/styles/joined.css` and wraps in `JoinedProvider`, like `joined-frontend`. Acorn adds only what the design system has no equivalent for: the live Acorn Face, the logo-and-face mark on list rows, and the segmented generate progress. Tokens: [`tokens.md`](tokens.md). Cursor policy: [`.cursor/rules/acorn-ui-design.mdc`](../.cursor/rules/acorn-ui-design.mdc).
 
-Tokens live in [`tokens.md`](tokens.md) and `extension/src/sidebar/athens-tokens.css`. Cursor policy: [`.cursor/rules/acorn-ui-design.mdc`](../.cursor/rules/acorn-ui-design.mdc).
+## Layout
 
-## Pattern
+A narrow panel that works like a small app:
 
-The signed-in side panel is three chrome bands plus one content list:
+1. **Header**: the live Acorn Face, "Acorn", and one line about the active Chrome tab (its job, its remembered page, or "No job on this tab"). A worker `Badge` appears only while something runs. On the right is the account `MoreMenu`, an `Avatar` whose dot is the socket connection, with Acorn Face guide, Settings, and Sign out.
+2. **`PillNav`** under the header: **Jobs** (Fill), **Ask** (Q&A), **Tabs** (Custom). The pills are hash links (`#fill`, `#qa`, `#custom`). Counts show work in flight and remembered tabs.
+3. **Now card** at the top of Jobs and Tabs: what the active tab is, its résumé status (`Badge`), any run in flight, and the actions that work on it. **Fill page** is the primary button; Generate and Recommend share the row under it. On an unremembered Custom tab the card offers **Remember this tab** instead.
+4. **List**: compact rows (`Card`), grouped into "Ready to fill" and "Needs a résumé". The whole row opens or focuses the tab. Preview stays one click away; Download, Mark applied or Forget, Continue, Start over, and View JD sit in the row's ⋯ `MoreMenu`.
+5. **Ask**: a chat thread (`ChatLayout`, `ChatMessage`, `ChatComposer`). Paste a question Fill left blank and copy the answer.
 
-1. **Identity row** — logo, product name, signed-in name, worker-count chip, Help, icon-only sign out.
-2. **Segmented tabs** — Fill / Q&A / Custom. Pill track, selected chip on white.
-3. **List of cards** — jobs (Fill) or remembered tabs (Custom). The card is the hit target.
-4. **Footer** — Connection status (expand for API URL). Fill and Custom share a sticky row: Generate, Fill page, Recommend. Custom keeps Remember tab in the list chrome.
-
-Do not add instructional copy, fetch/debug controls, or chevrons that duplicate “click the card.”
+Overlays are design-system `Drawer`s: Settings (API URL, connection, version) and the Face guide open as sheets, and the résumé and JD previews open full height. Escape closes them and focus returns.
 
 ## Language
 
-- **Canvas first.** White surfaces, hairline borders (`--athens-border`), no heavy chrome.
-- **Hierarchy by type, not boxes.** Title is 14px/600 near-black, one line with ellipsis. Subtitle (Fill company / Custom host) is 12px gray on its own line. Résumé status is a third truncated line.
-- **Cards, not rows with arrows.** Rounded 12px cards. Whole card opens or focuses the tab. Fill and Custom share one card: 32px company / tab icon with an 18px Acorn Face silhouette badge, title, subtitle, résumé status, trailing circular download, preview (eye), and check.
-- **Pills for controls.** Tabs, Refresh, Fill, icon buttons use `--athens-radius-pill`.
-- **One accent.** `--athens-brand` for the selected Fill or Custom card (solid fill, white type), connection dot, and primary CTA. Do not introduce a second accent.
-- **Icon-only when the label is obvious.** Sign out is a door/arrow icon, not a “Sign out” pill. Help is a `?` next to it. The worker chip (mini acorn + count) stays in the identity row so busy thinking/working tabs are visible at a glance.
-- **Density in the shell, air in the list.** Collapse header and status. Give the job list the remaining height.
-- **Sticky primary action.** Generate, Fill page, and Recommend stay at the bottom. Connection replaces Idle in the status strip.
-- **Toasts for issues.** Sign-in, socket, and Fill failures are floating cards (icon + title + detail + dismiss). Never `throw` or `console.error` for expected operator failures — those show up as Chrome extension Errors.
+- **Reuse first.** Use a design-system component before writing markup or CSS. Don't restyle Joined components; if one doesn't fit, raise it in `packages/design-system`.
+- **One accent.** Joined blue (`--color-accent`) for primary actions, the selected row (`Card variant="blue"`), and the active pill. Status uses `Badge`: `green` ready, `neutral` waiting, `error` failed.
+- **Hierarchy by type.** `Text` and its `type` / `weight` props. No all-caps labels, no raw font sizes.
+- **Actions where they apply.** Actions on the current page live in the Now card. Actions on a row live in that row. No floating action bars, and no chevrons that duplicate "click the row".
+- **Toasts for issues.** Sign-in, socket, and Fill failures are design-system toasts (`useToast`) through `pushAcornNotice()` in the sidebar or `broadcastOperatorNotice()` from the service worker. Errors hold about 12s. Never `throw` or `console.error` expected operator failures; those show up as Chrome extension Errors.
 
-## Notifications
+## Do / don't
 
-Match Airbnb’s floating status card ([location error](https://mobbin.com/screens/664cb31b-101a-4602-ad26-178791b5f5e1), [success toast](https://mobbin.com/screens/d017c95a-0385-44e6-b0ba-49f12e9d03ec)):
-
-- White card, `--athens-radius-lg`, `--athens-shadow-raised`, just above the Fill CTA.
-- Left: 28px circle — `--athens-danger` + `!` (error), `--athens-success` + check (success), `--athens-brand` + `i` (info).
-- Bold 14px title, 12px secondary detail, trailing `×`. Title and detail clamp to one line.
-- Spring in (`--athens-notice-enter`), drain bar, then exit in under 0.5s (`--athens-notice-exit`) so the job list stays readable. Error toasts hold longer (~12s) so operators can read debug detail.
-- Use `pushAcornNotice()` in the sidebar or `broadcastOperatorNotice()` from the service worker.
-
-## Do / don’t
-
-| Do                                                         | Don’t                                                    |
-| ---------------------------------------------------------- | -------------------------------------------------------- |
-| Logo + Acorn + name + workers + Help + sign out on one row | “Athens account” + “Signed in as” + Sign out pill        |
-| Connection in the footer                                   | Idle / Ready occupying the footer                        |
-| Click card to open                                         | `>` chevron next to the card                             |
-| Circular eye (preview) plus check (mark applied)           | Duplicate navigation affordances                         |
-| Tabs + list + Fill CTA                                     | Fetch DOM, “pick a Worker pool…”, “no job attached” copy |
+| Do                                                              | Don't                                                    |
+| --------------------------------------------------------------- | -------------------------------------------------------- |
+| Design-system `Button`, `IconButton`, `Badge`, `Card`, `Drawer` | Hand-built buttons, pills, cards, or modals in Acorn CSS |
+| Current-tab actions in the Now card                             | A sticky button bar detached from what it acts on        |
+| One visible row action plus a ⋯ menu                            | Four icon buttons on every row                           |
+| Account, settings, and sign-out in the avatar menu              | "Signed in as …" text, a Sign out pill, a footer strip   |
+| Joined tokens (`--color-*`, `--spacing-*`, `--radius-*`)        | New hex values, px font sizes, or Acorn-only tokens      |

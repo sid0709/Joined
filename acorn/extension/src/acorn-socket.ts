@@ -1,8 +1,8 @@
 import { io, type Socket } from "socket.io-client";
 import {
-  athensSocketOrigin,
+  joinedSocketOrigin,
   getAccessToken,
-  getAthensApiUrl,
+  getJoinedApiUrl,
   ACORN_SOCKET_PATH,
 } from "./auth/acorn-auth";
 
@@ -29,7 +29,7 @@ export function isAcornSocketConnected(): boolean {
 
 export async function connectAcornSocket(handlers: AcornSocketHandlers): Promise<void> {
   const token = await getAccessToken();
-  const origin = athensSocketOrigin(await getAthensApiUrl());
+  const origin = joinedSocketOrigin(await getJoinedApiUrl());
   const nextIdentity = token ? `${origin}|${token}` : "";
 
   if (!token) {

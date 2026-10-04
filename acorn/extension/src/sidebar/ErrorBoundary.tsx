@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { Button, EmptyState } from "@joined/design-system";
 import { AcornFaceView } from "../acorn-face/AcornFaceView";
 
 interface Props {
@@ -19,14 +20,18 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="error-boundary">
-          <AcornFaceView mode="sad" size={32} live label="Acorn" />
-          <h3>Something went wrong</h3>
-          <p>{this.state.error}</p>
-          <button type="button" onClick={() => this.setState({ error: null })}>
-            Try again
-          </button>
-        </div>
+        <EmptyState
+          icon={<AcornFaceView mode="sad" size={32} live label="Acorn" />}
+          title="Something went wrong"
+          description={this.state.error}
+          actions={
+            <Button
+              variant="secondary"
+              label="Try again"
+              onClick={() => this.setState({ error: null })}
+            />
+          }
+        />
       );
     }
     return this.props.children;

@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { Badge, EmptyState, HStack, Text, VStack } from "@joined/design-system";
 import { canContinueGenerate } from "@acorn/shared/generate-checkpoint";
 import { isFillPhaseBusy, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { FACE_WINK_MS } from "../acorn-face/constants";
@@ -10,19 +11,11 @@ import { customUiProgress } from "../pipeline/custom-generate-progress";
 import { customRecommendProgress } from "../pipeline/custom-recommend-progress";
 import { customTabHasResume, type AcornCustomTabBinding } from "../tab-custom-session";
 import type { TabPipelineMap } from "../tab-pipeline-session";
-import { customTabResumeLine } from "./custom-tab-resume";
+import { customTabResumeLine, hostOf } from "./custom-tab-resume";
 import { triggerResumeDownload } from "./download-resume";
-import { GenerateRunExtras } from "./GenerateRunExtras";
+import { runExtras } from "./run-extras";
 import { pushAcornNotice } from "./acorn-notice";
 import { SidebarListCard } from "./SidebarListCard";
-
-function hostOf(url: string): string {
-  try {
-    return new URL(url).host || url;
-  } catch {
-    return url || "Unknown page";
-  }
-}
 
 type CustomTabListProps = {
   tabs: AcornCustomTabBinding[];
@@ -62,17 +55,27 @@ export function CustomTabList({
   }, [listActive, activeTabId, tabs.length]);
 
   return (
-    <section className="worker-pool">
-      <div className="worker-pool-head">
-        <div>
-          <h3>Remembered tabs</h3>
-          <p className="worker-pool-count">{tabs.length === 1 ? "1 tab" : `${tabs.length} tabs`}</p>
-        </div>
-      </div>
+    <VStack as="section" gap={3} className="worker-pool">
+      <HStack gap={2} align="center">
+        <Text as="h2" weight="semibold">
+          Remembered tabs
+        </Text>
+        <Badge variant="neutral" label={tabs.length} />
+      </HStack>
       {tabs.length === 0 ? (
-        <p className="hint">Remember the current tab to generate or recommend a résumé and Fill.</p>
+        <EmptyState
+          isCompact
+          title="No remembered tabs"
+          description="Remember the current tab to generate or recommend a résumé and Fill."
+        />
       ) : (
-        <nav ref={listRef} className="worker-pool-list" aria-label="Remembered Custom tabs">
+        <VStack
+          as="nav"
+          ref={listRef}
+          gap={2}
+          className="worker-pool-list"
+          aria-label="Remembered Custom tabs"
+        >
           {tabs.map((tab) => (
             <CustomTabRow
               key={tab.tabId}
@@ -87,9 +90,9 @@ export function CustomTabList({
               onViewJd={onViewJd}
             />
           ))}
-        </nav>
+        </VStack>
       )}
-    </section>
+    </VStack>
   );
 }
 
@@ -219,9 +222,8 @@ function CustomTabRow({
         label: `Forget ${label}`,
         onClick: onForget,
       }}
-    >
-      <GenerateRunExtras
-        progress={
+      {...runExtras({
+        progress:
           tab.generateProgress ??
           (recommending
             ? customRecommendProgress({
@@ -232,18 +234,17 @@ function CustomTabRow({
                 status: tab.generateStatus,
                 source: "custom",
                 checkpoint: tab.checkpoint,
-              }))
-        }
-        showBar={showBar}
-        canContinue={canContinue}
-        canRestart={canContinue && Boolean(tab.checkpoint?.completedSteps.length)}
-        canViewJd={canViewJd}
-        onContinue={() => onContinueGenerate?.(tab)}
-        onRestart={() => onRestartGenerate?.(tab)}
-        onViewJd={() => {
+              })),
+        showBar: showBar,
+        canContinue: canContinue,
+        canRestart: canContinue && Boolean(tab.checkpoint?.completedSteps.length),
+        canViewJd: canViewJd,
+        onContinue: () => onContinueGenerate?.(tab),
+        onRestart: () => onRestartGenerate?.(tab),
+        onViewJd: () => {
           if (jdText) onViewJd?.(tab, jdText);
-        }}
-      />
-    </SidebarListCard>
+        },
+      })}
+    />
   );
 }

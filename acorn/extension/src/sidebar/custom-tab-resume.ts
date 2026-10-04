@@ -41,3 +41,12 @@ export function customTabResumeLine(
     failed: false,
   };
 }
+
+/** The page's host for display, or the raw URL when it doesn't parse. */
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url || "Unknown page";
+  }
+}

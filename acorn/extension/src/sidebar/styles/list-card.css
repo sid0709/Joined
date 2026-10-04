@@ -1,0 +1,121 @@
+/* A Fill job or Custom tab row: a design-system Card whose whole surface opens or
+   focuses the tab (a transparent button behind the content), plus Acorn's logo mark
+   with the live Acorn Face badge. */
+
+.acorn-row {
+  --acorn-marking-opacity: 0.45;
+  --acorn-mark-size: var(--spacing-8);
+
+  position: relative;
+}
+
+.acorn-row.attached {
+  border-color: var(--color-border-emphasized);
+}
+
+.acorn-row.marking {
+  opacity: var(--acorn-marking-opacity);
+}
+
+.acorn-row-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.acorn-row-hit:disabled {
+  cursor: default;
+}
+
+.acorn-row-hit:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Content sits above the hit area; only real controls take clicks. */
+.acorn-row-copy {
+  flex: 1;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.acorn-row-actions,
+.acorn-row-progress {
+  position: relative;
+  z-index: 1;
+}
+
+.acorn-row-status {
+  display: flex;
+  min-width: 0;
+}
+
+.acorn-row-failed {
+  color: var(--color-error);
+}
+
+.list-card-mark {
+  position: relative;
+  width: var(--acorn-mark-size);
+  height: var(--acorn-mark-size);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.list-card-mark-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.list-card-mark-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.list-card-mark-fallback {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.acorn-face-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.acorn-face-slot canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.acorn-face-badge {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  line-height: 0;
+  pointer-events: none;
+}
+
+.acorn-face-badge .acorn-face-slot {
+  width: 100%;
+  height: 100%;
+}

@@ -1,7 +1,16 @@
 import { type ReactNode } from "react";
 import type { AcornFaceMode } from "@acorn/face";
+import {
+  Badge,
+  Card,
+  Glyph,
+  HStack,
+  IconButton,
+  MoreMenu,
+  Text,
+  VStack,
+} from "@joined/design-system";
 import { ListCardMark } from "../acorn-face/ListCardMark";
-import { CheckIcon, DownloadIcon, EyeIcon } from "./sidebar-icons";
 
 export type SidebarListCardAction = {
   title: string;
@@ -28,32 +37,16 @@ type SidebarListCardProps = {
   download: SidebarListCardAction;
   preview: SidebarListCardAction;
   check: SidebarListCardAction;
-  children?: ReactNode;
+  /** Run actions that only apply sometimes (Continue, Start over, View JD). */
+  more?: SidebarListCardAction[];
+  /** A generate or recommend run in flight, under the row. */
+  progress?: ReactNode;
 };
 
-function CardIconButton({
-  className,
-  action,
-  children,
-}: {
-  className: string;
-  action: SidebarListCardAction;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className={className}
-      disabled={action.disabled}
-      title={action.title}
-      aria-label={action.label}
-      onClick={action.onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
+/**
+ * One Fill job or Custom tab. The whole row opens or focuses its tab; Preview stays one
+ * click away and everything else sits in the ⋯ menu.
+ */
 export function SidebarListCard({
   itemId,
   selected,
@@ -72,62 +65,94 @@ export function SidebarListCard({
   download,
   preview,
   check,
-  children,
+  more = [],
+  progress,
 }: SidebarListCardProps) {
+  const menuItems = [
+    ...more.map((action) => ({
+      label: action.label,
+      description: action.title !== action.label ? action.title : undefined,
+      isDisabled: action.disabled,
+      onClick: action.onClick,
+    })),
+    ...(more.length ? [{ type: "divider" as const }] : []),
+    {
+      label: download.title,
+      icon: <Glyph name="download" />,
+      isDisabled: download.disabled,
+      onClick: download.onClick,
+    },
+    {
+      label: check.title,
+      icon: <Glyph name="check" />,
+      isDisabled: check.disabled,
+      onClick: check.onClick,
+    },
+  ];
+
   return (
-    <div
+    <Card
       data-item-id={itemId}
-      className={`worker-pool-item fill-job${selected ? " selected" : ""}${
-        attached && !selected ? " attached" : ""
-      }${marking ? " marking" : ""}${blocked ? " is-blocked" : ""}`}
+      variant={selected ? "blue" : "default"}
+      padding={3}
+      className={`acorn-row${attached && !selected ? " attached" : ""}${
+        marking ? " marking" : ""
+      }${blocked ? " is-blocked" : ""}`}
     >
       <button
         type="button"
-        className="worker-pool-card-hit"
+        className="acorn-row-hit"
         disabled={open.disabled}
         aria-current={open.current ? "page" : undefined}
         aria-label={open.label}
         title={open.title}
         onClick={open.onClick}
       />
-      <div className="worker-pool-open">
-        <ListCardMark
-          itemId={itemId}
-          logoUrl={logoUrl}
-          fallback={logoFallback}
-          faceMode={faceMode}
-          selected={selected}
-          label={`${title} status`}
-        />
-        <span className="job-list-copy">
-          <strong className="worker-pool-title" title={title}>
-            {title}
-          </strong>
-          <span className="worker-pool-company" title={subtitle}>
-            {subtitle}
-          </span>
-          <span
-            className={`worker-pool-resume${
-              resumeReady ? "" : resumeFailed ? " is-failed" : " muted"
-            }`}
-            title={resumeText}
-          >
-            {resumeText}
-          </span>
-        </span>
-      </div>
-      <div className="worker-pool-actions">
-        <CardIconButton className="worker-pool-icon-btn" action={download}>
-          <DownloadIcon />
-        </CardIconButton>
-        <CardIconButton className="worker-pool-icon-btn" action={preview}>
-          <EyeIcon />
-        </CardIconButton>
-        <CardIconButton className="worker-pool-applied" action={check}>
-          <CheckIcon />
-        </CardIconButton>
-      </div>
-      {children}
-    </div>
+      <VStack gap={2}>
+        <HStack gap={3} align="center">
+          <ListCardMark
+            itemId={itemId}
+            logoUrl={logoUrl}
+            fallback={logoFallback}
+            faceMode={faceMode}
+            selected={selected}
+            label={`${title} status`}
+          />
+          <VStack gap={1} className="acorn-row-copy">
+            <Text weight="semibold" maxLines={1} hasTruncateTooltip>
+              {title}
+            </Text>
+            <Text type="supporting" maxLines={1}>
+              {subtitle}
+            </Text>
+            <span className="acorn-row-status">
+              <Badge
+                variant={resumeFailed ? "error" : resumeReady ? "green" : "neutral"}
+                label={resumeText}
+              />
+            </span>
+          </VStack>
+          <HStack gap={0.5} className="acorn-row-actions">
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon={<Glyph name="eye" />}
+              label={preview.label}
+              tooltip={preview.title}
+              isDisabled={preview.disabled}
+              onClick={preview.onClick}
+            />
+            <MoreMenu
+              label={`More for ${title}`}
+              variant="ghost"
+              size="sm"
+              alignment="end"
+              items={menuItems}
+            />
+          </HStack>
+        </HStack>
+        {progress ? <div className="acorn-row-progress">{progress}</div> : null}
+      </VStack>
+    </Card>
   );
 }

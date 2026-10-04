@@ -1,4 +1,14 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Badge,
+  Banner,
+  EmptyState,
+  Glyph,
+  HStack,
+  IconButton,
+  Text,
+  VStack,
+} from "@joined/design-system";
 import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { canContinueGenerate, formatGenerateFailure } from "@acorn/shared/generate-checkpoint";
 import { flashAcornFace } from "../acorn-face/face-flash";
@@ -9,7 +19,7 @@ import { FACE_WINK_MS } from "../acorn-face/constants";
 import { downloadJobResume, hasAssignedResume, resumeMetaText } from "./JobResumeActions";
 import { LoadMoreFooter } from "./LoadMoreFooter";
 import { SidebarListCard } from "./SidebarListCard";
-import { GenerateRunExtras } from "./GenerateRunExtras";
+import { runExtras } from "./run-extras";
 import { useShownCount } from "./use-shown-count";
 import type { AcornJobGenerateBinding } from "../tab-job-generate-session";
 import type { AcornWorkerJob } from "../worker-job";
@@ -17,6 +27,11 @@ import type { AcornWorkerJob } from "../worker-job";
 export type { AcornWorkerJob } from "../worker-job";
 
 const JOB_PAGE = 20;
+
+/** True where a group (ready / needs a résumé) begins in the sorted list. */
+function groupStartsAt(jobs: AcornWorkerJob[], index: number): boolean {
+  return index === 0 || hasAssignedResume(jobs[index]) !== hasAssignedResume(jobs[index - 1]);
+}
 
 /** Assigned resumes first; original order preserved within each group. */
 function sortJobsAssignedFirst(jobs: AcornWorkerJob[]): AcornWorkerJob[] {
@@ -85,53 +100,75 @@ function WorkerPoolListInner({
   }, [listActive, selectedJobId, shownCount]);
 
   return (
-    <section className="worker-pool">
-      <div className="worker-pool-head">
-        <div>
-          <h3>Jobs</h3>
-          <p className="worker-pool-count">
-            {loading
-              ? "Loading…"
-              : hasMore
-                ? `${visibleJobs.length} of ${orderedJobs.length} jobs`
-                : `${orderedJobs.length} jobs`}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="tool-card worker-pool-refresh"
-          onClick={onRefresh}
-          disabled={loading || Boolean(openingJobId) || Boolean(markingJobId)}
-        >
-          Refresh
-        </button>
-      </div>
-      {error ? <p className="worker-pool-error">{error}</p> : null}
-      {!loading && !error && jobs.length === 0 ? (
-        <p className="hint">No jobs in Worker pool. In Job Search, move roles to Worker pool.</p>
-      ) : null}
-      <nav ref={listRef} className="worker-pool-list" aria-label="Worker pool jobs">
-        {visibleJobs.map((job) => (
-          <WorkerJobCard
-            key={job.id}
-            job={job}
-            selected={selectedJobId === job.id}
-            attached={Boolean(attachments[job.id])}
-            progress={
-              attachments[job.id]
-                ? (pipelines[String(attachments[job.id].tabId)] ?? IDLE_PIPELINE_PROGRESS)
-                : IDLE_PIPELINE_PROGRESS
+    <VStack as="section" gap={3} className="worker-pool">
+      <HStack gap={2} align="center" justify="between">
+        <HStack gap={2} align="center">
+          <Text as="h2" weight="semibold">
+            Worker pool
+          </Text>
+          <Badge
+            variant="neutral"
+            label={
+              loading
+                ? "Loading…"
+                : hasMore
+                  ? `${visibleJobs.length} of ${orderedJobs.length}`
+                  : orderedJobs.length
             }
-            generate={generates[job.id] ?? null}
-            opening={openingJobId === job.id}
-            marking={markingJobId === job.id}
-            onOpen={onOpen}
-            onPreviewResume={onPreviewResume}
-            onMarkApplied={onMarkApplied}
-            onContinueGenerate={onContinueGenerate}
-            onRestartGenerate={onRestartGenerate}
-            onViewJd={onViewJd}
           />
+        </HStack>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          icon={<Glyph name="refresh" />}
+          label="Refresh jobs"
+          tooltip="Refresh"
+          isDisabled={loading || Boolean(openingJobId) || Boolean(markingJobId)}
+          onClick={onRefresh}
+        />
+      </HStack>
+      {error ? <Banner status="error" title="Couldn’t load jobs" description={error} /> : null}
+      {!loading && !error && jobs.length === 0 ? (
+        <EmptyState
+          isCompact
+          title="No jobs in Worker pool"
+          description="In Job Search, move roles to Worker pool."
+        />
+      ) : null}
+      <VStack
+        as="nav"
+        ref={listRef}
+        gap={2}
+        className="worker-pool-list"
+        aria-label="Worker pool jobs"
+      >
+        {visibleJobs.map((job, index) => (
+          <Fragment key={job.id}>
+            {groupStartsAt(visibleJobs, index) ? (
+              <Text as="h3" type="supporting" weight="semibold" className="acorn-group-heading">
+                {hasAssignedResume(job) ? "Ready to fill" : "Needs a résumé"}
+              </Text>
+            ) : null}
+            <WorkerJobCard
+              job={job}
+              selected={selectedJobId === job.id}
+              attached={Boolean(attachments[job.id])}
+              progress={
+                attachments[job.id]
+                  ? (pipelines[String(attachments[job.id].tabId)] ?? IDLE_PIPELINE_PROGRESS)
+                  : IDLE_PIPELINE_PROGRESS
+              }
+              generate={generates[job.id] ?? null}
+              opening={openingJobId === job.id}
+              marking={markingJobId === job.id}
+              onOpen={onOpen}
+              onPreviewResume={onPreviewResume}
+              onMarkApplied={onMarkApplied}
+              onContinueGenerate={onContinueGenerate}
+              onRestartGenerate={onRestartGenerate}
+              onViewJd={onViewJd}
+            />
+          </Fragment>
         ))}
         <LoadMoreFooter
           hasMore={hasMore}
@@ -139,8 +176,8 @@ function WorkerPoolListInner({
           rootRef={listRef}
           label={`Load more (${visibleJobs.length} of ${orderedJobs.length})`}
         />
-      </nav>
-    </section>
+      </VStack>
+    </VStack>
   );
 }
 
@@ -295,20 +332,19 @@ function WorkerJobCard({
         disabled: opening || marking,
         onClick: () => onMarkApplied(job),
       }}
-    >
-      <GenerateRunExtras
-        progress={generate?.generateProgress ?? null}
-        showBar={showBar}
-        canContinue={canContinue}
-        canRestart={canContinue && Boolean(generate?.checkpoint?.completedSteps.length)}
-        canViewJd={canViewJd}
-        onContinue={() => onContinueGenerate?.(job)}
-        onRestart={() => onRestartGenerate?.(job)}
-        onViewJd={() => {
+      {...runExtras({
+        progress: generate?.generateProgress ?? null,
+        showBar: showBar,
+        canContinue: canContinue,
+        canRestart: canContinue && Boolean(generate?.checkpoint?.completedSteps.length),
+        canViewJd: canViewJd,
+        onContinue: () => onContinueGenerate?.(job),
+        onRestart: () => onRestartGenerate?.(job),
+        onViewJd: () => {
           if (jdText) onViewJd?.(job, jdText);
-        }}
-      />
-    </SidebarListCard>
+        },
+      })}
+    />
   );
 }
 

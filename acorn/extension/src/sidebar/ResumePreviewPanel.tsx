@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Banner, Button, Drawer, Glyph, HStack, Spinner } from "@joined/design-system";
 import { triggerResumeDownload } from "./download-resume";
 
 export type ResumePreviewDownload = {
@@ -62,33 +63,38 @@ export function ResumePreviewPanel({
   };
 
   return (
-    <div className="inspect-panel resume-preview-panel">
-      <header className="inspect-header">
-        <h3>Generated résumé · {title}</h3>
-        <button type="button" className="inspect-close" onClick={onClose} aria-label="Close">
-          ✕
-        </button>
-      </header>
-      <div className="inspect-body resume-preview-body">
-        {busy ? <p className="hint">Loading preview…</p> : null}
-        {error ? <p className="resume-preview-error">{error}</p> : null}
-        {html ? (
-          <iframe
-            className="resume-preview-frame"
-            title={`Generated résumé for ${title}`}
-            sandbox=""
-            srcDoc={html}
+    <Drawer
+      isOpen
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={`Generated résumé · ${title}`}
+      size="full"
+      footer={
+        <HStack gap={2} justify="end">
+          <Button
+            variant="secondary"
+            icon={<Glyph name="download" />}
+            label="Download Word"
+            isDisabled={busy}
+            onClick={() => void download()}
           />
-        ) : null}
-      </div>
-      <footer className="inspect-footer">
-        <button type="button" disabled={busy} onClick={() => void download()}>
-          Download Word
-        </button>
-        <button type="button" className="primary" onClick={onClose}>
-          Close
-        </button>
-      </footer>
-    </div>
+          <Button variant="primary" label="Close" onClick={onClose} />
+        </HStack>
+      }
+    >
+      {busy ? <Spinner label="Loading preview…" /> : null}
+      {error ? (
+        <Banner status="error" title="Couldn’t load the résumé" description={error} />
+      ) : null}
+      {html ? (
+        <iframe
+          className="resume-preview-frame"
+          title={`Generated résumé for ${title}`}
+          sandbox=""
+          srcDoc={html}
+        />
+      ) : null}
+    </Drawer>
   );
 }

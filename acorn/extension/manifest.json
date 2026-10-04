@@ -1,7 +1,6 @@
 {
   "manifest_version": 3,
   "name": "Acorn",
-  "version": "1.7.0",
   "description": "Fill forms from the Acorn side panel and inspect DOM trees",
   "permissions": [
     "activeTab",

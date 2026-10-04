@@ -1,4 +1,4 @@
-export const ACORN_FACE_BRAND_PX = 28;
+export const ACORN_FACE_BRAND_PX = 56;
 export const ACORN_FACE_CARD_PX = 32;
 export const ACORN_FACE_BADGE_PX = 18;
 /** Fraction of the badge that hangs past the logo corner. */
