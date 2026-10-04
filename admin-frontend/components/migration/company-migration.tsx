@@ -10,6 +10,7 @@ import {
   Stack,
   StatGrid,
 } from "@joined/design-system";
+import { TempCompaniesBrowser } from "@/components/companies/temp-companies-browser";
 import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";
 import { formatCount } from "@/lib/format";
@@ -30,7 +31,7 @@ const { copyCompanies, researchCompanies } = MIGRATION_TASKS;
  * independently, so research can start while a copy is still running.
  */
 export function CompanyMigration() {
-  const { status, error, start, cancel } = useMigration();
+  const { status, error, finished, start, cancel } = useMigration();
   const [confirmRedo, setConfirmRedo] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -138,6 +139,7 @@ export function CompanyMigration() {
           <Link href={ROUTES.companies}>Review published companies</Link>
         ) : null}
       </MigrationStep>
+      <TempCompaniesBrowser refreshKey={finished} />
       <AlertDialog
         isOpen={confirmRedo}
         onOpenChange={setConfirmRedo}

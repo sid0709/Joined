@@ -24,6 +24,19 @@ func (s *Server) listCompanies(w http.ResponseWriter, r *http.Request) {
 	httpkit.WriteJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) listStagedCompanies(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
+	defer cancel()
+
+	result, err := s.store.ListStagedCompanies(ctx, jobs.ParseStagedCompanyQuery(r.URL.Query()))
+	if err != nil {
+		slog.Error("list staged companies", "error", err)
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not load staged companies")
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, result)
+}
+
 func (s *Server) getAdminCompany(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
 	defer cancel()

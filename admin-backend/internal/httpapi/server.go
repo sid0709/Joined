@@ -76,6 +76,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	api.HandleFunc("GET /v1/jobs/temp/{id}", server.getTempJob)
 	api.HandleFunc("PATCH /v1/jobs/temp/{id}", server.updateTempJob)
 	api.HandleFunc("GET /v1/companies", server.listCompanies)
+	api.HandleFunc("GET /v1/companies/temp", server.listStagedCompanies)
 	api.HandleFunc("GET /v1/companies/{id}", server.getAdminCompany)
 	api.HandleFunc("PATCH /v1/companies/{id}", server.updateCompany)
 	api.HandleFunc("POST /v1/companies/{id}/autofill", server.autofillCompany)

@@ -2,6 +2,10 @@ import { API_PROXY } from "@/lib/config";
 
 export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
+/** Staged copies on the company migration page. */
+export const TEMP_COMPANIES_PATH = "/v1/companies/temp";
+export const TEMP_COMPANY_PAGE_SIZES = [25, 50, 100] as const;
+export const TEMP_COMPANIES_PAGE_SIZE = TEMP_COMPANY_PAGE_SIZES[0];
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
 export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@joined/job-schema";
@@ -71,6 +75,47 @@ export type CompanyDirectory = {
   page: number;
   pageSize: number;
 };
+
+/** Research state of a company still in staging. */
+export const STAGED_COMPANY_STATUS = {
+  waiting: "waiting",
+  notFound: "not_found",
+} as const;
+
+export type StagedCompanyStatus =
+  (typeof STAGED_COMPANY_STATUS)[keyof typeof STAGED_COMPANY_STATUS];
+
+/** One company migration row: a copy waiting for research, or one research could not find. */
+export type StagedCompany = {
+  id: string;
+  name: string;
+  url?: string;
+  logo?: string;
+  jobCount: number;
+  hasLogoFile?: boolean;
+  status: StagedCompanyStatus;
+  researchedAt?: string;
+};
+
+export type StagedCompanyList = {
+  companies: StagedCompany[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+export function stagedCompanyStatusLabel(status: StagedCompanyStatus): string {
+  switch (status) {
+    case STAGED_COMPANY_STATUS.waiting:
+      return "Waiting";
+    case STAGED_COMPANY_STATUS.notFound:
+      return "Not found";
+    default: {
+      const unexpected: never = status;
+      return unexpected;
+    }
+  }
+}
 
 /** Sort keys GET /v1/companies accepts. */
 export const COMPANY_SORTS = {
