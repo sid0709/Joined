@@ -9,6 +9,7 @@ import { formatCount } from "@/lib/format";
 import {
   isRunning,
   MAX_MIGRATION_SELECTION,
+  MIGRATION_PAGE_SIZES,
   MIGRATION_TASKS,
   remaining,
   type MigrationStart,
@@ -125,6 +126,7 @@ export function JobMigration() {
         layout="section"
         description={`Or pick listings and analyze just those with ${model}. Finished records appear on Jobs.`}
         maxSelection={MAX_MIGRATION_SELECTION}
+        pageSizes={MIGRATION_PAGE_SIZES}
         refreshKey={finished}
         onAnalyze={async (ids) => {
           await start(analyzeJobs, { tempJobIds: ids });

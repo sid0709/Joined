@@ -21,6 +21,7 @@ import {
 } from "@joined/design-system";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { JobDetailDrawer } from "@/components/jobs/job-detail-drawer";
+import { PageSelectButton } from "@/components/page-select-button";
 import { SearchBox } from "@/components/search-box";
 import { adminFetch, adminSend } from "@/lib/api";
 import { formatCount, formatDate, jobLocation, positiveInt } from "@/lib/format";
@@ -38,16 +39,11 @@ import { ROUTES } from "@/lib/nav";
 import type { AnalyzeBatch } from "@/lib/search-job";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
-const PAGE_SIZE_OPTIONS = TEMP_JOB_PAGE_SIZES.map((size) => ({
-  value: String(size),
-  label: `${size} per page`,
-}));
-
 type Row = TempJob & { id: string };
 
-function pageSizeOption(value: string | null) {
+function pageSizeOption(value: string | null, sizes: readonly number[], fallback: number) {
   const parsed = Number(value);
-  return TEMP_JOB_PAGE_SIZES.some((size) => size === parsed) ? parsed : TEMP_JOBS_PAGE_SIZE;
+  return sizes.some((size) => size === parsed) ? parsed : fallback;
 }
 
 type Notice = { status: "success" | "error"; title: string };
@@ -65,6 +61,8 @@ type TempJobsBrowserProps = {
    */
   onAnalyze?: (ids: string[]) => Promise<Notice>;
   maxSelection?: number;
+  /** Rows offered in the page-size menu. Scout stays on the smaller set. */
+  pageSizes?: readonly number[];
   /** Changing it reloads the list, e.g. when a background analysis ends. */
   refreshKey?: number;
   /** "section" renders a card inside a larger page instead of the page header. */
@@ -85,6 +83,7 @@ export function TempJobsBrowser({
   analyzePath,
   onAnalyze,
   maxSelection = MAX_ANALYZE_SELECTION,
+  pageSizes = TEMP_JOB_PAGE_SIZES,
   refreshKey = 0,
   layout = "page",
   details = true,
@@ -96,7 +95,12 @@ export function TempJobsBrowser({
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get("page"), 1);
-  const pageSize = pageSizeOption(searchParams.get("size"));
+  const defaultPageSize = pageSizes[0] ?? TEMP_JOBS_PAGE_SIZE;
+  const pageSize = pageSizeOption(searchParams.get("size"), pageSizes, defaultPageSize);
+  const pageSizeOptions = pageSizes.map((size) => ({
+    value: String(size),
+    label: `${size} per page`,
+  }));
   const query = searchParams.get("q") ?? "";
   const hideAnalyzed = searchParams.get("hide") === "analyzed";
   const jobId = searchParams.get("job");
@@ -279,13 +283,18 @@ export function TempJobsBrowser({
             value={hideAnalyzed}
             onChange={(checked) => go({ hide: checked ? "analyzed" : null, page: 1 })}
           />
+          <PageSelectButton
+            selected={selected}
+            pageIds={(result?.jobs ?? []).map((job) => job._id)}
+            onChange={setSelected}
+          />
           <Selector
             label="Jobs per page"
             isLabelHidden
-            options={PAGE_SIZE_OPTIONS}
+            options={pageSizeOptions}
             value={String(pageSize)}
             onChange={(value) =>
-              go({ size: Number(value) === TEMP_JOBS_PAGE_SIZE ? null : value, page: 1 })
+              go({ size: Number(value) === defaultPageSize ? null : value, page: 1 })
             }
           />
           <Text type="supporting" color="secondary">

@@ -10,8 +10,10 @@ import (
 
 const (
 	DefaultPageSize = 25
-	MaxPageSize     = 100
-	MaxQueryLength  = 200
+	// MaxPageSize is the most rows one migration list page returns. The console
+	// offers 250, 500, and 1,000 so a person can select a full batch at once.
+	MaxPageSize    = 1000
+	MaxQueryLength = 200
 )
 
 type ListQuery struct {

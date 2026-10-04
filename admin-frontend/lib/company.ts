@@ -4,8 +4,6 @@ export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
 /** Staged copies on the company migration page. */
 export const TEMP_COMPANIES_PATH = "/v1/companies/temp";
-export const TEMP_COMPANY_PAGE_SIZES = [25, 50, 100] as const;
-export const TEMP_COMPANIES_PAGE_SIZE = TEMP_COMPANY_PAGE_SIZES[0];
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
 export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@joined/job-schema";

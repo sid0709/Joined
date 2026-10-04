@@ -7,8 +7,11 @@ func TestParseListQuery(t *testing.T) {
 	if query.Page != 3 {
 		t.Fatalf("page = %d", query.Page)
 	}
-	if query.PageSize != MaxPageSize {
+	if query.PageSize != 500 {
 		t.Fatalf("pageSize = %d", query.PageSize)
+	}
+	if capped := ParseListQuery("1", "5000", ""); capped.PageSize != MaxPageSize {
+		t.Fatalf("capped pageSize = %d", capped.PageSize)
 	}
 	if query.Q != "devops" {
 		t.Fatalf("q = %q", query.Q)
