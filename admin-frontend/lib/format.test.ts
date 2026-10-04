@@ -14,6 +14,7 @@ describe("dates", () => {
     expect(formatDate("2026-09-28T12:00:00Z")).toContain("2026");
     expect(formatDate(undefined)).toBe("—");
     expect(formatDate("nope")).toBe("—");
+    expect(formatDate("0001-01-01T00:00:00Z")).toBe("—");
     expect(formatDateTime("2026-09-28T12:00:00Z")).toContain("Sep");
     expect(formatDateTime(undefined)).toBe("—");
     expect(formatDateTime("nope")).toBe("—");

@@ -101,8 +101,11 @@ func (s *Store) ListSearch(ctx context.Context, query JobQuery, now time.Time) (
 			N int64 `bson:"n"`
 		} `bson:"total"`
 		Rows []struct {
-			storedSearchJob `bson:",inline"`
-			Completion      int `bson:"completion"`
+			// Record is a named, exported field. An inline embed of the unexported
+			// storedSearchJob type is ignored by the BSON decoder, which is how the
+			// jobs table showed blank titles and a year-1 analyzed date.
+			Record     storedSearchJob `bson:",inline"`
+			Completion int             `bson:"completion"`
 		} `bson:"rows"`
 	}
 	if err := cursor.All(ctx, &facets); err != nil {
@@ -114,7 +117,7 @@ func (s *Store) ListSearch(ctx context.Context, query JobQuery, now time.Time) (
 			out.Total = facets[0].Total[0].N
 		}
 		for _, row := range facets[0].Rows {
-			out.Jobs = append(out.Jobs, JobRow{SearchRecord: row.view(now), Completion: row.Completion})
+			out.Jobs = append(out.Jobs, JobRow{SearchRecord: row.Record.view(now), Completion: row.Completion})
 		}
 	}
 	out.Pending, err = s.pendingCount(ctx)
