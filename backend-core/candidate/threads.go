@@ -128,6 +128,19 @@ func (s *Store) ensureThread(ctx context.Context, app Application, now time.Time
 	return err
 }
 
+// CompanyThreadJob is the job behind a thread this company owns.
+// Another company's thread is forbidden. The caller decides whether that job is visible.
+func (s *Store) CompanyThreadJob(ctx context.Context, companyID, threadID string) (string, error) {
+	doc, err := s.threadDoc(ctx, threadID)
+	if err != nil {
+		return "", err
+	}
+	if companyID == "" || doc.CompanyID != companyID {
+		return "", ErrForbidden
+	}
+	return doc.JobID, nil
+}
+
 func (s *Store) threadDoc(ctx context.Context, id string) (storedThread, error) {
 	var doc storedThread
 	err := s.collection(threadsCollection).FindOne(ctx, bson.D{{Key: "id", Value: id}}).Decode(&doc)
