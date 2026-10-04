@@ -1,12 +1,12 @@
 import {
+  CONTENT_SCRIPT_INJECTED_ATTRIBUTE,
+  sendRuntimeMessageSafely,
+} from "./contentScriptLifecycle";
+import {
   collectTextCandidates,
   matchesSubmitKeyword,
   containsConfirmationKeyword,
 } from "./submitDetector";
-import {
-  CONTENT_SCRIPT_INJECTED_ATTRIBUTE,
-  sendRuntimeMessageSafely,
-} from "./contentScriptLifecycle";
 
 /* global chrome */
 

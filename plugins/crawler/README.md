@@ -13,57 +13,47 @@ This is the browser extension for the AIMS (Automated intelligent-sourcing for j
 
 - **React:** A JavaScript library for building user interfaces.
 - **Vite:** A fast build tool for modern web development.
-- **Socket.io-client:** A library for real-time, bidirectional communication between web clients and servers.
-- **ESLint:** A tool for identifying and reporting on patterns found in ECMAScript/JavaScript code.
+- **@joined/design-system:** Joined's shared components and tokens for the side panel UI.
+- **ESLint:** The repo's shared lint rules.
 - **Chrome Extension APIs:** A set of APIs for creating Chrome extensions.
 
 ## Getting Started
 
-To get a local copy up and running, follow these simple steps.
+The crawler is a workspace of the Joined bun monorepo (`plugins/crawler`, package `avalon-scrapper`). Use bun only; run every command from the repo root.
 
-### Prerequisites
+1. Install dependencies (one `bun install` for the whole repo)
+   ```sh
+   bun install
+   ```
+2. Build the extension
+   ```sh
+   bun run build:crawler
+   ```
+   For the side panel with hot reload at http://localhost:7173, run `bun run dev:crawler`.
+3. Open Chrome and navigate to `chrome://extensions`.
+4. Enable "Developer mode".
+5. Click on "Load unpacked" and select `plugins/crawler/dist`.
 
-- Node.js
-- npm or yarn
+Server URLs and the duplicate window come from `VITE_*` settings in `plugins/crawler/.env`. Rebuild after changing them.
 
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone https://github.com/your_username_/AIMS.git
-   ```
-2. Navigate to the Extension directory
-   ```sh
-   cd Extension
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Build the extension
-   ```sh
-   npm run build
-   ```
-5. Open Chrome and navigate to `chrome://extensions`.
-6. Enable "Developer mode".
-7. Click on "Load unpacked" and select the `dist` directory within the `Extension` directory.
+The side panel follows the system light/dark setting until you pick one with the sun/moon button in the header; the choice is remembered.
 
 ## Project Structure
 
 The project structure is as follows:
 
-- **dist/**: Contains the built extension files.
+- **dist/**: The built extension (not committed).
 - **public/**: Contains the public assets of the extension.
 - **src/**: Contains the source code of the extension.
-  - **api/**: Contains the REST API, backend health, and notification hooks.
-  - **assets/**: Contains the static assets of the extension, such as images and fonts.
-  - **components/**: Contains the reusable components of the extension.
+  - **api/**: The REST API, backend health, runtime messaging, and notification hooks.
+  - **components/**: The side panel: the header and tabs (`layout.jsx`), the Scrap panel (`Scrapper/Scrap/`), and the Tracker.
+  - **theme/colorMode.jsx**: The light/dark mode and the Joined theme provider.
+  - **styles/crawler.css**: Side panel layout on top of the Joined tokens.
   - **App.jsx**: The main component of the extension's UI.
   - **main.jsx**: The entry point of the extension's UI.
-  - **background.js**: The background script of the extension.
-  - **contentScript.js**: The content script of the extension.
-- **.eslintrc.cjs**: The ESLint configuration file.
-- **.gitignore**: The gitignore file.
+  - **background.js**: The service worker's startup wiring; its modules live in `background/`.
+  - **contentScript/**: The content script: `index.js` is the entry, `messageHandler.js` routes messages to `messages/`, and `actionExecutor.js` runs actions from `actions/`.
+- Lint uses the repo's shared ESLint rules (root `eslint.config.mjs`).
 - **package.json**: The package.json file.
 - **vite.config.js**: The Vite configuration file.
 

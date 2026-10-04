@@ -1,4 +1,4 @@
-import { useSnackbar } from "notistack";
+import { useToast } from "@joined/design-system";
 import { useMemo, useCallback } from "react";
 
 export function formatFailureMessage(err, fallback = "Something went wrong") {
@@ -25,19 +25,21 @@ export function formatFailureMessage(err, fallback = "Something went wrong") {
 }
 
 const useNotification = () => {
-  const { enqueueSnackbar } = useSnackbar();
+  const toast = useToast();
 
   const showNotification = useCallback(
     (message, options = {}) => {
-      const { variant = "default", autoHideDuration = 2500, ...otherOptions } = options;
+      const { variant = "default", autoHideDuration = 2500, key } = options;
 
-      enqueueSnackbar(message, {
-        variant,
+      // Joined toasts are info or error. A `key` replaces the toast already showing under it.
+      toast({
+        body: message,
+        type: variant === "error" ? "error" : "info",
         autoHideDuration,
-        ...otherOptions,
+        ...(key ? { uniqueID: key, collisionBehavior: "overwrite" } : {}),
       });
     },
-    [enqueueSnackbar],
+    [toast],
   );
 
   return useMemo(

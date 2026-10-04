@@ -1,88 +1,58 @@
-import { Box, Stack, Typography } from "@mui/material";
-import { CheckCircleRounded, ErrorRounded, RadioButtonUncheckedRounded } from "@mui/icons-material";
-import PropTypes from "prop-types";
+import { Glyph, HStack, Text, VStack } from "@joined/design-system";
+
+/** Glyph and tone for each check status. */
+const CHECK_STATUS = {
+  valid: { glyph: "check", tone: "crawler-tone-success" },
+  invalid: { glyph: "close", tone: "crawler-tone-error" },
+  pending: { glyph: "dot", tone: "crawler-tone-muted" },
+};
 
 function ValidationChecklist({ checks }) {
   const validCount = checks.filter(({ status }) => status === "valid").length;
   const invalidCount = checks.filter(({ status }) => status === "invalid").length;
 
   return (
-    <Stack spacing={1.25} sx={{ width: "100%" }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 700 }}>
+    <VStack gap={2} width="100%">
+      <HStack align="center" justify="between">
+        <Text type="supporting" weight="semibold">
           Field validation
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: invalidCount ? "error.main" : "text.secondary", fontWeight: 600 }}
+        </Text>
+        <Text
+          type="supporting"
+          weight="semibold"
+          className={invalidCount ? "crawler-tone-error" : "crawler-tone-muted"}
         >
           {invalidCount ? `${invalidCount} missing` : `${validCount}/${checks.length} valid`}
-        </Typography>
-      </Stack>
+        </Text>
+      </HStack>
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 0.75,
-        }}
-      >
+      <div className="crawler-check-grid">
         {checks.map((check, index) => {
-          const isValid = check.status === "valid";
-          const isInvalid = check.status === "invalid";
-          const Icon = isValid
-            ? CheckCircleRounded
-            : isInvalid
-              ? ErrorRounded
-              : RadioButtonUncheckedRounded;
+          const { glyph, tone } = CHECK_STATUS[check.status] || CHECK_STATUS.pending;
+          const isWide = checks.length % 2 === 1 && index === checks.length - 1;
 
           return (
-            <Stack
+            <HStack
               key={check.id}
-              direction="row"
-              alignItems="center"
-              spacing={0.75}
-              sx={{
-                minWidth: 0,
-                gridColumn:
-                  checks.length % 2 === 1 && index === checks.length - 1 ? "1 / -1" : "auto",
-                px: 1,
-                py: 0.75,
-                borderRadius: 1.5,
-                bgcolor: "rgba(255, 255, 255, 0.025)",
-              }}
+              gap={1.5}
+              align="center"
+              className={isWide ? "crawler-check crawler-check-wide" : "crawler-check"}
             >
-              <Icon
-                sx={{
-                  fontSize: 16,
-                  flexShrink: 0,
-                  color: isValid ? "success.main" : isInvalid ? "error.main" : "text.secondary",
-                }}
-              />
-              <Typography
-                variant="caption"
-                noWrap
-                title={`${check.label}: ${check.status}`}
-                sx={{ color: isInvalid ? "error.main" : "text.secondary", fontWeight: 600 }}
+              <Glyph name={glyph} className={tone} />
+              <Text
+                type="supporting"
+                weight="semibold"
+                maxLines={1}
+                className={check.status === "invalid" ? "crawler-tone-error" : "crawler-tone-muted"}
               >
-                {check.label}
-              </Typography>
-            </Stack>
+                <span title={`${check.label}: ${check.status}`}>{check.label}</span>
+              </Text>
+            </HStack>
           );
         })}
-      </Box>
-    </Stack>
+      </div>
+    </VStack>
   );
 }
-
-ValidationChecklist.propTypes = {
-  checks: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      label: PropTypes.string.isRequired,
-      status: PropTypes.oneOf(["pending", "valid", "invalid"]).isRequired,
-    }),
-  ).isRequired,
-};
 
 export default ValidationChecklist;

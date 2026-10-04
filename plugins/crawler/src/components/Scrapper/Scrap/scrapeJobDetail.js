@@ -1,9 +1,9 @@
-import { DUPLICATE_WINDOW_DAYS, SCRAPE_SOURCE } from "../../../config/env";
 import {
   assertCompleteJob,
   getJobValidationChecklist,
   normalizeOptionalHttpUrl,
 } from "../../../api/jobValidation";
+import { DUPLICATE_WINDOW_DAYS, SCRAPE_SOURCE } from "../../../config/env";
 import {
   handleAction,
   handleClear,
@@ -15,6 +15,7 @@ export const pendingValidationChecklist = () => getJobValidationChecklist({}, []
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** One pass of the scrape loop: open the next job card, read it, enqueue it, close it. */
+// eslint-disable-next-line complexity -- one linear scrape sequence; splitting it is a behavior change
 export async function scrapeJobDetail({
   setProgress,
   setValidationChecks,

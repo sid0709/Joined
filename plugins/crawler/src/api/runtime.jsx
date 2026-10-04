@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback, useMemo } from "react";
+
 import RuntimeContext from "./runtimeContext";
 
 /* global chrome */
@@ -7,6 +8,8 @@ export const RuntimeProvider = ({ children }) => {
 
   useEffect(() => {
     if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.onMessage) return;
+    // The listener set is created once and never replaced, so the cleanup clears this same set.
+    const listenerSet = listenersRef.current;
 
     // capture current set reference for cleanup safety
     const dispatcher = (message, sender, sendResponse) => {
@@ -31,7 +34,7 @@ export const RuntimeProvider = ({ children }) => {
         console.error("Error removing listener:", e);
       }
       // clear listeners
-      listenersRef.current.clear();
+      listenerSet.clear();
     };
   }, []);
 

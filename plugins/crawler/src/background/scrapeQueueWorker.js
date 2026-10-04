@@ -1,5 +1,4 @@
 /* global chrome */
-import { API_URL, JOB_API_STORAGE_KEY, SCRAPE_SOURCE } from "../config/env.js";
 import {
   SCRAPE_QUEUE_ALARM,
   SCRAPE_QUEUE_BATCH_SIZE,
@@ -14,6 +13,8 @@ import {
   retryDelayMs,
   selectReadyItems,
 } from "../api/scrapeQueue.js";
+import { API_URL, JOB_API_STORAGE_KEY, SCRAPE_SOURCE } from "../config/env.js";
+
 import { normalizeBaseUrl, safeSendMessage, storageGet, storageSet } from "./runtime.js";
 
 let scrapeQueueState = normalizeQueueState();

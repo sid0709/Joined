@@ -1,5 +1,5 @@
-import { findLowestCommonAncestor } from "../elementFinder";
 import { isVisible } from "../domUtils";
+import { findLowestCommonAncestor } from "../elementFinder";
 
 export function handleExtractMainContent(sendResponse) {
   // Determine minimal container (LCA) that contains all visible interactables

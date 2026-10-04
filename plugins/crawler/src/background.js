@@ -1,9 +1,9 @@
 /* global chrome */
-import { persistJobApiUrlToStorage, persistSpiritApiUrlToStorage } from "./config/env.js";
 import { SCRAPE_QUEUE_ALARM } from "./api/scrapeQueue.js";
 import { loadJobBidStore } from "./background/jobBidStore.js";
 import { routeMessage } from "./background/messageRouter.js";
 import { drainScrapeQueue, startScrapeQueue } from "./background/scrapeQueueWorker.js";
+import { persistJobApiUrlToStorage, persistSpiritApiUrlToStorage } from "./config/env.js";
 
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })

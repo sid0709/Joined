@@ -1,22 +1,15 @@
-import { SnackbarProvider } from "notistack";
-import { RuntimeProvider } from "./runtime.jsx";
+import { ColorModeProvider } from "../theme/colorMode.jsx";
+
 import { BackendHealthProvider } from "./backendHealth.jsx";
+import { RuntimeProvider } from "./runtime.jsx";
 
 const Providers = ({ children }) => {
   return (
-    <SnackbarProvider
-      maxSnack={2}
-      anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      dense
-      hideIconVariant={false}
-      style={{
-        fontFamily: '"Figtree", system-ui, sans-serif',
-      }}
-    >
+    <ColorModeProvider>
       <BackendHealthProvider>
         <RuntimeProvider>{children}</RuntimeProvider>
       </BackendHealthProvider>
-    </SnackbarProvider>
+    </ColorModeProvider>
   );
 };
 

@@ -1,28 +1,46 @@
+import {
+  Button,
+  Card,
+  Glyph,
+  HStack,
+  NumberInput,
+  Selector,
+  Text,
+  TextArea,
+  TextInput,
+  VStack,
+} from "@joined/design-system";
 import { useState, useEffect } from "react";
+
 import { useRuntime } from "../../api/runtimeContext";
 import useNotification from "../../api/useNotification";
-import {
-  Box,
-  Paper,
-  TextField,
-  Button,
-  Stack,
-  Select,
-  Typography,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Tooltip,
-  Divider,
-} from "@mui/material";
-
-import SearchIcon from "@mui/icons-material/Search";
-import ClearIcon from "@mui/icons-material/Clear";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-
 import { handleAction, handleClear, handleHighlight } from "../../contentScript/interactionBridge";
 import { commonTags, commonProperties } from "../../contentScript/interactionBridge";
-import { athensCardSx, athensSectionLabelSx } from "../../theme/athensTheme";
+
+const ACTION_OPTIONS = [
+  { value: "click", label: "Click" },
+  { value: "fill", label: "Fill" },
+  { value: "typeSmoothly", label: "Type Smoothly" },
+  { value: "fetch", label: "Fetch" },
+];
+
+const FETCH_TYPE_OPTIONS = [
+  { value: "content", label: "Content (innerHTML)" },
+  { value: "text", label: "Text (innerText)" },
+];
+
+function StepHeading({ step, title }) {
+  return (
+    <VStack gap={1}>
+      <Text type="supporting" weight="semibold" color="secondary">
+        {step}
+      </Text>
+      <Text as="h2" type="large" weight="semibold">
+        {title}
+      </Text>
+    </VStack>
+  );
+}
 
 const ComponentTracker = () => {
   // State for highlighting
@@ -70,148 +88,105 @@ const ComponentTracker = () => {
   const isFetchAction = action === "fetch";
 
   return (
-    <div>
-      <Paper sx={athensCardSx}>
-        <Stack spacing={3}>
-          <Box>
-            <Typography sx={athensSectionLabelSx} component="p" gutterBottom>
-              Step 1
-            </Typography>
-            <Typography variant="h6">Find Elements</Typography>
-          </Box>
-          <FormControl fullWidth>
-            <InputLabel>Tag Name</InputLabel>
-            <Select value={tag} label="Tag Name" onChange={(e) => setTag(e.target.value)}>
-              {commonTags.map((t) => (
-                <MenuItem key={t} value={t}>
-                  {t}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth>
-            <InputLabel>Attribute</InputLabel>
-            <Select
-              value={property}
-              label="Attribute"
-              onChange={(e) => setProperty(e.target.value)}
-            >
-              {commonProperties.map((p) => (
-                <MenuItem key={p} value={p}>
-                  {p}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Tooltip title="Use '?' for wildcards. `?text?` contains, `text?` starts-with." arrow>
-            <TextField
-              fullWidth
-              label="Pattern"
-              variant="outlined"
-              value={pattern}
-              onChange={(e) => setPattern(e.target.value)}
-              placeholder="e.g., ?user-profile?"
-            />
-          </Tooltip>
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<SearchIcon />}
-              onClick={() => handleHighlight(tag, property, pattern)}
-              disabled={!pattern}
-            >
-              Highlight
-            </Button>
-            <Button fullWidth variant="outlined" startIcon={<ClearIcon />} onClick={handleClear}>
-              Clear
-            </Button>
-          </Stack>
-
-          <Divider />
-
-          <Box>
-            <Typography sx={athensSectionLabelSx} component="p" gutterBottom>
-              Step 2
-            </Typography>
-            <Typography variant="h6">Interact with Element</Typography>
-          </Box>
-
-          <Stack direction="row" spacing={2}>
-            <TextField
-              type="number"
-              label="Order"
-              value={order}
-              onChange={(e) => setOrder(Math.max(0, parseInt(e.target.value, 10)))}
-              inputProps={{ min: 0 }}
-              sx={{ width: "100px" }}
-              disabled={!pattern}
-            />
-            <FormControl fullWidth disabled={!pattern}>
-              <InputLabel>Action</InputLabel>
-              <Select value={action} label="Action" onChange={(e) => setAction(e.target.value)}>
-                <MenuItem value="click">Click</MenuItem>
-                <MenuItem value="fill">Fill</MenuItem>
-                <MenuItem value="typeSmoothly">Type Smoothly</MenuItem>
-                <MenuItem value="fetch">Fetch</MenuItem>
-              </Select>
-            </FormControl>
-          </Stack>
-
-          {isActionWithValue && (
-            <TextField
-              fullWidth
-              label="Value to Fill/Type"
-              variant="outlined"
-              value={actionValue}
-              onChange={(e) => setActionValue(e.target.value)}
-              disabled={!pattern}
-            />
-          )}
-
-          {/* Fetch-specific controls */}
-          {isFetchAction && (
-            <>
-              <FormControl fullWidth>
-                <InputLabel>Fetch Type</InputLabel>
-                <Select
-                  value={fetchType}
-                  label="Fetch Type"
-                  onChange={(e) => setFetchType(e.target.value)}
-                >
-                  <MenuItem value="content">Content (innerHTML)</MenuItem>
-                  <MenuItem value="text">Text (innerText)</MenuItem>
-                </Select>
-              </FormControl>
-              {fetchResult && (
-                <TextField
-                  fullWidth
-                  label="Fetch Result"
-                  multiline
-                  minRows={3}
-                  value={fetchResult.error ? `Error: ${fetchResult.error}` : fetchResult.data || ""}
-                  InputProps={{ readOnly: true }}
-                />
-              )}
-            </>
-          )}
-
+    <Card padding={4}>
+      <VStack gap={5}>
+        <StepHeading step="Step 1" title="Find Elements" />
+        <Selector label="Tag Name" options={commonTags} value={tag} onChange={setTag} />
+        <Selector
+          label="Attribute"
+          options={commonProperties}
+          value={property}
+          onChange={setProperty}
+        />
+        <TextInput
+          label="Pattern"
+          labelTooltip="Use '?' for wildcards. `?text?` contains, `text?` starts-with."
+          value={pattern}
+          onChange={setPattern}
+          placeholder="e.g., ?user-profile?"
+        />
+        <HStack gap={3}>
           <Button
-            variant="contained"
-            color="success"
-            startIcon={<PlayArrowIcon />}
-            onClick={() =>
-              handleAction(tag, property, pattern, order, action, actionValue, fetchType)
-            }
-            disabled={!pattern || (isActionWithValue && !actionValue)}
-            fullWidth
-            sx={{ mt: 0.5 }}
-          >
-            Execute Action
-          </Button>
-        </Stack>
-      </Paper>
-    </div>
+            variant="primary"
+            label="Highlight"
+            icon={<Glyph name="search" />}
+            onClick={() => handleHighlight(tag, property, pattern)}
+            isDisabled={!pattern}
+            width="100%"
+          />
+          <Button
+            variant="secondary"
+            label="Clear"
+            icon={<Glyph name="close" />}
+            onClick={handleClear}
+            width="100%"
+          />
+        </HStack>
+
+        <hr className="crawler-divider" />
+
+        <StepHeading step="Step 2" title="Interact with Element" />
+
+        <HStack gap={4}>
+          <NumberInput
+            label="Order"
+            value={order}
+            onChange={(value) => setOrder(Math.max(0, parseInt(value, 10)))}
+            min={0}
+            width="100px"
+            isDisabled={!pattern}
+          />
+          <Selector
+            label="Action"
+            options={ACTION_OPTIONS}
+            value={action}
+            onChange={setAction}
+            isDisabled={!pattern}
+            width="100%"
+          />
+        </HStack>
+
+        {isActionWithValue && (
+          <TextInput
+            label="Value to Fill/Type"
+            value={actionValue}
+            onChange={setActionValue}
+            isDisabled={!pattern}
+          />
+        )}
+
+        {/* Fetch-specific controls */}
+        {isFetchAction && (
+          <>
+            <Selector
+              label="Fetch Type"
+              options={FETCH_TYPE_OPTIONS}
+              value={fetchType}
+              onChange={setFetchType}
+            />
+            {fetchResult && (
+              <TextArea
+                label="Fetch Result"
+                rows={3}
+                value={fetchResult.error ? `Error: ${fetchResult.error}` : fetchResult.data || ""}
+                isReadOnly
+              />
+            )}
+          </>
+        )}
+
+        <Button
+          variant="primary"
+          label="Execute Action"
+          icon={<Glyph name="play" />}
+          onClick={() =>
+            handleAction(tag, property, pattern, order, action, actionValue, fetchType)
+          }
+          isDisabled={!pattern || (isActionWithValue && !actionValue)}
+          width="100%"
+        />
+      </VStack>
+    </Card>
   );
 };
 

@@ -41,6 +41,7 @@ async function waitForReactSelectListbox(inputEl, timeoutMs = 2000) {
   return null;
 }
 
+// eslint-disable-next-line complexity -- react-select fallbacks tried in order; splitting them is a behavior change
 export async function selectFromReactSelect(target, selectionText, options = {}) {
   const candidates = deriveSelectionCandidates(selectionText);
   const desired = candidates[0] || "";

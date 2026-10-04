@@ -1,83 +1,51 @@
-import { Box, Stack, Typography } from "@mui/material";
-import PropTypes from "prop-types";
+import { HStack, Text, VStack } from "@joined/design-system";
+
 import { formatElapsedTime, getSkippedScrapeCount } from "../../../api/scrapeRunStats";
 
 function RunSummary({ elapsedMs, stats, targetTab, queue }) {
   const skipped = getSkippedScrapeCount(stats);
   const totals = [
-    { label: "Registered", value: stats.registered, color: "success.main" },
-    { label: "Skipped", value: skipped, color: "warning.main" },
-    { label: "Failed", value: stats.failed, color: "error.main" },
-    { label: "Queued", value: queue.queued, color: "info.light" },
-    { label: "Saving", value: queue.saving, color: "primary.light" },
+    { label: "Registered", value: stats.registered, tone: "crawler-tone-success" },
+    { label: "Skipped", value: skipped, tone: "crawler-tone-warning" },
+    { label: "Failed", value: stats.failed, tone: "crawler-tone-error" },
+    { label: "Queued", value: queue.queued, tone: "crawler-tone-accent" },
+    { label: "Saving", value: queue.saving, tone: "crawler-tone-accent" },
   ];
 
   return (
-    <Stack spacing={1.25} sx={{ width: "100%" }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 700 }}>
+    <VStack gap={2} width="100%">
+      <HStack align="center" justify="between">
+        <Text type="supporting" weight="semibold">
           Run results
-        </Typography>
-        <Typography variant="caption" sx={{ color: "primary.light", fontWeight: 700 }}>
+        </Text>
+        <Text type="supporting" weight="semibold" color="accent" hasTabularNumbers>
           {formatElapsedTime(elapsedMs)}
-        </Typography>
-      </Stack>
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 0.75 }}>
-        {totals.map(({ label, value, color }) => (
-          <Box
-            key={label}
-            sx={{
-              px: 0.75,
-              py: 1,
-              textAlign: "center",
-              borderRadius: 1.5,
-              bgcolor: "rgba(255, 255, 255, 0.025)",
-            }}
-          >
-            <Typography sx={{ color, fontSize: "1rem", fontWeight: 800, lineHeight: 1.1 }}>
+        </Text>
+      </HStack>
+      <div className="crawler-stat-grid">
+        {totals.map(({ label, value, tone }) => (
+          <VStack key={label} gap={0.5} className="crawler-stat">
+            <Text type="large" weight="semibold" hasTabularNumbers className={tone}>
               {value}
-            </Typography>
-            <Typography sx={{ color: "text.secondary", fontSize: "0.625rem", fontWeight: 700 }}>
+            </Text>
+            <Text type="supporting" color="secondary">
               {label}
-            </Typography>
-          </Box>
+            </Text>
+          </VStack>
         ))}
-      </Box>
-      <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "center" }}>
+      </div>
+      <Text type="supporting" color="secondary" justify="center">
         Duplicates {stats.duplicate} · Validation {stats.validation} · Blocked {stats.blocked}
-      </Typography>
+      </Text>
       {targetTab && (
-        <Typography
-          variant="caption"
-          noWrap
-          title={targetTab.url}
-          sx={{ color: "text.secondary", textAlign: "center" }}
-        >
-          Target tab #{targetTab.id}: {targetTab.title || new URL(targetTab.url).hostname}
-        </Typography>
+        <Text type="supporting" color="secondary" justify="center" maxLines={1}>
+          <span title={targetTab.url}>
+            Target tab #{targetTab.id}: {targetTab.title || new URL(targetTab.url).hostname}
+          </span>
+        </Text>
       )}
-    </Stack>
+    </VStack>
   );
 }
-
-RunSummary.propTypes = {
-  elapsedMs: PropTypes.number.isRequired,
-  stats: PropTypes.shape({
-    registered: PropTypes.number.isRequired,
-    duplicate: PropTypes.number.isRequired,
-    validation: PropTypes.number.isRequired,
-    blocked: PropTypes.number.isRequired,
-    failed: PropTypes.number.isRequired,
-  }).isRequired,
-  targetTab: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    title: PropTypes.string.isRequired,
-    url: PropTypes.string.isRequired,
-  }),
-  queue: PropTypes.shape({
-    queued: PropTypes.number.isRequired,
-    saving: PropTypes.number.isRequired,
-  }).isRequired,
-};
 
 export default RunSummary;

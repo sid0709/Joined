@@ -1,10 +1,10 @@
-import { findElements, waitForElements } from "./elementFinder";
 import { clickLikeHuman, setNativeValue } from "./actions/dom";
 import { isReactSelectInput, selectFromReactSelect } from "./actions/reactSelect";
 import { performScopedSelect, resolveScopedTarget } from "./actions/scoped";
 import { selectByIndex, selectByText } from "./actions/selectOptions";
 import { typeSmoothly } from "./actions/typing";
 import { performUpload } from "./actions/upload";
+import { findElements, waitForElements } from "./elementFinder";
 
 export { typeSmoothly } from "./actions/typing";
 export { selectByIndex, selectByText } from "./actions/selectOptions";
@@ -13,6 +13,7 @@ export { selectByIndex, selectByText } from "./actions/selectOptions";
  * Finds a specific element and performs an action on it.
  * @param {object} payload The details of the action to execute.
  */
+// eslint-disable-next-line complexity -- the action dispatcher; splitting it is a behavior change
 export async function performActionOnElement(payload) {
   try {
     const { componentType, propertyName, pattern, order, action, value } = payload;

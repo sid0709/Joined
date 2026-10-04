@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { resolve, dirname } from "path";
 import { copyFileSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
@@ -23,6 +23,8 @@ export default defineConfig({
       },
     },
   ],
+  // One node_modules, at the repo root: keep Vite's cache there, not in this workspace.
+  cacheDir: resolve(__dirname, "../../node_modules/.vite/crawler"),
   build: {
     // Chrome treats shared extension chunks as belonging to the execution
     // world that first loads them. Let native module imports load these

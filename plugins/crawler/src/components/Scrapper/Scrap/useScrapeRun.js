@@ -1,20 +1,22 @@
 /* global chrome */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRuntime } from "../../../api/runtimeContext";
-import { API_URL, DUPLICATE_WINDOW_DAYS } from "../../../config/env";
-import useNotification from "../../../api/useNotification";
+
 import { IncompleteJobDataError, mergeJobValidationChecklist } from "../../../api/jobValidation";
+import { useRuntime } from "../../../api/runtimeContext";
 import {
   createScrapeRunStats,
   incrementScrapeRunStats,
   SCRAPE_OUTCOMES,
 } from "../../../api/scrapeRunStats";
+import useNotification from "../../../api/useNotification";
+import { API_URL, DUPLICATE_WINDOW_DAYS } from "../../../config/env";
 import {
   clearRememberedPageTab,
   handleAction,
   handleClear,
   rememberActivePageTab,
 } from "../../../contentScript/interactionBridge";
+
 import { pendingValidationChecklist, scrapeJobDetail } from "./scrapeJobDetail";
 
 /** The scrape loop's state, its runtime listeners, and Start/Stop. */
@@ -185,6 +187,8 @@ export function useScrapeRun() {
     return () => {
       active = false;
     };
+    // onClickListItem is rebuilt every render; listing it would restart the running scrape loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrapFlag, notifyFailure, recordOutcome]);
 
   const onScrapStart = async () => {

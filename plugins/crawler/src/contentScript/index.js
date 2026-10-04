@@ -1,6 +1,6 @@
-import { messageHandler } from "./messageHandler";
-import { initJobBidMonitor } from "./jobBidMonitor";
 import { CONTENT_SCRIPT_INJECTED_ATTRIBUTE } from "./contentScriptLifecycle";
+import { initJobBidMonitor } from "./jobBidMonitor";
+import { messageHandler } from "./messageHandler";
 
 /* global chrome */
 

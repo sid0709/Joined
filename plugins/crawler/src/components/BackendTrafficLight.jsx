@@ -1,29 +1,21 @@
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { API_URL } from "../config/env";
-import useBackendHealth from "../api/useBackendHealth";
+import { HStack, StatusDot, Text, VStack } from "@joined/design-system";
 
-const LIGHT = {
-  off: "rgba(255,255,255,0.1)",
-  red: "#f87171",
-  yellow: "#fbbf24",
-  green: "#34d399",
+import useBackendHealth from "../api/useBackendHealth";
+import { API_URL } from "../config/env";
+
+/** Traffic-light color for each backend state, as a StatusDot variant. */
+const LIGHT_VARIANT = {
+  red: "error",
+  yellow: "warning",
+  green: "success",
 };
 
-function TrafficDot({ color, active, label }) {
-  return (
-    <Box
-      aria-label={label}
-      sx={{
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        bgcolor: active ? color : LIGHT.off,
-        boxShadow: active ? `0 0 10px ${color}` : "none",
-        transition: "background-color 0.2s ease, box-shadow 0.2s ease",
-      }}
-    />
-  );
-}
+/** Text tone for each light, as a crawler tone class. */
+const LIGHT_TONE = {
+  red: "crawler-tone-error",
+  yellow: "crawler-tone-warning",
+  green: "crawler-tone-success",
+};
 
 function statusMeta(status, serverInfo, apiUrl) {
   switch (status) {
@@ -65,71 +57,22 @@ export default function BackendTrafficLight() {
   const meta = statusMeta(status, serverInfo, apiUrl);
   const targetApiUrl = API_URL;
 
-  const redOn = meta.active === "red";
-  const yellowOn = meta.active === "yellow";
-  const greenOn = meta.active === "green";
-
   return (
-    <Tooltip title={`${meta.label} — ${meta.detail}`} arrow>
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1}
-        sx={{ userSelect: "none", minWidth: 0 }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.6,
-            px: 1,
-            py: 0.75,
-            borderRadius: 2.5,
-            bgcolor: "secondary.main",
-            border: "1px solid",
-            borderColor: "divider",
-            flexShrink: 0,
-          }}
-        >
-          <TrafficDot color={LIGHT.red} active={redOn} label="offline" />
-          <TrafficDot color={LIGHT.yellow} active={yellowOn} label="connecting" />
-          <TrafficDot color={LIGHT.green} active={greenOn} label="online" />
-        </Box>
-        <Stack spacing={0.15} sx={{ minWidth: 0, textAlign: "left" }}>
-          <Typography
-            variant="caption"
-            sx={{
-              lineHeight: 1.2,
-              fontWeight: 700,
-              color: greenOn
-                ? "success.main"
-                : yellowOn
-                  ? "warning.main"
-                  : redOn
-                    ? "error.main"
-                    : "text.secondary",
-            }}
-          >
-            {meta.label}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{
-              lineHeight: 1.2,
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.65rem",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: 140,
-            }}
-            title={targetApiUrl || undefined}
-          >
-            {targetApiUrl || "not set"}
-          </Typography>
-        </Stack>
-      </Stack>
-    </Tooltip>
+    <HStack gap={2} align="center">
+      <StatusDot
+        variant={LIGHT_VARIANT[meta.active]}
+        label={meta.label}
+        tooltip={`${meta.label} — ${meta.detail}`}
+        isPulsing={meta.active === "yellow"}
+      />
+      <VStack gap={0.5}>
+        <Text type="supporting" weight="semibold" className={LIGHT_TONE[meta.active]}>
+          {meta.label}
+        </Text>
+        <Text type="supporting" color="secondary" className="crawler-api-url">
+          <span title={targetApiUrl || undefined}>{targetApiUrl || "not set"}</span>
+        </Text>
+      </VStack>
+    </HStack>
   );
 }

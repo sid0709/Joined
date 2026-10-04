@@ -66,6 +66,11 @@ export default [
   },
   dependencyRules,
   {
+    // JavaScript workspaces (plugins/crawler) write their React components in .jsx.
+    files: ["**/*.jsx"],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+  },
+  {
     files: ["packages/design-system/src/theme/joined.d.ts"],
     rules: { "@typescript-eslint/triple-slash-reference": "off" },
   },

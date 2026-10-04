@@ -1,11 +1,11 @@
-import { Button, Divider, Typography, Paper, Stack, Box } from "@mui/material";
-import { PlayArrow, Stop } from "@mui/icons-material";
+import { Button, Card, Glyph, HStack, Text, VStack } from "@joined/design-system";
+
 import ScrapeSourceBadge from "../../ScrapeSourceBadge";
-import { athensCardSx, athensSectionLabelSx } from "../../../theme/athensTheme";
-import CircularProgressWithLabel from "./CircularProgressWithLabel";
+
 import RunSummary from "./RunSummary";
-import ValidationChecklist from "./ValidationChecklist";
+import ScrapeProgress from "./ScrapeProgress";
 import { useScrapeRun } from "./useScrapeRun";
+import ValidationChecklist from "./ValidationChecklist";
 
 const ScrapComponent = () => {
   const {
@@ -22,66 +22,53 @@ const ScrapComponent = () => {
   } = useScrapeRun();
 
   return (
-    <Paper sx={{ ...athensCardSx, mx: "auto" }}>
-      <Stack spacing={2.5}>
-        <Box>
-          <Typography sx={athensSectionLabelSx} component="p" gutterBottom>
+    <Card padding={4}>
+      <VStack gap={5}>
+        <VStack gap={1}>
+          <Text type="supporting" weight="semibold" color="secondary">
             Automation
-          </Typography>
-          <Typography variant="h5" component="h2">
+          </Text>
+          <Text as="h2" type="large" weight="semibold">
             Scraping Controls
-          </Typography>
-          <Box sx={{ mt: 1.25 }}>
-            <ScrapeSourceBadge />
-          </Box>
-        </Box>
-        <Divider />
+          </Text>
+          <ScrapeSourceBadge />
+        </VStack>
+        <hr className="crawler-divider" />
 
-        <Stack
-          spacing={2}
-          alignItems="center"
-          sx={{
-            p: 2,
-            borderRadius: 3,
-            bgcolor: "secondary.main",
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <CircularProgressWithLabel size={72} value={progress} thickness={4} />
-          <ValidationChecklist checks={validationChecks} />
-          <Divider flexItem />
-          <RunSummary
-            elapsedMs={elapsedMs}
-            stats={runStats}
-            targetTab={targetTab}
-            queue={queueCounts}
-          />
-        </Stack>
+        <Card variant="muted" padding={4}>
+          <VStack gap={4} align="center">
+            <ScrapeProgress value={progress} />
+            <ValidationChecklist checks={validationChecks} />
+            <hr className="crawler-divider" />
+            <RunSummary
+              elapsedMs={elapsedMs}
+              stats={runStats}
+              targetTab={targetTab}
+              queue={queueCounts}
+            />
+          </VStack>
+        </Card>
 
-        <Stack direction="row" spacing={1.5}>
+        <HStack gap={3}>
           <Button
-            variant="outlined"
-            color="error"
+            variant="destructive"
+            label="Stop"
+            icon={<Glyph name="close" />}
             onClick={onScrapStop}
-            disabled={!scrapFlag}
-            startIcon={<Stop />}
-            fullWidth
-          >
-            Stop
-          </Button>
+            isDisabled={!scrapFlag}
+            width="100%"
+          />
           <Button
-            variant="contained"
+            variant="primary"
+            label={starting ? "Remembering…" : "Start"}
+            icon={<Glyph name="play" />}
             onClick={onScrapStart}
-            disabled={scrapFlag || starting}
-            startIcon={<PlayArrow />}
-            fullWidth
-          >
-            {starting ? "Remembering…" : "Start"}
-          </Button>
-        </Stack>
-      </Stack>
-    </Paper>
+            isDisabled={scrapFlag || starting}
+            width="100%"
+          />
+        </HStack>
+      </VStack>
+    </Card>
   );
 };
 
