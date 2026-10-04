@@ -18,10 +18,10 @@ import {
   SENIORITY_LABEL,
   SOURCE_LABEL,
   WORKPLACE_LABEL,
-  formatPay,
   type Job,
 } from "@/lib/jobs";
 import { OriginalDescription } from "./original-description";
+import { PayFigure } from "./pay-figure";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -38,7 +38,7 @@ export function JobOverview({ job }: { job: Job }) {
     <Stack gap={6}>
       <MetadataList columns="multi">
         <MetadataListItem label="Pay" icon={<Glyph name="star" />}>
-          {formatPay(job.pay)}
+          <PayFigure pay={job.pay} detailed />
         </MetadataListItem>
         <MetadataListItem label="Workplace" icon={<Glyph name="home" />}>
           {WORKPLACE_LABEL[job.workplace]}

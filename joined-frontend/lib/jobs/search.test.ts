@@ -1,7 +1,15 @@
 import { describe, expect, it } from "bun:test";
 
 import { JOBS } from "./data";
-import { annualPay, formatCount, formatPay, formatPosted, isNew } from "./format";
+import {
+  annualPay,
+  formatCount,
+  formatPay,
+  formatPayWithSource,
+  formatPosted,
+  isNew,
+  paySourceLabel,
+} from "./format";
 import { GOOD_MATCH, matchJob, type MatchProfile } from "./match";
 import {
   DEFAULT_FILTERS,
@@ -32,6 +40,16 @@ describe("job formatting", () => {
   it("formats salaried and hourly pay", () => {
     expect(formatPay(job("product-designer-northwind").pay)).toBe("$140k–$170k");
     expect(formatPay(job("brand-designer-fieldnote").pay)).toBe("$80–$100/hr");
+  });
+
+  it("says whether a range is listed or an estimate", () => {
+    const listed = job("product-designer-northwind").pay;
+    expect(paySourceLabel(listed)).toBe("Listed");
+    expect(formatPayWithSource(listed)).toBe("$140k–$170k · Listed");
+    expect(formatPayWithSource({ ...listed, estimated: true })).toBe("$140k–$170k · Estimated");
+    expect(
+      paySourceLabel({ min: 0, max: 0, currency: "USD", period: "year", estimated: true }),
+    ).toBe("");
   });
 
   it("annualizes hourly pay so it compares with salaries", () => {

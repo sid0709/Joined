@@ -1,13 +1,28 @@
-export {
+import {
+  CURRENCY_OPTIONS,
+  DEFAULT_CURRENCY,
   EMPLOYMENT_LABEL,
   EMPLOYMENT_OPTIONS,
+  PAY_ESTIMATED_LABEL,
+  PAY_LISTED_LABEL,
   SENIORITY_LABEL,
   SENIORITY_OPTIONS,
   WORKPLACE_LABEL,
   WORKPLACE_OPTIONS,
+} from "@joined/job-schema";
+
+export {
   CURRENCY_OPTIONS,
   DEFAULT_CURRENCY,
-} from "@joined/job-schema";
+  EMPLOYMENT_LABEL,
+  EMPLOYMENT_OPTIONS,
+  PAY_ESTIMATED_LABEL,
+  PAY_LISTED_LABEL,
+  SENIORITY_LABEL,
+  SENIORITY_OPTIONS,
+  WORKPLACE_LABEL,
+  WORKPLACE_OPTIONS,
+};
 
 import type { Job, JobSource, Pay } from "./types";
 
@@ -47,6 +62,19 @@ export function formatAmount(amount: number, currency: string, period: Pay["peri
 export function formatPay(pay: Pay) {
   const range = `${formatAmount(pay.min, pay.currency, pay.period)}–${formatAmount(pay.max, pay.currency, pay.period)}`;
   return pay.period === "hour" ? `${range}/hr` : range;
+}
+
+/** "Listed" or "Estimated" when a range exists. Empty when pay is unknown. */
+export function paySourceLabel(pay: Pay) {
+  if (pay.min <= 0 && pay.max <= 0) return "";
+  return pay.estimated ? PAY_ESTIMATED_LABEL : PAY_LISTED_LABEL;
+}
+
+/** The range plus whether it came from the posting or a published average. */
+export function formatPayWithSource(pay: Pay) {
+  const source = paySourceLabel(pay);
+  const range = formatPay(pay);
+  return source ? `${range} · ${source}` : range;
 }
 
 /** Pay as a yearly figure, so hourly contracts sort and filter beside salaries. */

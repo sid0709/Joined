@@ -47,6 +47,8 @@ export type SearchPay = {
   max: number;
   currency: string;
   period: PayPeriod;
+  /** True when the range is a published average, not a figure on the posting. */
+  estimated?: boolean;
 };
 
 /** Matches joined-frontend/lib/jobs/types.ts Job. */

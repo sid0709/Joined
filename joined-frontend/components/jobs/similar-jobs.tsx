@@ -1,5 +1,5 @@
 import { Card, Heading, List, ListItem, Stack, Text } from "@joined/design-system";
-import { formatPay, jobHasLogoFile, type Job } from "@/lib/jobs";
+import { formatPayWithSource, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";
 import { MatchBadge } from "./match-badge";
@@ -32,7 +32,7 @@ export function SimilarJobs({ jobs, scoreOf, onSelect }: Props) {
           <ListItem
             key={job.id}
             label={job.title}
-            description={`${job.company} · ${formatPay(job.pay)}`}
+            description={`${job.company} · ${formatPayWithSource(job.pay)}`}
             startContent={
               <CompanyLogo
                 name={job.company}

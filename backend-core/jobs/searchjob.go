@@ -75,6 +75,10 @@ type Pay struct {
 	Max      int    `json:"max" bson:"max"`
 	Currency string `json:"currency" bson:"currency"`
 	Period   string `json:"period" bson:"period"`
+	// Estimated is true when the range is the company's published average for
+	// the role, found by web search, rather than a number on the posting.
+	// Omitted when the posting states the pay, or when pay is unknown.
+	Estimated bool `json:"estimated,omitempty" bson:"estimated,omitempty"`
 }
 
 // Extraction is the part of a search record that comes from the job description.
@@ -94,10 +98,11 @@ type Extraction struct {
 }
 
 type extractedPay struct {
-	Min      float64 `json:"min"`
-	Max      float64 `json:"max"`
-	Currency string  `json:"currency"`
-	Period   string  `json:"period"`
+	Min       float64 `json:"min"`
+	Max       float64 `json:"max"`
+	Currency  string  `json:"currency"`
+	Period    string  `json:"period"`
+	Estimated bool    `json:"estimated"`
 }
 
 type listingHints struct {
@@ -191,11 +196,18 @@ func hoursSince(posted, now time.Time) int {
 // empty (the description didn't mention pay, or the model missed it), it falls back
 // to parsing whatever raw salary text was scraped alongside the listing — so a job
 // isn't marked "not listed" just because the description itself was silent on it.
+// A range parsed from that listing text is the posting's own number, so it is not
+// an estimate. An estimate is kept only when the posting stated no pay and the
+// search returned a published average.
 func normalizePay(pay extractedPay, salaryHint string) Pay {
+	listed := false
 	if pay.Min == 0 && pay.Max == 0 {
 		if hinted, ok := payFromHint(salaryHint); ok {
 			pay = hinted
+			listed = true
 		}
+	} else if _, ok := payFromHint(salaryHint); ok {
+		listed = true
 	}
 	minValue := int(pay.Min)
 	maxValue := int(pay.Max)
@@ -216,7 +228,8 @@ func normalizePay(pay extractedPay, salaryHint string) Pay {
 	if period != payYear && period != payHour {
 		period = payYear
 	}
-	return Pay{Min: minValue, Max: maxValue, Currency: currency, Period: period}
+	estimated := pay.Estimated && !listed && (minValue > 0 || maxValue > 0)
+	return Pay{Min: minValue, Max: maxValue, Currency: currency, Period: period, Estimated: estimated}
 }
 
 var payHintPattern = regexp.MustCompile(

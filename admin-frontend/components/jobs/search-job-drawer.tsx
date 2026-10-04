@@ -225,7 +225,19 @@ function SearchJobDetail({
               <Text type="supporting" color="secondary" display="block">
                 Pay not listed. Leave 0 unless the posting gives a real number.
               </Text>
-            ) : null}
+            ) : (
+              <Stack gap={1}>
+                <Switch
+                  label="Estimated pay"
+                  value={Boolean(draft.pay.estimated)}
+                  onChange={(estimated) => setPay("estimated")(estimated)}
+                />
+                <Text type="supporting" color="secondary" display="block">
+                  On when the range is the company’s published average, not a number from the
+                  posting.
+                </Text>
+              </Stack>
+            )}
             <Switch label="Sponsors visas" value={draft.visa} onChange={set("visa")} />
             <TextArea label="Summary" value={draft.summary} onChange={set("summary")} />
             <ListField

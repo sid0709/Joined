@@ -16,6 +16,10 @@ func (s stubReader) JSON(context.Context, string, string, json.RawMessage) ([]by
 	return s.payload, nil
 }
 
+func (s stubReader) JSONWebSearch(context.Context, string, string, json.RawMessage) ([]byte, []string, error) {
+	return s.payload, nil, nil
+}
+
 func TestParsePostedJobFillsDraft(t *testing.T) {
 	payload := []byte(`{
 		"title": "Product Designer",

@@ -18,6 +18,7 @@ import {
 import {
   EMPLOYMENT_LABEL,
   EMPLOYMENT_OPTIONS,
+  PAY_ESTIMATED_LABEL,
   SENIORITY_LABEL,
   SENIORITY_OPTIONS,
   WORKPLACE_LABEL,
@@ -56,8 +57,11 @@ export function recordKey(record: SearchRecord) {
 function payLabel(record: SearchRecord) {
   const pay = record.job.pay;
   if (pay.min === 0 && pay.max === 0) return "Not listed";
-  if (pay.period === "hour") return `${pay.currency} ${pay.min}–${pay.max}/hr`;
-  return `${pay.currency} ${Math.round(pay.min / 1000)}k–${Math.round(pay.max / 1000)}k`;
+  const range =
+    pay.period === "hour"
+      ? `${pay.currency} ${pay.min}–${pay.max}/hr`
+      : `${pay.currency} ${Math.round(pay.min / 1000)}k–${Math.round(pay.max / 1000)}k`;
+  return pay.estimated ? `${range} · ${PAY_ESTIMATED_LABEL}` : range;
 }
 
 const SOURCE_BADGE = { direct: "green", aggregated: "neutral", scouted: "purple" } as const;
