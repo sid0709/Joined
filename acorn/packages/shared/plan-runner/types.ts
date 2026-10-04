@@ -1,4 +1,4 @@
-/** Shared plan + run contracts for ui-board and extension pipeline. */
+/** Plan and run contracts for the extension's fill pipeline. */
 
 export type PlanActionType =
   | "fill"

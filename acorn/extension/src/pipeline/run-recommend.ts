@@ -7,7 +7,7 @@ import {
   type GenerateCheckpoint,
 } from "@acorn/shared/generate-checkpoint";
 import { broadcastOperatorNotice } from "../operator-notice";
-import { fetchCustomLibraryResume, recommendCustomLibrary } from "./ai-client";
+import { fetchCustomLibraryResume, recommendCustomLibrary } from "./api/custom-library";
 import { customRecommendProgress } from "./custom-recommend-progress";
 import type { ResumeGenerateSource, ResumeGenerateStore } from "./run-generate";
 

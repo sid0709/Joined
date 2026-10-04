@@ -12,13 +12,13 @@ import {
 } from "@acorn/shared/generate-checkpoint";
 import type { CustomGenerateStatus, CustomWorkKind } from "../tab-custom-session";
 import { broadcastOperatorNotice } from "../operator-notice";
+import { fetchCustomResume } from "./api/custom-files";
 import {
   continueCustomGenerate,
   enqueueCustomGenerate,
-  fetchCustomResume,
   pollCustomGenerate,
   type CustomGeneratePoll,
-} from "./ai-client";
+} from "./api/custom-generate";
 import {
   customUiProgress,
   type CustomGeneratePhase,

@@ -23,7 +23,7 @@ function logAcornVersion(): Plugin {
 
 export default defineConfig({
   base: "./",
-  // Acorn's VITE_* settings live in acorn/.env, shared with the UI board.
+  // Acorn's VITE_* settings live in acorn/.env.
   envDir: path.resolve(rootDir, ".."),
   define: {
     "import.meta.env.VITE_ACORN_VERSION": JSON.stringify(ACORN_VERSION),

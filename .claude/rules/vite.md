@@ -1,20 +1,19 @@
 ---
 paths:
   - "acorn/extension/**/*.{ts,tsx,js,jsx,css}"
-  - "acorn/ui-board/**/*.{ts,tsx,js,jsx,css}"
   - "acorn/demo/**/*.{ts,tsx,js,jsx,css}"
   - "acorn/packages/**/*.{ts,tsx,js,jsx,css}"
 ---
 
 # Vite (Acorn)
 
-Applies to `acorn/extension`, `acorn/ui-board`, `acorn/demo`, and `acorn/packages`. These are Vite and TypeScript. Leave App Router files, `"use client"`, and `next/*` imports out of this tree.
+Applies to `acorn/extension`, `acorn/demo`, and `acorn/packages`. These are Vite and TypeScript. Leave App Router files, `"use client"`, and `next/*` imports out of this tree.
 
 `acorn/.cursor/rules/` still applies: version bumps, production layout, and sidebar structure.
 
 ## Modules
 
-ESM only. Page DOM and the sidebar stay in `extension`. Visualization stays in `ui-board`. Shared types, event names, and default hosts stay in `@acorn/shared`. The same payload type has one definition.
+ESM only. Page DOM and the sidebar stay in `extension`. Shared types, event names, and default hosts stay in `@acorn/shared`. The same payload type has one definition.
 
 Keep modules small. A component orchestrates; protocol details live in a named module.
 
@@ -30,4 +29,4 @@ Keep modules small. A component orchestrates; protocol details live in a named m
 
 `acorn/extension` uses `@joined/design-system` for product chrome. Follow the design-system rule and `acorn/.cursor/rules/acorn-ui-design.mdc`.
 
-`ui-board` and `demo` are specialized viewers. Joined buttons, inputs, and color palettes still come from `@joined/design-system`. Add that workspace dependency when a screen needs them.
+`demo` is a specialized viewer. Joined buttons, inputs, and color palettes still come from `@joined/design-system`. Add that workspace dependency when a screen needs them.

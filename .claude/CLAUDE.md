@@ -42,7 +42,7 @@ Follow the rule that matches the folder you are editing, and use only that folde
 | Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme` | `.claude/rules/nextjs.md` |
 | UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension` | `.claude/rules/design-system.md` |
 | Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core` | `.claude/rules/go.md` |
-| Vite: `acorn/extension`, `acorn/ui-board`, `acorn/demo`, `acorn/packages` | `.claude/rules/vite.md` |
+| Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.claude/rules/vite.md` |
 | `packages/design-system` and the `joined-theme` catalog | `.claude/rules/theme.md` |
 
 Acorn's rules in `acorn/.claude/CLAUDE.md` and `acorn/.cursor/rules/` still apply on top of these.

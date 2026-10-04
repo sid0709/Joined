@@ -1,31 +1,15 @@
-import { MSG } from "../types";
 import { mount, type AcornFaceHandle } from "@acorn/face";
-import { FACE_SMILE_MS, FACE_WINK_MS, ACORN_FACE_CHIP_PX } from "../acorn-face/constants";
+import { FACE_SMILE_MS, FACE_WINK_MS } from "../acorn-face/constants";
+import { CHIP_SIZE_PX, attachSheet } from "./selection-qa-style";
+import { requestSelectionQa } from "./selection-qa-request";
 
 const MIN_SELECTION_CHARS = 8;
 const MAX_SELECTION_CHARS = 8000;
-const CHIP_SIZE_PX = ACORN_FACE_CHIP_PX;
 const CHIP_OFFSET_PX = 8;
 const VIEWPORT_PAD_PX = 4;
-const POPOVER_WIDTH_PX = 280;
-const POPOVER_MAX_HEIGHT_PX = 240;
 const OVERLAY_Z_INDEX = 2_147_483_646;
 const COPIED_MS = 1500;
 const HOST_ID = "acorn-selection-qa-host";
-
-/** Page overlay cannot use sidebar CSS variables; mirror tokens.md. */
-const COLOR = {
-  canvas: "#ffffff",
-  text: "#0d0d0d",
-  textSecondary: "#5d5d5d",
-  textMuted: "#8e8e8e",
-  border: "#dedede",
-  brand: "#1f6feb",
-  brandStrong: "#1556b8",
-  danger: "#c0362c",
-  shadow: "0 12px 32px rgb(13 13 13 / 8%)",
-  font: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-} as const;
 
 type OverlayState = {
   host: HTMLElement;
@@ -45,103 +29,6 @@ type OverlayState = {
 
 let overlay: OverlayState | null = null;
 let mouseDown = false;
-
-function overlayCss(): string {
-  return `
-    :host { all: initial; }
-    .wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
-      pointer-events: auto;
-    }
-    .chip {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: ${CHIP_SIZE_PX}px;
-      height: ${CHIP_SIZE_PX}px;
-      padding: 0;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      cursor: pointer;
-    }
-    .chip:hover { opacity: 0.88; }
-    .chip svg {
-      width: ${CHIP_SIZE_PX}px;
-      height: ${CHIP_SIZE_PX}px;
-    }
-    .popover {
-      display: none;
-      width: ${POPOVER_WIDTH_PX}px;
-      max-height: ${POPOVER_MAX_HEIGHT_PX}px;
-      flex-direction: column;
-      gap: 8px;
-      padding: 12px;
-      background: ${COLOR.canvas};
-      color: ${COLOR.text};
-      border: 1px solid ${COLOR.border};
-      border-radius: 16px;
-      box-shadow: ${COLOR.shadow};
-      font-family: ${COLOR.font};
-    }
-    .popover.is-open { display: flex; }
-    .title {
-      margin: 0;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-    .status {
-      margin: 0;
-      font-size: 12px;
-      color: ${COLOR.textSecondary};
-      line-height: 1.4;
-    }
-    .status.is-error { color: ${COLOR.danger}; }
-    .answer {
-      display: none;
-      margin: 0;
-      max-height: 140px;
-      overflow: auto;
-      font: 14px/1.45 ${COLOR.font};
-      white-space: pre-wrap;
-      word-break: break-word;
-      color: ${COLOR.text};
-    }
-    .answer.has-text { display: block; }
-    .copy {
-      align-self: flex-end;
-      padding: 8px 16px;
-      border: 0;
-      border-radius: 999px;
-      background: ${COLOR.brand};
-      color: ${COLOR.canvas};
-      font: 600 12px/1 ${COLOR.font};
-      cursor: pointer;
-    }
-    .copy:hover { background: ${COLOR.brandStrong}; }
-    .copy:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-  `;
-}
-
-function attachSheet(shadow: ShadowRoot): void {
-  const css = overlayCss();
-  try {
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(css);
-    shadow.adoptedStyleSheets = [sheet];
-  } catch {
-    const style = document.createElement("style");
-    style.textContent = css;
-    shadow.append(style);
-  }
-}
 
 function ensureOverlay(): OverlayState {
   if (overlay?.host.isConnected) return overlay;
@@ -353,36 +240,6 @@ async function copyAnswer(state: OverlayState): Promise<void> {
     setPopoverStatus(state, "Couldn’t copy.", "error");
     state.face?.setMode("sad");
   }
-}
-
-function requestSelectionQa(
-  question: string,
-): Promise<{ ok: boolean; answer?: string; error?: string }> {
-  return new Promise((resolve) => {
-    try {
-      chrome.runtime.sendMessage(
-        {
-          type: MSG.SELECTION_QA,
-          question,
-          title: document.title,
-          url: location.href,
-        },
-        (res: { ok?: boolean; answer?: string; error?: string } | undefined) => {
-          if (chrome.runtime.lastError) {
-            resolve({ ok: false, error: "Acorn is unavailable on this page." });
-            return;
-          }
-          resolve({
-            ok: Boolean(res?.ok),
-            answer: res?.answer,
-            error: res?.error,
-          });
-        },
-      );
-    } catch {
-      resolve({ ok: false, error: "Acorn is unavailable on this page." });
-    }
-  });
 }
 
 function eventInOverlay(event: Event): boolean {

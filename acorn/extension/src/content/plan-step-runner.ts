@@ -10,7 +10,8 @@ import { uploadFileToElement } from "./agents/upload";
 import { validateElementIndexes } from "./agents/validate";
 import { waitMs } from "./agents/wait";
 import { highlightElement } from "./highlighter";
-import { relocateElementByPlan, verifyElementByPlan } from "./verify-element";
+import { verifyElementByPlan } from "./verify-element";
+import { relocateElementByPlan } from "./verify/relocate";
 
 function nearbyQuestionText(el: Element, expectedLabel: string | null): string {
   const bits = [expectedLabel || ""];

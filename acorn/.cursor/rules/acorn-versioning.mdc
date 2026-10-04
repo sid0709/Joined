@@ -15,7 +15,6 @@ alwaysApply: true
   - minor (`1.8.1` → `1.9.0`): features or new UI
   - major (`1.9.0` → `2.0.0`): breaking changes against the deployed backend or stored data
 - **Before you commit:** run `bun run build:acorn` and check the log line shows the new version.
-- **UI board:** changes under `ui-board/` bump `ui-board/package.json`'s `"version"` the same way.
 
 ```jsonc
 // ❌ manifest.json

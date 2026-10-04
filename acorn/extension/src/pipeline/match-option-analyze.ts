@@ -1,4 +1,4 @@
-import { requestAiAnalyze } from "./ai-client";
+import { requestAiAnalyze } from "./api/analyze";
 
 /** When match-option returns null, re-plan this one control with live options in the tree. */
 export async function matchOptionViaAnalyze(input: {

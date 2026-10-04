@@ -1,6 +1,6 @@
 # Acorn
 
-Chrome extension + React UI board for capturing page DOM trees, generating structured AI action plans, and running fill automation.
+Chrome extension for capturing page DOM trees, generating structured AI action plans, and running fill automation.
 
 **The backend is backend-core's server**, at `https://api.joinedhq.com` in production: every Acorn route is under `/acorn` (`/acorn/*`) and the Socket.IO gateway is at `/acorn/socket.io`. The Go code lives in [`backend-core/acorn`](../backend-core/acorn) and [`backend-core/acornapi`](../backend-core/acornapi/README.md). It was ported from the original TypeScript backend.
 
@@ -13,25 +13,20 @@ Engineering policy: [`policy-acorn.md`](policy-acorn.md). Parent rules: [`../rul
 │  Chrome Extension   │ ◄─────────────────────────► │  backend-core (Go)      │
 │  (side panel)       │                             │  api.joinedhq.com       │
 └──────────┬──────────┘       HTTP /acorn/*          │  local: 127.0.0.1:8083  │
-           │ fetch DOM                              └──────────┬──────────────┘
-           ▼                                                   │ broadcast
-    Page DOM tree                                              ▼
-                                                    ┌──────────────────┐
-                                                    │  React UI Board  │
-                                                    │  (port 5173)     │
-                                                    └──────────────────┘
+           │ fetch DOM                              └─────────────────────────┘
+           ▼
+    Page DOM tree
 ```
 
 Auth: Acorn has no accounts. It shares the Joined session (the `joined_session` cookie from joined-frontend, accepted by joined-backend and backend-core as a bearer token), so signing in or out of Joined signs Acorn in or out. AI Analyze, Q&A and option matching read the applicant's Joined profile and use the server's model key. Résumé generation and recommendation are not implemented: those routes answer with no résumé.
 
 ## Projects
 
-| Project   | Path                   | Workspace         | Description                                              |
-| --------- | ---------------------- | ----------------- | -------------------------------------------------------- |
-| UI Board  | `ui-board/`            | `acorn-ui-board`  | React app with DOM tree visualization + AI Analyze / Run |
-| Extension | `extension/`           | `acorn-extension` | Chrome MV3 extension with native side panel              |
-| Face      | `packages/acorn-face/` | `@acorn/face`     | The animated Acorn Face                                  |
-| Shared    | `packages/shared/`     | `@acorn/shared`   | Client-side plan/DOM types, API hosts                    |
+| Project   | Path                   | Workspace         | Description                                 |
+| --------- | ---------------------- | ----------------- | ------------------------------------------- |
+| Extension | `extension/`           | `acorn-extension` | Chrome MV3 extension with native side panel |
+| Face      | `packages/acorn-face/` | `@acorn/face`     | The animated Acorn Face                     |
+| Shared    | `packages/shared/`     | `@acorn/shared`   | Client-side plan/DOM types, API hosts       |
 
 They are workspaces of the root bun monorepo: one `bun install` at the repo root, versions from the root catalog, no npm. Run every command below from the repo root.
 
@@ -45,23 +40,13 @@ backend-core's server needs the same `MONGO_URI` as joined-backend and an `OPENA
 bun run dev:core-api   # http://127.0.0.1:8083, Acorn under /acorn
 ```
 
-Add the UI board origin to `CORS_ORIGINS` if it is not `http://localhost:5173`.
-
 ### 2. Install
 
 ```bash
 bun install
 ```
 
-### 3. Start the UI board
-
-```bash
-bun run dev:acorn-board
-```
-
-Open http://localhost:5173. The UI board still uses the old username/password sign-in and has not been moved to the Joined session yet; use the extension.
-
-### 4. Build & load the extension
+### 3. Build & load the extension
 
 ```bash
 bun run dev:acorn     # development build, rebuilt on change: talks to 127.0.0.1:8083 and localhost:6002
@@ -74,7 +59,7 @@ bun run build:acorn   # production build: talks to https://api.joinedhq.com and 
 4. Sign in to Joined (joined-frontend) in the same browser, open the Acorn sidebar, and choose **Continue with Joined**. Acorn follows the Joined cookie after that.
 5. The Acorn API URL is `https://api.joinedhq.com` in a production build and `http://127.0.0.1:8083` in a development build (both from `@acorn/shared/api`; override with `VITE_ACORN_API_URL` at build time, and `VITE_JOINED_URL` for where joined-frontend runs). Keep the side panel open for a green **Socket connected** light — the panel holds a port so Chrome does not park the worker that owns the `/acorn/socket.io` socket. The extension prefers Engine.IO **websocket** with HTTP long-poll fallback (`path: /acorn/socket.io`, `auth.token`). nginx must proxy api.joinedhq.com to backend-core and return 101 on the websocket upgrade (see [`deploy/nginx/api.joinedhq.com.conf`](../deploy/nginx/api.joinedhq.com.conf)). Sign-in uses `/acorn/*` and can succeed a moment before the socket turns green. The socket token travels in the handshake `auth` payload only — query-string tokens are rejected, since URLs land in nginx access logs. Every socket joins a room keyed by the signed-in account: `dom:tree`, `pipeline:progress`, `clients:update` and every relayed command (`dom:get-content`, `dom:execute-actions`, `dom:plan-step`) stay inside that room, so a client can only ever see or drive its own account's extension.
 
-### 5. Use it
+### 4. Use it
 
 1. Visit any website
 2. Click the Acorn toolbar icon to open the sidebar. The Acorn Face in the identity row and on each list card shows fill/generate status. List cards keep the company logo (Fill) or tab favicon (Custom) with a small acorn badge for that row’s mode. The identity row shows how many tabs are thinking or working. Help (next to Sign out) opens a page of large live faces for every pose.
@@ -82,10 +67,9 @@ bun run build:acorn   # production build: talks to https://api.joinedhq.com and 
 4. Click a job to focus its apply tab if that job is already open, or open the apply URL in a new tab (bound to that tab for Fill)
 5. **Fill page / Generate / Recommend** — the sticky footer is Generate, Fill page, and Recommend. In Fill mode Generate and Recommend use the **attached Worker pool job’s stored JD** (not a fresh page extract). Progress, Continue, and View JD live on that job card. Fill uploads the Worker pool résumé, or the file from a Fill Generate/Recommend on that job when one exists.
 6. **Custom** — Remember the focused Chrome tab (it stays bound if you switch away and back). Generate, Recommend, and Fill stay disabled until that tab is remembered. The card uses a Acorn Face for status, then title and host in the same layout as Fill. Click a remembered card to focus that Chrome tab; focusing a remembered tab highlights it in the Custom list (same selected color as Fill). Generate and Recommend extract a job description from the same optimized page tree Fill uses for AI Analyze. If the page has no posting, they stop and the card shows **No job description on this page** (or the extract reason). Generate then uses that extracted JD in My Resume’s Editor: same stored config, template, and variables; the template-applied file is stored in Firestore. Recommend matches analyzed Library uploads the same way Job Search Recommend does. After generate finishes, the card shows **Resume generated** and unlocks download and preview. After recommend finishes, the card shows the Library stack name. Before that it shows **Not generated...** or **No resume assigned**, with those actions disabled. Fill’s résumé upload, **View**, and Download use the file for the selected mode (generated Firestore file, or Library recommend). While a résumé is generating, that tab’s card shows a thin segmented progress bar (JD load, summary, skills, experience, save). Recommend uses a two-segment bar (JD, then **Recommending…**). After JD is loaded you can **View JD** on that card. If a step fails, the card keeps the bar and offers **Continue** (resume from the failed step, reuse prior outputs) plus **Start over**. Multiple remembered tabs can generate or recommend at the same time. Generate/Recommend and Fill can run at the same time on different remembered tabs; the same tab cannot run both at once. A new apply tab must be remembered separately.
-7. If Fill leaves a text field blank, open the **Q&A** tab in the sidebar (or the UI board) — same human-like writer as Acorn text-field fill. Switching tabs keeps the question and answer. Or drag-select the question on the page: an Acorn chip appears; click it for an in-page answer, then **Copy**.
+7. If Fill leaves a text field blank, open the **Q&A** tab in the sidebar — same human-like writer as Acorn text-field fill. Switching tabs keeps the question and answer. Or drag-select the question on the page: an Acorn chip appears; click it for an in-page answer, then **Copy**.
 8. Preview a job’s résumé with the **eye** (left of mark applied) — generated Worker-pool file when present, otherwise the Library Word file assigned in Job Search. Download remains on the card (disabled until a résumé exists). **Mark applied** (check) removes the job from Worker pool and closes its bound apply tab. Custom **check** forgets that remembered tab and closes it.
 9. In the sidebar: **Pure Tree**, **Meta Tree**, **AI Analyze**, and the plan-run step list (verified / skipped)
-10. **Fetch DOM** still sends a snapshot to the UI board if you want the desktop board
 
 ## API (backend-core, under `/acorn`)
 

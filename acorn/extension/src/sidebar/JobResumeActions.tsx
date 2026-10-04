@@ -1,8 +1,6 @@
-import {
-  fetchCustomLibraryResume,
-  fetchCustomResume,
-  fetchRecommendedResume,
-} from "../pipeline/ai-client";
+import { fetchCustomResume } from "../pipeline/api/custom-files";
+import { fetchCustomLibraryResume } from "../pipeline/api/custom-library";
+import { fetchRecommendedResume } from "../pipeline/api/job-files";
 import { getJobGenerate } from "../tab-job-generate-session";
 import { triggerResumeDownload } from "./download-resume";
 import { pushAcornNotice } from "./acorn-notice";
