@@ -17,6 +17,9 @@ import (
 type ModelReader interface {
 	Model() string
 	JSON(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, error)
+	// JSONWebSearch is how analyze and reanalyze read a posting: the model must
+	// search, including for a published salary the posting leaves out.
+	WebResearcher
 }
 
 const (
@@ -193,7 +196,7 @@ func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing 
 	if originalDescription(listing.Description) == "" {
 		return storedSearchJob{}, ErrMissingDescription
 	}
-	payload, err := reader.JSON(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
+	payload, _, err := reader.JSONWebSearch(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
 	if err != nil {
 		return storedSearchJob{}, err
 	}

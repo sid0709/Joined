@@ -291,10 +291,11 @@ func searchIDFilter(id string) (bson.D, error) {
 // no negatives, min<=max, a real 3-letter currency, and a valid period.
 func sanitizePay(pay Pay) Pay {
 	return normalizePay(extractedPay{
-		Min:      float64(pay.Min),
-		Max:      float64(pay.Max),
-		Currency: pay.Currency,
-		Period:   pay.Period,
+		Min:       float64(pay.Min),
+		Max:       float64(pay.Max),
+		Currency:  pay.Currency,
+		Period:    pay.Period,
+		Estimated: pay.Estimated,
 	}, "")
 }
 

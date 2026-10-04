@@ -1,8 +1,9 @@
 import { Glyph, HStack, Stack, SelectableCard, Text, ToggleButton } from "@joined/design-system";
-import { formatCount, formatPay, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
+import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";
 import { MatchBadge } from "./match-badge";
+import { PayFigure } from "./pay-figure";
 
 export type JobResultCardProps = {
   job: Job;
@@ -63,9 +64,7 @@ export function JobResultCard({
           <JobTags job={job} applied={applied} />
           <HStack hAlign="between" vAlign="center" gap={2} wrap="wrap">
             <HStack gap={3} vAlign="center" wrap="wrap">
-              <Text weight="medium" hasTabularNumbers>
-                {formatPay(job.pay)}
-              </Text>
+              <PayFigure pay={job.pay} />
               <Text type="supporting" color="secondary">
                 {formatPosted(job.postedHoursAgo)} · {formatCount(job.applicants, "applicant")}
               </Text>

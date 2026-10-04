@@ -148,7 +148,14 @@ export type Pay = {
   max: number;
   currency: string;
   period: PayPeriod;
+  /** True when the range is a published average, not a figure on the posting. */
+  estimated?: boolean;
 };
+
+/** A salary the posting itself states. */
+export const PAY_LISTED_LABEL = "Listed";
+/** A salary taken from the company's published average, not the posting. */
+export const PAY_ESTIMATED_LABEL = "Estimated";
 
 function options<T extends string>(values: readonly T[], labels: Record<T, string>) {
   return values.map((value) => ({ value, label: labels[value] }));

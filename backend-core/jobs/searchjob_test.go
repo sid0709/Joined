@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -92,6 +93,32 @@ func TestExtractionSchemaIsJSON(t *testing.T) {
 	if !json.Valid([]byte(extractionSchema)) {
 		t.Fatal("extraction schema is not valid JSON")
 	}
+	if !strings.Contains(extractSystemPrompt, "web search") || !strings.Contains(extractSystemPrompt, "estimated to true") {
+		t.Fatal("job analysis must search and mark a published average as estimated")
+	}
+	var schema struct {
+		Properties struct {
+			Pay struct {
+				Properties map[string]json.RawMessage `json:"properties"`
+				Required   []string                   `json:"required"`
+			} `json:"pay"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal([]byte(extractionSchema), &schema); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := schema.Properties.Pay.Properties["estimated"]; !ok {
+		t.Fatal("pay.estimated missing from the schema")
+	}
+	required := false
+	for _, name := range schema.Properties.Pay.Required {
+		if name == "estimated" {
+			required = true
+		}
+	}
+	if !required {
+		t.Fatal("pay.estimated is not required")
+	}
 }
 
 func TestNormalizePayFallsBackToSalaryHint(t *testing.T) {
@@ -114,6 +141,39 @@ func TestNormalizePayFallsBackToSalaryHint(t *testing.T) {
 	none := normalizePay(extractedPay{}, "Competitive salary")
 	if none.Min != 0 || none.Max != 0 {
 		t.Fatalf("expected no pay parsed, got %+v", none)
+	}
+}
+
+func TestNormalizePayMarksOnlyUnlistedPublishedAverages(t *testing.T) {
+	estimated := normalizePay(extractedPay{Min: 160000, Max: 160000, Currency: "USD", Period: "year", Estimated: true}, "Competitive")
+	if !estimated.Estimated || estimated.Min != 160000 {
+		t.Fatalf("published average = %+v", estimated)
+	}
+
+	listed := normalizePay(extractedPay{Min: 160000, Max: 180000, Currency: "USD", Period: "year", Estimated: true}, "$150K - $170K a year")
+	if listed.Estimated || listed.Min != 160000 {
+		t.Fatalf("a posting that states pay is not an estimate: %+v", listed)
+	}
+
+	hint := normalizePay(extractedPay{Estimated: true}, "$120K - $150K a year")
+	if hint.Estimated || hint.Min != 120000 {
+		t.Fatalf("hint pay = %+v", hint)
+	}
+
+	empty := normalizePay(extractedPay{Estimated: true}, "")
+	if empty.Estimated || empty.Min != 0 {
+		t.Fatalf("missing pay = %+v", empty)
+	}
+}
+
+func TestSanitizePayKeepsTheEstimateFlag(t *testing.T) {
+	pay := sanitizePay(Pay{Min: 140000, Max: 140000, Currency: "USD", Period: payYear, Estimated: true})
+	if !pay.Estimated || pay.Min != 140000 {
+		t.Fatalf("pay = %+v", pay)
+	}
+	cleared := sanitizePay(Pay{Estimated: true})
+	if cleared.Estimated {
+		t.Fatalf("zero pay kept the estimate flag: %+v", cleared)
 	}
 }
 

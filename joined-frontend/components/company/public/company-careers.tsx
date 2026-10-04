@@ -14,8 +14,9 @@ import {
 } from "@joined/design-system";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { JobTags } from "@/components/jobs/job-tags";
+import { PayFigure } from "@/components/jobs/pay-figure";
 import { SectionCard } from "@/components/section-card";
-import { formatPay, formatPosted, type Job } from "@/lib/jobs";
+import { formatPosted, type Job } from "@/lib/jobs";
 import { groupJobsByDepartment, uniqueJobDepartments, uniqueJobLocations } from "@/lib/layer-a";
 import { ROUTES } from "@/lib/routes";
 
@@ -42,9 +43,7 @@ function RoleRow({ job }: { job: Job }) {
               </Text>
             </Stack>
             <JobTags job={job} applied={false} />
-            <Text weight="medium" hasTabularNumbers>
-              {formatPay(job.pay)}
-            </Text>
+            <PayFigure pay={job.pay} />
           </Stack>
         </HStack>
         <Button label="View & apply" href={ROUTES.job(job.id)} variant="secondary" size="sm" />

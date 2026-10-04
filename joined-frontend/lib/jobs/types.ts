@@ -10,6 +10,8 @@ export type Pay = {
   max: number;
   currency: string;
   period: PayPeriod;
+  /** True when the range is a published average, not a figure on the posting. */
+  estimated?: boolean;
 };
 
 export type Job = {
