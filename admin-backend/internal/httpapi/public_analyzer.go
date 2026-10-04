@@ -23,6 +23,7 @@ func (s *Server) registerPublicAnalyzer(mux *http.ServeMux) {
 	mux.HandleFunc("POST "+publicAnalyzerPrefix+"jobs/{id}/analysis", s.analyzerAuth(s.submitJobAnalysis))
 	mux.HandleFunc("GET "+publicAnalyzerPrefix+"companies", s.analyzerAuth(s.listUnanalyzedCompanies))
 	mux.HandleFunc("POST "+publicAnalyzerPrefix+"companies/{id}/analysis", s.analyzerAuth(s.submitCompanyAnalysis))
+	mux.HandleFunc("DELETE "+publicAnalyzerPrefix+"companies/{id}", s.analyzerAuth(s.deleteStagedCompany))
 }
 
 func (s *Server) analyzerAuth(next http.HandlerFunc) http.HandlerFunc {
@@ -142,4 +143,24 @@ func (s *Server) submitCompanyAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusOK, map[string]string{"status": "saved"})
+}
+
+func (s *Server) deleteStagedCompany(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
+	defer cancel()
+	result, err := s.store.DeleteStagedCompanyForAnalyzer(ctx, r.PathValue("id"))
+	if errors.Is(err, jobs.ErrInvalidInput) {
+		httpkit.WriteError(w, http.StatusBadRequest, "invalid company id")
+		return
+	}
+	if errors.Is(err, jobs.ErrNotFound) {
+		httpkit.WriteError(w, http.StatusNotFound, "company not found")
+		return
+	}
+	if err != nil {
+		slog.Error("delete staged company", "error", err)
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not delete company")
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, result)
 }

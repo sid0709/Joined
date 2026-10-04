@@ -237,6 +237,116 @@ func (s *Store) SubmitExternalCompanyAnalysis(ctx context.Context, companyID str
 	return s.publishStaged(ctx, researched)
 }
 
+// StagedCompanyDeletion is what the public analyzer delete route returns.
+type StagedCompanyDeletion struct {
+	CompanyID string `json:"companyId"`
+	Removed   struct {
+		Company    bool     `json:"company"`
+		TempJobs   []string `json:"tempJobs"`
+		SearchJobs []string `json:"searchJobs"`
+	} `json:"removed"`
+}
+
+// DeleteStagedCompanyForAnalyzer removes one staged company and every temp or search job tied to it.
+func (s *Store) DeleteStagedCompanyForAnalyzer(ctx context.Context, companyID string) (StagedCompanyDeletion, error) {
+	companyID = strings.TrimSpace(companyID)
+	if companyID == "" {
+		return StagedCompanyDeletion{}, ErrInvalidInput
+	}
+	var staged storedCompany
+	err := s.stagedCompanies().FindOne(ctx, bson.D{{Key: "id", Value: companyID}}).Decode(&staged)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return StagedCompanyDeletion{}, ErrNotFound
+	}
+	if err != nil {
+		return StagedCompanyDeletion{}, err
+	}
+
+	tempFilter := stagedCompanyTempJobFilter(companyID, staged.SourceID)
+	tempIDs, err := s.findTempJobIDs(ctx, tempFilter)
+	if err != nil {
+		return StagedCompanyDeletion{}, err
+	}
+	searchJobIDs, err := s.deleteSearchJobs(ctx, structuredJobsForStagedCompanyFilter(companyID, tempIDs))
+	if err != nil {
+		return StagedCompanyDeletion{}, err
+	}
+	tempJobIDs, err := s.deleteTempJobsByFilter(ctx, tempFilter, tempIDs)
+	if err != nil {
+		return StagedCompanyDeletion{}, err
+	}
+	removed, err := s.stagedCompanies().DeleteOne(ctx, bson.D{{Key: "id", Value: companyID}})
+	if err != nil {
+		return StagedCompanyDeletion{}, err
+	}
+
+	var result StagedCompanyDeletion
+	result.CompanyID = companyID
+	result.Removed.Company = removed.DeletedCount > 0
+	result.Removed.TempJobs = tempJobIDs
+	result.Removed.SearchJobs = searchJobIDs
+	return result, nil
+}
+
+func stagedCompanyTempJobFilter(publicID, sourceID string) bson.D {
+	clauses := bson.A{
+		bson.D{{Key: "companyPublicId", Value: publicID}},
+	}
+	if oid, err := bson.ObjectIDFromHex(strings.TrimSpace(sourceID)); err == nil {
+		clauses = append(clauses, bson.D{{Key: "companyId", Value: oid}})
+	}
+	if len(clauses) == 1 {
+		return clauses[0].(bson.D)
+	}
+	return bson.D{{Key: "$or", Value: clauses}}
+}
+
+func structuredJobsForStagedCompanyFilter(publicID string, tempIDs []bson.ObjectID) bson.D {
+	clauses := bson.A{
+		bson.D{{Key: "job.companyId", Value: publicID}},
+	}
+	if len(tempIDs) > 0 {
+		clauses = append(clauses, bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: tempIDs}}}})
+	}
+	if len(clauses) == 1 {
+		return clauses[0].(bson.D)
+	}
+	return bson.D{{Key: "$or", Value: clauses}}
+}
+
+func (s *Store) findTempJobIDs(ctx context.Context, filter bson.D) ([]bson.ObjectID, error) {
+	cursor, err := s.dest().Find(ctx, filter, options.Find().SetProjection(bson.D{{Key: "_id", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var ids []bson.ObjectID
+	for cursor.Next(ctx) {
+		var doc struct {
+			ID bson.ObjectID `bson:"_id"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, err
+		}
+		ids = append(ids, doc.ID)
+	}
+	return ids, cursor.Err()
+}
+
+func (s *Store) deleteTempJobsByFilter(ctx context.Context, filter bson.D, ids []bson.ObjectID) ([]string, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	if _, err := s.dest().DeleteMany(ctx, filter); err != nil {
+		return nil, err
+	}
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = id.Hex()
+	}
+	return out, nil
+}
+
 var searchRecordKeys = []string{
 	"job", "tempJobId", "applyLink", "analyzedAt", "model", "createdBy", "source", "listingStatus",
 }

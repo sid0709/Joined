@@ -54,3 +54,11 @@ func TestPublicAnalyzerDisabledWithoutTokenConfig(t *testing.T) {
 		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestPublicAnalyzerDeleteCompanyRequiresAnalyzerToken(t *testing.T) {
+	handler := New(nil, nil, nil, nil, Options{AnalyzerToken: "analyzer-secret"})
+	rec := analyzerCall(t, handler, http.MethodDelete, "/v1/public/analyzer/companies/co-1", "", "")
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("missing analyzer token: %d %s", rec.Code, rec.Body.String())
+	}
+}
