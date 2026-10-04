@@ -1,8 +1,8 @@
 # Joined — agent instructions
 
-This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `packages/*` (e.g. `@joined/design-system`). Apps consume shared packages; do not copy the same component, token, or helper into more than one workspace.
+This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `@joined/design-system`. Apps consume it; do not copy a component, token, or helper into a second workspace.
 
-Workspaces: `connected-frontend`, `joined-theme`, `joined-frontend`, `packages/*`.
+Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme`, `packages/*`, `acorn/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core`.
 
 Before pushing, run `bun run ci` — it runs exactly what GitHub CI runs (`tools/ci.mjs`).
 
@@ -24,70 +24,33 @@ If a launch/debug config still calls `npm`, switch it to `bun`.
 
 ## No hardcoding
 
-Never hardcode values that belong in config, tokens, env, or shared constants:
+Never inline a value that belongs in env, a config module, a design token, or a named constant. This applies in every language. The stack rule for the files you are editing says where that value lives.
 
-- URLs, API hosts, feature flags → env / config module
-- Colors, spacing, type, radii, shadows → design tokens (`tokens.css`)
-- Copy used in more than one place → shared constants (or i18n)
-- Magic numbers, IDs, timeouts, limits → named constants
-- Secrets → env only, never in source
+- Secrets and API hosts come from the environment or that stack's config module. A literal host or key in source is a bug.
+- Colors, spacing, type, radii, and shadows in UI come from `@joined/design-system` tokens. A hex color or an inline style for those is a bug.
+- Timeouts, limits, ids, and protocol strings are named constants in the module that owns them.
+- A value used by more than one workspace lives in one shared package.
 
-```ts
-// ❌
-fetch("https://api.example.com/jobs");
-<div style={{ color: "#111", padding: 16 }} />;
+User-facing copy can sit next to the only component that shows it. Copy used in a second place moves to a shared constant.
 
-// ✅
-fetch(`${env.API_BASE_URL}/jobs`);
-<div className="text-fg p-md" />;
-```
+## Stack rules
 
-If a constant is used in more than one workspace, put it in a shared package — not duplicated per app.
+Follow the rule that matches the folder you are editing, and use only that folder's stack. The files in `.claude/rules/` are mandatory. Cursor loads the same text from `.cursor/rules/`.
+
+| Folder | Rule |
+| --- | --- |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme` | `.claude/rules/nextjs.md` |
+| UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension` | `.claude/rules/design-system.md` |
+| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core` | `.claude/rules/go.md` |
+| Vite: `acorn/extension`, `acorn/ui-board`, `acorn/demo`, `acorn/packages` | `.claude/rules/vite.md` |
+| `packages/design-system` and the `joined-theme` catalog | `.claude/rules/theme.md` |
+
+Acorn's rules in `acorn/.claude/CLAUDE.md` and `acorn/.cursor/rules/` still apply on top of these.
 
 ## Best practice
 
+- Match the neighboring files in that workspace before introducing a new pattern.
 - Prefer composition and reuse over duplication.
 - Keep modules small and single-purpose. Split a file when it mixes unrelated concerns or grows past a focused unit of work.
 - Colocate types with the code that owns them; share types from packages when more than one app needs them.
 - Change the source of truth (tokens, shared components, config) instead of patching call sites with one-off values.
-
-## Next.js apps (`connected-frontend`, `joined-theme`, `joined-frontend`, any future Next.js workspace)
-
-When the folder is a Next.js project, follow current App Router practice. Read that app's `node_modules/next/dist/docs/` before using APIs that may have changed.
-
-### File size and splitting
-
-- Keep `page.tsx` / `layout.tsx` thin: compose, don't dump UI and data logic in the route file.
-- Split by concern: `components/`, `lib/`, `hooks/`, route-local `_components` only when not reused.
-- Extract anything reused across routes into shared components — prefer `@joined/design-system` or the app `components/` folder.
-- One component per file when it has its own state, data, or styles. Don't grow a 400-line page.
-
-### Routing
-
-- Use the App Router file conventions: `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, `route.ts`.
-- Nested layouts for shared chrome. Route groups `(group)` for organization without changing the URL.
-- Colocate route-only files next to the route. Promote to `components/` or `packages/` as soon as a second route needs them.
-
-### Server vs client (smaller bundles)
-
-- Default to **Server Components**. Add `"use client"` only when the file needs browser APIs, state, or event handlers.
-- Push `"use client"` to the smallest leaf (a button, a form), not the whole page.
-- Dynamic-import heavy client-only widgets (`next/dynamic` or `import()`) so they are not in the initial bundle.
-- Fetch on the server when possible. Don't ship data-loading libraries to the client without a reason.
-
-```tsx
-// ❌ whole page is a client component
-"use client";
-export default function Page() { /* fetch + form + layout */ }
-
-// ✅ server page, tiny client island
-export default function Page() {
-  return <JobForm />; // JobForm.tsx is the only "use client" file
-}
-```
-
-### Reuse
-
-- Use existing design-system primitives before creating a new button, input, modal, or token.
-- Don't duplicate CSS or component variants that already exist in `packages/design-system`.
-- Named exports, stable props, no copy-pasted JSX between routes.
