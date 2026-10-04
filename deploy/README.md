@@ -1,6 +1,6 @@
 # Production deploy
 
-Every merge to `main` runs [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml):
+A successful [CI](../.github/workflows/ci.yml) run on `main` runs [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml). A failed CI run does not deploy. The workflow builds the commit CI tested:
 
 1. **Images.** Each service is built into a Docker image and pushed to Docker Hub as `<DOCKERHUB_USERNAME>/joined:<service>-sha-<commit>` (and `<service>-latest`). The Go APIs use [`docker/go-service.Dockerfile`](../docker/go-service.Dockerfile); the Next.js apps use [`docker/next-app.Dockerfile`](../docker/next-app.Dockerfile).
 2. **Deploy.** The workflow writes a `.env` from the GitHub `production` environment, copies it and [`compose.yml`](compose.yml) to `/srv/joined` on the VPS, pulls the new images, restarts the stack, and checks that both APIs' `/health` (joined-backend and backend-core) and the homepage answer.

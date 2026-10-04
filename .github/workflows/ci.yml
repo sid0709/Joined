@@ -68,6 +68,25 @@ jobs:
       - name: Run tests and enforce coverage
         run: bun run ci test
 
+  go:
+    name: Vet and test Go
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            go.work.sum
+            backend-core/go.sum
+            joined-backend/go.sum
+            admin-backend/go.sum
+            scoutwell-backend/go.sum
+      - uses: ./.github/actions/setup-bun
+      - name: Vet and test every Go module
+        run: bun run ci go
+
   build:
     name: Build applications
     runs-on: ubuntu-latest
@@ -114,7 +133,7 @@ jobs:
   ci-passed:
     name: All CI passed
     if: always()
-    needs: [lint, format, typecheck, dependencies, test, build, commit-conventions]
+    needs: [lint, format, typecheck, dependencies, test, go, build, commit-conventions]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
