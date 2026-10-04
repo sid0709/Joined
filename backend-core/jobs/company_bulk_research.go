@@ -14,19 +14,37 @@ import (
 // researchedAtField marks a company the bulk research has tried.
 const researchedAtField = "research.at"
 
+// ResearchScope picks the staged companies a bulk research works through.
+type ResearchScope struct {
+	// IDs are the staged companies to research, researched before or not.
+	// Empty means every staged company the redo flag allows.
+	IDs []string
+	// Redo researches companies an earlier run already tried.
+	Redo bool
+}
+
 // ResearchCompanies researches staged companies on the web, workers at a time,
 // busiest first, and publishes each one research finds. It only fills fields that are
 // still blank, so admin edits stay. A company research cannot find stays staged as not
 // found. Without redo it skips companies researched before. When it has worked through
-// the list it looks again, so companies a copy stages meanwhile are researched too. A
-// company that fails is reported and stays waiting; a missing API key stops the run.
-func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher, model string, redo bool, workers int, progress Progress) error {
+// the list it looks again, so companies a copy stages meanwhile are researched too.
+// A hand-picked set is researched once, including ones an earlier run already tried.
+// A company that fails is reported and stays waiting; a missing API key stops the run.
+func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher, model string, scope ResearchScope, workers int, progress Progress) error {
 	if researcher == nil {
 		return ErrMissingResearcher
 	}
 	progress = orNoProgress(progress)
 	load := func(ctx context.Context, batch []string) ([]storedCompany, error) {
-		return findAll[storedCompany](ctx, s.stagedCompanies(), bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: batch}}}})
+		docs, err := findAll[storedCompany](ctx, s.stagedCompanies(), bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: batch}}}})
+		if err != nil {
+			return nil, err
+		}
+		if missing := len(batch) - len(docs); missing > 0 {
+			// Published since the run started, or never staged.
+			progress.Skip(int64(missing))
+		}
+		return docs, nil
 	}
 	work := func(ctx context.Context, doc storedCompany) error {
 		published, err := s.researchOne(ctx, researcher, model, doc)
@@ -43,10 +61,15 @@ func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher,
 		return nil
 	}
 
+	if ids := selectedCompanyIDs(scope.IDs); len(ids) > 0 {
+		progress.Total(int64(len(ids)))
+		return runBulk(ctx, ids, workers, load, work)
+	}
+
 	seen := map[string]struct{}{}
 	var total int64
 	for {
-		ids, err := s.stagedToResearch(ctx, redo, seen)
+		ids, err := s.stagedToResearch(ctx, scope.Redo, seen)
 		if err != nil || len(ids) == 0 {
 			return err
 		}
@@ -56,6 +79,24 @@ func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher,
 			return err
 		}
 	}
+}
+
+// selectedCompanyIDs keeps each non-blank id once, in the order given.
+func selectedCompanyIDs(ids []string) []string {
+	out := make([]string, 0, len(ids))
+	seen := map[string]struct{}{}
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }
 
 // stagedToResearch lists staged company ids this run has not tried yet, busiest first.

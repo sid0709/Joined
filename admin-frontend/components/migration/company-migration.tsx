@@ -16,6 +16,7 @@ import { ModelBanner } from "@/components/migration/model-banner";
 import { formatCount } from "@/lib/format";
 import {
   isRunning,
+  MAX_MIGRATION_SELECTION,
   MIGRATION_TASKS,
   type MigrationStart,
   type MigrationTask,
@@ -139,7 +140,18 @@ export function CompanyMigration() {
           <Link href={ROUTES.companies}>Review published companies</Link>
         ) : null}
       </MigrationStep>
-      <TempCompaniesBrowser refreshKey={finished} />
+      <TempCompaniesBrowser
+        refreshKey={finished}
+        maxSelection={MAX_MIGRATION_SELECTION}
+        description={`Or pick companies and research just those with ${model}. Ones it finds show in the directory.`}
+        onResearch={async (ids) => {
+          await start(researchCompanies, { companyIds: ids });
+          return {
+            status: "success",
+            title: `Researching ${formatCount(ids.length)} companies. Progress shows under Research with AI.`,
+          };
+        }}
+      />
       <AlertDialog
         isOpen={confirmRedo}
         onOpenChange={setConfirmRedo}

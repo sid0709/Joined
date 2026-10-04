@@ -66,6 +66,7 @@ export type MigrationStatus = {
 /** What an AI step works on. Every field is optional. */
 export type MigrationStart = {
   tempJobIds?: string[];
+  companyIds?: string[];
   redo?: boolean;
 };
 

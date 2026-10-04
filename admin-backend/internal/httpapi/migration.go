@@ -47,6 +47,8 @@ type migrationStatus struct {
 type migrationStartRequest struct {
 	// TempJobIDs analyzes just these temp jobs.
 	TempJobIDs []string `json:"tempJobIds"`
+	// CompanyIDs researches just these staged companies.
+	CompanyIDs []string `json:"companyIds"`
 	// Redo works through items an earlier run already finished.
 	Redo bool `json:"redo"`
 }
@@ -81,8 +83,8 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 		httpkit.WriteError(w, http.StatusBadRequest, "invalid migration request")
 		return
 	}
-	if len(body.TempJobIDs) > maxMigrationSelection {
-		httpkit.WriteError(w, http.StatusBadRequest, fmt.Sprintf("select at most %d temp jobs", maxMigrationSelection))
+	if selected := max(len(body.TempJobIDs), len(body.CompanyIDs)); selected > maxMigrationSelection {
+		httpkit.WriteError(w, http.StatusBadRequest, fmt.Sprintf("select at most %d at a time", maxMigrationSelection))
 		return
 	}
 
@@ -153,7 +155,7 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 		}, true, true
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), body.Redo, s.researchWorkers, progress)
+			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo}, s.researchWorkers, progress)
 			return tally("Published", "not found", progress.Snapshot()), err
 		}, true, true
 	}

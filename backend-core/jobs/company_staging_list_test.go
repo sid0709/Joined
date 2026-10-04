@@ -41,6 +41,16 @@ func TestStagedCompanyFilter(t *testing.T) {
 	}
 }
 
+func TestSelectedCompanyIDsDropsBlanksAndDuplicates(t *testing.T) {
+	got := selectedCompanyIDs([]string{" a ", "", "a", "b", "  b "})
+	if len(got) != 2 || got[0] != "a" || got[1] != "b" {
+		t.Fatalf("selected = %v", got)
+	}
+	if len(selectedCompanyIDs(nil)) != 0 {
+		t.Fatal("no selection should be empty")
+	}
+}
+
 func TestStagedStatus(t *testing.T) {
 	no := false
 	yes := true
