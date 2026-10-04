@@ -8,6 +8,8 @@ import {
   type AdminCompany,
   companyLogoSrc,
   companyWriteFrom,
+  STAGED_COMPANY_STATUS,
+  stagedCompanyStatusLabel,
 } from "./company";
 
 const base: AdminCompany = {
@@ -110,5 +112,12 @@ describe("companyLogoSrc", () => {
 
   it("serves an uploaded file through the API, versioned for cache busting", () => {
     expect(companyLogoSrc({ id: "a/b", hasLogoFile: true }, 4)).toBe(apiLogo("a/b", 4));
+  });
+});
+
+describe("stagedCompanyStatusLabel", () => {
+  it("names the two staged states", () => {
+    expect(stagedCompanyStatusLabel(STAGED_COMPANY_STATUS.waiting)).toBe("Waiting");
+    expect(stagedCompanyStatusLabel(STAGED_COMPANY_STATUS.notFound)).toBe("Not found");
   });
 });
