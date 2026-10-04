@@ -5,9 +5,6 @@ export const MIGRATION_PATH = "/v1/migration";
 export const MIGRATION_POLL_MS = 2_000;
 /** Most temp jobs one hand-picked analysis takes; matches the admin API. */
 export const MAX_MIGRATION_SELECTION = 1_000;
-/** The env var that turns on the migration's AI steps. */
-export const MIGRATION_KEY_ENV = "DEEPSEEK_API_KEY";
-
 export const MIGRATION_TASKS = {
   copyJobs: "jobs-copy",
   analyzeJobs: "jobs-analyze",

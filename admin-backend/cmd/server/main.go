@@ -42,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 	ai := config.LoadOpenAI()
-	migrationAI := deepseek.New(config.LoadDeepSeek())
+	deepSeekEnv := config.LoadDeepSeek()
 	googleConfig := config.LoadGoogle()
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
@@ -72,15 +72,18 @@ func main() {
 	case staffDomain == "":
 		slog.Error("ADMIN_GOOGLE_DOMAIN is not set: no Google account can sign in to the console")
 	}
+	migrationAI := deepseek.NewReloading(p.DeepSeekSettings, deepSeekEnv)
 	if !migrationAI.Ready() {
-		slog.Warn("DEEPSEEK_API_KEY is not set: migration analysis and company research are off")
+		slog.Warn("no DeepSeek key yet: save one under Settings → DeepSeek, or set DEEPSEEK_API_KEY, before analyzing or researching")
 	}
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
-		Origins:    server.Origins,
-		AdminToken: adminToken,
-		Staff:      staff,
-		AcornAI:    p.AISettings,
-		AcornAIEnv: ai,
+		Origins:     server.Origins,
+		AdminToken:  adminToken,
+		Staff:       staff,
+		AcornAI:     p.AISettings,
+		AcornAIEnv:  ai,
+		DeepSeek:    p.DeepSeekSettings,
+		DeepSeekEnv: deepSeekEnv,
 		Migration: httpapi.MigrationOptions{
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
