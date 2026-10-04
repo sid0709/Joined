@@ -9,7 +9,7 @@ export function shortLabel(expectedLabel: string | null | undefined, action: str
 
 /**
  * Unattended pause policy for FAB pipeline:
- * - errors → always skip (Continue/Abort stay available for UI board)
+ * - errors → always skip
  * - planned pause → continue so autofill can run when a value is present
  */
 export async function autoPauseDecision(request: PauseRequest) {

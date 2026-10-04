@@ -30,7 +30,7 @@ export interface RunPipelineArgs {
   aiServerUrl?: string;
   /** Worker Pool Fill (default) or Custom remembered-tab Fill. */
   source?: PipelineSource;
-  /** Emit DOM tree to backend for UI board (optional socket emit callback). */
+  /** Emit DOM tree to the backend (optional socket emit callback). */
   emitDomTree?: (payload: DomTreePayload) => void;
   /** Broadcast progress to the Chrome side panel + backend. */
   onProgress: PipelineEmit;

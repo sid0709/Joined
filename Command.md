@@ -10,20 +10,19 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace               | Path                      | What it is                                                                            | Dev port | Root dev script           |
-| ----------------------- | ------------------------- | ------------------------------------------------------------------------------------- | -------- | ------------------------- |
-| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)                            | 6002     | `bun run dev:joined`      |
-| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                                              | 6004     | `bun run dev:app`         |
-| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                                                      | 6001     | `bun run dev:theme`       |
-| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js)                          | 6010     | `bun run dev:admin`       |
-| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)                            | 6003     | `bun run dev:scout`       |
-| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                                 | 8080     | `bun run dev:joined-api`  |
-| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                                   | 8081     | `bun run dev:admin-api`   |
-| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                              | 8082     | `bun run dev:scout-api`   |
-| `backend-core`          | `backend-core/`           | Go code every API shares, and its own server: api.joinedhq.com (Acorn under `/acorn`) | 8083     | `bun run dev:core-api`    |
-| `acorn-extension`       | `acorn/extension/`        | Acorn Chrome extension (Vite; load `acorn/extension/dist`)                            | —        | `bun run dev:acorn`       |
-| `acorn-ui-board`        | `acorn/ui-board/`         | Acorn UI board (Vite)                                                                 | 5173     | `bun run dev:acorn-board` |
-| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)                                  | —        | —                         |
+| Workspace               | Path                      | What it is                                                                            | Dev port | Root dev script          |
+| ----------------------- | ------------------------- | ------------------------------------------------------------------------------------- | -------- | ------------------------ |
+| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)                            | 6002     | `bun run dev:joined`     |
+| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                                              | 6004     | `bun run dev:app`        |
+| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                                                      | 6001     | `bun run dev:theme`      |
+| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js)                          | 6010     | `bun run dev:admin`      |
+| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)                            | 6003     | `bun run dev:scout`      |
+| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                                 | 8080     | `bun run dev:joined-api` |
+| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                                   | 8081     | `bun run dev:admin-api`  |
+| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                              | 8082     | `bun run dev:scout-api`  |
+| `backend-core`          | `backend-core/`           | Go code every API shares, and its own server: api.joinedhq.com (Acorn under `/acorn`) | 8083     | `bun run dev:core-api`   |
+| `acorn-extension`       | `acorn/extension/`        | Acorn Chrome extension (Vite; load `acorn/extension/dist`)                            | —        | `bun run dev:acorn`      |
+| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)                                  | —        | —                        |
 
 Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared `backend-core`, which also runs its own server for Acorn) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
@@ -446,7 +445,7 @@ git push -u origin feat/<short-name>
 | Run the admin API                     | `bun run dev:admin-api` → http://127.0.0.1:8081                                        |
 | Run the Scoutwell API                 | `bun run dev:scout-api` → http://127.0.0.1:8082                                        |
 | Run the core API (Acorn's `/acorn/*`) | `bun run dev:core-api` → http://127.0.0.1:8083                                         |
-| Build the Acorn extension / UI board  | `bun run build:acorn` (watch: `bun run dev:acorn`, `bun run dev:acorn-board`)          |
+| Build the Acorn extension             | `bun run build:acorn` (watch: `bun run dev:acorn`)                                     |
 | Test / vet every Go module            | `bun run test:go` · `bun run vet:go`                                                   |
 | Open a running app (macOS)            | `open http://localhost:6002`                                                           |
 | Run any script in one workspace       | `bun --filter <workspace> <script>`                                                    |

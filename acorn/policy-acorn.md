@@ -27,7 +27,7 @@ Custom **Remember tab** binds the already-focused Chrome tab. Do not open a new 
 
 ## 3. One fill engine
 
-Shared `plan-runner` is the fill engine for the extension and the UI board. Do not add a second Custom/Worker-Pool fill stack.
+Shared `plan-runner` is the extension's fill engine. Do not add a second Custom/Worker-Pool fill stack.
 
 Analyze → plan → run steps go through the existing pipeline. Custom Generate vs Library Recommend only changes which résumé file is attached (`custom_resume` vs `recommended_resume`), not the runner.
 

@@ -20,4 +20,3 @@ These add to the repo-root instructions. Read [`../policy-acorn.md`](../policy-a
   - minor (`1.8.1` → `1.9.0`): new features or UI
   - major (`1.9.0` → `2.0.0`): breaking changes, for example the extension no longer works with the deployed backend (`/acorn/*` routes, socket events, stored data shape)
 - **After bumping:** run `bun run build:acorn` and check the log line shows the new version before you commit.
-- **UI board:** changes under `acorn/ui-board/` bump `"version"` in `acorn/ui-board/package.json` the same way.

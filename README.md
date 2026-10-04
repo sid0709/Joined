@@ -20,7 +20,6 @@ A **bun workspaces monorepo**:
 | `scoutwell-backend`     | Scoutwell API (Go) — scout accounts, submissions, partner API keys        | `bun run dev:scout-api` → http://127.0.0.1:8082   |
 | `backend-core`          | Shared Go code every API builds on, and its own server (api.joinedhq.com) | `bun run dev:core-api` → http://127.0.0.1:8083    |
 | `acorn-extension`       | Acorn — Chrome extension that fills job applications (`acorn/extension`)  | `bun run dev:acorn` → load `acorn/extension/dist` |
-| `acorn-ui-board`        | Acorn UI board — DOM tree view and plan runs (`acorn/ui-board`)           | `bun run dev:acorn-board` → http://localhost:5173 |
 | `@joined/design-system` | Shared UI package (`packages/design-system`)                              | used by every app                                 |
 | `@joined/scout`         | Scout API contract (`packages/scout`)                                     | Scoutwell and the admin console                   |
 | `@joined/job-schema`    | Job enums shared with the Go API (`packages/job-schema`)                  | every job-related app                             |
@@ -34,7 +33,7 @@ Each app has its own Go API that runs and deploys on its own. The apps call thei
 | `joined-frontend`              | `joined-backend` (8080)    | `/v1/auth` (hunters, recruiters), `/v1/search`, `/v1/me`, `/v1/company`, `/v1/schedule`               |
 | `admin-frontend`               | `admin-backend` (8081)     | `/v1/settings`, `/v1/jobs`, `/v1/companies`, `/v1/reports`, `/v1/admin/*`; all need `ADMIN_API_TOKEN` |
 | `scoutwell-frontend`, partners | `scoutwell-backend` (8082) | `/v1/auth` (scouts), `/v1/scout/*`                                                                    |
-| Acorn (extension, UI board)    | `backend-core` (8083)      | `/acorn/*` and Socket.IO at `/acorn/socket.io`; public at https://api.joinedhq.com                    |
+| Acorn (extension)              | `backend-core` (8083)      | `/acorn/*` and Socket.IO at `/acorn/socket.io`; public at https://api.joinedhq.com                    |
 
 They all share one MongoDB and build on `backend-core`: the domain stores, the HTTP helpers, and the sign-in routes. A rule that crosses domains, like deleting an account, behaves the same whichever API runs it. Each service reads its own `.env` (copy its `.env.example`). `bun run dev:api` starts all four; `bun run test:go` tests every Go module.
 
