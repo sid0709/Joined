@@ -46,7 +46,9 @@ const STATUS_VARIANT: Record<StagedCompanyStatus, BadgeVariant> = {
 
 function pageSizeOption(value: string | null) {
   const parsed = Number(value);
-  return TEMP_COMPANY_PAGE_SIZES.some((size) => size === parsed) ? parsed : TEMP_COMPANIES_PAGE_SIZE;
+  return TEMP_COMPANY_PAGE_SIZES.some((size) => size === parsed)
+    ? parsed
+    : TEMP_COMPANIES_PAGE_SIZE;
 }
 
 type TempCompaniesBrowserProps = {
