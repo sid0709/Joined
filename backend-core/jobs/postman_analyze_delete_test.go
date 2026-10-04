@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"os"
 	"testing"
 	"time"
 
@@ -132,14 +133,19 @@ func TestDeleteStagedCompanyForAnalyzerRemovesCompanyAndJobs(t *testing.T) {
 
 func analyzerDeleteTestStore(t *testing.T) *Store {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://127.0.0.1:27017"))
-	if err != nil {
-		t.Skip("mongo unavailable:", err)
+	uri := os.Getenv("MONGO_URI")
+	if uri == "" {
+		uri = "mongodb://127.0.0.1:27017"
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 	if err := client.Ping(ctx, nil); err != nil {
-		t.Skip("mongo unavailable:", err)
+		t.Fatal(err)
 	}
 	suffix := make([]byte, 6)
 	if _, err := rand.Read(suffix); err != nil {

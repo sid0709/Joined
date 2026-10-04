@@ -72,6 +72,11 @@ jobs:
     name: Vet and test Go
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
@@ -85,6 +90,8 @@ jobs:
             scoutwell-backend/go.sum
       - uses: ./.github/actions/setup-bun
       - name: Vet and test every Go module
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017
         run: bun run ci go
 
   build:
