@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Bot Cursor Effect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            gap: 50px;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #222;
+            color: white;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #888;
+            font-weight: 300;
+        }
+
+        /* Container to hold input and custom elements */
+        .input-wrapper {
+            position: relative;
+            width: 500px;
+        }
+
+        /* The actual input field */
+        .styled-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-family: 'Segoe UI', sans-serif;
+            border: 2px solid #444;
+            background-color: #333;
+            color: #fff;
+            border-radius: 12px;
+            outline: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            caret-color: transparent; /* Hide native cursor */
+            z-index: 2;
+            position: relative;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .styled-input:focus {
+            border-color: #4CAF50;
+        }
+
+        /* The Custom Cursor Container */
+        .custom-cursor {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 17px;
+            /* Matches padding */
+            pointer-events: none;
+            /* Let clicks pass to input */
+            display: none;
+            align-items: center;
+            z-index: 10;
+            transition: left 0.05s ease-out;
+        }
+
+        /* The 'I' Bar part of the cursor */
+        .cursor-bar {
+            width: 2px;
+            height: 24px;
+            background-color: #4CAF50;
+            animation: blink 2s infinite;
+        }
+
+        /* The Bot Logo Wrapper */
+        .cursor-logo-wrapper {
+            position: relative;
+            margin-left: 4px;
+            pointer-events: auto; /* Enable mouse interaction for the logo */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px; /* Add padding to make hover target bigger */
+        }
+
+        .cursor-logo {
+            width: 24px;
+            height: 24px;
+            filter: invert(1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .cursor-logo:hover {
+            transform: scale(1.1);
+        }
+
+        /* DROPDOWN MENU */
+        .bot-menu {
+            position: absolute;
+            top: 100%; /* Push below the wrapper */
+            left: -10px;
+            width: 180px;
+            background: #444;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            margin-top: 5px; /* Slight visual gap */
+
+            /* Hidden by default */
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+
+        /* 
+           FIX 1: The Invisible Bridge 
+           Creates a transparent area between the logo and the menu 
+           so the mouse doesn't "fall into the gap" and close the menu.
+        */
+        .bot-menu::before {
+            content: "";
+            position: absolute;
+            top: -20px; /* Extend upwards to touch the logo */
+            left: 0;
+            width: 100%;
+            height: 20px; 
+            background: transparent;
+        }
+
+        /* Show menu on hover of wrapper or menu itself */
+        .cursor-logo-wrapper:hover .bot-menu,
+        .bot-menu:hover {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .menu-item {
+            padding: 10px 12px;
+            font-size: 14px;
+            color: #eee;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .menu-item:hover {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* The "Ghost" element for measuring text width */
+        .mirror-span {
+            position: absolute;
+            visibility: hidden;
+            white-space: pre;
+            font-size: 18px;
+            font-family: 'Segoe UI', sans-serif;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Multiple Async Bot Fields</h2>
+
+    <!-- Input Field 1 -->
+    <div class="input-wrapper" id="bot-input-1">
+        <span class="mirror-span"></span>
+        <input type="text" class="styled-input" placeholder="Ask Bot 1..." autocomplete="off">
+
+        <div class="custom-cursor">
+            <div class="cursor-bar"></div>
+            <div class="cursor-logo-wrapper">
+                <img src="https://www.svgrepo.com/show/306500/openai.svg" class="cursor-logo" alt="bot">
+                <!-- Dropdown Menu -->
+                <div class="bot-menu">
+                    <div class="menu-item generate-btn">
+                        <span>✨</span> Generate Answer
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Field 2 -->
+    <div class="input-wrapper" id="bot-input-2">
+        <span class="mirror-span"></span>
+        <input type="text" class="styled-input" placeholder="Ask Bot 2..." autocomplete="off">
+
+        <div class="custom-cursor">
+            <div class="cursor-bar"></div>
+            <div class="cursor-logo-wrapper">
+                <img src="https://www.svgrepo.com/show/306500/openai.svg" class="cursor-logo" alt="bot">
+                <!-- Dropdown Menu -->
+                <div class="bot-menu">
+                    <div class="menu-item generate-btn">
+                        <span>✨</span> Generate Answer
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BotInputController {
+            constructor(wrapperElement) {
+                this.wrapper = wrapperElement;
+                this.input = this.wrapper.querySelector('.styled-input');
+                this.cursor = this.wrapper.querySelector('.custom-cursor');
+                this.mirror = this.wrapper.querySelector('.mirror-span');
+                this.generateBtn = this.wrapper.querySelector('.generate-btn');
+                this.isGenerating = false;
+
+                this.init();
+            }
+
+            init() {
+                // Keep cursor updated
+                const events = ['input', 'keydown', 'click', 'select', 'scroll'];
+                events.forEach(evt => this.input.addEventListener(evt, () => this.updateCursor()));
+
+                // Show cursor on focus
+                this.input.addEventListener('focus', () => {
+                    this.cursor.style.display = 'flex';
+                    this.updateCursor();
+                });
+
+                // Hide cursor on blur
+                this.input.addEventListener('blur', () => {
+                    this.cursor.style.display = 'none';
+                });
+
+                // FIX 2: Use 'mousedown' instead of 'click'
+                // 'mousedown' fires BEFORE the input loses focus (blur).
+                this.generateBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevents the input from blurring
+                    e.stopPropagation(); 
+                    this.startGeneration();
+                });
+            }
+
+            updateCursor() {
+                const currPos = this.input.selectionStart;
+                const val = this.input.value;
+                const textBeforeCursor = val.substring(0, currPos);
+
+                this.mirror.textContent = textBeforeCursor;
+
+                const inputStyle = window.getComputedStyle(this.input);
+                const paddingLeft = parseFloat(inputStyle.paddingLeft);
+                const borderLeft = parseFloat(inputStyle.borderLeftWidth);
+
+                // Calculate position
+                const position = this.mirror.offsetWidth + paddingLeft + borderLeft - this.input.scrollLeft;
+                this.cursor.style.left = `${position}px`;
+            }
+
+            async startGeneration() {
+                if (this.isGenerating) return;
+                this.isGenerating = true;
+
+                // Ensure input is focused so cursor is visible
+                this.input.focus();
+
+                const textToType = "Hello world! This is a generated response. Lerium pepsa infinite loop of knowledge...  Everything is running asynchronously and concurrently.";
+                
+                this.input.value = ""; // Clear existing
+
+                for (let i = 0; i < textToType.length; i++) {
+                    const char = textToType[i];
+                    this.input.value += char;
+                    
+                    // Move caret to end
+                    this.input.selectionStart = this.input.selectionEnd = this.input.value.length;
+                    
+                    // Auto-scroll
+                    this.input.scrollLeft = this.input.scrollWidth;
+
+                    this.updateCursor();
+
+                    // Random typing speed
+                    await this.wait(Math.random() * 50 + 20);
+                }
+
+                this.isGenerating = false;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize all inputs
+        document.querySelectorAll('.input-wrapper').forEach(wrapper => {
+            new BotInputController(wrapper);
+        });
+    </script>
+</body>
+
+</html>

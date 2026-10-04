@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Avalon Scrapper",
+  "version": "2.2.1",
+  "description": "AI based assistant to help freelancers apply and manage job postings more efficiently.",
+  "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage", "alarms"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "Avalon Scrapper",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/icon48.png"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ]
+}
