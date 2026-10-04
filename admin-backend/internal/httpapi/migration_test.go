@@ -57,7 +57,11 @@ func TestMigrationRejectsUnknownStepsAndBadBodies(t *testing.T) {
 	}
 	body, _ := json.Marshal(map[string]any{"tempJobIds": ids})
 	if recorder := postMigration(t, handler, "/v1/migration/jobs-analyze", string(body)); recorder.Code != http.StatusBadRequest {
-		t.Fatalf("too many: %d", recorder.Code)
+		t.Fatalf("too many jobs: %d", recorder.Code)
+	}
+	body, _ = json.Marshal(map[string]any{"companyIds": ids})
+	if recorder := postMigration(t, handler, "/v1/migration/companies-research", string(body)); recorder.Code != http.StatusBadRequest {
+		t.Fatalf("too many companies: %d %s", recorder.Code, recorder.Body.String())
 	}
 	if recorder := postMigration(t, handler, "/v1/migration/jobs-copy/cancel", ``); recorder.Code != http.StatusConflict {
 		t.Fatalf("cancel idle: %d", recorder.Code)

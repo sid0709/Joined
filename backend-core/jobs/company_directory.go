@@ -126,9 +126,11 @@ func (s *Store) ListCompanies(ctx context.Context, query CompanyQuery) (CompanyD
 			N int64 `bson:"n"`
 		} `bson:"total"`
 		Rows []struct {
-			storedCompany `bson:",inline"`
-			Completion    int `bson:"completion"`
-			Research      struct {
+			// Company is a named, exported field. Inlining the unexported storedCompany
+			// type makes the decoder skip the company, so the directory would be blank.
+			Company    storedCompany `bson:",inline"`
+			Completion int           `bson:"completion"`
+			Research   struct {
 				At *time.Time `bson:"at"`
 			} `bson:"research"`
 		} `bson:"rows"`
@@ -144,16 +146,16 @@ func (s *Store) ListCompanies(ctx context.Context, query CompanyQuery) (CompanyD
 		out.Total = facets[0].Total[0].N
 	}
 	for _, row := range facets[0].Rows {
-		profile := row.Overrides.Profile
+		profile := row.Company.Overrides.Profile
 		out.Companies = append(out.Companies, CompanyRow{
-			CompanySummary: row.summary(),
+			CompanySummary: row.Company.summary(),
 			Tagline:        profile.Tagline,
 			Size:           profile.Size,
 			CompanyType:    profile.CompanyType,
 			Headquarters:   profile.Headquarters,
 			Founded:        profile.Founded,
 			Locations:      profile.Locations,
-			Verification:   row.VerificationStatus,
+			Verification:   row.Company.VerificationStatus,
 			Completion:     row.Completion,
 			ResearchedAt:   row.Research.At,
 		})

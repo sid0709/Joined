@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Badge,
   Banner,
+  Button,
   CheckboxInput,
   EmptyState,
   HStack,
+  Link,
   Pagination,
   SectionCard,
   Selector,
@@ -31,8 +33,11 @@ import {
 } from "@/lib/company";
 import { formatCount, formatDate, positiveInt } from "@/lib/format";
 import { listingHref } from "@/lib/listing";
+import { MAX_MIGRATION_SELECTION } from "@/lib/migration";
 import { ROUTES } from "@/lib/nav";
 import { useAdminQuery } from "@/lib/use-admin-query";
+
+type Notice = { status: "success" | "error"; title: string };
 
 const PAGE_SIZE_OPTIONS = TEMP_COMPANY_PAGE_SIZES.map((size) => ({
   value: String(size),
@@ -56,6 +61,9 @@ type TempCompaniesBrowserProps = {
   description?: string;
   /** Changing it reloads the list, e.g. when a copy or research run ends. */
   refreshKey?: number;
+  /** Starts research for the checked companies and returns what to tell the admin. */
+  onResearch?: (ids: string[]) => Promise<Notice>;
+  maxSelection?: number;
 };
 
 /** Companies copied into staging. Published ones leave this list. */
@@ -63,6 +71,8 @@ export function TempCompaniesBrowser({
   title = "Staged companies",
   description = "Copied companies, busiest first. Research publishes the ones it finds; not found stay in this list.",
   refreshKey = 0,
+  onResearch,
+  maxSelection = MAX_MIGRATION_SELECTION,
 }: TempCompaniesBrowserProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,6 +80,23 @@ export function TempCompaniesBrowser({
   const pageSize = pageSizeOption(searchParams.get("size"));
   const query = searchParams.get("q") ?? "";
   const hideNotFound = searchParams.get("hide") === "notFound";
+  const [selected, setSelected] = useState<string[]>([]);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const overLimit = selected.length > maxSelection;
+
+  async function researchSelected() {
+    if (!onResearch) return;
+    setNotice(null);
+    try {
+      setNotice(await onResearch(selected));
+      setSelected([]);
+    } catch (cause) {
+      setNotice({
+        status: "error",
+        title: cause instanceof Error ? cause.message : "Could not research the companies",
+      });
+    }
+  }
 
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), q: query });
   if (hideNotFound) params.set("hide", "notFound");
@@ -139,8 +166,38 @@ export function TempCompaniesBrowser({
 
   const total = result?.total ?? 0;
   return (
-    <SectionCard title={title} description={description}>
+    <SectionCard
+      title={title}
+      description={description}
+      action={
+        onResearch ? (
+          <Button
+            label={selected.length ? `Research ${formatCount(selected.length)}` : "Research"}
+            variant="primary"
+            clickAction={researchSelected}
+            isDisabled={selected.length === 0 || overLimit}
+          />
+        ) : undefined
+      }
+    >
       <Stack gap={5}>
+        {overLimit ? (
+          <Banner
+            status="warning"
+            title={`Select at most ${formatCount(maxSelection)} companies at a time.`}
+          />
+        ) : null}
+        {notice ? (
+          <Banner
+            status={notice.status}
+            title={notice.title}
+            endContent={
+              notice.status === "success" ? (
+                <Link href={ROUTES.companies}>View companies</Link>
+              ) : undefined
+            }
+          />
+        ) : null}
         {error ? <Banner status="error" title={error} /> : null}
         <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
           <HStack width={360}>
@@ -177,6 +234,9 @@ export function TempCompaniesBrowser({
           columns={columns}
           rows={result?.companies ?? []}
           rowKey={(company) => company.id}
+          selection={onResearch ? "multiple" : "none"}
+          selectedKeys={selected}
+          onSelectionChange={setSelected}
           loading={loading && !result}
           empty={
             <EmptyState

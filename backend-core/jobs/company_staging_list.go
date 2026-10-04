@@ -50,8 +50,10 @@ type StagedCompanyList struct {
 }
 
 type stagedCompanyDoc struct {
-	storedCompany `bson:",inline"`
-	Research      struct {
+	// Company is a named, exported field. Inlining the unexported storedCompany
+	// type makes the decoder skip the name, website, and job count.
+	Company  storedCompany `bson:",inline"`
+	Research struct {
 		At    *time.Time `bson:"at"`
 		Found *bool      `bson:"found"`
 	} `bson:"research"`
@@ -101,7 +103,7 @@ func (s *Store) ListStagedCompanies(ctx context.Context, query StagedCompanyQuer
 	}
 	for _, doc := range docs {
 		out.Companies = append(out.Companies, StagedCompany{
-			CompanySummary: doc.summary(),
+			CompanySummary: doc.Company.summary(),
 			Status:         stagedStatus(doc.Research.Found),
 			ResearchedAt:   doc.Research.At,
 		})

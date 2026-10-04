@@ -1,6 +1,8 @@
 import type { TempJob } from "@/lib/jobs";
 
 const LOCALE = "en";
+/** Go's zero time is year 1. Anything older than a real listing is missing. */
+const EARLIEST_SHOWN_YEAR = 1900;
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
@@ -8,7 +10,7 @@ const DAY = 24 * HOUR;
 export function formatDate(value: string | undefined): string {
   if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() < EARLIEST_SHOWN_YEAR) return "—";
   return new Intl.DateTimeFormat(LOCALE, {
     month: "short",
     day: "numeric",
@@ -19,7 +21,7 @@ export function formatDate(value: string | undefined): string {
 export function formatDateTime(value: string | undefined): string {
   if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() < EARLIEST_SHOWN_YEAR) return "—";
   return new Intl.DateTimeFormat(LOCALE, {
     month: "short",
     day: "numeric",
