@@ -1,0 +1,26 @@
+---
+paths:
+  - "{joined-backend,admin-backend,scoutwell-backend,backend-core}/**/*.go"
+---
+
+# Go
+
+Applies to `joined-backend`, `admin-backend`, `scoutwell-backend`, and `backend-core`.
+
+## Config
+
+Shared settings live in `backend-core/config`. Use `config.LoadDatabase`, `config.LoadHTTP`, `config.LoadOpenAI`, `config.Env`, and `config.EnvInt`. Handlers and domain code do not call `os.Getenv`.
+
+Secrets (`MONGO_URI`, API keys, tokens) come from the environment only. A URI, key, or password never appears in source.
+
+A default that one service owns (listen address, worker count) is a named constant next to that service's `main`, passed into `config.LoadHTTP` or `config.EnvInt`. A default shared by services lives in `backend-core/config`, beside the existing model ids and collection names.
+
+No raw host or port string in a handler. Collection names, model ids, and cookie names stay in `config`.
+
+## Shape
+
+- `context.Context` is the first parameter of functions that do I/O.
+- Wrap errors with context (`fmt.Errorf("load job: %w", err)`). Check every error.
+- Log with `log/slog`. Redact secrets with `config.Redact`.
+- HTTP handlers parse and respond. Domain logic stays in the package that owns it.
+- One type's behavior lives with that type. Each service uses `backend-core/config` and does not grow a second config package.

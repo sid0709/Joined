@@ -1,7 +1,6 @@
 ---
-description: Next.js App Router — split files, routing, small bundles, reuse
-globs: "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,joined-theme}/**/*.{ts,tsx,js,jsx}"
-alwaysApply: false
+paths:
+  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,joined-theme}/**/*.{ts,tsx,js,jsx}"
 ---
 
 # Next.js (App Router)
@@ -31,7 +30,9 @@ When the workspace is a Next.js app, follow current App Router practice. Read th
 ```tsx
 // ❌ whole page is a client component
 "use client";
-export default function Page() { /* fetch + form + layout */ }
+export default function Page() {
+  /* fetch + form + layout */
+}
 
 // ✅ server page, tiny client island
 export default function Page() {

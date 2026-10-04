@@ -1,7 +1,7 @@
 ---
-description: Reflect every design-system change in the Joined theme docs
-globs: "{packages/design-system,joined-theme}/**/*.{ts,tsx,css}"
-alwaysApply: false
+paths:
+  - "packages/design-system/**/*.{ts,tsx,css}"
+  - "joined-theme/**/*.{ts,tsx,css}"
 ---
 
 # Theme shows the design system
