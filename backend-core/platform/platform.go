@@ -30,8 +30,10 @@ type Platform struct {
 	Hiring   *employer.Store
 	Scouts   *scout.Store
 	Staff    *staff.Store
-	// AISettings holds the model settings staff save in the admin console.
+	// AISettings holds the OpenAI settings staff save for Acorn.
 	AISettings *aisettings.Store
+	// DeepSeekSettings holds the DeepSeek settings staff save for admin analysis.
+	DeepSeekSettings *aisettings.Store
 }
 
 // Options are the parts of the platform only some services configure.
@@ -77,7 +79,8 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		Scouts:   scouts,
 		Staff:    moderation,
 
-		AISettings: aisettings.NewStore(client, db.DestDB, box),
+		AISettings:       aisettings.NewStore(client, db.DestDB, box),
+		DeepSeekSettings: aisettings.NewStoreFor(client, db.DestDB, box, aisettings.DocumentDeepSeek),
 	}
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()

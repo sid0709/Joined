@@ -71,6 +71,12 @@ func TestBoxNeedsAValidKey(t *testing.T) {
 	}
 }
 
+func TestAcornAndDeepSeekUseDifferentDocuments(t *testing.T) {
+	if DocumentAcorn == "" || DocumentDeepSeek == "" || DocumentAcorn == DocumentDeepSeek {
+		t.Fatalf("documents = %q and %q", DocumentAcorn, DocumentDeepSeek)
+	}
+}
+
 func TestHintShowsOnlyTheTail(t *testing.T) {
 	if got := hint("sk-proj-abcdefghijWXYZ"); got != "…WXYZ" {
 		t.Errorf("hint = %q", got)

@@ -1,6 +1,6 @@
-// Package aisettings keeps the model settings staff change from the admin console:
-// the API key and model Acorn's AI routes use. The key is stored encrypted, so a
-// database dump alone does not reveal it, and is never sent back to the console.
+// Package aisettings keeps the model settings staff change from the admin console.
+// Each provider is its own document: the API key, stored encrypted, and the model.
+// A database dump alone does not reveal a key, and a key is never sent back to the console.
 package aisettings
 
 import (
@@ -16,8 +16,11 @@ import (
 
 const (
 	collectionName = "app_settings"
-	// acornID is the document holding Acorn's model settings.
-	acornID = "acorn-ai"
+	// DocumentAcorn is the document holding Acorn's OpenAI settings.
+	DocumentAcorn = "acorn-ai"
+	// DocumentDeepSeek is the document holding the DeepSeek settings job analysis,
+	// company research, and company autofill use.
+	DocumentDeepSeek = "deepseek"
 
 	maxKeyLength   = 400
 	maxModelLength = 80
@@ -31,12 +34,18 @@ var ErrInvalid = errors.New("invalid AI settings")
 type Store struct {
 	collection *mongo.Collection
 	box        *Box
+	id         string
 }
 
-// NewStore reads and writes settings in db. box seals the API key; without one,
+// NewStore reads and writes Acorn's settings in db. box seals the API key; without one,
 // settings can still be read but a key can be neither saved nor opened.
 func NewStore(client *mongo.Client, db string, box *Box) *Store {
-	return &Store{collection: client.Database(db).Collection(collectionName), box: box}
+	return NewStoreFor(client, db, box, DocumentAcorn)
+}
+
+// NewStoreFor reads and writes the document id in the shared settings collection.
+func NewStoreFor(client *mongo.Client, db string, box *Box, id string) *Store {
+	return &Store{collection: client.Database(db).Collection(collectionName), box: box, id: id}
 }
 
 type document struct {
@@ -47,7 +56,7 @@ type document struct {
 	UpdatedBy string    `bson:"updatedBy,omitempty"`
 }
 
-// Settings are Acorn's model settings with the API key opened.
+// Settings are one provider's model settings with the API key opened.
 type Settings struct {
 	APIKey string
 	Model  string
@@ -72,14 +81,14 @@ type Update struct {
 
 func (s *Store) load(ctx context.Context) (document, error) {
 	var doc document
-	err := s.collection.FindOne(ctx, bson.D{{Key: "_id", Value: acornID}}).Decode(&doc)
+	err := s.collection.FindOne(ctx, bson.D{{Key: "_id", Value: s.id}}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return document{}, nil
 	}
 	return doc, err
 }
 
-// Get returns Acorn's settings with the key opened. A key that cannot be opened is an error.
+// Get returns the saved settings with the key opened. A key that cannot be opened is an error.
 func (s *Store) Get(ctx context.Context) (Settings, error) {
 	doc, err := s.load(ctx)
 	if err != nil {
@@ -144,7 +153,7 @@ func (s *Store) Save(ctx context.Context, update Update, actor string, now time.
 	if len(unset) > 0 {
 		change = append(change, bson.E{Key: "$unset", Value: unset})
 	}
-	_, err := s.collection.UpdateOne(ctx, bson.D{{Key: "_id", Value: acornID}}, change, options.UpdateOne().SetUpsert(true))
+	_, err := s.collection.UpdateOne(ctx, bson.D{{Key: "_id", Value: s.id}}, change, options.UpdateOne().SetUpsert(true))
 	return err
 }
 

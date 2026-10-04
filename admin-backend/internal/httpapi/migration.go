@@ -19,7 +19,7 @@ const (
 	maxMigrationSelection = 1000
 	maxMigrationBody      = 64 << 10
 	// missingMigrationKey tells staff how to turn on the migration's AI steps.
-	missingMigrationKey = "Set DEEPSEEK_API_KEY in the admin API environment"
+	missingMigrationKey = "Save a DeepSeek API key under Settings → DeepSeek, or set DEEPSEEK_API_KEY"
 )
 
 // MigrationModel reads job posts and researches companies on the web. DeepSeek is it.

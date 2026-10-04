@@ -32,6 +32,8 @@ type Server struct {
 	staffAuth       StaffSignIn
 	acornAI         *aisettings.Store
 	acornAIEnv      config.OpenAI
+	deepSeek        *aisettings.Store
+	deepSeekEnv     config.DeepSeek
 	analyzeWorkers  int
 	researchWorkers int
 	adminToken      string
@@ -51,6 +53,12 @@ type Options struct {
 	// AcornAIEnv is the environment's OpenAI settings: the model Acorn uses until one
 	// is saved, and whether OPENAI_API_KEY already covers a missing saved key.
 	AcornAIEnv config.OpenAI
+	// DeepSeek holds the API key and model job analysis, company research, and
+	// company autofill use, set from the console.
+	DeepSeek *aisettings.Store
+	// DeepSeekEnv is the environment's DeepSeek settings: the model used until one
+	// is saved, and whether DEEPSEEK_API_KEY already covers a missing saved key.
+	DeepSeekEnv config.DeepSeek
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -66,6 +74,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		staffAuth:       opts.Staff,
 		acornAI:         opts.AcornAI,
 		acornAIEnv:      opts.AcornAIEnv,
+		deepSeek:        opts.DeepSeek,
+		deepSeekEnv:     opts.DeepSeekEnv,
 		adminToken:      opts.AdminToken,
 	}
 	api := http.NewServeMux()
@@ -90,6 +100,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
 	server.registerAcornAI(api)
+	server.registerDeepSeek(api)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", httpkit.Health(store))

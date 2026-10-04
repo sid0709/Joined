@@ -26,6 +26,7 @@ export const ROUTES = {
   jobMigration: "/migration/jobs",
   companyMigration: "/migration/companies",
   acornAI: "/settings/acorn-ai",
+  deepSeek: "/settings/deepseek",
 } as const;
 
 export type NavLink = {
@@ -84,7 +85,10 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
   },
   {
     title: "Settings",
-    links: [{ href: ROUTES.acornAI, label: "Acorn AI", icon: "settings" }],
+    links: [
+      { href: ROUTES.acornAI, label: "Acorn AI", icon: "settings" },
+      { href: ROUTES.deepSeek, label: "DeepSeek", icon: "sparkle" },
+    ],
   },
 ];
 
