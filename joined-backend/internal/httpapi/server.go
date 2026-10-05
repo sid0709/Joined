@@ -63,6 +63,10 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 			Scopes:      []string{google.ScopeCalendarEvents},
 			Granted:     server.attachCalendar,
 		},
+		// Email authentication with dev sender that logs messages
+		Email: &authapi.EmailAuth{
+			Sender: auth.DevEmailSender{},
+		},
 	}
 	mux := http.NewServeMux()
 	identity.Register(mux)
