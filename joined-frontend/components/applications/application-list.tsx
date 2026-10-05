@@ -2,6 +2,7 @@
 
 import { Avatar, Badge, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { STAGE_BY_ID, STAGES, STRONG_MATCH, type Application } from "@/lib/applications";
+import { reminderLabel } from "@/lib/application-reminders";
 import { relativeDay } from "@/lib/dates";
 
 const LOGO_SIZE = 32;
@@ -54,11 +55,13 @@ const COLUMNS: TableColumn<Application>[] = [
   },
   { key: "salary", header: "Pay" },
   {
-    key: "nextStep",
-    header: "Next step",
+    key: "remindAt",
+    header: "Follow-up",
+    sortable: true,
+    sortValue: (row) => row.remindAt?.getTime() ?? Number.POSITIVE_INFINITY,
     render: (row) => (
-      <Text type="supporting" color={row.nextStep ? "primary" : "secondary"}>
-        {row.nextStep ?? "—"}
+      <Text type="supporting" color={row.remindAt || row.nextStep ? "primary" : "secondary"}>
+        {row.remindAt ? reminderLabel(row.remindAt) : (row.nextStep ?? "—")}
       </Text>
     ),
   },

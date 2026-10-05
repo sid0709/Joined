@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Avatar,
   Badge,
@@ -16,15 +15,17 @@ import {
   Stack,
   Step,
   Stepper,
-  TextArea,
   Timeline,
-  type TimelineItem,
 } from "sid-ui";
+import type { ApplicationFollowUpPatch } from "@/components/applications/application-follow-up";
+import { ApplicationFollowUp } from "@/components/applications/application-follow-up";
 import {
+  PIPELINE_STAGES,
   SOURCE_LABEL,
   STAGE_BY_ID,
-  STAGES,
   STRONG_MATCH,
+  isSavedBoardItem,
+  stageSelectorOptions,
   type Application,
   type ApplicationStage,
 } from "@/lib/applications";
@@ -32,33 +33,31 @@ import { formatShortDate } from "@/lib/dates";
 import { ROUTES } from "@/lib/routes";
 
 const LOGO_SIZE = 40;
-const NOTE_ROWS = 4;
-/** The forward path shown in the stepper; Saved and Closed sit outside it. */
-const PIPELINE: ApplicationStage[] = ["applied", "screening", "interview", "offer"];
-const STAGE_OPTIONS = STAGES.map((stage) => ({ value: stage.id, label: stage.title }));
 
-/** Everything about one application, with its stage editable in place. */
+/** Everything about one application, with its stage, notes, and reminder editable. */
 export function ApplicationDrawer({
   application,
   onClose,
   onStageChange,
+  onFollowUp,
   onRemove,
 }: {
   application: Application | null;
   onClose: () => void;
   onStageChange: (id: string, stage: ApplicationStage) => void;
+  onFollowUp: (id: string, patch: ApplicationFollowUpPatch) => void;
   onRemove: (id: string) => void;
 }) {
-  const [notes, setNotes] = useState<Record<string, string>>({});
   if (!application) return null;
 
+  const saved = isSavedBoardItem(application);
   const stage = STAGE_BY_ID[application.columnId];
-  const step = PIPELINE.indexOf(application.columnId);
-  const activity: TimelineItem[] = application.activity.map((event, index) => ({
+  const step = PIPELINE_STAGES.indexOf(application.columnId);
+  const activity = application.activity.map((event, index) => ({
     id: event.id,
     title: event.label,
     time: formatShortDate(event.date),
-    status: index === 0 ? "current" : "done",
+    status: index === 0 ? ("current" as const) : ("done" as const),
   }));
 
   return (
@@ -73,18 +72,28 @@ export function ApplicationDrawer({
       headerActions={
         <MoreMenu
           label="More actions"
-          items={[
-            {
-              label: "Withdraw application",
-              onClick: () => onStageChange(application.id, "closed"),
-            },
-            { type: "divider" },
-            {
-              label: "Remove from tracker",
-              variant: "destructive",
-              onClick: () => onRemove(application.id),
-            },
-          ]}
+          items={
+            saved
+              ? [
+                  {
+                    label: "Remove from saved",
+                    variant: "destructive",
+                    onClick: () => onRemove(application.id),
+                  },
+                ]
+              : [
+                  {
+                    label: "Withdraw application",
+                    onClick: () => onStageChange(application.id, "closed"),
+                  },
+                  { type: "divider" },
+                  {
+                    label: "Remove from tracker",
+                    variant: "destructive",
+                    onClick: () => onRemove(application.id),
+                  },
+                ]
+          }
         />
       }
       footer={
@@ -110,24 +119,34 @@ export function ApplicationDrawer({
           <Badge label={SOURCE_LABEL[application.source]} variant="neutral" />
         </HStack>
 
+        {saved ? (
+          <Banner
+            status="info"
+            title="Saved job"
+            description="Same as Save on the job board. Move this card to Applied when you send it."
+          />
+        ) : null}
+
         {application.nextStep ? (
           <Banner status="info" title="Next step" description={application.nextStep} />
         ) : null}
 
-        <Stepper activeStep={Math.max(step, 0)} label="Application progress" density="compact">
-          {PIPELINE.map((id, index) => (
-            <Step
-              key={id}
-              step={index}
-              label={STAGE_BY_ID[id].title}
-              status={application.columnId === "closed" && index > step ? "error" : undefined}
-            />
-          ))}
-        </Stepper>
+        {saved ? null : (
+          <Stepper activeStep={Math.max(step, 0)} label="Application progress" density="compact">
+            {PIPELINE_STAGES.map((id, index) => (
+              <Step
+                key={id}
+                step={index}
+                label={STAGE_BY_ID[id].title}
+                status={application.columnId === "closed" && index > step ? "error" : undefined}
+              />
+            ))}
+          </Stepper>
+        )}
 
         <Selector
           label="Stage"
-          options={STAGE_OPTIONS}
+          options={stageSelectorOptions(application)}
           value={application.columnId}
           onChange={(value) => onStageChange(application.id, value as ApplicationStage)}
         />
@@ -146,13 +165,9 @@ export function ApplicationDrawer({
           <Timeline label="Activity" items={activity} variant="compact" />
         </Stack>
 
-        <TextArea
-          label="Private notes"
-          description="Only you can see these."
-          value={notes[application.id] ?? ""}
-          onChange={(value) => setNotes((current) => ({ ...current, [application.id]: value }))}
-          rows={NOTE_ROWS}
-          placeholder="Who you spoke with, what they asked, what to follow up on…"
+        <ApplicationFollowUp
+          application={application}
+          onSave={(patch) => onFollowUp(application.id, patch)}
         />
       </Stack>
     </Drawer>

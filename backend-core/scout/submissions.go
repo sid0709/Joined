@@ -694,6 +694,9 @@ func (s *Store) metrics(ctx context.Context, userID, level string) (Metrics, err
 
 // metricRows loads the few fields level math and usage totals need.
 func (s *Store) metricRows(ctx context.Context, userID string) ([]metricRow, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.metricRows(userID), nil
+	}
 	cursor, err := s.collection(submissionsCollection).Find(ctx, bson.D{{Key: "scoutUserId", Value: userID}},
 		options.Find().SetProjection(bson.D{
 			{Key: "status", Value: 1},

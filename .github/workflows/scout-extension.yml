@@ -2,12 +2,12 @@ name: Scout Extension CI
 
 on:
   pull_request:
-    branches: [stage-roadmap]
+    branches: [stage-roadmap, stage-roadmap-w34]
     paths:
       - "scout-extension/**"
       - ".github/workflows/scout-extension.yml"
   push:
-    branches: [stage-roadmap]
+    branches: [stage-roadmap, stage-roadmap-w34]
     paths:
       - "scout-extension/**"
       - ".github/workflows/scout-extension.yml"
