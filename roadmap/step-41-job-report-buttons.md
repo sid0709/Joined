@@ -1,7 +1,7 @@
 # Step 41: Job report buttons
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Leo (web frontends lane: `joined-frontend/**`, `scoutwell-frontend/**`, `admin-frontend/**`, `connected-frontend/**`, `packages/google-signin/**`; UI from the external catalog package `sid-ui` — in-repo `packages/design-system` and `joined-theme` are gone after #115)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(joined-frontend): job report buttons and reasons (roadmap step-41)` (every commit must be lowercase `type(scope): subject` or commitlint fails CI)

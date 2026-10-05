@@ -161,6 +161,15 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	// Google's OAuth redirect has no Authorization header; it authenticates via state.
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
 	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
+	// Seekers file job reports here. Other methods stay 404 so the staff list is not implied.
+	fileReport := authapi.RequireRole(sessions, []string{auth.RoleCandidate}, http.HandlerFunc(server.postJobReport))
+	mux.HandleFunc("/v1/reports", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		fileReport.ServeHTTP(w, r)
+	})
 	if opts.BillingWebhook != nil {
 		opts.BillingWebhook.UseService(opts.Billing)
 		mux.Handle("POST "+billing.WebhookPath, opts.BillingWebhook)
