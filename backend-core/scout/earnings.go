@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -110,6 +111,24 @@ func (s *Store) Balance(ctx context.Context, userID string) (Balance, error) {
 	return ComputeBalance(all), nil
 }
 
+func (s *Store) allEarnings(ctx context.Context, filter bson.D) ([]Earning, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.listEarnings(filter), nil
+	}
+	cursor, err := s.collection(earningsCollection).Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	earnings := []Earning{}
+	if err := cursor.All(ctx, &earnings); err != nil {
+		return nil, err
+	}
+	for i := range earnings {
+		earnings[i].fill()
+	}
+	return earnings, nil
+}
+
 // ListPayouts pages a scout's payouts newest first.
 func (s *Store) ListPayouts(ctx context.Context, userID string, cursorValue string, limit int) (List[Payout], error) {
 	if mem, ok := s.docs.(*memDocs); ok {
@@ -156,6 +175,13 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 	if err != nil {
 		return Payout{}, err
 	}
+	paid, err := s.hasPaidPayout(ctx, userID)
+	if err != nil {
+		return Payout{}, err
+	}
+	if err := wrapPayoutIdentity(FirstPayoutIdentityError(profile, paid)); err != nil {
+		return Payout{}, err
+	}
 	var total int64
 	ids := make([]bson.ObjectID, 0, len(released))
 	hexes := make([]string, 0, len(released))
@@ -164,7 +190,7 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 		ids = append(ids, earning.ObjectID)
 		hexes = append(hexes, earning.ID)
 	}
-	if readiness := CheckPayout(profile, total); !readiness.Ready {
+	if readiness := CheckPayout(profile, total, paid); !readiness.Ready {
 		return Payout{}, fmt.Errorf("%w: %s", ErrPayoutBlocked, readiness.Blockers[0])
 	}
 	now := s.now().UTC()
@@ -210,4 +236,69 @@ func (s *Store) payout(ctx context.Context, id string) (Payout, error) {
 
 func formatMoney(m Money) string {
 	return fmt.Sprintf("$%d.%02d", m.AmountCents/100, m.AmountCents%100)
+}
+
+func (s *Store) hasPaidPayout(ctx context.Context, userID string) (bool, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.hasPaidPayout(userID), nil
+	}
+	n, err := s.collection(payoutsCollection).CountDocuments(ctx, bson.D{
+		{Key: "scoutUserId", Value: userID},
+		{Key: "status", Value: PayoutPaid},
+	})
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
+func (s *Store) insertPayout(ctx context.Context, payout Payout) error {
+	if mem, ok := s.docs.(*memDocs); ok {
+		mem.insertPayout(payout)
+		return nil
+	}
+	_, err := s.collection(payoutsCollection).InsertOne(ctx, payout)
+	return err
+}
+
+func (s *Store) markEarningsProcessing(ctx context.Context, ids []bson.ObjectID, payoutID string) error {
+	if mem, ok := s.docs.(*memDocs); ok {
+		mem.markEarningsProcessing(ids, payoutID)
+		return nil
+	}
+	_, err := s.collection(earningsCollection).UpdateMany(ctx,
+		bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}, {Key: "status", Value: EarningReleased}},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: EarningProcessing}, {Key: "payoutId", Value: payoutID}}}},
+	)
+	return err
+}
+
+func (s *Store) settlePayoutEarnings(ctx context.Context, payoutID string, now time.Time, paid bool) error {
+	if mem, ok := s.docs.(*memDocs); ok {
+		mem.settlePayoutEarnings(payoutID, now, paid)
+		return nil
+	}
+	filter := bson.D{{Key: "payoutId", Value: payoutID}, {Key: "status", Value: EarningProcessing}}
+	if paid {
+		_, err := s.collection(earningsCollection).UpdateMany(ctx, filter,
+			bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: EarningPaid}, {Key: "paidAt", Value: now}}}})
+		return err
+	}
+	_, err := s.collection(earningsCollection).UpdateMany(ctx, filter, bson.D{
+		{Key: "$set", Value: bson.D{{Key: "status", Value: EarningReleased}}},
+		{Key: "$unset", Value: bson.D{{Key: "payoutId", Value: ""}}},
+	})
+	return err
+}
+
+func (s *Store) finishPayout(ctx context.Context, payout Payout, status, note string, now time.Time) error {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.finishPayout(payout.ID, status, note, now)
+	}
+	_, err := s.collection(payoutsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: payout.ObjectID}}, bson.D{{Key: "$set", Value: bson.D{
+		{Key: "status", Value: status},
+		{Key: "note", Value: note},
+		{Key: "decidedAt", Value: now},
+	}}})
+	return err
 }

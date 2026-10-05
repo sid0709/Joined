@@ -75,6 +75,7 @@ type memDocs struct {
 	notifications []Notification
 	earnings      []Earning
 	payouts       []Payout
+	audit         []AuditEntry
 }
 
 func newMemDocs() *memDocs {
@@ -85,6 +86,7 @@ func newMemDocs() *memDocs {
 		notifications: []Notification{},
 		earnings:      []Earning{},
 		payouts:       []Payout{},
+		audit:         []AuditEntry{},
 	}
 }
 
@@ -335,4 +337,279 @@ func MemorySubmissionCount(s *Store) int {
 		return mem.submissionCount()
 	}
 	return 0
+}
+
+func (m *memDocs) applyProfile(userID string, apply func(*Profile)) (Profile, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	profile, ok := m.profiles[userID]
+	if !ok {
+		return Profile{}, ErrNotFound
+	}
+	apply(&profile)
+	m.profiles[userID] = profile
+	return profile, nil
+}
+
+func (m *memDocs) releaseDue(now time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.earnings {
+		if m.earnings[i].Status == EarningHeld && !m.earnings[i].HoldUntil.After(now) {
+			m.earnings[i].Status = EarningReleased
+			released := now
+			m.earnings[i].ReleasedAt = &released
+		}
+	}
+}
+
+func earningFilterValue(filter bson.D, key string) string {
+	for _, field := range filter {
+		if field.Key == key {
+			value, _ := field.Value.(string)
+			return value
+		}
+	}
+	return ""
+}
+
+func (m *memDocs) listEarnings(filter bson.D) []Earning {
+	userID := earningFilterValue(filter, "scoutUserId")
+	status := earningFilterValue(filter, "status")
+	submissionID := earningFilterValue(filter, "submissionId")
+	payoutID := earningFilterValue(filter, "payoutId")
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []Earning{}
+	for _, earning := range m.earnings {
+		if userID != "" && earning.ScoutUserID != userID {
+			continue
+		}
+		if status != "" && earning.Status != status {
+			continue
+		}
+		if submissionID != "" && earning.SubmissionID != submissionID {
+			continue
+		}
+		if payoutID != "" && earning.PayoutID != payoutID {
+			continue
+		}
+		copied := earning
+		copied.fill()
+		out = append(out, copied)
+	}
+	return out
+}
+
+func (m *memDocs) insertEarning(earning Earning) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.earnings = append(m.earnings, earning)
+}
+
+func (m *memDocs) insertPayout(payout Payout) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.payouts = append(m.payouts, payout)
+}
+
+func (m *memDocs) hasPaidPayout(userID string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, payout := range m.payouts {
+		if payout.ScoutUserID == userID && payout.Status == PayoutPaid {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *memDocs) markEarningsProcessing(ids []bson.ObjectID, payoutID string) {
+	want := map[bson.ObjectID]struct{}{}
+	for _, id := range ids {
+		want[id] = struct{}{}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.earnings {
+		if _, ok := want[m.earnings[i].ObjectID]; !ok {
+			continue
+		}
+		if m.earnings[i].Status != EarningReleased {
+			continue
+		}
+		m.earnings[i].Status = EarningProcessing
+		m.earnings[i].PayoutID = payoutID
+	}
+}
+
+func (m *memDocs) payout(id string) (Payout, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, payout := range m.payouts {
+		if payout.ObjectID.Hex() == id {
+			copied := payout
+			copied.fill()
+			return copied, nil
+		}
+	}
+	return Payout{}, ErrNotFound
+}
+
+func (m *memDocs) listPayouts(userID, cursorValue string, limit int) (List[Payout], error) {
+	if _, err := cursorFilter(bson.D{}, cursorValue); err != nil {
+		return List[Payout]{}, err
+	}
+	limit = listLimit(limit)
+	m.mu.Lock()
+	owned := []Payout{}
+	for i := len(m.payouts) - 1; i >= 0; i-- {
+		if m.payouts[i].ScoutUserID == userID {
+			copied := m.payouts[i]
+			copied.fill()
+			owned = append(owned, copied)
+		}
+	}
+	m.mu.Unlock()
+	if cursorValue != "" {
+		cut := -1
+		for i, payout := range owned {
+			if payout.ID == cursorValue {
+				cut = i
+				break
+			}
+		}
+		if cut >= 0 {
+			owned = owned[cut+1:]
+		}
+	}
+	next := ""
+	if len(owned) > limit {
+		owned = owned[:limit]
+		next = owned[len(owned)-1].ID
+	}
+	return List[Payout]{Data: owned, NextCursor: next}, nil
+}
+
+func (m *memDocs) settlePayoutEarnings(payoutID string, now time.Time, paid bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.earnings {
+		if m.earnings[i].PayoutID != payoutID || m.earnings[i].Status != EarningProcessing {
+			continue
+		}
+		if paid {
+			m.earnings[i].Status = EarningPaid
+			paidAt := now
+			m.earnings[i].PaidAt = &paidAt
+			continue
+		}
+		m.earnings[i].Status = EarningReleased
+		m.earnings[i].PayoutID = ""
+	}
+}
+
+func (m *memDocs) finishPayout(id, status, note string, now time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.payouts {
+		if m.payouts[i].ObjectID.Hex() != id {
+			continue
+		}
+		m.payouts[i].Status = status
+		m.payouts[i].Note = note
+		decided := now
+		m.payouts[i].DecidedAt = &decided
+		return nil
+	}
+	return ErrNotFound
+}
+
+func (m *memDocs) metricRows(userID string) []metricRow {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	rows := []metricRow{}
+	for _, sub := range m.submissions {
+		if sub.ScoutUserID != userID {
+			continue
+		}
+		rows = append(rows, metricRow{Status: sub.Status, Expired: sub.Expired, Interviews: sub.Interviews, SubmittedAt: sub.SubmittedAt, JobID: sub.JobID})
+	}
+	return rows
+}
+
+func (m *memDocs) findSubmissions(filter bson.D, limit int64) []Submission {
+	userID := earningFilterValue(filter, "scoutUserId")
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []Submission{}
+	for i := len(m.submissions) - 1; i >= 0; i-- {
+		sub := m.submissions[i]
+		if userID != "" && sub.ScoutUserID != userID {
+			continue
+		}
+		copied := sub
+		copied.fill()
+		out = append(out, copied)
+		if limit > 0 && int64(len(out)) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+func (m *memDocs) addAudit(entry AuditEntry) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.audit = append(m.audit, entry)
+}
+
+func (m *memDocs) auditTrail(subjectID string) []AuditEntry {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []AuditEntry{}
+	for i := len(m.audit) - 1; i >= 0; i-- {
+		if m.audit[i].SubjectID == subjectID {
+			out = append(out, m.audit[i])
+		}
+	}
+	return out
+}
+
+// MemoryAddReleasedEarning credits released balance for payout tests.
+func MemoryAddReleasedEarning(s *Store, userID string, amountCents int64) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		now := s.now().UTC()
+		earning := Earning{
+			ObjectID:    bson.NewObjectID(),
+			ScoutUserID: userID,
+			Type:        RewardApproval,
+			Amount:      cents(amountCents),
+			Status:      EarningReleased,
+			Description: "test",
+			HoldUntil:   now,
+			CreatedAt:   now,
+			ReleasedAt:  &now,
+		}
+		earning.fill()
+		mem.insertEarning(earning)
+	}
+}
+
+// MemoryAddPaidPayout records a prior paid payout so the first-payout gate is skipped.
+func MemoryAddPaidPayout(s *Store, userID string) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		now := s.now().UTC()
+		payout := Payout{
+			ObjectID:    bson.NewObjectID(),
+			ScoutUserID: userID,
+			Amount:      cents(MinPayoutCents),
+			Method:      PayoutMethod{Type: payoutBank, Label: "Bank", Last4: "1234"},
+			Status:      PayoutPaid,
+			RequestedAt: now,
+			DecidedAt:   &now,
+		}
+		payout.fill()
+		mem.insertPayout(payout)
+	}
 }

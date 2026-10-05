@@ -263,6 +263,9 @@ type Profile struct {
 	VerificationNote   string        `json:"verification_note,omitempty" bson:"verificationNote,omitempty"`
 	LegalName          string        `json:"legal_name,omitempty" bson:"legalName,omitempty"`
 	Country            string        `json:"country,omitempty" bson:"country,omitempty"`
+	DateOfBirth        string        `json:"date_of_birth,omitempty" bson:"dateOfBirth,omitempty"`
+	DocumentRef        string        `json:"document_ref,omitempty" bson:"documentRef,omitempty"`
+	VerifiedBy         string        `json:"verified_by,omitempty" bson:"verifiedBy,omitempty"`
 	TaxInfo            *TaxInfo      `json:"tax_info" bson:"taxInfo,omitempty"`
 	PayoutMethod       *PayoutMethod `json:"payout_method" bson:"payoutMethod,omitempty"`
 	NotifyDecisions    bool          `json:"notify_decisions" bson:"notifyDecisions"`

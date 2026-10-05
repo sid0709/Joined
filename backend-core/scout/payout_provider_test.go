@@ -118,6 +118,24 @@ func TestPayoutRejectRestoresBalanceWithoutSend(t *testing.T) {
 	}
 }
 
+func TestStaffApproveUnverifiedFirstPayoutDoesNotSend(t *testing.T) {
+	store, fake := payoutReadyStore(t)
+	payout := requestReadyPayout(t, store)
+	mem := store.docs.(*memDocs)
+	if _, err := mem.applyProfile("scout-1", func(p *Profile) {
+		p.Verification = VerificationNone
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := store.DecidePayout(contextBG(), payout.ID, "staff-1", PayoutDecision{Decision: PayoutDecisionApprove})
+	if !errors.Is(err, ErrIdentityUnverified) || !errors.Is(err, ErrPayoutBlocked) {
+		t.Fatalf("err = %v, want identity_unverified", err)
+	}
+	if fake.SendCount() != 0 {
+		t.Fatalf("sends = %d, want 0", fake.SendCount())
+	}
+}
+
 func TestSavePayoutMethodStoresRecipientNotBankNumber(t *testing.T) {
 	store, _ := payoutReadyStore(t)
 	_, err := store.SavePayoutMethod(contextBG(), "scout-1", PayoutMethodInput{
@@ -202,15 +220,19 @@ func payoutReadyStore(t *testing.T) (*Store, *FakeProvider) {
 	now := store.now().UTC()
 	MemoryPatchProfile(store, "scout-1", func(profile *Profile) {
 		profile.Verification = VerificationVerified
+		profile.LegalName = "Ada Scout"
+		profile.Country = "US"
+		profile.DateOfBirth = "1991-04-15"
 		profile.TaxInfo = &TaxInfo{LegalName: "Ada Scout", Country: "US", TaxIDLast4: "1234", CompletedAt: now}
 	})
 	_, err := store.SavePayoutMethod(contextBG(), "scout-1", PayoutMethodInput{
-		Type:     payoutPayPal,
-		Label:    "PayPal",
-		Last4:    "mail",
-		Country:  "US",
-		Currency: Currency,
-		Email:    "ada@example.com",
+		Type:       payoutPayPal,
+		Label:      "PayPal",
+		Last4:      "mail",
+		HolderName: "Ada Scout",
+		Country:    "US",
+		Currency:   Currency,
+		Email:      "ada@example.com",
 	})
 	if err != nil {
 		t.Fatal(err)

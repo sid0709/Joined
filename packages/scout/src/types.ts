@@ -125,6 +125,33 @@ export type PayoutMethod = {
   updated_at: string;
 };
 
+export type IdentityInput = {
+  legal_name: string;
+  country: string;
+  date_of_birth: string;
+  document_ref?: string;
+};
+
+export type Identity = {
+  status: Verification;
+  legal_name?: string;
+  country?: string;
+  date_of_birth?: string;
+  document_ref?: string;
+  payout_holder_name?: string;
+  name_matches: boolean;
+  first_payout_gated: boolean;
+  note?: string;
+  verified_by?: string;
+  updated_at?: string;
+};
+
+/** Stable problem `code` values for the first-payout identity gate. */
+export const IDENTITY_UNVERIFIED = "identity_unverified";
+export const IDENTITY_REJECTED = "identity_rejected";
+export const IDENTITY_INCOMPLETE = "identity_incomplete";
+export const IDENTITY_NAME_MISMATCH = "identity_name_mismatch";
+
 export type Profile = {
   user_id: string;
   name: string;
@@ -136,6 +163,9 @@ export type Profile = {
   verification_note?: string;
   legal_name?: string;
   country?: string;
+  date_of_birth?: string;
+  document_ref?: string;
+  verified_by?: string;
   tax_info: TaxInfo | null;
   payout_method: PayoutMethod | null;
   notify_decisions: boolean;

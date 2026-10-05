@@ -317,6 +317,9 @@ func (s *Store) relatedSubmissions(ctx context.Context, sub Submission) ([]Submi
 }
 
 func (s *Store) findSubmissions(ctx context.Context, filter bson.D, limit int64) ([]Submission, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.findSubmissions(filter, limit), nil
+	}
 	cursor, err := s.collection(submissionsCollection).Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "_id", Value: -1}}).SetLimit(limit))
 	if err != nil {
@@ -333,6 +336,9 @@ func (s *Store) findSubmissions(ctx context.Context, filter bson.D, limit int64)
 }
 
 func (s *Store) auditTrail(ctx context.Context, subjectID string) ([]AuditEntry, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.auditTrail(subjectID), nil
+	}
 	cursor, err := s.collection(auditCollection).Find(ctx, bson.D{{Key: "subjectId", Value: subjectID}},
 		options.Find().SetSort(bson.D{{Key: "at", Value: -1}}).SetLimit(auditTrailLimit))
 	if err != nil {
@@ -837,17 +843,49 @@ func (s *Store) UpdateScout(ctx context.Context, userID, actor string, patch Sco
 		if profile.Verification != VerificationPending {
 			return AdminScoutDetail{}, ErrAlreadyDecided
 		}
+		if decision == VerificationVerified {
+			if err := staffCanVerify(profile); err != nil {
+				return AdminScoutDetail{}, err
+			}
+		}
 		set = append(set,
 			bson.E{Key: "verification", Value: decision},
 			bson.E{Key: "verificationNote", Value: strings.TrimSpace(patch.Note)},
 			bson.E{Key: "verificationUpdatedAt", Value: now},
 		)
+		if decision == VerificationVerified {
+			set = append(set, bson.E{Key: "verifiedBy", Value: actor})
+		} else {
+			set = append(set, bson.E{Key: "verifiedBy", Value: ""})
+		}
 		actions = append(actions, "scout.verification."+decision)
 	}
 	if len(actions) == 0 {
 		return AdminScoutDetail{}, &ValidationError{Fields: []FieldError{{Field: "patch", Detail: "nothing to change"}}}
 	}
-	if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
+	if mem, ok := s.docs.(*memDocs); ok {
+		if _, err := mem.applyProfile(userID, func(p *Profile) {
+			if patch.Level != nil {
+				p.Level = *patch.Level
+				p.LevelPinned = true
+			} else if patch.LevelPinned != nil {
+				p.LevelPinned = *patch.LevelPinned
+			}
+			if patch.Verification != nil {
+				p.Verification = *patch.Verification
+				p.VerificationNote = strings.TrimSpace(patch.Note)
+				p.VerificationUpdate = &now
+				if *patch.Verification == VerificationVerified {
+					p.VerifiedBy = actor
+				} else {
+					p.VerifiedBy = ""
+				}
+			}
+			p.UpdatedAt = now
+		}); err != nil {
+			return AdminScoutDetail{}, err
+		}
+	} else if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
 		return AdminScoutDetail{}, err
 	}
 	for _, action := range actions {
@@ -934,7 +972,19 @@ func (s *Store) DecidePayout(ctx context.Context, id, actor string, input Payout
 	note := strings.TrimSpace(input.Note)
 	switch input.Decision {
 	case PayoutDecisionPaid, PayoutDecisionApprove:
-		// First-payout identity (step-46) belongs here, before the provider send.
+		if payout.Status == PayoutRequested {
+			profile, err := s.EnsureProfile(ctx, payout.ScoutUserID)
+			if err != nil {
+				return Payout{}, err
+			}
+			paid, err := s.hasPaidPayout(ctx, payout.ScoutUserID)
+			if err != nil {
+				return Payout{}, err
+			}
+			if err := wrapPayoutIdentity(FirstPayoutIdentityError(profile, paid)); err != nil {
+				return Payout{}, err
+			}
+		}
 		return s.approvePayout(ctx, payout, actor, note)
 	case PayoutDecisionReject:
 		if payout.Status != PayoutRequested && payout.Status != PayoutApproved {
