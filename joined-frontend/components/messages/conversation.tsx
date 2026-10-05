@@ -6,7 +6,7 @@ import {
   LayoutContent,
   LayoutHeader,
   Stack,
-} from "@joined/design-system";
+} from "sid-ui";
 import { BRAND } from "@/lib/routes";
 import { ConversationHeader } from "./conversation-header";
 import { MessageRuns } from "./message-runs";

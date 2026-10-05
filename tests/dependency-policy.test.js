@@ -24,9 +24,12 @@ describe("this repo", () => {
 
   it("keeps the catalog on exact versions", async () => {
     const { rootManifest } = await loadRepo(repoRoot);
-    const ranged = Object.entries(rootManifest.workspaces.catalog).filter(
-      ([, version]) => !/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version),
-    );
+    const ranged = Object.entries(rootManifest.workspaces.catalog).filter(([, version]) => {
+      if (/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(version)) return false;
+      // sid-ui is pinned to a git commit until `bun publish` replaces this with 0.1.0.
+      if (/^github:sid0709\/sid-ui#[0-9a-f]{40}$/.test(version)) return false;
+      return true;
+    });
     expect(ranged).toEqual([]);
   });
 });
@@ -42,7 +45,7 @@ function fixture({ app = {}, overrides, catalog = { next: "16.3.6" } } = {}) {
 describe("manifest rules catch the mistakes contributors make", () => {
   it("accepts catalog: and workspace:*", () => {
     const repo = fixture({
-      app: { dependencies: { next: "catalog:", "@joined/design-system": "workspace:*" } },
+      app: { dependencies: { next: "catalog:", "@joined/job-schema": "workspace:*" } },
     });
     expect(manifestViolations(repo)).toEqual([]);
   });

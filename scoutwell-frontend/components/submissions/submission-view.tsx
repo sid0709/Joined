@@ -20,7 +20,7 @@ import {
   PageHeader,
   SectionCard,
   StatGrid,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   EMPLOYMENT_LABEL,
   REWARD_TYPE,

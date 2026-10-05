@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { JoinedProvider } from "@joined/design-system/theme";
+import { JoinedProvider } from "sid-ui/theme";
 import SidebarApp from "./SidebarApp";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { AcornNoticeHost } from "./AcornNoticeHost";

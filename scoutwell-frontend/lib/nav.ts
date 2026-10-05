@@ -1,4 +1,4 @@
-import type { PillNavItem } from "@joined/design-system";
+import type { PillNavItem } from "sid-ui";
 import {
   ACCOUNT_PAGE,
   DASHBOARD_PAGE,

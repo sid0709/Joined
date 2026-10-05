@@ -13,7 +13,7 @@ import {
   Stack,
   TextInput,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { INBOX_FILTERS, type InboxFilter } from "@/lib/messages";
 import { ThreadRow } from "./thread-row";
 import type { InboxState } from "./use-inbox";

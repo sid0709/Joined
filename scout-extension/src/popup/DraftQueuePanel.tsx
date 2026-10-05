@@ -1,4 +1,4 @@
-import { Banner, Button, Heading, Stack, Text } from "@joined/design-system";
+import { Banner, Button, Heading, Stack, Text } from "sid-ui";
 
 import type { CapturedJob } from "../capture";
 import { submittableDrafts, type JobDraft } from "../drafts";

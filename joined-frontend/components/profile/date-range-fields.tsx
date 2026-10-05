@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckboxInput, Grid, NumberInput, Selector, Stack } from "@joined/design-system";
+import { CheckboxInput, Grid, NumberInput, Selector, Stack } from "sid-ui";
 import { MAX_YEAR, MIN_YEAR, MONTH_OPTIONS } from "@/lib/profile-options";
 import type { DateRange } from "@/lib/profile";
 

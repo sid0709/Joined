@@ -1,6 +1,6 @@
 "use client";
 
-import { DateInput, NumberInput, type DateInputProps } from "@joined/design-system";
+import { DateInput, NumberInput, type DateInputProps } from "sid-ui";
 
 type IsoDate = NonNullable<DateInputProps["value"]>;
 

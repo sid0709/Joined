@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Stack } from "@joined/design-system";
+import { Stack } from "sid-ui";
 import { AccountWorkspace } from "@/components/company/account/account-workspace";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";

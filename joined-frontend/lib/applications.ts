@@ -1,4 +1,4 @@
-import type { BadgeVariant, KanbanColumn } from "@joined/design-system";
+import type { BadgeVariant, KanbanColumn } from "sid-ui";
 import { reminderStatus } from "@/lib/application-reminders";
 import { parseJSONDate } from "@/lib/me/dates";
 

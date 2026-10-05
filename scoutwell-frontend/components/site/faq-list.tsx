@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Collapsible, CollapsibleGroup, Text } from "@joined/design-system";
+import { Card, Collapsible, CollapsibleGroup, Text } from "sid-ui";
 import type { FaqItem } from "@/lib/site-copy";
 
 /** Expandable answers. Interactive, so this file stays a client island. */

@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { StatGrid } from "@/components/stat-card";
 import {
   fetchApplicantScorecards,

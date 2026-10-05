@@ -1,13 +1,4 @@
-import {
-  Badge,
-  Button,
-  Divider,
-  EmptyState,
-  Glyph,
-  HStack,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Badge, Button, Divider, EmptyState, Glyph, HStack, Stack, Text } from "sid-ui";
 import { DateBadge } from "@/components/date-badge";
 import { SectionCard } from "@/components/section-card";
 import { INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";

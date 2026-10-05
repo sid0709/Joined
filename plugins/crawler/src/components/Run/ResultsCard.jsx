@@ -10,7 +10,7 @@ import {
   Spinner,
   Text,
   VStack,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { JOB_STATUS, outcomeSegments } from "./runState";
 

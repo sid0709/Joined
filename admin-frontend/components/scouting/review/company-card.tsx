@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Badge,
-  Card,
-  Heading,
-  HStack,
-  Link,
-  Section,
-  Skeleton,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Badge, Card, Heading, HStack, Link, Section, Skeleton, Stack, Text } from "sid-ui";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { COMPANIES_PATH, companyLogoSrc, type AdminCompany } from "@/lib/company";
 import { ROUTES } from "@/lib/nav";

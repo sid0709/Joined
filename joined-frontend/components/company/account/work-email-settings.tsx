@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, HStack, TextInput } from "@joined/design-system";
+import { Badge, HStack, TextInput } from "sid-ui";
 import type { AuthSession } from "@/lib/auth/types";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";

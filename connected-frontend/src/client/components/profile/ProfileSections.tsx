@@ -1,6 +1,6 @@
 "use client";
 
-import { Switch } from "@joined/design-system";
+import { Switch } from "sid-ui";
 
 import type { ProfileForm } from "@/src/client/components/profile/useProfileForm";
 import type {

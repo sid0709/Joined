@@ -1,6 +1,6 @@
 ---
 paths:
-  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,joined-theme}/**/*.{ts,tsx,js,jsx}"
+  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,acorn-frontend}/**/*.{ts,tsx,js,jsx}"
 ---
 
 # Next.js (App Router)
@@ -11,7 +11,7 @@ When the workspace is a Next.js app, follow current App Router practice. Read th
 
 - Keep `page.tsx` / `layout.tsx` thin: compose, don't dump UI and data logic in the route file.
 - Split by concern: `components/`, `lib/`, `hooks/`, route-local `_components` only when not reused.
-- Extract anything reused across routes into shared components. Interactive UI comes from `@joined/design-system` (see the design-system rule). App-only composition lives in `components/`.
+- Extract anything reused across routes into shared components. Interactive UI comes from `sid-ui` (see the design-system rule). App-only composition lives in `components/`.
 - One component per file when it has its own state, data, or styles. Don't grow a 400-line page.
 
 ## Routing

@@ -11,7 +11,7 @@ import {
   Stack,
   Text,
   SectionCard,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ApiError, type JobMatch, type MatchCompare, type Submission } from "@joined/scout";
 import { useEffect, useState } from "react";
 

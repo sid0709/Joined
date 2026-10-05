@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit --incremental false -p tsconfig.json"
   },
   "dependencies": {
-    "@joined/design-system": "workspace:*",
+    "sid-ui": "catalog:",
     "@joined/job-schema": "workspace:*"
   },
   "devDependencies": {

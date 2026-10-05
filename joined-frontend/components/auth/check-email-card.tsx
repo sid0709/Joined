@@ -1,4 +1,4 @@
-import { Card, Heading, Link, Stack, Text } from "@joined/design-system";
+import { Card, Heading, Link, Stack, Text } from "sid-ui";
 import { EMAIL_MESSAGES } from "@/lib/auth/email";
 import { ROUTES } from "@/lib/routes";
 

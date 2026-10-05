@@ -1,4 +1,4 @@
-import { Grid, KpiWidget } from "@joined/design-system";
+import { Grid, KpiWidget } from "sid-ui";
 import { formatMoney, type Balance, type EarningsSummary, type RewardTable } from "@joined/scout";
 
 import { earningsCards } from "@/lib/earnings";

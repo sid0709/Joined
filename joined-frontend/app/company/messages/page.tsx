@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Sticky } from "@joined/design-system";
+import { Sticky } from "sid-ui";
 import { CompanyMessages } from "@/components/messages/company-messages";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import { loadCompanyThreads } from "@/lib/me/load";

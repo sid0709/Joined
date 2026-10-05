@@ -17,7 +17,7 @@ import {
   icons,
   useMediaQuery,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { WIDE_PAGE_MAX_WIDTH } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import { RECENT_SEARCHES, filterJobs, formatCount, type Job, type JobFilters } from "@/lib/jobs";

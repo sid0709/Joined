@@ -1,4 +1,4 @@
-import { Timeline, type TimelineItem, type TimelineTone } from "@joined/design-system";
+import { Timeline, type TimelineItem, type TimelineTone } from "sid-ui";
 
 import type { ApplicationRecord, ApplicationStatus } from "@/src/shared/types/marketplace";
 

@@ -1,13 +1,4 @@
-import {
-  Badge,
-  Button,
-  Divider,
-  EmptyState,
-  Glyph,
-  HStack,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Badge, Button, Divider, EmptyState, Glyph, HStack, Stack, Text } from "sid-ui";
 import { SectionCard } from "@/components/section-card";
 import { JOB_STATUS_META, pipelineTotal, type CompanyJob } from "@/lib/company";
 import { formatCount } from "@/lib/jobs";

@@ -1,4 +1,4 @@
-import { Button, Glyph } from "@joined/design-system";
+import { Button, Glyph } from "sid-ui";
 
 /**
  * Opens a public page — a job posting, the company page — the way candidates

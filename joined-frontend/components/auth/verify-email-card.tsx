@@ -1,4 +1,4 @@
-import { Banner, Card, Heading, Link, Stack, Text } from "@joined/design-system";
+import { Banner, Card, Heading, Link, Stack, Text } from "sid-ui";
 import { ROUTES } from "@/lib/routes";
 
 export function VerifyEmailCard({ ok, message }: { ok: boolean; message: string }) {

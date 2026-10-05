@@ -13,7 +13,7 @@ import {
   TextInput,
   icons,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { StatGrid } from "@/components/stat-card";
 import { fetchApplicants, fetchJobs, setJobStatus } from "@/lib/company/api";
 import {

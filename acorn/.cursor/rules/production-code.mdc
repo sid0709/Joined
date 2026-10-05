@@ -9,7 +9,7 @@ Write production-ready code only. Do **not** add tests, test files, test scripts
 
 ## Architecture (monorepo)
 
-Packages: `extension/`, `packages/shared/` (`@acorn/shared`), `packages/acorn-face/` (`@acorn/face`). The backend is Go, in `backend-core/acorn` and `backend-core/acornapi` at the repo root. Everything installs and runs with bun from the repo root; never npm.
+Packages: `extension/`, `packages/shared/` (`@acorn/shared`), `packages/acorn-face/` (`@acorn/face`). The backend is Go, in `acorn-backend/acorn` and `acorn-backend/acornapi` at the repo root. Everything installs and runs with bun from the repo root; never npm.
 
 - Keep package boundaries clear: relay I/O, AI/prompt/schema in the Go backend, page DOM/runtime and UI in `extension`.
 - Put cross-package contracts in `@acorn/shared` (types, event names, default hosts/URLs, shared constants). Do not redefine the same `DomNode` / payload types in multiple packages.

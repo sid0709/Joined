@@ -1,5 +1,5 @@
-import { Card, Drawer, HStack, StatusDot, Text, TextInput, VStack } from "@joined/design-system";
-import { DEFAULT_JOINED_API_URL, setJoinedApiUrl } from "../auth/acorn-auth";
+import { Card, Drawer, HStack, StatusDot, Text, TextInput, VStack } from "sid-ui";
+import { DEFAULT_ACORN_API_URL, setAcornApiUrl } from "../auth/acorn-auth";
 
 type SettingsDrawerProps = {
   isOpen: boolean;
@@ -54,9 +54,9 @@ export function SettingsDrawer({
           value={apiUrl}
           onChange={(value) => {
             onApiUrlChange(value);
-            void setJoinedApiUrl(value);
+            void setAcornApiUrl(value);
           }}
-          placeholder={DEFAULT_JOINED_API_URL}
+          placeholder={DEFAULT_ACORN_API_URL}
         />
       </VStack>
     </Drawer>

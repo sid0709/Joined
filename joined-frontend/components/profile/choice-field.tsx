@@ -1,6 +1,6 @@
 "use client";
 
-import { Selector } from "@joined/design-system";
+import { Selector } from "sid-ui";
 import type { Option } from "@/lib/profile";
 
 /** An optional, clearable choice whose empty value is "". */

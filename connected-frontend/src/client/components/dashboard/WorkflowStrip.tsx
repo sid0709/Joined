@@ -1,4 +1,4 @@
-import { Glyph, type GlyphName } from "@joined/design-system";
+import { Glyph, type GlyphName } from "sid-ui";
 import Link from "next/link";
 
 import { Panel } from "@/src/shared/kit/Panel";

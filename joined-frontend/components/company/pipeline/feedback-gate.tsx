@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, CheckboxInput, Stack, Text } from "@joined/design-system";
+import { Banner, CheckboxInput, Stack, Text } from "sid-ui";
 import {
   canAdvanceStage,
   type AdvanceCheckInput,

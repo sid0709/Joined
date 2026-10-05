@@ -1,16 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import {
-  Badge,
-  Icon,
-  SideNav,
-  SideNavItem,
-  SideNavSection,
-  Stack,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Badge, Icon, SideNav, SideNavItem, SideNavSection, Stack, Text, icons } from "sid-ui";
 import { BRAND } from "@/lib/config";
 import { CONSOLE_NAV, activeHref, type NavLink } from "@/lib/nav";
 

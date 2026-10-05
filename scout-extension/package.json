@@ -14,7 +14,7 @@
     "package": "bun run build && bun run check:package && bun scripts/zip-release.ts"
   },
   "dependencies": {
-    "@joined/design-system": "workspace:*",
+    "sid-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

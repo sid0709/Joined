@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { PillNav } from "@joined/design-system";
+import { PillNav } from "sid-ui";
 
 export type AcornMainTab = "fill" | "qa" | "custom";
 

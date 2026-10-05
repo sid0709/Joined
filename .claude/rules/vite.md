@@ -27,6 +27,6 @@ Keep modules small. A component orchestrates; protocol details live in a named m
 
 ## UI
 
-`acorn/extension` uses `@joined/design-system` for product chrome. Follow the design-system rule and `acorn/.cursor/rules/acorn-ui-design.mdc`.
+`acorn/extension` uses `sid-ui` for product chrome. Follow the design-system rule and `acorn/.cursor/rules/acorn-ui-design.mdc`.
 
-`demo` is a specialized viewer. Joined buttons, inputs, and color palettes still come from `@joined/design-system`. Add that workspace dependency when a screen needs them.
+`demo` is a specialized viewer. Joined buttons, inputs, and color palettes still come from `sid-ui`. Add that dependency when a screen needs them.

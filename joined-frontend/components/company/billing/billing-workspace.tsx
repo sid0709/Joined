@@ -16,7 +16,7 @@ import {
   Text,
   useToast,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import { SectionCard } from "@/components/section-card";
 import { fetchBilling, purchaseBalance } from "@/lib/company/api";

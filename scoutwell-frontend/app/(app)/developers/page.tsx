@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Stack, PageHeader, SectionCard } from "@joined/design-system";
+import { Stack, PageHeader, SectionCard } from "sid-ui";
 import type { ApiKey } from "@joined/scout";
 import { ApiDocs } from "@/components/developers/api-docs";
 import { ApiKeys } from "@/components/developers/api-keys";

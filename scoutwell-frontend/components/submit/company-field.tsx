@@ -19,7 +19,7 @@ import {
   icons,
   type SearchSource,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ApiError } from "@joined/scout";
 import { useMemo, useState } from "react";
 

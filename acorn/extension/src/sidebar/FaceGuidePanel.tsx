@@ -1,4 +1,4 @@
-import { Card, Drawer, HStack, Text, VStack } from "@joined/design-system";
+import { Card, Drawer, HStack, Text, VStack } from "sid-ui";
 import { ACORN_FACE_HELP_PX } from "../acorn-face/constants";
 import { ACORN_FACE_GUIDE } from "../acorn-face/guide";
 import { AcornFaceView } from "../acorn-face/AcornFaceView";
