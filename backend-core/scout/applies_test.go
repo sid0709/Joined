@@ -43,12 +43,11 @@ func newFakeStorage() *fakeStorage {
 }
 
 func (f *fakeStorage) findSubmission(ctx context.Context, jobID string) (Submission, error) {
+	subs := make([]Submission, 0, len(f.submissions))
 	for _, sub := range f.submissions {
-		if sub.JobID == jobID {
-			return sub, nil
-		}
+		subs = append(subs, sub)
 	}
-	return Submission{}, ErrNotFound
+	return newestApprovedSubmission(jobID, subs)
 }
 
 func (f *fakeStorage) insertEarning(ctx context.Context, earning Earning) error {
@@ -331,3 +330,138 @@ func TestRecordApply(t *testing.T) {
 		}
 	})
 }
+
+func seedApplySubmission(storage *fakeStorage, jobID, scoutUserID, status string, createdAt time.Time) Submission {
+	sub := Submission{
+		ObjectID:    bson.NewObjectIDFromTimestamp(createdAt),
+		ScoutUserID: scoutUserID,
+		JobID:       jobID,
+		Title:       "Software Engineer",
+		CompanyName: "Acme Inc",
+		Status:      status,
+		SubmittedAt: createdAt,
+	}
+	sub.fill()
+	storage.submissions[sub.ID] = sub
+	return sub
+}
+
+func TestRecordApplyCreditsApprovedAmongStaleRows(t *testing.T) {
+	ctx := context.Background()
+	storage := newFakeStorage()
+	store := newTestStore(storage)
+	jobID := "job-mixed-status"
+	scoutUserID := "scout-approved"
+	older := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	newer := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	newest := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
+
+	seedApplySubmission(storage, jobID, "scout-rejected", StatusRejected, newest)
+	seedApplySubmission(storage, jobID, "scout-review", StatusNeedsReview, newer)
+	approved := seedApplySubmission(storage, jobID, scoutUserID, StatusApproved, older)
+
+	earning, err := store.RecordApply(ctx, jobID, "candidate-mixed", store.now())
+	if err != nil {
+		t.Fatalf("RecordApply: %v", err)
+	}
+	if earning == nil {
+		t.Fatal("expected earning from the approved submission")
+	}
+	if earning.SubmissionID != approved.ID {
+		t.Errorf("earning.SubmissionID = %q, want approved %q", earning.SubmissionID, approved.ID)
+	}
+	if earning.ScoutUserID != scoutUserID {
+		t.Errorf("earning.ScoutUserID = %q, want %q", earning.ScoutUserID, scoutUserID)
+	}
+}
+
+func TestRecordApplyCreditsNewestApproved(t *testing.T) {
+	ctx := context.Background()
+	storage := newFakeStorage()
+	store := newTestStore(storage)
+	jobID := "job-two-approved"
+	older := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	newer := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+
+	seedApplySubmission(storage, jobID, "scout-old", StatusApproved, older)
+	newest := seedApplySubmission(storage, jobID, "scout-new", StatusApproved, newer)
+
+	earning, err := store.RecordApply(ctx, jobID, "candidate-newest", store.now())
+	if err != nil {
+		t.Fatalf("RecordApply: %v", err)
+	}
+	if earning == nil {
+		t.Fatal("expected earning from the newest approved submission")
+	}
+	if earning.SubmissionID != newest.ID {
+		t.Errorf("earning.SubmissionID = %q, want newest %q", earning.SubmissionID, newest.ID)
+	}
+	if earning.ScoutUserID != "scout-new" {
+		t.Errorf("earning.ScoutUserID = %q, want %q", earning.ScoutUserID, "scout-new")
+	}
+
+	t.Run("same createdAt uses higher id", func(t *testing.T) {
+		storage := newFakeStorage()
+		store := newTestStore(storage)
+		jobID := "job-id-tie"
+		same := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+		first := seedApplySubmission(storage, jobID, "scout-a", StatusApproved, same)
+		second := seedApplySubmission(storage, jobID, "scout-b", StatusApproved, same)
+		want := first
+		if second.ObjectID.Hex() > first.ObjectID.Hex() {
+			want = second
+		}
+
+		earning, err := store.RecordApply(ctx, jobID, "candidate-tie", store.now())
+		if err != nil {
+			t.Fatalf("RecordApply: %v", err)
+		}
+		if earning == nil {
+			t.Fatal("expected earning from the higher _id approved submission")
+		}
+		if earning.SubmissionID != want.ID {
+			t.Errorf("earning.SubmissionID = %q, want _id-desc %q", earning.SubmissionID, want.ID)
+		}
+	})
+}
+
+func TestApplyCreditLookupQuery(t *testing.T) {
+	filter := applyCreditSubmissionFilter("job-query")
+	if len(filter) != 2 || filter[0].Key != "jobId" || filter[0].Value != "job-query" {
+		t.Fatalf("filter jobId = %#v, want job-query", filter)
+	}
+	if filter[1].Key != "status" || filter[1].Value != StatusApproved {
+		t.Fatalf("filter status = %#v, want %q", filter[1], StatusApproved)
+	}
+
+	sort := applyCreditSubmissionSort()
+	if len(sort) != 2 || sort[0].Key != "createdAt" || sort[0].Value != -1 {
+		t.Fatalf("sort[0] = %#v, want createdAt:-1", sort)
+	}
+	if sort[1].Key != "_id" || sort[1].Value != -1 {
+		t.Fatalf("sort[1] = %#v, want _id:-1", sort)
+	}
+}
+
+func TestRecordApplyNoEarningWhenOnlyNonApproved(t *testing.T) {
+	ctx := context.Background()
+	storage := newFakeStorage()
+	store := newTestStore(storage)
+	jobID := "job-none-approved"
+	at := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	seedApplySubmission(storage, jobID, "scout-rejected", StatusRejected, at)
+	seedApplySubmission(storage, jobID, "scout-review", StatusNeedsReview, at.Add(time.Hour))
+
+	earning, err := store.RecordApply(ctx, jobID, "candidate-none", store.now())
+	if err != nil {
+		t.Errorf("expected no error when no approved submission, got %v", err)
+	}
+	if earning != nil {
+		t.Errorf("expected no earning when no approved submission, got %+v", earning)
+	}
+	if len(storage.earnings) != 0 {
+		t.Errorf("expected 0 earnings, got %d", len(storage.earnings))
+	}
+}
+
