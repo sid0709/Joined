@@ -37,11 +37,11 @@ import {
   type Application,
   type ApplicationStage,
 } from "@/lib/applications";
+import { toApplicationPatch } from "@/lib/application-patch";
 import {
   createApplication,
   fetchApplications,
   removeApplication,
-  toApplicationPatch,
   updateApplication,
 } from "@/lib/me/pipeline";
 import { AddApplicationDialog } from "./add-application-dialog";

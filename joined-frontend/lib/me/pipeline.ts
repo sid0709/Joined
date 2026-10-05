@@ -1,5 +1,6 @@
 import { hydrateBoardApplications } from "@/lib/application-extras";
-import { hydrateApplication, type Application, type ApplicationStage } from "@/lib/applications";
+import type { ApplicationPatch } from "@/lib/application-patch";
+import { hydrateApplication, type Application } from "@/lib/applications";
 import { browserTimeZone, type GoogleCalendarFeed } from "@/lib/google-calendar";
 import type { Interview } from "@/lib/interviews";
 import { hydrateInterview } from "@/lib/interviews";
@@ -43,34 +44,6 @@ export function createApplication(input: {
   consentVersion?: string;
 }) {
   return meSend<Application>("/applications", "POST", input).then(hydrateApplication);
-}
-
-export type ApplicationPatch = {
-  columnId?: ApplicationStage | string;
-  closedReason?: string;
-  nextStep?: string;
-  /** Candidate private notes. Backend ApplicationPatch does not persist this yet. */
-  notes?: string;
-  /** ISO-8601 follow-up time, or null to clear. Backend ApplicationPatch does not persist this yet. */
-  remindAt?: string | null;
-};
-
-export function toApplicationPatch(patch: {
-  columnId?: ApplicationStage | string;
-  closedReason?: string;
-  nextStep?: string;
-  notes?: string;
-  remindAt?: Date | null;
-}): ApplicationPatch {
-  const body: ApplicationPatch = {};
-  if (patch.columnId !== undefined) body.columnId = patch.columnId;
-  if (patch.closedReason !== undefined) body.closedReason = patch.closedReason;
-  if (patch.nextStep !== undefined) body.nextStep = patch.nextStep;
-  if (patch.notes !== undefined) body.notes = patch.notes;
-  if (patch.remindAt !== undefined) {
-    body.remindAt = patch.remindAt ? patch.remindAt.toISOString() : null;
-  }
-  return body;
 }
 
 export function updateApplication(id: string, patch: ApplicationPatch) {

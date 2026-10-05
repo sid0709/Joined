@@ -1,10 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import { toApplicationPatch } from "./pipeline";
+import { toApplicationPatch } from "./application-patch";
 
 describe("toApplicationPatch", () => {
   test("omits unset fields and serializes remindAt as ISO or null", () => {
     expect(toApplicationPatch({ columnId: "interview" })).toEqual({ columnId: "interview" });
+    expect(toApplicationPatch({ closedReason: "Withdrawn", nextStep: "Reply Friday" })).toEqual({
+      closedReason: "Withdrawn",
+      nextStep: "Reply Friday",
+    });
     expect(toApplicationPatch({ notes: "Call Maya", remindAt: null })).toEqual({
       notes: "Call Maya",
       remindAt: null,

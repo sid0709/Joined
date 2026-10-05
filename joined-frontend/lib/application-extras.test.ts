@@ -5,11 +5,14 @@ import {
   APPLICATION_EXTRAS_STORAGE_KEY,
   applyApplicationExtras,
   extrasFromPatch,
+  getApplicationExtrasServerSnapshot,
+  getApplicationExtrasSnapshot,
   hydrateBoardApplications,
   mergeApplicationExtras,
   migrateApplicationExtras,
   parseApplicationExtras,
   readApplicationExtras,
+  subscribeApplicationExtras,
   upsertApplicationExtras,
   writeApplicationExtras,
 } from "./application-extras";
@@ -88,6 +91,7 @@ describe("application extras storage", () => {
     const store = new MemoryStore();
     upsertApplicationExtras("saved:job-9", { notes: "Apply Friday" }, store);
     migrateApplicationExtras("saved:job-9", "app-9", store);
+    migrateApplicationExtras("app-9", "app-9", store);
     expect(readApplicationExtras(store)).toEqual({
       "app-9": { notes: "Apply Friday" },
     });
@@ -101,6 +105,57 @@ describe("application extras storage", () => {
       remindAt: "2026-10-12T15:00:00.000Z",
     });
     expect(extrasFromPatch({ remindAt: null })).toEqual({ remindAt: null });
+  });
+
+  test("notifies subscribers on write and stops after unsubscribe", () => {
+    const store = new MemoryStore();
+    let calls = 0;
+    const stop = subscribeApplicationExtras(() => {
+      calls += 1;
+    });
+    writeApplicationExtras({ "app-1": { notes: "x" } }, store);
+    expect(calls).toBe(1);
+    stop();
+    writeApplicationExtras({ "app-1": { notes: "y" } }, store);
+    expect(calls).toBe(1);
+  });
+
+  test("reads the extras snapshot from localStorage and an empty server snapshot", () => {
+    expect(getApplicationExtrasServerSnapshot()).toBe("");
+    const payload = '{"app-1":{"notes":"n"}}';
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => (key === APPLICATION_EXTRAS_STORAGE_KEY ? payload : null),
+      },
+    });
+    try {
+      expect(getApplicationExtrasSnapshot()).toBe(payload);
+    } finally {
+      if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+      else delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
+  });
+
+  test("readApplicationExtras with the default store still returns a map", () => {
+    expect(readApplicationExtras()).toEqual(expect.any(Object));
+  });
+
+  test("treats a missing or blocked localStorage as an empty snapshot", () => {
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("blocked");
+      },
+    });
+    try {
+      expect(getApplicationExtrasSnapshot()).toBe("");
+    } finally {
+      if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+      else delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
   });
 });
 
