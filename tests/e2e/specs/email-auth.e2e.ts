@@ -9,6 +9,7 @@ import {
 import { EMAIL_AUTH_COPY } from "../helpers/copy";
 import { logByteCursor, waitForLoggedEmailAppUrl } from "../helpers/dev-email-log";
 import {
+  emailBanner,
   expectGenericLoginFailure,
   expectGoogleSignInVisible,
   expectGoogleSignUpVisible,
@@ -54,7 +55,7 @@ test.describe("email sign-up and log-in journey", () => {
     });
     await page.goto(verifyUrl);
     await expect(page.getByRole("heading", { name: EMAIL_AUTH_COPY.verifyHeading })).toBeVisible();
-    await expect(page.getByRole("status", { name: EMAIL_AUTH_COPY.verifySuccess })).toBeVisible();
+    await expect(emailBanner(page, "status", EMAIL_AUTH_COPY.verifySuccess)).toBeVisible();
     await page.getByRole("link", { name: EMAIL_AUTH_COPY.continueToSignIn }).click();
 
     await expect(page.getByRole("heading", { name: EMAIL_AUTH_COPY.signInHeading })).toBeVisible();

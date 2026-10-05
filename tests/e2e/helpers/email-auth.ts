@@ -43,10 +43,19 @@ export async function submitEmailSignIn(page: Page, input: { email: string; pass
   await page.getByRole("button", { name: EMAIL_AUTH_COPY.signInEmail }).click();
 }
 
+/**
+ * Astryx Banner sets `role="alert"` (error) or `role="status"` (success) on the
+ * root and puts the title in a child. Those roles take an accessible name from
+ * the author, not contents, so `{ name }` never matches the visible copy.
+ */
+export function emailBanner(page: Page, role: "alert" | "status", text: string) {
+  return page.getByRole(role).filter({ hasText: text });
+}
+
 /** Unverified or wrong credentials stay on sign-in with the generic login message. */
 export async function expectGenericLoginFailure(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${AUTH_PATHS.signIn}(?:\\?|$)`));
-  await expect(page.getByRole("alert", { name: EMAIL_AUTH_COPY.loginFailed })).toBeVisible();
+  await expect(emailBanner(page, "alert", EMAIL_AUTH_COPY.loginFailed)).toBeVisible();
 }
 
 export async function expectSignedIn(page: Page) {
@@ -73,7 +82,7 @@ export async function submitForgotPassword(page: Page, email: string) {
   await expect(page.getByRole("heading", { name: EMAIL_AUTH_COPY.forgotHeading })).toBeVisible();
   await page.getByRole("textbox", { name: EMAIL_AUTH_COPY.emailLabel }).fill(email);
   await page.getByRole("button", { name: EMAIL_AUTH_COPY.sendResetLink }).click();
-  await expect(page.getByRole("status", { name: EMAIL_AUTH_COPY.forgotSuccess })).toBeVisible({
+  await expect(emailBanner(page, "status", EMAIL_AUTH_COPY.forgotSuccess)).toBeVisible({
     timeout: EMAIL_PAGE_WAIT_MS,
   });
 }
@@ -86,5 +95,5 @@ export async function submitResetPassword(page: Page, password: string) {
   await expect(page.getByRole("heading", { name: EMAIL_AUTH_COPY.signInHeading })).toBeVisible({
     timeout: EMAIL_PAGE_WAIT_MS,
   });
-  await expect(page.getByRole("status", { name: EMAIL_AUTH_COPY.resetUpdated })).toBeVisible();
+  await expect(emailBanner(page, "status", EMAIL_AUTH_COPY.resetUpdated)).toBeVisible();
 }
