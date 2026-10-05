@@ -1,57 +1,79 @@
-import { EmptyState, Glyph, List, ListItem, Stack, Text } from "@joined/design-system";
-import type { GlyphName } from "@joined/design-system";
-import { REWARD_TYPE, formatMoney, type Earning, type RewardType } from "@joined/scout";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { EmptyState, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { REWARD_TYPE, formatMoney, type Earning } from "@joined/scout";
+
 import { EarningStatusBadge } from "@/components/status-badge";
 import { formatDay } from "@/lib/dates";
+import { earningJobLabel } from "@/lib/earnings";
 import { ROUTES } from "@/lib/routes";
 
-const REWARD_ICON: Record<RewardType, GlyphName> = {
-  approval: "check",
-  apply: "arrowRight",
-  interview: "chat",
-  hire: "users",
-  conversion: "star",
-};
+const AMOUNT_WIDTH = 128;
 
-function detail(row: Earning) {
-  const what = row.job_title ? `${row.job_title} · ${row.company_name ?? ""}` : row.description;
-  return row.status === "held" ? `${what} · until ${formatDay(row.hold_until)}` : what;
-}
-
-/** Reward lines, newest first; a line that came from a job opens that submission. */
+/** Ledger of reward lines: job, date, and amount. A job row opens that submission. */
 export function EarningsList({ rows }: { rows: Earning[] }) {
-  if (rows.length === 0) {
-    return (
-      <EmptyState
-        isCompact
-        title="No rewards yet"
-        description="Approvals, settled interviews, and hires on your jobs show up here."
-      />
-    );
-  }
+  const router = useRouter();
+  const columns: TableColumn<Earning>[] = [
+    {
+      key: "job",
+      header: "Job",
+      render: (row) => (
+        <Stack gap={0.5}>
+          <Text weight="semibold">{earningJobLabel(row)}</Text>
+          <Text type="supporting" color="secondary">
+            {REWARD_TYPE[row.type].label}
+            {row.status === "held" ? ` · until ${formatDay(row.hold_until)}` : ""}
+          </Text>
+        </Stack>
+      ),
+    },
+    {
+      key: "created_at",
+      header: "Date",
+      render: (row) => (
+        <Text type="supporting" color="secondary">
+          {formatDay(row.created_at)}
+        </Text>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "end",
+      width: AMOUNT_WIDTH,
+      render: (row) => (
+        <Stack gap={1} hAlign="end">
+          <Text
+            weight="semibold"
+            hasTabularNumbers
+            color={row.status === "clawed_back" ? "secondary" : "primary"}
+          >
+            {formatMoney(row.amount)}
+          </Text>
+          <EarningStatusBadge status={row.status} />
+        </Stack>
+      ),
+    },
+  ];
+
   return (
-    <List hasDividers>
-      {rows.map((row) => (
-        <ListItem
-          key={row.id}
-          label={REWARD_TYPE[row.type].label}
-          description={detail(row)}
-          startContent={<Glyph name={REWARD_ICON[row.type]} />}
-          href={row.submission_id ? ROUTES.submission(row.submission_id) : undefined}
-          endContent={
-            <Stack gap={1} hAlign="end">
-              <Text
-                weight="semibold"
-                hasTabularNumbers
-                color={row.status === "clawed_back" ? "secondary" : "primary"}
-              >
-                {formatMoney(row.amount)}
-              </Text>
-              <EarningStatusBadge status={row.status} />
-            </Stack>
-          }
+    <Table
+      caption="Earnings"
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => row.id}
+      variant="card"
+      onRowClick={(row) => {
+        if (row.submission_id) router.push(ROUTES.submission(row.submission_id));
+      }}
+      empty={
+        <EmptyState
+          isCompact
+          title="No rewards yet"
+          description="Approvals, applications, settled interviews, and hires on your jobs show up here."
         />
-      ))}
-    </List>
+      }
+    />
   );
 }
