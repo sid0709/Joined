@@ -1,5 +1,6 @@
 import { Glyph, HStack, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
+import type { JobFit } from "@/lib/jobs/fit";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";
 import { MatchBadge } from "./match-badge";
@@ -7,7 +8,7 @@ import { PayFigure } from "./pay-figure";
 
 export type JobResultCardProps = {
   job: Job;
-  score: number;
+  fit?: JobFit | null;
   selected: boolean;
   saved: boolean;
   applied: boolean;
@@ -18,7 +19,7 @@ export type JobResultCardProps = {
 /** One search result: who, what, where, pay, and fit — with save in reach. */
 export function JobResultCard({
   job,
-  score,
+  fit,
   selected,
   saved,
   applied,
@@ -69,7 +70,16 @@ export function JobResultCard({
                 {formatPosted(job.postedHoursAgo)} · {formatCount(job.applicants, "applicant")}
               </Text>
             </HStack>
-            <MatchBadge score={score} />
+            {fit ? (
+              <Stack gap={1} hAlign="end">
+                <MatchBadge score={fit.score} />
+                {fit.reason ? (
+                  <Text type="supporting" color="secondary" maxLines={2}>
+                    {fit.reason}
+                  </Text>
+                ) : null}
+              </Stack>
+            ) : null}
           </HStack>
         </Stack>
       </HStack>

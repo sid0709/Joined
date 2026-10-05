@@ -31,6 +31,7 @@ import { JobFiltersPanel } from "./job-filters-panel";
 import { JobResults } from "./job-results";
 import { JobSearchBar, type SavedQuery } from "./job-search-bar";
 import { SavedSearches } from "./saved-searches";
+import { useJobFits } from "./use-job-fits";
 import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
 import { useJobSearch } from "./use-job-search";
@@ -89,6 +90,9 @@ export function JobSearch({
   });
 
   const { filters, selected } = search;
+  const fitIds = search.pageResults.map((job) => job.id);
+  if (selected && !fitIds.includes(selected.id)) fitIds.push(selected.id);
+  const fits = useJobFits(signedIn, fitIds);
 
   useEffect(() => {
     if (selected?.id) router.prefetch(ROUTES.job(selected.id));
@@ -183,6 +187,7 @@ export function JobSearch({
               onListChange={(list) => search.update({ list })}
               total={search.results.length}
               jobs={search.pageResults}
+              fits={fits}
               page={search.page}
               pageCount={search.pageCount}
               onPageChange={search.setPage}
@@ -210,6 +215,8 @@ export function JobSearch({
                   key={selected.id}
                   {...detailProps(selected)}
                   jobs={jobs}
+                  fit={selected ? fits[selected.id] : null}
+                  fits={fits}
                   showPageLink
                   onSelect={select}
                 />
@@ -262,7 +269,13 @@ export function JobSearch({
         {drawerJob ? (
           <Stack gap={6}>
             <JobDetailHeader {...detailProps(drawerJob)} showPageLink />
-            <JobDetailBody job={drawerJob} jobs={jobs} onSelect={select} />
+            <JobDetailBody
+              job={drawerJob}
+              jobs={jobs}
+              onSelect={select}
+              fit={fits[drawerJob.id]}
+              fits={fits}
+            />
           </Stack>
         ) : null}
       </Drawer>

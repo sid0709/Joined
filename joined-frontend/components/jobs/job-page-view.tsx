@@ -1,24 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { BreadcrumbItem, Breadcrumbs, Card, GridColumn, GridSystem, Stack } from "sid-ui";
+import { BreadcrumbItem, Breadcrumbs, Card, GridColumn, GridSystem, Stack, Text } from "sid-ui";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
-import {
-  companyFromJob,
-  matchFor,
-  openRolesFor,
-  presentCompany,
-  scoreFor,
-  similarJobs,
-  type Job,
-} from "@/lib/jobs";
+import { companyFromJob, openRolesFor, presentCompany, similarJobs, type Job } from "@/lib/jobs";
+import { criterionLabel } from "@/lib/jobs/fit";
 import { ROUTES } from "@/lib/routes";
 import { CompanyCard } from "./company-card";
 import { JobDetailHeader } from "./job-detail-header";
-import { JobMatchCard } from "./job-match-card";
 import { JobOverview } from "./job-overview";
+import { MatchBadge } from "./match-badge";
 import { SimilarJobs } from "./similar-jobs";
 import { useJobActions } from "./use-job-actions";
+import { useJobFit, useJobFits } from "./use-job-fits";
 
 const JOB_PAGE_MAX_WIDTH = 1200;
 const SIMILAR_LIMIT = 4;
@@ -50,6 +44,12 @@ export function JobPageView({
     signedIn,
   });
   const company = companyFromJob(job);
+  const similar = similarJobs(job, jobs, SIMILAR_LIMIT);
+  const fit = useJobFit(signedIn, job.id);
+  const similarFits = useJobFits(
+    signedIn,
+    similar.map((item) => item.id),
+  );
 
   return (
     <Stack hAlign="center">
@@ -78,19 +78,35 @@ export function JobPageView({
         <GridSystem gap={5} responsiveTo="viewport" align="start">
           <GridColumn span="full" lg={8}>
             <Card padding={6}>
-              <JobOverview job={job} />
+              <Stack gap={5}>
+                {fit ? (
+                  <Stack gap={2}>
+                    <MatchBadge score={fit.score} />
+                    {fit.reason ? (
+                      <Text color="secondary" display="block">
+                        {fit.reason}
+                      </Text>
+                    ) : null}
+                    {fit.criteria.length > 0 ? (
+                      <Text type="supporting" color="secondary" display="block">
+                        {fit.criteria.map((item) => criterionLabel(item)).join(" · ")}
+                      </Text>
+                    ) : null}
+                  </Stack>
+                ) : null}
+                <JobOverview job={job} />
+              </Stack>
             </Card>
           </GridColumn>
           <GridColumn span="full" lg={4}>
             <Stack gap={5}>
-              <JobMatchCard match={matchFor(job)} />
               {company ? (
                 <CompanyCard
                   company={presentCompany(company, jobs)}
                   openRoles={openRolesFor(company.id, jobs)}
                 />
               ) : null}
-              <SimilarJobs jobs={similarJobs(job, jobs, SIMILAR_LIMIT)} scoreOf={scoreFor} />
+              <SimilarJobs jobs={similar} scoreOf={(item) => similarFits[item.id]?.score ?? null} />
             </Stack>
           </GridColumn>
         </GridSystem>
