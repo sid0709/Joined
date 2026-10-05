@@ -1,12 +1,12 @@
 name: CI
 
-# Runs on pull requests and pushes to main and stage-roadmap.
+# Runs on pull requests and pushes to main, stage-roadmap, and stage-roadmap-w34.
 # To add a future staging branch, append it to both branches arrays below.
 on:
   pull_request:
-    branches: [main, stage-roadmap]
+    branches: [main, stage-roadmap, stage-roadmap-w34]
   push:
-    branches: [main, stage-roadmap]
+    branches: [main, stage-roadmap, stage-roadmap-w34]
 
 permissions:
   contents: read

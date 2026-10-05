@@ -10,7 +10,7 @@ name: Deploy
 #
 # IMPORTANT: Deploy is restricted to main only. The workflow_run trigger below
 # specifies branches: [main], and the ci-succeeded job validates head_branch == 'main'.
-# CI runs on stage-roadmap and other staging branches will NOT trigger deploy.
+# CI runs on stage-roadmap, stage-roadmap-w34, and other staging branches will NOT trigger deploy.
 on:
   workflow_run:
     workflows: ["CI"]
