@@ -132,6 +132,7 @@ func main() {
 			Runs:        importLog,
 		},
 		KillSwitches: p.KillSwitches,
+		ScamHolds:    p.ScamHolds,
 	})
 	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)

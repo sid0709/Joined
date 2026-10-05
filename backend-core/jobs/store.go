@@ -57,6 +57,7 @@ type Store struct {
 	tempWriteMu   sync.RWMutex
 	companyCopyMu sync.Mutex
 	analyzeMu     sync.Mutex
+	scamHolds     scamHoldAPI
 }
 
 func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies, tempCompanies string) *Store {
