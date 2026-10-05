@@ -43,6 +43,8 @@ type Options struct {
 	Google *google.Client
 	// GoogleRedirectURL is scoutwell-frontend's Google sign-in callback page.
 	GoogleRedirectURL string
+	// PayoutWebhook receives signed provider status callbacks.
+	PayoutWebhook http.Handler
 }
 
 func New(store *jobs.Store, accounts *auth.Store, scouts *scout.Store, opts Options) http.Handler {
@@ -73,6 +75,9 @@ func newHandler(store *jobs.Store, accounts *auth.Store, lookups sessions, scout
 		}.Register(mux)
 	}
 	server.registerScout(mux)
+	if opts.PayoutWebhook != nil {
+		mux.Handle("POST "+scout.PayoutWebhookPath, opts.PayoutWebhook)
+	}
 	origins := append(append([]string{}, opts.Origins...), opts.ExtensionOrigins...)
 	return httpkit.CORS(origins, mux)
 }

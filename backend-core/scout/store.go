@@ -88,21 +88,24 @@ type Store struct {
 	pending   sync.WaitGroup
 	publishMu sync.Mutex
 	payoutMu  sync.Mutex
+
+	payoutProvider Provider
 }
 
 // NewStore wires the scout store. fetcher follows submitted links.
 func NewStore(client *mongo.Client, db string, accounts Accounts, publisher Publisher, usage Usage, fetcher Fetcher) *Store {
 	s := &Store{
-		client:    client,
-		db:        db,
-		accounts:  accounts,
-		publisher: publisher,
-		usage:     usage,
-		fetcher:   fetcher,
-		config:    LoadConfig(),
-		now:       time.Now,
-		roll:      rand.Float64,
-		workers:   make(chan struct{}, checkWorkers),
+		client:         client,
+		db:             db,
+		accounts:       accounts,
+		publisher:      publisher,
+		usage:          usage,
+		fetcher:        fetcher,
+		config:         LoadConfig(),
+		now:            time.Now,
+		roll:           rand.Float64,
+		workers:        make(chan struct{}, checkWorkers),
+		payoutProvider: NewFakeProvider(),
 	}
 	// Default to production implementations
 	s.findSubmissionByJobID = s.submissionByJobID
@@ -143,6 +146,12 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "_id", Value: 1}}}},
+		{payoutsCollection, mongo.IndexModel{
+			Keys: bson.D{{Key: "providerRef", Value: 1}},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{
+				{Key: "providerRef", Value: bson.D{{Key: "$type", Value: "string"}}},
+			}),
+		}},
 		{notificationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{notificationsCollection, mongo.IndexModel{
 			Keys: bson.D{{Key: "key", Value: 1}},
@@ -222,6 +231,14 @@ func (s *Store) enqueue(id bson.ObjectID) {
 
 func (s *Store) collection(name string) *mongo.Collection {
 	return s.client.Database(s.db).Collection(name)
+}
+
+// SetPayoutProvider replaces the payout rail. Nil falls back to the fake.
+func (s *Store) SetPayoutProvider(provider Provider) {
+	if provider == nil {
+		provider = NewFakeProvider()
+	}
+	s.payoutProvider = provider
 }
 
 // audit records a staff action (docs/40: every admin action is audited).
