@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { AUTH_PAGE_PATHS, HIRING_SIGN_UP_HREF, ROUTES, signInHref } from "./routes";
+import {
+  AUTH_PAGE_PATHS,
+  HIRING_SIGN_UP_HREF,
+  ROUTES,
+  SETTINGS_SECTION_QUERY,
+  settingsSectionHref,
+  signInHref,
+} from "./routes";
 
 describe("routes", () => {
   test("sign-in keeps the page the person was opening", () => {
@@ -13,6 +20,15 @@ describe("routes", () => {
     expect(ROUTES.companyJobEdit("j 1")).toBe("/company/jobs/j%201/edit");
     expect(ROUTES.schedule("k/1")).toBe("/schedule/k%2F1");
     expect(ROUTES.offerSign("a 1")).toBe("/offer/sign/a%201");
+  });
+
+  test("premium billing return paths sit under settings", () => {
+    expect(ROUTES.pricing).toBe("/pricing");
+    expect(ROUTES.billingSuccess).toBe("/settings/billing/success");
+    expect(ROUTES.billingCancel).toBe("/settings/billing/cancel");
+    expect(settingsSectionHref("billing")).toBe(
+      `${ROUTES.settings}?${SETTINGS_SECTION_QUERY}=billing`,
+    );
   });
 
   test("email auth screens stay on the public auth list", () => {

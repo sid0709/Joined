@@ -46,6 +46,18 @@ export function jobBoardLabel(board: JobBoard): string {
       return "Workday";
     case "linkedin":
       return "LinkedIn";
+    case "smartrecruiters":
+      return "SmartRecruiters";
+    case "icims":
+      return "iCIMS";
+    case "workable":
+      return "Workable";
+    case "bamboohr":
+      return "BambooHR";
+    case "jobvite":
+      return "Jobvite";
+    case "recruitee":
+      return "Recruitee";
     case "unknown":
       return "Job page";
     default: {

@@ -1,5 +1,6 @@
 import type { Application } from "@/lib/applications";
 import { hydrateApplication } from "@/lib/applications";
+import type { BillingSubscription } from "@/lib/billing";
 import type { Interview } from "@/lib/interviews";
 import { hydrateInterview } from "@/lib/interviews";
 import type { MailThread } from "@/lib/messages";
@@ -58,4 +59,12 @@ export async function loadCompanyThreads() {
 
 export async function loadCalendar() {
   return joinedMe<{ connected: boolean; email?: string }>("/v1/me/calendar");
+}
+
+export async function loadSubscription() {
+  try {
+    return await joinedMe<BillingSubscription>("/v1/me/billing/subscription");
+  } catch {
+    return null;
+  }
 }

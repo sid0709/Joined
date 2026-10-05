@@ -1,5 +1,15 @@
 import { extractForBoard } from "./extractors";
-import { detectJobBoard, firstPathSegment, workdayCompanyFromHost } from "./hosts";
+import {
+  BAMBOOHR_HOST_SUFFIX,
+  RECRUITEE_HOST_SUFFIX,
+  companyFromHostPrefix,
+  detectJobBoard,
+  firstPathSegment,
+  icimsCompanyFromHost,
+  jobviteCompanyFromUrl,
+  workdayCompanyFromHost,
+  workableCompanyFromUrl,
+} from "./hosts";
 import { extractJsonLdJob } from "./jsonld";
 import type { PageRoot } from "./page";
 import { isJobBoard, type CapturedJob, type ExtractedFields, type JobBoard } from "./types";
@@ -9,9 +19,24 @@ export function boardCompanyFallback(board: JobBoard, url: URL): string {
     case "greenhouse":
     case "lever":
     case "ashby":
+    case "smartrecruiters":
       return firstPathSegment(url.pathname);
+    case "jobvite":
+      return jobviteCompanyFromUrl(url);
+    case "workable":
+      return workableCompanyFromUrl(url);
     case "workday":
       return workdayCompanyFromHost(url.hostname) || firstPathSegment(url.pathname);
+    case "icims":
+      return icimsCompanyFromHost(url.hostname) || firstPathSegment(url.pathname);
+    case "bamboohr":
+      return (
+        companyFromHostPrefix(url.hostname, BAMBOOHR_HOST_SUFFIX) || firstPathSegment(url.pathname)
+      );
+    case "recruitee":
+      return (
+        companyFromHostPrefix(url.hostname, RECRUITEE_HOST_SUFFIX) || firstPathSegment(url.pathname)
+      );
     case "linkedin":
     case "unknown":
       return "";
@@ -102,7 +127,7 @@ export function captureJob(root: PageRoot, pageUrl: string): CapturedJob | null 
     return null;
   }
 
-  const board = detectJobBoard(pageUrl);
+  const board = detectJobBoard(pageUrl, root);
   const extracted = extractForBoard(board, root, url);
   const jsonld = extractJsonLdJob(root) ?? {};
   const merged = mergeExtractedFields(extracted, jsonld);
