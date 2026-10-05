@@ -21,4 +21,13 @@ describe("routes", () => {
   test("a submission link includes its id", () => {
     expect(ROUTES.submission("abc")).toBe("/submissions/abc");
   });
+
+  test("launch pages and the extension sign-in land on same-site paths", () => {
+    expect(ROUTES.howItWorks).toBe("/how-it-works");
+    expect(ROUTES.earn).toBe("/earn");
+    expect(ROUTES.install).toBe("/install");
+    expect(ROUTES.faq).toBe("/faq");
+    expect(ROUTES.extension).toBe("/extension");
+    expect(safeNextPath("/extension")).toBe("/extension");
+  });
 });

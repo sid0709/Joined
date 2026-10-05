@@ -3,7 +3,11 @@ import {
   ACCOUNT_PAGE,
   DASHBOARD_PAGE,
   DEVELOPERS_PAGE,
+  EARN_PAGE,
   EARNINGS_PAGE,
+  FAQ_PAGE,
+  HOW_IT_WORKS_PAGE,
+  INSTALL_PAGE,
   LEVEL_PAGE,
   NOTIFICATIONS_PAGE,
   PAYOUTS_PAGE,
@@ -24,6 +28,9 @@ export const ALL_PAGES: PageLink[] = [
   DEVELOPERS_PAGE,
   ACCOUNT_PAGE,
 ];
+
+/** Public site pages linked from the signed-out (and marketing) top bar. */
+export const MARKETING_PAGES: PageLink[] = [HOW_IT_WORKS_PAGE, EARN_PAGE, INSTALL_PAGE, FAQ_PAGE];
 
 /** The pills in the top bar. API access and Account live in the account menu. */
 export function navItems(inReview: number, unread: number): PillNavItem[] {
