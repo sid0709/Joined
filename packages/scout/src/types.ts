@@ -256,7 +256,7 @@ export type Balance = {
 };
 
 export type EarningsSummary = {
-  by_type: Record<RewardType, Money>;
+  by_type: Partial<Record<RewardType, Money>>;
   total: Money;
 };
 

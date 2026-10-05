@@ -19,7 +19,6 @@ const (
 	profilesCollection      = "scout_profiles"
 	submissionsCollection   = "scout_submissions"
 	earningsCollection      = "scout_earnings"
-	appliesCollection       = "scout_applies"
 	payoutsCollection       = "scout_payouts"
 	notificationsCollection = "scout_notifications"
 	apiKeysCollection       = "scout_api_keys"
@@ -120,11 +119,12 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		}},
 		{earningsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{earningsCollection, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "holdUntil", Value: 1}}}},
-		{appliesCollection, mongo.IndexModel{
-			Keys:    bson.D{{Key: "jobId", Value: 1}, {Key: "candidateId", Value: 1}},
-			Options: options.Index().SetUnique(true),
+		{earningsCollection, mongo.IndexModel{
+			Keys: bson.D{{Key: "type", Value: 1}, {Key: "submissionId", Value: 1}, {Key: "jobId", Value: 1}, {Key: "candidateId", Value: 1}},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{
+				{Key: "type", Value: RewardApply},
+			}),
 		}},
-		{appliesCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "recordedAt", Value: -1}}}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "_id", Value: 1}}}},
 		{notificationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},

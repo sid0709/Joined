@@ -17,9 +17,15 @@ Scouts earn a share when candidates apply to jobs they submitted. The earnings l
 **Behavior:**
 
 - **Idempotent**: One candidate applying twice to the same job earns once
-- **Deduplication**: Uses unique index on `(jobId, candidateId)` in `scout_applies` collection
+- **Deduplication**: Uses unique partial index on `(type=apply, submissionId, jobId, candidateId)` in `scout_earnings` collection
 - **Immediate release**: Apply earnings are released immediately (no hold period)
-- **Returns**: The created earning if this is the first apply, or `nil` if already recorded (not an error)
+- **Quiet for non-scout jobs**: Returns `(nil, nil)` when the job did not come from a scout submission (most applies)
+- **Only approved submissions**: Only credits for submissions in `approved` status that made it into the search pool
+- **Atomic**: Single write operation ensures exactly-once credit even if retried after failure
+- **Returns**:
+  - `(*Earning, nil)` if this is the first apply and credit succeeded
+  - `(nil, nil)` if already credited (idempotent) or job not from scout (quiet no-op)
+  - `(nil, error)` only on unexpected database errors
 
 **Example usage:**
 
@@ -28,16 +34,16 @@ import (
     "github.com/sid0709/OpenSeat/backend-core/scout"
 )
 
-// In your candidate apply handler:
+// In your candidate apply handler (owned by another team):
 func handleCandidateApply(ctx context.Context, jobID, candidateID string) error {
     appliedAt := time.Now()
 
     // ... existing apply logic ...
 
-    // Credit the scout if this job came from a scout submission
+    // Credit the scout if this job came from a scout submission (quiet no-op otherwise)
     earning, err := scoutStore.RecordApply(ctx, jobID, candidateID, appliedAt)
     if err != nil {
-        // Log but don't fail the apply if scout crediting fails
+        // Only log actual errors, not "job not from scout" (which is nil)
         slog.Error("scout RecordApply", "job", jobID, "candidate", candidateID, "error", err)
     }
     if earning != nil {
@@ -71,24 +77,27 @@ The configuration is loaded when creating the Store and applies to all future Re
 
 ## Database
 
-### Collection: `scout_applies`
-
-Tracks each credited apply to ensure dedupe.
-
-**Indexes:**
-
-- Unique: `(jobId, candidateId)` - enforces one earning per (job, candidate) pair
-- Index: `(scoutUserId, recordedAt)` - for scout's apply history (future use)
-
 ### Collection: `scout_earnings`
 
-Stores the earning record. Apply earnings have:
+Apply earnings are stored directly in the earnings collection with dedupe fields.
+
+**Fields:**
 
 - `type`: `"apply"`
 - `status`: `"released"` (immediately available)
 - `amount`: `{ "amount_cents": 50, "currency": "USD" }`
 - `submissionId`: links back to the scout's submission
+- `jobId`: the job the candidate applied to (dedupe key)
+- `candidateId`: the candidate who applied (dedupe key)
 - `jobTitle`, `companyName`: context for the scout
+
+**Indexes:**
+
+- Unique partial: `(type, submissionId, jobId, candidateId)` where `type = "apply"`
+  - Enforces exactly one earning per (job, candidate) apply
+  - Partial index only applies to apply rewards, not other reward types
+- Index: `(scoutUserId, _id)` - for scout's earnings list
+- Index: `(status, holdUntil)` - for releasing held rewards
 
 ## API
 
@@ -185,7 +194,7 @@ To test the full flow:
 sub := scout.Submission{
     ScoutUserID: "scout-123",
     JobID:       "job-abc",
-    Status:      scout.StatusApproved,
+    Status:      scout.StatusApproved,  // Must be approved to earn
     // ... other fields
 }
 
@@ -200,22 +209,34 @@ earning2, _ := store.RecordApply(ctx, "job-abc", "candidate-456", time.Now())
 // Different candidate
 earning3, _ := store.RecordApply(ctx, "job-abc", "candidate-789", time.Now())
 // earning3 != nil, amount = 50 cents
+
+// Non-scout job (quiet no-op)
+earning4, err4 := store.RecordApply(ctx, "job-not-from-scout", "candidate-999", time.Now())
+// earning4 == nil, err4 == nil (not an error, just no credit)
 ```
 
 ## Error Handling
 
-`RecordApply` returns an error if:
+`RecordApply` behavior:
 
-- `jobID` is empty
-- `candidateID` is empty
-- Job is not found (not from a scout submission)
-- Database errors
+**Returns `(nil, nil)` - quiet no-op:**
 
-**Important**: Apply flow should not fail if scout crediting fails. Log the error and continue.
+- Job not from a scout submission (most applies)
+- Submission not approved yet
+- Already credited (idempotent retry)
+
+**Returns `(nil, error)` only for:**
+
+- Empty `jobID` or `candidateID`
+- Unexpected database errors
+
+**Important**: The candidate apply flow should not fail if scout crediting fails. Most jobs won't be from scouts, so `(nil, nil)` is the normal case. Only log actual errors (non-nil `err`), and never fail the apply.
 
 ## Notes
 
 - **No hold period**: Apply earnings are released immediately (unlike approval/hire rewards which have a 14-day hold)
+- **Only approved submissions**: Credits only for submissions in `approved` status that made it into the search pool
+- **Atomicity**: Single write operation (earning with dedupe fields) ensures exactly-once credit even after retries
 - **Attribution**: The job's `jobId` must match a submission's `jobId` field for attribution to work
-- **Race safety**: Concurrent applies by same candidate to same job are handled via unique index
+- **Race safety**: Concurrent applies by same candidate to same job are handled via unique partial index
 - **No Stripe/payouts**: This step adds earnings tracking only; actual money movement is separate
