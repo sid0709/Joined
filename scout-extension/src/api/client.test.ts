@@ -1,6 +1,14 @@
 import { describe, expect, test, mock, beforeEach, afterEach } from "bun:test";
-import { ScoutApiClient } from "./client";
-import type { ScoutProfile } from "./types";
+import {
+  IDEMPOTENCY_HEADER,
+  IDEMPOTENT_REPLAYED_HEADER,
+  SCOUT_EXTENSION_SUBMIT_PATH,
+  SIGN_IN_TO_SUBMIT_MESSAGE,
+  ScoutApiClient,
+  apiErrorMessage,
+  readSubmissionId,
+} from "./client";
+import type { ExtensionSubmissionInput, ScoutProfile } from "./types";
 
 const mockChrome = {
   cookies: {
@@ -191,5 +199,167 @@ describe("ScoutApiClient", () => {
 
     const client = new ScoutApiClient();
     await expect(client.getMe()).rejects.toThrow("Unknown error");
+  });
+});
+
+const extensionInput: ExtensionSubmissionInput = {
+  title: "Staff Engineer",
+  company: "Acme Labs",
+  location: "Remote",
+  apply_url: "https://boards.greenhouse.io/acme/jobs/123",
+  description: "This captured job description is long enough to pass the minimum summary length.",
+  board: "greenhouse",
+};
+
+describe("ScoutApiClient.submitExtension", () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    mockChrome.cookies.get.mockClear();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  test("throws when there is no session cookie", async () => {
+    mockChrome.cookies.get.mockResolvedValue(null);
+    const client = new ScoutApiClient();
+    await expect(client.submitExtension(extensionInput, "key-1")).rejects.toThrow(
+      SIGN_IN_TO_SUBMIT_MESSAGE,
+    );
+  });
+
+  test("posts captured fields with the draft Idempotency-Key", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-session-token",
+    } as chrome.cookies.Cookie);
+
+    const fetchMock = mock(async () =>
+      Response.json({ submission: { id: "sub-1" } }, { status: 201 }),
+    );
+    global.fetch = fetchMock as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    const result = await client.submitExtension(extensionInput, "key-1");
+
+    expect(result).toEqual({ submission: { id: "sub-1" }, replayed: false });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://127.0.0.1:8082${SCOUT_EXTENSION_SUBMIT_PATH}`,
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-session-token",
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          [IDEMPOTENCY_HEADER]: "key-1",
+        }),
+        body: JSON.stringify(extensionInput),
+      }),
+    );
+  });
+
+  test("retry of the same draft sends the same Idempotency-Key", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-session-token",
+    } as chrome.cookies.Cookie);
+
+    const keys: string[] = [];
+    global.fetch = mock(async (_url: string, init?: RequestInit) => {
+      const headers = init?.headers as Record<string, string>;
+      keys.push(headers[IDEMPOTENCY_HEADER]);
+      return Response.json({ submission: { id: "sub-1" } }, { status: 201 });
+    }) as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    await client.submitExtension(extensionInput, "key-stable");
+    await client.submitExtension(extensionInput, "key-stable");
+
+    expect(keys).toEqual(["key-stable", "key-stable"]);
+  });
+
+  test("marks a replayed idempotent response", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-session-token",
+    } as chrome.cookies.Cookie);
+
+    global.fetch = mock(
+      async () =>
+        new Response(JSON.stringify({ submission: { id: "sub-1" } }), {
+          status: 201,
+          headers: {
+            "Content-Type": "application/json",
+            [IDEMPOTENT_REPLAYED_HEADER]: "true",
+          },
+        }),
+    ) as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    const result = await client.submitExtension(extensionInput, "key-1");
+    expect(result.replayed).toBe(true);
+  });
+
+  test("maps field errors from a 422 problem", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-session-token",
+    } as chrome.cookies.Cookie);
+
+    global.fetch = mock(async () =>
+      Response.json(
+        {
+          title: "Unprocessable Entity",
+          errors: [
+            { field: "title", detail: "required" },
+            { field: "description", detail: "must be at least 40 characters" },
+          ],
+        },
+        { status: 422 },
+      ),
+    ) as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    await expect(client.submitExtension(extensionInput, "key-1")).rejects.toThrow(
+      "title: required; description: must be at least 40 characters",
+    );
+  });
+
+  test("throws sign-in copy on 401", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "expired",
+    } as chrome.cookies.Cookie);
+
+    global.fetch = mock(
+      async () => new Response(null, { status: 401 }),
+    ) as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    await expect(client.submitExtension(extensionInput, "key-1")).rejects.toThrow(
+      SIGN_IN_TO_SUBMIT_MESSAGE,
+    );
+  });
+});
+
+describe("extension submit helpers", () => {
+  test("readSubmissionId requires a non-empty submission id", () => {
+    expect(readSubmissionId({ submission: { id: "sub-1" } })).toBe("sub-1");
+    expect(readSubmissionId({ submission: {} })).toBeNull();
+    expect(readSubmissionId(null)).toBeNull();
+  });
+
+  test("apiErrorMessage prefers field errors then problem detail", () => {
+    expect(
+      apiErrorMessage({
+        error: "x",
+        detail: "nope",
+        errors: [{ field: "url", detail: "required" }],
+      }),
+    ).toBe("url: required");
+    expect(apiErrorMessage({ error: "fallback", detail: "quota exceeded" })).toBe("quota exceeded");
   });
 });
