@@ -123,7 +123,7 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "canonicalUrl", Value: 1}}}},
 		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "dedupeKey", Value: 1}}}},
 		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "updatedAt", Value: -1}}}},
-		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "jobId", Value: 1}, {Key: "status", Value: 1}, {Key: "createdAt", Value: -1}}}},
+		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "jobId", Value: 1}, {Key: "status", Value: 1}, {Key: "submittedAt", Value: -1}}}},
 		{submissionsCollection, mongo.IndexModel{
 			Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "externalRef", Value: 1}},
 			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{

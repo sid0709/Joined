@@ -89,10 +89,10 @@ func applyCreditSubmissionFilter(jobID string) bson.D {
 	}
 }
 
-// applyCreditSubmissionSort picks the newest approved row: createdAt desc, then _id desc.
+// applyCreditSubmissionSort picks the newest approved row: submittedAt desc, then _id desc.
 func applyCreditSubmissionSort() bson.D {
 	return bson.D{
-		{Key: "createdAt", Value: -1},
+		{Key: "submittedAt", Value: -1},
 		{Key: "_id", Value: -1},
 	}
 }
@@ -120,18 +120,18 @@ func newestApprovedSubmission(jobID string, subs []Submission) (Submission, erro
 }
 
 func submissionIsNewer(a, b Submission) bool {
-	aCreated := submissionCreatedAt(a)
-	bCreated := submissionCreatedAt(b)
-	if aCreated.After(bCreated) {
+	aAt := submissionSubmittedAt(a)
+	bAt := submissionSubmittedAt(b)
+	if aAt.After(bAt) {
 		return true
 	}
-	if aCreated.Before(bCreated) {
+	if aAt.Before(bAt) {
 		return false
 	}
 	return a.ObjectID.Hex() > b.ObjectID.Hex()
 }
 
-func submissionCreatedAt(s Submission) time.Time {
+func submissionSubmittedAt(s Submission) time.Time {
 	if !s.SubmittedAt.IsZero() {
 		return s.SubmittedAt
 	}

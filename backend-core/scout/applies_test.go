@@ -331,15 +331,15 @@ func TestRecordApply(t *testing.T) {
 	})
 }
 
-func seedApplySubmission(storage *fakeStorage, jobID, scoutUserID, status string, createdAt time.Time) Submission {
+func seedApplySubmission(storage *fakeStorage, jobID, scoutUserID, status string, submittedAt time.Time) Submission {
 	sub := Submission{
-		ObjectID:    bson.NewObjectIDFromTimestamp(createdAt),
+		ObjectID:    bson.NewObjectIDFromTimestamp(submittedAt),
 		ScoutUserID: scoutUserID,
 		JobID:       jobID,
 		Title:       "Software Engineer",
 		CompanyName: "Acme Inc",
 		Status:      status,
-		SubmittedAt: createdAt,
+		SubmittedAt: submittedAt,
 	}
 	sub.fill()
 	storage.submissions[sub.ID] = sub
@@ -400,7 +400,7 @@ func TestRecordApplyCreditsNewestApproved(t *testing.T) {
 		t.Errorf("earning.ScoutUserID = %q, want %q", earning.ScoutUserID, "scout-new")
 	}
 
-	t.Run("same createdAt uses higher id", func(t *testing.T) {
+	t.Run("same submittedAt uses higher id", func(t *testing.T) {
 		storage := newFakeStorage()
 		store := newTestStore(storage)
 		jobID := "job-id-tie"
@@ -435,11 +435,30 @@ func TestApplyCreditLookupQuery(t *testing.T) {
 	}
 
 	sort := applyCreditSubmissionSort()
-	if len(sort) != 2 || sort[0].Key != "createdAt" || sort[0].Value != -1 {
-		t.Fatalf("sort[0] = %#v, want createdAt:-1", sort)
+	if len(sort) != 2 || sort[0].Key != "submittedAt" || sort[0].Value != -1 {
+		t.Fatalf("sort[0] = %#v, want submittedAt:-1", sort)
 	}
 	if sort[1].Key != "_id" || sort[1].Value != -1 {
 		t.Fatalf("sort[1] = %#v, want _id:-1", sort)
+	}
+}
+
+func TestApplyCreditSortKeyExistsOnSubmission(t *testing.T) {
+	sort := applyCreditSubmissionSort()
+	if len(sort) == 0 {
+		t.Fatal("empty apply credit sort")
+	}
+	sub := Submission{SubmittedAt: time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)}
+	raw, err := bson.Marshal(sub)
+	if err != nil {
+		t.Fatalf("marshal submission: %v", err)
+	}
+	var doc bson.M
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("unmarshal submission: %v", err)
+	}
+	if _, ok := doc[sort[0].Key]; !ok {
+		t.Fatalf("sort key %q is not a bson field on Submission; document keys %v", sort[0].Key, doc)
 	}
 }
 
