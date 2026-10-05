@@ -1,4 +1,4 @@
-import { Button, PageHeader } from "@joined/design-system";
+import { Button, PageHeader } from "sid-ui";
 import type { Meta } from "@joined/scout";
 import { INSTALL_PAGE, ROUTES } from "@/lib/routes";
 import { faqItems } from "@/lib/site-copy";

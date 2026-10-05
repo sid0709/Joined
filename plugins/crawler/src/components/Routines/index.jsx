@@ -1,4 +1,4 @@
-import { Code, Text, VStack } from "@joined/design-system";
+import { Code, Text, VStack } from "sid-ui";
 
 import { useActiveTab } from "../../api/activeTab";
 import { routineMatchesUrl } from "../../routineKit/match";

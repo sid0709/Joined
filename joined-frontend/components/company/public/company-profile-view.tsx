@@ -18,7 +18,7 @@ import {
   Stack,
   Text,
   Token,
-} from "@joined/design-system";
+} from "sid-ui";
 import { companySizeLabel } from "@joined/job-schema";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { SectionCard } from "@/components/section-card";

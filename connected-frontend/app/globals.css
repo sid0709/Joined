@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@joined/design-system/styles/theme.css";
-@import "@joined/design-system/styles/astryx.css";
+@import "sid-ui/styles/theme.css";
+@import "sid-ui/styles/astryx.css";
 @import "../src/shared/styles/kit.css";
 @import "../src/candidate/styles/bidder.css";
 

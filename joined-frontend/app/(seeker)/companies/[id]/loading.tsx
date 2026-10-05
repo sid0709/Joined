@@ -1,12 +1,4 @@
-import {
-  Card,
-  GridColumn,
-  GridSystem,
-  HStack,
-  Section,
-  Skeleton,
-  Stack,
-} from "@joined/design-system";
+import { Card, GridColumn, GridSystem, HStack, Section, Skeleton, Stack } from "sid-ui";
 import { PageContainer } from "@/components/page-container";
 
 const LOGO_SIZE = 96;

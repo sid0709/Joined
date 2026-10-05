@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Text, VStack, useToast } from "@joined/design-system";
+import { Text, VStack, useToast } from "sid-ui";
 import { MSG, type AcornNoticePayload } from "../types";
 import { bindAcornNoticePush, noticeKindDuration, pushAcornNotice } from "./acorn-notice";
 

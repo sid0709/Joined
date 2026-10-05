@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Badge, ClickableCard, HStack, Stack, Text } from "@joined/design-system";
+import { Avatar, Badge, ClickableCard, HStack, Stack, Text } from "sid-ui";
 import { FACE_CHECK_META, INTERVIEW_STATUS_META, type CompanyInterview } from "@/lib/company";
 import { formatTime } from "@/lib/dates";
 

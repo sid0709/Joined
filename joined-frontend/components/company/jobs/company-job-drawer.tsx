@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   APPLICANT_STAGES,
   DEFAULT_FEEDBACK_GATE,

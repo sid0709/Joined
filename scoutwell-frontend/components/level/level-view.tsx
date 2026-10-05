@@ -9,7 +9,7 @@ import {
   PageHeader,
   SectionCard,
   StatGrid,
-} from "@joined/design-system";
+} from "sid-ui";
 import { LEVEL_BADGE, formatMoney, formatRate, type LevelRule, type Stats } from "@joined/scout";
 import { GoalBar } from "@/components/goal-bar";
 import { progressTo } from "@/lib/format";

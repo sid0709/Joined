@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Stack } from "@joined/design-system";
+import { Stack } from "sid-ui";
 import { AnalyticsWorkspace } from "@/components/company/analytics/analytics-workspace";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";

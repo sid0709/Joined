@@ -16,7 +16,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import { DEFAULT_CURRENCY, PAY_PERIOD_OPTIONS } from "@joined/job-schema";
 import {
   EMPLOYMENT_LABEL,

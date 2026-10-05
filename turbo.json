@@ -19,7 +19,7 @@
         "SCOUT_PUBLIC_API_URL",
         "JOINED_WEB_URL",
         "VITE_ACORN_API_URL",
-        "VITE_JOINED_URL"
+        "VITE_ACORN_WEB_URL"
       ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     }

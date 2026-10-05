@@ -1,4 +1,4 @@
-import { Card, PageHeader, PageTabs, Stack } from "@joined/design-system";
+import { Card, PageHeader, PageTabs, Stack } from "sid-ui";
 import { type Earning, type List } from "@joined/scout";
 
 import type { Metadata } from "next";

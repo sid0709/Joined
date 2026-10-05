@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph, type GlyphName } from "@joined/design-system";
+import { Glyph, type GlyphName } from "sid-ui";
 import Link from "next/link";
 
 import { HunterLine } from "@/src/candidate/components/ui/HunterLine";

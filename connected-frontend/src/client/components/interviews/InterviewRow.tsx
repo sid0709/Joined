@@ -1,4 +1,4 @@
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 import Link from "next/link";
 
 import type { Interview } from "@/src/shared/types/marketplace";

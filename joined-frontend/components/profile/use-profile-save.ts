@@ -1,6 +1,6 @@
 "use client";
 
-import { useToast } from "@joined/design-system";
+import { useToast } from "sid-ui";
 import { saveProfile } from "@/lib/me/pipeline";
 import { normalizeProfile, type Profile } from "@/lib/profile";
 

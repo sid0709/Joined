@@ -1,17 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  Badge,
-  Heading,
-  HStack,
-  List,
-  ListItem,
-  SectionCard,
-  Stack,
-  Text,
-  Token,
-} from "@joined/design-system";
+import { Badge, Heading, HStack, List, ListItem, SectionCard, Stack, Text, Token } from "sid-ui";
 import type { SearchJob } from "@/lib/search-job";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

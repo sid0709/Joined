@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Card, Divider, HStack, Heading, Stack, Text } from "@joined/design-system";
+import { Card, Divider, HStack, Heading, Stack, Text } from "sid-ui";
 
 /** A titled card: heading, quiet description, optional action, then content. */
 export function SectionCard({

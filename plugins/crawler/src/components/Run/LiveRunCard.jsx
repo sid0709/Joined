@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Card,
-  HStack,
-  ProgressBar,
-  StatusDot,
-  Step,
-  Stepper,
-  Text,
-  VStack,
-} from "@joined/design-system";
+import { Badge, Card, HStack, ProgressBar, StatusDot, Step, Stepper, Text, VStack } from "sid-ui";
 
 import { formatElapsedTime } from "../../api/scrapeRunStats";
 

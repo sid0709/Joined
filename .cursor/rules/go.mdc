@@ -1,12 +1,12 @@
 ---
 description: Go services — backend-core config, explicit errors, thin handlers
-globs: "{joined-backend,admin-backend,scoutwell-backend,backend-core}/**/*.go"
+globs: "{joined-backend,admin-backend,scoutwell-backend,acorn-backend,backend-core}/**/*.go"
 alwaysApply: false
 ---
 
 # Go
 
-Applies to `joined-backend`, `admin-backend`, `scoutwell-backend`, and `backend-core`.
+Applies to `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, and `backend-core`.
 
 ## Config
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, EmptyState } from "@joined/design-system";
+import { Button, EmptyState } from "sid-ui";
 
 export default function Error({
   reset,

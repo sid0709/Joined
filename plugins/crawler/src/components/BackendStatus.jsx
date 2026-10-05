@@ -1,4 +1,4 @@
-import { HStack, StatusDot, Text } from "@joined/design-system";
+import { HStack, StatusDot, Text } from "sid-ui";
 
 import useBackendHealth from "../api/useBackendHealth";
 

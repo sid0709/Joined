@@ -1,4 +1,4 @@
-import { Card, Heading, List, ListItem, Stack, Text } from "@joined/design-system";
+import { Card, Heading, List, ListItem, Stack, Text } from "sid-ui";
 import { formatPayWithSource, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";

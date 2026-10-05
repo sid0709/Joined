@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Banner,
-  Badge,
-  Button,
-  EmptyState,
-  Heading,
-  HStack,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Banner, Badge, Button, EmptyState, Heading, HStack, Stack, Text } from "sid-ui";
 import { CompanyRequestError } from "@/lib/me/client";
 import { fetchMyOfferEsign, respondMyOfferEsign } from "@/lib/me/offer-esign";
 import type { OfferEsign } from "@/lib/offer-hire";

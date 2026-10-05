@@ -18,7 +18,7 @@ import {
   TabList,
   Text,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   LISTS,
   SORTS,

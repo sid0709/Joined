@@ -13,7 +13,7 @@ export interface ToolbarBadgeAppearance {
 
 /**
  * Chrome's badge API cannot read CSS variables. These RGBA tuples are the
- * light-mode values of `@joined/design-system` tokens in `tokens.css`.
+ * light-mode values of `sid-ui` tokens in `tokens.css`.
  */
 export const BADGE_COLOR_DRAFTS: BadgeColor = [24, 119, 242, 255];
 export const BADGE_COLOR_SIGNED_OUT: BadgeColor = [145, 145, 145, 255];

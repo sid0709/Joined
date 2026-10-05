@@ -10,7 +10,7 @@ import {
   Text,
   TimeField,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   CHANNELS,
   NOTIFICATION_EVENTS,

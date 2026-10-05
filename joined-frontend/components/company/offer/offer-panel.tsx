@@ -17,7 +17,7 @@ import {
   Tokenizer,
   createStaticSource,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { Applicant, TeamMember } from "@/lib/company";
 import {
   createHirePacket,

@@ -1,4 +1,4 @@
-import { getAccessToken, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { getAccessToken, getAcornApiUrl } from "../../auth/acorn-auth";
 import { runCustomGenerate } from "../../pipeline/custom-generate";
 import { runCustomRecommend } from "../../pipeline/custom-recommend";
 import { runJobGenerate } from "../../pipeline/job-generate";
@@ -47,7 +47,7 @@ export function handleStartCustomGenerate(
       if (!token) {
         throw new Error(SIGN_IN_FIRST);
       }
-      const apiUrl = await getJoinedApiUrl();
+      const apiUrl = await getAcornApiUrl();
       await runCustomGenerate({
         tabId,
         apiUrl,
@@ -95,7 +95,7 @@ export function handleStartCustomRecommend(
       if (!token) {
         throw new Error(SIGN_IN_FIRST);
       }
-      const apiUrl = await getJoinedApiUrl();
+      const apiUrl = await getAcornApiUrl();
       await runCustomRecommend({
         tabId,
         apiUrl,
@@ -135,7 +135,7 @@ export function handleStartJobWork(
       if (!token) {
         throw new Error(SIGN_IN_FIRST);
       }
-      const apiUrl = await getJoinedApiUrl();
+      const apiUrl = await getAcornApiUrl();
       const storedJd = typeof message.jobDescription === "string" ? message.jobDescription : null;
       const resume = Boolean(message.continue);
       if (message.type === MSG.START_JOB_RECOMMEND) {

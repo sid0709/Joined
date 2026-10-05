@@ -1,4 +1,4 @@
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 import { matchOptionViaAnalyze } from "../../pipeline/match-option-analyze";
 import { addPipelineUsage } from "../../pipeline/usage-tracker";
 import type { MatchOptionRequest, MatchOptionResponse } from "../../types";
@@ -14,7 +14,7 @@ export function handleMatchOption(
   const usageTabId = sender.tab?.id;
   (async () => {
     try {
-      const base = await getJoinedApiUrl();
+      const base = await getAcornApiUrl();
       const payload: Record<string, unknown> = {
         intendedValue: incoming.intendedValue,
         options: incoming.options.filter(

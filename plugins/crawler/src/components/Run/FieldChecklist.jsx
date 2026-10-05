@@ -1,4 +1,4 @@
-import { Glyph, HStack, Spinner, Text, VStack } from "@joined/design-system";
+import { Glyph, HStack, Spinner, Text, VStack } from "sid-ui";
 
 import { fieldLabel } from "../../routineKit/describe";
 import { listFields } from "../../routineKit/routine";

@@ -14,7 +14,7 @@ Create a brand-new, empty Scout browser extension that builds and loads in Chrom
 - Chrome Manifest V3 `manifest.json` with name "Scout", version `0.0.1`, minimal permissions (`activeTab`, `storage`, `sidePanel` only if used). No host permissions yet.
 - Entry points, each a placeholder that renders or logs "Scout":
   - background service worker
-  - popup or side panel page (React, using `@joined/design-system` if it builds cleanly; plain React is fine otherwise)
+  - popup or side panel page (React, using `sid-ui` if it builds cleanly; plain React is fine otherwise)
   - empty content script registered for no sites yet, or omitted with a TODO
 - `package.json` named `scout-extension` with `dev`, `build`, `typecheck` scripts. Use catalog versions (`catalog:`) for React, Vite, and TypeScript, the same way `acorn/extension` does.
 - Add `scout-extension` to the root `package.json` workspaces list. Any root change is limited to that.

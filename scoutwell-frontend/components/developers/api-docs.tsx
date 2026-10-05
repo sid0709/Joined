@@ -8,7 +8,7 @@ import {
   Text,
   type BadgeVariant,
   SectionCard,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SUBMISSION_STATUS, type Meta, type SubmissionStatus } from "@joined/scout";
 
 import { FullText } from "@/components/full-text";

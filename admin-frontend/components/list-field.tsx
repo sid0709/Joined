@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TextArea } from "@joined/design-system";
+import { TextArea } from "sid-ui";
 
 /**
  * A list edited as one item per line. The raw text is kept as typed, so a

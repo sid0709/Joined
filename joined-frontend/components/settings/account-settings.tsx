@@ -11,7 +11,7 @@ import {
   Selector,
   Stack,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { AuthSession } from "@/lib/auth/types";
 import { LANGUAGES, TIME_ZONES, WEEK_STARTS } from "@/lib/settings";
 import { SaveFooter } from "@/components/save-footer";

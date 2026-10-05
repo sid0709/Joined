@@ -15,7 +15,7 @@ import {
   StatGrid,
   Text,
   Timeline,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   ApiError,
   LEVEL_BADGE,

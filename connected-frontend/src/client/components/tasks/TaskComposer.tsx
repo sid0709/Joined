@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUploader } from "@joined/design-system";
+import { FileUploader } from "sid-ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

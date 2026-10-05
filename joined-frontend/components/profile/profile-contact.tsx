@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Grid, Stack, Text, TextInput, useToast } from "@joined/design-system";
+import { Button, Grid, Stack, Text, TextInput, useToast } from "sid-ui";
 import { SectionCard } from "@/components/section-card";
 import { saveProfile } from "@/lib/me/pipeline";
 import { normalizeProfile, type HomeAddress, type Profile } from "@/lib/profile";

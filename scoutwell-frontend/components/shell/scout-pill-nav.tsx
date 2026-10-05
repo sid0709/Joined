@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { PillNav, useAppShellMobile } from "@joined/design-system";
+import { PillNav, useAppShellMobile } from "sid-ui";
 import { activeHref, navItems } from "@/lib/nav";
 
 /** The scout's pages as pills; the current one opens to show its name. */

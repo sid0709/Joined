@@ -1,4 +1,4 @@
-import { EmptyState, List, ListItem, Text } from "@joined/design-system";
+import { EmptyState, List, ListItem, Text } from "sid-ui";
 import { formatMoney, type Payout } from "@joined/scout";
 import { ageLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";

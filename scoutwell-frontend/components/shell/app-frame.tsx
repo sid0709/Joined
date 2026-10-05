@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@joined/design-system";
+import { AppShell } from "sid-ui";
 
 export const CONTENT_PADDING = 5;
 

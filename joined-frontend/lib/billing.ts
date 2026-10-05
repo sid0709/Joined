@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "@joined/design-system";
+import type { BadgeVariant } from "sid-ui";
 import { formatLongDate } from "@/lib/dates";
 import { ROUTES, settingsSectionHref } from "@/lib/routes";
 

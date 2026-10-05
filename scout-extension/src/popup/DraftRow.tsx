@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Banner,
-  Button,
-  HStack,
-  JobCard,
-  Stack,
-  Text,
-  TextArea,
-  TextInput,
-} from "@joined/design-system";
+import { Badge, Banner, Button, HStack, JobCard, Stack, Text, TextArea, TextInput } from "sid-ui";
 import { useState } from "react";
 
 import type { CapturedJob } from "../capture";

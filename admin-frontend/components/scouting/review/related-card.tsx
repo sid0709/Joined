@@ -1,4 +1,4 @@
-import { Badge, Banner, List, ListItem, SectionCard, Stack, Text } from "@joined/design-system";
+import { Badge, Banner, List, ListItem, SectionCard, Stack, Text } from "sid-ui";
 import { SUBMISSION_STATUS, type AdminSubmissionDetail, type Submission } from "@joined/scout";
 
 import { ageLabel } from "@/lib/format";

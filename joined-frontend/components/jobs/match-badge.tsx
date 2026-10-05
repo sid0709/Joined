@@ -1,4 +1,4 @@
-import { Badge, Glyph, type BadgeVariant } from "@joined/design-system";
+import { Badge, Glyph, type BadgeVariant } from "sid-ui";
 import { GOOD_MATCH, STRONG_MATCH } from "@/lib/jobs";
 
 export function matchVariant(score: number): BadgeVariant {

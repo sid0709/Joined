@@ -13,7 +13,7 @@ This is the browser extension for the AIMS (Automated intelligent-sourcing for j
 
 - **React:** A JavaScript library for building user interfaces.
 - **Vite:** A fast build tool for modern web development.
-- **@joined/design-system:** Joined's shared components and tokens for the side panel UI.
+- **sid-ui:** Joined's shared components and tokens for the side panel UI.
 - **ESLint:** The repo's shared lint rules.
 - **Chrome Extension APIs:** A set of APIs for creating Chrome extensions.
 

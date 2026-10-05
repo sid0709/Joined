@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, HStack, Selector, Stack, Text, TextInput, useToast } from "@joined/design-system";
+import { Button, HStack, Selector, Stack, Text, TextInput, useToast } from "sid-ui";
 import { fetchJobTemplates, saveJobTemplates } from "@/lib/company/api";
 import { isForbiddenError } from "@/lib/me/client";
 import {

@@ -1,4 +1,4 @@
-import { Button, HStack, Text } from "@joined/design-system";
+import { Button, HStack, Text } from "sid-ui";
 import { ROUTES } from "@/lib/nav";
 import type { Staff } from "@/lib/staff-session";
 

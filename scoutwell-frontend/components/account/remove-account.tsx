@@ -2,15 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  AlertDialog,
-  Banner,
-  Button,
-  SectionCard,
-  Stack,
-  Text,
-  TextInput,
-} from "@joined/design-system";
+import { AlertDialog, Banner, Button, SectionCard, Stack, Text, TextInput } from "sid-ui";
 import { ROUTES } from "@/lib/routes";
 
 const CONFIRM = "DELETE";

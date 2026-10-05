@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { EmptyState, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { EmptyState, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { REWARD_TYPE, formatMoney, type Earning } from "@joined/scout";
 
 import { EarningStatusBadge } from "@/components/status-badge";

@@ -1,15 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Badge,
-  EmptyState,
-  HStack,
-  Stack,
-  Table,
-  Text,
-  type TableColumn,
-} from "@joined/design-system";
+import { Badge, EmptyState, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { CHANNEL_LABEL, LEVEL_BADGE, SUBMISSION_STATUS, type AdminSubmission } from "@joined/scout";
 import { ageLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";

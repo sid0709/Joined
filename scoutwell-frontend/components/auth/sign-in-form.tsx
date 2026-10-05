@@ -1,12 +1,4 @@
-import {
-  Banner,
-  Card,
-  GoogleSignInButton,
-  Heading,
-  Link,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Banner, Card, GoogleSignInButton, Heading, Link, Stack, Text } from "sid-ui";
 import { GOOGLE_AUTH_ROUTE } from "@joined/google-signin";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";

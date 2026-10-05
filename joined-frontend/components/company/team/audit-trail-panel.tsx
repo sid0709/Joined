@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Badge,
-  HStack,
-  Stack,
-  Table,
-  Text,
-  useToast,
-  type TableColumn,
-} from "@joined/design-system";
+import { Badge, HStack, Stack, Table, Text, useToast, type TableColumn } from "sid-ui";
 import { fetchTeamAudit } from "@/lib/company/api";
 import { formatShortDate } from "@/lib/dates";
 import type { AuditEvent } from "@/lib/rbac";

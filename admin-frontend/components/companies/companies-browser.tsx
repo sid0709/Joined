@@ -13,7 +13,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { CompanyDrawer } from "@/components/companies/company-drawer";
 import { CompletionBadge } from "@/components/directory/completion-badge";
 import { DirectoryFilters } from "@/components/directory/directory-filters";

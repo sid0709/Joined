@@ -12,7 +12,7 @@ import {
   Text,
   Token,
   type GlyphName,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatCount, jobsForCompany } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { BrandFooter, BrandLockup, Center, Stack } from "@joined/design-system";
+import { BrandFooter, BrandLockup, Center, Stack } from "sid-ui";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 

@@ -2,16 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Badge,
-  PageHeader,
-  Stack,
-  Tab,
-  TabList,
-  Table,
-  Text,
-  type TableColumn,
-} from "@joined/design-system";
+import { Badge, PageHeader, Stack, Tab, TabList, Table, Text, type TableColumn } from "sid-ui";
 import { UrlPager } from "@/components/scouting/url-pager";
 import { TrustState } from "@/components/trust/trust-state";
 import { ageLabel, positiveInt } from "@/lib/format";

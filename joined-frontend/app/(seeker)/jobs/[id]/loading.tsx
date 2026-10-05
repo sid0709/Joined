@@ -1,4 +1,4 @@
-import { Card, GridColumn, GridSystem, Skeleton, Stack } from "@joined/design-system";
+import { Card, GridColumn, GridSystem, Skeleton, Stack } from "sid-ui";
 
 const JOB_PAGE_MAX_WIDTH = 1200;
 
