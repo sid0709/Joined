@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth/constants";
+import { isCompanyModeEnabled } from "@/lib/config";
 import { ROUTES, signInHref } from "@/lib/routes";
 import { MODE_COOKIE, MODE_HOME, parseWorkspaceMode } from "@/lib/workspace-preference";
 
 /**
- * Two jobs, both cheap cookie reads:
+ * Three jobs, all cheap cookie reads:
+ * - Company mode guard: when disabled, redirect /company/** and /hiring/setup to /.
  * - Mode decides where "/" lands: an employer goes straight to their hiring workspace.
  *   Visitors with no cookie (first visit, search crawlers) always get the public job search.
  * - A candidate's own pages need an account. With no session cookie, send the visitor to
@@ -12,10 +14,16 @@ import { MODE_COOKIE, MODE_HOME, parseWorkspaceMode } from "@/lib/workspace-pref
  */
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const companyModeEnabled = isCompanyModeEnabled();
+
+  if (!companyModeEnabled && (pathname.startsWith("/company") || pathname === "/hiring/setup")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
   if (pathname === ROUTES.search) {
     const mode = parseWorkspaceMode(request.cookies.get(MODE_COOKIE)?.value);
-    if (mode === "company") return NextResponse.redirect(new URL(MODE_HOME.company, request.url));
+    if (mode === "company" && companyModeEnabled)
+      return NextResponse.redirect(new URL(MODE_HOME.company, request.url));
     return NextResponse.next();
   }
 
@@ -36,5 +44,7 @@ export const config = {
     "/resumes/:path*",
     "/profile/:path*",
     "/settings/:path*",
+    "/company/:path*",
+    "/hiring/setup",
   ],
 };
