@@ -37,6 +37,11 @@ export function formatShortDate(date: Date) {
   return date.toLocaleDateString(LOCALE, { month: "short", day: "numeric" });
 }
 
+/** "October 5, 2026" — billing renewal dates. */
+export function formatLongDate(date: Date) {
+  return date.toLocaleDateString(LOCALE, { year: "numeric", month: "long", day: "numeric" });
+}
+
 export function formatMonthDay(date: Date) {
   return {
     month: date.toLocaleDateString(LOCALE, { month: "short" }).toUpperCase(),

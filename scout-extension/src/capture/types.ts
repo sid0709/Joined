@@ -4,10 +4,18 @@ export const JOB_BOARDS = [
   "ashby",
   "workday",
   "linkedin",
+  "smartrecruiters",
+  "icims",
+  "workable",
+  "bamboohr",
+  "jobvite",
+  "recruitee",
   "unknown",
 ] as const;
 
 export type JobBoard = (typeof JOB_BOARDS)[number];
+
+export type KnownJobBoard = Exclude<JobBoard, "unknown">;
 
 export interface ExtractedFields {
   title?: string;

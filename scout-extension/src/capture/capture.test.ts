@@ -46,6 +46,16 @@ describe("captureJob", () => {
     expect(captureJob(none, "https://blog.acme.test/shipping")).toBeNull();
     expect(captureJob(none, "not-a-url")).toBeNull();
   });
+
+  test("recognizes a custom-domain job from DOM signatures", () => {
+    const root = loadFixtureDocument("smartrecruiters.html");
+    expect(captureJob(root, "https://careers.acme.test/staff-software-engineer")).toMatchObject({
+      board: "smartrecruiters",
+      title: "Staff Software Engineer",
+      company: "Acme",
+      location: "San Francisco, CA",
+    });
+  });
 });
 
 describe("captured job helpers", () => {
@@ -91,5 +101,29 @@ describe("captured job helpers", () => {
     expect(boardCompanyFallback("linkedin", new URL("https://www.linkedin.com/jobs/view/1"))).toBe(
       "",
     );
+    expect(
+      boardCompanyFallback(
+        "smartrecruiters",
+        new URL("https://jobs.smartrecruiters.com/Acme/staff-software-engineer"),
+      ),
+    ).toBe("Acme");
+    expect(
+      boardCompanyFallback("icims", new URL("https://careers-acme.icims.com/jobs/123/job")),
+    ).toBe("acme");
+    expect(
+      boardCompanyFallback("workable", new URL("https://apply.workable.com/acme/j/ABC123/")),
+    ).toBe("acme");
+    expect(boardCompanyFallback("bamboohr", new URL("https://acme.bamboohr.com/careers/123"))).toBe(
+      "acme",
+    );
+    expect(
+      boardCompanyFallback("jobvite", new URL("https://jobs.jobvite.com/acme/job/oABC123")),
+    ).toBe("acme");
+    expect(
+      boardCompanyFallback(
+        "recruitee",
+        new URL("https://acme.recruitee.com/o/staff-software-engineer"),
+      ),
+    ).toBe("acme");
   });
 });

@@ -29,6 +29,12 @@ describe("detected job copy", () => {
     expect(jobBoardLabel("ashby")).toBe("Ashby");
     expect(jobBoardLabel("workday")).toBe("Workday");
     expect(jobBoardLabel("linkedin")).toBe("LinkedIn");
+    expect(jobBoardLabel("smartrecruiters")).toBe("SmartRecruiters");
+    expect(jobBoardLabel("icims")).toBe("iCIMS");
+    expect(jobBoardLabel("workable")).toBe("Workable");
+    expect(jobBoardLabel("bamboohr")).toBe("BambooHR");
+    expect(jobBoardLabel("jobvite")).toBe("Jobvite");
+    expect(jobBoardLabel("recruitee")).toBe("Recruitee");
     expect(jobBoardLabel("unknown")).toBe("Job page");
     expect(jobMetaLine(job)).toBe("Acme · San Francisco, CA");
     expect(jobMetaLine({ company: "Acme", location: "" })).toBe("Acme");
