@@ -47,10 +47,11 @@ func TestHTTPClientSendsIdempotencyKeyOnCreate(t *testing.T) {
 	}
 
 	price, err := client.CreatePrice(context.Background(), CreatePriceRequest{
-		Product:    "prod_123",
-		Currency:   "usd",
-		UnitAmount: 2900,
-		LookupKey:  "test_monthly",
+		Product:         "prod_123",
+		Currency:        "usd",
+		UnitAmount:      2900,
+		LookupKey:       "test_monthly",
+		ReplacedPriceID: "_new",
 		Recurring: &Recurring{
 			Interval:      "month",
 			IntervalCount: 1,
@@ -64,15 +65,16 @@ func TestHTTPClientSendsIdempotencyKeyOnCreate(t *testing.T) {
 	}
 
 	priceIdempotencyKey := capturedHeaders.Get("Idempotency-Key")
-	if priceIdempotencyKey != "price_test_monthly_2900" {
-		t.Fatalf("expected price idempotency key 'price_test_monthly_2900', got %q", priceIdempotencyKey)
+	if priceIdempotencyKey != "price_test_monthly_2900__new" {
+		t.Fatalf("expected price idempotency key 'price_test_monthly_2900__new', got %q", priceIdempotencyKey)
 	}
 
 	secondPrice, err := client.CreatePrice(context.Background(), CreatePriceRequest{
-		Product:    "prod_123",
-		Currency:   "usd",
-		UnitAmount: 2900,
-		LookupKey:  "test_monthly",
+		Product:         "prod_123",
+		Currency:        "usd",
+		UnitAmount:      2900,
+		LookupKey:       "test_monthly",
+		ReplacedPriceID: "_new",
 		Recurring: &Recurring{
 			Interval:      "month",
 			IntervalCount: 1,

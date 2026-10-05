@@ -8,20 +8,22 @@ import (
 
 // FakeClient is an in-memory Stripe client for tests.
 type FakeClient struct {
-	mu             sync.Mutex
-	products       map[string]*Product
-	prices         map[string]*Price
-	lookupKeyIndex map[string]string
-	nextID         int
+	mu                 sync.Mutex
+	products           map[string]*Product
+	prices             map[string]*Price
+	lookupKeyIndex     map[string]string
+	idempotencyReplays map[string]*Price
+	nextID             int
 }
 
 // NewFakeClient creates a fake Stripe client.
 func NewFakeClient() *FakeClient {
 	return &FakeClient{
-		products:       make(map[string]*Product),
-		prices:         make(map[string]*Price),
-		lookupKeyIndex: make(map[string]string),
-		nextID:         1,
+		products:           make(map[string]*Product),
+		prices:             make(map[string]*Price),
+		lookupKeyIndex:     make(map[string]string),
+		idempotencyReplays: make(map[string]*Price),
+		nextID:             1,
 	}
 }
 
@@ -72,6 +74,21 @@ func (f *FakeClient) CreatePrice(ctx context.Context, req CreatePriceRequest) (*
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	idempotencyKey := ""
+	if req.LookupKey != "" {
+		replacedID := req.ReplacedPriceID
+		if replacedID == "" {
+			replacedID = "_new"
+		}
+		idempotencyKey = fmt.Sprintf("price_%s_%d_%s", req.LookupKey, req.UnitAmount, replacedID)
+	}
+
+	if idempotencyKey != "" {
+		if existing, ok := f.idempotencyReplays[idempotencyKey]; ok {
+			return existing, nil
+		}
+	}
+
 	if req.LookupKey != "" {
 		if existingPriceID, exists := f.lookupKeyIndex[req.LookupKey]; exists {
 			if !req.TransferLookupKey {
@@ -110,6 +127,10 @@ func (f *FakeClient) CreatePrice(ctx context.Context, req CreatePriceRequest) (*
 
 	if req.LookupKey != "" {
 		f.lookupKeyIndex[req.LookupKey] = id
+	}
+
+	if idempotencyKey != "" {
+		f.idempotencyReplays[idempotencyKey] = price
 	}
 
 	return price, nil

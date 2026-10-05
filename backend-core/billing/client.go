@@ -77,6 +77,7 @@ type CreatePriceRequest struct {
 	LookupKey         string            `json:"lookup_key"`
 	Metadata          map[string]string `json:"metadata"`
 	TransferLookupKey bool              `json:"transfer_lookup_key,omitempty"`
+	ReplacedPriceID   string            `json:"-"`
 }
 
 // UpdatePriceRequest updates a price.
@@ -167,7 +168,11 @@ func (c *HTTPClient) CreatePrice(ctx context.Context, req CreatePriceRequest) (*
 	}
 	idempotencyKey := ""
 	if req.LookupKey != "" {
-		idempotencyKey = fmt.Sprintf("price_%s_%d", req.LookupKey, req.UnitAmount)
+		replacedID := req.ReplacedPriceID
+		if replacedID == "" {
+			replacedID = "_new"
+		}
+		idempotencyKey = fmt.Sprintf("price_%s_%d_%s", req.LookupKey, req.UnitAmount, replacedID)
 	}
 	var price Price
 	if err := c.postWithIdempotency(ctx, "/prices", body, idempotencyKey, &price); err != nil {

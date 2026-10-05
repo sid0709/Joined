@@ -78,13 +78,15 @@ func syncPremiumPrices(ctx context.Context, client Client, productID string, cfg
 }
 
 func syncPrice(ctx context.Context, client Client, productID, lookupKey string, amountCents int, interval string, existing map[string]*Price) error {
+	var replacedPriceID string
 	if price, ok := existing[lookupKey]; ok {
 		if price.UnitAmount != amountCents {
+			replacedPriceID = price.ID
 			deactivate := false
 			if _, err := client.UpdatePrice(ctx, price.ID, UpdatePriceRequest{Active: &deactivate}); err != nil {
 				return fmt.Errorf("deactivate old price: %w", err)
 			}
-			if _, err := client.CreatePrice(ctx, CreatePriceRequest{
+			created, err := client.CreatePrice(ctx, CreatePriceRequest{
 				Product:    productID,
 				Currency:   "usd",
 				UnitAmount: amountCents,
@@ -92,18 +94,23 @@ func syncPrice(ctx context.Context, client Client, productID, lookupKey string, 
 					Interval:      interval,
 					IntervalCount: 1,
 				},
-				LookupKey: lookupKey,
+				LookupKey:       lookupKey,
+				ReplacedPriceID: replacedPriceID,
 				Metadata: map[string]string{
 					"lookup_key": lookupKey,
 				},
 				TransferLookupKey: true,
-			}); err != nil {
+			})
+			if err != nil {
 				return fmt.Errorf("create new price: %w", err)
+			}
+			if !created.Active {
+				return fmt.Errorf("created price %s is inactive (idempotency replay returned stale price)", created.ID)
 			}
 		}
 		return nil
 	}
-	if _, err := client.CreatePrice(ctx, CreatePriceRequest{
+	created, err := client.CreatePrice(ctx, CreatePriceRequest{
 		Product:    productID,
 		Currency:   "usd",
 		UnitAmount: amountCents,
@@ -111,12 +118,17 @@ func syncPrice(ctx context.Context, client Client, productID, lookupKey string, 
 			Interval:      interval,
 			IntervalCount: 1,
 		},
-		LookupKey: lookupKey,
+		LookupKey:       lookupKey,
+		ReplacedPriceID: "_new",
 		Metadata: map[string]string{
 			"lookup_key": lookupKey,
 		},
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("create price: %w", err)
+	}
+	if !created.Active {
+		return fmt.Errorf("created price %s is inactive (idempotency replay returned stale price)", created.ID)
 	}
 	return nil
 }
