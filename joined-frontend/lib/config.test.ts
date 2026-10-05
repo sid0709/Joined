@@ -1,7 +1,22 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { isCompanyModeEnabled, joinedApiUrl } from "./config";
+import {
+  isBillingCheckoutEnabled,
+  isCompanyModeEnabled,
+  joinedApiUrl,
+  PREMIUM_CURRENCY,
+  premiumMonthlyPriceCents,
+  premiumPrices,
+  premiumYearlyPriceCents,
+} from "./config";
 
-const KEYS = ["JOINED_API_URL", "NEXT_PUBLIC_COMPANY_MODE_ENABLED"] as const;
+const KEYS = [
+  "JOINED_API_URL",
+  "NEXT_PUBLIC_COMPANY_MODE_ENABLED",
+  "PREMIUM_MONTHLY_PRICE_CENTS",
+  "PREMIUM_YEARLY_PRICE_CENTS",
+  "BILLING_CHECKOUT_ENABLED",
+  "NEXT_PUBLIC_BILLING_CHECKOUT_ENABLED",
+] as const;
 const saved = Object.fromEntries(KEYS.map((key) => [key, process.env[key]]));
 
 afterEach(() => {
@@ -28,5 +43,43 @@ describe("config", () => {
     expect(isCompanyModeEnabled()).toBe(false);
     delete process.env.NEXT_PUBLIC_COMPANY_MODE_ENABLED;
     expect(isCompanyModeEnabled()).toBe(false);
+  });
+
+  test("premium prices match step-29 defaults and env overrides", () => {
+    delete process.env.PREMIUM_MONTHLY_PRICE_CENTS;
+    delete process.env.PREMIUM_YEARLY_PRICE_CENTS;
+    expect(premiumMonthlyPriceCents()).toBe(2900);
+    expect(premiumYearlyPriceCents()).toBe(29000);
+    expect(premiumPrices()).toEqual({
+      monthlyCents: 2900,
+      yearlyCents: 29000,
+      currency: PREMIUM_CURRENCY,
+    });
+
+    process.env.PREMIUM_MONTHLY_PRICE_CENTS = "3500";
+    process.env.PREMIUM_YEARLY_PRICE_CENTS = "35000";
+    expect(premiumPrices()).toEqual({
+      monthlyCents: 3500,
+      yearlyCents: 35000,
+      currency: PREMIUM_CURRENCY,
+    });
+
+    process.env.PREMIUM_MONTHLY_PRICE_CENTS = "0";
+    process.env.PREMIUM_YEARLY_PRICE_CENTS = "nope";
+    expect(premiumMonthlyPriceCents()).toBe(2900);
+    expect(premiumYearlyPriceCents()).toBe(29000);
+  });
+
+  test("checkout stays on unless a kill switch is explicitly off", () => {
+    delete process.env.BILLING_CHECKOUT_ENABLED;
+    delete process.env.NEXT_PUBLIC_BILLING_CHECKOUT_ENABLED;
+    expect(isBillingCheckoutEnabled()).toBe(true);
+
+    process.env.BILLING_CHECKOUT_ENABLED = "false";
+    expect(isBillingCheckoutEnabled()).toBe(false);
+
+    process.env.BILLING_CHECKOUT_ENABLED = "true";
+    process.env.NEXT_PUBLIC_BILLING_CHECKOUT_ENABLED = "0";
+    expect(isBillingCheckoutEnabled()).toBe(false);
   });
 });
