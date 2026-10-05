@@ -1,0 +1,89 @@
+name: Scout Extension CI
+
+on:
+  pull_request:
+    branches: [stage-roadmap]
+    paths:
+      - 'scout-extension/**'
+      - 'packages/design-system/**'
+      - '.github/workflows/scout-extension.yml'
+  push:
+    branches: [stage-roadmap]
+    paths:
+      - 'scout-extension/**'
+      - 'packages/design-system/**'
+      - '.github/workflows/scout-extension.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scout-extension-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test Scout extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-bun
+
+      - name: Typecheck extension
+        run: bun --filter scout-extension typecheck
+
+      - name: Run unit tests
+        run: bun --filter scout-extension test
+        continue-on-error: false
+
+      - name: Build extension
+        run: bun --filter scout-extension build
+
+      - name: Validate manifest.json
+        run: |
+          # Parse the built manifest and verify it's valid MV3
+          MANIFEST_PATH="scout-extension/dist/manifest.json"
+          
+          if [ ! -f "$MANIFEST_PATH" ]; then
+            echo "Error: Built manifest not found at $MANIFEST_PATH"
+            exit 1
+          fi
+          
+          # Validate JSON syntax
+          if ! jq empty "$MANIFEST_PATH" 2>/dev/null; then
+            echo "Error: manifest.json is not valid JSON"
+            exit 1
+          fi
+          
+          # Verify required MV3 fields
+          MANIFEST_VERSION=$(jq -r '.manifest_version' "$MANIFEST_PATH")
+          NAME=$(jq -r '.name' "$MANIFEST_PATH")
+          VERSION=$(jq -r '.version' "$MANIFEST_PATH")
+          
+          if [ "$MANIFEST_VERSION" != "3" ]; then
+            echo "Error: manifest_version must be 3 (found: $MANIFEST_VERSION)"
+            exit 1
+          fi
+          
+          if [ -z "$NAME" ] || [ "$NAME" = "null" ]; then
+            echo "Error: name field is required"
+            exit 1
+          fi
+          
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "Error: version field is required"
+            exit 1
+          fi
+          
+          echo "✓ Manifest validation passed"
+          echo "  manifest_version: $MANIFEST_VERSION"
+          echo "  name: $NAME"
+          echo "  version: $VERSION"
+
+      - name: Upload built extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: scout-extension-${{ github.sha }}
+          path: scout-extension/dist/
+          retention-days: 7
