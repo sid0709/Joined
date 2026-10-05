@@ -1,22 +1,7 @@
 import { Badge, Heading, JobCard, Spinner, Stack, Text } from "@joined/design-system";
 
 import type { DetectedJobState } from "../hooks/detectedJob";
-import { COPY, jobBoardLabel, jobMetaLine, previewText } from "./copy";
-
-export function detectedJobHeading(state: DetectedJobState): string {
-  switch (state.status) {
-    case "loading":
-      return COPY.LOOKING_FOR_JOB;
-    case "empty":
-      return COPY.NO_JOB_FOUND;
-    case "found":
-      return COPY.DETECTED_JOB;
-    default: {
-      const _exhaustive: never = state;
-      return _exhaustive;
-    }
-  }
-}
+import { detectedJobHeading, jobBoardLabel, jobMetaLine, previewText } from "./copy";
 
 export function DetectedJobPanel({ state }: { state: DetectedJobState }) {
   const heading = detectedJobHeading(state);

@@ -1,4 +1,5 @@
 import type { CapturedJob, JobBoard } from "../capture";
+import type { DetectedJobState } from "../hooks/detectedJob";
 
 export const COPY = {
   DETECTED_JOB: "Detected job",
@@ -39,4 +40,19 @@ export function previewText(value: string, maxLength = DESCRIPTION_PREVIEW_CHARS
     return value;
   }
   return `${value.slice(0, maxLength).trimEnd()}…`;
+}
+
+export function detectedJobHeading(state: DetectedJobState): string {
+  switch (state.status) {
+    case "loading":
+      return COPY.LOOKING_FOR_JOB;
+    case "empty":
+      return COPY.NO_JOB_FOUND;
+    case "found":
+      return COPY.DETECTED_JOB;
+    default: {
+      const _exhaustive: never = state;
+      return _exhaustive;
+    }
+  }
 }
