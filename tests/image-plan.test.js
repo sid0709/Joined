@@ -30,7 +30,6 @@ describe("image plan", () => {
     expect(services(plan)).toContain("admin-frontend");
     expect(services(plan)).toContain("scoutwell-frontend");
     expect(plan.retag).toContain("connected-frontend");
-    expect(plan.retag).toContain("joined-theme");
   });
 
   it("rebuilds every frontend when the lockfile changes and leaves Go images tagged", () => {
@@ -40,7 +39,6 @@ describe("image plan", () => {
       "admin-frontend",
       "scoutwell-frontend",
       "connected-frontend",
-      "joined-theme",
       "acorn-frontend",
     ]);
     expect(plan.retag).toContain("joined-backend");
@@ -53,12 +51,12 @@ describe("image plan", () => {
       "acorn/extension/src/background.ts",
     ]);
     expect(plan.build).toEqual([]);
-    expect(plan.retag).toHaveLength(10);
+    expect(plan.retag).toHaveLength(9);
   });
 
   it("builds every image for a manual deploy", () => {
     const plan = planImages(["admin-backend/cmd/server/main.go"], { all: true });
     expect(plan.retag).toEqual([]);
-    expect(services(plan)).toHaveLength(10);
+    expect(services(plan)).toHaveLength(9);
   });
 });

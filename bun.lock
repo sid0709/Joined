@@ -155,29 +155,6 @@
         "typescript": "catalog:",
       },
     },
-    "joined-theme": {
-      "name": "joined-theme",
-      "version": "0.1.0",
-      "dependencies": {
-        "@astryxdesign/core": "catalog:",
-        "@astryxdesign/theme-neutral": "catalog:",
-        "@stylexjs/stylex": "catalog:",
-        "next": "catalog:",
-        "react": "catalog:",
-        "react-dom": "catalog:",
-        "sid-ui": "catalog:",
-      },
-      "devDependencies": {
-        "@tailwindcss/postcss": "catalog:",
-        "@types/node": "catalog:",
-        "@types/react": "catalog:",
-        "@types/react-dom": "catalog:",
-        "eslint": "catalog:",
-        "eslint-config-next": "catalog:",
-        "tailwindcss": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
     "packages/google-signin": {
       "name": "@joined/google-signin",
       "version": "0.1.0",
@@ -1597,8 +1574,6 @@
     "jiti": ["jiti@2.7.0", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
 
     "joined-frontend": ["joined-frontend@workspace:joined-frontend"],
-
-    "joined-theme": ["joined-theme@workspace:joined-theme"],
 
     "jpeg-js": ["jpeg-js@0.4.4", "", {}, "sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg=="],
 

@@ -2,7 +2,7 @@
 
 This is a **bun workspaces monorepo**. Work from the repo root. Shared UI is the `sid-ui` package (https://github.com/sid0709/sid-ui). Apps consume it from the catalog. Do not copy a component, token, or helper into a workspace, and do not add the source back under `packages/`.
 
-Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme`, `packages/*`, `acorn/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core`.
+Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `packages/*`, `acorn/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core`. The component catalog is `sid-ui-theme` in the sid-ui repo.
 
 Before pushing, run `bun run ci` — it runs exactly what GitHub CI runs (`tools/ci.mjs`).
 
@@ -39,11 +39,11 @@ Follow the rule that matches the folder you are editing, and use only that folde
 
 | Folder | Rule |
 | --- | --- |
-| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme` | `.claude/rules/nextjs.md` |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend` | `.claude/rules/nextjs.md` |
 | UI on `sid-ui`: those apps, `packages/scout`, `acorn/extension` | `.claude/rules/design-system.md` |
 | Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core` | `.claude/rules/go.md` |
 | Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.claude/rules/vite.md` |
-| `joined-theme` catalog for the published `sid-ui` package | `.claude/rules/theme.md` |
+| `sid-ui-theme` catalog in the sid-ui repo | `.claude/rules/theme.md` |
 
 Acorn's rules in `acorn/.claude/CLAUDE.md` and `acorn/.cursor/rules/` still apply on top of these.
 

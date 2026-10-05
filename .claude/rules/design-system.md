@@ -1,15 +1,15 @@
 ---
 paths:
-  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,acorn-frontend,joined-theme}/**/*.{ts,tsx,css}"
+  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,acorn-frontend}/**/*.{ts,tsx,css}"
   - "packages/scout/**/*.{ts,tsx,css}"
   - "acorn/extension/**/*.{ts,tsx,css}"
 ---
 
 # Design system is required
 
-Product UI uses `sid-ui`. This covers `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme`, `packages/scout`, and `acorn/extension`.
+Product UI uses `sid-ui`. This covers `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `packages/scout`, and `acorn/extension`.
 
-`joined-theme` is the catalog. Build app UI from the same public components and tokens the theme demos use.
+The catalog is `sid-ui-theme` in the sid-ui repo. Build app UI from the same public components and tokens that catalog shows.
 
 ## Components
 
@@ -17,7 +17,7 @@ Import the public entry. Never import `sid-ui/src/*`.
 
 Use an existing primitive for every control. Button, text input, link, modal, drawer, toast, badge, heading, and stack already exist. A screen does not get its own button, input, or dialog.
 
-When a primitive is missing, add it in the sid-ui repo (https://github.com/sid0709/sid-ui), publish it, bump the `sid-ui` catalog pin, and show it in `joined-theme` in the same change. Leave the markup out of the app.
+When a primitive is missing, add it in the sid-ui repo (https://github.com/sid0709/sid-ui), publish it, bump the `sid-ui` catalog pin, and show it in `sid-ui-theme` in the same change. Leave the markup out of the app.
 
 Semantic structure with no primitive (`main`, `section`, `form`, a list of app data) can stay local. Interactive controls and visual chrome cannot.
 

@@ -19,7 +19,6 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 | `admin-frontend`     | 3000           | 6010                      | with `admin`                                   |
 | `admin-backend`      | 8080           | 11081                     | with `admin`                                   |
 | `connected-frontend` | 3000           | 6004                      | with `connected`                               |
-| `joined-theme`       | 3000           | 6001                      | with `theme`                                   |
 
 Host ports are the dev ports + 3000, except `connected-frontend`: browsers refuse port 6000.
 Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect

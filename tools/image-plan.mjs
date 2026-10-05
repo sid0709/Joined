@@ -25,7 +25,6 @@ export const imageDefinitions = [
   { service: "admin-frontend", dockerfile: nextDockerfile, arg: "APP", kind: "next" },
   { service: "scoutwell-frontend", dockerfile: nextDockerfile, arg: "APP", kind: "next" },
   { service: "connected-frontend", dockerfile: nextDockerfile, arg: "APP", kind: "next" },
-  { service: "joined-theme", dockerfile: nextDockerfile, arg: "APP", kind: "next" },
   { service: "acorn-frontend", dockerfile: nextDockerfile, arg: "APP", kind: "next" },
 ];
 

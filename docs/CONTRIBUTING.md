@@ -7,7 +7,7 @@ repository root:
 bun install --frozen-lockfile
 ```
 
-The workspaces are `connected-frontend`, `joined-theme`, `joined-frontend`,
+The workspaces are `connected-frontend`, `joined-frontend`,
 and the other apps under this repo. Shared UI comes from the `sid-ui` package.
 Read [Coding Style](CODING_STYLE.md) before changing
 shared code. Keep repository policy and owner settings aligned with the

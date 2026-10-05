@@ -8,12 +8,6 @@
       "port": 6004
     },
     {
-      "name": "theme-dev",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "joined-theme", "dev"],
-      "port": 6001
-    },
-    {
       "name": "joined-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "joined-frontend", "dev"],

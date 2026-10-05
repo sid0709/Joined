@@ -14,14 +14,6 @@ export const LOCAL_SERVICES = [
     startExtraArgs: ["--port", "6004"],
   },
   {
-    id: "joined-theme",
-    shortName: "theme",
-    port: 6001,
-    color: "\x1b[35m",
-    workspace: "joined-theme",
-    startExtraArgs: ["--port", "6001"],
-  },
-  {
     id: "joined-frontend",
     shortName: "joined",
     port: 6002,

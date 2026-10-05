@@ -40,11 +40,11 @@ Follow the rule that matches the folder you are editing, and use only that folde
 
 | Folder | Rule file |
 | --- | --- |
-| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme` | `.cursor/rules/nextjs.mdc` |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend` | `.cursor/rules/nextjs.mdc` |
 | UI on `sid-ui`: those apps, `packages/scout`, `acorn/extension`, `acorn-frontend` | `.cursor/rules/design-system.mdc` |
 | Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core` | `.cursor/rules/go.mdc` |
 | Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.cursor/rules/vite.mdc` |
-| `joined-theme` catalog for the published `sid-ui` package | `.cursor/rules/theme-tracks-design-system.mdc` |
+| `sid-ui-theme` catalog in the sid-ui repo | `.cursor/rules/theme-tracks-design-system.mdc` |
 
 Claude Code loads the same text from `.claude/rules/`. Acorn's own rules under `acorn/.cursor/rules/` still apply on top of these.
 

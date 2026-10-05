@@ -131,9 +131,3 @@ services:
     image: ${IMAGE_REPO}:connected-frontend-${IMAGE_TAG}
     # 6000 would follow the +3000 rule, but browsers refuse to open port 6000.
     ports: ["127.0.0.1:6004:3000"]
-
-  joined-theme:
-    <<: *app
-    profiles: [theme]
-    image: ${IMAGE_REPO}:joined-theme-${IMAGE_TAG}
-    ports: ["127.0.0.1:6001:3000"]
