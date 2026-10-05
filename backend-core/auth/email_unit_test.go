@@ -6,7 +6,13 @@ import (
 	"time"
 )
 
-// Core unit tests using in-memory store (no MongoDB required)
+func newTestStore() *Store {
+	return NewTestStore()
+}
+
+func testRecords(store *Store) *memAccountRecords {
+	return store.records.(*memAccountRecords)
+}
 
 func TestEmailSignup(t *testing.T) {
 	tests := []struct {
@@ -25,7 +31,7 @@ func TestEmailSignup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := NewMemStore()
+			store := newTestStore()
 			ctx := context.Background()
 			now := time.Now()
 
@@ -47,7 +53,7 @@ func TestEmailSignup(t *testing.T) {
 }
 
 func TestEmailSignupDuplicate(t *testing.T) {
-	store := NewMemStore()
+	store := newTestStore()
 	ctx := context.Background()
 	now := time.Now()
 
@@ -64,7 +70,8 @@ func TestEmailSignupDuplicate(t *testing.T) {
 }
 
 func TestEmailVerification(t *testing.T) {
-	store := NewMemStore()
+	store := newTestStore()
+	records := testRecords(store)
 	ctx, now := context.Background(), time.Now()
 
 	userID, _, err := store.EmailSignup(ctx, "verify@example.com", "password123", "User", RoleCandidate, now)
@@ -77,34 +84,28 @@ func TestEmailVerification(t *testing.T) {
 		t.Fatalf("CreateVerificationToken failed: %v", err)
 	}
 
-	// Token should be hashed in storage
-	ms := store.(*memStore)
-	if _, exists := ms.verifications[token]; exists {
+	if records.hasVerification(token) {
 		t.Error("Token stored raw, should be hashed")
 	}
-	if _, exists := ms.verifications[hashToken(token)]; !exists {
+	if !records.hasVerification(hashToken(token)) {
 		t.Error("Token hash not found in storage")
 	}
 
-	// Verify with raw token
 	if err := store.VerifyEmail(ctx, token, now); err != nil {
 		t.Errorf("VerifyEmail failed: %v", err)
 	}
 
-	// Check user verified
-	ms = store.(*memStore)
-	if !ms.users[userID].verified {
+	if !records.verified(userID) {
 		t.Error("User not verified")
 	}
 
-	// Token consumed
 	if err := store.VerifyEmail(ctx, token, now); err != ErrInvalidToken {
 		t.Errorf("Reused token should fail, got %v", err)
 	}
 }
 
 func TestEmailSignin(t *testing.T) {
-	store := NewMemStore()
+	store := newTestStore()
 	ctx, now := context.Background(), time.Now()
 	email, password := "signin@example.com", "password123"
 
@@ -120,12 +121,10 @@ func TestEmailSignin(t *testing.T) {
 		t.Errorf("Session mismatch: got %+v", session.User)
 	}
 
-	// Wrong password
 	if _, _, err := store.EmailSignin(ctx, email, "wrong", AudienceJoined, now); err != ErrInvalidLogin {
 		t.Errorf("Wrong password should return ErrInvalidLogin, got %v", err)
 	}
 
-	// Unverified user
 	store.EmailSignup(ctx, "unverified@example.com", password, "Unverified", RoleCandidate, now)
 	if _, _, err := store.EmailSignin(ctx, "unverified@example.com", password, AudienceJoined, now); err != ErrEmailNotVerified {
 		t.Errorf("Unverified should return ErrEmailNotVerified, got %v", err)
@@ -133,7 +132,8 @@ func TestEmailSignin(t *testing.T) {
 }
 
 func TestPasswordReset(t *testing.T) {
-	store := NewMemStore()
+	store := newTestStore()
+	records := testRecords(store)
 	ctx, now := context.Background(), time.Now()
 	email, oldPw, newPw := "reset@example.com", "oldpassword123", "newpassword123"
 
@@ -146,30 +146,25 @@ func TestPasswordReset(t *testing.T) {
 		t.Fatalf("RequestPasswordReset failed: %v", err)
 	}
 
-	// Token hashed in storage
-	ms := store.(*memStore)
-	if _, exists := ms.resets[hashToken(resetToken)]; !exists {
+	if !records.hasReset(hashToken(resetToken)) {
 		t.Error("Reset token hash not found")
 	}
 
-	// Reset password
 	if err := store.ResetPassword(ctx, resetToken, newPw, now); err != nil {
 		t.Fatalf("ResetPassword failed: %v", err)
 	}
 
-	// Old password doesn't work
 	if _, _, err := store.EmailSignin(ctx, email, oldPw, AudienceJoined, now); err != ErrInvalidLogin {
 		t.Error("Old password should fail")
 	}
 
-	// New password works
 	if _, _, err := store.EmailSignin(ctx, email, newPw, AudienceJoined, now); err != nil {
 		t.Errorf("New password failed: %v", err)
 	}
 }
 
 func TestLoginAttempts(t *testing.T) {
-	store := NewMemStore()
+	store := newTestStore()
 	ctx, now := context.Background(), time.Now()
 	email, password := "lockout@example.com", "password123"
 
@@ -177,25 +172,21 @@ func TestLoginAttempts(t *testing.T) {
 	vToken, _ := store.CreateVerificationToken(ctx, userID, now)
 	store.VerifyEmail(ctx, vToken, now)
 
-	// Make failed attempts
 	for i := 0; i < maxLoginAttempts; i++ {
 		if _, _, err := store.EmailSignin(ctx, email, "wrong", AudienceJoined, now); err != ErrInvalidLogin {
 			t.Errorf("Attempt %d: expected ErrInvalidLogin, got %v", i+1, err)
 		}
 	}
 
-	// Next attempt locked
 	if _, _, err := store.EmailSignin(ctx, email, password, AudienceJoined, now); err != ErrAccountLocked {
 		t.Errorf("Expected ErrAccountLocked, got %v", err)
 	}
 
-	// After lockout expires, counter reset
 	future := now.Add(loginLockoutTime + time.Minute)
 	if _, _, err := store.EmailSignin(ctx, email, password, AudienceJoined, future); err != nil {
 		t.Errorf("After lockout should succeed, got %v", err)
 	}
 
-	// Single failure after reset doesn't re-lock
 	if _, _, err := store.EmailSignin(ctx, email, "wrong", AudienceJoined, future.Add(time.Minute)); err != ErrInvalidLogin {
 		t.Errorf("Single failure should return ErrInvalidLogin, got %v", err)
 	}
@@ -237,18 +228,16 @@ func TestConstantTimeCompare(t *testing.T) {
 }
 
 func TestSignupHashingTimingEqualization(t *testing.T) {
-	store := NewMemStore()
+	store := newTestStore()
 	ctx, now := context.Background(), time.Now()
 
 	var hashCalls int
-	ms := store.(*memStore)
-	originalHasher := ms.passwordHasher
-	ms.passwordHasher = func(password string) ([]byte, []byte, error) {
+	originalHasher := store.passwordHasher
+	store.passwordHasher = func(password string) ([]byte, []byte, error) {
 		hashCalls++
 		return originalHasher(password)
 	}
 
-	// New signup: hash called once
 	hashCalls = 0
 	userID, created, err := store.EmailSignup(ctx, "new@example.com", "password123", "User", RoleCandidate, now)
 	if err != nil || !created || userID == "" {
@@ -258,7 +247,6 @@ func TestSignupHashingTimingEqualization(t *testing.T) {
 		t.Errorf("New signup: hash called %d times, want 1", hashCalls)
 	}
 
-	// Duplicate signup: hash also called once
 	hashCalls = 0
 	userID2, created2, err2 := store.EmailSignup(ctx, "new@example.com", "differentpass", "Dup", RoleCandidate, now)
 	if err2 != nil || created2 || userID2 != "" {
