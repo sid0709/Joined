@@ -17,6 +17,14 @@ export function submittableDrafts(drafts: readonly JobDraft[]): JobDraft[] {
   return drafts.filter(canSubmit);
 }
 
+export function waitingDrafts(drafts: readonly JobDraft[]): JobDraft[] {
+  return drafts.filter((draft) => draft.status !== "submitted");
+}
+
+export function waitingDraftCount(drafts: readonly JobDraft[]): number {
+  return waitingDrafts(drafts).length;
+}
+
 export function beginSubmit(draft: JobDraft, now: string): JobDraft | null {
   if (!canSubmit(draft)) {
     return null;

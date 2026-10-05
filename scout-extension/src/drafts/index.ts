@@ -31,6 +31,8 @@ export {
   recoverInterrupted,
   recoverQueue,
   submittableDrafts,
+  waitingDraftCount,
+  waitingDrafts,
 } from "./submit";
 export { DRAFT_STATUSES, isDraftStatus } from "./types";
 export type { DraftIds, DraftStatus, JobDraft } from "./types";
