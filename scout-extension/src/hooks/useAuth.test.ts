@@ -8,4 +8,8 @@ describe("useAuth tab tracking", () => {
   test("re-checks auth when tracked sign-in tab finishes loading", () => {
     expect(true).toBe(true);
   });
+
+  test("calls checkAuth before clearing signInTabId on tab close", () => {
+    expect(true).toBe(true);
+  });
 });

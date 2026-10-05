@@ -20,6 +20,9 @@ function App() {
       const checkInterval = setInterval(() => {
         if (newTab.closed) {
           clearInterval(checkInterval);
+          setTimeout(() => {
+            checkAuth(false);
+          }, 1000);
           setSignInTabId(null);
         }
       }, 500);
