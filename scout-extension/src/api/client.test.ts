@@ -86,4 +86,15 @@ describe("ScoutApiClient", () => {
       }),
     );
   });
+
+  test("getMe handles malformed error response", async () => {
+    const invalidJsonResponse = new Response("not json", {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+    global.fetch = mock(async () => invalidJsonResponse) as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    await expect(client.getMe()).rejects.toThrow("Unknown error");
+  });
 });

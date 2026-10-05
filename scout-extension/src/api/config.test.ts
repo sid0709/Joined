@@ -10,22 +10,9 @@ describe("config", () => {
     expect(getSignInUrl()).toBe("http://localhost:3002/scout/signin");
   });
 
-  test("getSignInUrl returns production URL for production API", () => {
-    const originalMetaEnv = import.meta.env.VITE_SCOUT_API_HOST;
-    import.meta.env.VITE_SCOUT_API_HOST = "https://api.scout.example.com";
-
-    const client = { getApiHost: () => "https://api.scout.example.com" };
-    const url =
-      client.getApiHost().includes("127.0.0.1") || client.getApiHost().includes("localhost")
-        ? "http://localhost:3002/scout/signin"
-        : `${client.getApiHost()}/scout/signin`;
-
-    expect(url).toBe("https://api.scout.example.com/scout/signin");
-
-    if (originalMetaEnv === undefined) {
-      delete import.meta.env.VITE_SCOUT_API_HOST;
-    } else {
-      import.meta.env.VITE_SCOUT_API_HOST = originalMetaEnv;
-    }
+  test("getSignInUrl returns scout signin path", () => {
+    const url = getSignInUrl();
+    expect(url).toContain("/scout/signin");
+    expect(url).toMatch(/^https?:\/\//);
   });
 });
