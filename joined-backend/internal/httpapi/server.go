@@ -16,6 +16,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
@@ -50,6 +51,9 @@ type Options struct {
 	Sessions sessionLookup
 	// EmailSender delivers transactional email.
 	EmailSender auth.EmailSender
+	// KillSwitches turns off sign-up and outbound email at runtime. Nil leaves them on.
+	// Checkout is Penny's billing mount; see backend-core/killswitch/README.md.
+	KillSwitches killswitch.Switches
 	// Billing is Premium checkout, portal, and subscription status. Nil leaves those routes unmounted.
 	Billing *billing.Service
 	// BillingWebhook receives Stripe-signed events. Nil leaves POST /v1/webhooks/stripe unmounted.
@@ -78,6 +82,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		Accounts:       accounts,
 		Audience:       auth.AudienceJoined,
 		CompanyCreated: server.noteNewCompany,
+		Switches:       opts.KillSwitches,
 		// Google is the only way in. A sign-up is a job hunter unless it asks to be a
 		// recruiter, who then links or creates a company on the hiring setup page.
 		// A job hunter's consent screen also asks for the calendar interviews sync with.

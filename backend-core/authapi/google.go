@@ -11,6 +11,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 // googleTimeout bounds the code exchange and profile read with Google.
@@ -136,12 +137,25 @@ func (h Handlers) finishGoogle(w http.ResponseWriter, r *http.Request) {
 		writeGoogleFailure(w, err)
 		return
 	}
-	sessionToken, session, err := h.Accounts.GoogleSignin(ctx, auth.GoogleIdentity{
+	identity := auth.GoogleIdentity{
 		Subject:       profile.Subject,
 		Email:         profile.Email,
 		EmailVerified: profile.EmailVerified,
 		Name:          profile.Name,
-	}, h.Audience, saved.Role, now)
+	}
+	if !killswitch.On(h.Switches, r.Context(), killswitch.Signup) {
+		exists, existsErr := h.Accounts.GoogleUserExists(ctx, identity)
+		if existsErr != nil {
+			slog.Error("google signup check", "error", existsErr)
+			httpkit.WriteError(w, http.StatusInternalServerError, "could not complete sign in")
+			return
+		}
+		if !exists {
+			killswitch.WriteDisabled(w, killswitch.Signup)
+			return
+		}
+	}
+	sessionToken, session, err := h.Accounts.GoogleSignin(ctx, identity, h.Audience, saved.Role, now)
 	if err == nil && h.Google.Granted != nil {
 		h.Google.Granted(ctx, session, profile, token)
 	}
