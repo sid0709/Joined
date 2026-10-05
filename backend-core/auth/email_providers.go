@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+const smtpImplicitTLSPort = "465"
+
 // SMTPProvider sends email via an SMTP server.
 type SMTPProvider struct {
 	Host     string
@@ -26,7 +28,9 @@ type SMTPProvider struct {
 	Password string
 	From     string
 	Config   EmailTemplateConfig
-	// DialFunc allows overriding net/smtp.Dial for testing
+	// Insecure continues without STARTTLS when the upgrade fails. Local development only.
+	Insecure bool
+	// DialFunc allows overriding the SMTP dial for testing
 	DialFunc func(addr string) (smtpClient, error)
 }
 
@@ -79,19 +83,20 @@ func (s *SMTPProvider) send(to, subject, textBody, htmlBody string) error {
 	if s.DialFunc != nil {
 		client, err = s.DialFunc(addr)
 	} else {
-		var c *smtp.Client
-		c, err = smtp.Dial(addr)
-		if err == nil {
-			client = &realSMTPClient{c}
-		}
+		client, err = s.dialSMTP(addr)
 	}
 	if err != nil {
 		return fmt.Errorf("dial smtp: %w", err)
 	}
 	defer client.Close()
 
-	if err := client.StartTLS(&tls.Config{ServerName: s.Host}); err != nil {
-		slog.Warn("smtp starttls failed", "error", err)
+	if !s.implicitTLS() {
+		if err := client.StartTLS(&tls.Config{ServerName: s.Host}); err != nil {
+			if !s.Insecure {
+				return fmt.Errorf("smtp starttls: %w", err)
+			}
+			slog.Warn("smtp starttls failed; continuing because EMAIL_SMTP_INSECURE is set", "error", err)
+		}
 	}
 
 	if s.Username != "" && s.Password != "" {
@@ -129,6 +134,30 @@ func (s *SMTPProvider) send(to, subject, textBody, htmlBody string) error {
 	}
 
 	return client.Quit()
+}
+
+func (s *SMTPProvider) implicitTLS() bool {
+	return s.Port == smtpImplicitTLSPort
+}
+
+func (s *SMTPProvider) dialSMTP(addr string) (smtpClient, error) {
+	if s.implicitTLS() {
+		conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: s.Host})
+		if err != nil {
+			return nil, err
+		}
+		c, err := smtp.NewClient(conn, s.Host)
+		if err != nil {
+			conn.Close()
+			return nil, err
+		}
+		return &realSMTPClient{c}, nil
+	}
+	c, err := smtp.Dial(addr)
+	if err != nil {
+		return nil, err
+	}
+	return &realSMTPClient{c}, nil
 }
 
 func buildMIMEMessage(from, to, subject, textBody, htmlBody string) (string, error) {

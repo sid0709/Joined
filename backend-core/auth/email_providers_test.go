@@ -17,13 +17,14 @@ import (
 )
 
 type fakeSMTPClient struct {
-	from    string
-	to      string
-	message string
-	authd   bool
-	tlsUsed bool
-	closed  bool
-	err     error
+	from        string
+	to          string
+	message     string
+	authd       bool
+	tlsUsed     bool
+	closed      bool
+	err         error
+	startTLSErr error
 }
 
 func (f *fakeSMTPClient) Mail(from string) error {
@@ -60,6 +61,9 @@ func (f *fakeSMTPClient) Close() error {
 
 func (f *fakeSMTPClient) StartTLS(config *tls.Config) error {
 	f.tlsUsed = true
+	if f.startTLSErr != nil {
+		return f.startTLSErr
+	}
 	return nil
 }
 
@@ -172,6 +176,84 @@ func TestSMTPProviderSendPasswordReset(t *testing.T) {
 	}
 	if !strings.Contains(htmlBody, "https://example.com/reset-password?token=resettoken") {
 		t.Error("html part missing reset link")
+	}
+}
+
+func TestSMTPProviderStartTLSRequired(t *testing.T) {
+	provider := &SMTPProvider{
+		Host:     "smtp.example.com",
+		Port:     "587",
+		Username: "user@example.com",
+		Password: "password",
+		From:     "noreply@example.com",
+		Config: EmailTemplateConfig{
+			ProductName: "TestApp",
+			AppBaseURL:  "https://example.com",
+		},
+		DialFunc: func(addr string) (smtpClient, error) {
+			return &fakeSMTPClient{startTLSErr: errors.New("upgrade refused")}, nil
+		},
+	}
+
+	err := provider.SendVerification(context.Background(), "alice@example.com", "Alice", "token123")
+	if err == nil {
+		t.Fatal("expected starttls error, got nil")
+	}
+	if !strings.Contains(err.Error(), "smtp starttls") {
+		t.Errorf("expected starttls error, got: %v", err)
+	}
+}
+
+func TestSMTPProviderStartTLSInsecureContinues(t *testing.T) {
+	var client *fakeSMTPClient
+	provider := &SMTPProvider{
+		Host:     "smtp.example.com",
+		Port:     "587",
+		Username: "user@example.com",
+		Password: "password",
+		From:     "noreply@example.com",
+		Insecure: true,
+		Config: EmailTemplateConfig{
+			ProductName: "TestApp",
+			AppBaseURL:  "https://example.com",
+		},
+		DialFunc: func(addr string) (smtpClient, error) {
+			client = &fakeSMTPClient{startTLSErr: errors.New("upgrade refused")}
+			return client, nil
+		},
+	}
+
+	if err := provider.SendVerification(context.Background(), "alice@example.com", "Alice", "token123"); err != nil {
+		t.Fatalf("insecure send should continue after starttls failure: %v", err)
+	}
+	if client.to != "alice@example.com" {
+		t.Errorf("got to %q, want alice@example.com", client.to)
+	}
+}
+
+func TestSMTPProviderImplicitTLSSkipsStartTLS(t *testing.T) {
+	var client *fakeSMTPClient
+	provider := &SMTPProvider{
+		Host:     "smtp.example.com",
+		Port:     smtpImplicitTLSPort,
+		Username: "user@example.com",
+		Password: "password",
+		From:     "noreply@example.com",
+		Config: EmailTemplateConfig{
+			ProductName: "TestApp",
+			AppBaseURL:  "https://example.com",
+		},
+		DialFunc: func(addr string) (smtpClient, error) {
+			client = &fakeSMTPClient{}
+			return client, nil
+		},
+	}
+
+	if err := provider.SendVerification(context.Background(), "alice@example.com", "Alice", "token123"); err != nil {
+		t.Fatalf("implicit tls send failed: %v", err)
+	}
+	if client.tlsUsed {
+		t.Error("port 465 should not call STARTTLS")
 	}
 }
 
