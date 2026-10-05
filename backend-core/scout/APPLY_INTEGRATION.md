@@ -20,7 +20,7 @@ Scouts earn a share when candidates apply to jobs they submitted. The earnings l
 - **Deduplication**: Uses unique partial index on `(type=apply, submissionId, jobId, candidateId)` in `scout_earnings` collection
 - **Immediate release**: Apply earnings are released immediately (no hold period)
 - **Quiet for non-scout jobs**: Returns `(nil, nil)` when the job did not come from a scout submission (most applies)
-- **Only approved submissions**: Only credits for submissions in `approved` status that made it into the search pool
+- **Approved only, newest first**: Credits only an `approved` submission that made it into the search pool. When more than one approved row shares a `jobId`, crediting picks the newest `submittedAt`, then the highest `_id` as a tie-break. Stale rejected or needs-review rows never win.
 - **Atomic**: Single write operation ensures exactly-once credit even if retried after failure
 - **Returns**:
   - `(*Earning, nil)` if this is the first apply and credit succeeded
@@ -76,6 +76,17 @@ SCOUT_APPLY_REWARD_CENTS=100
 The configuration is loaded when creating the Store and applies to all future RecordApply calls.
 
 ## Database
+
+### Collection: `scout_submissions`
+
+Apply crediting looks up the source submission here (`submissionByJobID`).
+
+**Lookup:** `{jobId, status: "approved"}` sorted `{submittedAt: -1, _id: -1}`
+
+**Index:** `{jobId: 1, status: 1, submittedAt: -1, _id: -1}`
+
+- Equality on `jobId` + `status` so rejected and needs-review rows are never considered
+- Sort prefix matches the newest-`submittedAt` then `_id` rule used by `RecordApply`
 
 ### Collection: `scout_earnings`
 
@@ -235,8 +246,8 @@ earning4, err4 := store.RecordApply(ctx, "job-not-from-scout", "candidate-999", 
 ## Notes
 
 - **No hold period**: Apply earnings are released immediately (unlike approval/hire rewards which have a 14-day hold)
-- **Only approved submissions**: Credits only for submissions in `approved` status that made it into the search pool
+- **Only approved submissions**: Credits only for submissions in `approved` status that made it into the search pool. Newest `submittedAt` wins; `_id` breaks ties.
 - **Atomicity**: Single write operation (earning with dedupe fields) ensures exactly-once credit even after retries
-- **Attribution**: The job's `jobId` must match a submission's `jobId` field for attribution to work
+- **Attribution**: The job's `jobId` must match a submission's `jobId` field for attribution to work. The `{jobId, status, submittedAt, _id}` index is what `EnsureIndexes` creates for this lookup.
 - **Race safety**: Concurrent applies by same candidate to same job are handled via unique partial index
 - **No Stripe/payouts**: This step adds earnings tracking only; actual money movement is separate
