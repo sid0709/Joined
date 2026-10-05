@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { alreadyNotified, notificationDedupeKey, planStatusNotifications } from "./dedupe";
+import {
+  alreadyNotified,
+  notificationDedupeKey,
+  planStatusNotifications,
+  trimSeenKeys,
+} from "./dedupe";
 import type { ScoutStatusNotification, StatusPollState } from "./types";
 
 function notice(overrides: Partial<ScoutStatusNotification> = {}): ScoutStatusNotification {
@@ -26,6 +31,8 @@ describe("notification de-dupe", () => {
     expect(notificationDedupeKey(notice({ id: "n2" }))).toBe("accepted:sub-1");
     expect(notificationDedupeKey(notice({ event: "rejected", id: "n3" }))).toBe("rejected:sub-1");
     expect(notificationDedupeKey(notice({ event: "earned", id: "earn-1" }))).toBe("earned:earn-1");
+    expect(notificationDedupeKey(notice({ event: undefined }))).toBe("n1");
+    expect(notificationDedupeKey(notice({ event: "accepted", subject_id: undefined }))).toBe("n1");
   });
 
   test("bootstrap records history without notifying", () => {
@@ -91,5 +98,10 @@ describe("notification de-dupe", () => {
     expect(
       alreadyNotified(new Set(planned.state.seenKeys), notice({ id: "n9", event: "published" })),
     ).toBe(true);
+  });
+
+  test("trimSeenKeys keeps the newest keys when the cap is exceeded", () => {
+    expect(trimSeenKeys(["a", "b", "c"], 2)).toEqual(["b", "c"]);
+    expect(trimSeenKeys(["a", "b"], 2)).toEqual(["a", "b"]);
   });
 });

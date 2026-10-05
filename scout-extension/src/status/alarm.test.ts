@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   STATUS_POLL_ALARM,
   STATUS_POLL_PERIOD_MINUTES,
+  chromeAlarmPort,
   ensureStatusPollAlarm,
   isStatusPollAlarm,
 } from "./alarm";
@@ -27,5 +28,18 @@ describe("status poll alarm", () => {
     ]);
     expect(isStatusPollAlarm({ name: STATUS_POLL_ALARM })).toBe(true);
     expect(isStatusPollAlarm({ name: "other" })).toBe(false);
+  });
+
+  test("chromeAlarmPort returns chrome.alarms", () => {
+    const alarms = {
+      async get() {
+        return undefined;
+      },
+      async create() {
+        return;
+      },
+    };
+    (globalThis as unknown as { chrome: { alarms: typeof alarms } }).chrome = { alarms };
+    expect(chromeAlarmPort()).toBe(alarms);
   });
 });
