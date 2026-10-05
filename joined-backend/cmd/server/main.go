@@ -15,6 +15,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 	"github.com/sid0709/OpenSeat/joined-backend/internal/httpapi"
@@ -62,6 +63,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer p.Close()
+
+	expiryCfg := jobs.LoadExpiryConfig()
+	if expiryCfg.Enabled {
+		runner := jobs.NewExpiryRunner(p.Jobs, expiryCfg, slog.Default())
+		go runner.Run(context.Background())
+		slog.Info("jobs expiry checker enabled")
+	}
 
 	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)

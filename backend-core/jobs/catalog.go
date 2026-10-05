@@ -43,6 +43,11 @@ type storedSearchJob struct {
 	ListingStatus         string        `bson:"listingStatus,omitempty"`
 	PreviousListingStatus string        `bson:"previousListingStatus,omitempty"`
 	TakedownCause         string        `bson:"takedownCause,omitempty"`
+	LinkCheckFailures     int           `bson:"linkCheckFailures,omitempty"`
+	LastLinkCheckedAt     time.Time     `bson:"lastLinkCheckedAt,omitempty"`
+	LastVerifiedOpenAt    time.Time     `bson:"lastVerifiedOpenAt,omitempty"`
+	ExpiredAt             time.Time     `bson:"expiredAt,omitempty"`
+	LinkCheckSignal       string        `bson:"linkCheckSignal,omitempty"`
 	ReviewNote            string        `bson:"reviewNote,omitempty"`
 	ReviewedBy            string        `bson:"reviewedBy,omitempty"`
 	ReviewedAt            time.Time     `bson:"reviewedAt,omitempty"`
