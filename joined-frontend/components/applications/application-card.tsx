@@ -11,7 +11,8 @@ import {
   Text,
   icons,
 } from "@joined/design-system";
-import { STRONG_MATCH, type Application } from "@/lib/applications";
+import { STRONG_MATCH, isSavedBoardItem, type Application } from "@/lib/applications";
+import { reminderBadge, reminderLabel, reminderStatus } from "@/lib/application-reminders";
 import { relativeDay } from "@/lib/dates";
 
 const LOGO_SIZE = 32;
@@ -24,6 +25,8 @@ export function ApplicationCard({
   application: Application;
   onOpen: () => void;
 }) {
+  const status = reminderStatus(application.remindAt);
+  const reminderChip = reminderBadge(status);
   return (
     <Card padding={4}>
       <Stack gap={3}>
@@ -40,16 +43,32 @@ export function ApplicationCard({
         </HStack>
 
         <HStack gap={2} vAlign="center" wrap="wrap">
-          <Badge
-            label={`${application.match}% match`}
-            variant={application.match >= STRONG_MATCH ? "success" : "neutral"}
-          />
+          {isSavedBoardItem(application) ? (
+            <Badge label="Saved" variant="neutral" />
+          ) : (
+            <Badge
+              label={`${application.match}% match`}
+              variant={application.match >= STRONG_MATCH ? "success" : "neutral"}
+            />
+          )}
           {application.closedReason ? (
             <Badge label={application.closedReason} variant="neutral" />
           ) : null}
+          {reminderChip ? (
+            <Badge label={reminderChip.label} variant={reminderChip.variant} />
+          ) : null}
         </HStack>
 
-        {application.nextStep ? (
+        {application.remindAt ? (
+          <HStack gap={2} vAlign="center">
+            <Text color="accent">
+              <Icon icon={icons.bell} size="sm" color="inherit" />
+            </Text>
+            <Text type="supporting" maxLines={2}>
+              {reminderLabel(application.remindAt)}
+            </Text>
+          </HStack>
+        ) : application.nextStep ? (
           <HStack gap={2} vAlign="center">
             <Text color="accent">
               <Icon icon={icons.arrowRight} size="sm" color="inherit" />
