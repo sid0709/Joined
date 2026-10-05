@@ -71,9 +71,15 @@ type Store struct {
 	publisher Publisher
 	usage     Usage
 	fetcher   Fetcher
+	config    Config
 
 	now  func() time.Time
 	roll func() float64
+
+	// Storage hooks for testing RecordApply
+	findSubmissionByJobID func(ctx context.Context, jobID string) (Submission, error)
+	insertEarning         func(ctx context.Context, earning Earning) error
+	notifyReward          func(ctx context.Context, userID string, earning Earning)
 
 	workers   chan struct{}
 	pending   sync.WaitGroup
@@ -83,17 +89,25 @@ type Store struct {
 
 // NewStore wires the scout store. fetcher follows submitted links.
 func NewStore(client *mongo.Client, db string, accounts Accounts, publisher Publisher, usage Usage, fetcher Fetcher) *Store {
-	return &Store{
+	s := &Store{
 		client:    client,
 		db:        db,
 		accounts:  accounts,
 		publisher: publisher,
 		usage:     usage,
 		fetcher:   fetcher,
+		config:    LoadConfig(),
 		now:       time.Now,
 		roll:      rand.Float64,
 		workers:   make(chan struct{}, checkWorkers),
 	}
+	// Default to production implementations
+	s.findSubmissionByJobID = s.submissionByJobID
+	s.insertEarning = s.insertEarningMongo
+	s.notifyReward = func(ctx context.Context, userID string, earning Earning) {
+		s.notifyRewardImpl(ctx, userID, earning)
+	}
+	return s
 }
 
 // EnsureIndexes creates every index the scout collections rely on.
@@ -117,6 +131,12 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		}},
 		{earningsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{earningsCollection, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "holdUntil", Value: 1}}}},
+		{earningsCollection, mongo.IndexModel{
+			Keys: bson.D{{Key: "type", Value: 1}, {Key: "submissionId", Value: 1}, {Key: "jobId", Value: 1}, {Key: "candidateId", Value: 1}},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{
+				{Key: "type", Value: RewardApply},
+			}),
+		}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "_id", Value: 1}}}},
 		{notificationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},

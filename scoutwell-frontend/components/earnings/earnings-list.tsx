@@ -7,6 +7,7 @@ import { ROUTES } from "@/lib/routes";
 
 const REWARD_ICON: Record<RewardType, GlyphName> = {
   approval: "check",
+  apply: "arrowRight",
   interview: "chat",
   hire: "users",
   conversion: "star",

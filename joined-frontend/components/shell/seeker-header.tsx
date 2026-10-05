@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { BrandHeading, TopNav, TopNavItem, useAppShellMobile } from "@joined/design-system";
+import { isCompanyModeEnabled } from "@/lib/config";
 import type { AuthSession } from "@/lib/auth/types";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";
 import { AccountMenu } from "./account-menu";
@@ -32,6 +33,7 @@ export function SeekerHeader({
   const pathname = usePathname();
   const { isMobile } = useAppShellMobile();
   const nav = session ? MEMBER_NAV : GUEST_NAV;
+  const companyModeEnabled = isCompanyModeEnabled();
 
   return (
     <TopNav
@@ -47,7 +49,7 @@ export function SeekerHeader({
               isSelected={isActive(pathname, link.href)}
             />
           ))}
-          {!session && isMobile ? <ForEmployersNavItem /> : null}
+          {!session && isMobile && companyModeEnabled ? <ForEmployersNavItem /> : null}
         </>
       }
       endContent={
