@@ -1,3 +1,4 @@
+import { emailAuthCsrfReject } from "./csrf";
 import {
   EMAIL_API_PATHS,
   EMAIL_MESSAGES,
@@ -66,6 +67,8 @@ async function forwardEmailAuth<T>(
   action: EmailAuthAction,
   success: (data: Record<string, unknown>) => Promise<Response> | Response,
 ): Promise<Response> {
+  const rejected = emailAuthCsrfReject(request);
+  if (rejected) return rejected;
   const parsed = parse(await request.json().catch(() => null));
   if (!parsed.ok) return Response.json({ error: parsed.message }, { status: 400 });
   try {

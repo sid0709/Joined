@@ -50,6 +50,7 @@ export const EMAIL_MESSAGES = {
   signupUnavailable: "Email sign-up is not available right now. Try again later.",
   forgotUnavailable: "Password reset is not available right now. Try again later.",
   genericFailure: "Something went wrong. Try again.",
+  forbidden: "Forbidden",
 } as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Banner, Button, FormLayout, TextInput } from "@joined/design-system";
 import {
   EMAIL_APP_ROUTES,
+  checkEmailHref,
   fieldStatus,
   signupRequest,
   submitEmailAuth,
@@ -12,7 +13,6 @@ import {
   validateName,
   validatePassword,
 } from "@/lib/auth/email";
-import { checkEmailHref } from "@/lib/auth/email";
 
 export function EmailSignUpFields() {
   const router = useRouter();

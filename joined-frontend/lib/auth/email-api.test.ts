@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
+import { CSRF_FORBIDDEN_STATUS, JSON_MEDIA_TYPE, SAME_ORIGIN_FETCH_SITE } from "./csrf";
 import { EMAIL_API_PATHS, EMAIL_MESSAGES } from "./email";
 import {
   extractSessionToken,
@@ -28,10 +29,15 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
-function jsonRequest(body: unknown): Request {
+function jsonRequest(body: unknown, headers: HeadersInit = {}): Request {
   return new Request("http://app.test/api/auth", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": JSON_MEDIA_TYPE,
+      Origin: "http://app.test",
+      "Sec-Fetch-Site": SAME_ORIGIN_FETCH_SITE,
+      ...headers,
+    },
     body: JSON.stringify(body),
   });
 }
@@ -245,11 +251,78 @@ describe("email auth route handlers", () => {
     ).toEqual({ status: 400, body: { error: EMAIL_MESSAGES.resetFailed } });
   });
 
-  test("handlers accept an empty body when JSON is missing", async () => {
-    const empty = new Request("http://app.test/api/auth", { method: "POST" });
-    expect(await readJson(await handleEmailSignup(empty, API))).toEqual({
+  test("handlers accept an empty JSON object from the same origin", async () => {
+    expect(await readJson(await handleEmailSignup(jsonRequest({}), API))).toEqual({
       status: 400,
       body: { error: EMAIL_MESSAGES.nameRequired },
     });
+  });
+
+  test("signin rejects non-JSON and cross-origin posts before they reach the API", async () => {
+    const fetchMock = answer(200, { token: "sess_1" });
+    const writeSession = mock((token: string) => {
+      void token;
+      return Promise.resolve();
+    });
+    const credentials = { email: "ada@example.com", password: "password123" };
+
+    expect(
+      await readJson(
+        await handleEmailSignin(
+          new Request("http://app.test/api/auth/signin", {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain",
+              Origin: "http://app.test",
+              "Sec-Fetch-Site": SAME_ORIGIN_FETCH_SITE,
+            },
+            body: JSON.stringify(credentials),
+          }),
+          API,
+          writeSession,
+        ),
+      ),
+    ).toEqual({ status: CSRF_FORBIDDEN_STATUS, body: { error: EMAIL_MESSAGES.forbidden } });
+
+    expect(
+      await readJson(
+        await handleEmailSignin(
+          new Request("http://app.test/api/auth/signin", {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain",
+              Origin: "https://evil.test",
+              "Sec-Fetch-Site": "cross-site",
+            },
+            body: JSON.stringify(credentials),
+          }),
+          API,
+          writeSession,
+        ),
+      ),
+    ).toEqual({ status: CSRF_FORBIDDEN_STATUS, body: { error: EMAIL_MESSAGES.forbidden } });
+
+    expect(
+      await readJson(
+        await handleEmailSignin(
+          jsonRequest(credentials, { Origin: "https://evil.test" }),
+          API,
+          writeSession,
+        ),
+      ),
+    ).toEqual({ status: CSRF_FORBIDDEN_STATUS, body: { error: EMAIL_MESSAGES.forbidden } });
+
+    expect(
+      await readJson(
+        await handleEmailSignin(
+          jsonRequest(credentials, { "Sec-Fetch-Site": "cross-site" }),
+          API,
+          writeSession,
+        ),
+      ),
+    ).toEqual({ status: CSRF_FORBIDDEN_STATUS, body: { error: EMAIL_MESSAGES.forbidden } });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(writeSession).not.toHaveBeenCalled();
   });
 });
