@@ -33,6 +33,12 @@ bun --filter scout-extension typecheck
 
 The Scout extension should now appear in your extensions list. Click the Scout icon in the toolbar to open the side panel.
 
+## Job capture
+
+On a job posting page, open the side panel. Scout detects Greenhouse, Lever, Ashby, Workday, and LinkedIn job pages, then shows a **Detected job** card with title, company, location, apply URL, and description. Pages without a job show **No job found on this page**.
+
+Capture uses `activeTab` plus on-demand `scripting`. The extractor is injected into the current tab when the panel asks for it. There are no host permissions for ATS origins.
+
 ## How to release
 
 Unlisted Chrome Web Store upload is a human step. This repo only builds the zip and listing materials.

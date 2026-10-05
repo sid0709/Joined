@@ -18,5 +18,6 @@
     "resolveJsonModule": true,
     "types": ["chrome", "bun-types"]
   },
-  "include": ["src", "scripts", "vite.config.ts"]
+  "include": ["src", "scripts", "vite.config.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

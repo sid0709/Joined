@@ -97,6 +97,16 @@ func applyCreditSubmissionSort() bson.D {
 	}
 }
 
+// applyCreditSubmissionIndex supports the approved + newest-submittedAt lookup.
+func applyCreditSubmissionIndex() bson.D {
+	return bson.D{
+		{Key: "jobId", Value: 1},
+		{Key: "status", Value: 1},
+		{Key: "submittedAt", Value: -1},
+		{Key: "_id", Value: -1},
+	}
+}
+
 // newestApprovedSubmission is the in-memory form of submissionByJobID. Tests and
 // fake storage hooks call this so crediting uses the same approved/newest rule
 // without a live MongoDB.

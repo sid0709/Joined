@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="@crxjs/vite-plugin/client" />
 
 interface ImportMetaEnv {
   readonly VITE_SCOUT_VERSION: string;

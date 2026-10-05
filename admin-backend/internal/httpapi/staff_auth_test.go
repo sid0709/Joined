@@ -1,14 +1,36 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 )
+
+type rejectStaffAccounts struct{}
+
+func (rejectStaffAccounts) StaffSession(context.Context, string, time.Time) (auth.Staff, error) {
+	return auth.Staff{}, auth.ErrInvalidLogin
+}
+
+func (rejectStaffAccounts) StaffSignout(context.Context, string) error { return nil }
+
+func (rejectStaffAccounts) StaffSignin(context.Context, auth.GoogleIdentity, string, string, time.Time) (string, auth.Staff, error) {
+	return "", auth.Staff{}, auth.ErrNotStaff
+}
+
+func (rejectStaffAccounts) SaveGoogleState(context.Context, string, auth.GoogleState, time.Time) error {
+	return nil
+}
+
+func (rejectStaffAccounts) TakeGoogleState(context.Context, string, time.Time) (auth.GoogleState, error) {
+	return auth.GoogleState{}, auth.ErrGoogleState
+}
 
 func staffSignIn() StaffSignIn {
 	return StaffSignIn{
@@ -56,5 +78,41 @@ func TestStaffRoutesNeedASessionOnceSignInIsRequired(t *testing.T) {
 	}
 	if recorder := serve(New(nil, nil, nil, nil, Options{}), http.MethodPost, "/v1/auth/google/start"); recorder.Code != http.StatusServiceUnavailable {
 		t.Fatalf("start without Google: %d", recorder.Code)
+	}
+}
+
+func TestAdminRouteGroupsRejectUnsignedAndUserTokens(t *testing.T) {
+	staff := staffSignIn()
+	staff.Accounts = rejectStaffAccounts{}
+	handler := New(nil, nil, nil, nil, Options{Staff: staff})
+	groups := []string{
+		"/v1/settings",
+		"/v1/jobs",
+		"/v1/jobs/temp",
+		"/v1/companies",
+		"/v1/migration",
+		"/v1/reports",
+		"/v1/admin/cases",
+		"/v1/admin/jobs",
+		"/v1/admin/companies/verifications",
+		"/v1/admin/scout/meta",
+		"/v1/admin/acorn-ai",
+		"/v1/admin/deepseek",
+	}
+	for _, path := range groups {
+		t.Run(path+" no token", func(t *testing.T) {
+			if recorder := serve(handler, http.MethodGet, path); recorder.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body = %s", recorder.Code, recorder.Body)
+			}
+		})
+		t.Run(path+" user token", func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Header.Set(staffSessionHeader, "user-session-token")
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body = %s", rec.Code, rec.Body)
+			}
+		})
 	}
 }
