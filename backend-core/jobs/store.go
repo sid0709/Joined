@@ -33,7 +33,9 @@ type ListResult struct {
 type CopyResult struct {
 	Copied int64 `json:"copied"`
 	// Kept counts crawler-ingested jobs carried over from the old temp_jobs.
-	Kept        int64  `json:"kept"`
+	Kept int64 `json:"kept"`
+	// Published counts copied jobs left out of temp_jobs because they are already published.
+	Published   int64  `json:"published"`
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
 	Indexes     int    `json:"indexes"`

@@ -31,12 +31,15 @@ const (
 // AnalyzeTempJobs turns temp jobs into public search records, workers at a time, and
 // publishes each one whose analysis says enough. Jobs are read in batches while
 // earlier ones are with the model. A job that fails is reported and the run goes on;
-// a missing API key stops it.
+// a missing API key stops it. Temp jobs already published are dropped first.
 func (s *Store) AnalyzeTempJobs(ctx context.Context, reader ModelReader, scope AnalyzeScope, workers int, progress Progress) error {
 	if reader == nil {
 		return openai.ErrMissingAPIKey
 	}
 	progress = orNoProgress(progress)
+	if _, err := s.purgePublishedTempJobs(ctx); err != nil {
+		return err
+	}
 	ids, err := s.tempJobsToAnalyze(ctx, scope, progress)
 	if err != nil {
 		return err
@@ -71,9 +74,9 @@ func (s *Store) AnalyzeTempJobs(ctx context.Context, reader ModelReader, scope A
 	return runBulk(ctx, ids, workers, load, work)
 }
 
-// publishAnalysis analyzes a temp job and publishes it when the analysis says enough.
-// One it cannot publish is marked on the temp job instead; a job published before
-// stays published.
+// publishAnalysis analyzes a temp job and publishes it when the analysis says enough,
+// then drops the temp job. One it cannot publish is marked on the temp job instead; a
+// job published before stays published.
 func (s *Store) publishAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (bool, error) {
 	record, err := s.analysisRecord(ctx, reader, listing, now)
 	reason := ""
@@ -91,14 +94,16 @@ func (s *Store) publishAnalysis(ctx context.Context, reader ModelReader, listing
 	if err := s.saveSearchJob(ctx, record); err != nil {
 		return false, err
 	}
-	_, err = s.dest().UpdateOne(ctx, bson.D{{Key: "_id", Value: listing.ID}}, bson.D{{Key: "$unset", Value: bson.D{{Key: "analysis", Value: ""}}}})
-	return true, err
+	return true, s.dropTempJob(ctx, listing.ID)
 }
 
 func (s *Store) markNotPublishable(ctx context.Context, id bson.ObjectID, model, reason string, now time.Time) error {
 	published, err := s.structured().CountDocuments(ctx, bson.D{{Key: "_id", Value: id}})
-	if err != nil || published > 0 {
+	if err != nil {
 		return err
+	}
+	if published > 0 {
+		return s.dropTempJob(ctx, id)
 	}
 	_, err = s.dest().UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{{Key: "$set", Value: bson.D{
 		{Key: notPublishableField, Value: now.UTC()},

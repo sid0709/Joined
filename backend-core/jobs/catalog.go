@@ -48,6 +48,9 @@ type storedSearchJob struct {
 	ReviewedAt            time.Time     `bson:"reviewedAt,omitempty"`
 	Job                   SearchJob     `bson:"job"`
 	DedupeKey             string        `bson:"dedupeKey,omitempty"`
+	// SourceCompanyID is the temp job's source company, kept so the job can still be
+	// linked to its company once the temp job is dropped.
+	SourceCompanyID string `bson:"sourceCompanyId,omitempty"`
 }
 
 type tempListing struct {
@@ -73,6 +76,14 @@ type tempListing struct {
 			Salary    string `bson:"salary"`
 		} `bson:"details"`
 	} `bson:"metadata"`
+}
+
+// sourceCompanyID is the source company id the listing was copied with, if any.
+func (listing tempListing) sourceCompanyID() string {
+	if listing.CompanyID.IsZero() {
+		return ""
+	}
+	return listing.CompanyID.Hex()
 }
 
 const maxSearchCatalog = 2000
@@ -323,16 +334,12 @@ func (s *Store) pendingCount(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	// Scouted jobs are published without a temp job, so only count analyzed temp jobs.
-	structured, err := s.structured().CountDocuments(ctx, bson.D{{Key: "tempJobId", Value: bson.D{{Key: "$gt", Value: ""}}}})
-	if err != nil {
-		return 0, err
-	}
+	// Published temp jobs are dropped, so every temp job not marked is still pending.
 	notPublishable, err := s.dest().CountDocuments(ctx, bson.D{{Key: notPublishableField, Value: bson.D{{Key: "$exists", Value: true}}}})
 	if err != nil {
 		return 0, err
 	}
-	pending := tempCount - structured - notPublishable
+	pending := tempCount - notPublishable
 	if pending < 0 {
 		return 0, nil
 	}

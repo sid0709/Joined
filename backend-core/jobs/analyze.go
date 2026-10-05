@@ -230,16 +230,17 @@ func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing 
 	), listing)
 	job.Description = originalDescription(listing.Description)
 	return storedSearchJob{
-		ID:         listing.ID,
-		TempJobID:  listing.ID.Hex(),
-		PostedAt:   listing.PostedAt,
-		ApplyLink:  listing.ApplyLink,
-		AnalyzedAt: now.UTC(),
-		Model:      reader.Model(),
-		CreatedBy:  strings.TrimSpace(listing.CreatedBy),
-		Source:     strings.TrimSpace(listing.Source),
-		SourceRef:  strings.TrimSpace(listing.SourceRef),
-		Job:        job,
+		ID:              listing.ID,
+		TempJobID:       listing.ID.Hex(),
+		PostedAt:        listing.PostedAt,
+		ApplyLink:       listing.ApplyLink,
+		AnalyzedAt:      now.UTC(),
+		Model:           reader.Model(),
+		CreatedBy:       strings.TrimSpace(listing.CreatedBy),
+		Source:          strings.TrimSpace(listing.Source),
+		SourceRef:       strings.TrimSpace(listing.SourceRef),
+		SourceCompanyID: listing.sourceCompanyID(),
+		Job:             job,
 	}, nil
 }
 

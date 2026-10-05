@@ -111,7 +111,8 @@ func unanalyzedCompanyFilter(q string) bson.D {
 	return filter
 }
 
-// SubmitExternalJobAnalysis stores a caller-provided search record for one temp job.
+// SubmitExternalJobAnalysis stores a caller-provided search record for one temp job
+// and drops the temp job.
 func (s *Store) SubmitExternalJobAnalysis(ctx context.Context, tempJobID string, record SearchRecord, now time.Time) (SearchRecord, error) {
 	id, err := bson.ObjectIDFromHex(tempJobID)
 	if err != nil {
@@ -156,23 +157,23 @@ func (s *Store) SubmitExternalJobAnalysis(ctx context.Context, tempJobID string,
 		source = strings.TrimSpace(listing.Source)
 	}
 	doc := storedSearchJob{
-		ID:            id,
-		TempJobID:     tempJobID,
-		PostedAt:      listing.PostedAt,
-		ApplyLink:     applyLink,
-		AnalyzedAt:    analyzedAt.UTC(),
-		Model:         model,
-		CreatedBy:     createdBy,
-		Source:        source,
-		SourceRef:     strings.TrimSpace(listing.SourceRef),
-		ListingStatus: strings.TrimSpace(record.ListingStatus),
-		Job:           record.Job,
+		ID:              id,
+		TempJobID:       tempJobID,
+		PostedAt:        listing.PostedAt,
+		ApplyLink:       applyLink,
+		AnalyzedAt:      analyzedAt.UTC(),
+		Model:           model,
+		CreatedBy:       createdBy,
+		Source:          source,
+		SourceRef:       strings.TrimSpace(listing.SourceRef),
+		SourceCompanyID: listing.sourceCompanyID(),
+		ListingStatus:   strings.TrimSpace(record.ListingStatus),
+		Job:             record.Job,
 	}
 	if err := s.saveSearchJob(ctx, doc); err != nil {
 		return SearchRecord{}, err
 	}
-	_, err = s.dest().UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{{Key: "$unset", Value: bson.D{{Key: "analysis", Value: ""}}}})
-	if err != nil {
+	if err := s.dropTempJob(ctx, id); err != nil {
 		return SearchRecord{}, err
 	}
 	return doc.view(now), nil

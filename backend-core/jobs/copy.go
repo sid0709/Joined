@@ -28,7 +28,8 @@ const (
 
 // Copy replaces temp_jobs with a fresh copy of the source jobs. It builds the copy in a
 // staging collection, checks it, and swaps it in, so readers never see half a copy.
-// Jobs the crawler ingested straight into temp_jobs are carried over.
+// Jobs the crawler ingested straight into temp_jobs are carried over, and jobs already
+// published are left out, so temp_jobs only holds jobs still waiting.
 func (s *Store) Copy(ctx context.Context, progress Progress) (CopyResult, error) {
 	if !s.copyMu.TryLock() {
 		return CopyResult{}, ErrCopyInProgress
@@ -91,6 +92,10 @@ func (s *Store) copy(ctx context.Context, progress Progress) (CopyResult, error)
 	if err != nil {
 		return CopyResult{}, err
 	}
+	published, err := s.deletePublishedJobs(ctx, staging)
+	if err != nil {
+		return CopyResult{}, err
+	}
 
 	if err := renameCollection(ctx, s.client, s.destDB, stagingName, s.destCollection); err != nil {
 		return CopyResult{}, err
@@ -100,6 +105,7 @@ func (s *Store) copy(ctx context.Context, progress Progress) (CopyResult, error)
 	return CopyResult{
 		Copied:      copied,
 		Kept:        kept,
+		Published:   published,
 		Source:      s.sourceDB + "." + s.sourceCollection,
 		Destination: s.destDB + "." + s.destCollection,
 		Indexes:     indexCount,
