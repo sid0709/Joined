@@ -71,6 +71,26 @@ func TestLoadConfigDefaultPrices(t *testing.T) {
 	}
 }
 
+func TestLoadConfigRedirectURLs(t *testing.T) {
+	setenv(t, "STRIPE_SECRET_KEY", "sk_test_xyz")
+	setenv(t, "BILLING_CHECKOUT_SUCCESS_URL", "https://app.example.test/ok")
+	setenv(t, "BILLING_CHECKOUT_CANCEL_URL", "https://app.example.test/no")
+	setenv(t, "BILLING_PORTAL_RETURN_URL", "https://app.example.test/billing")
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.CheckoutSuccessURL != "https://app.example.test/ok" {
+		t.Fatalf("success url: %q", cfg.CheckoutSuccessURL)
+	}
+	if cfg.CheckoutCancelURL != "https://app.example.test/no" {
+		t.Fatalf("cancel url: %q", cfg.CheckoutCancelURL)
+	}
+	if cfg.PortalReturnURL != "https://app.example.test/billing" {
+		t.Fatalf("portal url: %q", cfg.PortalReturnURL)
+	}
+}
+
 func TestLoadConfigCustomPrices(t *testing.T) {
 	setenv(t, "STRIPE_SECRET_KEY", "sk_test_xyz")
 	setenv(t, "PREMIUM_MONTHLY_PRICE_CENTS", "3500")
