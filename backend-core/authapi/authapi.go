@@ -14,6 +14,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 const maxAuthBody = 16 << 10
@@ -42,6 +43,7 @@ type AccountsStore interface {
 	SaveGoogleState(ctx context.Context, state string, saved auth.GoogleState, now time.Time) error
 	TakeGoogleState(ctx context.Context, state string, now time.Time) (auth.GoogleState, error)
 	GoogleSignin(ctx context.Context, identity auth.GoogleIdentity, audience, newRole string, now time.Time) (string, auth.Session, error)
+	GoogleUserExists(ctx context.Context, identity auth.GoogleIdentity) (bool, error)
 }
 
 // Handlers are the identity routes of one app.
@@ -57,6 +59,8 @@ type Handlers struct {
 	Google *GoogleSignIn
 	// Email turns on email authentication. Nil answers 503.
 	Email *EmailAuth
+	// Switches can turn off sign-up and outbound email without a deploy. Nil leaves them on.
+	Switches killswitch.Switches
 }
 
 type authResponse struct {
@@ -164,6 +168,14 @@ func (h Handlers) companyCreated(ctx context.Context, session auth.Session) {
 	if h.CompanyCreated != nil {
 		h.CompanyCreated(ctx, session)
 	}
+}
+
+func (h Handlers) blocked(w http.ResponseWriter, r *http.Request, name killswitch.Name) bool {
+	if killswitch.On(h.Switches, r.Context(), name) {
+		return false
+	}
+	killswitch.WriteDisabled(w, name)
+	return true
 }
 
 func writeAuthResult(w http.ResponseWriter, token string, session auth.Session, err error) {

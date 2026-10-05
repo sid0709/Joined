@@ -75,6 +75,9 @@ func (s *Store) Profile(ctx context.Context, userID string) (Profile, error) {
 }
 
 func (s *Store) storedProfile(ctx context.Context, userID string) (Profile, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.profile(userID)
+	}
 	var profile Profile
 	err := s.collection(profilesCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&profile)
 	if errors.Is(err, mongo.ErrNoDocuments) {

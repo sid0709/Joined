@@ -68,17 +68,19 @@ func (m *MemoryAccounts) SearchUserIDs(_ context.Context, _ string) ([]string, e
 }
 
 type memDocs struct {
-	mu           sync.Mutex
-	profiles     map[string]Profile
-	submissions  []Submission
-	idempotency  map[string]idempotencyRecord
+	mu            sync.Mutex
+	profiles      map[string]Profile
+	submissions   []Submission
+	idempotency   map[string]idempotencyRecord
+	notifications []Notification
 }
 
 func newMemDocs() *memDocs {
 	return &memDocs{
-		profiles:    map[string]Profile{},
-		submissions: []Submission{},
-		idempotency: map[string]idempotencyRecord{},
+		profiles:      map[string]Profile{},
+		submissions:   []Submission{},
+		idempotency:   map[string]idempotencyRecord{},
+		notifications: []Notification{},
 	}
 }
 
@@ -216,18 +218,96 @@ func (m *memDocs) submissionCount() int {
 	return len(m.submissions)
 }
 
+func (m *memDocs) profile(userID string) (Profile, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	profile, ok := m.profiles[userID]
+	if !ok {
+		return Profile{}, ErrNotFound
+	}
+	return profile, nil
+}
+
+func (m *memDocs) insertNotification(row Notification) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if row.Key != "" {
+		for _, existing := range m.notifications {
+			if existing.Key == row.Key {
+				return duplicateKey("notification key")
+			}
+		}
+	}
+	copied := row
+	m.notifications = append(m.notifications, copied)
+	return nil
+}
+
+func (m *memDocs) listNotifications(userID string, query NotificationQuery) ([]Notification, string, error) {
+	m.mu.Lock()
+	owned := make([]Notification, 0)
+	for _, item := range m.notifications {
+		if item.ScoutUserID == userID {
+			copied := item
+			owned = append(owned, copied)
+		}
+	}
+	m.mu.Unlock()
+	page, err := pageNotifications(owned, query)
+	if err != nil {
+		return nil, "", err
+	}
+	return page.Data, page.NextCursor, nil
+}
+
+func (m *memDocs) unreadCount(userID string) int64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var n int64
+	for _, item := range m.notifications {
+		if item.ScoutUserID == userID && !item.Read {
+			n++
+		}
+	}
+	return n
+}
+
+func (m *memDocs) markRead(userID string, ids []string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	want := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		want[id] = struct{}{}
+	}
+	for i, item := range m.notifications {
+		if item.ScoutUserID != userID || item.Read {
+			continue
+		}
+		if len(want) > 0 {
+			if _, ok := want[item.ObjectID.Hex()]; !ok {
+				continue
+			}
+		}
+		m.notifications[i].Read = true
+	}
+}
+
 // NewMemoryStore returns a Store that persists on in-memory collections.
 // Automatic checks are disabled. Tests use this instead of a live MongoDB.
 func NewMemoryStore(accounts Accounts, now func() time.Time) *Store {
 	if now == nil {
 		now = time.Now
 	}
-	return &Store{
+	s := &Store{
 		accounts: accounts,
 		docs:     newMemDocs(),
 		now:      now,
 		config:   DefaultConfig(),
 	}
+	s.notifyReward = func(ctx context.Context, userID string, earning Earning) {
+		s.notifyRewardImpl(ctx, userID, earning)
+	}
+	return s
 }
 
 // MemoryAcceptTerms records scout terms on an in-memory store.
@@ -237,7 +317,14 @@ func MemoryAcceptTerms(s *Store, userID string) {
 	}
 }
 
-// MemorySubmissionCount is how many submissions an in-memory store holds.
+// MemoryNotifyDecision writes one status-change notification on an in-memory store.
+func MemoryNotifyDecision(s *Store, sub Submission, status, reason string) {
+	if sub.ObjectID == (bson.ObjectID{}) {
+		sub.ObjectID = bson.NewObjectID()
+	}
+	sub.fill()
+	s.notifyDecision(context.Background(), sub, status, reason)
+}
 func MemorySubmissionCount(s *Store) int {
 	if mem, ok := s.docs.(*memDocs); ok {
 		return mem.submissionCount()

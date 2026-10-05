@@ -7,6 +7,7 @@ import {
   formatClock,
   formatDay,
   formatISODate,
+  formatLongDate,
   formatMonthDay,
   formatShortDate,
   formatTime,
@@ -49,6 +50,7 @@ describe("formatting", () => {
   test("formats days for people", () => {
     expect(formatDay(monday)).toBe("Mon, Oct 5");
     expect(formatShortDate(monday)).toBe("Oct 5");
+    expect(formatLongDate(monday)).toBe("October 5, 2026");
     expect(formatMonthDay(monday)).toEqual({ month: "OCT", day: "5", weekday: "Mon" });
   });
 

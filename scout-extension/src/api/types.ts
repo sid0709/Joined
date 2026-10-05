@@ -17,11 +17,35 @@ export interface ScoutProfile {
   verification_updated_at?: string;
 }
 
+export interface ApiFieldError {
+  field: string;
+  detail: string;
+}
+
 export interface ApiError {
   error: string;
   message?: string;
   detail?: string;
   title?: string;
+  errors?: ApiFieldError[];
+}
+
+export interface ExtensionSubmissionInput {
+  title: string;
+  company: string;
+  location: string;
+  apply_url: string;
+  description: string;
+  board?: string;
+}
+
+export interface ExtensionSubmission {
+  id: string;
+}
+
+export interface ExtensionSubmitResult {
+  submission: ExtensionSubmission;
+  replayed: boolean;
 }
 
 export type AuthState =
@@ -29,3 +53,8 @@ export type AuthState =
   | { status: "signed-out" }
   | { status: "signed-in"; profile: ScoutProfile }
   | { status: "error"; error: string };
+
+export type {
+  NotificationPage,
+  ScoutStatusNotification as ScoutNotification,
+} from "../status/types";

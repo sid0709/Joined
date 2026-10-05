@@ -18,6 +18,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 const (
@@ -51,6 +52,7 @@ type Server struct {
 	acorn    *acorn.Service
 	files    RuntimeFile
 	cookie   string
+	switches killswitch.Switches
 }
 
 // Options are the Acorn API's settings. CORS is the server's: see backend-core/cmd/server.
@@ -59,10 +61,12 @@ type Options struct {
 	SessionCookie string
 	// Runtime is the file the extension attaches when no résumé is available.
 	Runtime RuntimeFile
+	// KillSwitches turns off Acorn's model routes. Nil leaves them on.
+	KillSwitches killswitch.Switches
 }
 
 func New(accounts Sessions, people People, listings *jobs.Store, brain *acorn.Service, opts Options) (http.Handler, *gateway.Gateway) {
-	s := &Server{accounts: accounts, people: people, listings: listings, acorn: brain, files: opts.Runtime, cookie: opts.SessionCookie}
+	s := &Server{accounts: accounts, people: people, listings: listings, acorn: brain, files: opts.Runtime, cookie: opts.SessionCookie, switches: opts.KillSwitches}
 	if s.cookie == "" {
 		s.cookie = DefaultSessionCookie
 	}
@@ -73,20 +77,20 @@ func New(accounts Sessions, people People, listings *jobs.Store, brain *acorn.Se
 	mux.HandleFunc("GET /acorn/auth/me", s.me)
 	mux.HandleFunc("POST /acorn/auth/signout", s.signOut)
 
-	mux.HandleFunc("POST /acorn/ai-analyze", s.aiAnalyze)
-	mux.HandleFunc("POST /acorn/match-option", s.matchOption)
-	mux.HandleFunc("POST /acorn/qa", s.qa)
+	mux.HandleFunc("POST /acorn/ai-analyze", s.requireAI(s.aiAnalyze))
+	mux.HandleFunc("POST /acorn/match-option", s.requireAI(s.matchOption))
+	mux.HandleFunc("POST /acorn/qa", s.requireAI(s.qa))
 	mux.HandleFunc("GET /acorn/runtime-file", s.runtimeFile)
 
 	mux.HandleFunc("GET /acorn/jobs", s.listJobs)
 	mux.HandleFunc("GET /acorn/jobs/{jobId}", s.getJob)
-	mux.HandleFunc("POST /acorn/jobs/{jobId}/generate", s.generateForJob)
+	mux.HandleFunc("POST /acorn/jobs/{jobId}/generate", s.requireAI(s.generateForJob))
 	mux.HandleFunc("POST /acorn/jobs/{jobId}/mark-applied", s.markApplied)
 	mux.HandleFunc("GET /acorn/jobs/{jobId}/resume-preview", s.emptyPreview)
 	mux.HandleFunc("GET /acorn/jobs/{jobId}/recommended-resume", s.noJobResume)
 
-	mux.HandleFunc("POST /acorn/custom/extract-jd", s.extractJD)
-	mux.HandleFunc("POST /acorn/custom/analyze-meta", s.analyzeMeta)
+	mux.HandleFunc("POST /acorn/custom/extract-jd", s.requireAI(s.extractJD))
+	mux.HandleFunc("POST /acorn/custom/analyze-meta", s.requireAI(s.analyzeMeta))
 	mux.HandleFunc("POST /acorn/custom/generate", s.noGenerate)
 	mux.HandleFunc("POST /acorn/custom/generate/{inputId}/continue", s.noContinue)
 	mux.HandleFunc("GET /acorn/custom/generate/{inputId}", s.noPoll)
@@ -131,6 +135,16 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request) (auth.Session, 
 		return auth.Session{}, false
 	}
 	return session, true
+}
+
+func (s *Server) requireAI(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !killswitch.On(s.switches, r.Context(), killswitch.AcornAI) {
+			writeError(w, http.StatusServiceUnavailable, killswitch.Message(killswitch.AcornAI))
+			return
+		}
+		next(w, r)
+	}
 }
 
 func (s *Server) authenticateSocket(ctx context.Context, token string) (gateway.Account, error) {

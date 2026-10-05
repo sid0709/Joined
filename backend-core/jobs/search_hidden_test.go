@@ -75,6 +75,7 @@ func TestListingMatchesSearchHiddenVisibility(t *testing.T) {
 		{name: "pending review scouted never listed", listingStatus: ListingPendingReview, jobSource: scoutedJobType, listingSource: ScoutedSource, want: false},
 		{name: "removed scouted never listed", listingStatus: ListingRemoved, jobSource: scoutedJobType, listingSource: ScoutedSource, want: false},
 		{name: "draft scouted never listed", listingStatus: ListingDraft, jobSource: scoutedJobType, listingSource: ScoutedSource, want: false},
+		{name: "expired scouted never listed", listingStatus: ListingExpired, jobSource: scoutedJobType, listingSource: ScoutedSource, want: false},
 		{name: "active aggregated excluded", listingStatus: ListingActive, jobSource: aggregatedSource, listingSource: "Greenhouse", want: false},
 		{name: "active direct excluded", listingStatus: ListingActive, jobSource: directType, listingSource: DirectSource, want: false},
 	}

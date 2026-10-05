@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // DefaultDeepSeekMaxSearches caps the web searches behind one research answer: enough
@@ -163,6 +164,13 @@ func SearchEnsureIndex() bool {
 	return explicit == "true" || explicit == "1"
 }
 
+// JobsExpiryCheckerEnabled reports whether the in-process dead-link checker should run.
+// Defaults to false. Set JOBS_EXPIRY_CHECKER_ENABLED=true to turn it on.
+func JobsExpiryCheckerEnabled() bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("JOBS_EXPIRY_CHECKER_ENABLED")))
+	return value == "true" || value == "1"
+}
+
 // LoadErrorReporting reads SENTRY_DSN from the environment.
 func LoadErrorReporting() ErrorReporting {
 	return ErrorReporting{
@@ -186,6 +194,19 @@ func EnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+// EnvDuration returns key as a positive duration, or fallback when it is unset or not one.
+func EnvDuration(key string, fallback time.Duration) time.Duration {
+	value := Env(key, "")
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil || parsed < 1 {
+		return fallback
+	}
+	return parsed
 }
 
 func Redact(err error, uri string) string {

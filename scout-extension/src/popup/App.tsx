@@ -8,13 +8,25 @@ import {
   applySignInTabClose,
   scheduleAuthRefresh,
 } from "../auth/signInTab";
+import { isJobQueued } from "../drafts";
 import { useAuth } from "../hooks/useAuth";
 import { useDetectedJob } from "../hooks/useDetectedJob";
+import { useDesktopNotifications } from "../hooks/useDesktopNotifications";
+import { useDrafts } from "../hooks/useDrafts";
+import { RUNTIME_MESSAGE } from "../messaging/runtime";
+
 import { DetectedJobPanel } from "./DetectedJobPanel";
+import { DraftQueuePanel } from "./DraftQueuePanel";
+import { NotificationSettings } from "./NotificationSettings";
 
 function App() {
   const { authState, checkAuth, setSignInTabId } = useAuth();
   const detectedJob = useDetectedJob();
+  const { drafts, saveCapturedJob, updateDraft, deleteDraft, submitDraft, submitAll } = useDrafts();
+  const { enabled: desktopNotifications, setEnabled: setDesktopNotifications } =
+    useDesktopNotifications();
+  const signedIn = authState.status === "signed-in";
+  const alreadyQueued = detectedJob.status === "found" && isJobQueued(drafts, detectedJob.job);
 
   const handleSignIn = () => {
     const signInUrl = getSignInUrl();
@@ -72,7 +84,8 @@ function App() {
       {authState.status === "signed-out" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-3)" }}>
           <p style={{ color: "var(--color-text-secondary)" }}>
-            Sign in to Scout to start capturing jobs.
+            Sign in to Scout to submit drafts. You can still save jobs on this device while signed
+            out.
           </p>
           <Button onClick={handleSignIn} variant="primary" label="Sign In to Scout" />
         </div>
@@ -117,7 +130,47 @@ function App() {
       )}
 
       <div style={{ marginTop: "var(--spacing-4)" }}>
-        <DetectedJobPanel state={detectedJob} />
+        <DetectedJobPanel
+          state={detectedJob}
+          alreadyQueued={alreadyQueued}
+          onSaveToDrafts={(job) => {
+            void saveCapturedJob(job);
+          }}
+        />
+      </div>
+
+      <div style={{ marginTop: "var(--spacing-4)" }}>
+        <DraftQueuePanel
+          drafts={drafts}
+          signedIn={signedIn}
+          onEdit={(id, fields) => {
+            void updateDraft(id, fields);
+          }}
+          onDelete={(id) => {
+            void deleteDraft(id);
+          }}
+          onSubmit={(id) => {
+            void submitDraft(id);
+          }}
+          onSubmitAll={() => {
+            void submitAll();
+          }}
+        />
+      </div>
+
+      <div style={{ marginTop: "var(--spacing-4)" }}>
+        <NotificationSettings
+          enabled={desktopNotifications}
+          onChange={(value) => {
+            void setDesktopNotifications(value).then(() => {
+              if (value) {
+                chrome.runtime
+                  .sendMessage({ type: RUNTIME_MESSAGE.POLL_STATUS })
+                  .catch(() => undefined);
+              }
+            });
+          }}
+        />
       </div>
     </div>
   );

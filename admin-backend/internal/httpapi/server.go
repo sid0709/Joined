@@ -11,6 +11,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
@@ -23,22 +24,27 @@ const (
 )
 
 type Server struct {
-	store           *jobs.Store
-	scouts          *scout.Store
-	staff           staff.API
-	reader          jobs.ModelReader
-	ai              MigrationModel
-	migration       *migration.Runner
-	staffAuth       StaffSignIn
-	acornAI         *aisettings.Store
-	acornAIEnv      config.OpenAI
-	deepSeek        *aisettings.Store
-	deepSeekEnv     config.DeepSeek
-	analyzeWorkers  int
-	researchWorkers int
-	adminToken      string
-	analyzerToken   string
-	crawlerToken    string
+	store             *jobs.Store
+	scouts            *scout.Store
+	staff             staff.API
+	reader            jobs.ModelReader
+	ai                MigrationModel
+	migration         *migration.Runner
+	staffAuth         StaffSignIn
+	acornAI           *aisettings.Store
+	acornAIEnv        config.OpenAI
+	deepSeek          *aisettings.Store
+	deepSeekEnv       config.DeepSeek
+	analyzeWorkers    int
+	researchWorkers   int
+	adminToken        string
+	analyzerToken     string
+	crawlerToken      string
+	importEnabled     bool
+	importSources     []jobs.SourceStatus
+	importRecentLimit int
+	importRuns        jobs.ImportRunLog
+	switches          killswitch.Switches
 }
 
 // Options are the HTTP server's settings.
@@ -67,26 +73,36 @@ type Options struct {
 	// DeepSeekEnv is the environment's DeepSeek settings: the model used until one
 	// is saved, and whether DEEPSEEK_API_KEY already covers a missing saved key.
 	DeepSeekEnv config.DeepSeek
+	// Import is the read-only scheduled import status and recent-run log.
+	Import ImportOptions
+	// KillSwitches are runtime feature toggles staff flip from the API. Nil leaves
+	// job imports on and the staff switch routes answering 503.
+	KillSwitches killswitch.Switches
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
 	server := &Server{
-		store:           store,
-		scouts:          scouts,
-		staff:           moderation,
-		reader:          reader,
-		ai:              opts.Migration.Model,
-		migration:       migration.NewRunner(),
-		analyzeWorkers:  opts.Migration.AnalyzeWorkers,
-		researchWorkers: opts.Migration.ResearchWorkers,
-		staffAuth:       opts.Staff,
-		acornAI:         opts.AcornAI,
-		acornAIEnv:      opts.AcornAIEnv,
-		deepSeek:        opts.DeepSeek,
-		deepSeekEnv:     opts.DeepSeekEnv,
-		adminToken:      opts.AdminToken,
-		analyzerToken:   opts.AnalyzerToken,
-		crawlerToken:    opts.CrawlerToken,
+		store:             store,
+		scouts:            scouts,
+		staff:             moderation,
+		reader:            reader,
+		ai:                opts.Migration.Model,
+		migration:         migration.NewRunner(),
+		analyzeWorkers:    opts.Migration.AnalyzeWorkers,
+		researchWorkers:   opts.Migration.ResearchWorkers,
+		staffAuth:         opts.Staff,
+		acornAI:           opts.AcornAI,
+		acornAIEnv:        opts.AcornAIEnv,
+		deepSeek:          opts.DeepSeek,
+		deepSeekEnv:       opts.DeepSeekEnv,
+		adminToken:        opts.AdminToken,
+		analyzerToken:     opts.AnalyzerToken,
+		crawlerToken:      opts.CrawlerToken,
+		importEnabled:     opts.Import.Enabled,
+		importSources:     opts.Import.Sources,
+		importRecentLimit: opts.Import.RecentLimit,
+		importRuns:        opts.Import.Runs,
+		switches:          opts.KillSwitches,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -105,6 +121,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	api.HandleFunc("GET /v1/companies/{id}/logo", httpkit.CompanyLogo(store))
 	api.HandleFunc("POST /v1/companies/{id}/logo", server.uploadCompanyLogo)
 	api.HandleFunc("DELETE /v1/companies/{id}/logo", server.deleteCompanyLogo)
+	api.HandleFunc("GET /v1/jobs/import-runs", server.listImportRuns)
 	api.HandleFunc("GET /v1/jobs", server.listSearchJobs)
 	api.HandleFunc("GET /v1/jobs/{id}", server.getSearchJob)
 	api.HandleFunc("PATCH /v1/jobs/{id}", server.updateSearchJob)
@@ -112,6 +129,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerMigration(api)
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
+	server.registerKillSwitches(api)
 	server.registerAcornAI(api)
 	server.registerDeepSeek(api)
 

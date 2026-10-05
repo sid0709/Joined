@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/admin-backend/internal/migration"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 const (
@@ -98,6 +99,12 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task := migration.Task(r.PathValue("task"))
+	if task == migration.CopyJobs || task == migration.CopyCompanies {
+		if err := killswitch.Check(r.Context(), s.switches, killswitch.JobImports); err != nil {
+			killswitch.WriteDisabled(w, killswitch.JobImports)
+			return
+		}
+	}
 	work, usesModel, ok := s.migrationWork(task, body)
 	if !ok {
 		httpkit.WriteError(w, http.StatusNotFound, "unknown migration step")
