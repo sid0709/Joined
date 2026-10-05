@@ -19,6 +19,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
+	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 	"github.com/sid0709/OpenSeat/joined-backend/internal/httpapi"
 )
 
@@ -79,6 +80,11 @@ func main() {
 		slog.Error("billing config", "error", err)
 		os.Exit(1)
 	}
+	searches := savedsearch.NewMongoStore(p.Mongo(), db.DestDB)
+	if err := searches.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("saved search indexes", "error", err)
+		os.Exit(1)
+	}
 	handler := httpapi.New(p.Jobs, p.Accounts, p.People, p.Hiring, p.Staff, reader, httpapi.Options{
 		Origins:           server.Origins,
 		Frontend:          frontend,
@@ -89,6 +95,7 @@ func main() {
 		KillSwitches:      p.KillSwitches,
 		Billing:           premium,
 		BillingWebhook:    webhook,
+		SavedSearches:     searches,
 	})
 	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
