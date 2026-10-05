@@ -1,0 +1,2 @@
+# Local settings, including the crawler ingest token. Copy .env.example to start.
+.env

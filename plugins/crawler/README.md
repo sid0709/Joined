@@ -34,7 +34,16 @@ The crawler is a workspace of the Joined bun monorepo (`plugins/crawler`, packag
 4. Enable "Developer mode".
 5. Click on "Load unpacked" and select `plugins/crawler/dist`.
 
-Server URLs and the duplicate window come from `VITE_*` settings in `plugins/crawler/.env`. Rebuild after changing them.
+Settings come from `VITE_*` values in `plugins/crawler/.env`; copy `.env.example` to start, and rebuild after changing them. `.env` is git-ignored because it holds the ingest token.
+
+| Setting                      | What it is                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `VITE_API_URL`               | The Joined admin API base. Locally `http://127.0.0.1:8081` (admin-backend's `HTTP_ADDR`). |
+| `VITE_CRAWLER_INGEST_TOKEN`  | The same value as `CRAWLER_INGEST_TOKEN` in `admin-backend/.env`.                         |
+| `VITE_DUPLICATE_WINDOW_DAYS` | Days (1–365) a job with the same apply link counts as a duplicate.                        |
+| `VITE_SCRAPE_SOURCE`         | Optional. The `createdBy` value staff filter on. Default `avalon-scrapper`.               |
+
+The panel's Start button stays disabled, and says which setting is missing, until these are set.
 
 The side panel follows the system light/dark setting until you pick one with the sun/moon button in the header; the choice is remembered.
 
@@ -75,4 +84,4 @@ The extension is composed of three main parts:
 
 The different parts of the extension communicate with each other using the `chrome.runtime.onMessage` and `chrome.tabs.sendMessage` APIs. The background script acts as a message broker, relaying messages between the UI and the content script.
 
-The extension communicates with Athens-server over REST. Backend availability is checked through the `/healthz` HTTP endpoint.
+The background script sends scraped jobs in batches to the Joined admin API, `POST /v1/public/crawler/jobs` with the ingest token as a bearer token. The API stages each job in `JoinedDB.temp_jobs`, skipping one whose apply link is already there inside the duplicate window, and the admin console's analyze step turns staged jobs into search records. The panel checks the API through `GET /health`.

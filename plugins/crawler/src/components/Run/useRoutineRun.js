@@ -93,7 +93,7 @@ export function useRoutineRun() {
   /** Validate a finished record and queue it for the backend. Throws IncompleteJobDataError. */
   const submitJob = useCallback(
     (record) => {
-      const job = toJobPayload(record);
+      const job = toJobPayload(record, targetRef.current?.routine);
       const entry = {
         key: `job-${job.id}`,
         title: job.title?.trim() || "Untitled job",
@@ -212,7 +212,7 @@ export function useRoutineRun() {
         }
       },
       onField: (path, _value, record, found) => {
-        const valid = isJobFieldValid(toJobPayload(record), path);
+        const valid = isJobFieldValid(toJobPayload(record, targetRef.current?.routine), path);
         setFieldStates((current) => ({ ...current, [path]: fieldStatus(found, valid) }));
         setFieldHits((hits) => recordFieldHit(hits, path, found));
       },

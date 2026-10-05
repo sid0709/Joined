@@ -47,6 +47,7 @@ func main() {
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 	analyzerToken := config.Env("ANALYZER_API_TOKEN", "")
+	crawlerToken := config.Env("CRAWLER_INGEST_TOKEN", "")
 
 	p, err := platform.Open(context.Background(), db, platform.Options{SettingsKey: config.Env("SETTINGS_ENCRYPTION_KEY", "")})
 	if err != nil {
@@ -62,6 +63,9 @@ func main() {
 	}
 	if analyzerToken == "" {
 		slog.Warn("ANALYZER_API_TOKEN is not set: public analyzer routes are disabled")
+	}
+	if crawlerToken == "" {
+		slog.Warn("CRAWLER_INGEST_TOKEN is not set: the crawler extension cannot stage jobs")
 	}
 	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
@@ -85,6 +89,7 @@ func main() {
 		Origins:       server.Origins,
 		AdminToken:    adminToken,
 		AnalyzerToken: analyzerToken,
+		CrawlerToken:  crawlerToken,
 		Staff:         staff,
 		AcornAI:       p.AISettings,
 		AcornAIEnv:    ai,

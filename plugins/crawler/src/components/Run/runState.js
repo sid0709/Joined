@@ -83,9 +83,17 @@ function hostOf(url) {
 }
 
 /** Why Start is unavailable, in words for the person, or null when a run can start. */
-export function startBlocker({ hasRuntime, apiUrl, duplicateWindowDays, tab, routine }) {
+export function startBlocker({
+  hasRuntime,
+  apiUrl,
+  ingestToken,
+  duplicateWindowDays,
+  tab,
+  routine,
+}) {
   if (!hasRuntime) return "Open this panel from the extension to run routines.";
   if (!apiUrl) return "Set VITE_API_URL in plugins/crawler/.env, then rebuild.";
+  if (!ingestToken) return "Set VITE_CRAWLER_INGEST_TOKEN in plugins/crawler/.env, then rebuild.";
   if (!duplicateWindowDays)
     return "Set VITE_DUPLICATE_WINDOW_DAYS (1–365) in plugins/crawler/.env, then rebuild.";
   if (!tab) return "Focus a web page to scrape.";

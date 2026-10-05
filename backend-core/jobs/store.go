@@ -31,7 +31,9 @@ type ListResult struct {
 }
 
 type CopyResult struct {
-	Copied      int64  `json:"copied"`
+	Copied int64 `json:"copied"`
+	// Kept counts crawler-ingested jobs carried over from the old temp_jobs.
+	Kept        int64  `json:"kept"`
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
 	Indexes     int    `json:"indexes"`
@@ -49,8 +51,10 @@ type Store struct {
 	tempCompanies        string
 	companyRefs          CompanyRefs
 	copyMu               sync.Mutex
-	companyCopyMu        sync.Mutex
-	analyzeMu            sync.Mutex
+	// tempWriteMu lets crawler ingest write to temp_jobs while Copy is not swapping it.
+	tempWriteMu   sync.RWMutex
+	companyCopyMu sync.Mutex
+	analyzeMu     sync.Mutex
 }
 
 func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies, tempCompanies string) *Store {

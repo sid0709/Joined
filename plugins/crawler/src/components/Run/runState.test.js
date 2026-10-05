@@ -86,6 +86,7 @@ describe("run state", () => {
     const ready = {
       hasRuntime: true,
       apiUrl: "https://api.example",
+      ingestToken: "secret",
       duplicateWindowDays: 7,
       tab: { id: 1, url: "https://jobs.example/list" },
       routine: { id: "jobs" },
@@ -93,6 +94,7 @@ describe("run state", () => {
     expect(startBlocker(ready)).toBeNull();
     expect(startBlocker({ ...ready, hasRuntime: false })).toMatch(/from the extension/);
     expect(startBlocker({ ...ready, apiUrl: null })).toMatch(/VITE_API_URL/);
+    expect(startBlocker({ ...ready, ingestToken: null })).toMatch(/VITE_CRAWLER_INGEST_TOKEN/);
     expect(startBlocker({ ...ready, duplicateWindowDays: null })).toMatch(/DUPLICATE_WINDOW/);
     expect(startBlocker({ ...ready, tab: null })).toBe("Focus a web page to scrape.");
     expect(startBlocker({ ...ready, routine: null })).toBe("No routine runs on jobs.example yet.");

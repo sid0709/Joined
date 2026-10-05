@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useActiveTab } from "../../api/activeTab";
 import { hasExtensionRuntime } from "../../api/runtimeMessage";
 import useBackendHealth from "../../api/useBackendHealth";
-import { API_URL, DUPLICATE_WINDOW_DAYS } from "../../config/env";
+import { API_URL, CRAWLER_INGEST_TOKEN, DUPLICATE_WINDOW_DAYS } from "../../config/env";
 import { findRoutinesForUrl } from "../../routineKit/match";
 import { ROUTINES } from "../../routines";
 import { ROUTINE_OUTPUTS } from "../../routines/outputs";
@@ -85,6 +85,7 @@ export default function RunPanel({ onBrowseRoutines }) {
   const blocker = startBlocker({
     hasRuntime: hasExtensionRuntime(),
     apiUrl: API_URL,
+    ingestToken: CRAWLER_INGEST_TOKEN,
     duplicateWindowDays: DUPLICATE_WINDOW_DAYS,
     tab: activeTab,
     routine: chosenRoutine,
