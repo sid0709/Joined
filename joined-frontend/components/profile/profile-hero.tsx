@@ -10,7 +10,7 @@ import {
   Grid,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   NOTICE_OPTIONS,
   WORKPLACE_OPTIONS,

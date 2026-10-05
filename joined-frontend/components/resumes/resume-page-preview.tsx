@@ -1,4 +1,4 @@
-import { AspectRatio, Card, Stack } from "@joined/design-system";
+import { AspectRatio, Card, Stack } from "sid-ui";
 
 /** US Letter, portrait. */
 const PAGE_RATIO = 8.5 / 11;

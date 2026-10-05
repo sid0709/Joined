@@ -1,5 +1,5 @@
-import "@joined/design-system/styles/joined.css";
-import { Button, Spinner } from "@joined/design-system";
+import "sid-ui/styles/joined.css";
+import { Button, Spinner } from "sid-ui";
 
 import { getSignInUrl } from "../api";
 import {

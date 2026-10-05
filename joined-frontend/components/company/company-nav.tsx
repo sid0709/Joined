@@ -17,7 +17,7 @@ import {
   Text,
   icons,
   type GlyphName,
-} from "@joined/design-system";
+} from "sid-ui";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import type { AuthCompany } from "@/lib/auth/types";
 import { companyRoleLabel, sessionHiringRole } from "@/lib/company/access";

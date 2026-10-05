@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Stack, Switch, useToast } from "@joined/design-system";
+import { Stack, Switch, useToast } from "sid-ui";
 import type { Profile, VisibilityKey, VisibilitySetting } from "@/lib/profile";
 import { normalizeProfile } from "@/lib/profile";
 import { SectionCard } from "@/components/section-card";

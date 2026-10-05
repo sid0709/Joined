@@ -1,6 +1,6 @@
 "use client";
 
-import { HStack, Selector, Text } from "@joined/design-system";
+import { HStack, Selector, Text } from "sid-ui";
 import { SearchBox } from "@/components/search-box";
 import { COMPLETION_OPTIONS, COMPLETION_PARAM, type DirectoryFilter } from "@/lib/directory";
 

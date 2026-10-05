@@ -10,7 +10,7 @@ import {
   ThemeToggle,
   TopNav,
   useAppShellMobile,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { SessionUser } from "@/lib/auth/types";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";

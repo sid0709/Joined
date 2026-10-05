@@ -1,9 +1,8 @@
 import type { RuntimeAttachedFile } from "@acorn/shared/plan-runner/types";
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 import { extractError, isNestMissingRoute, readId } from "./http";
 
-const CUSTOM_RECOMMEND_UNAVAILABLE =
-  "Custom Recommend needs Library matching on this Joined API host.";
+const CUSTOM_RECOMMEND_UNAVAILABLE = "Custom Recommend needs Library matching on this Acorn API.";
 
 const CUSTOM_LIBRARY_FILE_UNAVAILABLE = "Could not load the recommended Library résumé.";
 
@@ -20,7 +19,7 @@ export async function recommendCustomLibrary(
 ): Promise<CustomLibraryRecommendResult> {
   const jobDescription = input.jobDescription.trim();
   if (!jobDescription) throw new Error("No readable text on this tab");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/recommend`, {
     method: "POST",
     headers: await authHeaders(),
@@ -63,7 +62,7 @@ export async function fetchCustomLibraryResume(
 ): Promise<RuntimeAttachedFile | null> {
   const id = String(resumeId || "").trim();
   if (!id) return null;
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/library-resumes/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -101,7 +100,7 @@ export async function fetchCustomLibraryResumePreview(
 ): Promise<string> {
   const id = String(resumeId || "").trim();
   if (!id) throw new Error("Missing resume id");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(
     `${base}/acorn/custom/library-resumes/${encodeURIComponent(id)}/preview`,
     {

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { PageContainer } from "@joined/design-system";
+import { PageContainer } from "sid-ui";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
 import { ScoutMobilePillBar } from "@/components/shell/scout-pill-nav";

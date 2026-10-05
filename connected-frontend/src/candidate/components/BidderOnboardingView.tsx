@@ -1,6 +1,6 @@
 "use client";
 
-import { Divider, GridColumn, GridSystem, Heading, Icon, Text, icons } from "@joined/design-system";
+import { Divider, GridColumn, GridSystem, Heading, Icon, Text, icons } from "sid-ui";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 

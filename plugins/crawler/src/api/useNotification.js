@@ -1,4 +1,4 @@
-import { useToast } from "@joined/design-system";
+import { useToast } from "sid-ui";
 import { useMemo, useCallback } from "react";
 
 export function formatFailureMessage(err, fallback = "Something went wrong") {

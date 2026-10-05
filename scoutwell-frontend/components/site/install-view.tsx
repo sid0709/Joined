@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Heading, PageHeader, Stack, Text } from "@joined/design-system";
+import { Banner, Button, Card, Heading, PageHeader, Stack, Text } from "sid-ui";
 import { EARN_PAGE, FAQ_PAGE, ROUTES } from "@/lib/routes";
 import { INSTALL_PLACEHOLDER_BODY, INSTALL_PLACEHOLDER_TITLE } from "@/lib/site-copy";
 

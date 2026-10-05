@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Badge,
-  Card,
-  HStack,
-  Icon,
-  IconButton,
-  Rating,
-  Stack,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Avatar, Badge, Card, HStack, Icon, IconButton, Rating, Stack, Text, icons } from "sid-ui";
 import { STRONG_FIT, type Applicant } from "@/lib/company";
 import { OFFER_STATUS_LABEL } from "@/lib/offer-hire";
 import { relativeDay } from "@/lib/dates";

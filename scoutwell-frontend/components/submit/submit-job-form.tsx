@@ -20,7 +20,7 @@ import {
   useToast,
   PageHeader,
   SectionCard,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   ApiError,
   DEFAULT_CURRENCY,

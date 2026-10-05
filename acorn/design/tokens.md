@@ -1,6 +1,6 @@
 # Acorn design tokens
 
-Acorn has no tokens of its own. It uses the Joined design system's tokens, which `@joined/design-system/styles/joined.css` defines (Astryx core plus the Joined theme in `packages/design-system/src/theme/theme.css`). Use a design-system component first; reach for a token only in Acorn's own layout CSS (`extension/src/sidebar/styles/`).
+Acorn has no tokens of its own. It uses the Joined design system's tokens, which `sid-ui/styles/joined.css` defines. Use a design-system component first; reach for a token only in Acorn's own layout CSS (`extension/src/sidebar/styles/`).
 
 ## What Acorn's CSS uses
 
@@ -28,4 +28,4 @@ A few sizes have no Joined token. They stay as named custom properties next to t
 - `--acorn-plan-max-height`: plan step list
 - `--acorn-preview-min-height`: résumé preview frame
 
-Don't add hex values, px font sizes, or `--acorn-*` color tokens. A missing color or size belongs in `packages/design-system`.
+Don't add hex values, px font sizes, or `--acorn-*` color tokens. A missing color or size belongs in the sid-ui package.

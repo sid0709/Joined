@@ -1,6 +1,6 @@
 {
   "name": "acorn-extension",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
   "dependencies": {
     "@acorn/face": "workspace:*",
     "@acorn/shared": "workspace:*",
-    "@joined/design-system": "workspace:*",
+    "sid-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "socket.io-client": "catalog:"

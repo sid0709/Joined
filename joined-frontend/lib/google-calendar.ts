@@ -1,4 +1,4 @@
-import type { CalendarEvent } from "@joined/design-system";
+import type { CalendarEvent } from "sid-ui";
 import { startOfDay } from "@/lib/dates";
 import { parseDay, toDayString } from "@/lib/me/dates";
 

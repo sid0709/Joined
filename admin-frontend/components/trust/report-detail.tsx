@@ -11,7 +11,7 @@ import {
   SectionCard,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   caseRecordQueryFromReport,
   isCompanyAtsReason,

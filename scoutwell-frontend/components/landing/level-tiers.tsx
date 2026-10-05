@@ -1,4 +1,4 @@
-import { Badge } from "@joined/design-system";
+import { Badge } from "sid-ui";
 import { LEVEL_BADGE, formatMoney, type Meta } from "@joined/scout";
 
 /** The three scout levels side by side; the last is the one to aim for. */

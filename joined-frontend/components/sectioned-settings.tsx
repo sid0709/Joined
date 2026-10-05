@@ -13,7 +13,7 @@ import {
   Text,
   icons,
   type GlyphName,
-} from "@joined/design-system";
+} from "sid-ui";
 
 export type SettingsSectionLink<Id extends string> = {
   id: Id;

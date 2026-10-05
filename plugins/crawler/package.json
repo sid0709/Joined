@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@joined/design-system": "workspace:*",
+    "sid-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },

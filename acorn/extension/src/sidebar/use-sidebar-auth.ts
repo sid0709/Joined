@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  DEFAULT_JOINED_API_URL,
-  getJoinedApiUrl,
+  DEFAULT_ACORN_API_URL,
+  getAcornApiUrl,
   getAcornSession,
   type AcornStoredSession,
 } from "../auth/acorn-auth";
@@ -9,15 +9,15 @@ import { MSG } from "../types";
 import { pushAcornNotice } from "./acorn-notice";
 import { sendMessage } from "./runtime";
 
-/** Sidebar sign-in state: API URL, Joined session, and the sign in / sign out actions. */
+/** Sidebar sign-in state: API URL, Acorn session, and the sign in / sign out actions. */
 export function useSidebarAuth({ onSignedOut }: { onSignedOut: () => void }) {
-  const [apiUrl, setApiUrl] = useState(DEFAULT_JOINED_API_URL);
+  const [apiUrl, setApiUrl] = useState(DEFAULT_ACORN_API_URL);
   const [session, setSession] = useState<AcornStoredSession | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
 
   useEffect(() => {
     void (async () => {
-      setApiUrl(await getJoinedApiUrl());
+      setApiUrl(await getAcornApiUrl());
       setSession(await getAcornSession());
     })();
   }, []);
@@ -37,7 +37,7 @@ export function useSidebarAuth({ onSignedOut }: { onSignedOut: () => void }) {
         pushAcornNotice({
           kind: "error",
           title: "Couldn’t sign in",
-          detail: res?.error || "Sign in to Joined in this browser first.",
+          detail: res?.error || "Sign in on the Acorn site in this browser first.",
         });
         return;
       }

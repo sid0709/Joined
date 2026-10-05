@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { EmptyState, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { formatMoney, type Payout } from "@joined/scout";
 import { PayoutStatusBadge } from "@/components/status-badge";
 import { formatDay } from "@/lib/dates";

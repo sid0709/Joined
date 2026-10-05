@@ -1,6 +1,6 @@
 "use client";
 
-import { TextArea, TextInput } from "@joined/design-system";
+import { TextArea, TextInput } from "sid-ui";
 import { DateRangeFields } from "@/components/profile/date-range-fields";
 import { TimelineSection } from "@/components/profile/timeline-section";
 import { useProfileSave } from "@/components/profile/use-profile-save";

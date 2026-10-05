@@ -1,5 +1,5 @@
-// Subjects already on stage-roadmap. Commitlint reads every commit since main, so these
-// stay listed until that history changes.
+// Subjects already on stage-roadmap / stage-roadmap-w34. Commitlint reads every
+// commit since main, so these stay listed until that history changes.
 const historicalSubjects = new Set([
   "Add email authentication: sign-up, verification, sign-in, and password reset",
   "Add scout share-of-applies earnings",

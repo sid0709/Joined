@@ -1,4 +1,4 @@
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 
 import type { Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 

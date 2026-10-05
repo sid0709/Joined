@@ -1,4 +1,4 @@
-import { Badge } from "@joined/design-system";
+import { Badge } from "sid-ui";
 import {
   CHECK_OUTCOME,
   EARNING_STATUS,

@@ -1,4 +1,4 @@
-import type { BadgeVariant, CalendarEvent, CalendarTone } from "@joined/design-system";
+import type { BadgeVariant, CalendarEvent, CalendarTone } from "sid-ui";
 import type { ProposedSlot, ScheduleMode } from "@/lib/schedule-join";
 
 /** Hiring workspace — interviews this company scheduled. */

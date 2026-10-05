@@ -25,7 +25,7 @@ import {
   parseAddress,
   splitLocations,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { companySizeLabel } from "@joined/job-schema";
 import { SettingsGroup } from "@/components/settings-group";
 import {

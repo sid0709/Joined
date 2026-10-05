@@ -16,7 +16,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import { adminFetch, adminSend } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { TEMP_JOBS_PATH, tempJobPatchFrom, type TempJob, type TempJobPatch } from "@/lib/jobs";

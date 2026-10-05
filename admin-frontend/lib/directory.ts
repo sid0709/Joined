@@ -1,4 +1,4 @@
-import type { TableSort } from "@joined/design-system";
+import type { TableSort } from "sid-ui";
 
 /** Completion at or above this is a complete page or job. */
 export const COMPLETION_HIGH = 80;

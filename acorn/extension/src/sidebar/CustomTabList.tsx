@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { Badge, EmptyState, HStack, Text, VStack } from "@joined/design-system";
+import { Badge, EmptyState, HStack, Text, VStack } from "sid-ui";
 import { canContinueGenerate } from "@acorn/shared/generate-checkpoint";
 import { isFillPhaseBusy, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import { FACE_WINK_MS } from "../acorn-face/constants";

@@ -1,13 +1,5 @@
 import type { Metadata } from "next";
-import {
-  Button,
-  GridColumn,
-  GridSystem,
-  PageHeader,
-  SectionCard,
-  Stack,
-  StatGrid,
-} from "@joined/design-system";
+import { Button, GridColumn, GridSystem, PageHeader, SectionCard, Stack, StatGrid } from "sid-ui";
 import {
   formatMoney,
   type AdminList,

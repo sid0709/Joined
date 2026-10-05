@@ -16,7 +16,7 @@ import {
   Step,
   Stepper,
   Timeline,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { ApplicationFollowUpPatch } from "@/components/applications/application-follow-up";
 import { ApplicationFollowUp } from "@/components/applications/application-follow-up";
 import {

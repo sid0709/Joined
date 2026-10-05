@@ -11,7 +11,7 @@ import {
   SegmentedControlItem,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { JobTags } from "@/components/jobs/job-tags";
 import { PayFigure } from "@/components/jobs/pay-figure";

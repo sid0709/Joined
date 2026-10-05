@@ -1,4 +1,4 @@
-import { Skeleton, Stack } from "@joined/design-system";
+import { Skeleton, Stack } from "sid-ui";
 
 const TITLE_HEIGHT = 32;
 const TABLE_HEIGHT = 420;

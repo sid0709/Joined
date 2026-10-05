@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Stack, TextArea, useToast } from "@joined/design-system";
+import { Button, Stack, TextArea, useToast } from "sid-ui";
 import { parseJobDescription } from "@/lib/company/api";
 import { SettingsGroup } from "@/components/settings-group";
 

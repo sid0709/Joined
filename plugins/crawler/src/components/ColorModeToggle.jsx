@@ -1,4 +1,4 @@
-import { Glyph, IconButton } from "@joined/design-system";
+import { Glyph, IconButton } from "sid-ui";
 
 import { useColorMode } from "../theme/colorMode";
 

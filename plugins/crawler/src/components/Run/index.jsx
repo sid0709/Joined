@@ -1,4 +1,4 @@
-import { Banner, Button, Glyph, Text, VStack } from "@joined/design-system";
+import { Banner, Button, Glyph, Text, VStack } from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { useActiveTab } from "../../api/activeTab";

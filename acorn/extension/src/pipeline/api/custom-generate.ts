@@ -1,11 +1,11 @@
 import type { GenerateEnqueueCheckpoint } from "@acorn/shared/generate-checkpoint";
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 import { extractError, isNestMissingRoute, readId, readInputId } from "./http";
 
 const CUSTOM_EDITOR_UNAVAILABLE =
-  "Custom generate needs the My Resume Editor pipeline on this Joined API host (stored config, template, and variables → Firestore file).";
+  "Custom generate needs the My Resume Editor pipeline on this Acorn API (stored config, template, and variables → Firestore file).";
 
-const CUSTOM_EXTRACT_JD_UNAVAILABLE = "Custom generate needs JD extract on this Joined API host.";
+const CUSTOM_EXTRACT_JD_UNAVAILABLE = "Custom generate needs JD extract on this Acorn API.";
 
 export type ExtractCustomJdResult = {
   hasJobDescription: boolean;
@@ -24,7 +24,7 @@ export async function extractCustomJd(
 ): Promise<ExtractCustomJdResult> {
   const pageText = typeof input === "string" ? input.trim() : String(input.pageText || "").trim();
   if (!pageText) throw new Error("No readable text on this tab");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const extractBody = { pageText };
   const res = await fetch(`${base}/acorn/custom/extract-jd`, {
     method: "POST",
@@ -77,7 +77,7 @@ export async function enqueueCustomGenerate(
   if (!description) throw new Error("No job description to generate from");
   const jobId = typeof input === "string" ? null : String(input.jobId || "").trim() || null;
   const checkpoint = typeof input === "string" ? null : (input.checkpoint ?? null);
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/generate`, {
     method: "POST",
     headers: await authHeaders(),
@@ -122,7 +122,7 @@ export async function continueCustomGenerate(
   const existingId = String(input.inputId || "").trim();
   const description = String(input.jobDescription || "").trim();
   if (!description) throw new Error("No job description to generate from");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   if (existingId) {
     const res = await fetch(
       `${base}/acorn/custom/generate/${encodeURIComponent(existingId)}/continue`,
@@ -177,7 +177,7 @@ export async function pollCustomGenerate(
 ): Promise<CustomGeneratePoll> {
   const id = String(inputId || "").trim();
   if (!id) throw new Error("Missing generation input");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/generate/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });

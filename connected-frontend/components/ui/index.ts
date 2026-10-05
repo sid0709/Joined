@@ -1,1 +1,1 @@
-export * from "@joined/design-system";
+export * from "sid-ui";

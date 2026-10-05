@@ -1,6 +1,6 @@
 "use client";
 
-import * as DesignSystem from "@joined/design-system";
+import * as DesignSystem from "sid-ui";
 import { Children, isValidElement } from "react";
 
 import type { ChangeEvent, ReactNode } from "react";
@@ -16,8 +16,8 @@ export {
   JoinedLogo,
   BrandLockup,
   BrandFooter,
-} from "@joined/design-system";
-export type { NavItem } from "@joined/design-system";
+} from "sid-ui";
+export type { NavItem } from "sid-ui";
 
 const DesignButton = DesignSystem.Button;
 const DesignCard = DesignSystem.Card;

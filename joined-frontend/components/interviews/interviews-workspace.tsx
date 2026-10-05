@@ -19,7 +19,7 @@ import {
   Text,
   icons,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { StatCard } from "@/components/stat-card";
 import { daysBetween, formatDay, formatTime, isSameDay, startOfDay } from "@/lib/dates";
 import type { Application } from "@/lib/applications";

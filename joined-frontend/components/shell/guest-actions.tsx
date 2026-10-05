@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Button, TopNavItem } from "@joined/design-system";
+import { Button, TopNavItem } from "sid-ui";
 import { isCompanyModeEnabled } from "@/lib/config";
 import { HIRING_SIGN_UP_HREF, ROUTES, signInHref } from "@/lib/routes";
 

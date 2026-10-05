@@ -17,7 +17,7 @@ import {
   useToast,
   type CardVariant,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SectionCard } from "@/components/section-card";
 import { StatGrid } from "@/components/stat-card";
 import {

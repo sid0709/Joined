@@ -1,4 +1,4 @@
-import { Skeleton, Stack } from "@joined/design-system";
+import { Skeleton, Stack } from "sid-ui";
 
 const SEARCH_HEIGHT = 72;
 const LIST_HEIGHT = 360;

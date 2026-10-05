@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Badge,
-  Card,
-  HStack,
-  Icon,
-  IconButton,
-  Stack,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Avatar, Badge, Card, HStack, Icon, IconButton, Stack, Text, icons } from "sid-ui";
 import { STRONG_MATCH, isSavedBoardItem, type Application } from "@/lib/applications";
 import { reminderBadge, reminderLabel, reminderStatus } from "@/lib/application-reminders";
 import { relativeDay } from "@/lib/dates";

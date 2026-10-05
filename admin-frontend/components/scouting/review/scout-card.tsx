@@ -8,7 +8,7 @@ import {
   SectionCard,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   LEVEL_BADGE,
   VERIFICATION,

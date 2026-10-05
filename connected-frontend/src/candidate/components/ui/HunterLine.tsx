@@ -1,4 +1,4 @@
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 
 import type { BoardHunter } from "@/src/candidate/types/workspace";
 

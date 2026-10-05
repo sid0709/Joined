@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, Button, Stack } from "@joined/design-system";
+import { Banner, Button, Stack } from "sid-ui";
 import type { Application } from "@/lib/applications";
 import {
   applicationsWithReminders,

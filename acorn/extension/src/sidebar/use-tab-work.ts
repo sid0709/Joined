@@ -84,7 +84,7 @@ export function useTabWork({
           if (/sign in/i.test(err)) {
             setTabProgress(tabId, {
               phase: "idle",
-              message: "Sign in to Joined to run Acorn",
+              message: "Sign in to Acorn to run a fill",
             });
             pushAcornNotice({
               kind: "error",

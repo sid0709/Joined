@@ -1,4 +1,4 @@
-import { Button } from "@joined/design-system";
+import { Button } from "sid-ui";
 import { formatMoney, type Balance } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 

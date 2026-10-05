@@ -1,12 +1,4 @@
-import {
-  Badge,
-  HStack,
-  Spinner,
-  Stack,
-  Text,
-  type BadgeVariant,
-  SectionCard,
-} from "@joined/design-system";
+import { Badge, HStack, Spinner, Stack, Text, type BadgeVariant, SectionCard } from "sid-ui";
 
 import type { PrecheckState } from "./use-precheck";
 

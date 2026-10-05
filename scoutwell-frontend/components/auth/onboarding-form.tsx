@@ -15,7 +15,7 @@ import {
   Stepper,
   Text,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ApiError, formatMoney, type Meta } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 import { scoutSend } from "@/lib/scout/client";

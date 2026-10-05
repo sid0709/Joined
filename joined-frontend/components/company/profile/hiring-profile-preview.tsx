@@ -10,7 +10,7 @@ import {
   MetadataListItem,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatTime } from "@/lib/dates";
 import { INTERVIEW_LENGTHS, WEEKDAYS, type HiringProfile } from "@/lib/company";
 import { TIME_ZONES } from "@/lib/settings";

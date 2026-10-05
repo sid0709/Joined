@@ -12,7 +12,7 @@ import {
   Text,
   TextArea,
   TimeField,
-} from "@joined/design-system";
+} from "sid-ui";
 import { MAX_APPLICATION_NOTES, type Application } from "@/lib/applications";
 import {
   combineDateAndTime,

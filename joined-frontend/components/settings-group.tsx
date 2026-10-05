@@ -9,7 +9,7 @@ import {
   Section,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 
 /**
  * A titled settings card: header, rows split by hairlines, and an optional

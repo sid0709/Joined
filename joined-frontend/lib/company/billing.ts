@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "@joined/design-system";
+import type { BadgeVariant } from "sid-ui";
 
 /** Hiring workspace — prepaid balance. Purchases are credited in full. */
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { SegmentedControl, SegmentedControlItem } from "@joined/design-system";
+import { SegmentedControl, SegmentedControlItem } from "sid-ui";
 
 interface TabsProps<T extends string> {
   label: string;
