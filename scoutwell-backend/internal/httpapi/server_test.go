@@ -15,6 +15,7 @@ func TestServesScoutRoutesOnly(t *testing.T) {
 	}{
 		{http.MethodGet, "/v1/scout/meta", http.StatusOK},
 		{http.MethodGet, "/v1/scout/notifications", http.StatusUnauthorized},
+		{http.MethodGet, "/v1/scout/me/identity", http.StatusUnauthorized},
 		{http.MethodPost, "/v1/scout/submissions/extension", http.StatusUnauthorized},
 		{http.MethodPost, "/v1/auth/company", http.StatusNotFound},
 		{http.MethodGet, "/v1/me/profile", http.StatusNotFound},

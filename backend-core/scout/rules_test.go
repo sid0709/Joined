@@ -94,13 +94,17 @@ func TestComputeBalanceAndPayoutReadiness(t *testing.T) {
 	if balance.Released.AmountCents != 2600 || balance.Lifetime.AmountCents != 3750 || balance.ClawedBack.AmountCents != 50 {
 		t.Fatalf("balance = %+v", balance)
 	}
-	blocked := CheckPayout(Profile{}, balance.Released.AmountCents)
+	blocked := CheckPayout(Profile{}, balance.Released.AmountCents, false)
 	if blocked.Ready || len(blocked.Blockers) != 3 {
 		t.Fatalf("readiness = %+v", blocked)
 	}
-	ready := CheckPayout(Profile{Verification: VerificationVerified, TaxInfo: &TaxInfo{}, PayoutMethod: &PayoutMethod{}}, balance.Released.AmountCents)
+	ready := CheckPayout(Profile{Verification: VerificationVerified, TaxInfo: &TaxInfo{}, PayoutMethod: &PayoutMethod{}}, balance.Released.AmountCents, true)
 	if !ready.Ready {
 		t.Fatalf("readiness = %+v", ready)
+	}
+	first := CheckPayout(Profile{Verification: VerificationVerified, TaxInfo: &TaxInfo{}, PayoutMethod: &PayoutMethod{HolderName: "Ada"}, LegalName: "Ada Lovelace", Country: "GB", DateOfBirth: "1990-01-01"}, balance.Released.AmountCents, false)
+	if first.Ready {
+		t.Fatalf("name mismatch should block first payout: %+v", first)
 	}
 }
 
