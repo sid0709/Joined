@@ -76,6 +76,9 @@ type Store struct {
 	now  func() time.Time
 	roll func() float64
 
+	// docs is an optional in-memory seam. Nil means Mongo via collection().
+	docs documents
+
 	// Storage hooks for testing RecordApply
 	findSubmissionByJobID func(ctx context.Context, jobID string) (Submission, error)
 	insertEarning         func(ctx context.Context, earning Earning) error
@@ -190,6 +193,9 @@ func (s *Store) Wait() { s.pending.Wait() }
 
 // enqueue runs the automatic checks in the background with retries.
 func (s *Store) enqueue(id bson.ObjectID) {
+	if s.workers == nil {
+		return
+	}
 	s.pending.Add(1)
 	go func() {
 		defer s.pending.Done()
