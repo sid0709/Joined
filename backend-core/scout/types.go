@@ -94,16 +94,16 @@ const (
 )
 
 var (
-	ErrNotFound       = errors.New("not found")
-	ErrInvalidInput   = errors.New("check the form and try again")
-	ErrForbidden      = errors.New("not allowed")
-	ErrNotScout       = errors.New("this account is not a scout")
-	ErrTermsRequired  = errors.New("accept the scout terms before submitting jobs")
-	ErrQuotaExceeded  = errors.New("daily submission limit reached")
-	ErrConflict       = errors.New("conflict")
-	ErrIdempotency    = errors.New("Idempotency-Key was already used with a different request body")
-	ErrPayoutBlocked  = errors.New("payout requirements are not met")
-	ErrKeyLimit       = errors.New("revoke an API key before creating another")
+	ErrNotFound      = errors.New("not found")
+	ErrInvalidInput  = errors.New("check the form and try again")
+	ErrForbidden     = errors.New("not allowed")
+	ErrNotScout      = errors.New("this account is not a scout")
+	ErrTermsRequired = errors.New("accept the scout terms before submitting jobs")
+	ErrQuotaExceeded = errors.New("daily submission limit reached")
+	ErrConflict      = errors.New("conflict")
+	ErrIdempotency   = errors.New("Idempotency-Key was already used with a different request body")
+	ErrPayoutBlocked = errors.New("payout requirements are not met")
+	ErrKeyLimit      = errors.New("revoke an API key before creating another")
 	ErrNotDecidable   = errors.New("this submission is not waiting on a decision")
 	ErrAlreadyDecided = errors.New("this item was already decided")
 )
@@ -259,6 +259,9 @@ type Profile struct {
 	VerificationNote   string        `json:"verification_note,omitempty" bson:"verificationNote,omitempty"`
 	LegalName          string        `json:"legal_name,omitempty" bson:"legalName,omitempty"`
 	Country            string        `json:"country,omitempty" bson:"country,omitempty"`
+	DateOfBirth        string        `json:"date_of_birth,omitempty" bson:"dateOfBirth,omitempty"`
+	DocumentRef        string        `json:"document_ref,omitempty" bson:"documentRef,omitempty"`
+	VerifiedBy         string        `json:"verified_by,omitempty" bson:"verifiedBy,omitempty"`
 	TaxInfo            *TaxInfo      `json:"tax_info" bson:"taxInfo,omitempty"`
 	PayoutMethod       *PayoutMethod `json:"payout_method" bson:"payoutMethod,omitempty"`
 	NotifyDecisions    bool          `json:"notify_decisions" bson:"notifyDecisions"`
@@ -279,10 +282,11 @@ type TaxInfo struct {
 
 // PayoutMethod is a masked destination; account numbers are never stored.
 type PayoutMethod struct {
-	Type      string    `json:"type" bson:"type"`
-	Label     string    `json:"label" bson:"label"`
-	Last4     string    `json:"last4" bson:"last4"`
-	UpdatedAt time.Time `json:"updated_at" bson:"updatedAt"`
+	Type       string    `json:"type" bson:"type"`
+	Label      string    `json:"label" bson:"label"`
+	Last4      string    `json:"last4" bson:"last4"`
+	HolderName string    `json:"holder_name,omitempty" bson:"holderName,omitempty"`
+	UpdatedAt  time.Time `json:"updated_at" bson:"updatedAt"`
 }
 
 // Earning is one reward line. Held rewards release after the hold window.

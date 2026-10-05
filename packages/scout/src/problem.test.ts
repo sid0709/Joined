@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
 import { ApiError, parseProblem, problemMessage } from "./problem";
+import {
+  IDENTITY_INCOMPLETE,
+  IDENTITY_NAME_MISMATCH,
+  IDENTITY_REJECTED,
+  IDENTITY_UNVERIFIED,
+} from "./types";
 
 describe("problemMessage", () => {
   test("lists field errors in plain words", () => {
@@ -44,4 +50,11 @@ describe("ApiError", () => {
     expect(error.code).toBe("");
     expect(error.fields).toEqual([]);
   });
+});
+
+test("first-payout identity problem codes are stable", () => {
+  expect(IDENTITY_UNVERIFIED).toBe("identity_unverified");
+  expect(IDENTITY_REJECTED).toBe("identity_rejected");
+  expect(IDENTITY_INCOMPLETE).toBe("identity_incomplete");
+  expect(IDENTITY_NAME_MISMATCH).toBe("identity_name_mismatch");
 });
