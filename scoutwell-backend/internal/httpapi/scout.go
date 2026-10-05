@@ -32,6 +32,7 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /v1/scout/me", s.scoutPatchMe)
 	mux.HandleFunc("POST /v1/scout/me/terms", s.scoutAcceptTerms)
 	mux.HandleFunc("POST /v1/scout/me/verification", s.scoutRequestVerification)
+	mux.HandleFunc("GET /v1/scout/me/identity", s.scoutIdentity)
 	mux.HandleFunc("PUT /v1/scout/me/tax", s.scoutSaveTax)
 	mux.HandleFunc("PUT /v1/scout/me/payout-method", s.scoutSavePayoutMethod)
 	mux.HandleFunc("GET /v1/scout/companies", s.scoutSearchCompanies)
@@ -166,6 +167,19 @@ func (s *Server) scoutRequestVerification(w http.ResponseWriter, r *http.Request
 	})
 }
 
+func (s *Server) scoutIdentity(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.scoutActor(w, r, sessionOnly)
+	if !ok {
+		return
+	}
+	identity, err := s.scouts.Identity(r.Context(), actor.UserID)
+	if err != nil {
+		s.writeScoutError(w, err)
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, identity)
+}
+
 func (s *Server) scoutSaveTax(w http.ResponseWriter, r *http.Request) {
 	actor, ok := s.scoutActor(w, r, sessionOnly)
 	if !ok {
@@ -195,10 +209,18 @@ func (s *Server) scoutSavePayoutMethod(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writeProfile(w http.ResponseWriter, run func() (scout.Profile, error)) {
 	profile, err := run()
 	if err != nil {
-		httpkit.WriteScoutError(w, err)
+		s.writeScoutError(w, err)
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusOK, profile)
+}
+
+func (s *Server) writeScoutError(w http.ResponseWriter, err error) {
+	if code, detail, ok := scout.IdentityProblem(err); ok {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnprocessableEntity, code, detail))
+		return
+	}
+	httpkit.WriteScoutError(w, err)
 }
 
 func (s *Server) scoutStats(w http.ResponseWriter, r *http.Request) {
@@ -496,7 +518,7 @@ func (s *Server) scoutRequestPayout(w http.ResponseWriter, r *http.Request) {
 	}
 	payout, err := s.scouts.RequestPayout(r.Context(), actor.UserID)
 	if err != nil {
-		httpkit.WriteScoutError(w, err)
+		s.writeScoutError(w, err)
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusCreated, payout)
