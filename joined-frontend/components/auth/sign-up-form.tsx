@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Button,
   Card,
+  Divider,
   GoogleSignInButton,
   Heading,
   Link,
@@ -13,15 +14,16 @@ import {
   Text,
 } from "@joined/design-system";
 import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
+import { allowEmailSignup, type AccountMode } from "@/lib/auth/email";
 import { isCompanyModeEnabled } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
+import { EmailSignUpFields } from "./email-sign-up-fields";
 
-type AccountMode = "candidate" | "employee";
 type Step = "mode" | "account";
 
 /**
- * Choose how you'll use Joined, then sign up with Google, the only way in. A
- * recruiter links or creates their company on the hiring setup page next.
+ * Candidate accounts can use email or Google. Company/employer email sign-up is
+ * never offered; the employee path stays Google-only when company mode is on.
  */
 export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boolean }) {
   const companyModeEnabled = isCompanyModeEnabled();
@@ -32,6 +34,7 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
   );
   const signInHref = `${ROUTES.signIn}?next=${encodeURIComponent(nextPath)}`;
   const employee = mode === "employee";
+  const emailSignup = allowEmailSignup(mode);
 
   return (
     <Card padding={6}>
@@ -71,9 +74,11 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
               <Text color="secondary">
                 {employee
                   ? "Sign up with your Google account. Next, link a company already on Joined or create its page."
-                  : "Sign up with your Google account."}
+                  : "Create a job-seeker account with email or Google."}
               </Text>
             </Stack>
+            {emailSignup ? <EmailSignUpFields /> : null}
+            {emailSignup ? <Divider label="or" /> : null}
             <Stack gap={2}>
               <GoogleSignInButton
                 action={GOOGLE_SIGNIN_ROUTE}
