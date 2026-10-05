@@ -62,6 +62,7 @@ func main() {
 	}
 	defer p.Close()
 
+	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
 	handler := httpapi.New(p.Jobs, p.Accounts, p.People, p.Hiring, p.Staff, reader, httpapi.Options{
 		Origins:           server.Origins,
@@ -70,7 +71,7 @@ func main() {
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 		EmailSender:       emailSender,
 	})
-	if err := httpkit.Serve("joined api", server.Addr, handler); err != nil {
+	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}

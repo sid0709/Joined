@@ -88,6 +88,11 @@ type HTTP struct {
 	Origins []string
 }
 
+// ErrorReporting is the error tracker DSN. Empty means no error tracking.
+type ErrorReporting struct {
+	SentryDSN string
+}
+
 // LoadEnvFile reads .env from the working directory. Variables already set in
 // the environment win.
 func LoadEnvFile() {
@@ -156,6 +161,13 @@ func LoadHTTP(defaultAddr string, defaultOrigins []string) (HTTP, error) {
 func SearchEnsureIndex() bool {
 	explicit := strings.TrimSpace(os.Getenv("SEARCH_ENSURE_INDEX"))
 	return explicit == "true" || explicit == "1"
+}
+
+// LoadErrorReporting reads SENTRY_DSN from the environment.
+func LoadErrorReporting() ErrorReporting {
+	return ErrorReporting{
+		SentryDSN: strings.TrimSpace(os.Getenv("SENTRY_DSN")),
+	}
 }
 
 // Env returns the trimmed value of key, or fallback when it is unset or blank.
