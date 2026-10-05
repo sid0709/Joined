@@ -29,6 +29,8 @@ type Handlers struct {
 	CompanyCreated func(context.Context, auth.Session)
 	// Google turns on Sign in with Google. Nil, or without credentials, answers 503.
 	Google *GoogleSignIn
+	// Email turns on email authentication. Nil answers 503.
+	Email *EmailAuth
 }
 
 type authResponse struct {
@@ -37,10 +39,15 @@ type authResponse struct {
 }
 
 // Register adds Sign in with Google (the only way to sign in or sign up),
-// sign-out, the session, and account deletion.
+// email sign-up and sign-in, sign-out, the session, and account deletion.
 func (h Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/google/start", h.startGoogle)
 	mux.HandleFunc("POST /v1/auth/google/callback", h.finishGoogle)
+	mux.HandleFunc("POST /v1/auth/signup", h.signup)
+	mux.HandleFunc("POST /v1/auth/verify", h.verifyEmail)
+	mux.HandleFunc("POST /v1/auth/signin", h.emailSignin)
+	mux.HandleFunc("POST /v1/auth/password/reset-request", h.requestPasswordReset)
+	mux.HandleFunc("POST /v1/auth/password/reset", h.resetPassword)
 	mux.HandleFunc("POST /v1/auth/signout", h.signout)
 	mux.HandleFunc("DELETE /v1/auth/account", h.deleteAccount)
 	mux.HandleFunc("GET /v1/auth/session", h.session)
