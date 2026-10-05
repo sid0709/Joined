@@ -149,8 +149,10 @@ func (s *Store) UpdateProfile(ctx context.Context, userID string, patch ProfileP
 
 // VerificationRequest asks staff to verify the scout's identity (tier 2).
 type VerificationRequest struct {
-	LegalName string `json:"legal_name"`
-	Country   string `json:"country"`
+	LegalName   string `json:"legal_name"`
+	Country     string `json:"country"`
+	DateOfBirth string `json:"date_of_birth"`
+	DocumentRef string `json:"document_ref"`
 }
 
 // RequestVerification queues the scout for identity review.
@@ -162,28 +164,81 @@ func (s *Store) RequestVerification(ctx context.Context, userID string, input Ve
 	if profile.TermsAcceptedAt == nil {
 		return Profile{}, ErrTermsRequired
 	}
-	if profile.Verification == VerificationVerified || profile.Verification == VerificationPending {
-		return Profile{}, ErrAlreadyDecided
-	}
 	legal, country, err := legalIdentity(input.LegalName, input.Country)
-	if err != nil {
+	problems := &ValidationError{}
+	var fields *ValidationError
+	if errors.As(err, &fields) {
+		problems.Fields = append(problems.Fields, fields.Fields...)
+	}
+	dob, err := parseDateOfBirth(input.DateOfBirth, s.now())
+	if errors.As(err, &fields) {
+		problems.Fields = append(problems.Fields, fields.Fields...)
+	}
+	docRef, err := parseDocumentRef(input.DocumentRef)
+	if errors.As(err, &fields) {
+		problems.Fields = append(problems.Fields, fields.Fields...)
+	}
+	if err := problems.orNil(); err != nil {
 		return Profile{}, err
 	}
+	if profile.PayoutMethod != nil && strings.TrimSpace(profile.PayoutMethod.HolderName) != "" && !NamesMatch(legal, profile.PayoutMethod.HolderName) {
+		return Profile{}, wrapPayoutIdentity(ErrIdentityNameMismatch)
+	}
+	if profile.Verification == VerificationVerified && IdentityFieldsPresent(profile) && !identityCoreChanged(profile, legal, country, dob) {
+		return Profile{}, ErrAlreadyDecided
+	}
 	now := s.now().UTC()
-	_, err = s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{
-		{Key: "$set", Value: bson.D{
-			{Key: "verification", Value: VerificationPending},
-			{Key: "legalName", Value: legal},
-			{Key: "country", Value: country},
-			{Key: "verificationUpdatedAt", Value: now},
-			{Key: "updatedAt", Value: now},
-		}},
-		{Key: "$unset", Value: bson.D{{Key: "verificationNote", Value: ""}}},
-	})
-	if err != nil {
+	next := VerificationPending
+	keepVerified := profile.Verification == VerificationVerified && !identityCoreChanged(profile, legal, country, dob)
+	if keepVerified {
+		next = VerificationVerified
+	}
+	if err := s.updateProfile(ctx, userID, func(p *Profile) {
+		p.Verification = next
+		p.LegalName = legal
+		p.Country = country
+		p.DateOfBirth = dob
+		p.DocumentRef = docRef
+		p.VerificationUpdate = &now
+		p.UpdatedAt = now
+		if keepVerified {
+			return
+		}
+		p.VerificationNote = ""
+		p.VerifiedBy = ""
+	}); err != nil {
 		return Profile{}, err
 	}
 	return s.Profile(ctx, userID)
+}
+
+// Identity returns the scout-facing identity status for the first-payout gate.
+func (s *Store) Identity(ctx context.Context, userID string) (Identity, error) {
+	profile, err := s.EnsureProfile(ctx, userID)
+	if err != nil {
+		return Identity{}, err
+	}
+	paid, err := s.hasPaidPayout(ctx, userID)
+	if err != nil {
+		return Identity{}, err
+	}
+	holder := ""
+	if profile.PayoutMethod != nil {
+		holder = profile.PayoutMethod.HolderName
+	}
+	return Identity{
+		Status:           profile.Verification,
+		LegalName:        profile.LegalName,
+		Country:          profile.Country,
+		DateOfBirth:      profile.DateOfBirth,
+		DocumentRef:      profile.DocumentRef,
+		PayoutHolderName: holder,
+		NameMatches:      PayoutHolderMatches(profile),
+		FirstPayoutGated: !paid,
+		Note:             profile.VerificationNote,
+		VerifiedBy:       profile.VerifiedBy,
+		UpdatedAt:        profile.VerificationUpdate,
+	}, nil
 }
 
 // TaxInput is a scout's tax details. Only the last four characters of the
@@ -214,8 +269,9 @@ func (s *Store) SaveTaxInfo(ctx context.Context, userID string, input TaxInput) 
 	}
 	now := s.now().UTC()
 	info := TaxInfo{LegalName: legal, Country: country, TaxIDLast4: last4, CompletedAt: now}
-	if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{
-		{Key: "$set", Value: bson.D{{Key: "taxInfo", Value: info}, {Key: "updatedAt", Value: now}}},
+	if err := s.updateProfile(ctx, userID, func(p *Profile) {
+		p.TaxInfo = &info
+		p.UpdatedAt = now
 	}); err != nil {
 		return Profile{}, err
 	}
@@ -224,9 +280,10 @@ func (s *Store) SaveTaxInfo(ctx context.Context, userID string, input TaxInput) 
 
 // PayoutMethodInput names where payouts go. Only a masked last four is accepted.
 type PayoutMethodInput struct {
-	Type  string `json:"type"`
-	Label string `json:"label"`
-	Last4 string `json:"last4"`
+	Type       string `json:"type"`
+	Label      string `json:"label"`
+	Last4      string `json:"last4"`
+	HolderName string `json:"holder_name"`
 }
 
 // SavePayoutMethod stores the payout destination.
@@ -247,13 +304,19 @@ func (s *Store) SavePayoutMethod(ctx context.Context, userID string, input Payou
 	if !last4Pattern.MatchString(last4) {
 		problems.add("last4", "enter only the last 4 characters")
 	}
+	holder, err := parseHolderName(input.HolderName)
+	var fields *ValidationError
+	if errors.As(err, &fields) {
+		problems.Fields = append(problems.Fields, fields.Fields...)
+	}
 	if err := problems.orNil(); err != nil {
 		return Profile{}, err
 	}
 	now := s.now().UTC()
-	method := PayoutMethod{Type: kind, Label: label, Last4: last4, UpdatedAt: now}
-	if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{
-		{Key: "$set", Value: bson.D{{Key: "payoutMethod", Value: method}, {Key: "updatedAt", Value: now}}},
+	method := PayoutMethod{Type: kind, Label: label, Last4: last4, HolderName: holder, UpdatedAt: now}
+	if err := s.updateProfile(ctx, userID, func(p *Profile) {
+		p.PayoutMethod = &method
+		p.UpdatedAt = now
 	}); err != nil {
 		return Profile{}, err
 	}
@@ -271,4 +334,62 @@ func legalIdentity(name, country string) (string, string, error) {
 		problems.add("country", "use a two-letter country code, like US")
 	}
 	return name, country, problems.orNil()
+}
+
+func (s *Store) updateProfile(ctx context.Context, userID string, apply func(*Profile)) error {
+	if mem, ok := s.docs.(*memDocs); ok {
+		_, err := mem.applyProfile(userID, apply)
+		return err
+	}
+	profile, err := s.storedProfile(ctx, userID)
+	if err != nil {
+		return err
+	}
+	apply(&profile)
+	set, unset := profileWrite(profile)
+	doc := bson.D{{Key: "$set", Value: set}}
+	if len(unset) > 0 {
+		doc = append(doc, bson.E{Key: "$unset", Value: unset})
+	}
+	_, err = s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, doc)
+	return err
+}
+
+func profileWrite(p Profile) (bson.D, bson.D) {
+	set := bson.D{
+		{Key: "verification", Value: p.Verification},
+		{Key: "legalName", Value: p.LegalName},
+		{Key: "country", Value: p.Country},
+		{Key: "dateOfBirth", Value: p.DateOfBirth},
+		{Key: "documentRef", Value: p.DocumentRef},
+		{Key: "updatedAt", Value: p.UpdatedAt},
+		{Key: "notifyDecisions", Value: p.NotifyDecisions},
+		{Key: "notifyRewards", Value: p.NotifyRewards},
+		{Key: "level", Value: p.Level},
+		{Key: "levelPinned", Value: p.LevelPinned},
+	}
+	unset := bson.D{}
+	if p.VerificationNote == "" {
+		unset = append(unset, bson.E{Key: "verificationNote", Value: ""})
+	} else {
+		set = append(set, bson.E{Key: "verificationNote", Value: p.VerificationNote})
+	}
+	if p.VerifiedBy == "" {
+		unset = append(unset, bson.E{Key: "verifiedBy", Value: ""})
+	} else {
+		set = append(set, bson.E{Key: "verifiedBy", Value: p.VerifiedBy})
+	}
+	if p.VerificationUpdate != nil {
+		set = append(set, bson.E{Key: "verificationUpdatedAt", Value: *p.VerificationUpdate})
+	}
+	if p.PayoutMethod != nil {
+		set = append(set, bson.E{Key: "payoutMethod", Value: *p.PayoutMethod})
+	}
+	if p.TaxInfo != nil {
+		set = append(set, bson.E{Key: "taxInfo", Value: *p.TaxInfo})
+	}
+	if p.TermsAcceptedAt != nil {
+		set = append(set, bson.E{Key: "termsAcceptedAt", Value: *p.TermsAcceptedAt})
+	}
+	return set, unset
 }
