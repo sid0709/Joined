@@ -126,6 +126,96 @@ func TestIdempotentSameKeyDifferentBodyConflicts(t *testing.T) {
 	}
 }
 
+func TestIdempotentDropsKeyAfterServerError(t *testing.T) {
+	ctx := context.Background()
+	store, _ := memoryScout(t, "scout-1")
+	body := []byte(`{"title":"Staff Engineer"}`)
+	calls := 0
+	first, replayed, err := store.Idempotent(ctx, "scout-1", "/v1/scout/submissions/extension", "key-500", body, func() Replay {
+		calls++
+		return Replay{Status: 500, Body: []byte(`{"title":"internal_error"}`)}
+	})
+	if err != nil || replayed {
+		t.Fatalf("first: replayed=%v err=%v", replayed, err)
+	}
+	if first.Status != 500 {
+		t.Fatalf("first status = %d, want 500", first.Status)
+	}
+	if memoryIdempotencyExists(store, "scout-1", "/v1/scout/submissions/extension", "key-500") {
+		t.Fatal("expected 5xx key to be dropped")
+	}
+
+	second, replayed, err := store.Idempotent(ctx, "scout-1", "/v1/scout/submissions/extension", "key-500", body, func() Replay {
+		calls++
+		return Replay{Status: 201, Body: []byte(`ok`)}
+	})
+	if err != nil || replayed {
+		t.Fatalf("retry: replayed=%v err=%v", replayed, err)
+	}
+	if second.Status != 201 {
+		t.Fatalf("retry status = %d, want 201", second.Status)
+	}
+	if calls != 2 {
+		t.Fatalf("handler calls = %d, want 2", calls)
+	}
+}
+
+func TestIdempotentDropsInFlightWhenCompleteFails(t *testing.T) {
+	ctx := context.Background()
+	store, _ := memoryScout(t, "scout-1")
+	finishErr := errors.New("finish failed")
+	store.docs = &failingFinishDocs{documents: store.docs, fail: finishErr}
+	body := []byte(`{"title":"Staff Engineer"}`)
+	calls := 0
+
+	_, replayed, err := store.Idempotent(ctx, "scout-1", "/v1/scout/submissions/extension", "key-finish", body, func() Replay {
+		calls++
+		return Replay{Status: 201, Body: []byte(`ok`)}
+	})
+	if replayed {
+		t.Fatal("first call should not be a replay")
+	}
+	if err == nil || !strings.Contains(err.Error(), finishErr.Error()) {
+		t.Fatalf("first err = %v, want complete failure", err)
+	}
+	if memoryIdempotencyExists(store, "scout-1", "/v1/scout/submissions/extension", "key-finish") {
+		t.Fatal("expected in-flight key to be dropped after complete failure")
+	}
+
+	second, replayed, err := store.Idempotent(ctx, "scout-1", "/v1/scout/submissions/extension", "key-finish", body, func() Replay {
+		calls++
+		return Replay{Status: 201, Body: []byte(`ok-retry`)}
+	})
+	if err != nil || replayed {
+		t.Fatalf("retry: replayed=%v err=%v", replayed, err)
+	}
+	if string(second.Body) != "ok-retry" {
+		t.Fatalf("retry body = %q, want ok-retry", second.Body)
+	}
+	if calls != 2 {
+		t.Fatalf("handler calls = %d, want 2", calls)
+	}
+}
+
+type failingFinishDocs struct {
+	documents
+	fail error
+}
+
+func (f *failingFinishDocs) finishIdempotency(ctx context.Context, userID, route, key string, status int, body []byte) error {
+	if f.fail != nil {
+		err := f.fail
+		f.fail = nil
+		return err
+	}
+	return f.documents.finishIdempotency(ctx, userID, route, key, status, body)
+}
+
+func memoryIdempotencyExists(store *Store, userID, route, key string) bool {
+	_, err := store.docs.findIdempotency(context.Background(), userID, route, key)
+	return err == nil
+}
+
 func TestSubmitFromExtensionRejectsNonScout(t *testing.T) {
 	ctx := context.Background()
 	store, _ := memoryScout(t, "scout-1")

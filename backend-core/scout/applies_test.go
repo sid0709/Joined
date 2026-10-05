@@ -443,6 +443,25 @@ func TestApplyCreditLookupQuery(t *testing.T) {
 	}
 }
 
+func TestApplyCreditSubmissionIndexMatchesSort(t *testing.T) {
+	index := applyCreditSubmissionIndex()
+	if len(index) != 4 {
+		t.Fatalf("index = %#v, want jobId,status,submittedAt,_id", index)
+	}
+	if index[0].Key != "jobId" || index[0].Value != 1 {
+		t.Fatalf("index[0] = %#v, want jobId:1", index[0])
+	}
+	if index[1].Key != "status" || index[1].Value != 1 {
+		t.Fatalf("index[1] = %#v, want status:1", index[1])
+	}
+	if index[2].Key != "submittedAt" || index[2].Value != -1 {
+		t.Fatalf("index[2] = %#v, want submittedAt:-1", index[2])
+	}
+	if index[3].Key != "_id" || index[3].Value != -1 {
+		t.Fatalf("index[3] = %#v, want _id:-1", index[3])
+	}
+}
+
 func TestApplyCreditSortKeyExistsOnSubmission(t *testing.T) {
 	sort := applyCreditSubmissionSort()
 	if len(sort) == 0 {
@@ -483,4 +502,3 @@ func TestRecordApplyNoEarningWhenOnlyNonApproved(t *testing.T) {
 		t.Errorf("expected 0 earnings, got %d", len(storage.earnings))
 	}
 }
-

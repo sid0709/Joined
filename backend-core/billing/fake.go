@@ -14,6 +14,7 @@ type FakeClient struct {
 	lookupKeyIndex      map[string]string
 	idempotencyReplays  map[string]*Price
 	failNextPriceCreate bool
+	failNextPriceUpdate bool
 	nextID              int
 }
 
@@ -33,6 +34,13 @@ func (f *FakeClient) FailNextPriceCreate() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.failNextPriceCreate = true
+}
+
+// FailNextPriceUpdate injects a one-shot UpdatePrice failure, then clears.
+func (f *FakeClient) FailNextPriceUpdate() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.failNextPriceUpdate = true
 }
 
 func (f *FakeClient) CreateProduct(ctx context.Context, req CreateProductRequest) (*Product, error) {
@@ -142,6 +150,10 @@ func (f *FakeClient) CreatePrice(ctx context.Context, req CreatePriceRequest) (*
 func (f *FakeClient) UpdatePrice(ctx context.Context, id string, req UpdatePriceRequest) (*Price, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.failNextPriceUpdate {
+		f.failNextPriceUpdate = false
+		return nil, fmt.Errorf("injected update failure")
+	}
 	price, ok := f.prices[id]
 	if !ok {
 		return nil, fmt.Errorf("price not found: %s", id)
