@@ -17,13 +17,9 @@ End-to-end smoke suite that proves main pages load and key APIs respond.
 
 ## What's tested
 
-- **joined-frontend**: home page, search page
+- **joined-frontend**: home page (brand title), search UI on `/` (`ROUTES.search`), `/company` redirect to `/` when company mode is off
 - **scoutwell-frontend**: home page
 - **joined-backend**: `/health`, `/v1/search/jobs`
-
-## Skipped tests
-
-- `/company` redirect: Skipped until step-04 (company mode toggle) merges.
 
 ## CI
 

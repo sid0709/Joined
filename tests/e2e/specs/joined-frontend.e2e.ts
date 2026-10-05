@@ -8,14 +8,14 @@ test.describe("joined-frontend smoke", () => {
   });
 
   test("search page loads", async ({ page }) => {
+    // ROUTES.search is "/" — job search is the public home route.
     await page.goto("http://localhost:6002/");
-    await expect(page).toHaveTitle(/Joined/i);
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("search", { name: "Search jobs" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Find your next role" })).toBeVisible();
   });
 
-  test.skip("/company redirect to / when company mode is off", async ({ page: _page }) => {
-    // TODO: Enable after step-04 merges (company mode toggle).
-    // await _page.goto("http://localhost:6002/company");
-    // await expect(_page).toHaveURL("http://localhost:6002/");
+  test("/company redirects to / when company mode is off", async ({ page }) => {
+    await page.goto("http://localhost:6002/company");
+    await expect(page).toHaveURL("http://localhost:6002/");
   });
 });
