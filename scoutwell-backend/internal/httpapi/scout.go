@@ -55,12 +55,32 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /v1/scout/api-keys/{id}", s.scoutRevokeKey)
 }
 
-// scoutActor resolves the bearer token to a scout: a web session, or an API
-// key when the endpoint allows keys.
+// sessionToken is the scout session: Authorization Bearer first, then the
+// Scoutwell session cookie (step-02 / extension sign-in).
+func (s *Server) sessionToken(r *http.Request) string {
+	if token := httpkit.BearerToken(r); token != "" {
+		return token
+	}
+	name := s.cookie
+	if name == "" {
+		name = SessionCookie
+	}
+	if cookie, err := r.Cookie(name); err == nil {
+		return strings.TrimSpace(cookie.Value)
+	}
+	return ""
+}
+
+// scoutActor resolves the session to a scout: a web session (cookie or bearer),
+// or an API key when the endpoint allows keys.
 func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bool) (scout.Actor, bool) {
-	token := httpkit.BearerToken(r)
+	token := s.sessionToken(r)
 	if token == "" {
-		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Send Authorization: Bearer <session token or API key>."))
+		detail := "Send a scout session cookie or Authorization: Bearer <session token>."
+		if allowKeys {
+			detail = "Send a scout session cookie or Authorization: Bearer <session token or API key>."
+		}
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", detail))
 		return scout.Actor{}, false
 	}
 	if scout.IsAPIKey(token) {
@@ -75,7 +95,11 @@ func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bo
 		}
 		return actor, true
 	}
-	userID, err := s.auth.SessionUserID(r.Context(), token, time.Now())
+	if s.sessions == nil {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Session expired or invalid; sign in again."))
+		return scout.Actor{}, false
+	}
+	userID, err := s.sessions.SessionUserID(r.Context(), token, time.Now())
 	if errors.Is(err, auth.ErrInvalidLogin) {
 		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Session expired or invalid; sign in again."))
 		return scout.Actor{}, false
@@ -309,6 +333,10 @@ func (s *Server) scoutSubmitExtension(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimSpace(r.Header.Get(httpkit.IdempotencyHeader))
 	if key == "" {
 		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key header is required."))
+		return
+	}
+	if !scout.ValidIdempotencyKey(key) {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key must be 1 to 255 characters."))
 		return
 	}
 	body, ok := httpkit.ReadBody(w, r, maxExtensionBody)

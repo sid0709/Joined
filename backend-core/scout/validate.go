@@ -20,6 +20,7 @@ const (
 	maxTitleChars    = 160
 	maxLocationChars = 120
 	maxSalaryChars   = 80
+	maxBoardChars    = 80
 	maxExternalRef   = 120
 )
 
@@ -115,7 +116,7 @@ func NormalizeExtensionInput(in ExtensionSubmissionInput) (ExtensionSubmissionIn
 	lengthRule(problems, "location", in.Location, minNameChars, maxLocationChars)
 	lengthRule(problems, "description", in.Description, MinSummaryChars, MaxSummaryChars)
 	if in.Board != "" {
-		lengthRule(problems, "board", in.Board, 0, 80)
+		lengthRule(problems, "board", in.Board, 0, maxBoardChars)
 	}
 
 	return in, problems.orNil()
