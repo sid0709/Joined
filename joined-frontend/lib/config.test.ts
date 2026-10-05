@@ -3,6 +3,8 @@ import {
   isBillingCheckoutEnabled,
   isCompanyModeEnabled,
   joinedApiUrl,
+  joinedWebOrigin,
+  joinedWebUrl,
   PREMIUM_CURRENCY,
   premiumMonthlyPriceCents,
   premiumPrices,
@@ -11,6 +13,7 @@ import {
 
 const KEYS = [
   "JOINED_API_URL",
+  "JOINED_WEB_URL",
   "NEXT_PUBLIC_COMPANY_MODE_ENABLED",
   "PREMIUM_MONTHLY_PRICE_CENTS",
   "PREMIUM_YEARLY_PRICE_CENTS",
@@ -34,6 +37,18 @@ describe("config", () => {
     expect(joinedApiUrl()).toBe("http://api.test");
     process.env.JOINED_API_URL = "http://api.test";
     expect(joinedApiUrl()).toBe("http://api.test");
+  });
+
+  test("joinedWebUrl is optional and loses its trailing slash", () => {
+    delete process.env.JOINED_WEB_URL;
+    expect(joinedWebUrl()).toBe("");
+    process.env.JOINED_WEB_URL = "https://joined.test/";
+    expect(joinedWebUrl()).toBe("https://joined.test");
+    process.env.JOINED_WEB_URL = "https://joined.test";
+    expect(joinedWebUrl()).toBe("https://joined.test");
+    expect(joinedWebOrigin()?.toString()).toBe("https://joined.test/");
+    process.env.JOINED_WEB_URL = "not a url";
+    expect(joinedWebOrigin()).toBeUndefined();
   });
 
   test("isCompanyModeEnabled reads NEXT_PUBLIC_COMPANY_MODE_ENABLED", () => {

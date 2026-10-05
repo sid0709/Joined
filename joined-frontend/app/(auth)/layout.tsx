@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { BrandFooter, BrandLockup, Center, Stack } from "@joined/design-system";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 const FORM_WIDTH = 480;
 
