@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/acorn-backend/account"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
@@ -47,11 +47,11 @@ type workerJob struct {
 
 // workerPoolIDs are the jobs the job hunter saved and has not applied to yet.
 func (s *Server) workerPoolIDs(ctx context.Context, userID string) ([]string, error) {
-	saved, err := s.people.SavedJobIDs(ctx, userID)
+	saved, err := s.accounts.SavedJobIDs(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	applied, err := s.people.AppliedJobIDs(ctx, userID)
+	applied, err := s.accounts.AppliedJobIDs(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -159,23 +159,31 @@ func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "job": row})
 }
 
-// markApplied moves a saved job onto the application board, the same apply as Joined's.
+// markApplied records the job on this Acorn account.
 func (s *Server) markApplied(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.session(w, r)
 	if !ok {
 		return
 	}
-	input := candidate.ApplyInput{JobID: r.PathValue("jobId"), Stage: candidate.StageApplied}
-	_, err := s.people.Apply(r.Context(), session.User.ID, input, time.Now())
+	jobID := r.PathValue("jobId")
+	if s.listings != nil {
+		if _, err := s.listings.GetCatalogJob(r.Context(), jobID, time.Now()); errors.Is(err, jobs.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "job not found")
+			return
+		} else if err != nil {
+			slog.Error("acorn mark applied", "job", jobID, "error", err)
+			writeError(w, http.StatusInternalServerError, "could not mark the job applied")
+			return
+		}
+	}
+	err := s.accounts.MarkApplied(r.Context(), session.User.ID, jobID)
 	switch {
-	case err == nil, errors.Is(err, candidate.ErrAlreadyApplied):
+	case err == nil, errors.Is(err, account.ErrAlreadyApplied):
 		writeJSON(w, http.StatusOK, map[string]bool{"success": true})
-	case errors.Is(err, candidate.ErrNotFound):
-		writeError(w, http.StatusNotFound, "job not found")
-	case errors.Is(err, candidate.ErrInvalidInput):
+	case errors.Is(err, account.ErrInvalid):
 		writeError(w, http.StatusBadRequest, err.Error())
 	default:
-		slog.Error("acorn mark applied", "job", input.JobID, "error", err)
+		slog.Error("acorn mark applied", "job", jobID, "error", err)
 		writeError(w, http.StatusInternalServerError, "could not mark the job applied")
 	}
 }

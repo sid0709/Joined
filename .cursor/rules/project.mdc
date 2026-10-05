@@ -40,9 +40,9 @@ Follow the rule that matches the folder you are editing, and use only that folde
 
 | Folder | Rule file |
 | --- | --- |
-| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme` | `.cursor/rules/nextjs.mdc` |
-| UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension` | `.cursor/rules/design-system.mdc` |
-| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core` | `.cursor/rules/go.mdc` |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme` | `.cursor/rules/nextjs.mdc` |
+| UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension`, `acorn-frontend` | `.cursor/rules/design-system.mdc` |
+| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core` | `.cursor/rules/go.mdc` |
 | Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.cursor/rules/vite.mdc` |
 | `packages/design-system` and the `joined-theme` catalog | `.cursor/rules/theme-tracks-design-system.mdc` |
 

@@ -1,8 +1,6 @@
 import {
   Badge,
-  BrandFooter,
   Button,
-  Code,
   HStack,
   Heading,
   PageContainer,
@@ -12,17 +10,17 @@ import {
   Text,
 } from "@joined/design-system";
 import { BRAND } from "@/lib/config";
-import { INSTALL_HREF, INSTALL_SECTION_ID, ROUTES } from "@/lib/routes";
+import { INSTALL_SECTION_ID, ROUTES } from "@/lib/routes";
 import { SiteHeader } from "./site-header";
 
 const COMING_NEXT = [
   {
     title: "Profile",
-    description: "Edit the same profile the Acorn extension already reads.",
+    description: "The name and email on this account are what the extension uses today.",
   },
   {
     title: "Resume library",
-    description: "Upload and manage resumes in the same storage the extension uses.",
+    description: "Upload and manage resumes the extension can attach.",
   },
   {
     title: "Billing",
@@ -30,7 +28,15 @@ const COMING_NEXT = [
   },
 ] as const;
 
-export function LandingPage({ signedIn, installHref }: { signedIn: boolean; installHref: string }) {
+export function LandingPage({
+  signedIn,
+  accountName,
+  installHref,
+}: {
+  signedIn: boolean;
+  accountName: string | null;
+  installHref: string;
+}) {
   return (
     <PageContainer width="narrow">
       <Stack gap={8}>
@@ -38,19 +44,28 @@ export function LandingPage({ signedIn, installHref }: { signedIn: boolean; inst
         <Stack gap={4}>
           <Badge label="Browser extension" variant="blue" />
           <PageHeader
-            title={`${BRAND} fills applications from your resume.`}
-            description="Sign in with the same Joined session the extension already uses. Profile, resume, and billing pages will land here."
+            title={
+              signedIn && accountName
+                ? `Welcome back, ${accountName}.`
+                : `${BRAND} fills applications from your resume.`
+            }
+            description="Create an Acorn account here. The extension signs in with that same account."
             action={
               <HStack gap={3} wrap="wrap">
-                <Button
-                  label={signedIn ? "Go to sign-in" : "Sign in"}
-                  variant="primary"
-                  size="lg"
-                  href={ROUTES.signIn}
-                />
+                {signedIn ? null : (
+                  <>
+                    <Button
+                      label="Create account"
+                      variant="primary"
+                      size="lg"
+                      href={ROUTES.signUp}
+                    />
+                    <Button label="Sign in" variant="secondary" size="lg" href={ROUTES.signIn} />
+                  </>
+                )}
                 <Button
                   label="Install the extension"
-                  variant="secondary"
+                  variant={signedIn ? "primary" : "secondary"}
                   size="lg"
                   href={installHref}
                 />
@@ -60,7 +75,7 @@ export function LandingPage({ signedIn, installHref }: { signedIn: boolean; inst
         </Stack>
         <SectionCard
           title="Coming next"
-          description="This scaffold is ready for the later Acorn website pages."
+          description="Profile, resumes, and billing land on this site."
         >
           <Stack gap={4}>
             {COMING_NEXT.map((item) => (
@@ -77,15 +92,10 @@ export function LandingPage({ signedIn, installHref }: { signedIn: boolean; inst
         >
           <Stack gap={3} id={INSTALL_SECTION_ID}>
             <Text color="secondary">
-              Until a listing URL is configured, this note is the install target. The extension
-              signs in with the Joined <Code>joined_session</Code> cookie.
+              Sign in on this site in the same browser, then open the extension and choose Continue.
             </Text>
-            {installHref !== INSTALL_HREF ? (
-              <Button label="Open the install page" variant="secondary" href={installHref} />
-            ) : null}
           </Stack>
         </SectionCard>
-        <BrandFooter lead={`${BRAND} is part of`} />
       </Stack>
     </PageContainer>
   );

@@ -36,10 +36,10 @@ services:
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
-  # backend-core's own server: api.joinedhq.com. Acorn's extension calls /acorn/... on it.
-  backend-core:
+  # Acorn's own server. nginx publishes it at api.joinedhq.com; the extension calls /acorn/...
+  acorn-backend:
     <<: *api
-    image: ${IMAGE_REPO}:backend-core-${IMAGE_TAG}
+    image: ${IMAGE_REPO}:acorn-backend-${IMAGE_TAG}
     ports: ["127.0.0.1:11083:8080"]
     environment:
       MONGO_URI: ${MONGO_URI:-}
@@ -112,6 +112,15 @@ services:
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
       JOINED_WEB_URL: ${FRONTEND_ORIGIN}
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+
+  acorn-frontend:
+    <<: *app
+    profiles: [acorn]
+    image: ${IMAGE_REPO}:acorn-frontend-${IMAGE_TAG}
+    ports: ["127.0.0.1:6005:3000"]
+    depends_on: [acorn-backend]
+    environment:
+      ACORN_API_URL: http://acorn-backend:8080
 
   connected-frontend:
     <<: *app

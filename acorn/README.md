@@ -2,7 +2,7 @@
 
 Chrome extension for capturing page DOM trees, generating structured AI action plans, and running fill automation.
 
-**The backend is backend-core's server**, at `https://api.joinedhq.com` in production: every Acorn route is under `/acorn` (`/acorn/*`) and the Socket.IO gateway is at `/acorn/socket.io`. The Go code lives in [`backend-core/acorn`](../backend-core/acorn) and [`backend-core/acornapi`](../backend-core/acornapi/README.md). It was ported from the original TypeScript backend.
+**The backend is `acorn-backend`**, at `https://api.joinedhq.com` in production: every Acorn route is under `/acorn` (`/acorn/*`) and the Socket.IO gateway is at `/acorn/socket.io`. The Go code lives in [`acorn-backend/acorn`](../acorn-backend/acorn) and [`acorn-backend/acornapi`](../acorn-backend/acornapi/README.md). It was ported from the original TypeScript backend.
 
 Engineering policy: [`policy-acorn.md`](policy-acorn.md). Parent rules: [`../rule.md`](../rule.md).
 
@@ -10,7 +10,7 @@ Engineering policy: [`policy-acorn.md`](policy-acorn.md). Parent rules: [`../rul
 
 ```
 ┌─────────────────────┐  socket.io /acorn/socket.io  ┌─────────────────────────┐
-│  Chrome Extension   │ ◄─────────────────────────► │  backend-core (Go)      │
+│  Chrome Extension   │ ◄─────────────────────────► │  acorn-backend (Go)     │
 │  (side panel)       │                             │  api.joinedhq.com       │
 └──────────┬──────────┘       HTTP /acorn/*          │  local: 127.0.0.1:8083  │
            │ fetch DOM                              └─────────────────────────┘
@@ -18,7 +18,7 @@ Engineering policy: [`policy-acorn.md`](policy-acorn.md). Parent rules: [`../rul
     Page DOM tree
 ```
 
-Auth: Acorn has no accounts. It shares the Joined session (the `joined_session` cookie from joined-frontend, accepted by joined-backend and backend-core as a bearer token), so signing in or out of Joined signs Acorn in or out. AI Analyze, Q&A and option matching read the applicant's Joined profile and use the server's model key. Résumé generation and recommendation are not implemented: those routes answer with no résumé.
+Auth: Acorn accounts live in acorn-backend and are shared with acorn-frontend. The site keeps the token in the `acorn_session` cookie; the extension reads that cookie and sends it as a bearer token. Signing in or out on the site signs the extension in or out. AI Analyze, Q&A and option matching read the account's name and email. Résumé generation and recommendation are not implemented: those routes answer with no résumé.
 
 ## Projects
 
@@ -34,10 +34,10 @@ They are workspaces of the root bun monorepo: one `bun install` at the repo root
 
 ### 1. Start the API
 
-backend-core's server needs the same `MONGO_URI` as joined-backend and an `OPENAI_API_KEY` (copy `backend-core/.env.example` to `backend-core/.env`):
+acorn-backend needs the same `MONGO_URI` as joined-backend and an `OPENAI_API_KEY` (copy `acorn-backend/.env.example` to `acorn-backend/.env`):
 
 ```bash
-bun run dev:core-api   # http://127.0.0.1:8083, Acorn under /acorn
+bun run dev:acorn-api   # http://127.0.0.1:8083, Acorn under /acorn
 ```
 
 ### 2. Install
@@ -56,8 +56,8 @@ bun run build:acorn   # production build: talks to https://api.joinedhq.com and 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. **Load unpacked** → select `acorn/extension/dist`
-4. Sign in to Joined (joined-frontend) in the same browser, open the Acorn sidebar, and choose **Continue with Joined**. Acorn follows the Joined cookie after that.
-5. The Acorn API URL is `https://api.joinedhq.com` in a production build and `http://127.0.0.1:8083` in a development build (both from `@acorn/shared/api`; override with `VITE_ACORN_API_URL` at build time, and `VITE_JOINED_URL` for where joined-frontend runs). Keep the side panel open for a green **Socket connected** light — the panel holds a port so Chrome does not park the worker that owns the `/acorn/socket.io` socket. The extension prefers Engine.IO **websocket** with HTTP long-poll fallback (`path: /acorn/socket.io`, `auth.token`). nginx must proxy api.joinedhq.com to backend-core and return 101 on the websocket upgrade (see [`deploy/nginx/api.joinedhq.com.conf`](../deploy/nginx/api.joinedhq.com.conf)). Sign-in uses `/acorn/*` and can succeed a moment before the socket turns green. The socket token travels in the handshake `auth` payload only — query-string tokens are rejected, since URLs land in nginx access logs. Every socket joins a room keyed by the signed-in account: `dom:tree`, `pipeline:progress`, `clients:update` and every relayed command (`dom:get-content`, `dom:execute-actions`, `dom:plan-step`) stay inside that room, so a client can only ever see or drive its own account's extension.
+4. Sign in on acorn-frontend (http://localhost:6005) in the same browser, open the Acorn sidebar, and choose **Continue**. Acorn follows the `acorn_session` cookie after that.
+5. The Acorn API URL is `https://api.joinedhq.com` in a production build and `http://127.0.0.1:8083` in a development build (both from `@acorn/shared/api`; override with `VITE_ACORN_API_URL` at build time, and `VITE_JOINED_URL` for where joined-frontend runs). Keep the side panel open for a green **Socket connected** light — the panel holds a port so Chrome does not park the worker that owns the `/acorn/socket.io` socket. The extension prefers Engine.IO **websocket** with HTTP long-poll fallback (`path: /acorn/socket.io`, `auth.token`). nginx must proxy api.joinedhq.com to acorn-backend and return 101 on the websocket upgrade (see [`deploy/nginx/api.joinedhq.com.conf`](../deploy/nginx/api.joinedhq.com.conf)). Sign-in uses `/acorn/*` and can succeed a moment before the socket turns green. The socket token travels in the handshake `auth` payload only — query-string tokens are rejected, since URLs land in nginx access logs. Every socket joins a room keyed by the signed-in account: `dom:tree`, `pipeline:progress`, `clients:update` and every relayed command (`dom:get-content`, `dom:execute-actions`, `dom:plan-step`) stay inside that room, so a client can only ever see or drive its own account's extension.
 
 ### 4. Use it
 
@@ -71,7 +71,7 @@ bun run build:acorn   # production build: talks to https://api.joinedhq.com and 
 8. Preview a job’s résumé with the **eye** (left of mark applied) — generated Worker-pool file when present, otherwise the Library Word file assigned in Job Search. Download remains on the card (disabled until a résumé exists). **Mark applied** (check) removes the job from Worker pool and closes its bound apply tab. Custom **check** forgets that remembered tab and closes it.
 9. In the sidebar: **Pure Tree**, **Meta Tree**, **AI Analyze**, and the plan-run step list (verified / skipped)
 
-## API (backend-core, under `/acorn`)
+## API (acorn-backend, under `/acorn`)
 
 | Method | Path                                              | Auth                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

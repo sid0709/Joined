@@ -280,15 +280,15 @@ jobs:
           # Inside the VPS, so this checks the containers rather than DNS or TLS.
           ssh vps 'for i in $(seq 1 20); do
               api=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:11080/health)
-              core=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:11083/health)
+              acorn=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:11083/health)
               web=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:6002/)
               # curl reports 000 when nothing answers, so require a real status below 500.
-              if [ "$api" = 200 ] && [ "$core" = 200 ] && [ "$web" -ge 200 ] && [ "$web" -lt 500 ]; then
-                echo "api $api, core $core, web $web"
+              if [ "$api" = 200 ] && [ "$acorn" = 200 ] && [ "$web" -ge 200 ] && [ "$web" -lt 500 ]; then
+                echo "api $api, acorn $acorn, web $web"
                 exit 0
               fi
               sleep 5
             done
-            echo "::error::not healthy: api $api, core $core, web $web"
-            cd /srv/joined && docker compose ps && docker compose logs --tail=40 joined-backend backend-core joined-frontend
+            echo "::error::not healthy: api $api, acorn $acorn, web $web"
+            cd /srv/joined && docker compose ps && docker compose logs --tail=40 joined-backend acorn-backend joined-frontend
             exit 1'

@@ -13,7 +13,7 @@
       "acorn/extension",
       "acorn/packages/*",
       "acorn/demo",
-      "acorn/website",
+      "acorn-frontend",
       "plugins/crawler",
       "scout-extension"
     ],
@@ -66,7 +66,7 @@
     "dev:joined-api": "bun tools/run-api.mjs joined-api",
     "dev:admin-api": "bun tools/run-api.mjs admin-api",
     "dev:scout-api": "bun tools/run-api.mjs scout-api",
-    "dev:core-api": "bun tools/run-api.mjs core-api",
+    "dev:acorn-api": "bun tools/run-api.mjs acorn-api",
     "dev:app": "bun tools/run-service.mjs dev connected-frontend",
     "dev:theme": "bun tools/run-service.mjs dev joined-theme",
     "dev:scout": "bun tools/run-service.mjs dev scoutwell-frontend",

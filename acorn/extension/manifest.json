@@ -17,11 +17,11 @@
   "host_permissions": [
     "<all_urls>",
     "https://api.joinedhq.com/*",
-    "https://joinedhq.com/*",
+    "https://acorn.joinedhq.com/*",
     "http://127.0.0.1:8083/*",
     "http://localhost:8083/*",
-    "http://localhost:6002/*",
-    "http://127.0.0.1:6002/*"
+    "http://localhost:6005/*",
+    "http://127.0.0.1:6005/*"
   ],
   "background": {
     "service_worker": "src/background.ts",

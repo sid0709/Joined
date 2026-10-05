@@ -1,20 +1,14 @@
+/** Local acorn-backend. Override with ACORN_API_URL. */
+const DEFAULT_API_URL = "http://127.0.0.1:8083";
+
 export const BRAND = "Acorn";
 
-const JOINED_SIGN_IN_PATH = "/sign-in";
-
-/** Joined's public site. Sign-in links out here; this app only reads the cookie. */
-export function joinedWebUrl(): string {
-  return (process.env.JOINED_WEB_URL ?? "").replace(/\/$/, "");
+export function acornApiUrl(): string {
+  return (process.env.ACORN_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
 }
 
 /** Chrome Web Store or sideload URL. Empty until a listing exists. */
 export function extensionInstallUrl(): string | null {
   const url = process.env.ACORN_EXTENSION_INSTALL_URL?.trim();
   return url ? url.replace(/\/$/, "") : null;
-}
-
-export function joinedSignInUrl(): string | null {
-  const base = joinedWebUrl();
-  if (!base) return null;
-  return `${base}${JOINED_SIGN_IN_PATH}`;
 }

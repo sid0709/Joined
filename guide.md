@@ -34,7 +34,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 | Joined API                    | `bun run dev:joined-api`            | http://127.0.0.1:8080      |
 | Admin API                     | `bun run dev:admin-api`             | http://127.0.0.1:8081      |
 | Scoutwell API                 | `bun run dev:scout-api`             | http://127.0.0.1:8082      |
-| Core API (Acorn)              | `bun run dev:core-api`              | http://127.0.0.1:8083      |
+| Acorn API                     | `bun run dev:acorn-api`             | http://127.0.0.1:8083      |
 | One script in one workspace   | `bun --filter <workspace> <script>` | —                          |
 
 First time, and after `package.json` or `bun.lock` changes:

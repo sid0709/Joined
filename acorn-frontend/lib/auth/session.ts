@@ -1,11 +1,26 @@
-import { cookies } from "next/headers";
-import { SESSION_COOKIE } from "./constants";
+import { acornApiUrl } from "@/lib/config";
+import { AUTH_ME_PATH } from "./constants";
+import { sessionToken } from "./cookie";
 
-/**
- * True when the browser sent the Joined session cookie. This app does not call
- * an auth API; later pages can load the real session the same way Joined does.
- */
-export async function hasJoinedSession() {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  return Boolean(token?.trim());
+export type AcornAccount = {
+  name: string;
+  email: string;
+};
+
+/** The Acorn account behind this browser's session cookie, or null when signed out. */
+export async function currentAccount(): Promise<AcornAccount | null> {
+  const token = await sessionToken();
+  if (!token) return null;
+  const response = await fetch(`${acornApiUrl()}${AUTH_ME_PATH}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  const body = (await response.json()) as {
+    session?: { displayName?: string; email?: string };
+  };
+  const name = body.session?.displayName?.trim();
+  const email = body.session?.email?.trim();
+  if (!name || !email) return null;
+  return { name, email };
 }

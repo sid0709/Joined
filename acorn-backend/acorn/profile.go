@@ -10,7 +10,7 @@ import (
 // applicantNotes tell the planner how to read settings. They mirror the notes the
 // planner prompt relies on, adapted to what a Joined profile stores.
 var applicantNotes = strings.Join([]string{
-	"settings.* is the authoritative applicant profile from the applicant's Joined profile.",
+	"settings.* is the authoritative applicant profile from the applicant's Acorn account.",
 	"immigrationStatus and sponsorship both carry the profile's work-authorization statement; read it for work-authorization questions (a status that already permits work is Yes) and for visa-sponsorship questions (answer from whether it says sponsorship is needed).",
 	"careers[] is work history and education[] is schooling, both most recent first; start/end are YYYY-MM (YYYY when the month is unknown) and current entries have no end. When education[] is empty, answer education questions with a plausible entry consistent with careers and headline.",
 	"Demographic and voluntary self-identification answers (gender, pronouns, sexualOrientation, hispanicOrLatino, race, disability, veteranStatus) are the applicant's own; \"decline\" means choose that question's own decline / prefer-not-to-say option. A null one is unanswered.",
@@ -18,8 +18,8 @@ var applicantNotes = strings.Join([]string{
 	"The applicant is a human. Never describe them as an AI, bot, or automation tool; never answer that they used AI/automation to apply; never consent to AI or automated employment decision / screening tools.",
 }, " ")
 
-// ApplicantProfileText renders the signed-in job hunter's Joined profile as the
-// JSON context the planner and the writer read.
+// ApplicantProfileText renders the signed-in Acorn account as the JSON context
+// the planner and the writer read.
 func ApplicantProfileText(userID string, profile candidate.Profile) string {
 	first, last := splitName(profile.Name)
 	personal := profile.Personal

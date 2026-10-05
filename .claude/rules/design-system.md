@@ -1,13 +1,13 @@
 ---
 paths:
-  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,joined-theme}/**/*.{ts,tsx,css}"
+  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,acorn-frontend,joined-theme}/**/*.{ts,tsx,css}"
   - "packages/scout/**/*.{ts,tsx,css}"
   - "acorn/extension/**/*.{ts,tsx,css}"
 ---
 
 # Design system is required
 
-Product UI uses `@joined/design-system`. This covers `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme`, `packages/scout`, and `acorn/extension`.
+Product UI uses `@joined/design-system`. This covers `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme`, `packages/scout`, and `acorn/extension`.
 
 `joined-theme` is the catalog. Build app UI from the same public components and tokens the theme demos use.
 

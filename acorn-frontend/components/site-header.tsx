@@ -1,6 +1,6 @@
-import { Button, HStack, Text } from "@joined/design-system";
+import { HStack, Text } from "@joined/design-system";
 import { BRAND } from "@/lib/config";
-import { ROUTES } from "@/lib/routes";
+import { SignOutButton } from "./sign-out-button";
 
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   return (
@@ -8,12 +8,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
       <Text type="large" weight="semibold">
         {BRAND}
       </Text>
-      <Button
-        label={signedIn ? "Signed in" : "Sign in"}
-        variant={signedIn ? "secondary" : "primary"}
-        size="sm"
-        href={ROUTES.signIn}
-      />
+      {signedIn ? <SignOutButton /> : null}
     </HStack>
   );
 }

@@ -9,11 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/acorn"
-	"github.com/sid0709/OpenSeat/backend-core/acornapi"
-	"github.com/sid0709/OpenSeat/backend-core/acornapi/gateway"
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/acorn-backend/account"
+	"github.com/sid0709/OpenSeat/acorn-backend/acorn"
+	"github.com/sid0709/OpenSeat/acorn-backend/acornapi"
+	"github.com/sid0709/OpenSeat/acorn-backend/acornapi/gateway"
 )
 
 func named(name string) http.Handler {
@@ -62,28 +61,31 @@ func TestRoutesAllowListedOrigins(t *testing.T) {
 	}
 }
 
-type noSessions struct{}
+type noAccounts struct{}
 
-func (noSessions) Session(context.Context, string, time.Time) (auth.Session, error) {
-	return auth.Session{}, auth.ErrInvalidLogin
+func (noAccounts) Session(context.Context, string, time.Time) (account.Session, error) {
+	return account.Session{}, account.ErrInvalidLogin
 }
-
-type noPeople struct{}
-
-func (noPeople) GetProfile(context.Context, string, time.Time) (candidate.Profile, error) {
-	return candidate.Profile{}, nil
+func (noAccounts) SignUp(context.Context, string, string, string, time.Time) (string, account.User, error) {
+	return "", account.User{}, account.ErrInvalidLogin
 }
-func (noPeople) SavedJobIDs(context.Context, string) ([]string, error)   { return nil, nil }
-func (noPeople) AppliedJobIDs(context.Context, string) ([]string, error) { return nil, nil }
-func (noPeople) Apply(context.Context, string, candidate.ApplyInput, time.Time) (candidate.Application, error) {
-	return candidate.Application{}, nil
+func (noAccounts) SignIn(context.Context, string, string, time.Time) (string, account.User, error) {
+	return "", account.User{}, account.ErrInvalidLogin
 }
+func (noAccounts) Revoke(context.Context, string) error { return nil }
+func (noAccounts) SavedJobIDs(context.Context, string) ([]string, error) {
+	return nil, nil
+}
+func (noAccounts) AppliedJobIDs(context.Context, string) ([]string, error) {
+	return nil, nil
+}
+func (noAccounts) MarkApplied(context.Context, string, string) error { return nil }
 
 // The real Acorn handler behind the real router: the extension's Engine.IO handshake
 // at gateway.Path and its plain routes both reach Acorn.
 func TestAcornAnswersThroughTheServer(t *testing.T) {
 	logger := slog.Default()
-	acornHandler, gw := acornapi.New(noSessions{}, noPeople{}, nil, acorn.New(nil), acornapi.Options{})
+	acornHandler, gw := acornapi.New(noAccounts{}, nil, acorn.New(nil), acornapi.Options{})
 	t.Cleanup(gw.Close)
 	handler := routes(nil, named("health"), acornHandler, logger, nil)
 

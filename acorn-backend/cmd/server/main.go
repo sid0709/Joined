@@ -1,6 +1,5 @@
-// Command server runs backend-core's own API, the one at api.joinedhq.com. Each
-// product it serves owns a path prefix: Acorn's routes and Socket.IO gateway live
-// under /acorn (see routes.go).
+// Command server runs Acorn's API. The extension calls /acorn and the Socket.IO
+// gateway on this process. Accounts belong to Acorn. The job catalog is shared.
 package main
 
 import (
@@ -8,8 +7,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/sid0709/OpenSeat/backend-core/acorn"
-	"github.com/sid0709/OpenSeat/backend-core/acornapi"
+	"github.com/sid0709/OpenSeat/acorn-backend/account"
+	"github.com/sid0709/OpenSeat/acorn-backend/acorn"
+	"github.com/sid0709/OpenSeat/acorn-backend/acornapi"
 	"github.com/sid0709/OpenSeat/backend-core/aisettings"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
@@ -21,8 +21,13 @@ const (
 	defaultRuntimeKey = "runtime_file"
 )
 
-// Acorn's UI board dev origins. The Acorn extension is not a browser origin: it calls with host permissions.
-var defaultOrigins = []string{"http://127.0.0.1:5173", "http://localhost:5173"}
+// acorn-frontend, plus the older UI board. The extension is not a browser origin.
+var defaultOrigins = []string{
+	"http://127.0.0.1:6005",
+	"http://localhost:6005",
+	"http://127.0.0.1:5173",
+	"http://localhost:5173",
+}
 
 func main() {
 	config.LoadEnvFile()
@@ -51,8 +56,13 @@ func main() {
 		slog.Warn("No AI key yet: Acorn's AI routes answer 503 until staff save one in the admin console or OPENAI_API_KEY is set")
 	}
 	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
-	acornHandler, gateway := acornapi.New(p.Accounts, p.People, p.Jobs, acorn.New(model), acornapi.Options{
-		SessionCookie: config.Env("JOINED_SESSION_COOKIE", acornapi.DefaultSessionCookie),
+	accounts := account.NewStore(p.Mongo(), db.DestDB)
+	if err := accounts.EnsureIndexes(context.Background()); err != nil {
+		slog.Error("acorn accounts", "error", err)
+		os.Exit(1)
+	}
+	acornHandler, gateway := acornapi.New(accounts, p.Jobs, acorn.New(model), acornapi.Options{
+		SessionCookie: config.Env("ACORN_SESSION_COOKIE", acornapi.DefaultSessionCookie),
 		Runtime: acornapi.RuntimeFile{
 			Path: config.Env("ACORN_RUNTIME_FILE_PATH", ""),
 			Key:  config.Env("ACORN_RUNTIME_FILE_KEY", defaultRuntimeKey),
@@ -62,7 +72,7 @@ func main() {
 	defer gateway.Close()
 
 	handler := routes(server.Origins, httpkit.Health(p.Jobs), acornHandler, slog.Default(), reporter)
-	if err := httpkit.Serve("core api", server.Addr, handler); err != nil {
+	if err := httpkit.Serve("acorn api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}

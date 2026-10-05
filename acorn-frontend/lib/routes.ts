@@ -1,6 +1,7 @@
 export const ROUTES = {
   home: "/",
   signIn: "/sign-in",
+  signUp: "/sign-up",
 } as const;
 
 /** In-page landing target when no store listing URL is configured. */

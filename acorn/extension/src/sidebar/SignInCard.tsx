@@ -9,7 +9,7 @@ type SignInCardProps = {
   onSignIn: () => void;
 };
 
-/** Signed-out welcome: Acorn shares the Joined session, so sign-in is one button. */
+/** Signed-out welcome: Acorn shares the acorn-frontend session, so sign-in is one button. */
 export function SignInCard({ authBusy, faceMode, onSignIn }: SignInCardProps) {
   return (
     <VStack gap={4} align="center" justify="center" className="acorn-welcome">
@@ -19,20 +19,20 @@ export function SignInCard({ authBusy, faceMode, onSignIn }: SignInCardProps) {
           Acorn
         </Text>
         <Text type="supporting" justify="center">
-          Fills job applications with your Joined profile and the right résumé.
+          Fills job applications with your Acorn account and the right résumé.
         </Text>
       </VStack>
       <Button
         variant="primary"
         size="lg"
-        label={authBusy ? "Connecting…" : "Continue with Joined"}
+        label={authBusy ? "Connecting…" : "Continue"}
         isLoading={authBusy}
         isDisabled={authBusy}
         width="100%"
         onClick={onSignIn}
       />
       <Text type="supporting" color="secondary" justify="center">
-        Sign in to Joined in this browser first.
+        Sign in on the Acorn site in this browser first.
       </Text>
     </VStack>
   );

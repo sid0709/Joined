@@ -7,10 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/acorn"
-	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/acorn-backend/account"
+	"github.com/sid0709/OpenSeat/acorn-backend/acorn"
+	"github.com/sid0709/OpenSeat/backend-core/candidate"
 )
 
 func decode(w http.ResponseWriter, r *http.Request, dest any) bool {
@@ -36,14 +36,10 @@ func writeAcornError(w http.ResponseWriter, route string, err error) {
 	}
 }
 
-// applicant renders the signed-in job hunter's Joined profile for the model.
-func (s *Server) applicant(w http.ResponseWriter, r *http.Request, session auth.Session) (string, bool) {
-	profile, err := s.people.GetProfile(r.Context(), session.User.ID, time.Now())
-	if err != nil {
-		slog.Error("acorn profile", "user", session.User.ID, "error", err)
-		writeError(w, http.StatusInternalServerError, "could not load the profile")
-		return "", false
-	}
+// applicant renders the signed-in Acorn account for the model. Name and email come
+// from that account; a fuller profile editor is not on this API yet.
+func (s *Server) applicant(_ http.ResponseWriter, _ *http.Request, session account.Session) (string, bool) {
+	profile := candidate.Profile{Name: session.User.Name, Email: session.User.Email}
 	return acorn.ApplicantProfileText(session.User.ID, profile), true
 }
 

@@ -9,36 +9,47 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/acorn"
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/acorn-backend/account"
+	"github.com/sid0709/OpenSeat/acorn-backend/acorn"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
-type fakeSessions map[string]auth.Session
+type fakeAccounts struct {
+	users   map[string]account.User
+	applied []string
+}
 
-func (f fakeSessions) Session(_ context.Context, token string, _ time.Time) (auth.Session, error) {
-	if session, ok := f[token]; ok {
-		return session, nil
+func (f *fakeAccounts) Session(_ context.Context, token string, _ time.Time) (account.Session, error) {
+	if user, ok := f.users[token]; ok {
+		return account.Session{User: user}, nil
 	}
-	return auth.Session{}, auth.ErrInvalidLogin
+	return account.Session{}, account.ErrInvalidLogin
 }
 
-type fakePeople struct{ applied []string }
-
-func (f *fakePeople) GetProfile(context.Context, string, time.Time) (candidate.Profile, error) {
-	return candidate.Profile{Name: "Jordan Lee", Email: "j@example.com"}, nil
+func (f *fakeAccounts) SignUp(context.Context, string, string, string, time.Time) (string, account.User, error) {
+	return "", account.User{}, account.ErrInvalid
 }
-func (f *fakePeople) SavedJobIDs(context.Context, string) ([]string, error) { return nil, nil }
-func (f *fakePeople) AppliedJobIDs(context.Context, string) ([]string, error) {
+func (f *fakeAccounts) SignIn(_ context.Context, email, password string, _ time.Time) (string, account.User, error) {
+	if email == "j@example.com" && password == "password1" {
+		user := f.users["hunter"]
+		return "hunter", user, nil
+	}
+	return "", account.User{}, account.ErrInvalidLogin
+}
+func (f *fakeAccounts) Revoke(_ context.Context, token string) error {
+	delete(f.users, token)
+	return nil
+}
+func (f *fakeAccounts) SavedJobIDs(context.Context, string) ([]string, error) { return nil, nil }
+func (f *fakeAccounts) AppliedJobIDs(context.Context, string) ([]string, error) {
 	return nil, nil
 }
-func (f *fakePeople) Apply(_ context.Context, _ string, input candidate.ApplyInput, _ time.Time) (candidate.Application, error) {
-	if input.JobID == "dup" {
-		return candidate.Application{}, candidate.ErrAlreadyApplied
+func (f *fakeAccounts) MarkApplied(_ context.Context, _ string, jobID string) error {
+	if jobID == "dup" {
+		return account.ErrAlreadyApplied
 	}
-	f.applied = append(f.applied, input.JobID+":"+input.Stage)
-	return candidate.Application{}, nil
+	f.applied = append(f.applied, jobID)
+	return nil
 }
 
 type fakeModel struct{ reply string }
@@ -49,16 +60,14 @@ func (f fakeModel) JSON(context.Context, string, string, json.RawMessage) ([]byt
 func (fakeModel) Model() string { return "fake" }
 func (fakeModel) Ready() bool   { return true }
 
-func newTestServer(t *testing.T, model fakeModel) (http.Handler, *fakePeople) {
+func newTestServer(t *testing.T, model fakeModel) (http.Handler, *fakeAccounts) {
 	t.Helper()
-	people := &fakePeople{}
-	sessions := fakeSessions{
-		"hunter":    {User: auth.User{ID: "u1", Name: "Jordan Lee", Email: "j@example.com", Role: auth.RoleCandidate}},
-		"recruiter": {User: auth.User{ID: "u2", Role: auth.RoleEmployee}},
-	}
-	handler, gw := New(sessions, people, nil, acorn.New(model), Options{})
+	accounts := &fakeAccounts{users: map[string]account.User{
+		"hunter": {ID: "u1", Name: "Jordan Lee", Email: "j@example.com"},
+	}}
+	handler, gw := New(accounts, nil, acorn.New(model), Options{})
 	t.Cleanup(gw.Close)
-	return handler, people
+	return handler, accounts
 }
 
 func call(handler http.Handler, method, path, body string, header http.Header, cookie string) *httptest.ResponseRecorder {
@@ -76,7 +85,7 @@ func call(handler http.Handler, method, path, body string, header http.Header, c
 
 func bearer(token string) http.Header { return http.Header{"Authorization": {"Bearer " + token}} }
 
-func TestSessionFromBearerOrJoinedCookie(t *testing.T) {
+func TestSessionFromBearerOrAcornCookie(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{})
 	cases := []struct {
 		name   string
@@ -85,11 +94,10 @@ func TestSessionFromBearerOrJoinedCookie(t *testing.T) {
 		want   int
 	}{
 		{"bearer", bearer("hunter"), "", http.StatusOK},
-		{"joined cookie", nil, "hunter", http.StatusOK},
+		{"acorn cookie", nil, "hunter", http.StatusOK},
 		{"bearer wins over a stale cookie", bearer("hunter"), "stale", http.StatusOK},
 		{"no credentials", nil, "", http.StatusUnauthorized},
 		{"unknown token", bearer("nope"), "", http.StatusUnauthorized},
-		{"recruiter is not a job hunter", bearer("recruiter"), "", http.StatusForbidden},
 	}
 	for _, c := range cases {
 		if got := call(handler, "GET", "/acorn/auth/me", "", c.header, c.cookie).Code; got != c.want {
@@ -98,7 +106,7 @@ func TestSessionFromBearerOrJoinedCookie(t *testing.T) {
 	}
 }
 
-func TestMeReturnsJoinedAccount(t *testing.T) {
+func TestMeReturnsAcornAccount(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{})
 	var body struct {
 		Session map[string]string `json:"session"`
@@ -174,13 +182,24 @@ func TestMatchOptionFailureIsData(t *testing.T) {
 	}
 }
 
+func TestSignInReturnsTheAccount(t *testing.T) {
+	handler, _ := newTestServer(t, fakeModel{})
+	rec := call(handler, "POST", "/acorn/auth/signin", `{"email":"j@example.com","password":"password1"}`, nil, "")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"token":"hunter"`) {
+		t.Fatalf("signin = %d %s", rec.Code, rec.Body)
+	}
+	if rec := call(handler, "POST", "/acorn/auth/signin", `{"email":"j@example.com","password":"nope"}`, nil, ""); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("bad password = %d", rec.Code)
+	}
+}
+
 func TestMarkApplied(t *testing.T) {
-	handler, people := newTestServer(t, fakeModel{})
+	handler, accounts := newTestServer(t, fakeModel{})
 	if rec := call(handler, "POST", "/acorn/jobs/j1/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("mark applied: %d %s", rec.Code, rec.Body)
 	}
-	if len(people.applied) != 1 || people.applied[0] != "j1:"+candidate.StageApplied {
-		t.Fatalf("applied = %v", people.applied)
+	if len(accounts.applied) != 1 || accounts.applied[0] != "j1" {
+		t.Fatalf("applied = %v", accounts.applied)
 	}
 	if rec := call(handler, "POST", "/acorn/jobs/dup/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("already applied should still succeed: %d", rec.Code)
@@ -188,11 +207,10 @@ func TestMarkApplied(t *testing.T) {
 }
 
 func TestAcornAIKillSwitch(t *testing.T) {
-	people := &fakePeople{}
-	sessions := fakeSessions{
-		"hunter": {User: auth.User{ID: "u1", Name: "Jordan Lee", Email: "j@example.com", Role: auth.RoleCandidate}},
-	}
-	handler, gw := New(sessions, people, nil, acorn.New(fakeModel{reply: `{"goal":"g"}`}), Options{
+	accounts := &fakeAccounts{users: map[string]account.User{
+		"hunter": {ID: "u1", Name: "Jordan Lee", Email: "j@example.com"},
+	}}
+	handler, gw := New(accounts, nil, acorn.New(fakeModel{reply: `{"goal":"g"}`}), Options{
 		KillSwitches: killswitch.NewMemory(killswitch.Defaults{killswitch.AcornAI: false}),
 	})
 	t.Cleanup(gw.Close)
@@ -205,12 +223,12 @@ func TestAcornAIKillSwitch(t *testing.T) {
 	}
 }
 
-func TestSignOutKeepsJoinedSession(t *testing.T) {
+func TestSignOutRevokesTheAcornSession(t *testing.T) {
 	handler, _ := newTestServer(t, fakeModel{})
 	if rec := call(handler, "POST", "/acorn/auth/signout", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("signout: %d", rec.Code)
 	}
-	if rec := call(handler, "GET", "/acorn/auth/me", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
-		t.Fatalf("the shared Joined session must survive a Acorn sign-out: %d", rec.Code)
+	if rec := call(handler, "GET", "/acorn/auth/me", "", bearer("hunter"), ""); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("signed-out session = %d, want 401", rec.Code)
 	}
 }

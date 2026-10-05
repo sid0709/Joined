@@ -2,7 +2,7 @@
 
 This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `@joined/design-system`. Apps consume it; do not copy a component, token, or helper into a second workspace.
 
-Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme`, `packages/*`, `acorn/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core`.
+Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme`, `packages/*`, `acorn/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core`.
 
 Before pushing, run `bun run ci` — it runs exactly what GitHub CI runs (`tools/ci.mjs`).
 
@@ -39,9 +39,9 @@ Follow the rule that matches the folder you are editing, and use only that folde
 
 | Folder | Rule |
 | --- | --- |
-| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme` | `.claude/rules/nextjs.md` |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme` | `.claude/rules/nextjs.md` |
 | UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension` | `.claude/rules/design-system.md` |
-| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core` | `.claude/rules/go.md` |
+| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core` | `.claude/rules/go.md` |
 | Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.claude/rules/vite.md` |
 | `packages/design-system` and the `joined-theme` catalog | `.claude/rules/theme.md` |
 
