@@ -15,13 +15,19 @@ import { loadCompanyUnread, loadUnread } from "@/lib/me/load";
 export default async function SeekerLayout({ children }: { children: ReactNode }) {
   const session = await loadSession();
   const companyModeEnabled = isCompanyModeEnabled();
+  const isEmployeeSession = isEmployee(session);
+
+  // Skip loadCompanyUnread when company mode is off; treat employees as guests
   const unread = session
-    ? isEmployee(session)
+    ? companyModeEnabled && isEmployeeSession
       ? await loadCompanyUnread()
-      : await loadUnread()
+      : isEmployeeSession
+        ? 0
+        : await loadUnread()
     : 0;
+
   const header =
-    companyModeEnabled && isEmployee(session) ? (
+    companyModeEnabled && isEmployeeSession ? (
       <EmployerHeader session={session} unread={unread} />
     ) : (
       <SeekerHeader session={session} unread={unread} />
