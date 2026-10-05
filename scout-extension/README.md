@@ -35,7 +35,7 @@ The Scout extension should now appear in your extensions list. Click the Scout i
 
 ## Job capture
 
-On a job posting page, open the side panel. Scout detects Greenhouse, Lever, Ashby, Workday, and LinkedIn job pages, then shows a **Detected job** card with title, company, location, apply URL, and description. Pages without a job show **No job found on this page**.
+On a job posting page, open the side panel. Scout detects Greenhouse, Lever, Ashby, Workday, and LinkedIn job pages, then shows a **Detected job** card with title, company, location, apply URL, and description. Pages without a job show **No job found on this page**. **Save to drafts** stores the captured job on this device. The **Drafts** list can edit, delete, submit one, or submit all. Submitting calls `POST /v1/scout/submissions/extension` with a stable `Idempotency-Key` per draft. Drafts stay local while signed out; submitting requires the Scout session.
 
 Capture uses `activeTab` plus on-demand `scripting`. The extractor is injected into the current tab when the panel asks for it. There are no host permissions for ATS origins.
 

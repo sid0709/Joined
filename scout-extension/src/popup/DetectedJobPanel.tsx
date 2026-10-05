@@ -1,9 +1,24 @@
-import { Badge, Heading, JobCard, Spinner, Stack, Text } from "@joined/design-system";
+import { Badge, Button, Heading, JobCard, Spinner, Stack, Text } from "@joined/design-system";
 
+import type { CapturedJob } from "../capture";
 import type { DetectedJobState } from "../hooks/detectedJob";
-import { detectedJobHeading, jobBoardLabel, jobMetaLine, previewText } from "./copy";
+import {
+  detectedJobHeading,
+  detectedJobSaveLabel,
+  jobBoardLabel,
+  jobMetaLine,
+  previewText,
+} from "./copy";
 
-export function DetectedJobPanel({ state }: { state: DetectedJobState }) {
+export function DetectedJobPanel({
+  state,
+  alreadyQueued,
+  onSaveToDrafts,
+}: {
+  state: DetectedJobState;
+  alreadyQueued: boolean;
+  onSaveToDrafts: (job: CapturedJob) => void;
+}) {
   const heading = detectedJobHeading(state);
 
   if (state.status === "loading") {
@@ -33,6 +48,13 @@ export function DetectedJobPanel({ state }: { state: DetectedJobState }) {
         <Text type="supporting" color="secondary">
           {job.applyUrl}
         </Text>
+        <Button
+          size="sm"
+          variant={alreadyQueued ? "secondary" : "primary"}
+          label={detectedJobSaveLabel(alreadyQueued)}
+          isDisabled={alreadyQueued}
+          onClick={() => onSaveToDrafts(job)}
+        />
       </JobCard>
     </Stack>
   );
