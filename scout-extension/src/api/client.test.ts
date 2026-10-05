@@ -4,7 +4,7 @@ import type { ScoutProfile } from "./types";
 
 const mockChrome = {
   cookies: {
-    getAll: mock(() => Promise.resolve([] as chrome.cookies.Cookie[])),
+    get: mock(() => Promise.resolve(null as chrome.cookies.Cookie | null)),
   },
 };
 
@@ -30,7 +30,7 @@ describe("ScoutApiClient", () => {
 
   beforeEach(() => {
     originalFetch = global.fetch;
-    mockChrome.cookies.getAll.mockClear();
+    mockChrome.cookies.get.mockClear();
   });
 
   afterEach(() => {
@@ -38,7 +38,7 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe returns null when no session cookie", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([]);
+    mockChrome.cookies.get.mockResolvedValue(null);
 
     const client = new ScoutApiClient();
     const profile = await client.getMe();
@@ -46,10 +46,30 @@ describe("ScoutApiClient", () => {
     expect(profile).toBeNull();
   });
 
+  test("getMe uses url parameter to read cookie", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token",
+    } as chrome.cookies.Cookie);
+
+    global.fetch = mock(async () =>
+      Response.json(mockProfile, { status: 200 }),
+    ) as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    await client.getMe();
+
+    expect(mockChrome.cookies.get).toHaveBeenCalledWith({
+      url: "http://localhost:6003",
+      name: "scoutwell_session",
+    });
+  });
+
   test("getMe returns profile when authenticated with session cookie", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-token-123" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token-123",
+    } as chrome.cookies.Cookie);
 
     global.fetch = mock(async () =>
       Response.json(mockProfile, { status: 200 }),
@@ -62,9 +82,10 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe sends Bearer token from session cookie", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-session-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-session-token",
+    } as chrome.cookies.Cookie);
 
     const fetchMock = mock(async () => Response.json(mockProfile, { status: 200 }));
     global.fetch = fetchMock as unknown as typeof global.fetch;
@@ -85,13 +106,12 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe returns null when not authenticated (401)", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "invalid-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "invalid-token",
+    } as chrome.cookies.Cookie);
 
-    global.fetch = mock(
-      async () => new Response(null, { status: 401 }),
-    ) as unknown as typeof global.fetch;
+    global.fetch = mock(async () => new Response(null, { status: 401 })) as unknown as typeof global.fetch;
 
     const client = new ScoutApiClient();
     const profile = await client.getMe();
@@ -100,9 +120,10 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe throws error on server error", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token",
+    } as chrome.cookies.Cookie);
 
     global.fetch = mock(async () =>
       Response.json({ error: "Internal server error" }, { status: 500 }),
@@ -113,9 +134,10 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe handles RFC 9457 problem detail field", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token",
+    } as chrome.cookies.Cookie);
 
     global.fetch = mock(async () =>
       Response.json({ detail: "Resource not found", title: "Not Found" }, { status: 404 }),
@@ -126,9 +148,10 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe handles RFC 9457 title field when detail missing", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token",
+    } as chrome.cookies.Cookie);
 
     global.fetch = mock(async () =>
       Response.json({ title: "Bad Request" }, { status: 400 }),
@@ -139,9 +162,10 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe throws error on network failure", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token",
+    } as chrome.cookies.Cookie);
 
     global.fetch = mock(async () => {
       throw new TypeError("fetch failed");
@@ -152,9 +176,10 @@ describe("ScoutApiClient", () => {
   });
 
   test("getMe handles malformed error response", async () => {
-    mockChrome.cookies.getAll.mockResolvedValue([
-      { name: "scoutwell_session", value: "test-token" } as chrome.cookies.Cookie,
-    ]);
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-token",
+    } as chrome.cookies.Cookie);
 
     const invalidJsonResponse = new Response("not json", {
       status: 500,

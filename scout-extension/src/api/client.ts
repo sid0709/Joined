@@ -11,14 +11,13 @@ export class ScoutApiClient {
   private async getSessionToken(): Promise<string | null> {
     try {
       const webOrigin = getWebOrigin();
-      const url = new URL(webOrigin);
-      const cookies = await chrome.cookies.getAll({
+      const cookie = await chrome.cookies.get({
+        url: webOrigin,
         name: getSessionCookieName(),
-        domain: url.hostname,
       });
 
-      if (cookies.length > 0 && cookies[0].value) {
-        return cookies[0].value;
+      if (cookie && cookie.value) {
+        return cookie.value;
       }
       return null;
     } catch (error) {
