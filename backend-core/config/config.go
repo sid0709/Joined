@@ -152,12 +152,10 @@ func LoadHTTP(defaultAddr string, defaultOrigins []string) (HTTP, error) {
 }
 
 // SearchEnsureIndex returns whether the job search text index should be created at startup.
-// Defaults to true in development (HTTP_ADDR contains localhost or 127.0.0.1), false otherwise.
-func SearchEnsureIndex(httpAddr string) bool {
-	if explicit := strings.TrimSpace(os.Getenv("SEARCH_ENSURE_INDEX")); explicit != "" {
-		return explicit == "true" || explicit == "1"
-	}
-	return strings.Contains(httpAddr, "localhost") || strings.Contains(httpAddr, "127.0.0.1")
+// Defaults to false. Set SEARCH_ENSURE_INDEX=true to enable in development.
+func SearchEnsureIndex() bool {
+	explicit := strings.TrimSpace(os.Getenv("SEARCH_ENSURE_INDEX"))
+	return explicit == "true" || explicit == "1"
 }
 
 // Env returns the trimmed value of key, or fallback when it is unset or blank.

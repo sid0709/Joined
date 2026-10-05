@@ -46,7 +46,7 @@ func main() {
 
 	p, err := platform.Open(context.Background(), db, platform.Options{
 		Calendar:          calendar,
-		EnsureSearchIndex: config.SearchEnsureIndex(server.Addr),
+		EnsureSearchIndex: config.SearchEnsureIndex(),
 	})
 	if err != nil {
 		slog.Error("platform", "error", config.Redact(err, db.MongoURI))
