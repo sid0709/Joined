@@ -29,5 +29,13 @@ export function joinedWebUrl(): string {
   return (process.env.JOINED_WEB_URL ?? "").replace(/\/$/, "");
 }
 
+/**
+ * Chrome Web Store listing for the Scout extension. Empty until the listing is
+ * published (roadmap step-15); the install page shows a placeholder instead.
+ */
+export function extensionStoreUrl(): string {
+  return (process.env.SCOUT_EXTENSION_STORE_URL ?? "").replace(/\/$/, "");
+}
+
 /** Written by the theme toggle; the server reads it so a dark scout never sees a light flash. */
 export const THEME_COOKIE = "joined-theme";

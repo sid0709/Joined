@@ -3,7 +3,10 @@ package httpapi
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/sid0709/OpenSeat/backend-core/auth"
 )
 
 func TestStaffAndScoutRoutesLiveInTheirOwnServices(t *testing.T) {
@@ -14,5 +17,21 @@ func TestStaffAndScoutRoutesLiveInTheirOwnServices(t *testing.T) {
 		if rec.Code != http.StatusNotFound {
 			t.Errorf("%s status = %d, want 404", path, rec.Code)
 		}
+	}
+}
+
+func TestNilEmailSenderFallsBackToLog(t *testing.T) {
+	if _, ok := emailSenderOrDev(nil).(auth.DevEmailSender); !ok {
+		t.Fatal("nil sender should fall back to DevEmailSender")
+	}
+	handler := New(nil, nil, nil, nil, nil, nil, Options{})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/signup", strings.NewReader(`{`))
+	handler.ServeHTTP(rec, req)
+	if rec.Code == http.StatusServiceUnavailable {
+		t.Fatalf("nil EmailSender should still serve email routes, got 503: %s", rec.Body.String())
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400 for invalid JSON, body=%s", rec.Code, rec.Body.String())
 	}
 }

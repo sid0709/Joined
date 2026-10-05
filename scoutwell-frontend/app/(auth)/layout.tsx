@@ -10,7 +10,7 @@ const FORM_WIDTH = 480;
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   const session = await loadSession();
   return (
-    <AppFrame header={<ScoutHeader user={session?.user ?? null} />}>
+    <AppFrame header={<ScoutHeader user={session?.user ?? null} audience="site" />}>
       <div className="sw-auth">
         <AuthAside />
         <div className="sw-auth-main">

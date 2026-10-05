@@ -47,6 +47,8 @@ type Options struct {
 	CompanyMode bool
 	// Sessions, when set, is used for role checks instead of accounts.
 	Sessions sessionLookup
+	// EmailSender delivers transactional email.
+	EmailSender auth.EmailSender
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -81,9 +83,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 			Scopes:      []string{google.ScopeCalendarEvents},
 			Granted:     server.attachCalendar,
 		},
-		// Email authentication with dev sender that logs messages
 		Email: &authapi.EmailAuth{
-			Sender: auth.DevEmailSender{},
+			Sender: emailSenderOrDev(opts.EmailSender),
 		},
 	}
 	mux := http.NewServeMux()
@@ -134,6 +135,13 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	mux.Handle("/v1/company/", authapi.RequireRole(sessions, []string{auth.RoleEmployee}, requireCompanyMode(opts.CompanyMode, companyMux)))
 
 	return httpkit.CORS(opts.Origins, mux)
+}
+
+func emailSenderOrDev(sender auth.EmailSender) auth.EmailSender {
+	if sender == nil {
+		return auth.DevEmailSender{}
+	}
+	return sender
 }
 
 // attachCalendar keeps the calendar a job hunter granted while signing in with

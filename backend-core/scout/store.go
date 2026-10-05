@@ -76,6 +76,9 @@ type Store struct {
 	now  func() time.Time
 	roll func() float64
 
+	// docs is an optional in-memory seam. Nil means Mongo via collection().
+	docs documents
+
 	// Storage hooks for testing RecordApply
 	findSubmissionByJobID func(ctx context.Context, jobID string) (Submission, error)
 	insertEarning         func(ctx context.Context, earning Earning) error
@@ -123,6 +126,7 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "canonicalUrl", Value: 1}}}},
 		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "dedupeKey", Value: 1}}}},
 		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "updatedAt", Value: -1}}}},
+		{submissionsCollection, mongo.IndexModel{Keys: bson.D{{Key: "jobId", Value: 1}, {Key: "status", Value: 1}, {Key: "submittedAt", Value: -1}}}},
 		{submissionsCollection, mongo.IndexModel{
 			Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "externalRef", Value: 1}},
 			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{
@@ -190,6 +194,9 @@ func (s *Store) Wait() { s.pending.Wait() }
 
 // enqueue runs the automatic checks in the background with retries.
 func (s *Store) enqueue(id bson.ObjectID) {
+	if s.workers == nil {
+		return
+	}
 	s.pending.Add(1)
 	go func() {
 		defer s.pending.Done()

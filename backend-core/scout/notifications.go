@@ -74,6 +74,8 @@ func rewardTitle(kind string) string {
 	switch kind {
 	case RewardApproval:
 		return "Approval reward"
+	case RewardApply:
+		return "Apply reward"
 	case RewardInterview:
 		return "Interview reward"
 	case RewardHire:

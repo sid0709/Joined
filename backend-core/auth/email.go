@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/argon2"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"golang.org/x/crypto/argon2"
 )
 
 const (
@@ -28,10 +28,10 @@ const (
 	argonKeyLen  = 32
 	saltBytes    = 16
 	// Rate limiting
-	maxLoginAttempts  = 5
-	loginLockoutTime  = 15 * time.Minute
-	verificationCollection = "email_verifications"
-	resetCollection        = "password_resets"
+	maxLoginAttempts        = 5
+	loginLockoutTime        = 15 * time.Minute
+	verificationCollection  = "email_verifications"
+	resetCollection         = "password_resets"
 	loginAttemptsCollection = "login_attempts"
 )
 
@@ -104,19 +104,17 @@ func (s *Store) EmailSignup(ctx context.Context, email, password, name, role str
 		return "", false, err
 	}
 
-	user := bson.D{
-		{Key: "id", Value: userID},
-		{Key: "name", Value: name},
-		{Key: "email", Value: email},
-		{Key: "role", Value: role},
-		{Key: "passwordHash", Value: passwordHash},
-		{Key: "passwordSalt", Value: passwordSalt},
-		{Key: "verified", Value: false},
-		{Key: "createdAt", Value: now.UTC()},
-	}
-
-	_, err = s.collection(usersCollection).InsertOne(ctx, user)
-	if mongo.IsDuplicateKeyError(err) {
+	err = s.records.InsertUser(ctx, AccountUser{
+		ID:           userID,
+		Name:         name,
+		Email:        email,
+		Role:         role,
+		PasswordHash: passwordHash,
+		PasswordSalt: passwordSalt,
+		Verified:     false,
+		CreatedAt:    now.UTC(),
+	})
+	if errors.Is(err, ErrEmailTaken) {
 		// Hash was computed above, so both paths do the same expensive work
 		return "", false, nil
 	}
@@ -134,14 +132,12 @@ func (s *Store) CreateVerificationToken(ctx context.Context, userID string, now 
 		return "", err
 	}
 
-	verification := storedVerification{
+	err = s.records.InsertVerification(ctx, VerificationRecord{
 		UserID:    userID,
 		TokenHash: hashToken(token),
 		ExpiresAt: now.UTC().Add(verificationTTL),
 		CreatedAt: now.UTC(),
-	}
-
-	_, err = s.collection(verificationCollection).InsertOne(ctx, verification)
+	})
 	if err != nil {
 		return "", err
 	}
@@ -155,13 +151,8 @@ func (s *Store) VerifyEmail(ctx context.Context, token string, now time.Time) er
 		return ErrInvalidToken
 	}
 
-	var verification storedVerification
-	err := s.collection(verificationCollection).FindOneAndDelete(
-		ctx,
-		bson.D{{Key: "tokenHash", Value: hashToken(token)}},
-	).Decode(&verification)
-
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	verification, err := s.records.TakeVerification(ctx, hashToken(token))
+	if errors.Is(err, ErrNotFound) {
 		return ErrInvalidToken
 	}
 	if err != nil {
@@ -172,19 +163,7 @@ func (s *Store) VerifyEmail(ctx context.Context, token string, now time.Time) er
 		return ErrInvalidToken
 	}
 
-	result, err := s.collection(usersCollection).UpdateOne(
-		ctx,
-		bson.D{{Key: "id", Value: verification.UserID}},
-		bson.D{{Key: "$set", Value: bson.D{{Key: "verified", Value: true}}}},
-	)
-	if err != nil {
-		return err
-	}
-	if result.MatchedCount == 0 {
-		return ErrNotFound
-	}
-
-	return nil
+	return s.records.SetVerified(ctx, verification.UserID)
 }
 
 // EmailSignin signs in with email and password.
@@ -199,10 +178,8 @@ func (s *Store) EmailSignin(ctx context.Context, email, password, audience strin
 		return "", Session{}, err
 	}
 
-	var user storedUser
-	var auth storedEmailAuth
-	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&user)
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	user, err := s.records.UserByEmail(ctx, email)
+	if errors.Is(err, ErrNotFound) {
 		s.recordFailedLogin(ctx, email, now)
 		return "", Session{}, ErrInvalidLogin
 	}
@@ -210,49 +187,32 @@ func (s *Store) EmailSignin(ctx context.Context, email, password, audience strin
 		return "", Session{}, err
 	}
 
-	// Decode password fields
-	err = s.collection(usersCollection).FindOne(
-		ctx,
-		bson.D{{Key: "email", Value: email}},
-		options.FindOne().SetProjection(bson.D{
-			{Key: "passwordHash", Value: 1},
-			{Key: "passwordSalt", Value: 1},
-			{Key: "verified", Value: 1},
-		}),
-	).Decode(&auth)
-	if err != nil {
-		return "", Session{}, err
-	}
-
-	// Check if account has password authentication set up
-	if len(auth.PasswordHash) == 0 || len(auth.PasswordSalt) == 0 {
+	if len(user.PasswordHash) == 0 || len(user.PasswordSalt) == 0 {
 		s.recordFailedLogin(ctx, email, now)
 		return "", Session{}, ErrInvalidLogin
 	}
 
-	// Verify password
-	if !verifyPassword(password, auth.PasswordHash, auth.PasswordSalt) {
+	if !verifyPassword(password, user.PasswordHash, user.PasswordSalt) {
 		s.recordFailedLogin(ctx, email, now)
 		return "", Session{}, ErrInvalidLogin
 	}
 
-	// Check if email is verified
-	if !auth.Verified {
+	if !user.Verified {
 		return "", Session{}, ErrEmailNotVerified
 	}
 
-	// Check audience
-	if err := s.ensureRole(ctx, &user); err != nil {
+	stored := storedUser{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role, CreatedAt: user.CreatedAt}
+	if err := s.ensureRole(ctx, &stored); err != nil {
 		return "", Session{}, err
 	}
-	if !AllowsAudience(audience, user.Role) {
-		return "", Session{}, &RoleError{Role: user.Role}
+	if !AllowsAudience(audience, stored.Role) {
+		return "", Session{}, &RoleError{Role: stored.Role}
 	}
 
 	// Clear login attempts on successful login
 	s.clearLoginAttempts(ctx, email)
 
-	return s.issue(ctx, user.ID, now)
+	return s.issue(ctx, stored.ID, now)
 }
 
 // RequestPasswordReset creates a password reset token for an email address.
@@ -263,9 +223,8 @@ func (s *Store) RequestPasswordReset(ctx context.Context, email string, now time
 	}
 
 	// Check if user exists (without revealing if email exists for security)
-	var user storedUser
-	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&user)
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	_, err := s.records.UserByEmail(ctx, email)
+	if errors.Is(err, ErrNotFound) {
 		// Don't reveal that email doesn't exist, do equivalent dummy work to prevent timing attack
 		_, _ = newResetToken()
 		return "", nil
@@ -279,20 +238,16 @@ func (s *Store) RequestPasswordReset(ctx context.Context, email string, now time
 		return "", err
 	}
 
-	// Delete any existing reset tokens for this email
-	_, err = s.collection(resetCollection).DeleteMany(ctx, bson.D{{Key: "email", Value: email}})
-	if err != nil {
+	if err := s.records.DeleteResets(ctx, email); err != nil {
 		return "", err
 	}
 
-	reset := storedReset{
+	err = s.records.InsertReset(ctx, ResetRecord{
 		Email:     email,
 		TokenHash: hashToken(token),
 		ExpiresAt: now.UTC().Add(resetTTL),
 		CreatedAt: now.UTC(),
-	}
-
-	_, err = s.collection(resetCollection).InsertOne(ctx, reset)
+	})
 	if err != nil {
 		return "", err
 	}
@@ -309,13 +264,8 @@ func (s *Store) ResetPassword(ctx context.Context, token, newPassword string, no
 		return ErrWeakPassword
 	}
 
-	var reset storedReset
-	err := s.collection(resetCollection).FindOneAndDelete(
-		ctx,
-		bson.D{{Key: "tokenHash", Value: hashToken(token)}},
-	).Decode(&reset)
-
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	reset, err := s.records.TakeReset(ctx, hashToken(token))
+	if errors.Is(err, ErrNotFound) {
 		return ErrInvalidToken
 	}
 	if err != nil {
@@ -331,26 +281,13 @@ func (s *Store) ResetPassword(ctx context.Context, token, newPassword string, no
 		return err
 	}
 
-	result, err := s.collection(usersCollection).UpdateOne(
-		ctx,
-		bson.D{{Key: "email", Value: reset.Email}},
-		bson.D{{Key: "$set", Value: bson.D{
-			{Key: "passwordHash", Value: passwordHash},
-			{Key: "passwordSalt", Value: passwordSalt},
-		}}},
-	)
-	if err != nil {
+	if err := s.records.SetPassword(ctx, reset.Email, passwordHash, passwordSalt); err != nil {
 		return err
 	}
-	if result.MatchedCount == 0 {
-		return ErrNotFound
-	}
 
-	// Clear all sessions for this user (force re-login with new password)
-	var user storedUser
-	err = s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "email", Value: reset.Email}}).Decode(&user)
+	user, err := s.records.UserByEmail(ctx, reset.Email)
 	if err == nil {
-		_, _ = s.collection(sessionsCollection).DeleteMany(ctx, bson.D{{Key: "userId", Value: user.ID}})
+		_ = s.records.DeleteSessionsByUser(ctx, user.ID)
 	}
 
 	return nil
@@ -358,9 +295,8 @@ func (s *Store) ResetPassword(ctx context.Context, token, newPassword string, no
 
 // checkLoginAttempts verifies if an account is locked due to too many failed attempts.
 func (s *Store) checkLoginAttempts(ctx context.Context, email string, now time.Time) error {
-	var attempt storedLoginAttempt
-	err := s.collection(loginAttemptsCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&attempt)
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	attempt, err := s.records.LoginAttempt(ctx, email)
+	if errors.Is(err, ErrNotFound) {
 		return nil
 	}
 	if err != nil {
@@ -369,7 +305,7 @@ func (s *Store) checkLoginAttempts(ctx context.Context, email string, now time.T
 
 	// If lockout has expired, reset the counter
 	if !attempt.LockedUntil.IsZero() && !attempt.LockedUntil.After(now) {
-		_, _ = s.collection(loginAttemptsCollection).DeleteOne(ctx, bson.D{{Key: "email", Value: email}})
+		_ = s.records.DeleteLoginAttempt(ctx, email)
 		return nil
 	}
 
@@ -382,13 +318,10 @@ func (s *Store) checkLoginAttempts(ctx context.Context, email string, now time.T
 
 // recordFailedLogin increments failed login attempts and locks account if needed.
 func (s *Store) recordFailedLogin(ctx context.Context, email string, now time.Time) {
-	var attempt storedLoginAttempt
-	err := s.collection(loginAttemptsCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&attempt)
-
 	newAttempts := 1
 	var lockedUntil time.Time
 
-	if err == nil {
+	if attempt, err := s.records.LoginAttempt(ctx, email); err == nil {
 		newAttempts = attempt.Attempts + 1
 	}
 
@@ -396,26 +329,17 @@ func (s *Store) recordFailedLogin(ctx context.Context, email string, now time.Ti
 		lockedUntil = now.UTC().Add(loginLockoutTime)
 	}
 
-	update := bson.D{
-		{Key: "$set", Value: bson.D{
-			{Key: "email", Value: email},
-			{Key: "attempts", Value: newAttempts},
-			{Key: "lockedUntil", Value: lockedUntil},
-			{Key: "updatedAt", Value: now.UTC()},
-		}},
-	}
-
-	_, _ = s.collection(loginAttemptsCollection).UpdateOne(
-		ctx,
-		bson.D{{Key: "email", Value: email}},
-		update,
-		options.UpdateOne().SetUpsert(true),
-	)
+	_ = s.records.UpsertLoginAttempt(ctx, LoginAttemptRecord{
+		Email:       email,
+		Attempts:    newAttempts,
+		LockedUntil: lockedUntil,
+		UpdatedAt:   now.UTC(),
+	})
 }
 
 // clearLoginAttempts removes failed login attempts after successful login.
 func (s *Store) clearLoginAttempts(ctx context.Context, email string) {
-	_, _ = s.collection(loginAttemptsCollection).DeleteOne(ctx, bson.D{{Key: "email", Value: email}})
+	_ = s.records.DeleteLoginAttempt(ctx, email)
 }
 
 func (s *Store) ensureEmailIndexes(ctx context.Context) error {
@@ -441,7 +365,7 @@ func (s *Store) ensureEmailIndexes(ctx context.Context) error {
 
 	// Login attempts index
 	_, err = s.collection(loginAttemptsCollection).Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{{Key: "email", Value: 1}},
+		Keys:    bson.D{{Key: "email", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
 	return err

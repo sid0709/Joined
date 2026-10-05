@@ -23,7 +23,7 @@ func testMongoClient(t *testing.T) *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(options.Client().ApplyURI(uri).SetServerSelectionTimeout(2*time.Second))
+	client, err := mongo.Connect(options.Client().ApplyURI(uri).SetServerSelectionTimeout(2 * time.Second))
 	if err != nil {
 		t.Fatalf("mongo connect: %v", err)
 	}

@@ -37,6 +37,13 @@ func (s *Store) EnsureProfile(ctx context.Context, userID string) (Profile, erro
 		return Profile{}, ErrNotScout
 	}
 	now := s.now().UTC()
+	if s.docs != nil {
+		profile, err := s.docs.upsertProfile(ctx, userID, now)
+		if err != nil {
+			return Profile{}, err
+		}
+		return withAccount(profile, user), nil
+	}
 	var profile Profile
 	err = s.collection(profilesCollection).FindOneAndUpdate(ctx,
 		bson.D{{Key: "userId", Value: userID}},
