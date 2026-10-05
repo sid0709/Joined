@@ -14,6 +14,7 @@ import (
 	"net/smtp"
 	"strings"
 	"testing"
+	"time"
 )
 
 type fakeSMTPClient struct {
@@ -399,6 +400,17 @@ func TestResendProviderAPIError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "resend api error") {
 		t.Errorf("expected api error, got: %v", err)
+	}
+}
+
+func TestEmailHTTPClientTimeout(t *testing.T) {
+	custom := &http.Client{Timeout: time.Second}
+	if got := emailHTTPClient(custom); got != custom {
+		t.Fatal("expected existing client to be reused")
+	}
+	got := emailHTTPClient(nil)
+	if got == nil || got.Timeout != defaultEmailSendTimeout {
+		t.Fatalf("default client timeout = %v, want %v", got.Timeout, defaultEmailSendTimeout)
 	}
 }
 

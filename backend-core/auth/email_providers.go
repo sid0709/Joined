@@ -12,13 +12,18 @@ import (
 	"io"
 	"log/slog"
 	"mime/quotedprintable"
+	"net"
 	"net/http"
 	"net/smtp"
 	"strings"
 	"time"
 )
 
-const smtpImplicitTLSPort = "465"
+const (
+	smtpImplicitTLSPort     = "465"
+	defaultEmailSendTimeout = 10 * time.Second
+	defaultResendAPIURL     = "https://api.resend.com/emails"
+)
 
 // SMTPProvider sends email via an SMTP server.
 type SMTPProvider struct {
@@ -55,7 +60,7 @@ func (s *SMTPProvider) SendVerification(ctx context.Context, to, name, token str
 	if err != nil {
 		return fmt.Errorf("render verification email: %w", err)
 	}
-	return s.send(to, content.Subject, content.TextBody, content.HTMLBody)
+	return s.send(ctx, to, content.Subject, content.TextBody, content.HTMLBody)
 }
 
 func (s *SMTPProvider) SendPasswordReset(ctx context.Context, to, name, token string) error {
@@ -63,7 +68,7 @@ func (s *SMTPProvider) SendPasswordReset(ctx context.Context, to, name, token st
 	if err != nil {
 		return fmt.Errorf("render password reset email: %w", err)
 	}
-	return s.send(to, content.Subject, content.TextBody, content.HTMLBody)
+	return s.send(ctx, to, content.Subject, content.TextBody, content.HTMLBody)
 }
 
 func (s *SMTPProvider) SendDuplicateSignupNotice(ctx context.Context, to string) error {
@@ -71,11 +76,14 @@ func (s *SMTPProvider) SendDuplicateSignupNotice(ctx context.Context, to string)
 	if err != nil {
 		return fmt.Errorf("render duplicate signup email: %w", err)
 	}
-	return s.send(to, content.Subject, content.TextBody, content.HTMLBody)
+	return s.send(ctx, to, content.Subject, content.TextBody, content.HTMLBody)
 }
 
-func (s *SMTPProvider) send(to, subject, textBody, htmlBody string) error {
-	addr := s.Host + ":" + s.Port
+func (s *SMTPProvider) send(ctx context.Context, to, subject, textBody, htmlBody string) error {
+	ctx, cancel := context.WithTimeout(ctx, defaultEmailSendTimeout)
+	defer cancel()
+
+	addr := net.JoinHostPort(s.Host, s.Port)
 
 	var client smtpClient
 	var err error
@@ -83,7 +91,7 @@ func (s *SMTPProvider) send(to, subject, textBody, htmlBody string) error {
 	if s.DialFunc != nil {
 		client, err = s.DialFunc(addr)
 	} else {
-		client, err = s.dialSMTP(addr)
+		client, err = s.dialSMTP(ctx, addr)
 	}
 	if err != nil {
 		return fmt.Errorf("dial smtp: %w", err)
@@ -140,24 +148,35 @@ func (s *SMTPProvider) implicitTLS() bool {
 	return s.Port == smtpImplicitTLSPort
 }
 
-func (s *SMTPProvider) dialSMTP(addr string) (smtpClient, error) {
-	if s.implicitTLS() {
-		conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: s.Host})
-		if err != nil {
-			return nil, err
+func (s *SMTPProvider) dialSMTP(ctx context.Context, addr string) (smtpClient, error) {
+	timeout := defaultEmailSendTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(deadline); remaining > 0 && remaining < timeout {
+			timeout = remaining
 		}
-		c, err := smtp.NewClient(conn, s.Host)
-		if err != nil {
-			conn.Close()
-			return nil, err
-		}
-		return &realSMTPClient{c}, nil
 	}
-	c, err := smtp.Dial(addr)
+	dialer := &net.Dialer{Timeout: timeout}
+	tlsConfig := &tls.Config{ServerName: s.Host}
+
+	var conn net.Conn
+	var err error
+	if s.implicitTLS() {
+		conn, err = tls.DialWithDialer(dialer, "tcp", addr, tlsConfig)
+	} else {
+		conn, err = dialer.DialContext(ctx, "tcp", addr)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return &realSMTPClient{c}, nil
+	if deadline, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(deadline)
+	}
+	client, err := smtp.NewClient(conn, s.Host)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return &realSMTPClient{client}, nil
 }
 
 func buildMIMEMessage(from, to, subject, textBody, htmlBody string) (string, error) {
@@ -271,7 +290,7 @@ func (r *ResendProvider) SendDuplicateSignupNotice(ctx context.Context, to strin
 func (r *ResendProvider) send(ctx context.Context, to, subject, textBody, htmlBody string) error {
 	url := r.BaseURL
 	if url == "" {
-		url = "https://api.resend.com/emails"
+		url = defaultResendAPIURL
 	}
 
 	reqBody := resendEmailRequest{
@@ -295,10 +314,7 @@ func (r *ResendProvider) send(ctx context.Context, to, subject, textBody, htmlBo
 	req.Header.Set("Authorization", "Bearer "+r.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := r.HTTPClient
-	if client == nil {
-		client = http.DefaultClient
-	}
+	client := emailHTTPClient(r.HTTPClient)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -312,6 +328,13 @@ func (r *ResendProvider) send(ctx context.Context, to, subject, textBody, htmlBo
 	}
 
 	return nil
+}
+
+func emailHTTPClient(existing *http.Client) *http.Client {
+	if existing != nil {
+		return existing
+	}
+	return &http.Client{Timeout: defaultEmailSendTimeout}
 }
 
 // ValidateProviderConfig checks if the provider configuration is complete.
