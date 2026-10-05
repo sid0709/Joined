@@ -11,7 +11,7 @@ import {
   Stack,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   MONTH_OPTIONS,
   ROLE_SUMMARY_ROWS,

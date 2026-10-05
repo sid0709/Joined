@@ -1,10 +1,4 @@
-import type {
-  BarDatum,
-  DonutSlice,
-  FunnelStage,
-  HeatmapDay,
-  KpiDelta,
-} from "@joined/design-system";
+import type { BarDatum, DonutSlice, FunnelStage, HeatmapDay, KpiDelta } from "sid-ui";
 import { SOURCES, STAGE_LABEL, stageOf, type Application } from "./applications";
 import { WEEKDAYS, addDays, daysBetween, formatDay, weekStart, weekdayOf, type Day } from "./dates";
 

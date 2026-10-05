@@ -13,7 +13,7 @@ import {
   type AvatarShape,
   type AvatarSize,
   type AvatarStatusDotVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, Row, SAMPLE_IMAGES } from "./shared";

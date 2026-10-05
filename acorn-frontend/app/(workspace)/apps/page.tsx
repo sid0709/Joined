@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHeader, SectionCard, Stack } from "@joined/design-system";
+import { PageHeader, SectionCard, Stack } from "sid-ui";
 import { DownloadCards } from "@/components/apps/download-cards";
 import { extensionDownloadUrl, extensionInstallUrl } from "@/lib/config";
 

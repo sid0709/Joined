@@ -1,6 +1,6 @@
 "use client";
 
-import { BrandLockup, Button, EmptyState, Stack } from "@joined/design-system";
+import { BrandLockup, Button, EmptyState, Stack } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

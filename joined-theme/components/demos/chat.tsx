@@ -23,7 +23,7 @@ import {
   icons,
   type ChatMessageStatus,
   type ChatToolCallItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useEffect, useRef, useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, SAMPLE_IMAGES } from "./shared";

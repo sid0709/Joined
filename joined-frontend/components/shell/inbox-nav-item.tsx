@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Badge, Icon, TopNavItem, VisuallyHidden, icons } from "@joined/design-system";
+import { Badge, Icon, TopNavItem, VisuallyHidden, icons } from "sid-ui";
 
 /**
  * The inbox shortcut in a header: an icon with the unread count beside it.

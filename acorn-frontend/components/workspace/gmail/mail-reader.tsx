@@ -12,7 +12,7 @@ import {
   MetadataListItem,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ROUTES } from "@/lib/routes";
 import { formatClock, formatDay } from "@/lib/workspace/dates";
 import { MAIL_LABELS, type MailMessage } from "@/lib/workspace/mail";

@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Badge,
-  Card,
-  HStack,
-  Heading,
-  Icon,
-  Slider,
-  Stack,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Badge, Card, HStack, Heading, Icon, Slider, Stack, Text, icons } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

@@ -1,4 +1,4 @@
-import { FormLayout, Grid, SectionCard, Selector, Stack, TextInput } from "@joined/design-system";
+import { FormLayout, Grid, SectionCard, Selector, Stack, TextInput } from "sid-ui";
 import {
   MODEL_OPTIONS,
   PATH_MAX,

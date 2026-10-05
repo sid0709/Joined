@@ -1,4 +1,4 @@
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 
 export function Stars({ value, count }: { value: number; count?: number }) {
   return (

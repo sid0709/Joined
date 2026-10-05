@@ -1,6 +1,6 @@
 /* Side panel layout: a fixed top (header + PillNav), then one panel per tab. Jobs and
    Tabs keep the Now card in view and scroll the list under it; Ask lets the chat scroll
-   itself. Components come from @joined/design-system; this file only arranges them. */
+   itself. Components come from sid-ui; this file only arranges them. */
 
 .sidebar-app {
   display: flex;

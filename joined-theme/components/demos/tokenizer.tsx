@@ -16,7 +16,7 @@ import {
   type SearchableItem,
   type TokenizerOverflowBehavior,
   type TokenizerSize,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview } from "./shared";

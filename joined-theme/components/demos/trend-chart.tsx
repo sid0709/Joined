@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendChart } from "@joined/design-system";
+import { TrendChart } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

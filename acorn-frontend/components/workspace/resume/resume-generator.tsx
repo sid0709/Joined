@@ -13,7 +13,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { AcornAccount } from "@/lib/auth/session";
 import { ROUTES } from "@/lib/routes";
 import { matchKeywords, postingKeywords, profileText } from "@/lib/workspace/keywords";

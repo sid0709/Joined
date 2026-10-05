@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Blockquote,
-  Card,
-  Code,
-  HStack,
-  Heading,
-  Link,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Avatar, Blockquote, Card, Code, HStack, Heading, Link, Stack, Text } from "sid-ui";
 
 import { Examples, PEOPLE, Preview } from "./shared";
 

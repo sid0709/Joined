@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BrandFooter, BrandLockup, Center, Stack } from "@joined/design-system";
+import { BrandFooter, BrandLockup, Center, Stack } from "sid-ui";
 
 const FORM_WIDTH = 480;
 

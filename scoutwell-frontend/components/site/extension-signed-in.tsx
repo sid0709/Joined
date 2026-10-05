@@ -1,4 +1,4 @@
-import { Card, Heading, Stack, Text } from "@joined/design-system";
+import { Card, Heading, Stack, Text } from "sid-ui";
 import { EXTENSION_SIGNED_IN_BODY, EXTENSION_SIGNED_IN_TITLE } from "@/lib/site-copy";
 
 /** After the extension's sign-in tab finishes, tell the scout they can leave. */

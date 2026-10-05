@@ -17,7 +17,7 @@ import {
   Text,
   useToast,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";

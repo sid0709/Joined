@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@acorn/shared": "workspace:*",
-    "@joined/design-system": "workspace:*",
+    "sid-ui": "catalog:",
     "@joined/google-signin": "workspace:*",
     "next": "catalog:",
     "react": "catalog:",

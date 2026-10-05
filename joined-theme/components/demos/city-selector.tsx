@@ -1,6 +1,6 @@
 "use client";
 
-import { CitySelector, Stack } from "@joined/design-system";
+import { CitySelector, Stack } from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview } from "./shared";

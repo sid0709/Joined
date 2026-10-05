@@ -14,7 +14,7 @@ import {
   Text,
   TextArea,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   ApiError,
   type AdminScoutDetail,

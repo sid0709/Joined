@@ -21,7 +21,7 @@ import {
   Tile,
   icons,
   useResizable,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState, type ReactNode } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

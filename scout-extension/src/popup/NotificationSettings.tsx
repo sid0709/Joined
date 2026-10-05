@@ -1,4 +1,4 @@
-import { Heading, Stack, Switch } from "@joined/design-system";
+import { Heading, Stack, Switch } from "sid-ui";
 
 import { COPY } from "./copy";
 

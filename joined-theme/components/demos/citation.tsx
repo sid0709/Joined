@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Citation,
-  Icon,
-  Link,
-  Stack,
-  Text,
-  icons,
-  type CitationSource,
-} from "@joined/design-system";
+import { Citation, Icon, Link, Stack, Text, icons, type CitationSource } from "sid-ui";
 
 import { Examples, Preview, Row, SAMPLE_IMAGES } from "./shared";
 

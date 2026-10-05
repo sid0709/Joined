@@ -1,13 +1,4 @@
-import {
-  Badge,
-  Button,
-  Card,
-  Glyph,
-  HStack,
-  ProgressBar,
-  Text,
-  VStack,
-} from "@joined/design-system";
+import { Badge, Button, Card, Glyph, HStack, ProgressBar, Text, VStack } from "sid-ui";
 import type { PipelineProgress } from "@acorn/shared/pipeline-types";
 import type { CustomUiProgress } from "../pipeline/custom-generate-progress";
 import { customTabResumeLine, hostOf } from "./custom-tab-resume";

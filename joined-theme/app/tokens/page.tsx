@@ -1,12 +1,4 @@
-import {
-  Card,
-  Grid,
-  Heading,
-  MetadataList,
-  MetadataListItem,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Card, Grid, Heading, MetadataList, MetadataListItem, Stack, Text } from "sid-ui";
 
 const TOKEN_GROUPS: { title: string; tokens: string[] }[] = [
   {

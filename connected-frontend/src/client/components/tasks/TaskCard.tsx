@@ -1,4 +1,4 @@
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 import Link from "next/link";
 
 import type { StatusCounts } from "@/src/shared/lib/selectors";

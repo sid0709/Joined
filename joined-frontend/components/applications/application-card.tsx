@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Badge,
-  Card,
-  HStack,
-  Icon,
-  IconButton,
-  Stack,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Avatar, Badge, Card, HStack, Icon, IconButton, Stack, Text, icons } from "sid-ui";
 import { STRONG_MATCH, type Application } from "@/lib/applications";
 import { relativeDay } from "@/lib/dates";
 

@@ -12,7 +12,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

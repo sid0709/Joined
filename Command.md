@@ -10,22 +10,22 @@ Everything you need to set up, run, check, and audit this monorepo.
 
 ## 1. What's in the repo
 
-| Workspace               | Path                      | What it is                                                              | Dev port | Root dev script          |
-| ----------------------- | ------------------------- | ----------------------------------------------------------------------- | -------- | ------------------------ |
-| `joined-frontend`       | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)              | 6002     | `bun run dev:joined`     |
-| `connected-frontend`    | `connected-frontend/`     | Joined web app (Next.js)                                                | 6004     | `bun run dev:app`        |
-| `joined-theme`          | `joined-theme/`           | Design-system showcase (Next.js)                                        | 6001     | `bun run dev:theme`      |
-| `admin-frontend`        | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js)            | 6010     | `bun run dev:admin`      |
-| `scoutwell-frontend`    | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)              | 6003     | `bun run dev:scout`      |
-| `joined-backend`        | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                   | 8080     | `bun run dev:joined-api` |
-| `admin-backend`         | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                     | 8081     | `bun run dev:admin-api`  |
-| `scoutwell-backend`     | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                | 8082     | `bun run dev:scout-api`  |
-| `acorn-backend`         | `acorn-backend/`          | Acorn API (Go): `/acorn/*` and Socket.IO, published at api.joinedhq.com | 8083     | `bun run dev:acorn-api`  |
-| `backend-core`          | `backend-core/`           | Shared Go library every API builds on (no server of its own)            | —        | —                        |
-| `acorn-extension`       | `acorn/extension/`        | Acorn Chrome extension (Vite; load `acorn/extension/dist`)              | —        | `bun run dev:acorn`      |
-| `@joined/design-system` | `packages/design-system/` | Shared UI package (Astryx components, tokens, theme)                    | —        | —                        |
+| Workspace            | Path                      | What it is                                                                         | Dev port | Root dev script          |
+| -------------------- | ------------------------- | ---------------------------------------------------------------------------------- | -------- | ------------------------ |
+| `joined-frontend`    | `joined-frontend/`        | Joined job platform — candidate + employer modes (Next.js)                         | 6002     | `bun run dev:joined`     |
+| `connected-frontend` | `connected-frontend/`     | Joined web app (Next.js)                                                           | 6004     | `bun run dev:app`        |
+| `joined-theme`       | `joined-theme/`           | Design-system showcase (Next.js)                                                   | 6001     | `bun run dev:theme`      |
+| `admin-frontend`     | `admin-frontend/`         | Joined admin console — moderation, jobs, companies (Next.js)                       | 6010     | `bun run dev:admin`      |
+| `scoutwell-frontend` | `scoutwell-frontend/`     | Scoutwell — scouts submit jobs and track rewards (Next.js)                         | 6003     | `bun run dev:scout`      |
+| `joined-backend`     | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                              | 8080     | `bun run dev:joined-api` |
+| `admin-backend`      | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                                | 8081     | `bun run dev:admin-api`  |
+| `scoutwell-backend`  | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                           | 8082     | `bun run dev:scout-api`  |
+| `acorn-backend`      | `acorn-backend/`          | Acorn API (Go): `/acorn/*` and Socket.IO, published at api.joinedhq.com            | 8083     | `bun run dev:acorn-api`  |
+| `backend-core`       | `backend-core/`           | Shared Go library every API builds on (no server of its own)                       | —        | —                        |
+| `acorn-extension`    | `acorn/extension/`        | Acorn Chrome extension (Vite; load `acorn/extension/dist`)                         | —        | `bun run dev:acorn`      |
+| `sid-ui`             | github.com/sid0709/sid-ui | Shared UI package (Astryx components, tokens, theme), published with `bun publish` | —        | —                        |
 
-Apps use the design system through the workspace (`"@joined/design-system": "workspace:*"`), so edits in `packages/design-system` show up in every running app immediately. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, and the shared library `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `packages/design-system` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
+Apps use the design system through the catalog (`"sid-ui": "catalog:"`). The source is the sid-ui repo, not this workspace. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, and the shared library `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `sid-ui` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -50,7 +50,7 @@ Other folders: `docs/` (product and architecture specs), `tools/` (repo checks),
   ```
 - Each workspace's `package.json` still lists **which** libraries it uses — but never a version:
   ```jsonc
-  "dependencies": { "next": "catalog:", "react": "catalog:", "@joined/design-system": "workspace:*" }
+  "dependencies": { "next": "catalog:", "react": "catalog:", "sid-ui": "catalog:" }
   ```
   Each workspace keeps its own `package.json` because that's what makes it a workspace: its name (for `--filter` and `workspace:*`), the list of libraries it's allowed to import, and its scripts (e.g. its dev port).
 - `overrides` in the root `package.json` forces third-party packages onto our version when they'd otherwise pull their own (today: `@types/node`). Every override must equal its catalog version.
@@ -207,7 +207,7 @@ For any other script in one workspace, use `--filter` with the workspace name:
 
 ```bash
 bun --filter joined-frontend <script>
-bun --filter @joined/design-system <script>
+bun --filter sid-ui <script>
 ```
 
 ### Joined: candidate and employer modes
@@ -316,7 +316,7 @@ bun test tests
 
 ## 6. Design system
 
-Source: `packages/design-system/src/`.
+Source: the sid-ui package (`github.com/sid0709/sid-ui`).
 
 - **Components** — `src/components/` (re-exported Astryx parts plus Joined composites).
 - **Tokens** — `src/styles/tokens.css` (color, spacing, type, radius, shadow).
@@ -331,7 +331,7 @@ Source: `packages/design-system/src/`.
   bun run brand:icons
   ```
 
-Apps import only from the package, e.g. `import { Button } from "@joined/design-system"`. Never hardcode colors, spacing, or type — use tokens and components.
+Apps import only from the package, e.g. `import { Button } from "sid-ui"`. Never hardcode colors, spacing, or type — use tokens and components.
 
 ---
 

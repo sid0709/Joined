@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { PillNav, useAppShellMobile, type PillNavItem } from "@joined/design-system";
+import { PillNav, useAppShellMobile, type PillNavItem } from "sid-ui";
 import { ROUTES } from "@/lib/routes";
 
 const ITEMS: PillNavItem[] = [

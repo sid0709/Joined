@@ -11,7 +11,7 @@ import {
   icons,
   type HeadingLevel,
   type TextColor,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { DonutChart } from "@joined/design-system";
+import { DonutChart } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

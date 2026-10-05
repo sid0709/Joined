@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FormLayout, Selector, TextInput } from "@joined/design-system";
+import { FormLayout, Selector, TextInput } from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
 import { STAGES, type ApplicationStage } from "@/lib/applications";
 

@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Card,
-  Divider,
-  EmptyState,
-  Glyph,
-  HStack,
-  Heading,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Badge, Card, Divider, EmptyState, Glyph, HStack, Heading, Stack, Text } from "sid-ui";
 import type { AcornAccount } from "@/lib/auth/session";
 import { formatWhen, type ResumeDraft } from "@/lib/workspace/model";
 import { entryDates, type ApplicantProfile } from "@/lib/workspace/profile";

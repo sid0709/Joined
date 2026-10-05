@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Heading, HStack, Link, Stack, Text, type CodeColor } from "@joined/design-system";
+import { Code, Heading, HStack, Link, Stack, Text, type CodeColor } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 
@@ -19,7 +19,7 @@ export default function CodeDemo() {
         description="A filename, a prop, or a short snippet inside a sentence. For whole samples, use Code Block."
       >
         <Text display="block">
-          Import <Code>Button</Code> from <Code>@joined/design-system</Code> and pass{" "}
+          Import <Code>Button</Code> from <Code>sid-ui</Code> and pass{" "}
           <Code>variant=&quot;primary&quot;</Code>.
         </Text>
       </Preview>
@@ -59,10 +59,10 @@ export default function CodeDemo() {
       <Preview label="Commands and paths">
         <Stack gap={2}>
           <Text display="block">
-            Install with <Code>bun add @joined/design-system</Code>.
+            Install with <Code>bun add sid-ui</Code>.
           </Text>
           <Text display="block">
-            Tokens live in <Code>packages/design-system/src/styles/tokens.css</Code>.
+            Tokens live in <Code>sid-ui/styles/joined.css</Code>.
           </Text>
           <Text display="block">
             Press <Code>Ctrl</Code> + <Code>C</Code> to stop the server.

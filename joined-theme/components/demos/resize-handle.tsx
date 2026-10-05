@@ -10,7 +10,7 @@ import {
   Tile,
   VStack,
   useResizable,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useRef } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

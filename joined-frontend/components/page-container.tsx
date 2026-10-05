@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Stack } from "@joined/design-system";
+import { Stack } from "sid-ui";
 
 export const PAGE_MAX_WIDTH = 1200;
 /** Workspaces that want the room — search, messages. */

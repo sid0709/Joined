@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Stack } from "@joined/design-system";
+import { Stack } from "sid-ui";
 import { AuthAside } from "@/components/auth/auth-aside";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";

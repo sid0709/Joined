@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid, KpiWidget, Sparkline } from "@joined/design-system";
+import { Grid, KpiWidget, Sparkline } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

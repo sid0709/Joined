@@ -13,7 +13,7 @@ import {
   Text,
   Tooltip,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview, Row } from "./shared";

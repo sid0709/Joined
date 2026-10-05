@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, FormLayout, Link, Stack, Text, TextInput } from "@joined/design-system";
+import { Banner, Button, FormLayout, Link, Stack, Text, TextInput } from "sid-ui";
 import {
   EMAIL_APP_ROUTES,
   fieldStatus,

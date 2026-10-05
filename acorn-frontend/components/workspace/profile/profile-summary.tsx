@@ -13,7 +13,7 @@ import {
   Stack,
   StatusDot,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import { completeness, profileChecklist, type ApplicantProfile } from "@/lib/workspace/profile";
 
 const AVATAR_SIZE = 72;

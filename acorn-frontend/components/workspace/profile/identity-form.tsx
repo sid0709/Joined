@@ -1,11 +1,4 @@
-import {
-  FormLayout,
-  Grid,
-  SectionCard,
-  Selector,
-  StateSelector,
-  TextInput,
-} from "@joined/design-system";
+import { FormLayout, Grid, SectionCard, Selector, StateSelector, TextInput } from "sid-ui";
 import { PHONE_MAX } from "@/lib/workspace/model";
 import {
   ADDRESS_MAX,

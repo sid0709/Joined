@@ -12,7 +12,7 @@ import {
   Stack,
   Text,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import { signIn, signUp } from "@/lib/auth/actions";
 import { ROUTES } from "@/lib/routes";
 

@@ -14,7 +14,7 @@ import {
   icons,
   type TimelineItem,
   type TimelineVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview } from "./shared";

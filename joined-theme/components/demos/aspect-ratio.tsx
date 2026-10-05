@@ -11,7 +11,7 @@ import {
   Text,
   Tile,
   type AspectRatioFit,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

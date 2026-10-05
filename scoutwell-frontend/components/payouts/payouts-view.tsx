@@ -18,7 +18,7 @@ import {
   useToast,
   PageHeader,
   SectionCard,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ApiError, formatMoney, type Money, type Payout, type Stats } from "@joined/scout";
 import { scoutSend } from "@/lib/scout/client";
 import { PayoutHistory } from "./payout-history";

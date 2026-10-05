@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Banner, Button, HStack, Selector, Stack, Text, TextArea } from "@joined/design-system";
+import { Banner, Button, HStack, Selector, Stack, Text, TextArea } from "sid-ui";
 
 type Action = {
   id: string;

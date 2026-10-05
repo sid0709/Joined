@@ -19,7 +19,7 @@ import {
   Text,
   type BadgeVariant,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { PageSelectButton } from "@/components/page-select-button";
 import { SearchBox } from "@/components/search-box";

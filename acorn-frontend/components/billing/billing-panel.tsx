@@ -16,7 +16,7 @@ import {
   SegmentedControlItem,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   BILLING_CYCLE_DAYS,
   SAMPLE_SUBSCRIPTION,

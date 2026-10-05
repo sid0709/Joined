@@ -1,4 +1,4 @@
-import { Grid, KpiWidget, Sparkline } from "@joined/design-system";
+import { Grid, KpiWidget, Sparkline } from "sid-ui";
 import { deltaOf, type Summary, type Weekly } from "@/lib/workspace/stats";
 
 const KPI_MIN_WIDTH = 200;

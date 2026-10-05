@@ -10,7 +10,7 @@ import {
   Stack,
   TextInput,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   MAX_SCREENING_QUESTIONS,
   newScreeningQuestion,

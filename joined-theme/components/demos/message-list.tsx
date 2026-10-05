@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, Glyph, MessageList, type MessageListItem } from "@joined/design-system";
+import { Card, Glyph, MessageList, type MessageListItem } from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview } from "./shared";

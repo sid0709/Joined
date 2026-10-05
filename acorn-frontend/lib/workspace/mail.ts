@@ -1,4 +1,4 @@
-import type { BadgeVariant, ChartTone, GlyphName } from "@joined/design-system";
+import type { BadgeVariant, ChartTone, GlyphName } from "sid-ui";
 import { stageOf, type Application } from "./applications";
 import { addDays, daysBetween, formatDay, weekStart, type Day } from "./dates";
 

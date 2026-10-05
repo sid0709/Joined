@@ -14,7 +14,7 @@ import {
   ToggleButton,
   icons,
   type DropdownMenuOption,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";

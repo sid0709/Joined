@@ -14,7 +14,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   EMPLOYMENT_LABEL,
   EMPLOYMENT_OPTIONS,

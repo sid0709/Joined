@@ -1,4 +1,4 @@
-import type { IconName } from "@joined/design-system";
+import type { IconName } from "sid-ui";
 
 export type CatalogItem = {
   slug: string;

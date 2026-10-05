@@ -11,7 +11,7 @@ import {
   useToast,
   type SearchableItem,
   type SearchSource,
-} from "@joined/design-system";
+} from "sid-ui";
 import { saveJobTeams } from "@/lib/company/api";
 
 function asItem(label: string): SearchableItem {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph, HStack, Stack, icons, type GlyphName } from "@joined/design-system";
+import { Glyph, HStack, Stack, icons, type GlyphName } from "sid-ui";
 
 import { Caption, Examples, Preview, Row } from "./shared";
 

@@ -1,4 +1,4 @@
-import { BarChart } from "@joined/design-system";
+import { BarChart } from "sid-ui";
 import { formatDuration, monthsInRole, type ApplicantProfile } from "@/lib/workspace/profile";
 
 /** Time in each role, so the longest stretches stand out. */

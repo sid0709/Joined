@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, Button, Link, Text, useToast } from "@joined/design-system";
+import { Banner, Button, Link, Text, useToast } from "sid-ui";
 import type { GoogleCalendarFeed } from "@/lib/google-calendar";
 import { startGoogleCalendar } from "@/lib/me/pipeline";
 import { ROUTES } from "@/lib/routes";

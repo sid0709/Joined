@@ -1,5 +1,5 @@
 import type { AcornFaceMode } from "@acorn/face";
-import { Button, Text, VStack } from "@joined/design-system";
+import { Button, Text, VStack } from "sid-ui";
 import { ACORN_FACE_HELP_PX } from "../acorn-face/constants";
 import { AcornFaceView } from "../acorn-face/AcornFaceView";
 

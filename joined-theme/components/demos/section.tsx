@@ -13,7 +13,7 @@ import {
   Text,
   Tile,
   type SectionVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

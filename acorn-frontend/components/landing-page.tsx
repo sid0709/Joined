@@ -14,7 +14,7 @@ import {
   Timeline,
   type GlyphName,
   type TimelineItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { BRAND } from "@/lib/config";
 import { INSTALL_SECTION_ID, ROUTES } from "@/lib/routes";
 import { SiteHeader } from "./site-header";

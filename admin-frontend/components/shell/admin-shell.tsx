@@ -1,13 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  AppShell,
-  PageContainer,
-  ThemeToggle,
-  TopNav,
-  Badge,
-  BrandHeading,
-  HStack,
-} from "@joined/design-system";
+import { AppShell, PageContainer, ThemeToggle, TopNav, Badge, BrandHeading, HStack } from "sid-ui";
 import type { Overview } from "@joined/scout";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/nav";

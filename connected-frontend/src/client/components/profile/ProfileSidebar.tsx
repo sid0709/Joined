@@ -1,4 +1,4 @@
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 
 import type { ChecklistItem, ProfileForm } from "@/src/client/components/profile/useProfileForm";
 

@@ -1,4 +1,4 @@
-import { FormLayout, SectionCard, Selector } from "@joined/design-system";
+import { FormLayout, SectionCard, Selector } from "sid-ui";
 import {
   DISABILITY_OPTIONS,
   HISPANIC_OPTIONS,

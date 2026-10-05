@@ -12,7 +12,7 @@ import {
   TextArea,
   TextInput,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ListField } from "@/components/list-field";
 import { adminSend } from "@/lib/api";
 import {

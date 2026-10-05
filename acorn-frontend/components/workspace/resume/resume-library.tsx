@@ -16,7 +16,7 @@ import {
   Text,
   formatBytes,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { LIBRARY_LIMIT, formatWhen, type LibraryResume } from "@/lib/workspace/model";
 import { RESUME_ACCEPT, RESUME_MAX_BYTES } from "@/lib/workspace/resume-file";
 import { useResumes } from "./use-resumes";

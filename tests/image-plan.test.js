@@ -24,19 +24,6 @@ describe("image plan", () => {
     expect(plan.retag).toContain("joined-frontend");
   });
 
-  it("rebuilds frontends that import the design system", () => {
-    const plan = planImages(["packages/design-system/src/components/index.ts"]);
-    expect(services(plan)).toEqual([
-      "joined-frontend",
-      "admin-frontend",
-      "scoutwell-frontend",
-      "connected-frontend",
-      "joined-theme",
-      "acorn-frontend",
-    ]);
-    expect(plan.retag).toContain("admin-backend");
-  });
-
   it("follows workspace dependencies past the app's own package.json", () => {
     const plan = planImages(["packages/job-schema/src/index.ts"]);
     expect(services(plan)).toContain("joined-frontend");

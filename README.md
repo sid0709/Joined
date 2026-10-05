@@ -8,23 +8,23 @@ Juniors own product work. Core/platform changes need owner review.
 
 A **bun workspaces monorepo**:
 
-| Workspace               | What it is                                                               | Run it                                                    |
-| ----------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `joined-frontend`       | Joined job platform — candidate and employer modes                       | `bun run dev:joined` → http://localhost:6002              |
-| `connected-frontend`    | Joined web app                                                           | `bun run dev:app` → http://localhost:6004                 |
-| `joined-theme`          | Design-system showcase                                                   | `bun run dev:theme` → http://localhost:6001               |
-| `scoutwell-frontend`    | Scoutwell — scouts submit jobs and earn on outcomes                      | `bun run dev:scout` → http://localhost:6003               |
-| `admin-frontend`        | Admin console — review queue, scouts, jobs                               | `bun run dev:admin` → http://localhost:6010               |
-| `joined-backend`        | Joined API (Go) — accounts, job search, hunter and recruiter workspaces  | `bun run dev:joined-api` → http://127.0.0.1:8080          |
-| `admin-backend`         | Admin API (Go) — staff routes behind the admin console                   | `bun run dev:admin-api` → http://127.0.0.1:8081           |
-| `scoutwell-backend`     | Scoutwell API (Go) — scout accounts, submissions, partner API keys       | `bun run dev:scout-api` → http://127.0.0.1:8082           |
-| `acorn-frontend`        | Acorn website — accounts the extension signs in with                     | `bun --filter acorn-frontend dev` → http://localhost:6005 |
-| `acorn-backend`         | Acorn API (Go) — `/acorn/*` and Socket.IO, published at api.joinedhq.com | `bun run dev:acorn-api` → http://127.0.0.1:8083           |
-| `backend-core`          | Shared Go library every API builds on (no server of its own)             | —                                                         |
-| `acorn-extension`       | Acorn — Chrome extension that fills job applications (`acorn/extension`) | `bun run dev:acorn` → load `acorn/extension/dist`         |
-| `@joined/design-system` | Shared UI package (`packages/design-system`)                             | used by every app                                         |
-| `@joined/scout`         | Scout API contract (`packages/scout`)                                    | Scoutwell and the admin console                           |
-| `@joined/job-schema`    | Job enums shared with the Go API (`packages/job-schema`)                 | every job-related app                                     |
+| Workspace            | What it is                                                                        | Run it                                                    |
+| -------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `joined-frontend`    | Joined job platform — candidate and employer modes                                | `bun run dev:joined` → http://localhost:6002              |
+| `connected-frontend` | Joined web app                                                                    | `bun run dev:app` → http://localhost:6004                 |
+| `joined-theme`       | Design-system showcase                                                            | `bun run dev:theme` → http://localhost:6001               |
+| `scoutwell-frontend` | Scoutwell — scouts submit jobs and earn on outcomes                               | `bun run dev:scout` → http://localhost:6003               |
+| `admin-frontend`     | Admin console — review queue, scouts, jobs                                        | `bun run dev:admin` → http://localhost:6010               |
+| `joined-backend`     | Joined API (Go) — accounts, job search, hunter and recruiter workspaces           | `bun run dev:joined-api` → http://127.0.0.1:8080          |
+| `admin-backend`      | Admin API (Go) — staff routes behind the admin console                            | `bun run dev:admin-api` → http://127.0.0.1:8081           |
+| `scoutwell-backend`  | Scoutwell API (Go) — scout accounts, submissions, partner API keys                | `bun run dev:scout-api` → http://127.0.0.1:8082           |
+| `acorn-frontend`     | Acorn website — accounts the extension signs in with                              | `bun --filter acorn-frontend dev` → http://localhost:6005 |
+| `acorn-backend`      | Acorn API (Go) — `/acorn/*` and Socket.IO, published at api.joinedhq.com          | `bun run dev:acorn-api` → http://127.0.0.1:8083           |
+| `backend-core`       | Shared Go library every API builds on (no server of its own)                      | —                                                         |
+| `acorn-extension`    | Acorn — Chrome extension that fills job applications (`acorn/extension`)          | `bun run dev:acorn` → load `acorn/extension/dist`         |
+| `sid-ui`             | Shared UI package, installed from the catalog (source: github.com/sid0709/sid-ui) | used by every app                                         |
+| `@joined/scout`      | Scout API contract (`packages/scout`)                                             | Scoutwell and the admin console                           |
+| `@joined/job-schema` | Job enums shared with the Go API (`packages/job-schema`)                          | every job-related app                                     |
 
 ### Backend services
 

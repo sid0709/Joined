@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, BrandHeading, TopNav } from "@joined/design-system";
+import { Badge, BrandHeading, TopNav } from "sid-ui";
 import type { AuthSession } from "@/lib/auth/types";
 import { PostJobButton } from "@/components/post-job-button";
 import { BRAND, ROUTES } from "@/lib/routes";

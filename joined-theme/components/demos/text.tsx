@@ -1,6 +1,6 @@
 "use client";
 
-import { HStack, Stack, Text, type TextColor, type TextType } from "@joined/design-system";
+import { HStack, Stack, Text, type TextColor, type TextType } from "sid-ui";
 
 import { Caption, Examples, Preview } from "./shared";
 

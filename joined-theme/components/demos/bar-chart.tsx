@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart } from "@joined/design-system";
+import { BarChart } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

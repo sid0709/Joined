@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AlertDialog,
-  Banner,
-  Button,
-  PageHeader,
-  Stack,
-  StatGrid,
-  Switch,
-} from "@joined/design-system";
+import { AlertDialog, Banner, Button, PageHeader, Stack, StatGrid, Switch } from "sid-ui";
 import { TempJobsBrowser } from "@/components/jobs/temp-jobs-browser";
 import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";

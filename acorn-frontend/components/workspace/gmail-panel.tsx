@@ -22,7 +22,7 @@ import {
   TextInput,
   TrendChart,
   type MessageListItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { AcornAccount } from "@/lib/auth/session";
 import { formatReceived, type Day } from "@/lib/workspace/dates";
 import {

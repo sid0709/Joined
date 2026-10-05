@@ -1,4 +1,4 @@
-import { BrandHeading, Button, HStack } from "@joined/design-system";
+import { BrandHeading, Button, HStack } from "sid-ui";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 

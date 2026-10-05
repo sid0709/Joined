@@ -19,7 +19,7 @@ import {
   TextArea,
   Timeline,
   type TimelineItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   SOURCE_LABEL,
   STAGE_BY_ID,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Drawer, Glyph, Rating } from "@joined/design-system";
+import { Drawer, Glyph, Rating } from "sid-ui";
 import { useState } from "react";
 
 import type { HiringStage, Interview } from "@/src/shared/types/marketplace";

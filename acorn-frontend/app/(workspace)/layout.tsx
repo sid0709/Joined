@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { PageContainer } from "@joined/design-system";
+import { PageContainer } from "sid-ui";
 import { AcornHeader } from "@/components/shell/acorn-header";
 import { AppFrame } from "@/components/shell/app-frame";
 import { MobileWorkspaceNav } from "@/components/workspace/nav";

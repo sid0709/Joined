@@ -16,7 +16,7 @@ import {
   TextInput,
   icons,
   type BottomSheetHeight,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";

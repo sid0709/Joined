@@ -1,6 +1,6 @@
 "use client";
 
-import { Spinner } from "@joined/design-system";
+import { Spinner } from "sid-ui";
 import dynamic from "next/dynamic";
 import { createElement, type ComponentType } from "react";
 

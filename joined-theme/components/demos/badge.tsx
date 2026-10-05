@@ -13,7 +13,7 @@ import {
   Text,
   icons,
   type BadgeVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview, Row } from "./shared";

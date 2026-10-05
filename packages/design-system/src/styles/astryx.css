@@ -1,5 +1,0 @@
-/* Astryx foundation: reset, the Astryx component stylesheet, and the
-   Joined theme build (src/theme/theme.css, from `bun run theme:build`). */
-@import "@astryxdesign/core/reset.css";
-@import "@astryxdesign/core/astryx.css";
-@import "../theme/theme.css";

@@ -14,7 +14,7 @@ import {
   type SelectorOptionData,
   type SelectorSection,
   type SelectorSize,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview } from "./shared";

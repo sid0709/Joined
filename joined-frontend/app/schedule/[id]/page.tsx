@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Banner, Button, EmptyState, Stack, Text } from "@joined/design-system";
+import { Banner, Button, EmptyState, Stack, Text } from "sid-ui";
 import { AppFrame } from "@/components/shell/app-frame";
 import { SeekerHeader } from "@/components/shell/seeker-header";
 import { PublicSchedulePicker } from "@/components/schedule/public-schedule-picker";

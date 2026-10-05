@@ -32,7 +32,7 @@ import {
   type KanbanItemState,
   type KanbanLane,
   type KanbanMove,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview } from "./shared";

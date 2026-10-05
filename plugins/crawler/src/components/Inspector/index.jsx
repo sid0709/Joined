@@ -14,7 +14,7 @@ import {
   Text,
   TextInput,
   VStack,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useEffect, useState } from "react";
 
 import { useActiveTab } from "../../api/activeTab";

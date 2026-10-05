@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Badge, HStack, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { Avatar, Badge, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { STAGE_BADGE, type Application } from "@/lib/workspace/applications";
 import { formatDay, type Day } from "@/lib/workspace/dates";
 import { STATUS_LABEL, lastEvent, statusOf } from "@/lib/workspace/stats";

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { PageTabs } from "@joined/design-system";
+import { PageTabs } from "sid-ui";
 import { ROUTES } from "@/lib/routes";
 
 const TABS = [

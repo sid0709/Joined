@@ -1,4 +1,4 @@
-import { FormLayout, Grid, SectionCard, Selector } from "@joined/design-system";
+import { FormLayout, Grid, SectionCard, Selector } from "sid-ui";
 import {
   CITIZENSHIP_OPTIONS,
   CLEARANCE_OPTIONS,

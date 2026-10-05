@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // Docker images run the standalone server (docker/next-app.Dockerfile).
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   transpilePackages: [
-    "@joined/design-system",
+    "sid-ui",
     "@astryxdesign/core",
     "@astryxdesign/theme-neutral",
     "@stylexjs/stylex",

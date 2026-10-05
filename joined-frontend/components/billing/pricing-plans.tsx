@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   BILLING_MESSAGES,
   BILLING_PLANS,

@@ -12,7 +12,7 @@ import {
   type JoinedLogoVariant,
   type JoinedMarkVariant,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Caption, Examples, Preview, Row } from "./shared";
 

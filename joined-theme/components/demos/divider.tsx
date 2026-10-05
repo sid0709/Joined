@@ -1,17 +1,6 @@
 "use client";
 
-import {
-  Button,
-  Card,
-  Divider,
-  HStack,
-  Icon,
-  IconButton,
-  Stack,
-  Text,
-  Tile,
-  icons,
-} from "@joined/design-system";
+import { Button, Card, Divider, HStack, Icon, IconButton, Stack, Text, Tile, icons } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

@@ -15,7 +15,7 @@ import {
   Switch,
   Text,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import { MAILBOX_LABEL_MAX, formatWhen, isEmail, type Mailbox } from "@/lib/workspace/model";
 
 /** Connect, set the default, choose which mailboxes count replies, and disconnect. */

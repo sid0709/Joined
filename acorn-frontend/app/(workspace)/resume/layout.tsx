@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { PageHeader, Stack } from "@joined/design-system";
+import { PageHeader, Stack } from "sid-ui";
 import { ResumeTabs } from "@/components/workspace/resume/resume-tabs";
 
 export default function ResumeLayout({ children }: { children: ReactNode }) {

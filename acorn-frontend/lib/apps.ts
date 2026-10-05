@@ -1,4 +1,4 @@
-import type { GlyphName } from "@joined/design-system";
+import type { GlyphName } from "sid-ui";
 
 /** The browsers Acorn runs in, and how each one installs it. */
 

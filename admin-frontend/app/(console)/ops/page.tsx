@@ -1,4 +1,4 @@
-import { Button, EmptyState, HStack, PageHeader, Stack } from "@joined/design-system";
+import { Button, EmptyState, HStack, PageHeader, Stack } from "sid-ui";
 import { ROUTES } from "@/lib/nav";
 
 export const metadata = { title: "Retention and ops" };

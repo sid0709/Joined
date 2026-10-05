@@ -11,7 +11,7 @@ import {
   Text,
   icons,
   type StatusDotVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 

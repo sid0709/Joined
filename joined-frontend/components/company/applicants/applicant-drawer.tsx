@@ -20,7 +20,7 @@ import {
   Token,
   Tokenizer,
   createStaticSource,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   APPLICANT_STAGES,
   ASSISTED_LABEL,

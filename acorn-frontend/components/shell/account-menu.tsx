@@ -1,13 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Avatar,
-  DropdownMenu,
-  icons,
-  useAppShellMobile,
-  type DropdownMenuOption,
-} from "@joined/design-system";
+import { Avatar, DropdownMenu, icons, useAppShellMobile, type DropdownMenuOption } from "sid-ui";
 import { signOut } from "@/lib/auth/actions";
 import type { AcornAccount } from "@/lib/auth/session";
 import { ROUTES } from "@/lib/routes";

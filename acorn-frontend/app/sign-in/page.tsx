@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { GOOGLE_ERROR_PARAM, googleErrorMessage } from "@joined/google-signin";
-import { Heading, PageContainer, Stack } from "@joined/design-system";
+import { Heading, PageContainer, Stack } from "sid-ui";
 import { AuthForm } from "@/components/auth-form";
 import { SiteHeader } from "@/components/site-header";
 import { currentAccount } from "@/lib/auth/session";

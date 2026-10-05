@@ -1,4 +1,4 @@
-import { Badge, Button } from "@joined/design-system";
+import { Badge, Button } from "sid-ui";
 import { type Meta } from "@joined/scout";
 import { ROUTES } from "@/lib/routes";
 import { earnFigures } from "@/lib/site-copy";

@@ -15,7 +15,7 @@ import {
   icons,
   type InputStatus,
   type TextInputSize,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Stack, StateSelector } from "@joined/design-system";
+import { Stack, StateSelector } from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview } from "./shared";

@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Button,
-  Card,
-  EmptyState,
-  HStack,
-  Heading,
-  Icon,
-  Stack,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Button, Card, EmptyState, HStack, Heading, Icon, Stack, Text, icons } from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview } from "./shared";

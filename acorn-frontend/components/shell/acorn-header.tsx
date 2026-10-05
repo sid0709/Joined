@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Badge,
-  BrandHeading,
-  Button,
-  Glyph,
-  TopNav,
-  useAppShellMobile,
-} from "@joined/design-system";
+import { Badge, BrandHeading, Button, Glyph, TopNav, useAppShellMobile } from "sid-ui";
 import type { AcornAccount } from "@/lib/auth/session";
 import { BRAND } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";

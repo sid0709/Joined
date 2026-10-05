@@ -9,7 +9,7 @@ import {
   Heading,
   Stack,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

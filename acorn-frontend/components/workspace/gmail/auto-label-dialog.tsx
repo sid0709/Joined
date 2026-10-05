@@ -18,7 +18,7 @@ import {
   Stack,
   Text,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   DEFAULT_PARENT_LABEL,
   LABEL_NAME_MAX,

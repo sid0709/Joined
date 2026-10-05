@@ -1,4 +1,4 @@
-import { HStack, ProgressBar, Stack, Text, Token } from "@joined/design-system";
+import { HStack, ProgressBar, Stack, Text, Token } from "sid-ui";
 import type { KeywordMatch } from "@/lib/workspace/keywords";
 
 const STRONG = 70;

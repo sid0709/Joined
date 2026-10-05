@@ -11,7 +11,7 @@ import {
   SectionCard,
   Stack,
   StatGrid,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { AcornAccount } from "@/lib/auth/session";
 import { ROUTES } from "@/lib/routes";
 import { RESUME_LIMIT, formatWhen } from "@/lib/workspace/model";

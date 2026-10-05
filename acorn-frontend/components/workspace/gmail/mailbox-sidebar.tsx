@@ -9,7 +9,7 @@ import {
   SideNavHeading,
   SideNavItem,
   SideNavSection,
-} from "@joined/design-system";
+} from "sid-ui";
 import { MAIL_LABELS, MAIL_LABEL_ORDER, type MailLabel } from "@/lib/workspace/mail";
 import type { Mailbox } from "@/lib/workspace/model";
 

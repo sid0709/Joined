@@ -1,4 +1,4 @@
-import { Button, Timeline, type TimelineItem } from "@joined/design-system";
+import { Button, Timeline, type TimelineItem } from "sid-ui";
 import { formatWhen, type ResumeDraft } from "@/lib/workspace/model";
 
 /** Every Generate, newest first. The one in the preview is marked current. */

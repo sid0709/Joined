@@ -14,7 +14,7 @@ import {
   Tile,
   VStack,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Caption, Examples, Preview } from "./shared";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FunnelChart } from "@joined/design-system";
+import { FunnelChart } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

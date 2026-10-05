@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 
 import { TaskContactPanel } from "@/src/candidate/components/TaskContactPanel";
 import { HunterLine } from "@/src/candidate/components/ui/HunterLine";

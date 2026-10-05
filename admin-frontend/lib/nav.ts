@@ -1,4 +1,4 @@
-import type { GlyphName } from "@joined/design-system";
+import type { GlyphName } from "sid-ui";
 
 export const ROUTES = {
   signIn: "/sign-in",

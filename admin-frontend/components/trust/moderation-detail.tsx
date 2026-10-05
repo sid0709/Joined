@@ -13,7 +13,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";
 import {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heading, Icon, Link, Stack, Text, icons } from "@joined/design-system";
+import { Heading, Icon, Link, Stack, Text, icons } from "sid-ui";
 
 import { Caption, Examples, Preview, Row } from "./shared";
 

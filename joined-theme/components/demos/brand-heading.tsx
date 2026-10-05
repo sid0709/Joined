@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, BrandHeading, Stack, TopNav, TopNavItem } from "@joined/design-system";
+import { Badge, BrandHeading, Stack, TopNav, TopNavItem } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

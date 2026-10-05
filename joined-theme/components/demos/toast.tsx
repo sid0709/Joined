@@ -12,7 +12,7 @@ import {
   useToast,
   type ToastDismissFn,
   type ToastPosition,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useRef, useState } from "react";
 
 import { Caption, Examples, Preview, Row } from "./shared";

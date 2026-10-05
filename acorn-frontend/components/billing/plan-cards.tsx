@@ -1,14 +1,4 @@
-import {
-  Badge,
-  Button,
-  Card,
-  Glyph,
-  Grid,
-  HStack,
-  Heading,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Badge, Button, Card, Glyph, Grid, HStack, Heading, Stack, Text } from "sid-ui";
 import { PLANS, formatPrice, yearlySaving, type BillingInterval, type PlanId } from "@/lib/billing";
 
 const PLAN_MIN_WIDTH = 240;

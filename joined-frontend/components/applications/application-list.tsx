@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Badge, HStack, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { Avatar, Badge, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { STAGE_BY_ID, STAGES, STRONG_MATCH, type Application } from "@/lib/applications";
 import { relativeDay } from "@/lib/dates";
 

@@ -1,4 +1,4 @@
-import { ProgressBar, Stack, Text } from "@joined/design-system";
+import { ProgressBar, Stack, Text } from "sid-ui";
 import type { PlanLimits } from "@/lib/billing";
 
 const WARN = 0.8;

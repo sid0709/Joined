@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Table, Text, type TableColumn } from "@joined/design-system";
+import { Badge, Table, Text, type TableColumn } from "sid-ui";
 import { formatPrice, type Invoice } from "@/lib/billing";
 import { formatDay } from "@/lib/workspace/dates";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { HeatmapCalendar, type HeatmapDay } from "@joined/design-system";
+import { HeatmapCalendar, type HeatmapDay } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

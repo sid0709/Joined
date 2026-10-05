@@ -16,7 +16,7 @@ import {
   Tab,
   TabList,
   type GlyphName,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { AcornAccount } from "@/lib/auth/session";
 import { LIBRARY_LIMIT, type LibraryResume } from "@/lib/workspace/model";
 import {

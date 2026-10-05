@@ -8,7 +8,7 @@ import {
   SegmentedControlItem,
   Slider,
   Stack,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   ALERT_FREQUENCIES,
   ALERT_SOURCES,
