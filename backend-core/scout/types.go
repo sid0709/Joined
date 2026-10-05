@@ -83,6 +83,7 @@ const (
 	EarningClawedBack = "clawed_back"
 
 	RewardApproval   = "approval"
+	RewardApply      = "apply"
 	RewardInterview  = "interview"
 	RewardHire       = "hire"
 	RewardConversion = "conversion"
@@ -290,6 +291,8 @@ type Earning struct {
 	ID           string        `json:"id" bson:"-"`
 	ScoutUserID  string        `json:"scout_user_id" bson:"scoutUserId"`
 	SubmissionID string        `json:"submission_id,omitempty" bson:"submissionId,omitempty"`
+	JobID        string        `json:"job_id,omitempty" bson:"jobId,omitempty"`
+	CandidateID  string        `json:"candidate_id,omitempty" bson:"candidateId,omitempty"`
 	JobTitle     string        `json:"job_title,omitempty" bson:"jobTitle,omitempty"`
 	CompanyName  string        `json:"company_name,omitempty" bson:"companyName,omitempty"`
 	Type         string        `json:"type" bson:"type"`

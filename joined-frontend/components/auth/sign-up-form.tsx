@@ -13,6 +13,7 @@ import {
   Text,
 } from "@joined/design-system";
 import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
+import { isCompanyModeEnabled } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";
 
 type AccountMode = "candidate" | "employee";
@@ -23,8 +24,12 @@ type Step = "mode" | "account";
  * recruiter links or creates their company on the hiring setup page next.
  */
 export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boolean }) {
-  const [step, setStep] = useState<Step>(hiring ? "account" : "mode");
-  const [mode, setMode] = useState<AccountMode>(hiring ? "employee" : "candidate");
+  const companyModeEnabled = isCompanyModeEnabled();
+  const showModeStep = companyModeEnabled && !hiring;
+  const [step, setStep] = useState<Step>(showModeStep ? "mode" : "account");
+  const [mode, setMode] = useState<AccountMode>(
+    companyModeEnabled && hiring ? "employee" : "candidate",
+  );
   const signInHref = `${ROUTES.signIn}?next=${encodeURIComponent(nextPath)}`;
   const employee = mode === "employee";
 
@@ -82,7 +87,9 @@ export function SignUpForm({ nextPath, hiring }: { nextPath: string; hiring: boo
                 </Text>
               )}
             </Stack>
-            <Button label="Back" variant="ghost" clickAction={() => setStep("mode")} />
+            {showModeStep ? (
+              <Button label="Back" variant="ghost" clickAction={() => setStep("mode")} />
+            ) : null}
           </>
         )}
         <Text color="secondary">
