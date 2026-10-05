@@ -24,6 +24,8 @@ import {
   getApplicationExtrasSnapshot,
   migrateApplicationExtras,
   parseApplicationExtras,
+  pruneApplicationExtras,
+  readApplicationExtras,
   subscribeApplicationExtras,
   upsertApplicationExtras,
 } from "@/lib/application-extras";
@@ -68,12 +70,18 @@ function matches(application: Application, query: string) {
 }
 
 /** The application tracker: stats, a board or table, and a detail drawer. */
-export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
+export function ApplicationsWorkspace({
+  initial,
+  userId,
+}: {
+  initial: Application[];
+  userId: string;
+}) {
   const toast = useToast();
   const [items, setItems] = useState(initial);
   const extrasJson = useSyncExternalStore(
     subscribeApplicationExtras,
-    getApplicationExtrasSnapshot,
+    () => getApplicationExtrasSnapshot(userId),
     getApplicationExtrasServerSnapshot,
   );
   const extras = useMemo(() => parseApplicationExtras(extrasJson), [extrasJson]);
@@ -90,7 +98,7 @@ export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
 
   const reload = async () => {
     const next = await fetchApplications();
-    setItems(applyApplicationExtras(next.applications));
+    setItems(next.applications);
   };
 
   const stats = applicationStats(board);
@@ -112,8 +120,8 @@ export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
     try {
       const next = await updateApplication(id, { columnId: to });
       const fromId = id;
-      if (fromId !== next.id) migrateApplicationExtras(fromId, next.id);
-      const merged = applyApplicationExtras([next])[0] ?? next;
+      if (fromId !== next.id) migrateApplicationExtras(userId, fromId, next.id);
+      const merged = applyApplicationExtras([next], readApplicationExtras(userId))[0] ?? next;
       setItems((current) =>
         current.filter((item) => item.id !== fromId && item.id !== next.id).concat(merged),
       );
@@ -133,14 +141,16 @@ export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
   };
 
   const persistFollowUp = async (id: string, patch: { notes?: string; remindAt?: Date | null }) => {
-    upsertApplicationExtras(id, extrasFromPatch(patch));
+    upsertApplicationExtras(userId, id, extrasFromPatch(patch));
     setItems((current) =>
       current.map((item) => (item.id === id ? { ...item, ...patch, updated: new Date() } : item)),
     );
     if (savedBoardJobId(id)) return;
     try {
       const next = await updateApplication(id, toApplicationPatch(patch));
-      replace(applyApplicationExtras([next])[0] ?? { ...next, ...patch });
+      replace(
+        applyApplicationExtras([next], readApplicationExtras(userId))[0] ?? { ...next, ...patch },
+      );
     } catch (error) {
       toast({
         body: error instanceof Error ? error.message : "Could not save the follow-up.",
@@ -152,6 +162,7 @@ export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
   const remove = async (id: string) => {
     try {
       await removeApplication(id);
+      pruneApplicationExtras(userId, id);
       setItems((current) => current.filter((item) => item.id !== id));
       setOpenId(null);
       toast({ body: "Removed from your tracker" });
@@ -293,7 +304,7 @@ export function ApplicationsWorkspace({ initial }: { initial: Application[] }) {
               columnId: draft.columnId,
             });
             setItems((current) => [
-              applyApplicationExtras([application])[0] ?? application,
+              applyApplicationExtras([application], extras)[0] ?? application,
               ...current,
             ]);
             toast({ body: `Tracking ${application.title} at ${application.company}` });

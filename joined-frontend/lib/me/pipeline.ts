@@ -1,4 +1,3 @@
-import { hydrateBoardApplications } from "@/lib/application-extras";
 import type { ApplicationPatch } from "@/lib/application-patch";
 import { hydrateApplication, type Application } from "@/lib/applications";
 import { browserTimeZone, type GoogleCalendarFeed } from "@/lib/google-calendar";
@@ -25,7 +24,7 @@ export async function fetchApplications() {
     "/applications",
   );
   return {
-    applications: hydrateBoardApplications(body.applications ?? []),
+    applications: (body.applications ?? []).map(hydrateApplication),
     appliedJobIds: body.appliedJobIds ?? [],
   };
 }

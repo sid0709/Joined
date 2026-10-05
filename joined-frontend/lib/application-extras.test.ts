@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 
 import type { Application } from "./applications";
 import {
-  APPLICATION_EXTRAS_STORAGE_KEY,
+  APPLICATION_EXTRAS_STORAGE_PREFIX,
+  applicationExtrasStorageKey,
   applyApplicationExtras,
+  clearApplicationExtras,
   extrasFromPatch,
   getApplicationExtrasServerSnapshot,
   getApplicationExtrasSnapshot,
@@ -11,6 +13,7 @@ import {
   mergeApplicationExtras,
   migrateApplicationExtras,
   parseApplicationExtras,
+  pruneApplicationExtras,
   readApplicationExtras,
   subscribeApplicationExtras,
   upsertApplicationExtras,
@@ -31,8 +34,24 @@ class MemoryStore {
   setItem(key: string, value: string) {
     this.data[key] = value;
   }
+
+  removeItem(key: string) {
+    delete this.data[key];
+  }
+
+  key(index: number) {
+    return Object.keys(this.data)[index] ?? null;
+  }
+
+  get length() {
+    return Object.keys(this.data).length;
+  }
 }
 
+const USER_ID = "user-1";
+const OTHER_USER_ID = "user-2";
+const USER_KEY = applicationExtrasStorageKey(USER_ID);
+const OTHER_KEY = applicationExtrasStorageKey(OTHER_USER_ID);
 const updated = new Date("2026-10-05T14:30:00.000Z");
 
 function app(patch: Partial<Application> = {}): Application {
@@ -54,22 +73,38 @@ function app(patch: Partial<Application> = {}): Application {
 }
 
 describe("application extras storage", () => {
+  test("scopes the storage key by userId and never uses the unscoped legacy key", () => {
+    expect(USER_KEY).toBe("joined.application-extras:user-1");
+    expect(applicationExtrasStorageKey("")).toBe("");
+    expect(applicationExtrasStorageKey("  ")).toBe("");
+
+    const store = new MemoryStore({
+      [APPLICATION_EXTRAS_STORAGE_PREFIX]: '{"app-1":{"notes":"leak"}}',
+    });
+    expect(readApplicationExtras(USER_ID, store)).toEqual({});
+    expect(readApplicationExtras("", store)).toEqual({});
+    writeApplicationExtras("", { "app-1": { notes: "nope" } }, store);
+    expect(store.getItem(APPLICATION_EXTRAS_STORAGE_PREFIX)).toContain("leak");
+  });
+
   test("round-trips notes and remindAt, ignoring corrupt payloads", () => {
     const store = new MemoryStore();
-    expect(readApplicationExtras(store)).toEqual({});
+    expect(readApplicationExtras(USER_ID, store)).toEqual({});
     writeApplicationExtras(
+      USER_ID,
       { "app-1": { notes: "Call Maya", remindAt: "2026-10-12T15:00:00.000Z" } },
       store,
     );
-    expect(readApplicationExtras(store)).toEqual({
+    expect(readApplicationExtras(USER_ID, store)).toEqual({
       "app-1": { notes: "Call Maya", remindAt: "2026-10-12T15:00:00.000Z" },
     });
-    expect(store.getItem(APPLICATION_EXTRAS_STORAGE_KEY)).toContain("Call Maya");
+    expect(store.getItem(USER_KEY)).toContain("Call Maya");
+    expect(store.getItem(APPLICATION_EXTRAS_STORAGE_PREFIX)).toBeNull();
 
-    const broken = new MemoryStore({ [APPLICATION_EXTRAS_STORAGE_KEY]: "not-json" });
-    expect(readApplicationExtras(broken)).toEqual({});
-    const list = new MemoryStore({ [APPLICATION_EXTRAS_STORAGE_KEY]: "[]" });
-    expect(readApplicationExtras(list)).toEqual({});
+    const broken = new MemoryStore({ [USER_KEY]: "not-json" });
+    expect(readApplicationExtras(USER_ID, broken)).toEqual({});
+    const list = new MemoryStore({ [USER_KEY]: "[]" });
+    expect(readApplicationExtras(USER_ID, list)).toEqual({});
     expect(parseApplicationExtras("not-json")).toEqual({});
     expect(parseApplicationExtras("")).toEqual({});
     expect(parseApplicationExtras('{"app-1":{"notes":"Hi"}}')).toEqual({
@@ -77,11 +112,21 @@ describe("application extras storage", () => {
     });
   });
 
+  test("keeps extras for one user isolated from another", () => {
+    const store = new MemoryStore();
+    upsertApplicationExtras(USER_ID, "saved:job-1", { notes: "Maya's note" }, store);
+    upsertApplicationExtras(OTHER_USER_ID, "saved:job-1", { notes: "Other note" }, store);
+    expect(readApplicationExtras(USER_ID, store)["saved:job-1"]?.notes).toBe("Maya's note");
+    expect(readApplicationExtras(OTHER_USER_ID, store)["saved:job-1"]?.notes).toBe("Other note");
+    expect(store.getItem(USER_KEY)).not.toContain("Other note");
+    expect(store.getItem(OTHER_KEY)).not.toContain("Maya's note");
+  });
+
   test("upserts a patch without dropping the other field", () => {
     const store = new MemoryStore();
-    upsertApplicationExtras("app-1", { notes: "First" }, store);
-    upsertApplicationExtras("app-1", { remindAt: "2026-10-12T15:00:00.000Z" }, store);
-    expect(readApplicationExtras(store)["app-1"]).toEqual({
+    upsertApplicationExtras(USER_ID, "app-1", { notes: "First" }, store);
+    upsertApplicationExtras(USER_ID, "app-1", { remindAt: "2026-10-12T15:00:00.000Z" }, store);
+    expect(readApplicationExtras(USER_ID, store)["app-1"]).toEqual({
       notes: "First",
       remindAt: "2026-10-12T15:00:00.000Z",
     });
@@ -89,12 +134,67 @@ describe("application extras storage", () => {
 
   test("migrates extras from a saved: job id onto the new application id", () => {
     const store = new MemoryStore();
-    upsertApplicationExtras("saved:job-9", { notes: "Apply Friday" }, store);
-    migrateApplicationExtras("saved:job-9", "app-9", store);
-    migrateApplicationExtras("app-9", "app-9", store);
-    expect(readApplicationExtras(store)).toEqual({
+    upsertApplicationExtras(USER_ID, "saved:job-9", { notes: "Apply Friday" }, store);
+    migrateApplicationExtras(USER_ID, "saved:job-9", "app-9", store);
+    migrateApplicationExtras(USER_ID, "app-9", "app-9", store);
+    expect(readApplicationExtras(USER_ID, store)).toEqual({
       "app-9": { notes: "Apply Friday" },
     });
+  });
+
+  test("prunes extras for a removed application id", () => {
+    const store = new MemoryStore();
+    upsertApplicationExtras(USER_ID, "app-1", { notes: "Keep" }, store);
+    upsertApplicationExtras(USER_ID, "app-2", { notes: "Drop" }, store);
+    pruneApplicationExtras(USER_ID, "app-2", store);
+    pruneApplicationExtras(USER_ID, "", store);
+    pruneApplicationExtras(USER_ID, "missing", store);
+    expect(readApplicationExtras(USER_ID, store)).toEqual({
+      "app-1": { notes: "Keep" },
+    });
+  });
+
+  test("clears the legacy key and every user-scoped extras key on logout", () => {
+    const store = new MemoryStore({
+      [APPLICATION_EXTRAS_STORAGE_PREFIX]: '{"app-1":{"notes":"legacy"}}',
+      theme: "dark",
+    });
+    upsertApplicationExtras(USER_ID, "app-1", { notes: "mine" }, store);
+    upsertApplicationExtras(OTHER_USER_ID, "app-1", { notes: "theirs" }, store);
+    let calls = 0;
+    const stop = subscribeApplicationExtras(() => {
+      calls += 1;
+    });
+    clearApplicationExtras(store);
+    stop();
+    expect(store.getItem(APPLICATION_EXTRAS_STORAGE_PREFIX)).toBeNull();
+    expect(store.getItem(USER_KEY)).toBeNull();
+    expect(store.getItem(OTHER_KEY)).toBeNull();
+    expect(store.getItem("theme")).toBe("dark");
+    expect(calls).toBe(1);
+  });
+
+  test("clearApplicationExtras is a no-op without removeItem and still drops the legacy key when key() is missing", () => {
+    clearApplicationExtras(null);
+    clearApplicationExtras({ getItem: () => null, setItem: () => undefined });
+    const store = {
+      data: { [APPLICATION_EXTRAS_STORAGE_PREFIX]: "{}", [USER_KEY]: "{}" } as Record<
+        string,
+        string
+      >,
+      getItem(key: string) {
+        return this.data[key] ?? null;
+      },
+      setItem(key: string, value: string) {
+        this.data[key] = value;
+      },
+      removeItem(key: string) {
+        delete this.data[key];
+      },
+    };
+    clearApplicationExtras(store);
+    expect(store.getItem(APPLICATION_EXTRAS_STORAGE_PREFIX)).toBeNull();
+    expect(store.getItem(USER_KEY)).toBe("{}");
   });
 
   test("serializes a UI patch into extras", () => {
@@ -113,25 +213,27 @@ describe("application extras storage", () => {
     const stop = subscribeApplicationExtras(() => {
       calls += 1;
     });
-    writeApplicationExtras({ "app-1": { notes: "x" } }, store);
+    writeApplicationExtras(USER_ID, { "app-1": { notes: "x" } }, store);
     expect(calls).toBe(1);
     stop();
-    writeApplicationExtras({ "app-1": { notes: "y" } }, store);
+    writeApplicationExtras(USER_ID, { "app-1": { notes: "y" } }, store);
     expect(calls).toBe(1);
   });
 
   test("reads the extras snapshot from localStorage and an empty server snapshot", () => {
     expect(getApplicationExtrasServerSnapshot()).toBe("");
+    expect(getApplicationExtrasSnapshot("")).toBe("");
     const payload = '{"app-1":{"notes":"n"}}';
     const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
       value: {
-        getItem: (key: string) => (key === APPLICATION_EXTRAS_STORAGE_KEY ? payload : null),
+        getItem: (key: string) => (key === USER_KEY ? payload : null),
       },
     });
     try {
-      expect(getApplicationExtrasSnapshot()).toBe(payload);
+      expect(getApplicationExtrasSnapshot(USER_ID)).toBe(payload);
+      expect(getApplicationExtrasSnapshot(OTHER_USER_ID)).toBe("");
     } finally {
       if (previous) Object.defineProperty(globalThis, "localStorage", previous);
       else delete (globalThis as { localStorage?: unknown }).localStorage;
@@ -139,7 +241,7 @@ describe("application extras storage", () => {
   });
 
   test("readApplicationExtras with the default store still returns a map", () => {
-    expect(readApplicationExtras()).toEqual(expect.any(Object));
+    expect(readApplicationExtras(USER_ID)).toEqual(expect.any(Object));
   });
 
   test("treats a missing or blocked localStorage as an empty snapshot", () => {
@@ -151,7 +253,7 @@ describe("application extras storage", () => {
       },
     });
     try {
-      expect(getApplicationExtrasSnapshot()).toBe("");
+      expect(getApplicationExtrasSnapshot(USER_ID)).toBe("");
     } finally {
       if (previous) Object.defineProperty(globalThis, "localStorage", previous);
       else delete (globalThis as { localStorage?: unknown }).localStorage;
@@ -184,14 +286,14 @@ describe("mergeApplicationExtras", () => {
 
   test("applyApplicationExtras maps a board", () => {
     const store = new MemoryStore();
-    upsertApplicationExtras("app-1", { notes: "Keep" }, store);
-    const [row] = applyApplicationExtras([app()], readApplicationExtras(store));
+    upsertApplicationExtras(USER_ID, "app-1", { notes: "Keep" }, store);
+    const [row] = applyApplicationExtras([app()], readApplicationExtras(USER_ID, store));
     expect(row?.notes).toBe("Keep");
   });
 
   test("hydrateBoardApplications parses JSON dates then fills extras", () => {
     const store = new MemoryStore();
-    upsertApplicationExtras("app-1", { notes: "From disk" }, store);
+    upsertApplicationExtras(USER_ID, "app-1", { notes: "From disk" }, store);
     const [row] = hydrateBoardApplications(
       [
         {
@@ -200,6 +302,7 @@ describe("mergeApplicationExtras", () => {
           activity: [],
         },
       ],
+      USER_ID,
       store,
     );
     expect(row?.updated.toISOString()).toBe("2026-10-05T14:30:00.000Z");
