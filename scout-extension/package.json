@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite build --watch --mode development",
     "build": "tsc && vite build",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "bun test"
   },
   "dependencies": {
     "@joined/design-system": "workspace:*",
