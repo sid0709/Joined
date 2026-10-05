@@ -52,7 +52,7 @@ export function SettingsWorkspace({
       />
     ),
     notifications: <NotificationSettings />,
-    alerts: <AlertSettings />,
+    alerts: <AlertSettings signedIn={session !== null} />,
     connections: <ConnectionSettings googleEmail={googleEmail} calendarResult={calendarResult} />,
     privacy: <PrivacySettings />,
     danger: <DangerSettings session={session} />,

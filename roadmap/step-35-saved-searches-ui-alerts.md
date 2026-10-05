@@ -1,7 +1,7 @@
 # Step 35: Saved searches UI and email alert preferences
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Leo (web frontends lane: `joined-frontend/**`, `scoutwell-frontend/**`, `admin-frontend/**`, `connected-frontend/**`, `packages/google-signin/**`; UI from the external catalog package `sid-ui` — in-repo `packages/design-system` and `joined-theme` are gone after #115)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(joined-frontend): saved searches and alert preferences (roadmap step-35)` (every commit must be lowercase `type(scope): subject` or commitlint fails CI)
@@ -14,9 +14,9 @@ Seekers can save a search from the job browse UI, manage the list, and choose em
 
 **Starts after step-34 merges.** Step-34 is Done (#106) on `stage-roadmap-w34`. API:
 
-| Method | Path |
-| --- | --- |
-| GET/POST | `/v1/me/saved-searches` |
+| Method           | Path                         |
+| ---------------- | ---------------------------- |
+| GET/POST         | `/v1/me/saved-searches`      |
 | GET/PATCH/DELETE | `/v1/me/saved-searches/{id}` |
 
 `SavedSearch`: `id`, `userId`, `name`, `query`, `filters`, `alertFrequency` (`off`\|`daily`\|`weekly`), timestamps. `filters` match `/v1/search/jobs` (`location`, `workplace`, `employment`, `seniority`, `company`, `salaryMin`, `salaryMax`, `currency`, `postedDays`, `remote`, `sort`, `source`). Cap **20** (`MaxPerUser`). No `instant` cadence.
@@ -60,15 +60,15 @@ Do not copy `sid-ui` primitives into the app. Do not edit Go. Do not reintroduce
 
 **Mapping (required):**
 
-| Browse `JobFilters` | API `filters` / `query` |
-| --- | --- |
-| `q` | `query` |
-| `where` | `location` |
-| workplace / employment / seniority arrays | single string (first selected, or join only if the API later allows it — today: **one value**) |
-| `minPay` | `salaryMin` |
-| `posted` enum | `postedDays` |
-| `visa` | **not on API** — keep as browse-only; do not drop it from local filters when applying a saved search that lacks it |
-| toolbar hidden | `source: "hidden"` |
+| Browse `JobFilters`                       | API `filters` / `query`                                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `q`                                       | `query`                                                                                                            |
+| `where`                                   | `location`                                                                                                         |
+| workplace / employment / seniority arrays | single string (first selected, or join only if the API later allows it — today: **one value**)                     |
+| `minPay`                                  | `salaryMin`                                                                                                        |
+| `posted` enum                             | `postedDays`                                                                                                       |
+| `visa`                                    | **not on API** — keep as browse-only; do not drop it from local filters when applying a saved search that lacks it |
+| toolbar hidden                            | `source: "hidden"`                                                                                                 |
 
 **Cadence:** UI may show Off / Daily / Weekly. If settings still lists Instant, either hide it for saved-search alerts or map Instant → `daily` and say so in the PR. Never POST `instant`.
 

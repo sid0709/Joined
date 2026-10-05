@@ -24,8 +24,6 @@ export type JobSearchBarProps = {
   recent: SavedQuery[];
   suggestions: string[];
   totals: { jobs: number; companies: number; hidden: number };
-  alertOn: boolean;
-  onToggleAlert: () => void;
   inputRef?: Ref<HTMLInputElement>;
 };
 
@@ -42,8 +40,6 @@ export function JobSearchBar({
   recent,
   suggestions,
   totals,
-  alertOn,
-  onToggleAlert,
   inputRef,
 }: JobSearchBarProps) {
   const submit = (event: FormEvent) => {
@@ -63,17 +59,6 @@ export function JobSearchBar({
               {formatCount(totals.hidden, "hidden job")} you won’t find on the big boards
             </Text>
           </Stack>
-          <Button
-            label={alertOn ? "Alert on" : "Create job alert"}
-            variant={alertOn ? "secondary" : "ghost"}
-            icon={<Glyph name={alertOn ? "check" : "bell"} />}
-            onClick={onToggleAlert}
-            tooltip={
-              alertOn
-                ? "Turn off the daily email for this search"
-                : "Email me new jobs for this search"
-            }
-          />
         </HStack>
 
         <form role="search" aria-label="Search jobs" onSubmit={submit}>
