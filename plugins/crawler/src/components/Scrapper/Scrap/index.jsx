@@ -16,6 +16,7 @@ const ScrapComponent = () => {
     runStats,
     elapsedMs,
     targetTab,
+    routine,
     queueCounts,
     onScrapStart,
     onScrapStop,
@@ -44,6 +45,7 @@ const ScrapComponent = () => {
               elapsedMs={elapsedMs}
               stats={runStats}
               targetTab={targetTab}
+              routine={routine}
               queue={queueCounts}
             />
           </VStack>

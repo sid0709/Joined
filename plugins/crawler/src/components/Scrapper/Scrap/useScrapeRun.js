@@ -1,7 +1,13 @@
 /* global chrome */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { IncompleteJobDataError, mergeJobValidationChecklist } from "../../../api/jobValidation";
+import {
+  assertCompleteJob,
+  getJobValidationChecklist,
+  IncompleteJobDataError,
+  mergeJobValidationChecklist,
+  validationRuleIdsForField,
+} from "../../../api/jobValidation";
 import { useRuntime } from "../../../api/runtimeContext";
 import {
   createScrapeRunStats,
@@ -12,14 +18,31 @@ import useNotification from "../../../api/useNotification";
 import { API_URL, DUPLICATE_WINDOW_DAYS } from "../../../config/env";
 import {
   clearRememberedPageTab,
-  handleAction,
-  handleClear,
   rememberActivePageTab,
 } from "../../../contentScript/interactionBridge";
+import { findRoutineForUrl } from "../../../routineKit/match";
+import { ROUTINE_EXEC_ACTION } from "../../../routineKit/protocol";
+import {
+  RoutineFinishedError,
+  RoutineStoppedError,
+  runRoutinePass,
+} from "../../../routineKit/runner";
+import { ROUTINES } from "../../../routines";
+import { ROUTINE_OUTPUTS } from "../../../routines/outputs";
 
-import { pendingValidationChecklist, scrapeJobDetail } from "./scrapeJobDetail";
+import { pendingValidationChecklist, toJobPayload } from "./jobPayload";
 
-/** The scrape loop's state, its runtime listeners, and Start/Stop. */
+const JOB_ROUTINES = ROUTINES.filter((routine) => routine.output === ROUTINE_OUTPUTS.JOB);
+
+function describeHost(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "this page";
+  }
+}
+
+/** The scrape loop's state, its runtime listeners, and Start/Stop. Each pass runs the tab's routine. */
 export function useScrapeRun() {
   const [progress, setProgress] = useState(0);
   const [scrapFlag, setScrapFlag] = useState(false);
@@ -28,21 +51,17 @@ export function useScrapeRun() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [starting, setStarting] = useState(false);
   const [targetTab, setTargetTab] = useState(null);
+  const [routine, setRoutine] = useState(null);
   const [queueCounts, setQueueCounts] = useState({ queued: 0, saving: 0 });
 
   const { addListener, removeListener } = useRuntime();
   const notification = useNotification();
-  const pendingResolvers = useRef(new Map());
   const runStartedAt = useRef(null);
   const runIdRef = useRef(null);
-  const scrapActiveRef = useRef(false);
-
-  const fetchFromPage = useCallback((tag, property, pattern) => {
-    const id = `scrap_wait_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const promise = new Promise((resolve) => pendingResolvers.current.set(id, resolve));
-    handleAction(tag, property, pattern, 0, "fetch", null, "content", id);
-    return promise;
-  }, []);
+  const abortRef = useRef(null);
+  const targetTabRef = useRef(null);
+  const routineRef = useRef(null);
+  const passHooksRef = useRef(null);
 
   const sendRuntimeMessage = useCallback(
     (message) =>
@@ -57,6 +76,17 @@ export function useScrapeRun() {
     [],
   );
 
+  /** Run one routine op in the remembered tab (see contentScript/messages/routineOps.js). */
+  const execOnPage = useCallback(
+    (payload) =>
+      sendRuntimeMessage({
+        action: ROUTINE_EXEC_ACTION,
+        tabId: targetTabRef.current?.id,
+        payload,
+      }).then((response) => response?.result ?? {}),
+    [sendRuntimeMessage],
+  );
+
   const notifyFailure = useCallback(
     (err, fallback) => {
       notification.fail(err, { key: "scrap-failure", autoHideDuration: 2200 });
@@ -64,10 +94,6 @@ export function useScrapeRun() {
     },
     [notification],
   );
-
-  const completeValidation = useCallback((ruleIds, partialJob) => {
-    setValidationChecks((current) => mergeJobValidationChecklist(current, partialJob, ruleIds));
-  }, []);
 
   const recordOutcome = useCallback(
     (outcome) => {
@@ -82,18 +108,39 @@ export function useScrapeRun() {
     [sendRuntimeMessage],
   );
 
+  /** Validate a finished record and queue it for the backend. Throws IncompleteJobDataError. */
+  const submitJob = useCallback(
+    (record) => {
+      const job = toJobPayload(record);
+      console.log("Scraped job data:", job);
+      if (job.applyLink) {
+        setValidationChecks(getJobValidationChecklist(job));
+        assertCompleteJob(job);
+      }
+      // Fire-and-forget: the scrape loop must not block on the background
+      // script acking storage/backend work, or a slow drain/backend stalls scraping.
+      sendRuntimeMessage({
+        action: "scrapeQueue:enqueue",
+        payload: { runId: runIdRef.current, job },
+      }).catch((error) => console.error("Failed to enqueue scraped job", error));
+    },
+    [sendRuntimeMessage],
+  );
+
+  const stopRun = useCallback(() => {
+    abortRef.current?.abort();
+    if (runStartedAt.current) {
+      setElapsedMs(Date.now() - runStartedAt.current);
+      runStartedAt.current = null;
+    }
+    clearRememberedPageTab();
+    setScrapFlag(false);
+    setProgress(0);
+    setValidationChecks(pendingValidationChecklist());
+  }, []);
+
   useEffect(() => {
     const listener = (message) => {
-      if (message?.action === "fetchResult") {
-        const id = message.payload?.identifier;
-        const resolver = id ? pendingResolvers.current.get(id) : null;
-        if (id) {
-          if (resolver) {
-            resolver(message.payload);
-            pendingResolvers.current.delete(id);
-          }
-        }
-      }
       if (message?.action === "scrapeQueue:state") {
         const state = message.payload;
         if (!state?.runId || (runIdRef.current && state.runId !== runIdRef.current)) return;
@@ -145,51 +192,66 @@ export function useScrapeRun() {
     return () => window.clearInterval(interval);
   }, [scrapFlag]);
 
-  const onClickListItem = () =>
-    scrapeJobDetail({
-      setProgress,
-      setValidationChecks,
-      completeValidation,
-      pendingResolvers,
-      sendRuntimeMessage,
-      fetchFromPage,
-      runIdRef,
-      scrapActiveRef,
-      notification,
-    });
+  // The loop below reads the latest callbacks through this ref, so a re-render never
+  // restarts a running scrape loop.
+  useEffect(() => {
+    passHooksRef.current = {
+      exec: execOnPage,
+      onProgress: setProgress,
+      onField: (path, _value, record) =>
+        setValidationChecks((current) =>
+          mergeJobValidationChecklist(
+            current,
+            toJobPayload(record),
+            validationRuleIdsForField(path),
+          ),
+        ),
+      onRecord: submitJob,
+      onNotice: (message) =>
+        notification.info(message, { key: "scrap-close", autoHideDuration: 1200 }),
+      onFinished: (message) => {
+        notification.info(message, { key: "scrap-finished", autoHideDuration: 2500 });
+        stopRun();
+      },
+      recordOutcome,
+      notifyFailure,
+    };
+  }, [execOnPage, submitJob, recordOutcome, notifyFailure, notification, stopRun]);
 
   useEffect(() => {
+    if (!scrapFlag) return undefined;
     let active = true;
 
     const run = async () => {
-      while (active && scrapFlag) {
+      while (active) {
+        const hooks = passHooksRef.current;
+        setValidationChecks(pendingValidationChecklist());
         try {
-          await onClickListItem();
+          await runRoutinePass(routineRef.current, { ...hooks, signal: abortRef.current?.signal });
         } catch (err) {
-          console.log("error:[on clicked] ", err);
+          if (err instanceof RoutineStoppedError) break;
+          void hooks.exec({ op: "clear" }).catch(() => {});
+          setProgress(0);
+          if (err instanceof RoutineFinishedError) {
+            hooks.onFinished(err.message);
+            break;
+          }
           if (err instanceof IncompleteJobDataError) {
-            recordOutcome(SCRAPE_OUTCOMES.VALIDATION);
+            hooks.recordOutcome(SCRAPE_OUTCOMES.VALIDATION);
             console.warn("Skipping job with invalid data", err.issues);
-            setProgress(0);
-            handleClear();
             continue;
           }
-          recordOutcome(SCRAPE_OUTCOMES.FAILED);
-          notifyFailure(err, "Error in scrape loop");
+          hooks.recordOutcome(SCRAPE_OUTCOMES.FAILED);
+          hooks.notifyFailure(err, "Error in scrape loop");
         }
       }
     };
 
-    if (scrapFlag) {
-      run();
-    }
-
+    void run();
     return () => {
       active = false;
     };
-    // onClickListItem is rebuilt every render; listing it would restart the running scrape loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrapFlag, notifyFailure, recordOutcome]);
+  }, [scrapFlag]);
 
   const onScrapStart = async () => {
     if (!API_URL) {
@@ -205,13 +267,21 @@ export function useScrapeRun() {
       return;
     }
     setStarting(true);
-    scrapActiveRef.current = true;
     try {
       const rememberedTab = await rememberActivePageTab();
       if (!rememberedTab) {
         throw new Error("Focus the job scraping website, then click Start again.");
       }
+      const tabRoutine = findRoutineForUrl(JOB_ROUTINES, rememberedTab.url);
+      if (!tabRoutine) {
+        throw new Error(
+          `No routine runs on ${describeHost(rememberedTab.url)}. Open a supported job site, then click Start again.`,
+        );
+      }
+      targetTabRef.current = rememberedTab;
+      routineRef.current = tabRoutine;
       setTargetTab(rememberedTab);
+      setRoutine(tabRoutine);
       runIdRef.current =
         globalThis.crypto?.randomUUID?.() ||
         `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -222,27 +292,15 @@ export function useScrapeRun() {
       setValidationChecks(pendingValidationChecklist());
       setProgress(0);
       setElapsedMs(0);
+      abortRef.current = new AbortController();
       runStartedAt.current = Date.now();
       setScrapFlag(true);
     } catch (error) {
-      scrapActiveRef.current = false;
       clearRememberedPageTab();
-      notifyFailure(error, "Unable to remember the scraping tab");
+      notifyFailure(error, "Unable to start the scrape run");
     } finally {
       setStarting(false);
     }
-  };
-
-  const onScrapStop = () => {
-    scrapActiveRef.current = false;
-    if (runStartedAt.current) {
-      setElapsedMs(Date.now() - runStartedAt.current);
-      runStartedAt.current = null;
-    }
-    clearRememberedPageTab();
-    setScrapFlag(false);
-    setProgress(0);
-    setValidationChecks(pendingValidationChecklist());
   };
 
   return {
@@ -253,8 +311,9 @@ export function useScrapeRun() {
     runStats,
     elapsedMs,
     targetTab,
+    routine,
     queueCounts,
     onScrapStart,
-    onScrapStop,
+    onScrapStop: stopRun,
   };
 }

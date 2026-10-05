@@ -2,7 +2,7 @@ import { HStack, Text, VStack } from "@joined/design-system";
 
 import { formatElapsedTime, getSkippedScrapeCount } from "../../../api/scrapeRunStats";
 
-function RunSummary({ elapsedMs, stats, targetTab, queue }) {
+function RunSummary({ elapsedMs, stats, targetTab, routine, queue }) {
   const skipped = getSkippedScrapeCount(stats);
   const totals = [
     { label: "Registered", value: stats.registered, tone: "crawler-tone-success" },
@@ -40,7 +40,8 @@ function RunSummary({ elapsedMs, stats, targetTab, queue }) {
       {targetTab && (
         <Text type="supporting" color="secondary" justify="center" maxLines={1}>
           <span title={targetTab.url}>
-            Target tab #{targetTab.id}: {targetTab.title || new URL(targetTab.url).hostname}
+            {routine ? `${routine.label} · ` : ""}Target tab #{targetTab.id}:{" "}
+            {targetTab.title || new URL(targetTab.url).hostname}
           </span>
         </Text>
       )}

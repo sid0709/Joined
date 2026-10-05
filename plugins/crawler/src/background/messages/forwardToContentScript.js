@@ -1,6 +1,5 @@
-/* global chrome */
 import { safeSendMessage } from "../runtime.js";
-import { ensureContentScriptInjected, resolveTargetTab } from "../tabs.js";
+import { resolveTargetTab, sendToContentScript } from "../tabs.js";
 
 // Actions that need to be sent to the content script
 export const actionsToForward = [
@@ -32,28 +31,8 @@ export function forwardToContentScript(message) {
       }
       return;
     }
-    const targetTabId = targetTab.id;
-    chrome.tabs.sendMessage(targetTabId, message, { frameId: 0 }, () => {
-      if (!chrome.runtime.lastError) return;
-      const lastErrorMessage = chrome.runtime.lastError?.message || "";
-      // Only attempt the guarded injection if the receiver is missing (navigation/new page).
-      if (!/Receiving end does not exist|Could not establish connection/i.test(lastErrorMessage))
-        return;
-
-      ensureContentScriptInjected(targetTabId)
-        .then(() => {
-          try {
-            chrome.tabs.sendMessage(targetTabId, message, { frameId: 0 }, () => {
-              // Read lastError so Chrome does not surface a noisy unchecked runtime warning.
-              void chrome.runtime.lastError;
-            });
-          } catch (e) {
-            console.error("Failed to send message after ensuring contentScript", e);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to ensure contentScript before resend", err);
-        });
-    });
+    // These actions answer through runtime broadcasts, not a response, so Chrome reports
+    // the closed response port as an error. Nothing here waits on a reply.
+    await sendToContentScript(targetTab.id, message).catch(() => {});
   })();
 }

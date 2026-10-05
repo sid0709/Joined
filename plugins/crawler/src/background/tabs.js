@@ -53,6 +53,32 @@ export async function resolveTargetTab(message) {
   return null;
 }
 
+const MISSING_RECEIVER = /Receiving end does not exist|Could not establish connection/i;
+
+function sendMessageToTab(tabId, message) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, { frameId: 0 }, (response) => {
+      const error = chrome.runtime.lastError;
+      if (error) reject(new Error(error.message || "Tab message failed"));
+      else resolve(response);
+    });
+  });
+}
+
+/**
+ * Send to the tab's top-frame content script and resolve with its response. When no
+ * content script is listening (the page loaded before the extension), inject it and retry once.
+ */
+export async function sendToContentScript(tabId, message) {
+  try {
+    return await sendMessageToTab(tabId, message);
+  } catch (error) {
+    if (!MISSING_RECEIVER.test(error.message)) throw error;
+    await ensureContentScriptInjected(tabId);
+    return sendMessageToTab(tabId, message);
+  }
+}
+
 export async function ensureContentScriptInjected(tabId) {
   try {
     const [{ result }] = await chrome.scripting.executeScript({
