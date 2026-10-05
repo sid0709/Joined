@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/auth/authtest"
 )
 
 type testEmailSender struct {
@@ -46,7 +47,7 @@ func (t *testEmailSender) SendDuplicateSignupNotice(ctx context.Context, to stri
 }
 
 func newTestStore() *auth.Store {
-	return auth.NewTestStore()
+	return authtest.NewStore()
 }
 
 func TestEmailSignup(t *testing.T) {

@@ -28,7 +28,22 @@ type AccountRecords interface {
 
 	InsertSession(ctx context.Context, rec SessionRecord) error
 	DeleteSessionsByUser(ctx context.Context, userID string) error
+
+	// CompanyMembership is the company on this user's session, or ErrNotFound.
+	CompanyMembership(ctx context.Context, userID string) (*Company, error)
 }
+
+// AuthStore is the email-auth surface implemented by Store.
+type AuthStore interface {
+	EmailSignup(ctx context.Context, email, password, name, role string, now time.Time) (string, bool, error)
+	CreateVerificationToken(ctx context.Context, userID string, now time.Time) (string, error)
+	VerifyEmail(ctx context.Context, token string, now time.Time) error
+	EmailSignin(ctx context.Context, email, password, audience string, now time.Time) (string, Session, error)
+	RequestPasswordReset(ctx context.Context, email string, now time.Time) (string, error)
+	ResetPassword(ctx context.Context, token, newPassword string, now time.Time) error
+}
+
+var _ AuthStore = (*Store)(nil)
 
 // AccountUser is one stored account, including email-auth fields.
 type AccountUser struct {

@@ -356,26 +356,14 @@ func (s *Store) view(ctx context.Context, userID string) (Session, error) {
 		return Session{}, err
 	}
 	session := Session{User: User{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}}
-	if s.client == nil {
-		return session, nil
-	}
-
-	var member storedMember
-	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	company, err := s.records.CompanyMembership(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
 		return session, nil
 	}
 	if err != nil {
 		return Session{}, err
 	}
-	company, createdBy, err := s.companyByID(ctx, member.CompanyID)
-	if err != nil {
-		return session, nil
-	}
-	company.Role = member.Role
-	company.HiringRole = membershipFrom(member).HiringRole
-	company.IsCreator = removesCompany(createdBy, userID)
-	session.Company = &company
+	session.Company = company
 	return session, nil
 }
 

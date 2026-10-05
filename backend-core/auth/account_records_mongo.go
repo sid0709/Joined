@@ -222,3 +222,22 @@ func (m *mongoAccountRecords) DeleteSessionsByUser(ctx context.Context, userID s
 	_, err := m.store.collection(sessionsCollection).DeleteMany(ctx, bson.D{{Key: "userId", Value: userID}})
 	return err
 }
+
+func (m *mongoAccountRecords) CompanyMembership(ctx context.Context, userID string) (*Company, error) {
+	var member storedMember
+	err := m.store.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	company, createdBy, err := m.store.companyByID(ctx, member.CompanyID)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	company.Role = member.Role
+	company.HiringRole = membershipFrom(member).HiringRole
+	company.IsCreator = removesCompany(createdBy, userID)
+	return &company, nil
+}
