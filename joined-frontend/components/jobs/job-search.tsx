@@ -138,6 +138,7 @@ export function JobSearch({
           setDrawerJob(null);
         }
       : undefined,
+    onReport: () => actions.report(job),
   });
 
   const filteredCount = filterJobs(search.visibleJobs, filters).length;
@@ -196,6 +197,7 @@ export function JobSearch({
               appliedIds={search.appliedIds}
               onSelect={select}
               onToggleSave={actions.save}
+              onReport={actions.report}
               onClearFilters={search.reset}
               canClear={search.refinementCount > 0 || Boolean(filters.q || filters.where)}
             />

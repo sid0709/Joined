@@ -117,7 +117,7 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | [step-38](step-38-seo-job-pages.md)                           | SSR job pages, titles, JobPosting, sitemap, robots | Leo        | Done (#107) |
 | [step-39](step-39-resume-builder-gaps.md)                     | Close résumé builder gaps                          | Leo        | Done (#109) |
 | [step-40](step-40-application-tracker.md)                     | Saved stage, notes, reminders                      | Leo        | Done (#112) |
-| [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Planned     |
+| [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Done        |
 | [step-42](step-42-scam-job-score.md)                          | Scam/fake score; hold risky for admin              | Ravi       | Done (#110) |
 | [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Planned     |
 | [step-44](step-44-account-data-export-ui.md)                  | Export UI + privacy settings surface               | Leo        | Planned     |

@@ -1,6 +1,8 @@
 import { sessionToken } from "@/lib/auth/cookie";
 import { joinedApiUrl } from "@/lib/config";
 
+const IDEMPOTENCY_HEADER = "Idempotency-Key";
+
 export async function forwardJoined(request: Request, apiPath: string): Promise<Response> {
   const token = await sessionToken();
   if (!token) {
@@ -11,6 +13,8 @@ export async function forwardJoined(request: Request, apiPath: string): Promise<
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
   const contentType = request.headers.get("Content-Type");
   if (contentType) headers["Content-Type"] = contentType;
+  const idempotency = request.headers.get(IDEMPOTENCY_HEADER);
+  if (idempotency) headers[IDEMPOTENCY_HEADER] = idempotency;
   const method = request.method;
   const hasBody = method !== "GET" && method !== "HEAD";
   const response = await fetch(dest, {

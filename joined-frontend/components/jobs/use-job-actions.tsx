@@ -6,6 +6,7 @@ import type { Job } from "@/lib/jobs";
 import { createApplication } from "@/lib/me/pipeline";
 import { signInHref } from "@/lib/routes";
 import { ApplyDialog } from "./apply-dialog";
+import { JobReportDialog } from "./job-report-dialog";
 
 type Options = {
   isSaved: (id: string) => boolean;
@@ -30,6 +31,7 @@ export function useJobActions({
 }: Options) {
   const toast = useToast();
   const [applying, setApplying] = useState<Job | null>(null);
+  const [reporting, setReporting] = useState<Job | null>(null);
 
   const needAccount = () => {
     window.location.assign(signInHref(window.location.pathname));
@@ -119,18 +121,33 @@ export function useJobActions({
       }
     : undefined;
 
+  const report = (job: Job) => {
+    if (!signedIn) {
+      needAccount();
+      return;
+    }
+    setReporting(job);
+  };
+
   const dialog = (
-    <ApplyDialog
-      job={applying}
-      onOpenChange={(open) => (open ? undefined : setApplying(null))}
-      onSubmitted={(job) => {
-        markApplied(job.id);
-        toast({ body: `Application sent to ${job.company}. Track it in My applications.` });
-      }}
-    />
+    <>
+      <ApplyDialog
+        job={applying}
+        onOpenChange={(open) => (open ? undefined : setApplying(null))}
+        onSubmitted={(job) => {
+          markApplied(job.id);
+          toast({ body: `Application sent to ${job.company}. Track it in My applications.` });
+        }}
+      />
+      <JobReportDialog
+        key={reporting?.id ?? "closed"}
+        job={reporting}
+        onOpenChange={(open) => (open ? undefined : setReporting(null))}
+      />
+    </>
   );
 
-  return { apply, save, share, dismiss, dialog };
+  return { apply, save, share, dismiss, report, dialog };
 }
 
 export type JobActions = ReturnType<typeof useJobActions>;

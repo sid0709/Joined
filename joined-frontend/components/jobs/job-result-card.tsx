@@ -1,4 +1,4 @@
-import { Glyph, HStack, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
+import { Glyph, HStack, IconButton, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import type { JobFit } from "@/lib/jobs/fit";
 import { CompanyLogo } from "./company-logo";
@@ -14,6 +14,7 @@ export type JobResultCardProps = {
   applied: boolean;
   onSelect: () => void;
   onToggleSave: () => void;
+  onReport?: () => void;
 };
 
 /** One search result: who, what, where, pay, and fit — with save in reach. */
@@ -25,6 +26,7 @@ export function JobResultCard({
   applied,
   onSelect,
   onToggleSave,
+  onReport,
 }: JobResultCardProps) {
   return (
     <SelectableCard
@@ -52,15 +54,29 @@ export function JobResultCard({
                 {job.company} · {job.location}
               </Text>
             </Stack>
-            <ToggleButton
-              label={saved ? "Remove from saved" : "Save job"}
-              icon={<Glyph name="bookmark" />}
-              isIconOnly
-              size="sm"
-              isPressed={saved}
-              onPressedChange={onToggleSave}
-              tooltip={saved ? "Saved" : "Save"}
-            />
+            <HStack gap={1}>
+              {onReport ? (
+                <span onClick={(event) => event.stopPropagation()}>
+                  <IconButton
+                    label="Report job"
+                    icon={<Glyph name="info" />}
+                    size="sm"
+                    variant="ghost"
+                    onClick={onReport}
+                    tooltip="Report job"
+                  />
+                </span>
+              ) : null}
+              <ToggleButton
+                label={saved ? "Remove from saved" : "Save job"}
+                icon={<Glyph name="bookmark" />}
+                isIconOnly
+                size="sm"
+                isPressed={saved}
+                onPressedChange={onToggleSave}
+                tooltip={saved ? "Saved" : "Save"}
+              />
+            </HStack>
           </HStack>
           <JobTags job={job} applied={applied} />
           <HStack hAlign="between" vAlign="center" gap={2} wrap="wrap">

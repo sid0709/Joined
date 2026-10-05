@@ -72,6 +72,7 @@ export function JobPageView({
             onApply={() => actions.apply(job)}
             onSave={() => actions.save(job)}
             onShare={() => actions.share(job)}
+            onReport={() => actions.report(job)}
           />
         </Card>
 

@@ -43,6 +43,7 @@ type Props = {
   appliedIds: string[];
   onSelect: (job: Job) => void;
   onToggleSave: (job: Job) => void;
+  onReport?: (job: Job) => void;
   onClearFilters: () => void;
   canClear: boolean;
 };
@@ -105,6 +106,7 @@ export function JobResults({
   appliedIds,
   onSelect,
   onToggleSave,
+  onReport,
   onClearFilters,
   canClear,
 }: Props) {
@@ -179,6 +181,7 @@ export function JobResults({
                 applied={appliedIds.includes(job.id)}
                 onSelect={() => onSelect(job)}
                 onToggleSave={() => onToggleSave(job)}
+                onReport={onReport ? () => onReport(job) : undefined}
               />
             </div>
           ))}
