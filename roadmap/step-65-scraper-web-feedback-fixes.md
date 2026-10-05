@@ -22,7 +22,7 @@ Key surfaces:
 - Payouts: `app/(app)/payouts/page.tsx`, `components/payouts/*` (`payouts-view.tsx`, `setup-cards.tsx`)
 - Routes: `lib/routes.ts` (`earnings`, `payouts`, `submit`, …)
 - Browser API: `app/api/scout/[...path]/route.ts` → `/v1/scout/...` on `SCOUTWELL_API_URL`
-- Design-system required
+- `sid-ui` required
 
 If a bug is API-shaped, Elon coordinates Penny; do not patch around a broken contract in the UI.
 
@@ -60,7 +60,7 @@ Empty/error states already have `error.tsx` / `loading.tsx` on earnings — matc
 
 1. `bun --filter scoutwell-frontend typecheck`, lint, and format pass.
 2. PR lists the feedback items closed.
-3. Diff stays in Leo's lane (`scoutwell-frontend/**` and design-system only if a missing primitive blocked the fix).
+3. Diff stays in Leo's lane (`scoutwell-frontend/**` and the `sid-ui` catalog pin only if a missing primitive blocked the fix).
 
 ## Test and validation
 

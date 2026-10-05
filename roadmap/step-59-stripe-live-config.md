@@ -36,7 +36,7 @@ Guard already exists: `backend-core/billing/config.go` `LoadConfig()` errors `li
 - `backend-core/billing/config.go` — optional live price-id fields; guard stays
 - `backend-core/billing/README.md` — runbook (new section)
 - `backend-core/billing/config_test.go` — refuse-by-default stays
-- `joined-backend/.env.example`, `backend-core/.env.example` — names only, test placeholders
+- `joined-backend/.env.example` — names only, test placeholders (`joined-backend` is the service that calls `billing.LoadConfig`; there is no `backend-core/.env.example`)
 - `deploy/README.md` — Elon if production secret names are listed
 - Do not edit `.env` files that could hold secrets
 

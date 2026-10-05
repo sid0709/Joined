@@ -14,7 +14,7 @@ Résumés uploaded on the Acorn website land in the same library the extension f
 
 ## Context and dependencies
 
-Starts after or in parallel with [step-48](step-48-acorn-profile-editor.md) if files do not overlap. Joined seeker résumé gaps are [step-39](step-39-resume-builder-gaps.md) (In review, #109) — different product.
+Starts after or in parallel with [step-48](step-48-acorn-profile-editor.md) if files do not overlap. Joined seeker résumé gaps are [step-39](step-39-resume-builder-gaps.md) (Done, #109) — different product.
 
 After #115:
 

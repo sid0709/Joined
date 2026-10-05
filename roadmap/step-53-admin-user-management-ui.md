@@ -18,7 +18,7 @@ Starts after [step-52](step-52-admin-user-management.md) merges (needs its API).
 
 `admin-frontend/lib/nav.ts` `CONSOLE_NAV` has Scouting, Job pool, Trust, Ops, Directory, Migration, Settings — **no Users section**. Proxy: `app/api/admin/[...path]/route.ts` forwards `/api/admin/v1/...` to `ADMIN_API_URL` with bearer + `X-Admin-Actor` and `Idempotency-Key`. Config: `lib/config.ts` `API_PROXY = "/api/admin"`. Env: `ADMIN_API_URL`, `ADMIN_API_TOKEN`, `ADMIN_ACTOR` (`lib/server/env.ts`, `.env.example`).
 
-Staff session lives in `joined_admin_session` (`lib/staff-session.ts`). Confirm pattern: design-system `AlertDialog` / `Dialog`.
+Staff session lives in `joined_admin_session` (`lib/staff-session.ts`). Confirm pattern: `sid-ui` `AlertDialog` / `Dialog`.
 
 ## In scope
 

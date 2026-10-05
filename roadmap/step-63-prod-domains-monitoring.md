@@ -14,9 +14,9 @@ Hooks and runbooks exist for production domains, Mongo backups, and monitoring. 
 
 ## Context and dependencies
 
-Deploy today: `deploy/README.md` (compose, GitHub `production` env, health on deploy for joined-backend + backend-core `/health` and homepage). Compose: `deploy/compose.yml`. Nginx: `deploy/nginx/*.conf` for `joinedhq.com`, `api.joinedhq.com`. Subdomains runbook: `deploy/subdomains-runbook.md` — `scout.joinedhq.com` → :6003, `admin.joinedhq.com` → :6010. Bootstrap: `deploy/bootstrap-vps.sh`.
+Deploy today: `deploy/README.md` (compose, GitHub `production` env, health on deploy for **joined-backend** and **acorn-backend** `/health` plus the homepage — see `.github/workflows/deploy.yml`). `backend-core` is a Go library used by those services, not a deployable process and not a `/health` target. Compose: `deploy/compose.yml`. Nginx: `deploy/nginx/*.conf` for `joinedhq.com`, `api.joinedhq.com`. Subdomains runbook: `deploy/subdomains-runbook.md` — `scout.joinedhq.com` → :6003, `admin.joinedhq.com` → :6010. Bootstrap: `deploy/bootstrap-vps.sh`.
 
-Health: `GET /health` on joined-backend, admin-backend, scoutwell-backend, backend-core (`httpkit.Health`), and acorn-backend; `GET /acorn/health` in `acorn-backend/acornapi` (`acorn-backend/cmd/server/routes.go`).
+Health endpoints that exist on running services: `GET /health` on `joined-backend`, `acorn-backend` (`acorn-backend/cmd/server/routes.go`; also `GET /acorn/health` in `acorn-backend/acornapi`), `admin-backend` (`admin-backend/internal/httpapi/server.go`), and `scoutwell-backend`. Shared helper is `backend-core/httpkit.Health` — the library is not itself a health server.
 
 Logging: `backend-core/httpkit/logging.go` (`X-Request-ID`, `SetUserID`). Error reporting: optional `SENTRY_DSN` via `LoadErrorReporting()` — missing DSN must not crash.
 

@@ -27,7 +27,7 @@ e2e-smoke workflow starts joined-backend :8080, scoutwell-backend :8082, joined-
 - Scoutwell: home, sign-in (email or existing helper), earnings or payouts page render. Submit/capture is **not** required if it needs the extension.
 - Acorn: landing, `/sign-in` / `/sign-up`, signed-in `/overview` or `/profile` render (`test.skip` + annotate if auth helpers are missing).
 - Reuse `tests/e2e/helpers`. Do not hit Chrome Web Store. Do not start Acorn extension automation unless a documented harness already exists.
-- CI: extend `e2e-smoke.yml` or add a job that starts `acorn-website` on 6005 when those specs run.
+- CI: extend `e2e-smoke.yml` or add a job that starts `acorn-frontend` on 6005 when those specs run.
 
 ## Out of scope
 

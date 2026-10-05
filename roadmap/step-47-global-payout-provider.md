@@ -1,11 +1,11 @@
 # Step 47: Global payout provider
 
 - **Week:** W3
-- **Status:** In review
+- **Status:** Done
 - **Owner:** Penny (money and Scout backend lane)
-- **Target branch:** `stage-roadmap-w34`
+- **Target branch:** `stage-roadmap-w34` for any follow-up
 - **PR title:** `feat(scout): global payout provider adapter (roadmap step-47)`
-- **Open PR:** [#113](https://github.com/sid0709/Joined/pull/113) — `feat(scout): global payout provider behind staff approval (roadmap step-47)` on `cursor/money-be-step-47-b73f`
+- **Merged PR:** [#113](https://github.com/sid0709/Joined/pull/113) (`35e7aa6`)
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
 
@@ -15,7 +15,7 @@ Payouts can go through a Wise/PayPal-style provider adapter after staff approval
 
 ## Context and dependencies
 
-In review. Product work is paused on this PR. Depends on [step-46](step-46-scout-payout-identity.md) (Done, #111) for the first-payout identity gate. Live provider keys and real sends wait for [step-59](step-59-stripe-live-config.md) user approval plus `PAYOUT_ALLOW_LIVE` (payouts, not Stripe). Tax/sanctions are [step-56](step-56-international-payout-tax.md). Harness is [step-60](step-60-non-us-payout-test.md).
+Done (#113). Depends on [step-46](step-46-scout-payout-identity.md) (Done, #111) for the first-payout identity gate. Live provider keys and real sends wait for [step-59](step-59-stripe-live-config.md) user approval plus `PAYOUT_ALLOW_LIVE` (payouts, not Stripe). Tax/sanctions are [step-56](step-56-international-payout-tax.md). Harness is [step-60](step-60-non-us-payout-test.md).
 
 On `stage-roadmap-w34` today: `PayoutMethodType` is `"bank" | "paypal"` in `packages/scout/src/types.ts`. `PayoutStatus` is `"requested" | "paid" | "rejected"`. Staff mark paid via `POST /v1/admin/scout/payouts/{id}/decision` `{ decision: "paid"|"rejected" }` and earnings settle immediately. There is no `Provider` interface and no `PAYOUT_*` env on this branch.
 

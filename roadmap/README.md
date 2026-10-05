@@ -107,30 +107,30 @@ Target branch: **`stage-roadmap-w34`**. Ops-only (not coding steps): scraper acc
 
 Kickoff in parallel after step-33 CI is green (or concurrent if workflows already cover the branch): Ravi 34/36/42, Leo 38/39/40 (35/37 wait on APIs), Penny 46/47. Maya is idle in W3 unless scraper onboarding needs extension tweaks.
 
-| Step                                                          | Slice                                              | Owner      | Status           |
-| ------------------------------------------------------------- | -------------------------------------------------- | ---------- | ---------------- |
-| [step-33](step-33-ci-for-stage-roadmap-w34.md)                | CI for PRs into stage-roadmap-w34                  | Quinn      | Done (#104)      |
-| [step-34](step-34-saved-searches-api.md)                      | Persist saved searches; alert schedule hooks       | Ravi       | Done (#106)      |
-| [step-35](step-35-saved-searches-ui-alerts.md)                | Saved-search UI + email alert preferences          | Leo        | Planned          |
-| [step-36](step-36-fit-score-api.md)                           | Fit score + short reason on jobs                   | Ravi       | In review (#108) |
-| [step-37](step-37-fit-score-ui.md)                            | Show fit score/reason in search                    | Leo        | Planned          |
-| [step-38](step-38-seo-job-pages.md)                           | SSR job pages, titles, JobPosting, sitemap, robots | Leo        | Done (#107)      |
-| [step-39](step-39-resume-builder-gaps.md)                     | Close résumé builder gaps                          | Leo        | In review (#109) |
-| [step-40](step-40-application-tracker.md)                     | Saved stage, notes, reminders                      | Leo        | Done (#112)      |
-| [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Planned          |
-| [step-42](step-42-scam-job-score.md)                          | Scam/fake score; hold risky for admin              | Ravi       | Done (#110)      |
-| [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Planned          |
-| [step-44](step-44-account-data-export-ui.md)                  | Export UI + privacy settings surface               | Leo        | Planned          |
-| [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Planned          |
-| [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111)      |
-| [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | In review (#113) |
-| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | Planned          |
-| [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned          |
-| [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned          |
-| [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned          |
-| [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Planned          |
-| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Planned          |
-| [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Planned          |
+| Step                                                          | Slice                                              | Owner      | Status      |
+| ------------------------------------------------------------- | -------------------------------------------------- | ---------- | ----------- |
+| [step-33](step-33-ci-for-stage-roadmap-w34.md)                | CI for PRs into stage-roadmap-w34                  | Quinn      | Done (#104) |
+| [step-34](step-34-saved-searches-api.md)                      | Persist saved searches; alert schedule hooks       | Ravi       | Done (#106) |
+| [step-35](step-35-saved-searches-ui-alerts.md)                | Saved-search UI + email alert preferences          | Leo        | Planned     |
+| [step-36](step-36-fit-score-api.md)                           | Fit score + short reason on jobs                   | Ravi       | Done (#108) |
+| [step-37](step-37-fit-score-ui.md)                            | Show fit score/reason in search                    | Leo        | Planned     |
+| [step-38](step-38-seo-job-pages.md)                           | SSR job pages, titles, JobPosting, sitemap, robots | Leo        | Done (#107) |
+| [step-39](step-39-resume-builder-gaps.md)                     | Close résumé builder gaps                          | Leo        | Done (#109) |
+| [step-40](step-40-application-tracker.md)                     | Saved stage, notes, reminders                      | Leo        | Done (#112) |
+| [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Planned     |
+| [step-42](step-42-scam-job-score.md)                          | Scam/fake score; hold risky for admin              | Ravi       | Done (#110) |
+| [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Planned     |
+| [step-44](step-44-account-data-export-ui.md)                  | Export UI + privacy settings surface               | Leo        | Planned     |
+| [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Planned     |
+| [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111) |
+| [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | Done (#113) |
+| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | Planned     |
+| [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned     |
+| [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned     |
+| [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned     |
+| [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Planned     |
+| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Planned     |
+| [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Planned     |
 
 If step-54 is too large, split into 54a sources (Ravi), 54b quality dashboard (Ravi), 54c earnings report (Penny), 54d disputes (Penny) and adjust counts with Sid.
 
