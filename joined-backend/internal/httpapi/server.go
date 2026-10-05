@@ -17,6 +17,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
@@ -58,6 +59,8 @@ type Options struct {
 	Billing *billing.Service
 	// BillingWebhook receives Stripe-signed events. Nil leaves POST /v1/webhooks/stripe unmounted.
 	BillingWebhook *billing.WebhookRouter
+	// SavedSearches persists a job hunter's saved queries. Nil leaves those routes unmounted.
+	SavedSearches savedsearch.Store
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -134,6 +137,9 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
 	if opts.Billing != nil {
 		billing.Handlers{Service: opts.Billing, CurrentUser: server.billingCurrentUser}.Register(candidateMux)
+	}
+	if opts.SavedSearches != nil {
+		savedsearch.Handlers{Service: savedsearch.NewService(opts.SavedSearches), CurrentUser: server.savedSearchCurrentUser}.Register(candidateMux)
 	}
 	// Google's OAuth redirect has no Authorization header; it authenticates via state.
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)

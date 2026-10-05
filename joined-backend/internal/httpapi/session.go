@@ -13,6 +13,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 )
 
 func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
@@ -59,6 +60,13 @@ func (s *Server) billingCurrentUser(r *http.Request) (userID, email string, err 
 		return "", "", err
 	}
 	return session.User.ID, session.User.Email, nil
+}
+
+func (s *Server) savedSearchCurrentUser(r *http.Request) (string, error) {
+	if session, ok := authapi.Session(r.Context()); ok {
+		return session.User.ID, nil
+	}
+	return "", savedsearch.ErrUnauthorized
 }
 
 func (s *Server) requireCandidate(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
