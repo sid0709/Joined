@@ -45,7 +45,7 @@ jobs:
             -e MONGO_INITDB_ROOT_USERNAME=testuser \
             -e MONGO_INITDB_ROOT_PASSWORD=testpass \
             mongo:7
-          
+
           # Wait for MongoDB to be ready
           for i in {1..30}; do
             if docker exec mongodb mongosh --quiet --eval "db.version()" >/dev/null 2>&1; then
@@ -55,7 +55,7 @@ jobs:
             echo "Waiting for MongoDB... ($i/30)"
             sleep 1
           done
-          
+
           if ! docker exec mongodb mongosh --quiet --eval "db.version()" >/dev/null 2>&1; then
             echo "MongoDB failed to start"
             exit 1
@@ -90,7 +90,7 @@ jobs:
             echo "Waiting for joined-backend... ($i/30)"
             sleep 2
           done
-          
+
           if [ "$BACKEND_READY" = false ]; then
             echo "joined-backend failed to start"
             exit 1
@@ -120,7 +120,7 @@ jobs:
             echo "Waiting for frontends... ($i/60)"
             sleep 2
           done
-          
+
           if [ "$FRONTENDS_READY" = false ]; then
             echo "Frontends failed to start"
             exit 1
