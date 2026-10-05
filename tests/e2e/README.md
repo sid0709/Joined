@@ -5,6 +5,7 @@ End-to-end smoke suite that proves main pages load and key APIs respond.
 ## Local usage
 
 1. **Start all services:**
+
    ```bash
    bun run dev
    ```

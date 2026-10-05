@@ -45,7 +45,7 @@ jobs:
           JOINED_API_PID=$!
           echo "Started joined-backend (PID: $JOINED_API_PID)"
           cd ..
-          
+
           # Wait for joined-backend health
           for i in {1..30}; do
             if curl -f http://127.0.0.1:8080/health >/dev/null 2>&1; then
@@ -62,12 +62,12 @@ jobs:
           bun --filter joined-frontend dev &
           JOINED_FRONTEND_PID=$!
           echo "Started joined-frontend (PID: $JOINED_FRONTEND_PID)"
-          
+
           # Start scoutwell-frontend
           bun --filter scoutwell-frontend dev &
           SCOUTWELL_FRONTEND_PID=$!
           echo "Started scoutwell-frontend (PID: $SCOUTWELL_FRONTEND_PID)"
-          
+
           # Wait for frontends to be ready
           for i in {1..60}; do
             if curl -f http://localhost:6002 >/dev/null 2>&1 && \
