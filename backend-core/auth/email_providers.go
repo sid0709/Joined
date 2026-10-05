@@ -80,6 +80,9 @@ func (s *SMTPProvider) SendDuplicateSignupNotice(ctx context.Context, to string)
 }
 
 func (s *SMTPProvider) send(ctx context.Context, to, subject, textBody, htmlBody string) error {
+	if err := validateEmailHeaders(s.From, to, subject); err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(ctx, defaultEmailSendTimeout)
 	defer cancel()
 
@@ -288,6 +291,9 @@ func (r *ResendProvider) SendDuplicateSignupNotice(ctx context.Context, to strin
 }
 
 func (r *ResendProvider) send(ctx context.Context, to, subject, textBody, htmlBody string) error {
+	if err := validateEmailHeaders(r.From, to, subject); err != nil {
+		return err
+	}
 	url := r.BaseURL
 	if url == "" {
 		url = defaultResendAPIURL
@@ -327,6 +333,22 @@ func (r *ResendProvider) send(ctx context.Context, to, subject, textBody, htmlBo
 		return fmt.Errorf("resend api error: status %d, body: %s", resp.StatusCode, string(bodyBytes))
 	}
 
+	return nil
+}
+
+func validateEmailHeaders(from, to, subject string) error {
+	for _, item := range []struct {
+		name  string
+		value string
+	}{
+		{"from", from},
+		{"to", to},
+		{"subject", subject},
+	} {
+		if strings.ContainsAny(item.value, "\r\n") {
+			return fmt.Errorf("email %s contains CR or LF", item.name)
+		}
+	}
 	return nil
 }
 

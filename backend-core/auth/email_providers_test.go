@@ -403,6 +403,72 @@ func TestResendProviderAPIError(t *testing.T) {
 	}
 }
 
+func TestSMTPProviderRejectsHeaderCRLF(t *testing.T) {
+	dialed := false
+	provider := &SMTPProvider{
+		Host: "smtp.example.com",
+		Port: "587",
+		From: "noreply@example.com",
+		Config: EmailTemplateConfig{
+			ProductName: "TestApp",
+			AppBaseURL:  "https://example.com",
+		},
+		DialFunc: func(addr string) (smtpClient, error) {
+			dialed = true
+			return &fakeSMTPClient{}, nil
+		},
+	}
+	if err := provider.SendVerification(context.Background(), "alice@example.com\r\nBcc: evil@example.com", "Alice", "token123"); err == nil {
+		t.Fatal("expected error for CR/LF in to")
+	}
+	if dialed {
+		t.Fatal("must reject header injection before dialing")
+	}
+}
+
+func TestResendProviderRejectsHeaderCRLF(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("must reject header injection before sending")
+	}))
+	defer server.Close()
+
+	provider := &ResendProvider{
+		APIKey:  "test-api-key",
+		From:    "noreply@example.com",
+		BaseURL: server.URL,
+		Config: EmailTemplateConfig{
+			ProductName: "TestApp",
+			AppBaseURL:  "https://example.com",
+		},
+	}
+	if err := provider.SendVerification(context.Background(), "alice@example.com\nCc: evil@example.com", "Alice", "token123"); err == nil {
+		t.Fatal("expected error for CR/LF in to")
+	}
+}
+
+func TestValidateEmailHeaders(t *testing.T) {
+	if err := validateEmailHeaders("from@example.com", "to@example.com", "Hello"); err != nil {
+		t.Fatalf("valid headers: %v", err)
+	}
+	cases := []struct {
+		name    string
+		from    string
+		to      string
+		subject string
+	}{
+		{"from cr", "from@example.com\r", "to@example.com", "Hello"},
+		{"to lf", "from@example.com", "to@example.com\n", "Hello"},
+		{"subject crlf", "from@example.com", "to@example.com", "Hello\r\nBcc: evil@example.com"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateEmailHeaders(tt.from, tt.to, tt.subject); err == nil {
+				t.Fatal("expected CR/LF error")
+			}
+		})
+	}
+}
+
 func TestEmailHTTPClientTimeout(t *testing.T) {
 	custom := &http.Client{Timeout: time.Second}
 	if got := emailHTTPClient(custom); got != custom {
