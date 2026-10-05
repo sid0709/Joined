@@ -1,13 +1,18 @@
+import { parseNotificationPage } from "../status/parse";
+
 import { getApiHost, getSessionCookieName, getWebOrigin } from "./config";
 import type {
   ApiError,
   ExtensionSubmissionInput,
   ExtensionSubmitResult,
+  NotificationPage,
   ScoutProfile,
 } from "./types";
 
 export const SCOUT_ME_PATH = "/v1/scout/me";
 export const SCOUT_EXTENSION_SUBMIT_PATH = "/v1/scout/submissions/extension";
+export const SCOUT_NOTIFICATIONS_PATH = "/v1/scout/notifications";
+export const SINCE_QUERY = "since";
 export const IDEMPOTENCY_HEADER = "Idempotency-Key";
 export const IDEMPOTENT_REPLAYED_HEADER = "Idempotent-Replayed";
 
@@ -138,6 +143,43 @@ export class ScoutApiClient {
         submission: { id: submissionId },
         replayed: response.headers.get(IDEMPOTENT_REPLAYED_HEADER) === "true",
       };
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error(API_UNREACHABLE_MESSAGE);
+      }
+      throw error;
+    }
+  }
+
+  async listNotifications(since: string): Promise<NotificationPage> {
+    try {
+      const token = await this.getSessionToken();
+      if (!token) {
+        throw new Error(SIGN_IN_TO_SUBMIT_MESSAGE);
+      }
+
+      const params = new URLSearchParams({ [SINCE_QUERY]: since });
+      const response = await fetch(`${this.baseUrl}${SCOUT_NOTIFICATIONS_PATH}?${params}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error(SIGN_IN_TO_SUBMIT_MESSAGE);
+      }
+
+      if (!response.ok) {
+        throw new Error(await this.readError(response));
+      }
+
+      const page = parseNotificationPage(await response.json());
+      if (!page) {
+        throw new Error(UNKNOWN_API_ERROR_MESSAGE);
+      }
+      return page;
     } catch (error) {
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error(API_UNREACHABLE_MESSAGE);

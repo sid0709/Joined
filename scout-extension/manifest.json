@@ -2,7 +2,15 @@
   "manifest_version": 3,
   "name": "Scout",
   "description": "Scout browser extension",
-  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "cookies"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel",
+    "cookies",
+    "alarms",
+    "notifications"
+  ],
   "host_permissions": [
     "http://127.0.0.1:8082/*",
     "http://localhost:8082/*",

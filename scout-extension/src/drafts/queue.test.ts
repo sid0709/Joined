@@ -28,6 +28,8 @@ import {
   failSubmit,
   recoverQueue,
   submittableDrafts,
+  waitingDraftCount,
+  waitingDrafts,
 } from "./submit";
 import type { JobDraft } from "./types";
 
@@ -152,6 +154,17 @@ describe("draft queue store", () => {
 });
 
 describe("submit state machine", () => {
+  test("waiting drafts exclude submitted rows", () => {
+    const drafts = [
+      draft(),
+      draft({ id: "draft-2", status: "failed" }),
+      draft({ id: "draft-3", status: "submitting" }),
+      draft({ id: "draft-4", status: "submitted", submissionId: "sub-1" }),
+    ];
+    expect(waitingDraftCount(drafts)).toBe(3);
+    expect(waitingDrafts(drafts).map((item) => item.id)).toEqual(["draft-1", "draft-2", "draft-3"]);
+  });
+
   test("draft and failed can submit; submitted and submitting cannot", () => {
     expect(canSubmit(draft())).toBe(true);
     expect(canSubmit(draft({ status: "failed", error: "boom" }))).toBe(true);

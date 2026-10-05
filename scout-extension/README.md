@@ -39,6 +39,8 @@ On a job posting page, open the side panel. Scout detects Greenhouse, Lever, Ash
 
 Capture uses `activeTab` plus on-demand `scripting`. The extractor is injected into the current tab when the panel asks for it. There are no host permissions for ATS origins.
 
+The toolbar badge shows the number of unsubmitted drafts. Signed-out and API error states use distinct marks instead of a count. `chrome.alarms` polls `GET /v1/scout/notifications?since=` and Chrome notifications report accepted, rejected, and earned status. A side-panel toggle turns those notifications off.
+
 ## How to release
 
 Unlisted Chrome Web Store upload is a human step. This repo only builds the zip and listing materials.

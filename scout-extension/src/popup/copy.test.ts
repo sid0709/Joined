@@ -52,5 +52,6 @@ describe("detected job copy", () => {
     expect(draftStatusBadgeVariant("failed")).toBe("error");
     expect(submitActionLabel({ status: "failed" } as JobDraft)).toBe(COPY.RETRY);
     expect(submitActionLabel({ status: "draft" } as JobDraft)).toBe(COPY.SUBMIT);
+    expect(COPY.DESKTOP_NOTIFICATIONS).toBe("Desktop notifications");
   });
 });

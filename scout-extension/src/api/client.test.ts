@@ -3,7 +3,9 @@ import {
   IDEMPOTENCY_HEADER,
   IDEMPOTENT_REPLAYED_HEADER,
   SCOUT_EXTENSION_SUBMIT_PATH,
+  SCOUT_NOTIFICATIONS_PATH,
   SIGN_IN_TO_SUBMIT_MESSAGE,
+  SINCE_QUERY,
   ScoutApiClient,
   apiErrorMessage,
   readSubmissionId,
@@ -361,5 +363,67 @@ describe("extension submit helpers", () => {
       }),
     ).toBe("url: required");
     expect(apiErrorMessage({ error: "fallback", detail: "quota exceeded" })).toBe("quota exceeded");
+  });
+});
+
+describe("ScoutApiClient.listNotifications", () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    mockChrome.cookies.get.mockClear();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  test("gets the change feed with since=", async () => {
+    mockChrome.cookies.get.mockResolvedValue({
+      name: "scoutwell_session",
+      value: "test-session-token",
+    } as chrome.cookies.Cookie);
+
+    const payload = {
+      data: [
+        {
+          id: "n1",
+          kind: "decision",
+          tone: "success",
+          title: "Job approved",
+          body: "Staff Engineer at Acme Labs is live.",
+          subject_id: "sub-1",
+          event: "accepted",
+          read: false,
+          created_at: "2026-10-05T12:00:00.000Z",
+        },
+      ],
+      next_cursor: "",
+      unread_count: 1,
+    };
+    const fetchMock = mock(async () => Response.json(payload, { status: 200 }));
+    global.fetch = fetchMock as unknown as typeof global.fetch;
+
+    const client = new ScoutApiClient();
+    const page = await client.listNotifications("n0");
+
+    expect(page.data).toHaveLength(1);
+    expect(page.data[0]?.event).toBe("accepted");
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://127.0.0.1:8082${SCOUT_NOTIFICATIONS_PATH}?${SINCE_QUERY}=n0`,
+      expect.objectContaining({
+        method: "GET",
+        headers: expect.objectContaining({
+          Authorization: "Bearer test-session-token",
+          Accept: "application/json",
+        }),
+      }),
+    );
+  });
+
+  test("throws sign-in copy when there is no session cookie", async () => {
+    mockChrome.cookies.get.mockResolvedValue(null);
+    const client = new ScoutApiClient();
+    await expect(client.listNotifications("")).rejects.toThrow(SIGN_IN_TO_SUBMIT_MESSAGE);
   });
 });

@@ -29,6 +29,9 @@ export const COPY = {
   STATUS_SUBMITTING: "Submitting",
   STATUS_SUBMITTED: "Submitted",
   STATUS_FAILED: "Failed",
+  DESKTOP_NOTIFICATIONS: "Desktop notifications",
+  DESKTOP_NOTIFICATIONS_DESCRIPTION:
+    "Notify when a submission is accepted, rejected, or earns a reward.",
 } as const;
 
 export const DESCRIPTION_PREVIEW_CHARS = 280;
