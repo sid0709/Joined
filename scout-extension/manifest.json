@@ -2,7 +2,12 @@
   "manifest_version": 3,
   "name": "Scout",
   "description": "Scout browser extension",
-  "permissions": ["activeTab", "storage", "sidePanel"],
+  "permissions": ["activeTab", "storage", "sidePanel", "cookies"],
+  "host_permissions": [
+    "http://127.0.0.1:8082/*",
+    "http://localhost:8082/*",
+    "http://localhost:6003/*"
+  ],
   "side_panel": {
     "default_path": "popup.html"
   },
