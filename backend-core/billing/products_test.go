@@ -284,6 +284,86 @@ func TestSyncProductsRecoversAfterFailedPriceRotation(t *testing.T) {
 	}
 }
 
+func TestSyncProductsCleansOrphanedActiveAfterFailedDeactivation(t *testing.T) {
+	client := NewFakeClient()
+	cfg := Config{
+		PremiumMonthlyPriceCents: 2900,
+		PremiumYearlyPriceCents:  29000,
+	}
+	if err := SyncProducts(context.Background(), client, cfg); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+	products, _ := client.ListProducts(context.Background(), "")
+	product := products[0]
+	pricesBefore, _ := client.ListPrices(context.Background(), product.ID)
+	var oldMonthly *Price
+	for _, p := range pricesBefore {
+		if p.LookupKey == monthlyPriceLookupKey {
+			oldMonthly = p
+			break
+		}
+	}
+	if oldMonthly == nil {
+		t.Fatal("expected initial monthly price")
+	}
+
+	client.FailNextPriceUpdate()
+	cfg.PremiumMonthlyPriceCents = 3500
+	if err := SyncProducts(context.Background(), client, cfg); err == nil {
+		t.Fatal("expected rotation sync to fail when deactivate fails")
+	}
+
+	pricesAfterFail, _ := client.ListPrices(context.Background(), product.ID)
+	var newMonthly *Price
+	activeMonthlyCount := 0
+	for _, p := range pricesAfterFail {
+		if p.Recurring != nil && p.Recurring.Interval == "month" && p.Active {
+			activeMonthlyCount++
+			if p.ID != oldMonthly.ID {
+				newMonthly = p
+			}
+		}
+	}
+	if activeMonthlyCount != 2 {
+		t.Fatalf("expected 2 active monthly prices after failed deactivate, got %d", activeMonthlyCount)
+	}
+	if newMonthly == nil || newMonthly.UnitAmount != 3500 || newMonthly.LookupKey != monthlyPriceLookupKey {
+		t.Fatalf("expected new active monthly holding lookup key, got %+v", newMonthly)
+	}
+	stillOld := client.prices[oldMonthly.ID]
+	if !stillOld.Active || stillOld.LookupKey != "" {
+		t.Fatalf("expected old monthly still active without lookup key, got %+v", stillOld)
+	}
+
+	if err := SyncProducts(context.Background(), client, cfg); err != nil {
+		t.Fatalf("recovery sync failed: %v", err)
+	}
+
+	pricesAfter, _ := client.ListPrices(context.Background(), product.ID)
+	activeMonthlyCount = 0
+	var activeMonthly, inactiveMonthly *Price
+	for _, p := range pricesAfter {
+		if p.Recurring == nil || p.Recurring.Interval != "month" {
+			continue
+		}
+		if p.Active {
+			activeMonthly = p
+			activeMonthlyCount++
+		} else if p.ID == oldMonthly.ID {
+			inactiveMonthly = p
+		}
+	}
+	if activeMonthlyCount != 1 {
+		t.Fatalf("expected exactly 1 active monthly after orphan cleanup, got %d", activeMonthlyCount)
+	}
+	if activeMonthly == nil || activeMonthly.ID != newMonthly.ID || activeMonthly.LookupKey != monthlyPriceLookupKey {
+		t.Fatalf("expected original new monthly still the holder, got %+v", activeMonthly)
+	}
+	if inactiveMonthly == nil || inactiveMonthly.Active || inactiveMonthly.LookupKey != "" {
+		t.Fatalf("expected orphaned old monthly deactivated, got %+v", inactiveMonthly)
+	}
+}
+
 func TestSyncProductsErrorsOnInactivePrice(t *testing.T) {
 	client := NewFakeClient()
 

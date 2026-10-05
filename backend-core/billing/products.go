@@ -62,6 +62,15 @@ func syncPremiumPrices(ctx context.Context, client Client, productID string, cfg
 	if err != nil {
 		return fmt.Errorf("list prices: %w", err)
 	}
+	// Next-sync recovery: a prior create-before-deactivate can leave the old
+	// price active after TransferLookupKey if deactivate failed.
+	if err := deactivateOrphanedActivePrices(ctx, client, prices, catalogPriceLookupKeys()); err != nil {
+		return err
+	}
+	prices, err = client.ListPrices(ctx, productID)
+	if err != nil {
+		return fmt.Errorf("list prices after orphan cleanup: %w", err)
+	}
 	pricesByLookup := make(map[string]*Price)
 	for _, p := range prices {
 		if p.LookupKey != "" {
@@ -137,6 +146,52 @@ func syncPrice(ctx context.Context, client Client, productID, lookupKey string, 
 	}
 	if !created.Active {
 		return fmt.Errorf("created price %s is inactive (idempotency replay returned stale price)", created.ID)
+	}
+	return nil
+}
+
+func catalogPriceLookupKeys() []string {
+	return []string{monthlyPriceLookupKey, yearlyPriceLookupKey}
+}
+
+func priceMetadataLookupKey(p *Price) string {
+	if p == nil || p.Metadata == nil {
+		return ""
+	}
+	return p.Metadata["lookup_key"]
+}
+
+func isCatalogLookupKey(key string, catalog []string) bool {
+	for _, item := range catalog {
+		if item == key {
+			return true
+		}
+	}
+	return false
+}
+
+// deactivateOrphanedActivePrices deactivates leftover actives from a failed
+// rotation deactivate. Those prices no longer hold the lookup key (it moved
+// with TransferLookupKey) but stay Active until a later SyncProducts.
+func deactivateOrphanedActivePrices(ctx context.Context, client Client, prices []*Price, catalog []string) error {
+	holders := make(map[string]bool, len(catalog))
+	for _, p := range prices {
+		if p != nil && p.LookupKey != "" {
+			holders[p.LookupKey] = true
+		}
+	}
+	inactive := false
+	for _, p := range prices {
+		if p == nil || !p.Active || p.LookupKey != "" {
+			continue
+		}
+		metaKey := priceMetadataLookupKey(p)
+		if !isCatalogLookupKey(metaKey, catalog) || !holders[metaKey] {
+			continue
+		}
+		if _, err := client.UpdatePrice(ctx, p.ID, UpdatePriceRequest{Active: &inactive}); err != nil {
+			return fmt.Errorf("deactivate orphaned price %s: %w", p.ID, err)
+		}
 	}
 	return nil
 }
