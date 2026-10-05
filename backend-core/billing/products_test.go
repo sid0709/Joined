@@ -72,7 +72,7 @@ func TestSyncProductsDeactivatesOldPriceOnChange(t *testing.T) {
 	products, _ := client.ListProducts(context.Background(), "")
 	product := products[0]
 	pricesBefore, _ := client.ListPrices(context.Background(), product.ID)
-	
+
 	var oldMonthlyID string
 	for _, p := range pricesBefore {
 		if p.LookupKey == monthlyPriceLookupKey {
