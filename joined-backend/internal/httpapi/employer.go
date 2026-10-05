@@ -15,59 +15,73 @@ import (
 
 const parseJobTimeout = 90 * time.Second
 
+type employerRoute struct {
+	method  string
+	path    string
+	handler http.HandlerFunc
+}
+
+func (s *Server) employerRoutes() []employerRoute {
+	return []employerRoute{
+		{"GET", "/v1/company/overview", s.getCompanyOverview},
+		{"GET", "/v1/company/analytics", s.getCompanyAnalytics},
+		{"GET", "/v1/company/counts", s.getCompanyCounts},
+		{"GET", "/v1/company/jobs", s.getCompanyJobs},
+		{"POST", "/v1/company/jobs", s.postCompanyJob},
+		{"POST", "/v1/company/jobs/parse", s.parseCompanyJob},
+		{"GET", "/v1/company/jobs/{id}", s.getCompanyJob},
+		{"PUT", "/v1/company/jobs/{id}", s.putCompanyJob},
+		{"PATCH", "/v1/company/jobs/{id}", s.patchCompanyJob},
+		{"GET", "/v1/company/jobs/{id}/pipeline", s.getCompanyPipeline},
+		{"PUT", "/v1/company/jobs/{id}/pipeline", s.putCompanyPipeline},
+		{"GET", "/v1/company/jobs/{id}/access", s.getJobAccess},
+		{"PUT", "/v1/company/jobs/{id}/access", s.putJobAccess},
+		{"GET", "/v1/company/applicants", s.getCompanyApplicants},
+		{"PATCH", "/v1/company/applicants/{id}", s.patchCompanyApplicant},
+		{"POST", "/v1/company/applicants/{id}/offer/approvals", s.postOfferApproval},
+		{"PATCH", "/v1/company/applicants/{id}/offer/approvals/{approvalId}", s.patchOfferApproval},
+		{"POST", "/v1/company/applicants/{id}/offer/esign", s.postOfferEsign},
+		{"POST", "/v1/company/applicants/{id}/offer/esign/mark", s.postOfferEsignMark},
+		{"POST", "/v1/company/applicants/{id}/hire-packet", s.postHirePacket},
+		{"PATCH", "/v1/company/applicants/{id}/hire-packet", s.patchHirePacket},
+		{"PATCH", "/v1/company/applicants/{id}/hire-packet/items/{itemId}", s.patchHirePacketItem},
+		{"GET", "/v1/company/applicants/{id}/scorecards", s.getApplicantScorecards},
+		{"POST", "/v1/company/applicants/{id}/scorecards", s.postApplicantScorecard},
+		{"GET", "/v1/company/interviews", s.getCompanyInterviews},
+		{"GET", "/v1/company/interviews/free-busy", s.getCompanyInterviewFreeBusy},
+		{"POST", "/v1/company/interviews", s.postCompanyInterview},
+		{"PATCH", "/v1/company/interviews/{id}", s.patchCompanyInterview},
+		{"GET", "/v1/company/billing", s.getCompanyBilling},
+		{"POST", "/v1/company/billing/purchase", s.postCompanyPurchase},
+		{"GET", "/v1/company/team", s.getCompanyTeam},
+		{"GET", "/v1/company/team/audit", s.getCompanyAudit},
+		{"POST", "/v1/company/team", s.postCompanyTeam},
+		{"PATCH", "/v1/company/team/{id}", s.patchCompanyTeam},
+		{"DELETE", "/v1/company/team/{id}", s.deleteCompanyTeam},
+		{"POST", "/v1/company/team/transfer", s.postCompanyTransfer},
+		{"GET", "/v1/company/settings", s.getCompanySettings},
+		{"PUT", "/v1/company/settings", s.putCompanySettings},
+		{"GET", "/v1/company/job-teams", s.getCompanyJobTeams},
+		{"PUT", "/v1/company/job-teams", s.putCompanyJobTeams},
+		{"GET", "/v1/company/job-templates", s.getCompanyJobTemplates},
+		{"PUT", "/v1/company/job-templates", s.putCompanyJobTemplates},
+		{"GET", "/v1/company/departments", s.getCompanyDepartments},
+		{"PUT", "/v1/company/departments", s.putCompanyDepartments},
+		{"GET", "/v1/company/office-locations", s.getCompanyOfficeLocations},
+		{"PUT", "/v1/company/office-locations", s.putCompanyOfficeLocations},
+		{"GET", "/v1/company/page", s.getCompanyPage},
+		{"PUT", "/v1/company/page", s.putCompanyPage},
+		{"POST", "/v1/company/page/logo", s.postCompanyPageLogo},
+		{"DELETE", "/v1/company/page/logo", s.deleteCompanyPageLogo},
+		{"GET", "/v1/company/profile", s.getHiringProfile},
+		{"PUT", "/v1/company/profile", s.putHiringProfile},
+	}
+}
+
 func (s *Server) registerEmployer(mux *http.ServeMux) {
-	mux.HandleFunc("GET /v1/company/overview", s.getCompanyOverview)
-	mux.HandleFunc("GET /v1/company/analytics", s.getCompanyAnalytics)
-	mux.HandleFunc("GET /v1/company/counts", s.getCompanyCounts)
-	mux.HandleFunc("GET /v1/company/jobs", s.getCompanyJobs)
-	mux.HandleFunc("POST /v1/company/jobs", s.postCompanyJob)
-	mux.HandleFunc("POST /v1/company/jobs/parse", s.parseCompanyJob)
-	mux.HandleFunc("GET /v1/company/jobs/{id}", s.getCompanyJob)
-	mux.HandleFunc("PUT /v1/company/jobs/{id}", s.putCompanyJob)
-	mux.HandleFunc("PATCH /v1/company/jobs/{id}", s.patchCompanyJob)
-	mux.HandleFunc("GET /v1/company/jobs/{id}/pipeline", s.getCompanyPipeline)
-	mux.HandleFunc("PUT /v1/company/jobs/{id}/pipeline", s.putCompanyPipeline)
-	mux.HandleFunc("GET /v1/company/jobs/{id}/access", s.getJobAccess)
-	mux.HandleFunc("PUT /v1/company/jobs/{id}/access", s.putJobAccess)
-	mux.HandleFunc("GET /v1/company/applicants", s.getCompanyApplicants)
-	mux.HandleFunc("PATCH /v1/company/applicants/{id}", s.patchCompanyApplicant)
-	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/approvals", s.postOfferApproval)
-	mux.HandleFunc("PATCH /v1/company/applicants/{id}/offer/approvals/{approvalId}", s.patchOfferApproval)
-	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/esign", s.postOfferEsign)
-	mux.HandleFunc("POST /v1/company/applicants/{id}/offer/esign/mark", s.postOfferEsignMark)
-	mux.HandleFunc("POST /v1/company/applicants/{id}/hire-packet", s.postHirePacket)
-	mux.HandleFunc("PATCH /v1/company/applicants/{id}/hire-packet", s.patchHirePacket)
-	mux.HandleFunc("PATCH /v1/company/applicants/{id}/hire-packet/items/{itemId}", s.patchHirePacketItem)
-	mux.HandleFunc("GET /v1/company/applicants/{id}/scorecards", s.getApplicantScorecards)
-	mux.HandleFunc("POST /v1/company/applicants/{id}/scorecards", s.postApplicantScorecard)
-	mux.HandleFunc("GET /v1/company/interviews", s.getCompanyInterviews)
-	mux.HandleFunc("GET /v1/company/interviews/free-busy", s.getCompanyInterviewFreeBusy)
-	mux.HandleFunc("POST /v1/company/interviews", s.postCompanyInterview)
-	mux.HandleFunc("PATCH /v1/company/interviews/{id}", s.patchCompanyInterview)
-	mux.HandleFunc("GET /v1/company/billing", s.getCompanyBilling)
-	mux.HandleFunc("POST /v1/company/billing/purchase", s.postCompanyPurchase)
-	mux.HandleFunc("GET /v1/company/team", s.getCompanyTeam)
-	mux.HandleFunc("GET /v1/company/team/audit", s.getCompanyAudit)
-	mux.HandleFunc("POST /v1/company/team", s.postCompanyTeam)
-	mux.HandleFunc("PATCH /v1/company/team/{id}", s.patchCompanyTeam)
-	mux.HandleFunc("DELETE /v1/company/team/{id}", s.deleteCompanyTeam)
-	mux.HandleFunc("POST /v1/company/team/transfer", s.postCompanyTransfer)
-	mux.HandleFunc("GET /v1/company/settings", s.getCompanySettings)
-	mux.HandleFunc("PUT /v1/company/settings", s.putCompanySettings)
-	mux.HandleFunc("GET /v1/company/job-teams", s.getCompanyJobTeams)
-	mux.HandleFunc("PUT /v1/company/job-teams", s.putCompanyJobTeams)
-	mux.HandleFunc("GET /v1/company/job-templates", s.getCompanyJobTemplates)
-	mux.HandleFunc("PUT /v1/company/job-templates", s.putCompanyJobTemplates)
-	mux.HandleFunc("GET /v1/company/departments", s.getCompanyDepartments)
-	mux.HandleFunc("PUT /v1/company/departments", s.putCompanyDepartments)
-	mux.HandleFunc("GET /v1/company/office-locations", s.getCompanyOfficeLocations)
-	mux.HandleFunc("PUT /v1/company/office-locations", s.putCompanyOfficeLocations)
-	mux.HandleFunc("GET /v1/company/page", s.getCompanyPage)
-	mux.HandleFunc("PUT /v1/company/page", s.putCompanyPage)
-	mux.HandleFunc("POST /v1/company/page/logo", s.postCompanyPageLogo)
-	mux.HandleFunc("DELETE /v1/company/page/logo", s.deleteCompanyPageLogo)
-	mux.HandleFunc("GET /v1/company/profile", s.getHiringProfile)
-	mux.HandleFunc("PUT /v1/company/profile", s.putHiringProfile)
+	for _, route := range s.employerRoutes() {
+		mux.HandleFunc(route.method+" "+route.path, route.handler)
+	}
 }
 
 func (s *Server) company(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
