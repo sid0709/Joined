@@ -2,7 +2,9 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -13,9 +15,12 @@ import (
 )
 
 const (
-	defaultPageSize = 50
-	maxPageSize     = 100
+	defaultPageSize     = 50
+	maxPageSize         = 100
+	maxRegexFilterChars = 200
 )
+
+var ErrCursorNotSupportedForRelevance = errors.New("cursor-based paging not supported with relevance sort")
 
 type SearchQuery struct {
 	Keyword    string
@@ -42,6 +47,10 @@ type SearchResults struct {
 }
 
 func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time) (SearchResults, error) {
+	if query.Cursor != "" && query.SortBy == "relevance" && query.Keyword != "" {
+		return SearchResults{}, ErrCursorNotSupportedForRelevance
+	}
+
 	filter := s.buildSearchFilter(query, now)
 	
 	total, err := s.structured().CountDocuments(ctx, filter)
@@ -125,7 +134,9 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 	}
 
 	if query.Location != "" {
-		conditions = append(conditions, bson.D{{Key: "job.location", Value: bson.D{{Key: "$regex", Value: query.Location}, {Key: "$options", Value: "i"}}}})
+		location := truncateString(query.Location, maxRegexFilterChars)
+		escapedLocation := regexp.QuoteMeta(location)
+		conditions = append(conditions, bson.D{{Key: "job.location", Value: bson.D{{Key: "$regex", Value: escapedLocation}, {Key: "$options", Value: "i"}}}})
 	}
 
 	if query.Workplace != "" {
@@ -145,7 +156,9 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 	}
 
 	if query.Company != "" {
-		conditions = append(conditions, bson.D{{Key: "job.company", Value: bson.D{{Key: "$regex", Value: query.Company}, {Key: "$options", Value: "i"}}}})
+		company := truncateString(query.Company, maxRegexFilterChars)
+		escapedCompany := regexp.QuoteMeta(company)
+		conditions = append(conditions, bson.D{{Key: "job.company", Value: bson.D{{Key: "$regex", Value: escapedCompany}, {Key: "$options", Value: "i"}}}})
 	}
 
 	if query.SalaryMin > 0 || query.SalaryMax > 0 {
@@ -230,7 +243,14 @@ func decodeCursor(cursor, sortBy string) (bson.D, error) {
 	}
 }
 
-func (s *Store) EnsureIndexes(ctx context.Context) error {
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen]
+}
+
+func (s *Store) EnsureSearchIndexes(ctx context.Context) error {
 	coll := s.structured()
 	
 	indexes := coll.Indexes()
@@ -262,5 +282,9 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		return fmt.Errorf("create text index: %w", err)
 	}
 
+	return nil
+}
+
+func (s *Store) EnsureIndexes(ctx context.Context) error {
 	return nil
 }

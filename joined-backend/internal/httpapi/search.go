@@ -21,7 +21,7 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	if query.Keyword == "" && query.Location == "" && query.Company == "" &&
 		query.Workplace == "" && query.Employment == "" && query.Seniority == "" &&
 		query.SalaryMin == 0 && query.SalaryMax == 0 && query.PostedDays == 0 &&
-		!query.Remote && query.Cursor == "" {
+		!query.Remote && query.Cursor == "" && query.Limit == 0 && query.SortBy == "" {
 		catalog, err := s.store.ListCatalog(ctx, time.Now())
 		if err != nil {
 			slog.Error("list search catalog", "error", err)
@@ -34,6 +34,10 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 
 	results, err := s.store.SearchJobs(ctx, query, time.Now())
 	if err != nil {
+		if errors.Is(err, jobs.ErrCursorNotSupportedForRelevance) {
+			httpkit.WriteError(w, http.StatusBadRequest, "cursor-based paging not supported with relevance sort")
+			return
+		}
 		slog.Error("search jobs", "error", err, "query", query)
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not search jobs")
 		return

@@ -2,6 +2,8 @@ package jobs
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -371,7 +373,7 @@ func TestSearchQueryFilters(t *testing.T) {
 	}
 }
 
-func TestEnsureIndexesIdempotent(t *testing.T) {
+func TestEnsureSearchIndexesIdempotent(t *testing.T) {
 	ctx := context.Background()
 	
 	s := &Store{}
@@ -380,13 +382,173 @@ func TestEnsureIndexesIdempotent(t *testing.T) {
 		t.Skip("no mongo client available for integration test")
 	}
 
-	err := s.EnsureIndexes(ctx)
+	err := s.EnsureSearchIndexes(ctx)
 	if err != nil {
 		t.Logf("first call failed (expected in unit test): %v", err)
 	}
 
-	err = s.EnsureIndexes(ctx)
+	err = s.EnsureSearchIndexes(ctx)
 	if err != nil {
 		t.Logf("second call failed (expected in unit test): %v", err)
+	}
+}
+
+func TestRegexEscaping(t *testing.T) {
+	s := &Store{}
+	now := time.Now()
+
+	tests := []struct {
+		name     string
+		location string
+		company  string
+		wantErr  bool
+	}{
+		{
+			name:     "special regex chars are escaped in location",
+			location: ".*",
+			company:  "",
+		},
+		{
+			name:     "special regex chars are escaped in company",
+			location: "",
+			company:  "Google.*",
+		},
+		{
+			name:     "parentheses are escaped",
+			location: "San (Francisco)",
+			company:  "Company (Acquired)",
+		},
+		{
+			name:     "brackets are escaped",
+			location: "[Remote]",
+			company:  "[Stealth]",
+		},
+		{
+			name:     "plus and star escaped",
+			location: "C++",
+			company:  "A*STAR",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			query := SearchQuery{
+				Location: tt.location,
+				Company:  tt.company,
+			}
+			filter := s.buildSearchFilter(query, now)
+			
+			if filter == nil {
+				t.Error("filter should not be nil")
+			}
+		})
+	}
+}
+
+func TestRegexFilterTruncation(t *testing.T) {
+	s := &Store{}
+	now := time.Now()
+
+	longString := strings.Repeat("a", maxRegexFilterChars+100)
+	
+	query := SearchQuery{
+		Location: longString,
+		Company:  longString,
+	}
+	
+	filter := s.buildSearchFilter(query, now)
+	
+	if filter == nil {
+		t.Error("filter should not be nil with long strings")
+	}
+	
+	filterStr := fmt.Sprintf("%v", filter)
+	if strings.Contains(filterStr, strings.Repeat("a", maxRegexFilterChars+1)) {
+		t.Error("filter should truncate strings longer than maxRegexFilterChars")
+	}
+}
+
+func TestCursorNotSupportedForRelevanceWithKeyword(t *testing.T) {
+	s := &Store{}
+	
+	if s.client == nil {
+		t.Skip("no mongo client available for integration test")
+	}
+
+	ctx := context.Background()
+	query := SearchQuery{
+		Keyword: "engineer",
+		SortBy:  "relevance",
+		Cursor:  "somecursor:123456",
+	}
+
+	_, err := s.SearchJobs(ctx, query, time.Now())
+	if err == nil {
+		t.Error("SearchJobs should return error for cursor with relevance sort and keyword")
+	}
+	if !errors.Is(err, ErrCursorNotSupportedForRelevance) {
+		t.Errorf("expected ErrCursorNotSupportedForRelevance, got %v", err)
+	}
+}
+
+func TestCursorAllowedForRelevanceWithoutKeyword(t *testing.T) {
+	s := &Store{}
+	
+	if s.client == nil {
+		t.Skip("no mongo client available for integration test")
+	}
+
+	ctx := context.Background()
+	query := SearchQuery{
+		SortBy: "relevance",
+		Cursor: "6ac36ea3c508e723b31f8671:1791201600",
+	}
+
+	_, err := s.SearchJobs(ctx, query, time.Now())
+	if errors.Is(err, ErrCursorNotSupportedForRelevance) {
+		t.Error("cursor should be allowed for relevance sort without keyword (falls back to newest)")
+	}
+}
+
+func TestTruncateString(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		maxLen int
+		want   string
+	}{
+		{
+			name:   "short string unchanged",
+			input:  "hello",
+			maxLen: 10,
+			want:   "hello",
+		},
+		{
+			name:   "exact length unchanged",
+			input:  "hello",
+			maxLen: 5,
+			want:   "hello",
+		},
+		{
+			name:   "long string truncated",
+			input:  "hello world",
+			maxLen: 5,
+			want:   "hello",
+		},
+		{
+			name:   "empty string unchanged",
+			input:  "",
+			maxLen: 10,
+			want:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateString(tt.input, tt.maxLen)
+			if got != tt.want {
+				t.Errorf("truncateString() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
