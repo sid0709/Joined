@@ -8,12 +8,13 @@ import (
 
 // FakeClient is an in-memory Stripe client for tests.
 type FakeClient struct {
-	mu                 sync.Mutex
-	products           map[string]*Product
-	prices             map[string]*Price
-	lookupKeyIndex     map[string]string
-	idempotencyReplays map[string]*Price
-	nextID             int
+	mu                  sync.Mutex
+	products            map[string]*Product
+	prices              map[string]*Price
+	lookupKeyIndex      map[string]string
+	idempotencyReplays  map[string]*Price
+	failNextPriceCreate bool
+	nextID              int
 }
 
 // NewFakeClient creates a fake Stripe client.
@@ -25,6 +26,13 @@ func NewFakeClient() *FakeClient {
 		idempotencyReplays: make(map[string]*Price),
 		nextID:             1,
 	}
+}
+
+// FailNextPriceCreate injects a one-shot CreatePrice failure, then clears.
+func (f *FakeClient) FailNextPriceCreate() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.failNextPriceCreate = true
 }
 
 func (f *FakeClient) CreateProduct(ctx context.Context, req CreateProductRequest) (*Product, error) {
@@ -89,25 +97,20 @@ func (f *FakeClient) CreatePrice(ctx context.Context, req CreatePriceRequest) (*
 		}
 	}
 
+	if f.failNextPriceCreate {
+		f.failNextPriceCreate = false
+		return nil, fmt.Errorf("injected create failure")
+	}
+
 	if req.LookupKey != "" {
-		if existingPriceID, exists := f.lookupKeyIndex[req.LookupKey]; exists {
+		if holderID, ok := f.holderOfLookupKey(req.LookupKey); ok {
 			if !req.TransferLookupKey {
-				return nil, fmt.Errorf("price with lookup_key %q already exists (price %s)", req.LookupKey, existingPriceID)
+				return nil, fmt.Errorf("price with lookup_key %q already exists (price %s)", req.LookupKey, holderID)
 			}
-			if existingPrice, ok := f.prices[existingPriceID]; ok {
-				existingPrice.LookupKey = ""
+			if holder, exists := f.prices[holderID]; exists {
+				holder.LookupKey = ""
 			}
 			delete(f.lookupKeyIndex, req.LookupKey)
-		} else {
-			for _, price := range f.prices {
-				if price.LookupKey == req.LookupKey {
-					if !req.TransferLookupKey {
-						return nil, fmt.Errorf("price with lookup_key %q already exists (price %s, inactive)", req.LookupKey, price.ID)
-					}
-					price.LookupKey = ""
-					break
-				}
-			}
 		}
 	}
 
@@ -145,13 +148,23 @@ func (f *FakeClient) UpdatePrice(ctx context.Context, id string, req UpdatePrice
 	}
 	price.Metadata = req.Metadata
 	if req.Active != nil {
-		wasActive := price.Active
 		price.Active = *req.Active
-		if wasActive && !price.Active && price.LookupKey != "" {
-			delete(f.lookupKeyIndex, price.LookupKey)
-		}
 	}
 	return price, nil
+}
+
+func (f *FakeClient) holderOfLookupKey(lookupKey string) (string, bool) {
+	if id, ok := f.lookupKeyIndex[lookupKey]; ok {
+		if price, exists := f.prices[id]; exists && price.LookupKey == lookupKey {
+			return id, true
+		}
+	}
+	for _, price := range f.prices {
+		if price.LookupKey == lookupKey {
+			return price.ID, true
+		}
+	}
+	return "", false
 }
 
 func (f *FakeClient) ListPrices(ctx context.Context, productID string) ([]*Price, error) {

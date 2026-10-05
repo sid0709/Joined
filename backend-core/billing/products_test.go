@@ -215,6 +215,75 @@ func TestSyncProductsPriceRevertUsesDistinctIdempotencyKeys(t *testing.T) {
 	}
 }
 
+func TestSyncProductsRecoversAfterFailedPriceRotation(t *testing.T) {
+	client := NewFakeClient()
+	cfg := Config{
+		PremiumMonthlyPriceCents: 2900,
+		PremiumYearlyPriceCents:  29000,
+	}
+	if err := SyncProducts(context.Background(), client, cfg); err != nil {
+		t.Fatalf("initial sync failed: %v", err)
+	}
+	products, _ := client.ListProducts(context.Background(), "")
+	product := products[0]
+	pricesBefore, _ := client.ListPrices(context.Background(), product.ID)
+	var oldMonthly *Price
+	for _, p := range pricesBefore {
+		if p.LookupKey == monthlyPriceLookupKey {
+			oldMonthly = p
+			break
+		}
+	}
+	if oldMonthly == nil {
+		t.Fatal("expected initial monthly price")
+	}
+
+	client.FailNextPriceCreate()
+	cfg.PremiumMonthlyPriceCents = 3500
+	if err := SyncProducts(context.Background(), client, cfg); err == nil {
+		t.Fatal("expected first rotation sync to fail")
+	}
+
+	pricesAfterFail, _ := client.ListPrices(context.Background(), product.ID)
+	if len(pricesAfterFail) != 2 {
+		t.Fatalf("expected catalog unchanged after failed create, got %d prices", len(pricesAfterFail))
+	}
+	stillOld := client.prices[oldMonthly.ID]
+	if !stillOld.Active || stillOld.LookupKey != monthlyPriceLookupKey {
+		t.Fatalf("expected old price still active with lookup key after failed create, got %+v", stillOld)
+	}
+
+	if err := SyncProducts(context.Background(), client, cfg); err != nil {
+		t.Fatalf("recovery sync failed: %v", err)
+	}
+
+	pricesAfter, _ := client.ListPrices(context.Background(), product.ID)
+	var activeMonthly, inactiveMonthly *Price
+	activeMonthlyCount := 0
+	for _, p := range pricesAfter {
+		if p.Recurring != nil && p.Recurring.Interval == "month" {
+			if p.Active {
+				activeMonthly = p
+				activeMonthlyCount++
+			} else {
+				inactiveMonthly = p
+			}
+		}
+	}
+	if activeMonthlyCount != 1 {
+		t.Fatalf("expected exactly 1 active monthly price after recovery, got %d", activeMonthlyCount)
+	}
+	if activeMonthly == nil || activeMonthly.UnitAmount != 3500 || activeMonthly.LookupKey != monthlyPriceLookupKey {
+		t.Fatalf("expected new active monthly 3500 holding lookup key, got %+v", activeMonthly)
+	}
+	if inactiveMonthly == nil || inactiveMonthly.ID != oldMonthly.ID || inactiveMonthly.Active {
+		t.Fatalf("expected old monthly price deactivated, got %+v", inactiveMonthly)
+	}
+	if inactiveMonthly.LookupKey != "" {
+		t.Fatalf("expected old monthly lookup key transferred away, got %q", inactiveMonthly.LookupKey)
+	}
+}
+
 func TestSyncProductsErrorsOnInactivePrice(t *testing.T) {
 	client := NewFakeClient()
 
