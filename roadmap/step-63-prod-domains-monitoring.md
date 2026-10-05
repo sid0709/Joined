@@ -16,13 +16,13 @@ Hooks and runbooks exist for production domains, Mongo backups, and monitoring. 
 
 Deploy today: `deploy/README.md` (compose, GitHub `production` env, health on deploy for joined-backend + backend-core `/health` and homepage). Compose: `deploy/compose.yml`. Nginx: `deploy/nginx/*.conf` for `joinedhq.com`, `api.joinedhq.com`. Subdomains runbook: `deploy/subdomains-runbook.md` — `scout.joinedhq.com` → :6003, `admin.joinedhq.com` → :6010. Bootstrap: `deploy/bootstrap-vps.sh`.
 
-Health: `GET /health` on joined-backend, admin-backend, scoutwell-backend, backend-core (`httpkit.Health`); `GET /acorn/health` in `backend-core/acornapi/server.go`.
+Health: `GET /health` on joined-backend, admin-backend, scoutwell-backend, backend-core (`httpkit.Health`), and acorn-backend; `GET /acorn/health` in `acorn-backend/acornapi` (`acorn-backend/cmd/server/routes.go`).
 
 Logging: `backend-core/httpkit/logging.go` (`X-Request-ID`, `SetUserID`). Error reporting: optional `SENTRY_DSN` via `LoadErrorReporting()` — missing DSN must not crash.
 
 No backup cron/runbook in repo yet. Error logging step: [step-12](step-12-error-logging.md) #75.
 
-Acorn website and extra hosts are not in the subdomains runbook.
+Acorn (`acorn-frontend` :6005, `acorn-backend` :8083, `AcornDB`) is not in the subdomains runbook yet.
 
 ## In scope
 
@@ -50,15 +50,16 @@ Acorn website and extra hosts are not in the subdomains runbook.
 
 Document hosts as a table of **intended** names (do not treat DNS as done):
 
-| App        | Intended host                  | Local port (compose) |
-| ---------- | ------------------------------ | -------------------- |
-| Joined web | `joinedhq.com`                 | frontend in compose  |
-| Joined API | `api.joinedhq.com`             | joined-backend       |
-| Scoutwell  | `scout.joinedhq.com`           | 6003                 |
-| Admin      | `admin.joinedhq.com`           | 6010                 |
-| Acorn web  | document the agreed host (new) | 6005                 |
+| App        | Intended host                                 | Local port (compose)    |
+| ---------- | --------------------------------------------- | ----------------------- |
+| Joined web | `joinedhq.com`                                | frontend in compose     |
+| Joined API | `api.joinedhq.com`                            | joined-backend          |
+| Scoutwell  | `scout.joinedhq.com`                          | 6003                    |
+| Admin      | `admin.joinedhq.com`                          | 6010                    |
+| Acorn web  | document the agreed host (new)                | 6005 (`acorn-frontend`) |
+| Acorn API  | `api.joinedhq.com/acorn` (or documented host) | 8083 (`acorn-backend`)  |
 
-Backup: Mongo `mongodump` against `MONGO_URI` from env, destination from `BACKUP_DIR` or object-storage env names (not credentials). Frequency as a named constant or cron sketch. A `check` script that exits non-zero if the last dump is older than `BACKUP_MAX_AGE`.
+Backup: Mongo `mongodump` against `MONGO_URI` from env for **both** JoinedDB and `AcornDB` (`ACORN_DB`, default `AcornDB` on acorn-backend). Destination from `BACKUP_DIR` or object-storage env names (not credentials). Frequency as a named constant or cron sketch. A `check` script that exits non-zero if the last dump is older than `BACKUP_MAX_AGE`.
 
 Monitoring: `/health` must stay 200 without `SENTRY_DSN`. If you add an uptime ping URL, it is env (`UPTIME_PING_URL`) and no-op when empty.
 

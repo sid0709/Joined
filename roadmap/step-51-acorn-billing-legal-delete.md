@@ -2,77 +2,81 @@
 
 - **Week:** W3
 - **Status:** Planned
-- **Owner:** Leo (web frontends; **coordinate Elon** for `acorn/**`)
+- **Owner:** Leo (`acorn-frontend/**`; **coordinate Elon** for `acorn-backend/**` delete/checkout mount)
 - **Target branch:** `stage-roadmap-w34`
-- **PR title:** `feat(acorn-website): billing legal delete-my-data (roadmap step-51)`
+- **PR title:** `feat(acorn-frontend): billing legal delete-my-data (roadmap step-51)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
 
 ## Goal
 
-The Acorn website has a billing page, draft legal pages, and delete-my-data, so a signed-in user can pay (test mode), read draft terms, and delete their account without using Joined’s settings UI.
+A signed-in Acorn user can pay in Stripe test mode, read draft Acorn legal pages, and delete their Acorn account from `acorn-frontend`.
 
 ## Context and dependencies
 
-Billing APIs come from [step-50](step-50-acorn-stripe-pricing.md) (Planned). Legal/delete can land in the same PR if 50 is merged; do not invent a second checkout API. Profile/sign-in scaffold: [step-32](step-32-acorn-website-scaffold.md) (Done, #80), [step-48](step-48-acorn-profile-editor.md). Shared counsel copy is [step-55](step-55-legal-docs-package.md). Joined draft legal pages are [step-45](step-45-legal-drafts-pages.md). Live Stripe is [step-59](step-59-stripe-live-config.md).
+Billing APIs come from [step-50](step-50-acorn-stripe-pricing.md). Joined draft legal pages are [step-45](step-45-legal-drafts-pages.md). Shared counsel copy is [step-55](step-55-legal-docs-package.md). Live Stripe is [step-59](step-59-stripe-live-config.md).
 
-`acorn/website/lib/routes.ts` is still `{ home, signIn }`. Cookie: `joined_session`. Account delete already exists: `DELETE /v1/auth/account` in `backend-core/authapi/authapi.go`. Joined BFF: `joined-frontend/app/api/auth/account/route.ts`. Joined UI: `joined-frontend/components/settings/remove-account.tsx` (`AlertDialog`, typed confirmation). Scoutwell has the same BFF. Acorn website has neither.
+After #115, `acorn/website` is gone. Current `acorn-frontend`:
 
-Joined Premium UX to **match, not copy**: `/pricing`, `settings?section=billing`, `lib/billing.ts`, `lib/me/billing.ts`, `components/billing/*`, design-system `Banner`/`Button`/`MetadataList`. Env on Joined: `BILLING_CHECKOUT_ENABLED`, `NEXT_PUBLIC_BILLING_CHECKOUT_ENABLED`.
+- `lib/routes.ts`: `/`, `/sign-in`, `/sign-up`, `/overview`, `/profile`, `/resume`, `/resume/library`, `/resume/history`, `/gmail`, `/apps`, `/billing` — **no** `/terms` or `/privacy`
+- `/billing` exists (`app/(workspace)/billing/page.tsx`, `components/billing/*`) with **sample** plans/invoices (`lib/billing.ts`); checkout stays off until a provider is connected
+- Auth: `acorn_session`, `ACORN_API_URL` → acorn-backend `:8083`
+- Account delete: **missing** on acorn-backend (no `DELETE` account route). Joined `DELETE /v1/auth/account` is the **Joined** account in `JoinedDB` — do not call it from Acorn; that would delete the wrong user.
+
+UI: `sid-ui` (`Banner`, `Button`, `AlertDialog`). Match Joined Premium UX patterns, do not copy `joined-frontend/components/billing` internals.
 
 ## In scope
 
-- Billing page on `acorn/website` using step-50 checkout/portal (same session cookie). Design-system primitives only.
-- Draft `/terms` and `/privacy` with Acorn-specific placeholder copy and a visible draft `Banner`. Cookie consent can wait for step-45/55 unless the same `BrandFooter` slot is already available.
-- Delete-my-data calls `DELETE /v1/auth/account` (or Acorn’s documented equivalent) through a website BFF, with `AlertDialog` confirm.
-- Empty/unauthenticated states send the user through the existing `/sign-in` placeholder.
-- Checkout success/cancel routes if step-50 checkout redirects back to the website.
+- Wire `/billing` to step-50 checkout/portal (same `acorn_session`). Keep `sid-ui` primitives.
+- Draft `/terms` and `/privacy` with Acorn-specific placeholder copy and a visible draft `Banner`.
+- Delete-my-data: new acorn-backend account-delete (Elon) + confirm `AlertDialog` on the website. Copy must say the **Acorn** account (and `AcornDB` data) is removed, not the Joined seeker account.
+- Unauthenticated billing/delete lands on `/sign-in`.
+- Checkout success/cancel routes if step-50 redirects back to :6005.
 
 ## Out of scope
 
-- No live Stripe. No new billing API (Penny, step-50).
+- No live Stripe. No new billing catalog (Penny, step-50).
 - No `acorn*` git branch.
-- Do not copy-paste `joined-frontend/components/billing` or `remove-account.tsx` internals.
+- Do not proxy Joined `DELETE /v1/auth/account`.
 
 ## Files and areas to touch
 
-- `acorn/website/app/billing/` (new), `app/terms/`, `app/privacy/`
-- `acorn/website/app/api/` — billing forwarder + `auth/account` DELETE (new)
-- `acorn/website/lib/routes.ts`, `lib/config.ts`, `.env.example`
-- `acorn/website/components/` — billing, legal, delete (new)
-- `acorn/website/components/site-header.tsx`, landing/sign-in — nav/footer links
-- Reference only: `joined-frontend/components/settings/remove-account.tsx`, `joined-frontend/lib/billing.ts`
+- `acorn-frontend/app/(workspace)/billing/` — wire real checkout
+- `acorn-frontend/app/terms/`, `app/privacy/` (new)
+- `acorn-frontend/lib/routes.ts`, `lib/billing.ts`, `lib/config.ts`
+- `acorn-frontend/components/billing/*`, `components/shell/acorn-header.tsx`
+- `acorn-backend/account/` + `acornapi` — delete-account route (new, Elon)
+- Do not add `packages/design-system` source
 
 ## Implementation notes
 
-- Checkout/portal paths: whatever step-50 documented (`/v1/me/billing/*` with an Acorn plan, or `/v1/me/acorn-billing/*`). Website talks only to its BFF.
-- Delete: `fetch("/api/auth/account", { method: "DELETE" })` after confirm. On 204/200, clear local UI and send the user to `/`.
-- Legal pages: draft disclaimer required. Do not claim counsel approval.
-- Hosts and flags from `lib/config.ts`. Feature-flag checkout if `BILLING_CHECKOUT_ENABLED` is false.
-- Tokens only. No hex.
+- Checkout/portal paths: whatever step-50 documented on **acorn-backend** (e.g. `/acorn/billing/checkout`). The browser talks to `ACORN_API_URL` or a same-origin BFF that forwards `acorn_session`.
+- Delete: confirm, then a documented `DELETE /acorn/auth/account` (or equivalent constant). On success, clear `acorn_session` and send the user to `/`.
+- Legal pages: draft disclaimer required.
+- Tokens from `sid-ui`. Feature-flag checkout if no Stripe session URL is configured.
 
 ## Acceptance criteria
 
-1. `bun --filter acorn-website typecheck`, lint, and format pass.
-2. Signed-in user can open billing, read draft legal pages, and trigger delete-my-data against local backend.
+1. `bun --filter acorn-frontend typecheck`, lint, and format pass; `go test ./acorn-backend/...` if delete is in this PR.
+2. Signed-in user can open billing, read draft legal pages, and trigger delete-my-data against local acorn-backend.
 3. Signed-out billing/delete lands on `/sign-in`.
-4. Diff stays in `acorn/website/**`, with Elon on the PR.
+4. Diff stays in `acorn-frontend/**` (Leo) plus `acorn-backend/**` (Elon) for delete/checkout mount.
 
 ## Test and validation
 
 ```bash
-bun --filter acorn-website typecheck
-bun --filter acorn-website lint
+bun --filter acorn-frontend typecheck
+bun --filter acorn-frontend lint
 bun run ci format
-bun run ci test
+go test ./acorn-backend/...
 ```
 
-Add tests for delete confirm-gate (no fetch until confirm) and 401 forward. Manual (human): test-mode checkout redirect, open `/terms` `/privacy`, delete against local API.
+Add tests for delete confirm-gate and 401 without session. Manual (human): test-mode checkout redirect, `/terms` `/privacy`, delete against local acorn-backend.
 
 ## Risks and soft parks
 
-- If step-50 is not merged, ship legal + delete first and keep billing as a “coming next” `Banner` that does not call Stripe — or wait. Do not hardcode a fake checkout URL.
-- Delete is account-wide (`DELETE /v1/auth/account`), not Acorn-only. The confirm copy must say the Joined account is removed.
+- If step-50 is not merged, keep checkout buttons off (`lib/billing.ts`) and ship legal + delete, or wait. Do not hardcode a fake Stripe URL.
+- Mixing Joined and Acorn delete is a data-loss bug.
 - Infra: cancelled CI can look green. Require real green.
 
 ## Definition of done

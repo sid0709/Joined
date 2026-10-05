@@ -42,7 +42,7 @@ Scoutwell marketing footer (`app/(marketing)/layout.tsx`) is `BrandFooter` only;
 - `docs/90-compliance-privacy-security.md` — link the new folder
 - `joined-frontend` legal pages from step-45 — swap body source
 - `scoutwell-frontend/lib/routes.ts`, marketing layout, optional `/terms` `/privacy`
-- `packages/design-system` `BrandFooter` — legal links slot if step-45 did not add it
+- `sid-ui` `BrandFooter` — legal links slot if step-45 did not add it (sid-ui repo + catalog pin, not `packages/`)
 - Acorn: only if sharing the markdown source; otherwise leave step-51 placeholders pointing at the same `docs/legal` text
 
 ## Implementation notes

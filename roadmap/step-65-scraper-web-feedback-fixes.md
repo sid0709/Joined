@@ -29,7 +29,7 @@ If a bug is API-shaped, Elon coordinates Penny; do not patch around a broken con
 ## In scope
 
 - Highest-impact `scoutwell-frontend` issues from week-1 scrapers (earnings dashboard, payouts page, submit flow on the site, copy, nav).
-- Use `@joined/design-system`. If a primitive is missing, add it in `packages/design-system` and `joined-theme` in the same change.
+- Use `sid-ui`. If a primitive is missing, add it in the sid-ui repo, publish, bump the catalog pin, and show it in `sid-ui-theme`.
 - PR lists the feedback items closed.
 
 ## Out of scope
@@ -43,7 +43,7 @@ If a bug is API-shaped, Elon coordinates Penny; do not patch around a broken con
 - `scoutwell-frontend/app/(app)/earnings/`, `app/(app)/payouts/`, submit routes as needed
 - `scoutwell-frontend/components/earnings/`, `components/payouts/`
 - `scoutwell-frontend/lib/earnings.ts`, `lib/routes.ts`
-- `packages/design-system/**` + `joined-theme/**` only if a missing primitive blocked the fix
+- Catalog `sid-ui` pin only if a missing primitive blocked the fix (no `packages/design-system`)
 - Do not edit `scout-extension/**`
 
 ## Implementation notes

@@ -18,14 +18,14 @@ Parallel with [step-57](step-57-e2e-seeker-premium.md) if specs do not share fil
 
 Scoutwell routes (`scoutwell-frontend/lib/routes.ts`): `/`, `/sign-in`, `/earnings`, `/payouts`, `/submit`, … Origin helper: `SCOUTWELL_FRONTEND_ORIGIN` default `http://localhost:6003`. API: scoutwell-backend :8082. Session cookie: `scoutwell_session`.
 
-Acorn website (`acorn/website`): `/`, `/sign-in`, later `/profile` / résumés / billing from [steps 48–51](step-48-acorn-profile-editor.md). Port 6005 (`tools/local-services.mjs`). Cookie: `joined_session`. No Playwright origin helper yet.
+Acorn (`acorn-frontend`): `/`, `/sign-in`, `/sign-up`, `/overview`, `/profile`, `/resume`, `/billing` (`lib/routes.ts`). Port **6005**. Cookie: **`acorn_session`**. API: `acorn-backend` :8083 (`ACORN_API_URL`). No Playwright origin helper yet.
 
-e2e-smoke workflow starts joined-backend :8080, scoutwell-backend :8082, joined-frontend :6002, scoutwell-frontend :6003. It does **not** start Acorn website or backend-core :8083.
+e2e-smoke workflow starts joined-backend :8080, scoutwell-backend :8082, joined-frontend :6002, scoutwell-frontend :6003. It does **not** start `acorn-frontend` or `acorn-backend` (`dev:acorn-api`).
 
 ## In scope
 
 - Scoutwell: home, sign-in (email or existing helper), earnings or payouts page render. Submit/capture is **not** required if it needs the extension.
-- Acorn website: landing, sign-in placeholder/session, profile or résumé page render if steps 48–49 merged (`test.skip` + annotate if not).
+- Acorn: landing, `/sign-in` / `/sign-up`, signed-in `/overview` or `/profile` render (`test.skip` + annotate if auth helpers are missing).
 - Reuse `tests/e2e/helpers`. Do not hit Chrome Web Store. Do not start Acorn extension automation unless a documented harness already exists.
 - CI: extend `e2e-smoke.yml` or add a job that starts `acorn-website` on 6005 when those specs run.
 
@@ -38,16 +38,16 @@ e2e-smoke workflow starts joined-backend :8080, scoutwell-backend :8082, joined-
 ## Files and areas to touch
 
 - `tests/e2e/specs/scoutwell-app.e2e.ts` (new)
-- `tests/e2e/specs/acorn-website.e2e.ts` (new)
-- `tests/e2e/helpers/origins.ts` — `ACORN_WEBSITE_ORIGIN` default `http://localhost:6005`
+- `tests/e2e/specs/acorn-frontend.e2e.ts` (new)
+- `tests/e2e/helpers/origins.ts` — `ACORN_FRONTEND_ORIGIN` default `http://localhost:6005`, `ACORN_API_ORIGIN` default `http://127.0.0.1:8083`
 - `tests/e2e/README.md`
-- `.github/workflows/e2e-smoke.yml` — start Acorn website if specs require it
+- `.github/workflows/e2e-smoke.yml` — start `acorn-frontend` and `acorn-backend` if specs require them
 
 ## Implementation notes
 
 Scoutwell sign-in: prefer email + `EMAIL_PROVIDER=log` if Scoutwell uses the same log sender; otherwise assert the sign-in page and a 401/redirect on `/earnings` when logged out, plus a render when a helper can mint a session. Do not scrape the extension.
 
-Acorn: assert landing copy and `/sign-in` placeholder. If `JOINED_WEB_URL` is unset, do not require a Joined redirect. Skip profile/billing with `test.info().annotations` when routes are missing.
+Acorn: assert landing copy and `/sign-in`. Do not require a Joined redirect (`joined_session` is not Acorn auth). Skip paid checkout if step-50 is not merged. Use `acorn_session`, not `joined_session`.
 
 Keep timeouts in `helpers/timeouts.ts`. Do not add host string literals in specs.
 

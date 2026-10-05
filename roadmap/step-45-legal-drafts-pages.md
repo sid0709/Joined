@@ -2,7 +2,7 @@
 
 - **Week:** W3
 - **Status:** Planned
-- **Owner:** Leo (web frontends lane: `joined-frontend/**`, `packages/design-system/**`)
+- **Owner:** Leo (web frontends lane: `joined-frontend/**`; UI from `sid-ui`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(joined-frontend): terms privacy cookie draft pages (roadmap step-45)`
 
@@ -16,18 +16,18 @@ Joined ships public draft Terms, Privacy, and cookie-consent surfaces so counsel
 
 Independent of other W3 APIs. Counsel-approved copy is W4 [step-55](step-55-legal-docs-package.md). Acorn legal pages are [step-51](step-51-acorn-billing-legal-delete.md). Compliance framing already lives in `docs/90-compliance-privacy-security.md` (⚖️ counsel review) but there is no `docs/legal/` package and no user-facing ToS/Privacy/Cookie markdown.
 
-Today no app exposes `/terms`, `/privacy`, or `/cookies`. `joined-frontend/lib/routes.ts` has no legal keys. Site chrome is `joined-frontend/components/shell/seeker-header.tsx` and `employer-header.tsx`; there is no site-wide marketing footer. `BrandFooter` (`packages/design-system/src/brand/BrandFooter.tsx`) is a Joined sign-off only (`lead`, optional `href`) and has no Terms/Privacy slots. Cookie consent UI does not exist. Existing cookie names are session/theme, not consent: `SESSION_COOKIE = "joined_session"` in `joined-frontend/lib/auth/constants.ts`, `MODE_COOKIE = "joined_mode"` in `joined-frontend/lib/workspace-preference.ts`. Apply-flow consent (`APPLY_CONSENT_VERSION` in `joined-frontend/lib/intake.ts`) is a different concern.
+Today no app exposes `/terms`, `/privacy`, or `/cookies`. `joined-frontend/lib/routes.ts` has no legal keys. Site chrome is `joined-frontend/components/shell/seeker-header.tsx` and `employer-header.tsx`; there is no site-wide marketing footer. `BrandFooter` is imported from `sid-ui` (used in `joined-frontend/app/(auth)/layout.tsx` and `app/not-found.tsx`) and is a Joined sign-off only (`lead`, optional `href`) with no Terms/Privacy slots. Cookie consent UI does not exist. Existing cookie names are session/theme, not consent: `SESSION_COOKIE = "joined_session"` in `joined-frontend/lib/auth/constants.ts`, `MODE_COOKIE = "joined_mode"` in `joined-frontend/lib/workspace-preference.ts`. Apply-flow consent (`APPLY_CONSENT_VERSION` in `joined-frontend/lib/intake.ts`) is a different concern.
 
-Design-system pieces to reuse: `Text`/`Heading` (`Primitives.tsx`), `Markdown` (`Content.tsx`), `PageContainer`/`PageHeader`/`SectionCard` (`Page.tsx`), `Banner` (`Feedback.tsx`), `Dialog`/`AlertDialog` (`Overlay.tsx`). There is no Cookie primitive.
+`sid-ui` pieces to reuse: `Text`, `Heading`, `PageContainer`, `PageHeader`, `SectionCard`, `Banner`, `Dialog`, `AlertDialog`, `BrandFooter`. There is no Cookie primitive. `packages/design-system` and `joined-theme` are gone; missing primitives go to the sid-ui repo, then bump the catalog pin.
 
 Depends on: none. Related: step-51 (Acorn legal), step-55 (shared legal package), step-44 privacy settings (`joined-frontend/components/settings/privacy-settings.tsx`).
 
 ## In scope
 
 - Public routes in `joined-frontend` at `/terms`, `/privacy`, and `/cookies` (or a cookies section on privacy if a dedicated page is redundant — still add `ROUTES` keys).
-- Long-form layout from `@joined/design-system` (`PageContainer`, `Heading`, `Text`/`Markdown`, `Banner`). Visible draft disclaimer on every page: not counsel-approved, not legal advice.
+- Long-form layout from `sid-ui` (`PageContainer`, `Heading`, `Text`, `Banner`). Visible draft disclaimer on every page: not counsel-approved, not legal advice.
 - First-visit cookie-consent banner or dialog: necessary vs analytics. Persist the choice in one named constant cookie (define once; do not copy a raw cookie string). Honor the stored choice on later visits.
-- Footer or header links from seeker chrome (and auth `BrandFooter` if that is the only footer) to these pages. If `BrandFooter` needs a legal-links slot, add it in `packages/design-system` and show it in `joined-theme` in the same change.
+- Footer or header links from seeker chrome (and auth `BrandFooter` if that is the only footer) to these pages. If `BrandFooter` needs a legal-links slot, add it in the sid-ui repo, publish, bump the `sid-ui` catalog pin, and show it in `sid-ui-theme`.
 - Named constants for routes, cookie name, consent version, and copy in the owning module (`lib/legal.ts` or similar).
 
 ## Out of scope
@@ -45,7 +45,7 @@ Depends on: none. Related: step-51 (Acorn legal), step-55 (shared legal package)
 - `joined-frontend/components/` — legal page body + consent banner (new)
 - `joined-frontend/components/shell/` — links from seeker/employer chrome
 - `joined-frontend/app/(auth)/layout.tsx` — optional footer links next to `BrandFooter`
-- `packages/design-system/src/brand/BrandFooter.tsx` — only if a legal-links slot is required (plus `joined-theme` demo)
+- sid-ui (external) — only if `BrandFooter` needs a legal-links slot
 - No `docs/legal/` yet (step-55)
 
 ## Implementation notes
@@ -62,7 +62,7 @@ Depends on: none. Related: step-51 (Acorn legal), step-55 (shared legal package)
 2. `/terms`, `/privacy`, and cookie consent are reachable without sign-in; a draft disclaimer is visible on each legal page.
 3. First visit shows consent UI; a documented choice persists and is honored on reload.
 4. Seeker chrome (or the only site footer) links to the pages.
-5. Diff stays in Leo's lane (`joined-frontend/**`, and `packages/design-system/**` + `joined-theme/**` only if `BrandFooter` gains legal links).
+5. Diff stays in Leo's lane (`joined-frontend/**`). A `sid-ui` primitive change is a separate publish + catalog-pin bump, not source under `packages/`.
 
 ## Test and validation
 

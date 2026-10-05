@@ -2,7 +2,7 @@
 
 - **Week:** W3
 - **Status:** Planned
-- **Owner:** Leo (web frontends lane: `admin-frontend/**`, `packages/design-system/**`)
+- **Owner:** Leo (web frontends lane: `admin-frontend/**`; UI from `sid-ui`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(admin-frontend): user management (roadmap step-53)`
 
@@ -22,7 +22,7 @@ Staff session lives in `joined_admin_session` (`lib/staff-session.ts`). Confirm 
 
 ## In scope
 
-- New Users section: search, detail, actions, using `@joined/design-system` and the existing admin proxy.
+- New Users section: search, detail, actions, using `sid-ui` and the existing admin proxy.
 - Confirm dialogs for cancel, refund, and suspend. Show audit/reason fields the API requires. Mask PII by default.
 - Nav entry consistent with `admin-frontend/lib/nav.ts` (`CONSOLE_NAV` + `ROUTES`).
 - Empty, 404, and 401 states.
@@ -40,7 +40,7 @@ Staff session lives in `joined_admin_session` (`lib/staff-session.ts`). Confirm 
 - `admin-frontend/components/` — search, detail, action dialogs (new)
 - `admin-frontend/lib/users.ts` (new) — types matching step-52 JSON
 - Existing proxy: `app/api/admin/[...path]/route.ts` — reuse, do not fork
-- Design-system only if a primitive is missing (add + `joined-theme` demo)
+- `sid-ui` only if a primitive is missing (add in the sid-ui repo, publish, bump the catalog pin, show in `sid-ui-theme`)
 
 ## Implementation notes
 

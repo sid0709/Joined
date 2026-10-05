@@ -30,18 +30,20 @@ Status values in the index: **Done**, **In review**, **Planned**.
 
 ## Team and file ownership
 
-| Specialist                     | Owns (only these paths)                                                                                                                                                  |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Maya, Scout extension          | `scout-extension/**`                                                                                                                                                     |
-| Leo, web frontends             | `joined-frontend/**`, `scoutwell-frontend/**`, `admin-frontend/**`, `connected-frontend/**`, `joined-theme/**`, `packages/design-system/**`, `packages/google-signin/**` |
-| Ravi, platform backend         | `joined-backend/**`, `admin-backend/**`, `backend-core/**` except `scout/` and `billing/`, `packages/job-schema/**`                                                      |
-| Penny, money and Scout backend | `backend-core/scout/**`, `backend-core/billing/**`, `scoutwell-backend/**`, `packages/scout/**`                                                                          |
-| Quinn, QA and review           | `tests/**`, `.github/workflows/**`                                                                                                                                       |
-| Elon, integrator               | root files, `bun.lock`, `go.work`, `deploy/**`, `docker/**`, `tools/**`, `roadmap/**`, `acorn/**`                                                                        |
+| Specialist                     | Owns (only these paths)                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Maya, Scout extension          | `scout-extension/**`                                                                                                                          |
+| Leo, web frontends             | `joined-frontend/**`, `scoutwell-frontend/**`, `admin-frontend/**`, `connected-frontend/**`, `acorn-frontend/**`, `packages/google-signin/**` |
+| Ravi, platform backend         | `joined-backend/**`, `admin-backend/**`, `backend-core/**` except `scout/` and `billing/`, `packages/job-schema/**`                           |
+| Penny, money and Scout backend | `backend-core/scout/**`, `backend-core/billing/**`, `scoutwell-backend/**`, `packages/scout/**`                                               |
+| Quinn, QA and review           | `tests/**`, `.github/workflows/**`                                                                                                            |
+| Elon, integrator               | root files, `bun.lock`, `go.work`, `deploy/**`, `docker/**`, `tools/**`, `roadmap/**`, `acorn/**`, `acorn-backend/**`                         |
+
+Product UI is the external `sid-ui` package (catalog pin; source and `sid-ui-theme` catalog live in https://github.com/sid0709/sid-ui). Do not add design-system source under `packages/`. A missing primitive is added in the sid-ui repo, published, and the catalog pin bumped — not copied into an app.
 
 A step that needs a file outside its owner's paths is split, or Elon coordinates the other owner. Live keys, real email, and production data stay off unless the user approves that exact change.
 
-Leo + Elon for `acorn/website` (Elon owns `acorn/**`; Leo implements with Elon coordinating the PR).
+Leo owns `acorn-frontend/**`. Elon owns `acorn-backend/**` and `acorn/**` (extension, demo, shared). Steps 48–51 that need both get Elon on the PR. Never open a git branch named `acorn*`.
 
 ## Step index
 
@@ -99,7 +101,7 @@ W2 step files stay in this folder. Do not delete historical W1/W2 docs.
 
 ### W3: Oct 19 to 25. Scraper onboarding; build freeze Friday Oct 23
 
-Areas: scraper onboarding, saved searches and alerts, fit score, SEO, resume builder gaps, application tracker, report buttons, scam score, data export, legal drafts, payout provider, Acorn website profile/resume/billing, admin user and source management, job quality dashboard, earnings report, disputes.
+Areas: scraper onboarding, saved searches and alerts, fit score, SEO, resume builder gaps, application tracker, report buttons, scam score, data export, legal drafts, payout provider, Acorn (`acorn-frontend` + `acorn-backend`) profile/resume/billing, admin user and source management, job quality dashboard, earnings report, disputes.
 
 Target branch: **`stage-roadmap-w34`**. Ops-only (not coding steps): scraper account provisioning, staffing review queue, feedback channel process.
 
@@ -122,7 +124,7 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Planned          |
 | [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111)      |
 | [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | In review (#113) |
-| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (coord Elon for acorn/**)     | Leo        | Planned          |
+| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | Planned          |
 | [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned          |
 | [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned          |
 | [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned          |

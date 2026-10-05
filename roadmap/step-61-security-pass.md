@@ -45,7 +45,7 @@ Related soft parks: e2e-smoke `continue-on-error`; step-47 live payout flag; ste
 Minimum checklist (record pass/fail + evidence):
 
 1. `git grep` / secret scan for `sk_live`, `rk_live`, `whsec_`, `AKIA`, private keys
-2. Cookie flags on `joined_session`, `scoutwell_session`, `joined_admin_session`
+2. Cookie flags on `joined_session`, `scoutwell_session`, `joined_admin_session`, `acorn_session`
 3. CSRF on email auth routes (`joined-frontend/lib/auth/csrf.ts`)
 4. CORS allowlists (`CORS_ORIGINS`) — no `*` with credentials
 5. SSRF on job URL fetchers / dead-link checker — private IPs and metadata hosts
