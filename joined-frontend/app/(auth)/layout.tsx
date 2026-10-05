@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { BrandFooter, BrandLockup, Center, Stack } from "sid-ui";
+import { LegalLinks } from "@/components/legal/legal-links";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -13,6 +14,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <BrandLockup tagline="Find a job, or the people to hire." />
         {children}
         <BrandFooter lead="©" />
+        <LegalLinks />
       </Stack>
     </Center>
   );

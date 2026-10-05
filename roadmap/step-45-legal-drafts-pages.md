@@ -1,7 +1,7 @@
 # Step 45: Legal draft pages
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Leo (web frontends lane: `joined-frontend/**`; UI from `sid-ui`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(joined-frontend): terms privacy cookie draft pages (roadmap step-45)`
