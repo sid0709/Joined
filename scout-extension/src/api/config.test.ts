@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { getApiHost, getWebOrigin, getSignInUrl, getSessionCookieName } from "./config";
+
+import { getApiHost, getSessionCookieName, getSignInUrl, getWebOrigin } from "./config";
 
 describe("config", () => {
   test("getApiHost returns default when no env var set", () => {
