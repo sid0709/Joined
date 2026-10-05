@@ -1,17 +1,17 @@
 "use client";
 
-import { Card, CodeBlock, Heading, Stack, Text } from "@joined/design-system";
+import { Card, CodeBlock, Heading, Stack, Text } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";
 
-const TSX = `import { Button } from "@joined/design-system";
+const TSX = `import { Button } from "sid-ui";
 
 export function SaveBar({ onSave }: { onSave: () => void }) {
   return <Button label="Save" variant="primary" onClick={onSave} />;
 }`;
 
-const CSS = `@import "@joined/design-system/styles/joined.css";
+const CSS = `@import "sid-ui/styles/joined.css";
 
 html,
 body {

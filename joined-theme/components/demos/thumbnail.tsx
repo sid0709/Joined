@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, HStack, Stack, Text, Thumbnail } from "@joined/design-system";
+import { Button, HStack, Stack, Text, Thumbnail } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview, Row, SAMPLE_IMAGES } from "./shared";

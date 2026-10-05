@@ -12,7 +12,7 @@ import {
   Text,
   Tile,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Caption, Examples, Preview } from "./shared";
 

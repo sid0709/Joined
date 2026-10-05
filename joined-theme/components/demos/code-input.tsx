@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Button,
-  CodeInput,
-  HStack,
-  Stack,
-  Text,
-  type CodeInputStatus,
-} from "@joined/design-system";
+import { Button, CodeInput, HStack, Stack, Text, type CodeInputStatus } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

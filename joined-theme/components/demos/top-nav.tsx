@@ -20,7 +20,7 @@ import {
   TopNavMenu,
   icons,
   BrandHeading,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview, SAMPLE_IMAGES } from "./shared";

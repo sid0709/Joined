@@ -1,6 +1,6 @@
 "use client";
 
-import { JoinedProvider, type ColorMode as ThemeColorMode } from "@joined/design-system/theme";
+import { JoinedProvider, type ColorMode as ThemeColorMode } from "sid-ui/theme";
 import Link from "next/link";
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 

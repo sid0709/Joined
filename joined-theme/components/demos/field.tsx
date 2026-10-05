@@ -13,7 +13,7 @@ import {
   TextInput,
   icons,
   type FieldStatusVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useId, useState } from "react";
 
 import { Examples, Preview } from "./shared";

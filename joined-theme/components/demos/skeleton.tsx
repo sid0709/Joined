@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Badge,
-  Button,
-  Card,
-  HStack,
-  Heading,
-  Skeleton,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Avatar, Badge, Button, Card, HStack, Heading, Skeleton, Stack, Text } from "sid-ui";
 import { useEffect, useState } from "react";
 
 import { Examples, PEOPLE, Preview } from "./shared";

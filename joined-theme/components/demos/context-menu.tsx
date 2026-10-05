@@ -13,7 +13,7 @@ import {
   Thumbnail,
   icons,
   type ContextMenuOption,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, SAMPLE_IMAGES } from "./shared";

@@ -17,7 +17,7 @@ import {
   TextArea,
   useToast,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   ApiError,
   PAYOUT_STATUS,

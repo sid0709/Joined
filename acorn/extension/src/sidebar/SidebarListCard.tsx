@@ -1,15 +1,6 @@
 import { type ReactNode } from "react";
 import type { AcornFaceMode } from "@acorn/face";
-import {
-  Badge,
-  Card,
-  Glyph,
-  HStack,
-  IconButton,
-  MoreMenu,
-  Text,
-  VStack,
-} from "@joined/design-system";
+import { Badge, Card, Glyph, HStack, IconButton, MoreMenu, Text, VStack } from "sid-ui";
 import { ListCardMark } from "../acorn-face/ListCardMark";
 
 export type SidebarListCardAction = {

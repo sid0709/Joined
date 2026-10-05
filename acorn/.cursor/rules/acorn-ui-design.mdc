@@ -1,12 +1,12 @@
 ---
-description: Acorn UI is built from @joined/design-system — header + PillNav, Now card, compact rows, drawers, Joined tokens only
+description: Acorn UI is built from sid-ui — header + PillNav, Now card, compact rows, drawers, Joined tokens only
 globs: **/*.{tsx,css}
 alwaysApply: false
 ---
 
 # Acorn UI design
 
-Follow [`design/README.md`](../../design/README.md) and [`design/tokens.md`](../../design/tokens.md). The sidebar imports `@joined/design-system/styles/joined.css` and wraps in `JoinedProvider`. Use design-system components first; Acorn CSS (`extension/src/sidebar/styles/`) only arranges them and styles Acorn-only pieces (Acorn Face, row logo mark, generate progress, plan steps).
+Follow [`design/README.md`](../../design/README.md) and [`design/tokens.md`](../../design/tokens.md). The sidebar imports `sid-ui/styles/joined.css` and wraps in `JoinedProvider`. Use design-system components first; Acorn CSS (`extension/src/sidebar/styles/`) only arranges them and styles Acorn-only pieces (Acorn Face, row logo mark, generate progress, plan steps).
 
 ## Shell
 

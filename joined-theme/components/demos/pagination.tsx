@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Badge,
-  Card,
-  HStack,
-  Pagination,
-  Stack,
-  Text,
-  type PaginationVariant,
-} from "@joined/design-system";
+import { Badge, Card, HStack, Pagination, Stack, Text, type PaginationVariant } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

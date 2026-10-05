@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Card,
-  Divider,
-  HStack,
-  Heading,
-  Icon,
-  Stack,
-  Switch,
-  Text,
-  icons,
-} from "@joined/design-system";
+import { Card, Divider, HStack, Heading, Icon, Stack, Switch, Text, icons } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

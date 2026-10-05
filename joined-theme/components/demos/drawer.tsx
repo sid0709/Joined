@@ -34,7 +34,7 @@ import {
   type DrawerSide,
   type DrawerSize,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";

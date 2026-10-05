@@ -1,4 +1,4 @@
-import { Button, HStack } from "@joined/design-system";
+import { Button, HStack } from "sid-ui";
 
 /** Next/first links for cursor pagination: the API only moves forward. */
 export function CursorPager({

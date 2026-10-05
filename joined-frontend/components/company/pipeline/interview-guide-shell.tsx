@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Button,
-  HStack,
-  Icon,
-  IconButton,
-  Stack,
-  Text,
-  TextArea,
-  TextInput,
-  icons,
-} from "@joined/design-system";
+import { Button, HStack, Icon, IconButton, Stack, Text, TextArea, TextInput, icons } from "sid-ui";
 import {
   MAX_GUIDE_PROMPTS,
   MAX_GUIDE_SECTIONS,

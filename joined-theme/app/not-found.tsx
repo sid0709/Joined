@@ -1,4 +1,4 @@
-import { BrandLockup, Button, EmptyState, Stack } from "@joined/design-system";
+import { BrandLockup, Button, EmptyState, Stack } from "sid-ui";
 
 export default function NotFound() {
   return (

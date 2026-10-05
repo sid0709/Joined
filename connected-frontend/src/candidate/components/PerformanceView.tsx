@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph } from "@joined/design-system";
+import { Glyph } from "sid-ui";
 import { useMemo } from "react";
 
 import { MONEY_LINKS, SectionNav } from "@/src/candidate/components/ui/SectionNav";

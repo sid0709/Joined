@@ -12,7 +12,7 @@ import {
   Text,
   icons,
   type BannerStatus,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Examples, Preview } from "./shared";

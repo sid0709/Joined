@@ -14,7 +14,7 @@ import {
   createStaticSource,
   icons,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useEffect, useMemo, useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";

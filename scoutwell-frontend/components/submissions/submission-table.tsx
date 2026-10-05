@@ -1,15 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Badge,
-  EmptyState,
-  HStack,
-  Stack,
-  Table,
-  Text,
-  type TableColumn,
-} from "@joined/design-system";
+import { Badge, EmptyState, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { CHANNEL_LABEL, type Submission } from "@joined/scout";
 import { SubmissionStatusBadge } from "@/components/status-badge";
 import { formatDay } from "@/lib/dates";

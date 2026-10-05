@@ -7,7 +7,7 @@ alwaysApply: true
 
 **Never start the main servers. Never CDP. Never mock-up test.** The human runs API/admin/frontend/theme. Edit code only. Do not `go run`, `bun run dev`, `next dev`, kill listeners, browser-automate, snapshot, or click through localhost to “verify.”
 
-This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `@joined/design-system`. Apps consume it; do not copy a component, token, or helper into a second workspace.
+This is a **bun workspaces monorepo**. Work from the repo root. Shared UI is the `sid-ui` package (https://github.com/sid0709/sid-ui). Apps consume it from the catalog. Do not copy a component, token, or helper into a workspace, and do not add the source back under `packages/`.
 
 ## Package manager
 
@@ -28,7 +28,7 @@ Do not create or commit `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`. P
 Never inline a value that belongs in env, a config module, a design token, or a named constant. This applies in every language. The stack rule for the files you are editing says where that value lives.
 
 - Secrets and API hosts come from the environment or that stack's config module. A literal host or key in source is a bug.
-- Colors, spacing, type, radii, and shadows in UI come from `@joined/design-system` tokens. A hex color or an inline style for those is a bug.
+- Colors, spacing, type, radii, and shadows in UI come from `sid-ui` tokens. A hex color or an inline style for those is a bug.
 - Timeouts, limits, ids, and protocol strings are named constants in the module that owns them.
 - A value used by more than one workspace lives in one shared package.
 
@@ -40,11 +40,11 @@ Follow the rule that matches the folder you are editing, and use only that folde
 
 | Folder | Rule file |
 | --- | --- |
-| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme` | `.cursor/rules/nextjs.mdc` |
-| UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension` | `.cursor/rules/design-system.mdc` |
-| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core` | `.cursor/rules/go.mdc` |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `acorn-frontend`, `joined-theme` | `.cursor/rules/nextjs.mdc` |
+| UI on `sid-ui`: those apps, `packages/scout`, `acorn/extension`, `acorn-frontend` | `.cursor/rules/design-system.mdc` |
+| Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, `backend-core` | `.cursor/rules/go.mdc` |
 | Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.cursor/rules/vite.mdc` |
-| `packages/design-system` and the `joined-theme` catalog | `.cursor/rules/theme-tracks-design-system.mdc` |
+| `joined-theme` catalog for the published `sid-ui` package | `.cursor/rules/theme-tracks-design-system.mdc` |
 
 Claude Code loads the same text from `.claude/rules/`. Acorn's own rules under `acorn/.cursor/rules/` still apply on top of these.
 

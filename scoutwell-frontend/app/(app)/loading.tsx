@@ -1,4 +1,4 @@
-import { Skeleton, Stack } from "@joined/design-system";
+import { Skeleton, Stack } from "sid-ui";
 
 const HERO = 72;
 const BODY = 280;

@@ -1,4 +1,4 @@
-import { Glyph, HStack, Stack, SelectableCard, Text, ToggleButton } from "@joined/design-system";
+import { Glyph, HStack, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";

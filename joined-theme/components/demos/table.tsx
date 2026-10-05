@@ -22,7 +22,7 @@ import {
   type BadgeVariant,
   type TableColumn,
   type TableDensity,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

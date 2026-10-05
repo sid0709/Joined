@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Button } from "@joined/design-system";
+import { Button } from "sid-ui";
 
 type LoadMoreFooterProps = {
   hasMore: boolean;

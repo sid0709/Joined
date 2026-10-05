@@ -46,11 +46,11 @@ export const LOCAL_SERVICES = [
     startExtraArgs: [],
   },
   {
-    id: "acorn-website",
+    id: "acorn-frontend",
     shortName: "acorn-web",
     port: 6005,
     color: "\x1b[95m",
-    workspace: "acorn-website",
+    workspace: "acorn-frontend",
     startExtraArgs: ["--port", "6005"],
   },
 ];
@@ -73,8 +73,8 @@ export const API_SERVICES = [
   goService({ id: "joined-backend", shortName: "joined-api", port: 8080, color: "\x1b[34m" }),
   goService({ id: "admin-backend", shortName: "admin-api", port: 8081, color: "\x1b[93m" }),
   goService({ id: "scoutwell-backend", shortName: "scout-api", port: 8082, color: "\x1b[96m" }),
-  // backend-core's own server (api.joinedhq.com): Acorn's routes under /acorn.
-  goService({ id: "backend-core", shortName: "core-api", port: 8083, color: "\x1b[94m" }),
+  // Acorn's own server. Routes stay under /acorn; nginx publishes them at api.joinedhq.com.
+  goService({ id: "acorn-backend", shortName: "acorn-api", port: 8083, color: "\x1b[94m" }),
 ];
 
 /** Frontends audited by `bun run audit` (excludes theme). */

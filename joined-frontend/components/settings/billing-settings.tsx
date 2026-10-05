@@ -11,7 +11,7 @@ import {
   Stack,
   Text,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import {
   BILLING_MESSAGES,

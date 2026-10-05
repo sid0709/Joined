@@ -17,7 +17,7 @@ import {
   icons,
   useFileDrop,
   type UploadHandler,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useEffect, useMemo, useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

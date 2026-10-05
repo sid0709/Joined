@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "@joined/design-system";
+import type { BadgeVariant } from "sid-ui";
 
 import type { CapturedJob, JobBoard } from "../capture";
 import type { DraftStatus, JobDraft } from "../drafts/types";

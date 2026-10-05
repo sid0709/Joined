@@ -3,7 +3,7 @@ import {
   acornSignIn,
   acornSignOut,
   getAcornSession,
-  syncJoinedSession,
+  syncAcornSession,
 } from "../../auth/acorn-auth";
 import { connectSocket } from "../socket-connection";
 import type { RuntimeMessage, SendResponse } from "./shared";
@@ -13,7 +13,7 @@ export function handleSocketStatus(sendResponse: SendResponse): void {
 }
 
 export function handleAuthStatus(sendResponse: SendResponse): void {
-  void syncJoinedSession()
+  void syncAcornSession()
     .then(getAcornSession)
     .then((session) => {
       sendResponse({

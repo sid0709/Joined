@@ -12,7 +12,7 @@ import {
   type IconColor,
   type IconName,
   type IconSize,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Caption, Examples, Preview, Row } from "./shared";
 

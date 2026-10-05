@@ -1,4 +1,4 @@
-import { Button, Heading, PageHeader, Stack, Text } from "@joined/design-system";
+import { Button, Heading, PageHeader, Stack, Text } from "sid-ui";
 import type { Meta } from "@joined/scout";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { LevelTiers } from "@/components/landing/level-tiers";

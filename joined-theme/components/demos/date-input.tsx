@@ -16,7 +16,7 @@ import {
   type DateRangeValue,
   type ISODateString,
   type ISODateTimeString,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

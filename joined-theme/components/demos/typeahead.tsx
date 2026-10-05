@@ -15,7 +15,7 @@ import {
   type SearchSource,
   type SearchableItem,
   type TypeaheadProps,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview } from "./shared";

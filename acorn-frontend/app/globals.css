@@ -1,0 +1,15 @@
+@import "sid-ui/styles/joined.css";
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-family-body);
+}
+
+body {
+  background: var(--color-background-body);
+}
+
+html {
+  scrollbar-gutter: stable;
+}

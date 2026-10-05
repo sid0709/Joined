@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Text, VisuallyHidden } from "@joined/design-system";
+import { Button, Text, VisuallyHidden } from "sid-ui";
 
 import { Examples, Preview, Row } from "./shared";
 

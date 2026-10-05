@@ -1,10 +1,10 @@
 import { readStoredJobDescription } from "@acorn/shared/job-description";
 import type { RuntimeAttachedFile } from "@acorn/shared/plan-runner/types";
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 import { extractError, isNestMissingRoute } from "./http";
 
 export async function fetchRuntimeFile(_apiUrl?: string): Promise<RuntimeAttachedFile | null> {
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/runtime-file`, {
     headers: await authHeaders(),
   });
@@ -27,7 +27,7 @@ export async function fetchRecommendedResume(
 ): Promise<RuntimeAttachedFile | null> {
   const id = String(jobId || "").trim();
   if (!id) return null;
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(id)}/recommended-resume`, {
     headers: await authHeaders(),
   });
@@ -65,7 +65,7 @@ export const NO_STORED_JD = "This job has no stored job description";
 export async function fetchStoredJobDescription(jobId: string, _apiUrl?: string): Promise<string> {
   const id = String(jobId || "").trim();
   if (!id) throw new Error(NO_STORED_JD);
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -92,7 +92,7 @@ export async function fetchGeneratedResumePreview(
 ): Promise<string> {
   const id = String(jobId || "").trim();
   if (!id) throw new Error("Missing job id");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(id)}/resume-preview`, {
     headers: await authHeaders(),
   });

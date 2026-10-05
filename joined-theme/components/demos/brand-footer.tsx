@@ -1,6 +1,6 @@
 "use client";
 
-import { BrandFooter, Stack } from "@joined/design-system";
+import { BrandFooter, Stack } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

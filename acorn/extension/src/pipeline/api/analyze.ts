@@ -1,6 +1,6 @@
 import type { AiUsageSummary } from "@acorn/shared/ai-usage";
 import type { ActionPlan } from "@acorn/shared/plan-runner/types";
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 import { extractError } from "./http";
 
 export interface AiAnalyzePage {
@@ -38,7 +38,7 @@ export async function requestAiAnalyze(
   payload: AiAnalyzeRequest,
   _apiUrl?: string,
 ): Promise<AiAnalyzeResponse> {
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/ai-analyze`, {
     method: "POST",
     headers: await authHeaders(),

@@ -13,7 +13,7 @@ import {
   Tree,
   icons,
   type TreeNode,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

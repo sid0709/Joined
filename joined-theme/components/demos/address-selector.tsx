@@ -1,6 +1,6 @@
 "use client";
 
-import { AddressSelector, Stack, Text, formatAddress, type Address } from "@joined/design-system";
+import { AddressSelector, Stack, Text, formatAddress, type Address } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

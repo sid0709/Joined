@@ -1,11 +1,4 @@
-import {
-  HStack,
-  SectionCard,
-  Stack,
-  Text,
-  Timeline,
-  type TimelineItem,
-} from "@joined/design-system";
+import { HStack, SectionCard, Stack, Text, Timeline, type TimelineItem } from "sid-ui";
 import {
   EARNING_STATUS,
   REWARD_TYPE,

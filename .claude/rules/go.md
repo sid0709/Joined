@@ -1,11 +1,11 @@
 ---
 paths:
-  - "{joined-backend,admin-backend,scoutwell-backend,backend-core}/**/*.go"
+  - "{joined-backend,admin-backend,scoutwell-backend,acorn-backend,backend-core}/**/*.go"
 ---
 
 # Go
 
-Applies to `joined-backend`, `admin-backend`, `scoutwell-backend`, and `backend-core`.
+Applies to `joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, and `backend-core`.
 
 ## Config
 

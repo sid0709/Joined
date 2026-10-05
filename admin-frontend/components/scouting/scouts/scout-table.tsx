@@ -1,15 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Badge,
-  EmptyState,
-  HStack,
-  Stack,
-  Table,
-  Text,
-  type TableColumn,
-} from "@joined/design-system";
+import { Badge, EmptyState, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import {
   LEVEL_BADGE,
   VERIFICATION,

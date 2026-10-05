@@ -16,7 +16,7 @@ import {
   Stack,
   Text,
   type GlyphName,
-} from "@joined/design-system";
+} from "sid-ui";
 import { isCompanyModeEnabled } from "@/lib/config";
 import { AUTH_PAGE_PATHS, BRAND, HIRING_SIGN_UP_HREF, type WorkspaceMode } from "@/lib/routes";
 import {

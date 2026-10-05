@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Icon,
-  Stack,
-  Text,
-  ToggleButton,
-  ToggleButtonGroup,
-  icons,
-  type ButtonSize,
-} from "@joined/design-system";
+import { Icon, Stack, Text, ToggleButton, ToggleButtonGroup, icons, type ButtonSize } from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview, Row } from "./shared";

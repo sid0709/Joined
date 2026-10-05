@@ -10,7 +10,7 @@ describe("image plan", () => {
     expect(services(plan)).toEqual(["admin-backend"]);
     expect(plan.retag).toContain("joined-frontend");
     expect(plan.retag).toContain("joined-backend");
-    expect(plan.retag).toContain("backend-core");
+    expect(plan.retag).toContain("acorn-backend");
   });
 
   it("rebuilds every Go image when backend-core changes", () => {
@@ -19,21 +19,9 @@ describe("image plan", () => {
       "joined-backend",
       "admin-backend",
       "scoutwell-backend",
-      "backend-core",
+      "acorn-backend",
     ]);
     expect(plan.retag).toContain("joined-frontend");
-  });
-
-  it("rebuilds frontends that import the design system", () => {
-    const plan = planImages(["packages/design-system/src/components/index.ts"]);
-    expect(services(plan)).toEqual([
-      "joined-frontend",
-      "admin-frontend",
-      "scoutwell-frontend",
-      "connected-frontend",
-      "joined-theme",
-    ]);
-    expect(plan.retag).toContain("admin-backend");
   });
 
   it("follows workspace dependencies past the app's own package.json", () => {
@@ -53,6 +41,7 @@ describe("image plan", () => {
       "scoutwell-frontend",
       "connected-frontend",
       "joined-theme",
+      "acorn-frontend",
     ]);
     expect(plan.retag).toContain("joined-backend");
   });
@@ -64,12 +53,12 @@ describe("image plan", () => {
       "acorn/extension/src/background.ts",
     ]);
     expect(plan.build).toEqual([]);
-    expect(plan.retag).toHaveLength(9);
+    expect(plan.retag).toHaveLength(10);
   });
 
   it("builds every image for a manual deploy", () => {
     const plan = planImages(["admin-backend/cmd/server/main.go"], { all: true });
     expect(plan.retag).toEqual([]);
-    expect(services(plan)).toHaveLength(9);
+    expect(services(plan)).toHaveLength(10);
   });
 });

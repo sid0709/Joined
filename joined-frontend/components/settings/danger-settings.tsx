@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Stack, useToast } from "@joined/design-system";
+import { Button, Stack, useToast } from "sid-ui";
 import type { AuthSession } from "@/lib/auth/types";
 import { PAUSE_DAYS } from "@/lib/settings";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";

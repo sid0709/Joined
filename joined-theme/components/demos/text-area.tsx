@@ -11,7 +11,7 @@ import {
   TextArea,
   icons,
   type TextAreaSize,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useEffect, useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

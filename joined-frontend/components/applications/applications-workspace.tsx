@@ -15,7 +15,7 @@ import {
   TextInput,
   icons,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { StatGrid } from "@/components/stat-card";
 import {
   applyApplicationExtras,

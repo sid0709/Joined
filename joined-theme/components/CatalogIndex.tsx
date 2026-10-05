@@ -1,4 +1,4 @@
-import { BrandLockup, Heading, List, ListItem, Stack, Text } from "@joined/design-system";
+import { BrandLockup, Heading, List, ListItem, Stack, Text } from "sid-ui";
 
 import { ClientOnly } from "@/components/ClientOnly";
 import { CATALOG, itemHref, type CatalogGroup } from "@/lib/catalog";
@@ -49,8 +49,8 @@ export function CatalogIndex() {
       <Stack gap={2}>
         <Heading level={1}>Browse the library</Heading>
         <Text color="secondary" display="block">
-          Every component from @joined/design-system — original Astryx with the Joined theme. Open a
-          component to see live examples.
+          Every component from sid-ui — original Astryx with the Joined theme. Open a component to
+          see live examples.
         </Text>
       </Stack>
       {CATALOG.map((group) => (

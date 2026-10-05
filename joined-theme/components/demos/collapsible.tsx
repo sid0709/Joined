@@ -15,7 +15,7 @@ import {
   Text,
   icons,
   type CollapsibleGroupDensity,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

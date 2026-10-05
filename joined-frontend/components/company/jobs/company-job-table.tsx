@@ -8,7 +8,7 @@ import {
   Text,
   type DropdownMenuOption,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   JOB_STATUS_META,
   POLICY_META,

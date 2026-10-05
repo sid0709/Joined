@@ -1,4 +1,4 @@
-import { Banner } from "@joined/design-system";
+import { Banner } from "sid-ui";
 import type { MigrationStatus } from "@/lib/migration";
 
 /** Warns when the AI steps cannot run because DeepSeek has no API key. */

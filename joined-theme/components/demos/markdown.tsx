@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card, Markdown, Stack, Text, type MarkdownSource } from "@joined/design-system";
+import { Button, Card, Markdown, Stack, Text, type MarkdownSource } from "sid-ui";
 import { useEffect, useState } from "react";
 
 import { Caption, Examples, Preview, SAMPLE_IMAGES } from "./shared";
@@ -33,13 +33,13 @@ Questions? Reply in the room.`;
 const CODE = `Install the package:
 
 \`\`\`bash
-bun add @joined/design-system
+bun add sid-ui
 \`\`\`
 
 Then render a button:
 
 \`\`\`tsx
-import { Button } from "@joined/design-system";
+import { Button } from "sid-ui";
 
 <Button label="Save" variant="primary" />
 \`\`\``;

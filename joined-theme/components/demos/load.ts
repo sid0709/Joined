@@ -1,6 +1,6 @@
 "use client";
 
-import { Spinner } from "@joined/design-system";
+import { Spinner } from "sid-ui";
 import dynamic from "next/dynamic";
 import { createElement, type ComponentType } from "react";
 
@@ -104,6 +104,13 @@ export const DEMO_COMPONENTS: Record<string, ComponentType> = {
   kanban: dynamic(() => import("./kanban"), { ssr: false, loading }),
   timeline: dynamic(() => import("./timeline"), { ssr: false, loading }),
   "tree-list": dynamic(() => import("./tree-list"), { ssr: false, loading }),
+  "message-list": dynamic(() => import("./message-list"), { ssr: false, loading }),
+  "trend-chart": dynamic(() => import("./trend-chart"), { ssr: false, loading }),
+  "bar-chart": dynamic(() => import("./bar-chart"), { ssr: false, loading }),
+  "donut-chart": dynamic(() => import("./donut-chart"), { ssr: false, loading }),
+  "funnel-chart": dynamic(() => import("./funnel-chart"), { ssr: false, loading }),
+  "heatmap-calendar": dynamic(() => import("./heatmap-calendar"), { ssr: false, loading }),
+  sparkline: dynamic(() => import("./sparkline"), { ssr: false, loading }),
   chat: dynamic(() => import("./chat"), { ssr: false, loading }),
   "visually-hidden": dynamic(() => import("./visually-hidden"), { ssr: false, loading }),
 };

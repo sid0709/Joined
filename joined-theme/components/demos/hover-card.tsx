@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { Caption, Examples, PEOPLE, Preview, Row } from "./shared";
 

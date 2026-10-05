@@ -1,4 +1,4 @@
-import { HStack, Heading, ProgressBar, Stack, Text } from "@joined/design-system";
+import { HStack, Heading, ProgressBar, Stack, Text } from "sid-ui";
 import type { BillingAccount } from "@/lib/company";
 import { formatCents } from "@/lib/money";
 

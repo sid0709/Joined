@@ -13,7 +13,7 @@ import {
   type CalendarEvent,
   type ControlSize,
   type DateRange,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 
 import { Caption, Examples, Preview } from "./shared";

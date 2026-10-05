@@ -1,4 +1,4 @@
-import { Stack, PageHeader } from "@joined/design-system";
+import { Stack, PageHeader } from "sid-ui";
 import { redirect } from "next/navigation";
 
 import type { List, Submission } from "@joined/scout";

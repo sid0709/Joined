@@ -1,4 +1,4 @@
-import { Avatar } from "@joined/design-system";
+import { Avatar } from "sid-ui";
 
 const SIZES = { sm: 36, lg: 64 } as const;
 

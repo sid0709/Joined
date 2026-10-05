@@ -19,7 +19,7 @@ import {
   Timestamp,
   icons,
   type ListDensity,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview } from "./shared";

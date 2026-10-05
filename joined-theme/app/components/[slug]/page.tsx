@@ -1,4 +1,4 @@
-import { Heading, Stack, Text } from "@joined/design-system";
+import { Heading, Stack, Text } from "sid-ui";
 import { notFound } from "next/navigation";
 
 import { ComponentDocs } from "@/components/ComponentDocs";

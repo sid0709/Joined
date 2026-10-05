@@ -16,9 +16,8 @@ import {
   Step,
   Stepper,
   Timeline,
-} from "@joined/design-system";
-import type { ApplicationFollowUpPatch } from "@/components/applications/application-follow-up";
-import { ApplicationFollowUp } from "@/components/applications/application-follow-up";
+  type TimelineItem,
+} from "sid-ui";
 import {
   PIPELINE_STAGES,
   SOURCE_LABEL,

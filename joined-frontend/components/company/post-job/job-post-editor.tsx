@@ -24,7 +24,7 @@ import {
   createStaticSource,
   useToast,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 

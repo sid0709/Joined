@@ -5,13 +5,11 @@ on:
     branches: [stage-roadmap, stage-roadmap-w34]
     paths:
       - "scout-extension/**"
-      - "packages/design-system/**"
       - ".github/workflows/scout-extension.yml"
   push:
     branches: [stage-roadmap, stage-roadmap-w34]
     paths:
       - "scout-extension/**"
-      - "packages/design-system/**"
       - ".github/workflows/scout-extension.yml"
 
 permissions:

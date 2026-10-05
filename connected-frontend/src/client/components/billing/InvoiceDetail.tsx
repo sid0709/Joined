@@ -1,4 +1,4 @@
-import { Table } from "@joined/design-system";
+import { Table } from "sid-ui";
 
 import type { Invoice, InvoiceLine } from "@/src/shared/types/marketplace";
 

@@ -1,5 +1,5 @@
 // Runs backend services: `bun tools/run-api.mjs` starts all of them, or name them
-// (`joined-api`, `admin-api`, `scout-api`, `core-api`, or their folder names) to start some.
+// (`joined-api`, `admin-api`, `scout-api`, `acorn-api`, or their folder names) to start some.
 import { spawn } from "node:child_process";
 
 import { freePorts } from "./free-ports.mjs";

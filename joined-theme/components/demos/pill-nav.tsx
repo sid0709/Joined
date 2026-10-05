@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, PillNav, Text, type PillNavItem } from "@joined/design-system";
+import { Card, PillNav, Text, type PillNavItem } from "sid-ui";
 
 import { Examples, Preview } from "./shared";
 

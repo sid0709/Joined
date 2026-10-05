@@ -18,7 +18,7 @@ import {
   icons,
   type CardVariant,
   type CarouselHandle,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useRef, useState } from "react";
 
 import { Caption, Examples, PEOPLE, Preview, SAMPLE_IMAGES } from "./shared";

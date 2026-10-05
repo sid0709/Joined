@@ -1,6 +1,6 @@
 "use client";
 
-import { CodeBlock, Stack, Tab, TabList, Text } from "@joined/design-system";
+import { CodeBlock, Stack, Tab, TabList, Text } from "sid-ui";
 import { useState } from "react";
 
 import { DEMO_COMPONENTS } from "@/components/demos/load";
@@ -30,7 +30,7 @@ export function ComponentDocs({
             language="tsx"
             title="Import"
             width="100%"
-            code={`import { ${importName} } from "@joined/design-system";`}
+            code={`import { ${importName} } from "sid-ui";`}
           />
           {usage && <CodeBlock language="tsx" title="Example" width="100%" code={usage} />}
         </Stack>

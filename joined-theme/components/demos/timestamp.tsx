@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Card,
-  Code,
-  HStack,
-  Stack,
-  Text,
-  Timestamp,
-  type TimestampFormat,
-} from "@joined/design-system";
+import { Avatar, Card, Code, HStack, Stack, Text, Timestamp, type TimestampFormat } from "sid-ui";
 import { useState, type ReactNode } from "react";
 
 import { Caption, Examples, PEOPLE, Preview } from "./shared";

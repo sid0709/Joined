@@ -13,7 +13,7 @@ import {
   TextInput,
   TopNav,
   TopNavItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 

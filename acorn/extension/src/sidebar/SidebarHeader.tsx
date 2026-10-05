@@ -1,15 +1,6 @@
 import type { CSSProperties } from "react";
 import type { AcornFaceMode } from "@acorn/face";
-import {
-  Avatar,
-  AvatarStatusDot,
-  Badge,
-  Glyph,
-  HStack,
-  MoreMenu,
-  Text,
-  VStack,
-} from "@joined/design-system";
+import { Avatar, AvatarStatusDot, Badge, Glyph, HStack, MoreMenu, Text, VStack } from "sid-ui";
 import type { AcornStoredSession } from "../auth/acorn-auth";
 import { ACORN_FACE_BADGE_PX, ACORN_FACE_BRAND_PX } from "../acorn-face/constants";
 import { AcornFaceView } from "../acorn-face/AcornFaceView";

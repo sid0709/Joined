@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, HStack, Stack, Text } from "@joined/design-system";
+import { Card, HStack, Stack, Text } from "sid-ui";
 
 import type { ReactNode } from "react";
 
