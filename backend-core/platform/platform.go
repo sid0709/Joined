@@ -94,6 +94,10 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 			p.Close()
 			return nil, fmt.Errorf("jobs search indexes: %w", err)
 		}
+		if err := listings.EnsureDedupeIndexes(ctx); err != nil {
+			p.Close()
+			return nil, fmt.Errorf("jobs dedupe indexes: %w", err)
+		}
 	}
 	return p, nil
 }
