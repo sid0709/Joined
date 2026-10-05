@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { acornApiUrl } from "@/lib/config";
 import { AUTH_ME_PATH } from "./constants";
 import { sessionToken } from "./cookie";
@@ -8,7 +9,7 @@ export type AcornAccount = {
 };
 
 /** The Acorn account behind this browser's session cookie, or null when signed out. */
-export async function currentAccount(): Promise<AcornAccount | null> {
+export const currentAccount = cache(async (): Promise<AcornAccount | null> => {
   const token = await sessionToken();
   if (!token) return null;
   const response = await fetch(`${acornApiUrl()}${AUTH_ME_PATH}`, {
@@ -23,4 +24,4 @@ export async function currentAccount(): Promise<AcornAccount | null> {
   const email = body.session?.email?.trim();
   if (!name || !email) return null;
   return { name, email };
-}
+});

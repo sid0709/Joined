@@ -15,7 +15,7 @@ export default async function SignUpPage({
   searchParams: Promise<{ [GOOGLE_ERROR_PARAM]?: string }>;
 }) {
   const params = await searchParams;
-  if (await currentAccount()) redirect(ROUTES.home);
+  if (await currentAccount()) redirect(ROUTES.overview);
   return (
     <PageContainer width="narrow">
       <Stack gap={8}>

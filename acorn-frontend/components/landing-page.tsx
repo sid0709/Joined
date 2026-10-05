@@ -13,59 +13,42 @@ import { BRAND } from "@/lib/config";
 import { INSTALL_SECTION_ID, ROUTES } from "@/lib/routes";
 import { SiteHeader } from "./site-header";
 
-const COMING_NEXT = [
+const AFTER_SIGN_IN = [
+  {
+    title: "Statistics",
+    description: "See resumes, connected mailboxes, and applications in one place.",
+  },
   {
     title: "Profile",
-    description: "The name and email on this account are what the extension uses today.",
+    description: "Set the headline and summary the extension applies with.",
   },
   {
-    title: "Resume library",
-    description: "Upload and manage resumes the extension can attach.",
+    title: "Resume",
+    description: "Generate a draft aimed at a single posting.",
   },
   {
-    title: "Billing",
-    description: "Choose a plan and manage Acorn billing from this site.",
+    title: "Gmail",
+    description: "Choose the mailbox that should receive replies.",
   },
 ] as const;
 
-export function LandingPage({
-  signedIn,
-  accountName,
-  installHref,
-}: {
-  signedIn: boolean;
-  accountName: string | null;
-  installHref: string;
-}) {
+export function LandingPage({ installHref }: { installHref: string }) {
   return (
     <PageContainer width="narrow">
       <Stack gap={8}>
-        <SiteHeader signedIn={signedIn} />
+        <SiteHeader signedIn={false} />
         <Stack gap={4}>
           <Badge label="Browser extension" variant="blue" />
           <PageHeader
-            title={
-              signedIn && accountName
-                ? `Welcome back, ${accountName}.`
-                : `${BRAND} fills applications from your resume.`
-            }
+            title={`${BRAND} fills applications from your resume.`}
             description="Create an Acorn account here. The extension signs in with that same account."
             action={
               <HStack gap={3} wrap="wrap">
-                {signedIn ? null : (
-                  <>
-                    <Button
-                      label="Create account"
-                      variant="primary"
-                      size="lg"
-                      href={ROUTES.signUp}
-                    />
-                    <Button label="Sign in" variant="secondary" size="lg" href={ROUTES.signIn} />
-                  </>
-                )}
+                <Button label="Create account" variant="primary" size="lg" href={ROUTES.signUp} />
+                <Button label="Sign in" variant="secondary" size="lg" href={ROUTES.signIn} />
                 <Button
                   label="Install the extension"
-                  variant={signedIn ? "primary" : "secondary"}
+                  variant="secondary"
                   size="lg"
                   href={installHref}
                 />
@@ -73,12 +56,9 @@ export function LandingPage({
             }
           />
         </Stack>
-        <SectionCard
-          title="Coming next"
-          description="Profile, resumes, and billing land on this site."
-        >
+        <SectionCard title="On your account" description="Available after you sign in.">
           <Stack gap={4}>
-            {COMING_NEXT.map((item) => (
+            {AFTER_SIGN_IN.map((item) => (
               <Stack key={item.title} gap={1}>
                 <Heading level={3}>{item.title}</Heading>
                 <Text color="secondary">{item.description}</Text>

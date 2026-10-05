@@ -41,7 +41,7 @@ export function AuthForm({
       setError(result.message);
       return;
     }
-    router.push(ROUTES.home);
+    router.push(ROUTES.overview);
     router.refresh();
   };
 
@@ -50,7 +50,7 @@ export function AuthForm({
       {googleError ? <Banner status="error" title={googleError} /> : null}
       <GoogleSignInButton
         action={GOOGLE_AUTH_ROUTE}
-        next={ROUTES.home}
+        next={ROUTES.overview}
         label={creating ? "Sign up with Google" : "Continue with Google"}
       />
       <Text color="secondary">or use email</Text>

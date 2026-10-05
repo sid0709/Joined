@@ -9,3 +9,7 @@ body {
 html {
   scrollbar-gutter: stable;
 }
+
+.acorn-workspace-nav .os-pill-list {
+  justify-content: center;
+}
