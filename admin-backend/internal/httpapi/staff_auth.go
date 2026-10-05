@@ -24,10 +24,18 @@ const (
 	maxStaffAuthBody   = 16 << 10
 )
 
+type staffAccounts interface {
+	StaffSession(ctx context.Context, token string, now time.Time) (auth.Staff, error)
+	StaffSignout(ctx context.Context, token string) error
+	StaffSignin(ctx context.Context, id auth.GoogleIdentity, hostedDomain, domain string, now time.Time) (string, auth.Staff, error)
+	SaveGoogleState(ctx context.Context, state string, saved auth.GoogleState, now time.Time) error
+	TakeGoogleState(ctx context.Context, state string, now time.Time) (auth.GoogleState, error)
+}
+
 // StaffSignIn is Sign in with Google for the staff console. Only accounts that
 // Domain's Google Workspace manages get in.
 type StaffSignIn struct {
-	Accounts *auth.Store
+	Accounts staffAccounts
 	OAuth    *google.Client
 	// RedirectURL is the console's callback page, registered on the OAuth client.
 	RedirectURL string
