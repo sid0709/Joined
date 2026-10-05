@@ -6,6 +6,10 @@ export const ROUTES = {
   search: "/",
   signIn: "/sign-in",
   signUp: "/sign-up",
+  checkEmail: "/check-email",
+  verifyEmail: "/verify",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
   hiringSetup: "/hiring/setup",
   applications: "/applications",
   interviews: "/interviews",
@@ -40,6 +44,17 @@ export function signInHref(path: string) {
 
 /** Sign up with the hiring path preselected. */
 export const HIRING_SIGN_UP_HREF = `${ROUTES.signUp}?intent=hiring`;
+
+/** Public auth screens — the mode picker must not cover these. */
+export const AUTH_PAGE_PATHS = [
+  ROUTES.signIn,
+  ROUTES.signUp,
+  ROUTES.checkEmail,
+  ROUTES.verifyEmail,
+  ROUTES.forgotPassword,
+  ROUTES.resetPassword,
+  ROUTES.hiringSetup,
+] as const;
 
 export type PageLink = {
   href: string;
