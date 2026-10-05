@@ -1,12 +1,14 @@
 package billing
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 )
 
 // Client is a thin interface to the Stripe API. Tests use a fake.
@@ -68,12 +70,13 @@ type UpdateProductRequest struct {
 
 // CreatePriceRequest creates a price.
 type CreatePriceRequest struct {
-	Product    string            `json:"product"`
-	Currency   string            `json:"currency"`
-	UnitAmount int               `json:"unit_amount"`
-	Recurring  *Recurring        `json:"recurring"`
-	LookupKey  string            `json:"lookup_key"`
-	Metadata   map[string]string `json:"metadata"`
+	Product           string            `json:"product"`
+	Currency          string            `json:"currency"`
+	UnitAmount        int               `json:"unit_amount"`
+	Recurring         *Recurring        `json:"recurring"`
+	LookupKey         string            `json:"lookup_key"`
+	Metadata          map[string]string `json:"metadata"`
+	TransferLookupKey bool              `json:"transfer_lookup_key,omitempty"`
 }
 
 // UpdatePriceRequest updates a price.
@@ -105,8 +108,12 @@ func (c *HTTPClient) CreateProduct(ctx context.Context, req CreateProductRequest
 	if err != nil {
 		return nil, fmt.Errorf("encode product form: %w", err)
 	}
+	idempotencyKey := ""
+	if req.Metadata != nil && req.Metadata["lookup_key"] != "" {
+		idempotencyKey = "product_" + req.Metadata["lookup_key"]
+	}
 	var product Product
-	if err := c.post(ctx, "/products", body, &product); err != nil {
+	if err := c.postWithIdempotency(ctx, "/products", body, idempotencyKey, &product); err != nil {
 		return nil, err
 	}
 	return &product, nil
@@ -143,19 +150,27 @@ func (c *HTTPClient) ListProducts(ctx context.Context, lookupKey string) ([]*Pro
 }
 
 func (c *HTTPClient) CreatePrice(ctx context.Context, req CreatePriceRequest) (*Price, error) {
-	body, err := encodeForm(map[string]interface{}{
+	formData := map[string]interface{}{
 		"product":     req.Product,
 		"currency":    req.Currency,
 		"unit_amount": req.UnitAmount,
 		"recurring":   req.Recurring,
 		"lookup_key":  req.LookupKey,
 		"metadata":    req.Metadata,
-	})
+	}
+	if req.TransferLookupKey {
+		formData["transfer_lookup_key"] = true
+	}
+	body, err := encodeForm(formData)
 	if err != nil {
 		return nil, fmt.Errorf("encode price form: %w", err)
 	}
+	idempotencyKey := ""
+	if req.LookupKey != "" {
+		idempotencyKey = fmt.Sprintf("price_%s_%d", req.LookupKey, req.UnitAmount)
+	}
 	var price Price
-	if err := c.post(ctx, "/prices", body, &price); err != nil {
+	if err := c.postWithIdempotency(ctx, "/prices", body, idempotencyKey, &price); err != nil {
 		return nil, err
 	}
 	return &price, nil
@@ -209,12 +224,19 @@ func (c *HTTPClient) get(ctx context.Context, path string, result interface{}) e
 }
 
 func (c *HTTPClient) post(ctx context.Context, path string, body io.Reader, result interface{}) error {
+	return c.postWithIdempotency(ctx, path, body, "", result)
+}
+
+func (c *HTTPClient) postWithIdempotency(ctx context.Context, path string, body io.Reader, idempotencyKey string, result interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, "POST", c.BaseURL+path, body)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
 	req.SetBasicAuth(c.SecretKey, "")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if idempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", idempotencyKey)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("do request: %w", err)
@@ -231,7 +253,7 @@ func (c *HTTPClient) post(ctx context.Context, path string, body io.Reader, resu
 }
 
 func encodeForm(data map[string]interface{}) (io.Reader, error) {
-	var buf bytes.Buffer
+	values := url.Values{}
 	for key, value := range data {
 		if value == nil {
 			continue
@@ -239,24 +261,26 @@ func encodeForm(data map[string]interface{}) (io.Reader, error) {
 		switch v := value.(type) {
 		case string:
 			if v != "" {
-				fmt.Fprintf(&buf, "%s=%s&", key, v)
+				values.Add(key, v)
 			}
 		case int:
-			fmt.Fprintf(&buf, "%s=%d&", key, v)
+			values.Add(key, strconv.Itoa(v))
+		case bool:
+			values.Add(key, strconv.FormatBool(v))
 		case map[string]string:
 			for mk, mv := range v {
-				fmt.Fprintf(&buf, "%s[%s]=%s&", key, mk, mv)
+				values.Add(fmt.Sprintf("%s[%s]", key, mk), mv)
 			}
 		case *Recurring:
 			if v != nil {
-				fmt.Fprintf(&buf, "%s[interval]=%s&", key, v.Interval)
-				fmt.Fprintf(&buf, "%s[interval_count]=%d&", key, v.IntervalCount)
+				values.Add(fmt.Sprintf("%s[interval]", key), v.Interval)
+				values.Add(fmt.Sprintf("%s[interval_count]", key), strconv.Itoa(v.IntervalCount))
 			}
 		case *bool:
 			if v != nil {
-				fmt.Fprintf(&buf, "%s=%t&", key, *v)
+				values.Add(key, strconv.FormatBool(*v))
 			}
 		}
 	}
-	return bytes.NewReader(buf.Bytes()), nil
+	return strings.NewReader(values.Encode()), nil
 }
