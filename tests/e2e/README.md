@@ -27,7 +27,9 @@ email sign-up / log-in journey works against the log email sender.
 
 `JOINED_BACKEND_LOG` defaults to `/tmp/joined-backend-e2e.log`. Keep
 `EMAIL_PROVIDER=log` (the backend default). Do not point the suite at SMTP or
-Resend.
+Resend. joined-api must be the process from this tree: `POST /v1/auth/signup`
+has to exist (a stale `go run` from an older checkout returns 404 and the
+journey cannot start).
 
 ## What's tested
 
