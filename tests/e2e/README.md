@@ -11,11 +11,6 @@ End-to-end smoke suite that proves main pages load and key APIs respond.
 
 2. **Run the smoke tests:**
    ```bash
-   bun run test:e2e
-   ```
-
-   Or with Playwright directly:
-   ```bash
    bunx playwright test --config tests/e2e/playwright.config.ts
    ```
 

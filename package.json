@@ -103,7 +103,6 @@
     "theme:build": "bun --filter @joined/design-system theme:build",
     "brand:icons": "bun tools/sync-app-icons.mjs",
     "test": "bun test --coverage --coverage-reporter=lcov && bun run check:test-policy",
-    "test:e2e": "bunx playwright test --config tests/e2e/playwright.config.ts",
     "test:go": "bun tools/go.mjs test",
     "vet:go": "bun tools/go.mjs vet",
     "check:boundaries": "bun tools/check-workspace-boundaries.mjs",

@@ -83,7 +83,7 @@ jobs:
           SCOUTWELL_API_URL: http://127.0.0.1:8082
 
       - name: Run E2E smoke tests
-        run: bun run test:e2e
+        run: bunx playwright test --config tests/e2e/playwright.config.ts
 
       - name: Upload Playwright report
         if: always()
