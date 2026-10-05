@@ -14,7 +14,7 @@ export default async function ApplicationsPage() {
     <PageContainer>
       <PageHeader
         title={APPLICATIONS_PAGE.label}
-        description="Drag a card to move it between stages. Click the eye to see its details."
+        description="Saved jobs land in the first column. Drag a card to move stages, and open one to add notes or a reminder."
       />
       <ApplicationsWorkspace initial={applications} />
     </PageContainer>
