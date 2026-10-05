@@ -110,4 +110,55 @@ describe("JobPosting JSON-LD", () => {
       '{"title":"A \\u003c/script> role"}',
     );
   });
+
+  test("uses workplace when location is blank and skips a relative logo without a page URL", () => {
+    const posting = jobPostingJsonLd(
+      {
+        ...sample,
+        location: " ",
+        companyLogo: "/companies/northwind/logo",
+        companyUrl: "  ",
+      },
+      { now: NOW },
+    );
+    expect(posting.jobLocation.address.addressLocality).toBe("hybrid");
+    expect(posting.hiringOrganization.logo).toBeUndefined();
+    expect(posting.hiringOrganization.sameAs).toBeUndefined();
+  });
+
+  test("reads company profile URL and logo, and keeps a max-only salary", () => {
+    const posting = jobPostingJsonLd(
+      {
+        ...sample,
+        companyUrl: undefined,
+        companyLogo: undefined,
+        companyProfile: {
+          id: "northwind",
+          name: "Northwind",
+          url: "https://northwind.example",
+          logo: "https://cdn.example/from-profile.png",
+        },
+        pay: { min: 0, max: 170_000, currency: "USD", period: "year" },
+      },
+      { now: NOW },
+    );
+    expect(posting.hiringOrganization.sameAs).toBe("https://northwind.example");
+    expect(posting.hiringOrganization.logo).toBe("https://cdn.example/from-profile.png");
+    expect(posting.baseSalary?.value.minValue).toBeUndefined();
+    expect(posting.baseSalary?.value.maxValue).toBe(170_000);
+  });
+
+  test("keeps an already-absolute company URL and a min-only salary", () => {
+    const posting = jobPostingJsonLd(
+      {
+        ...sample,
+        companyUrl: "https://careers.northwind.example",
+        pay: { min: 140_000, max: 0, currency: "USD", period: "year" },
+      },
+      { now: NOW },
+    );
+    expect(posting.hiringOrganization.sameAs).toBe("https://careers.northwind.example");
+    expect(posting.baseSalary?.value.minValue).toBe(140_000);
+    expect(posting.baseSalary?.value.maxValue).toBeUndefined();
+  });
 });

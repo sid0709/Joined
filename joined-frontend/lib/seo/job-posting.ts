@@ -1,5 +1,4 @@
 import type { Employment, Job, Pay, PayPeriod } from "@/lib/jobs";
-import { websiteHref } from "@/lib/jobs/company";
 import { BRAND } from "@/lib/routes";
 
 import {
@@ -14,6 +13,19 @@ import {
   SCHEMA_CONTEXT,
   TELECOMMUTE_LOCATION,
 } from "./constants";
+
+const HTTP_URL = /^https?:\/\//i;
+
+const SCHEMA_EMPLOYMENT = {
+  "full-time": "FULL_TIME",
+  "part-time": "PART_TIME",
+  contract: "CONTRACTOR",
+} as const satisfies Record<Employment, string>;
+
+const SCHEMA_PAY_UNIT = {
+  year: "YEAR",
+  hour: "HOUR",
+} as const satisfies Record<PayPeriod, string>;
 
 export type JobPostingOptions = {
   pageUrl?: string;
@@ -81,7 +93,7 @@ export function jobPostingJsonLd(job: Job, options: JobPostingOptions = {}): Job
         addressLocality: job.location.trim() || job.workplace,
       },
     },
-    employmentType: employmentTypeForSchema(job.employment),
+    employmentType: SCHEMA_EMPLOYMENT[job.employment],
     identifier: {
       "@type": PROPERTY_VALUE_TYPE,
       name: BRAND,
@@ -118,29 +130,28 @@ function hiringOrganization(job: Job, pageUrl?: string) {
 }
 
 function organizationUrl(value?: string): string | undefined {
-  const href = value ? websiteHref(value) : "";
-  return href || undefined;
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return isHttpUrl(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
 function organizationLogo(job: Job, pageUrl?: string): string | undefined {
   const raw = (job.companyLogo ?? job.companyProfile?.logo)?.trim();
   if (!raw) return undefined;
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (raw.startsWith("/") && pageUrl) {
-    try {
-      return new URL(raw, pageUrl).toString();
-    } catch {
-      return undefined;
-    }
-  }
-  return undefined;
+  if (isHttpUrl(raw)) return raw;
+  if (!raw.startsWith("/") || !pageUrl || !isHttpUrl(pageUrl)) return undefined;
+  return new URL(raw, pageUrl).toString();
+}
+
+function isHttpUrl(value: string): boolean {
+  return HTTP_URL.test(value);
 }
 
 function baseSalary(pay: Pay): JobPostingJsonLd["baseSalary"] | undefined {
   if (pay.min <= 0 && pay.max <= 0) return undefined;
   const value: NonNullable<JobPostingJsonLd["baseSalary"]>["value"] = {
     "@type": QUANTITATIVE_VALUE_TYPE,
-    unitText: salaryUnit(pay.period),
+    unitText: SCHEMA_PAY_UNIT[pay.period],
   };
   if (pay.min > 0) value.minValue = pay.min;
   if (pay.max > 0) value.maxValue = pay.max;
@@ -149,32 +160,4 @@ function baseSalary(pay: Pay): JobPostingJsonLd["baseSalary"] | undefined {
     currency: pay.currency,
     value,
   };
-}
-
-function employmentTypeForSchema(employment: Employment): string {
-  switch (employment) {
-    case "full-time":
-      return "FULL_TIME";
-    case "part-time":
-      return "PART_TIME";
-    case "contract":
-      return "CONTRACTOR";
-    default: {
-      const _exhaustive: never = employment;
-      return _exhaustive;
-    }
-  }
-}
-
-function salaryUnit(period: PayPeriod): string {
-  switch (period) {
-    case "year":
-      return "YEAR";
-    case "hour":
-      return "HOUR";
-    default: {
-      const _exhaustive: never = period;
-      return _exhaustive;
-    }
-  }
 }
