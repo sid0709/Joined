@@ -1,8 +1,8 @@
 "use client";
 
-import { Glyph } from "sid-ui";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Glyph } from "sid-ui";
 
 import type { ApplicationStatus, BidderApplication } from "@/src/candidate/types/workspace";
 

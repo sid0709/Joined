@@ -1,7 +1,7 @@
 "use client";
 
-import * as DesignSystem from "sid-ui";
 import { Children, isValidElement } from "react";
+import * as DesignSystem from "sid-ui";
 
 import type { ChangeEvent, ReactNode } from "react";
 

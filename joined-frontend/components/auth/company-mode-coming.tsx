@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Button, Card, Heading, Stack, Text } from "sid-ui";
+import { clearApplicationExtras } from "@/lib/application-extras";
 import { ROUTES } from "@/lib/routes";
 
 export function CompanyModeComing() {

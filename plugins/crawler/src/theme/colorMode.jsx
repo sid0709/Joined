@@ -1,5 +1,5 @@
-import { JoinedProvider } from "sid-ui/theme";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { JoinedProvider } from "sid-ui/theme";
 
 /** Where the side panel remembers a light/dark choice. Without one it follows the system. */
 const COLOR_MODE_STORAGE_KEY = "crawler-color-mode";

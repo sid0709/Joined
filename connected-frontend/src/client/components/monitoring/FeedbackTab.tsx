@@ -1,7 +1,7 @@
 "use client";
 
-import { Rating } from "sid-ui";
 import { useState } from "react";
+import { Rating } from "sid-ui";
 
 import { FeedbackDialog } from "@/src/client/components/monitoring/FeedbackDialog";
 import { useHunter } from "@/src/client/context/HunterContext";

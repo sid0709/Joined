@@ -1,8 +1,8 @@
 "use client";
 
-import { Glyph } from "sid-ui";
 import Link from "next/link";
 import { useState } from "react";
+import { Glyph } from "sid-ui";
 
 import type {
   BidderInterview,

@@ -1,7 +1,7 @@
 "use client";
 
-import { JoinedProvider, type ColorMode } from "sid-ui/theme";
 import NextLink from "next/link";
+import { JoinedProvider, type ColorMode } from "sid-ui/theme";
 
 import type { ReactNode } from "react";
 

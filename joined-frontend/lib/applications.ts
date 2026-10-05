@@ -1,4 +1,5 @@
 import type { BadgeVariant, KanbanColumn } from "sid-ui";
+import { reminderStatus } from "@/lib/application-reminders";
 import { parseJSONDate } from "@/lib/me/dates";
 
 export type ApplicationStage = "saved" | "applied" | "screening" | "interview" | "offer" | "closed";

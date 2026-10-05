@@ -1,5 +1,5 @@
-import { Glyph, type GlyphName } from "sid-ui";
 import Link from "next/link";
+import { Glyph, type GlyphName } from "sid-ui";
 
 import { Panel } from "@/src/shared/kit/Panel";
 import { HUNTER_ROUTES } from "@/src/shared/routes/hunter";
