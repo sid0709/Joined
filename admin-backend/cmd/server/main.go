@@ -43,6 +43,7 @@ func main() {
 	}
 	ai := config.LoadOpenAI()
 	deepSeekEnv := config.LoadDeepSeek()
+	errorReporting := config.LoadErrorReporting()
 	googleConfig := config.LoadGoogle()
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
@@ -63,6 +64,11 @@ func main() {
 	if analyzerToken == "" {
 		slog.Warn("ANALYZER_API_TOKEN is not set: public analyzer routes are disabled")
 	}
+	var reporter httpkit.ErrorReporter = httpkit.NoOpReporter{}
+	if errorReporting.SentryDSN != "" {
+		slog.Info("error reporting configured", "service", "sentry")
+	}
+	logger := slog.Default()
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	staff := httpapi.StaffSignIn{
 		Accounts:    p.Accounts,
@@ -95,6 +101,8 @@ func main() {
 			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
 		},
 	})
+	handler = httpkit.Logging(logger, handler)
+	handler = httpkit.Recovery(logger, reporter, handler)
 	if err := httpkit.Serve("admin api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
