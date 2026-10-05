@@ -17,7 +17,11 @@ const (
 	ListingActive        = "active"
 	ListingRemoved       = "removed"
 	ListingDraft         = "draft"
+	ListingExpired       = "expired"
 )
+
+// TakedownCauseDeadLink marks a listing closed because its apply URL stayed dead.
+const TakedownCauseDeadLink = "dead_link"
 
 // Company verification statuses. Empty is treated as unclaimed.
 const (

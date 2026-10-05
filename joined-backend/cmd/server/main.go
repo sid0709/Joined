@@ -11,10 +11,12 @@ import (
 	_ "time/tzdata"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 	"github.com/sid0709/OpenSeat/joined-backend/internal/httpapi"
@@ -63,8 +65,20 @@ func main() {
 	}
 	defer p.Close()
 
+	expiryCfg := jobs.LoadExpiryConfig()
+	if expiryCfg.Enabled {
+		runner := jobs.NewExpiryRunner(p.Jobs, expiryCfg, slog.Default())
+		go runner.Run(context.Background())
+		slog.Info("jobs expiry checker enabled")
+	}
+
 	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
+	premium, webhook, err := openBilling(billing.NewMongoStore(p.Mongo(), db.DestDB))
+	if err != nil {
+		slog.Error("billing config", "error", err)
+		os.Exit(1)
+	}
 	handler := httpapi.New(p.Jobs, p.Accounts, p.People, p.Hiring, p.Staff, reader, httpapi.Options{
 		Origins:           server.Origins,
 		Frontend:          frontend,
@@ -72,11 +86,26 @@ func main() {
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 		CompanyMode:       companyModeEnabled(config.Env(companyModeEnv, "")),
 		EmailSender:       emailSender,
+		Billing:           premium,
+		BillingWebhook:    webhook,
 	})
 	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}
+}
+
+func openBilling(store billing.Store) (*billing.Service, *billing.WebhookRouter, error) {
+	if config.Env("STRIPE_SECRET_KEY", "") == "" {
+		return nil, nil, nil
+	}
+	cfg, err := billing.LoadConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	svc := billing.NewService(billing.NewHTTPClient(cfg.SecretKey), store, cfg)
+	router := billing.NewWebhookRouter(cfg.WebhookSecret, billing.NewMemoryIdempotencyStore())
+	return svc, router, nil
 }
 
 func companyModeEnabled(value string) bool {
