@@ -83,6 +83,7 @@ const (
 	EarningClawedBack = "clawed_back"
 
 	RewardApproval   = "approval"
+	RewardApply      = "apply"
 	RewardInterview  = "interview"
 	RewardHire       = "hire"
 	RewardConversion = "conversion"

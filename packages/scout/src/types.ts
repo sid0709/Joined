@@ -17,7 +17,7 @@ export type ScoutLevel = "probation" | "trusted" | "expert";
 export type Channel = "web" | "api";
 export type Verification = "none" | "pending" | "verified" | "rejected";
 export type EarningStatus = "held" | "released" | "processing" | "paid" | "clawed_back";
-export type RewardType = "approval" | "interview" | "hire" | "conversion";
+export type RewardType = "approval" | "apply" | "interview" | "hire" | "conversion";
 export type PayoutStatus = "requested" | "paid" | "rejected";
 export type NotificationTone = "accent" | "success" | "warning" | "danger" | "neutral";
 export type NotificationKind = "decision" | "reward" | "level" | "payout" | "verification";
@@ -202,6 +202,7 @@ export type PromotionRule = {
 export type RewardTable = {
   hold_days: number;
   min_payout: Money;
+  apply_reward: Money;
   interview_by_seniority: Record<Seniority, Money>;
   hire_by_seniority: Record<Seniority, Money>;
   conversion_share: number;

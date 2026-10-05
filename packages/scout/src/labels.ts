@@ -86,6 +86,7 @@ export const PAYOUT_STATUS: Record<PayoutStatus, Meta> = {
 
 export const REWARD_TYPE: Record<RewardType, { label: string; detail: string }> = {
   approval: { label: "Approval", detail: "Your job was published after quality checks." },
+  apply: { label: "Application", detail: "A candidate applied to your job." },
   interview: { label: "Interview", detail: "An interview on your job settled." },
   hire: { label: "Hire", detail: "A hire on your job was confirmed." },
   conversion: { label: "Company conversion", detail: "Share of a claimed company's fees." },
