@@ -12,7 +12,7 @@ import {
   formatBytes,
 } from "@joined/design-system";
 import { formatShortDate } from "@/lib/dates";
-import { PARSE_META, type Resume } from "@/lib/resumes";
+import { PARSE_META, isProfileResume, type Resume } from "@/lib/resumes";
 import { ResumePagePreview } from "./resume-page-preview";
 
 const PREVIEW_WIDTH = 132;
@@ -32,6 +32,7 @@ export function ResumeCard({
   onAction: (action: ResumeAction) => void;
 }) {
   const parse = PARSE_META[resume.parse];
+  const locked = isProfileResume(resume.id);
 
   return (
     <SelectableCard label={resume.label} isSelected={isSelected} onChange={onSelect} padding={4}>
@@ -61,13 +62,16 @@ export function ResumeCard({
                   isDisabled: resume.isDefault || resume.parse !== "parsed",
                   onClick: () => onAction("default"),
                 },
-                { label: "Rename", onClick: () => onAction("rename") },
-                { label: "Download", onClick: () => onAction("download") },
+                { label: "Rename", isDisabled: locked, onClick: () => onAction("rename") },
+                {
+                  label: locked ? "Export" : "Download",
+                  onClick: () => onAction("download"),
+                },
                 { type: "divider" },
                 {
                   label: "Delete",
                   variant: "destructive",
-                  isDisabled: resume.isDefault,
+                  isDisabled: locked || resume.isDefault,
                   onClick: () => onAction("delete"),
                 },
               ]}

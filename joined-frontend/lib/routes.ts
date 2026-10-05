@@ -86,7 +86,7 @@ export const MESSAGES_PAGE: PageLink = {
 export const RESUMES_PAGE: PageLink = {
   href: ROUTES.resumes,
   label: "My resumes",
-  description: "Upload a PDF or DOCX, keep labeled versions, and set a default.",
+  description: "Build a résumé, keep labeled versions, and set a default.",
 };
 
 export const PROFILE_PAGE: PageLink = {
