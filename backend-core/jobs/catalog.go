@@ -331,7 +331,11 @@ func (s *Store) saveSearchJob(ctx context.Context, doc storedSearchJob) error {
 	if strings.TrimSpace(doc.Job.Description) == "" {
 		return ErrMissingDescription
 	}
-	return s.upsertDeduped(ctx, doc)
+	held, err := s.applyScamHold(ctx, doc)
+	if err != nil {
+		return err
+	}
+	return s.upsertDeduped(ctx, held)
 }
 
 func (s *Store) pendingCount(ctx context.Context) (int64, error) {
