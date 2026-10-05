@@ -15,8 +15,9 @@ import (
 )
 
 type testEmailSender struct {
-	verifications []verificationSent
-	resets        []resetSent
+	verifications    []verificationSent
+	resets           []resetSent
+	duplicateNotices []string
 }
 
 type verificationSent struct {
@@ -38,6 +39,11 @@ func (t *testEmailSender) SendVerification(ctx context.Context, to, name, token 
 
 func (t *testEmailSender) SendPasswordReset(ctx context.Context, to, name, token string) error {
 	t.resets = append(t.resets, resetSent{to, name, token})
+	return nil
+}
+
+func (t *testEmailSender) SendDuplicateSignupNotice(ctx context.Context, to string) error {
+	t.duplicateNotices = append(t.duplicateNotices, to)
 	return nil
 }
 
@@ -73,7 +79,7 @@ func TestEmailSignup(t *testing.T) {
 				"password": "password123",
 				"name":     "Test User",
 			},
-			wantStatus: http.StatusCreated,
+			wantStatus: http.StatusOK,
 		},
 		{
 			name: "weak password",
@@ -92,8 +98,7 @@ func TestEmailSignup(t *testing.T) {
 				"password": "password123",
 				"name":     "Duplicate User",
 			},
-			wantStatus: http.StatusConflict,
-			wantError:  "an account with that email already exists",
+			wantStatus: http.StatusOK, // Same as success to prevent enumeration
 		},
 	}
 
@@ -119,9 +124,12 @@ func TestEmailSignup(t *testing.T) {
 		})
 	}
 
-	// Verify email was sent for successful signups (not duplicates or weak passwords)
+	// Verify correct number of emails sent
 	if len(sender.verifications) != 1 {
-		t.Errorf("verifications sent = %v, want 1", len(sender.verifications))
+		t.Errorf("verifications sent = %v, want 1 (only for new signup)", len(sender.verifications))
+	}
+	if len(sender.duplicateNotices) != 1 {
+		t.Errorf("duplicate notices sent = %v, want 1 (for duplicate signup)", len(sender.duplicateNotices))
 	}
 }
 
@@ -142,7 +150,7 @@ func TestEmailVerification(t *testing.T) {
 	// Create user
 	ctx := context.Background()
 	now := time.Now()
-	userID, err := store.EmailSignup(ctx, "verify@example.com", "password123", "Verify User", auth.RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, "verify@example.com", "password123", "Verify User", auth.RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -193,7 +201,7 @@ func TestEmailSignin(t *testing.T) {
 	now := time.Now()
 	email := "signin@example.com"
 	password := "password123"
-	userID, err := store.EmailSignup(ctx, email, password, "Sign In User", auth.RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, email, password, "Sign In User", auth.RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -244,7 +252,7 @@ func TestEmailSignin(t *testing.T) {
 	}
 
 	// Test unverified user
-	_, err = store.EmailSignup(ctx, "unverified@example.com", password, "Unverified", auth.RoleCandidate, now)
+	_, _, err = store.EmailSignup(ctx, "unverified@example.com", password, "Unverified", auth.RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create unverified user: %v", err)
 	}
@@ -284,7 +292,7 @@ func TestPasswordReset(t *testing.T) {
 	oldPassword := "oldpassword123"
 	newPassword := "newpassword123"
 
-	userID, err := store.EmailSignup(ctx, email, oldPassword, "Reset User", auth.RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, email, oldPassword, "Reset User", auth.RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}

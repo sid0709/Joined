@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"log/slog"
@@ -45,6 +46,7 @@ var (
 type EmailSender interface {
 	SendVerification(ctx context.Context, to, name, token string) error
 	SendPasswordReset(ctx context.Context, to, name, token string) error
+	SendDuplicateSignupNotice(ctx context.Context, to string) error
 }
 
 type storedEmailAuth struct {
@@ -55,14 +57,14 @@ type storedEmailAuth struct {
 
 type storedVerification struct {
 	UserID    string    `bson:"userId"`
-	Token     string    `bson:"token"`
+	TokenHash string    `bson:"tokenHash"`
 	ExpiresAt time.Time `bson:"expiresAt"`
 	CreatedAt time.Time `bson:"createdAt"`
 }
 
 type storedReset struct {
 	Email     string    `bson:"email"`
-	Token     string    `bson:"token"`
+	TokenHash string    `bson:"tokenHash"`
 	ExpiresAt time.Time `bson:"expiresAt"`
 	CreatedAt time.Time `bson:"createdAt"`
 }
@@ -75,27 +77,29 @@ type storedLoginAttempt struct {
 }
 
 // EmailSignup creates an account with email and password that must be verified.
-func (s *Store) EmailSignup(ctx context.Context, email, password, name, role string, now time.Time) (string, error) {
+// Returns the user ID if the account was created, or empty string if email is already taken.
+// Callers should treat both cases identically to prevent user enumeration.
+func (s *Store) EmailSignup(ctx context.Context, email, password, name, role string, now time.Time) (string, bool, error) {
 	email = normalizeEmail(email)
 	if email == "" || name == "" {
-		return "", ErrInvalidInput
+		return "", false, ErrInvalidInput
 	}
 	name = strings.TrimSpace(name)
 	if len([]rune(name)) > maxNameLength {
-		return "", ErrInvalidInput
+		return "", false, ErrInvalidInput
 	}
 	if len(password) < 8 {
-		return "", ErrWeakPassword
+		return "", false, ErrWeakPassword
 	}
 
 	passwordHash, passwordSalt, err := hashPassword(password)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	userID, err := newPublicID()
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
 	user := bson.D{
@@ -111,13 +115,13 @@ func (s *Store) EmailSignup(ctx context.Context, email, password, name, role str
 
 	_, err = s.collection(usersCollection).InsertOne(ctx, user)
 	if mongo.IsDuplicateKeyError(err) {
-		return "", ErrEmailTaken
+		return "", false, nil
 	}
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	return userID, nil
+	return userID, true, nil
 }
 
 // CreateVerificationToken generates a token for email verification.
@@ -129,7 +133,7 @@ func (s *Store) CreateVerificationToken(ctx context.Context, userID string, now 
 
 	verification := storedVerification{
 		UserID:    userID,
-		Token:     token,
+		TokenHash: hashToken(token),
 		ExpiresAt: now.UTC().Add(verificationTTL),
 		CreatedAt: now.UTC(),
 	}
@@ -151,7 +155,7 @@ func (s *Store) VerifyEmail(ctx context.Context, token string, now time.Time) er
 	var verification storedVerification
 	err := s.collection(verificationCollection).FindOneAndDelete(
 		ctx,
-		bson.D{{Key: "token", Value: token}},
+		bson.D{{Key: "tokenHash", Value: hashToken(token)}},
 	).Decode(&verification)
 
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -259,7 +263,8 @@ func (s *Store) RequestPasswordReset(ctx context.Context, email string, now time
 	var user storedUser
 	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&user)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		// Don't reveal that email doesn't exist, but return a fake token
+		// Don't reveal that email doesn't exist, do equivalent dummy work to prevent timing attack
+		_, _ = newResetToken()
 		return "", nil
 	}
 	if err != nil {
@@ -279,7 +284,7 @@ func (s *Store) RequestPasswordReset(ctx context.Context, email string, now time
 
 	reset := storedReset{
 		Email:     email,
-		Token:     token,
+		TokenHash: hashToken(token),
 		ExpiresAt: now.UTC().Add(resetTTL),
 		CreatedAt: now.UTC(),
 	}
@@ -304,7 +309,7 @@ func (s *Store) ResetPassword(ctx context.Context, token, newPassword string, no
 	var reset storedReset
 	err := s.collection(resetCollection).FindOneAndDelete(
 		ctx,
-		bson.D{{Key: "token", Value: token}},
+		bson.D{{Key: "tokenHash", Value: hashToken(token)}},
 	).Decode(&reset)
 
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -359,6 +364,12 @@ func (s *Store) checkLoginAttempts(ctx context.Context, email string, now time.T
 		return err
 	}
 
+	// If lockout has expired, reset the counter
+	if !attempt.LockedUntil.IsZero() && !attempt.LockedUntil.After(now) {
+		_, _ = s.collection(loginAttemptsCollection).DeleteOne(ctx, bson.D{{Key: "email", Value: email}})
+		return nil
+	}
+
 	if !attempt.LockedUntil.IsZero() && attempt.LockedUntil.After(now) {
 		return ErrAccountLocked
 	}
@@ -407,7 +418,7 @@ func (s *Store) clearLoginAttempts(ctx context.Context, email string) {
 func (s *Store) ensureEmailIndexes(ctx context.Context) error {
 	// Verification tokens index
 	_, err := s.collection(verificationCollection).Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "token", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "tokenHash", Value: 1}}, Options: options.Index().SetUnique(true)},
 		{Keys: bson.D{{Key: "userId", Value: 1}}},
 		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
 	})
@@ -417,7 +428,7 @@ func (s *Store) ensureEmailIndexes(ctx context.Context) error {
 
 	// Password reset tokens index
 	_, err = s.collection(resetCollection).Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "token", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "tokenHash", Value: 1}}, Options: options.Index().SetUnique(true)},
 		{Keys: bson.D{{Key: "email", Value: 1}}},
 		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
 	})
@@ -461,19 +472,7 @@ func hashPassword(password string) ([]byte, []byte, error) {
 
 func verifyPassword(password string, hash, salt []byte) bool {
 	computedHash := argon2.IDKey([]byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
-	return subtleEqual(computedHash, hash)
-}
-
-// subtleEqual performs constant-time comparison to prevent timing attacks.
-func subtleEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	var result byte
-	for i := 0; i < len(a); i++ {
-		result |= a[i] ^ b[i]
-	}
-	return result == 0
+	return subtle.ConstantTimeCompare(computedHash, hash) == 1
 }
 
 // DevEmailSender logs email messages instead of sending them.
@@ -493,6 +492,14 @@ func (d DevEmailSender) SendPasswordReset(ctx context.Context, to, name, token s
 		"to", to,
 		"name", name,
 		"resetLink", "http://localhost:3000/reset-password?token="+token,
+	)
+	return nil
+}
+
+func (d DevEmailSender) SendDuplicateSignupNotice(ctx context.Context, to string) error {
+	slog.Info("Duplicate signup attempt",
+		"to", to,
+		"message", "Someone tried to sign up with your email address. If this wasn't you, your account is safe.",
 	)
 	return nil
 }

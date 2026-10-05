@@ -48,11 +48,7 @@ func (h Handlers) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
-	userID, err := h.Accounts.EmailSignup(r.Context(), body.Email, body.Password, body.Name, role, now)
-	if errors.Is(err, auth.ErrEmailTaken) {
-		httpkit.WriteError(w, http.StatusConflict, err.Error())
-		return
-	}
+	userID, created, err := h.Accounts.EmailSignup(r.Context(), body.Email, body.Password, body.Name, role, now)
 	if errors.Is(err, auth.ErrInvalidInput) {
 		httpkit.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -67,21 +63,29 @@ func (h Handlers) signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create verification token
-	token, err := h.Accounts.CreateVerificationToken(r.Context(), userID, now)
-	if err != nil {
-		slog.Error("create verification token", "error", err)
-		httpkit.WriteError(w, http.StatusInternalServerError, "could not create account")
-		return
+	if created {
+		// Create verification token
+		token, err := h.Accounts.CreateVerificationToken(r.Context(), userID, now)
+		if err != nil {
+			slog.Error("create verification token", "error", err)
+			httpkit.WriteError(w, http.StatusInternalServerError, "could not create account")
+			return
+		}
+
+		// Send verification email
+		if err := h.Email.Sender.SendVerification(r.Context(), body.Email, body.Name, token); err != nil {
+			slog.Error("send verification email", "error", err)
+		}
+	} else {
+		// Email already taken - send notice to existing account holder
+		if err := h.Email.Sender.SendDuplicateSignupNotice(r.Context(), body.Email); err != nil {
+			slog.Error("send duplicate signup notice", "error", err)
+		}
 	}
 
-	// Send verification email
-	if err := h.Email.Sender.SendVerification(r.Context(), body.Email, body.Name, token); err != nil {
-		slog.Error("send verification email", "error", err)
-	}
-
-	httpkit.WriteJSON(w, http.StatusCreated, map[string]string{
-		"message": "Account created. Please check your email to verify your account.",
+	// Return identical response for both new and duplicate signups
+	httpkit.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "Please check your email to verify your account.",
 	})
 }
 

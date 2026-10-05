@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -59,7 +60,7 @@ func TestEmailSignup(t *testing.T) {
 			ctx := context.Background()
 			now := time.Now()
 
-			userID, err := store.EmailSignup(ctx, tt.email, tt.password, tt.userName, tt.role, now)
+			userID, created, err := store.EmailSignup(ctx, tt.email, tt.password, tt.userName, tt.role, now)
 			if tt.wantError != nil {
 				if err != tt.wantError {
 					t.Errorf("EmailSignup() error = %v, wantError %v", err, tt.wantError)
@@ -68,6 +69,9 @@ func TestEmailSignup(t *testing.T) {
 			}
 			if err != nil {
 				t.Fatalf("EmailSignup() unexpected error = %v", err)
+			}
+			if !created {
+				t.Error("EmailSignup() created = false, want true")
 			}
 			if userID == "" {
 				t.Error("EmailSignup() returned empty userID")
@@ -119,15 +123,27 @@ func TestEmailSignupDuplicate(t *testing.T) {
 	email := "duplicate@example.com"
 	
 	// Create first user
-	_, err := store.EmailSignup(ctx, email, "password123", "First User", RoleCandidate, now)
+	userID1, created, err := store.EmailSignup(ctx, email, "password123", "First User", RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create first user: %v", err)
 	}
+	if !created {
+		t.Error("First signup should be created")
+	}
+	if userID1 == "" {
+		t.Error("First signup should return userID")
+	}
 
-	// Try to create duplicate
-	_, err = store.EmailSignup(ctx, email, "password123", "Duplicate User", RoleCandidate, now)
-	if err != ErrEmailTaken {
-		t.Errorf("EmailSignup() duplicate error = %v, want %v", err, ErrEmailTaken)
+	// Try to create duplicate - should return no error, created=false, empty userID
+	userID2, created, err := store.EmailSignup(ctx, email, "password123", "Duplicate User", RoleCandidate, now)
+	if err != nil {
+		t.Errorf("EmailSignup() duplicate error = %v, want nil", err)
+	}
+	if created {
+		t.Error("Duplicate signup should return created=false")
+	}
+	if userID2 != "" {
+		t.Errorf("Duplicate signup should return empty userID, got %v", userID2)
 	}
 }
 
@@ -138,7 +154,7 @@ func TestEmailVerification(t *testing.T) {
 	now := time.Now()
 
 	// Create a test user
-	userID, err := store.EmailSignup(ctx, "verify@example.com", "password123", "Verify User", RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, "verify@example.com", "password123", "Verify User", RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create test user: %v", err)
 	}
@@ -152,7 +168,20 @@ func TestEmailVerification(t *testing.T) {
 		t.Fatal("Verification token is empty")
 	}
 
-	// Verify email
+	// Verify token is stored hashed, not raw
+	var verification storedVerification
+	err = store.collection(verificationCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&verification)
+	if err != nil {
+		t.Fatalf("Failed to find verification record: %v", err)
+	}
+	if verification.TokenHash == token {
+		t.Error("Token should be hashed, not stored raw")
+	}
+	if verification.TokenHash != hashToken(token) {
+		t.Error("Token hash doesn't match expected hash")
+	}
+
+	// Verify email with raw token
 	err = store.VerifyEmail(ctx, token, now)
 	if err != nil {
 		t.Fatalf("VerifyEmail() error = %v", err)
@@ -190,7 +219,7 @@ func TestEmailSignin(t *testing.T) {
 	password := "password123"
 
 	// Create and verify user
-	userID, err := store.EmailSignup(ctx, email, password, "Sign In User", RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, email, password, "Sign In User", RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -226,7 +255,7 @@ func TestEmailSignin(t *testing.T) {
 
 	// Test unverified user
 	unverifiedEmail := "unverified@example.com"
-	_, err = store.EmailSignup(ctx, unverifiedEmail, password, "Unverified User", RoleCandidate, now)
+	_, _, err = store.EmailSignup(ctx, unverifiedEmail, password, "Unverified User", RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create unverified user: %v", err)
 	}
@@ -253,7 +282,7 @@ func TestPasswordReset(t *testing.T) {
 	newPassword := "newpassword123"
 
 	// Create and verify user
-	userID, err := store.EmailSignup(ctx, email, oldPassword, "Reset User", RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, email, oldPassword, "Reset User", RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -273,6 +302,19 @@ func TestPasswordReset(t *testing.T) {
 	}
 	if resetToken == "" {
 		t.Fatal("Reset token is empty")
+	}
+
+	// Verify token is stored hashed, not raw
+	var reset storedReset
+	err = store.collection(resetCollection).FindOne(ctx, bson.D{{Key: "email", Value: email}}).Decode(&reset)
+	if err != nil {
+		t.Fatalf("Failed to find reset record: %v", err)
+	}
+	if reset.TokenHash == resetToken {
+		t.Error("Reset token should be hashed, not stored raw")
+	}
+	if reset.TokenHash != hashToken(resetToken) {
+		t.Error("Reset token hash doesn't match expected hash")
 	}
 
 	// Reset password
@@ -320,7 +362,7 @@ func TestLoginAttempts(t *testing.T) {
 	password := "password123"
 
 	// Create and verify user
-	userID, err := store.EmailSignup(ctx, email, password, "Lockout User", RoleCandidate, now)
+	userID, _, err := store.EmailSignup(ctx, email, password, "Lockout User", RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create user: %v", err)
 	}
@@ -347,7 +389,14 @@ func TestLoginAttempts(t *testing.T) {
 		t.Errorf("EmailSignin() after lockout error = %v, want %v", err, ErrAccountLocked)
 	}
 
-	// Successful login after lockout period should work
+	// Attempt immediately after lockout should still be locked
+	futureShort := now.Add(1 * time.Minute)
+	_, _, err = store.EmailSignin(ctx, email, password, AudienceJoined, futureShort)
+	if err != ErrAccountLocked {
+		t.Errorf("EmailSignin() during lockout period error = %v, want %v", err, ErrAccountLocked)
+	}
+
+	// Successful login after lockout period should work (counter is reset)
 	futureTime := now.Add(loginLockoutTime + time.Minute)
 	sessionToken, session, err := store.EmailSignin(ctx, email, password, AudienceJoined, futureTime)
 	if err != nil {
@@ -359,6 +408,18 @@ func TestLoginAttempts(t *testing.T) {
 	if session.User.ID != userID {
 		t.Errorf("Session user ID = %v, want %v", session.User.ID, userID)
 	}
+
+	// After successful login post-lockout, a single wrong attempt should not immediately lock again
+	_, _, err = store.EmailSignin(ctx, email, "wrongpassword", AudienceJoined, futureTime.Add(time.Minute))
+	if err != ErrInvalidLogin {
+		t.Errorf("Single failed attempt after lockout reset should return ErrInvalidLogin, got %v", err)
+	}
+
+	// And correct password should still work
+	_, _, err = store.EmailSignin(ctx, email, password, AudienceJoined, futureTime.Add(2*time.Minute))
+	if err != nil {
+		t.Errorf("EmailSignin() after single failed attempt error = %v", err)
+	}
 }
 
 func TestPasswordHashing(t *testing.T) {
@@ -369,7 +430,7 @@ func TestPasswordHashing(t *testing.T) {
 		t.Fatalf("hashPassword() error = %v", err)
 	}
 
-	// Verify password matches
+	// Verify password matches using crypto/subtle.ConstantTimeCompare
 	if !verifyPassword(password, hash1, salt1) {
 		t.Error("verifyPassword() failed for correct password")
 	}
@@ -392,26 +453,28 @@ func TestPasswordHashing(t *testing.T) {
 	}
 }
 
-func TestSubtleEqual(t *testing.T) {
-	tests := []struct {
-		name string
-		a    []byte
-		b    []byte
-		want bool
-	}{
-		{"equal bytes", []byte{1, 2, 3}, []byte{1, 2, 3}, true},
-		{"different bytes", []byte{1, 2, 3}, []byte{1, 2, 4}, false},
-		{"different length", []byte{1, 2}, []byte{1, 2, 3}, false},
-		{"empty equal", []byte{}, []byte{}, true},
+func TestConstantTimeCompare(t *testing.T) {
+	// Test that verifyPassword uses constant-time comparison
+	// We can't directly test timing, but we can verify it works correctly
+	password := "test123456"
+	hash, salt, err := hashPassword(password)
+	if err != nil {
+		t.Fatalf("hashPassword() error = %v", err)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := subtleEqual(tt.a, tt.b)
-			if got != tt.want {
-				t.Errorf("subtleEqual() = %v, want %v", got, tt.want)
-			}
-		})
+	// Correct password should verify
+	if !verifyPassword(password, hash, salt) {
+		t.Error("verifyPassword should return true for correct password")
+	}
+
+	// Wrong password should not verify
+	if verifyPassword("wrong123456", hash, salt) {
+		t.Error("verifyPassword should return false for wrong password")
+	}
+
+	// Empty password should not verify
+	if verifyPassword("", hash, salt) {
+		t.Error("verifyPassword should return false for empty password")
 	}
 }
 
@@ -428,6 +491,11 @@ func TestDevEmailSender(t *testing.T) {
 	err = sender.SendPasswordReset(ctx, "test@example.com", "Test User", "token456")
 	if err != nil {
 		t.Errorf("SendPasswordReset() error = %v", err)
+	}
+
+	err = sender.SendDuplicateSignupNotice(ctx, "test@example.com")
+	if err != nil {
+		t.Errorf("SendDuplicateSignupNotice() error = %v", err)
 	}
 }
 
