@@ -22,19 +22,19 @@ Stripe billing for Joined Premium subscriptions. Test mode only unless explicitl
 
 Leo (frontend) and Ravi (joined-backend) should use these names. This package does not mount routes itself.
 
-| Function / type | Purpose |
-| --- | --- |
-| `LoadConfig` | Env + live-key guard |
-| `NewHTTPClient` / `Client` | Stripe seam (tests use `NewFakeClient`) |
-| `SyncProducts` | Idempotent Premium product/price catalog |
-| `NewService` | Checkout, portal, customer mapping, `IsPremium` |
-| `Service.CreateCheckoutSession` | Start monthly or yearly Checkout (`CheckoutParams`) |
-| `Service.CreatePortalSession` | Start the Stripe customer portal (`PortalParams`) |
-| `Service.EnsureCustomer` | Map Joined `userID` ↔ Stripe customer |
-| `Service.IsPremium` | `IsPremium(ctx, userID)` for other services |
-| `NewMemoryStore` / `NewMongoStore` | Persist customers + `subscriptions` |
-| `NewWebhookRouter` + `UseService` | Signed webhook router; persists on checkout/subscription events |
-| `Handlers.Register` | Optional HTTP: checkout, portal, subscription status |
+| Function / type                    | Purpose                                                         |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `LoadConfig`                       | Env + live-key guard                                            |
+| `NewHTTPClient` / `Client`         | Stripe seam (tests use `NewFakeClient`)                         |
+| `SyncProducts`                     | Idempotent Premium product/price catalog                        |
+| `NewService`                       | Checkout, portal, customer mapping, `IsPremium`                 |
+| `Service.CreateCheckoutSession`    | Start monthly or yearly Checkout (`CheckoutParams`)             |
+| `Service.CreatePortalSession`      | Start the Stripe customer portal (`PortalParams`)               |
+| `Service.EnsureCustomer`           | Map Joined `userID` ↔ Stripe customer                           |
+| `Service.IsPremium`                | `IsPremium(ctx, userID)` for other services                     |
+| `NewMemoryStore` / `NewMongoStore` | Persist customers + `subscriptions`                             |
+| `NewWebhookRouter` + `UseService`  | Signed webhook router; persists on checkout/subscription events |
+| `Handlers.Register`                | Optional HTTP: checkout, portal, subscription status            |
 
 Suggested HTTP paths (constants in this package):
 
