@@ -3,6 +3,7 @@ package jobs
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -18,6 +19,40 @@ func (s stubReader) JSON(context.Context, string, string, json.RawMessage) ([]by
 
 func (s stubReader) JSONWebSearch(context.Context, string, string, json.RawMessage) ([]byte, []string, error) {
 	return s.payload, nil, nil
+}
+
+type countingReader struct {
+	stubReader
+	web, plain             int
+	webPrompt, plainPrompt string
+}
+
+func (c *countingReader) JSON(_ context.Context, system, _ string, _ json.RawMessage) ([]byte, error) {
+	c.plain++
+	c.plainPrompt = system
+	return c.payload, nil
+}
+
+func (c *countingReader) JSONWebSearch(_ context.Context, system, _ string, _ json.RawMessage) ([]byte, []string, error) {
+	c.web++
+	c.webPrompt = system
+	return c.payload, nil, nil
+}
+
+func TestReadExtractionFollowsTheWebSearchSwitch(t *testing.T) {
+	reader := &countingReader{stubReader: stubReader{payload: []byte(`{}`)}}
+	if _, err := readExtraction(context.Background(), reader, tempListing{}, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readExtraction(context.Background(), reader, tempListing{}, false); err != nil {
+		t.Fatal(err)
+	}
+	if reader.web != 1 || reader.plain != 1 {
+		t.Fatalf("web=%d plain=%d", reader.web, reader.plain)
+	}
+	if !strings.Contains(reader.webPrompt, "web search") || strings.Contains(reader.plainPrompt, "web search") {
+		t.Fatal("the switch must pick the matching prompt")
+	}
 }
 
 func TestParsePostedJobFillsDraft(t *testing.T) {

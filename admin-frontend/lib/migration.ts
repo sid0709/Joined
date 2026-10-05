@@ -71,6 +71,8 @@ export type MigrationStart = {
   tempJobIds?: string[];
   companyIds?: string[];
   redo?: boolean;
+  /** When false, the model answers without the web_search tool. Omitted means on. */
+  webSearch?: boolean;
 };
 
 export function migrationTaskPath(task: MigrationTask) {

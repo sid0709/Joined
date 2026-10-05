@@ -40,7 +40,7 @@ func TestAnalyzeTempJobsDropsPublishedTempJob(t *testing.T) {
 		t.Fatalf("seed temp job: %v", err)
 	}
 
-	if err := store.AnalyzeTempJobs(ctx, stubReader{payload: publishablePayload}, AnalyzeScope{}, 1, nil); err != nil {
+	if err := store.AnalyzeTempJobs(ctx, stubReader{payload: publishablePayload}, AnalyzeScope{WebSearch: true}, 1, nil); err != nil {
 		t.Fatalf("analyze: %v", err)
 	}
 	if left, err := store.dest().CountDocuments(ctx, bson.D{}); err != nil || left != 0 {

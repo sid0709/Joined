@@ -21,6 +21,8 @@ type ResearchScope struct {
 	IDs []string
 	// Redo researches companies an earlier run already tried.
 	Redo bool
+	// WebSearch lets the model look the company up. Off, it answers without web_search.
+	WebSearch bool
 }
 
 // ResearchCompanies researches staged companies on the web, workers at a time,
@@ -30,7 +32,7 @@ type ResearchScope struct {
 // the list it looks again, so companies a copy stages meanwhile are researched too.
 // A hand-picked set is researched once, including ones an earlier run already tried.
 // A company that fails is reported and stays waiting; a missing API key stops the run.
-func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher, model string, scope ResearchScope, workers int, progress Progress) error {
+func (s *Store) ResearchCompanies(ctx context.Context, researcher CompanyReader, model string, scope ResearchScope, workers int, progress Progress) error {
 	if researcher == nil {
 		return ErrMissingResearcher
 	}
@@ -47,7 +49,7 @@ func (s *Store) ResearchCompanies(ctx context.Context, researcher WebResearcher,
 		return docs, nil
 	}
 	work := func(ctx context.Context, doc storedCompany) error {
-		published, err := s.researchOne(ctx, researcher, model, doc)
+		published, err := s.researchOne(ctx, researcher, model, doc, scope.WebSearch)
 		switch {
 		case err == nil && published:
 			progress.Done(1)
@@ -128,12 +130,12 @@ func (s *Store) stagedToResearch(ctx context.Context, redo bool, seen map[string
 // researchOne researches one staged company and publishes it when research found it.
 // A company research cannot find, or that has nothing to search for, is marked not
 // found and stays staged.
-func (s *Store) researchOne(ctx context.Context, researcher WebResearcher, model string, doc storedCompany) (bool, error) {
+func (s *Store) researchOne(ctx context.Context, researcher CompanyReader, model string, doc storedCompany, webSearch bool) (bool, error) {
 	website := doc.displayURL()
 	if !validLink(website, maxCompanyURL) {
 		website = ""
 	}
-	found, err := ResearchCompany(ctx, researcher, doc.displayName(), website)
+	found, err := researchCompany(ctx, researcher, doc.displayName(), website, webSearch)
 	if err != nil && !errors.Is(err, ErrInvalidInput) {
 		return false, err
 	}

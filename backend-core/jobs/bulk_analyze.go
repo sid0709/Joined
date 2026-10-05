@@ -16,6 +16,8 @@ type AnalyzeScope struct {
 	IDs []string
 	// Redo analyzes jobs that already have a search record again.
 	Redo bool
+	// WebSearch lets the model look past the posting. Off, it reads the posting alone.
+	WebSearch bool
 }
 
 // notPublishableField marks a temp job whose analysis did not say enough to publish it.
@@ -58,7 +60,7 @@ func (s *Store) AnalyzeTempJobs(ctx context.Context, reader ModelReader, scope A
 		return listings, nil
 	}
 	work := func(ctx context.Context, listing tempListing) error {
-		published, err := s.publishAnalysis(ctx, reader, listing, time.Now())
+		published, err := s.publishAnalysis(ctx, reader, listing, time.Now(), scope.WebSearch)
 		switch {
 		case err == nil && published:
 			progress.Done(1)
@@ -77,8 +79,8 @@ func (s *Store) AnalyzeTempJobs(ctx context.Context, reader ModelReader, scope A
 // publishAnalysis analyzes a temp job and publishes it when the analysis says enough,
 // then drops the temp job. One it cannot publish is marked on the temp job instead; a
 // job published before stays published.
-func (s *Store) publishAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (bool, error) {
-	record, err := s.analysisRecord(ctx, reader, listing, now)
+func (s *Store) publishAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time, webSearch bool) (bool, error) {
+	record, err := s.analysisRecord(ctx, reader, listing, now, webSearch)
 	reason := ""
 	switch {
 	case errors.Is(err, ErrMissingDescription):

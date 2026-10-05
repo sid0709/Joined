@@ -26,8 +26,10 @@ func crawledJob(applyLink string) CrawledJob {
 		Skills:              []string{"Go"},
 		Details:             map[string]string{"location": " Remote ", "bad.key": "dropped"},
 	}
+	job.CompanyLink = "https://acme.com/"
 	job.Company.Name = "Acme"
 	job.Company.Logo = "https://cdn.example/logo.png"
+	job.Company.Tags = []string{"SaaS", " "}
 	job.Applicants.Count = 25
 	return job
 }
@@ -207,10 +209,26 @@ func TestIngestCrawledJobsStagesAndSkipsDuplicates(t *testing.T) {
 		t.Fatalf("listing = %+v, err = %v", listing, err)
 	}
 
-	// Outside the duplicate window the same link is staged again.
+	company, err := stagedCrawledCompany(ctx, store, "Acme")
+	if err != nil {
+		t.Fatalf("staged company: %v", err)
+	}
+	if company.CompanyLink != "https://acme.com/" || company.CompanyURL != company.CompanyLink ||
+		company.CompanyLogo != "https://cdn.example/logo.png" || company.Source != CrawlerIngest {
+		t.Fatalf("company = %+v", company)
+	}
+	tags, _ := company.Metadata["tags"].(bson.A)
+	if len(tags) != 1 || tags[0] != "SaaS" {
+		t.Fatalf("metadata = %+v", company.Metadata)
+	}
+
+	// Outside the duplicate window the same link is staged again, without a second company.
 	later, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{crawledJob("https://acme.com/apply/1")}}, now.Add(31*24*time.Hour))
 	if err != nil || !later.Results[0].Created {
 		t.Fatalf("after window = %+v, err = %v", later, err)
+	}
+	if n, err := store.stagedCompanies().CountDocuments(ctx, bson.D{{Key: "companyKey", Value: "acme"}}); err != nil || n != 1 {
+		t.Fatalf("companies after second job = %d, err = %v", n, err)
 	}
 }
 
@@ -247,5 +265,103 @@ func TestCopyKeepsCrawledJobs(t *testing.T) {
 	again, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{crawledJob("https://acme.com/apply/9")}}, time.Now())
 	if err != nil || !again.Results[0].Duplicate {
 		t.Fatalf("after copy = %+v, err = %v", again, err)
+	}
+}
+
+type stagedCrawledCompanyDoc struct {
+	CompanyName string `bson:"companyName"`
+	CompanyLink string `bson:"companyLink"`
+	CompanyURL  string `bson:"companyUrl"`
+	CompanyLogo string `bson:"companyLogo"`
+	Source      string `bson:"source"`
+	Metadata    bson.M `bson:"metadata"`
+}
+
+func stagedCrawledCompany(ctx context.Context, store *Store, name string) (stagedCrawledCompanyDoc, error) {
+	var doc stagedCrawledCompanyDoc
+	err := store.stagedCompanies().FindOne(ctx, bson.D{{Key: "companyName", Value: name}}).Decode(&doc)
+	return doc, err
+}
+
+func TestCrawledCompanyDocumentPutsBoardFieldsInMetadata(t *testing.T) {
+	body := []byte(`{"jobs":[{
+		"title":"Eng",
+		"description":"Build",
+		"applyLink":"https://builtin.com/apply/1",
+		"companyLink":"https://builtin.com/company/north",
+		"company":{"name":"North","logo":"https://cdn.example/north.png","employees":"51-200"}
+	}]}`)
+	batch, err := ParseCrawlerBatch(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	raw, err := bson.Marshal(crawledCompanyDocument("pub-1", crawlerCompanySourcePrefix+"north", batch.Jobs[0], now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc stagedCrawledCompanyDoc
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.CompanyName != "North" || doc.CompanyLink != "https://builtin.com/company/north" ||
+		doc.CompanyURL != doc.CompanyLink || doc.CompanyLogo != "https://cdn.example/north.png" {
+		t.Fatalf("doc = %+v", doc)
+	}
+	if _, ok := doc.Metadata["tags"]; ok || doc.Metadata["employees"] != "51-200" {
+		t.Fatalf("metadata = %+v", doc.Metadata)
+	}
+	if _, ok := doc.Metadata["name"]; ok || doc.Metadata["logo"] != nil {
+		t.Fatalf("metadata kept identity fields: %+v", doc.Metadata)
+	}
+
+	withTags := crawledJob("https://acme.com/apply/1")
+	raw, err = bson.Marshal(crawledCompanyDocument("pub-2", crawlerCompanySourcePrefix+"acme", withTags, now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc = stagedCrawledCompanyDoc{}
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	tags, _ := doc.Metadata["tags"].(bson.A)
+	if len(tags) != 1 || tags[0] != "SaaS" {
+		t.Fatalf("tags metadata = %+v", doc.Metadata)
+	}
+}
+
+func TestIngestCrawledCompanySkipsExistingAndIncomplete(t *testing.T) {
+	store, _, _, _ := crawlerTestStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if _, err := store.companies().InsertOne(ctx, bson.D{
+		{Key: "id", Value: "already-published"},
+		{Key: "sourceId", Value: "source-acme"},
+		{Key: "companyName", Value: "Acme"},
+		{Key: "companyKey", Value: "acme"},
+		{Key: "companyUrl", Value: "https://acme.com"},
+	}); err != nil {
+		t.Fatalf("seed company: %v", err)
+	}
+
+	known, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{crawledJob("https://acme.com/apply/known")}}, time.Now())
+	if err != nil || !known.Results[0].Created {
+		t.Fatalf("known company job = %+v, err = %v", known, err)
+	}
+	if n, err := store.stagedCompanies().CountDocuments(ctx, bson.D{}); err != nil || n != 0 {
+		t.Fatalf("staged an existing company: %d, err = %v", n, err)
+	}
+
+	incomplete := crawledJob("https://jobs.example/apply/plain")
+	incomplete.Company.Name = "Plain Co"
+	incomplete.Company.Logo = ""
+	incomplete.CompanyLink = "https://plain.example/"
+	saved, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{incomplete}}, time.Now())
+	if err != nil || !saved.Results[0].Created {
+		t.Fatalf("incomplete company job = %+v, err = %v", saved, err)
+	}
+	if n, err := store.stagedCompanies().CountDocuments(ctx, bson.D{{Key: "companyKey", Value: "plain-co"}}); err != nil || n != 0 {
+		t.Fatalf("staged a company without a logo: %d, err = %v", n, err)
 	}
 }

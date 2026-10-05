@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDialog, Banner, Button, PageHeader, Stack, StatGrid } from "@joined/design-system";
+import {
+  AlertDialog,
+  Banner,
+  Button,
+  PageHeader,
+  Stack,
+  StatGrid,
+  Switch,
+} from "@joined/design-system";
 import { TempJobsBrowser } from "@/components/jobs/temp-jobs-browser";
 import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";
@@ -28,6 +36,7 @@ export function JobMigration() {
   const { status, error, finished, start, cancel } = useMigration();
   const [confirm, setConfirm] = useState<"copy" | "redo" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [webSearch, setWebSearch] = useState(true);
 
   const counts = status?.counts;
   const runs = status?.runs ?? {};
@@ -118,11 +127,19 @@ export function JobMigration() {
               label={pending ? `Analyze ${formatCount(pending)} waiting` : "Analyze waiting"}
               variant="primary"
               isDisabled={analyzing || !status?.modelReady || pending === 0}
-              clickAction={() => run(analyzeJobs)}
+              clickAction={() => run(analyzeJobs, { webSearch })}
             />
           </>
         }
-      />
+      >
+        <Switch
+          label="Web search"
+          description="The model searches the live web before it answers, including for a salary the posting leaves out. Off, it only uses the posting."
+          value={webSearch}
+          onChange={setWebSearch}
+          isDisabled={analyzing}
+        />
+      </MigrationStep>
       <TempJobsBrowser
         layout="section"
         description={`Or pick listings and analyze just those with ${model}. Finished records appear on Jobs.`}
@@ -130,7 +147,7 @@ export function JobMigration() {
         pageSizes={MIGRATION_PAGE_SIZES}
         refreshKey={finished}
         onAnalyze={async (ids) => {
-          await start(analyzeJobs, { tempJobIds: ids });
+          await start(analyzeJobs, { tempJobIds: ids, webSearch });
           return {
             status: "success",
             title: `Analyzing ${formatCount(ids.length)} jobs. Progress shows under Analyze with AI.`,
@@ -152,7 +169,7 @@ export function JobMigration() {
         title="Analyze every temp job again?"
         description={`This sends all ${formatCount(counts?.tempJobs ?? 0)} temp jobs to ${model} again, including ones marked not publishable, and publishes those it can. Published jobs have already left temp jobs.`}
         actionLabel="Re-analyze all"
-        onAction={() => run(analyzeJobs, { redo: true })}
+        onAction={() => run(analyzeJobs, { redo: true, webSearch })}
       />
     </Stack>
   );

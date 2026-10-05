@@ -49,11 +49,59 @@ type CrawledJob struct {
 		Count int    `json:"count"`
 		Text  string `json:"text"`
 	} `json:"applicants"`
-	Company struct {
-		Name string   `json:"name"`
-		Logo string   `json:"logo"`
-		Tags []string `json:"tags"`
-	} `json:"company"`
+	Company CrawledCompany `json:"company"`
+}
+
+// CrawledCompany is the employer a board showed on a job. Name and logo are the
+// fields every board is expected to have. Anything else the board happened to
+// show (tags, employee count, ...) is kept in Metadata, because boards do not
+// share that set.
+type CrawledCompany struct {
+	Name     string         `json:"name"`
+	Logo     string         `json:"logo"`
+	Tags     []string       `json:"tags"`
+	Metadata map[string]any `json:"-"`
+}
+
+// UnmarshalJSON keeps name, logo, and tags, and keeps every other company field
+// for metadata. A board that omits tags still decodes.
+func (c *CrawledCompany) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(raw) == 0 {
+		return nil
+	}
+	if value, ok := raw["name"]; ok {
+		if err := json.Unmarshal(value, &c.Name); err != nil {
+			return err
+		}
+	}
+	if value, ok := raw["logo"]; ok {
+		if err := json.Unmarshal(value, &c.Logo); err != nil {
+			return err
+		}
+	}
+	if value, ok := raw["tags"]; ok {
+		var tags []string
+		if err := json.Unmarshal(value, &tags); err == nil {
+			c.Tags = tags
+		}
+	}
+	meta := make(map[string]any, len(raw))
+	for key, value := range raw {
+		if key == "name" || key == "logo" {
+			continue
+		}
+		var decoded any
+		if err := json.Unmarshal(value, &decoded); err != nil {
+			return err
+		}
+		meta[key] = decoded
+	}
+	c.Metadata = meta
+	return nil
 }
 
 // CrawlerBatch is one ingest request: the crawler's scrape source and its jobs.
@@ -269,6 +317,11 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 		result.StatusCode = 400
 		return result
 	}
+	if err := s.stageCrawledCompany(ctx, job, now); err != nil {
+		result.Error = "could not save the company"
+		result.StatusCode = 500
+		return result
+	}
 	key := CanonicalApplyURL(job.ApplyLink)
 	existing, err := s.findRecentTempJob(ctx, key, now.Add(-crawlerDuplicateWindow(job.DuplicateWindowDays)))
 	if err != nil {
@@ -298,12 +351,17 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 }
 
 // IngestCrawledJobs stages each crawled job in temp_jobs for AI analysis, skipping
-// one whose apply link is already there within the job's duplicate window. It
-// waits while Copy swaps temp_jobs, so no job lands in a collection being replaced.
+// one whose apply link is already there within the job's duplicate window. When
+// the employer is not already in companies or temp_companies, and the board gave
+// a name, website, and logo, it stages that company in temp_companies. It waits
+// while Copy swaps temp_jobs, so no job lands in a collection being replaced.
 func (s *Store) IngestCrawledJobs(ctx context.Context, batch CrawlerBatch, now time.Time) (CrawlerIngestResult, error) {
 	s.tempWriteMu.RLock()
 	defer s.tempWriteMu.RUnlock()
 	if err := s.ensureCrawlerIndexes(ctx); err != nil {
+		return CrawlerIngestResult{}, err
+	}
+	if err := ensureCompanyIndexes(ctx, s.stagedCompanies()); err != nil && !indexAlreadyExists(err) {
 		return CrawlerIngestResult{}, err
 	}
 

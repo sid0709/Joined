@@ -11,15 +11,24 @@ import (
 )
 
 type fakeResearcher struct {
-	answer  string
-	sources []string
-	err     error
-	gotUser string
+	answer   string
+	sources  []string
+	err      error
+	gotUser  string
+	searches int
+	plain    int
 }
 
 func (f *fakeResearcher) JSONWebSearch(_ context.Context, _, user string, _ json.RawMessage) ([]byte, []string, error) {
+	f.searches++
 	f.gotUser = user
 	return []byte(f.answer), f.sources, f.err
+}
+
+func (f *fakeResearcher) JSON(_ context.Context, system, user string, _ json.RawMessage) ([]byte, error) {
+	f.plain++
+	f.gotUser = system + "\n" + user
+	return []byte(f.answer), f.err
 }
 
 const researchedAnswer = `{
@@ -139,6 +148,26 @@ func TestCompanyResearchSchemaOnlyOffersTheFormsChoices(t *testing.T) {
 	want := append([]string{""}, jobschema.Industries()...)
 	if got := schema.Properties["industry"].Enum; strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("industry enum = %v", got)
+	}
+}
+
+func TestResearchCompanyWithoutWebSearchDoesNotSearch(t *testing.T) {
+	fake := &fakeResearcher{answer: `{"name":"Acme","website":"","taglinePhrases":[],"about":"Acme builds tools.","industry":"","companyType":"","size":"","founded":0,"headquarters":{"line1":"","city":"","state":"","postalCode":"","country":""},"offices":[],"specialties":[],"mission":"","values":[],"benefits":[]}`}
+	got, err := researchCompany(context.Background(), fake, "Acme", "https://acme.example", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fake.searches != 0 || fake.plain != 1 {
+		t.Fatalf("searches=%d plain=%d", fake.searches, fake.plain)
+	}
+	if !strings.Contains(fake.gotUser, "Do not browse the web") || strings.Contains(fake.gotUser, "Use web search") {
+		t.Fatalf("prompt = %q", fake.gotUser)
+	}
+	if got.Company.About != "Acme builds tools." || len(got.Sources) != 0 {
+		t.Fatalf("draft = %+v", got)
+	}
+	if got.Company.URL != "https://acme.example" {
+		t.Fatalf("url = %q", got.Company.URL)
 	}
 }
 
