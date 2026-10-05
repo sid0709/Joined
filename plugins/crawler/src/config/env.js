@@ -1,4 +1,4 @@
-/** Server endpoints — configure in Extension/.env only. */
+/** Server endpoints — configure in plugins/crawler/.env only. */
 /* global chrome */
 
 import { parseDuplicateWindowDays } from "./duplicateWindow.js";

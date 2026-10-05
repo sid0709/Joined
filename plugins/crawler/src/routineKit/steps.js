@@ -1,6 +1,8 @@
 /**
  * Step builders: what a routine does on the page. Each returns plain data.
  * Selectors follow the same rules as fields: a CSS selector, or a list tried in order.
+ * `click`, `waitFor` and `waitGone` take a `label`: what the side panel shows while the
+ * step runs (default: a description built from the step, see describe.js).
  */
 
 /** What a step does when its element is missing. */
@@ -35,8 +37,17 @@ export const click = (
     wait = DEFAULT_STEP_WAIT_MS,
     highlight: shouldHighlight = true,
     onMissing = ON_MISSING.FAIL,
+    label = null,
   } = {},
-) => ({ kind: "click", selector, nth, wait, highlight: shouldHighlight, onMissing });
+) => ({
+  kind: "click",
+  selector,
+  nth,
+  wait,
+  highlight: shouldHighlight,
+  onMissing,
+  ...(label ? { label } : {}),
+});
 
 /** Wait until the selector matches. */
 export const waitFor = (
@@ -45,8 +56,9 @@ export const waitFor = (
     timeout = DEFAULT_STEP_WAIT_MS,
     interval = DEFAULT_POLL_INTERVAL_MS,
     onMissing = ON_MISSING.FAIL,
+    label = null,
   } = {},
-) => ({ kind: "waitFor", selector, timeout, interval, onMissing });
+) => ({ kind: "waitFor", selector, timeout, interval, onMissing, ...(label ? { label } : {}) });
 
 /**
  * Wait until the selector no longer matches. Never fails: it gives up after `timeout`.
@@ -54,5 +66,10 @@ export const waitFor = (
  */
 export const waitGone = (
   selector,
-  { timeout = DEFAULT_STEP_WAIT_MS, interval = DEFAULT_POLL_INTERVAL_MS, notice = null } = {},
-) => ({ kind: "waitGone", selector, timeout, interval, notice });
+  {
+    timeout = DEFAULT_STEP_WAIT_MS,
+    interval = DEFAULT_POLL_INTERVAL_MS,
+    notice = null,
+    label = null,
+  } = {},
+) => ({ kind: "waitGone", selector, timeout, interval, notice, ...(label ? { label } : {}) });

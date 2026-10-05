@@ -51,6 +51,8 @@ function fieldProblems(field, path) {
     problems.push(`${at} cannot combine inner with a list nth`);
   if (!isWholeNumber(field.innerNth)) problems.push(`${at} innerNth must be a whole number`);
   if (!isWholeNumber(field.wait)) problems.push(`${at} wait must be a whole number of ms`);
+  if (field.label !== undefined && !isNonEmptyString(field.label))
+    problems.push(`${at} label must be text`);
   for (const spec of field.then ?? []) {
     if (!isKnownTransform(spec))
       problems.push(`${at} uses unknown transform ${JSON.stringify(spec)}`);
@@ -66,6 +68,8 @@ function stepProblems(step, label) {
   if (step.onMissing !== undefined && !ON_MISSING_VALUES.includes(step.onMissing))
     problems.push(`${label} has unknown onMissing "${step.onMissing}"`);
   if (step.kind === "pause" && !isWholeNumber(step.ms)) problems.push(`${label} needs ms`);
+  if (step.label !== undefined && !isNonEmptyString(step.label))
+    problems.push(`${label} label must be text`);
   return problems;
 }
 

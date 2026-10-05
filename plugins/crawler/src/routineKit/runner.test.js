@@ -63,9 +63,11 @@ describe("runRoutinePass", () => {
     const page = fakePage();
     const progress = [];
     const fieldsSeen = [];
+    const activities = [];
     let submitted = null;
     await runRoutinePass(makeRoutine(), {
       exec: page.exec,
+      onActivity: (activity) => activities.push(activity),
       onProgress: (percent) => progress.push(percent),
       onField: (path, value, _record, found) => fieldsSeen.push([path, value, found]),
       onRecord: (record) => {
@@ -85,6 +87,15 @@ describe("runRoutinePass", () => {
     expect(fieldsSeen).toEqual([
       ["title", "value of h1", true],
       ["company.name", "value of .company", true],
+    ]);
+    expect(activities).toEqual([
+      { phase: "open", label: "Click .card", kind: "click" },
+      { phase: "ready", label: "Wait for .detail", kind: "waitFor" },
+      { phase: "read", label: "Reading title", field: "title" },
+      { phase: "read", label: "Reading company name", field: "company.name" },
+      { phase: "submit", label: "Saving record" },
+      { phase: "dismiss", label: "Click .dismiss", kind: "click" },
+      { phase: "settle", label: "Clear highlights", kind: "clear" },
     ]);
     expect(progress[0]).toBe(0);
     expect(progress.at(-1)).toBe(100);
@@ -164,9 +175,12 @@ describe("runRoutinePass", () => {
     });
     await runRoutinePass(routine, {
       exec: async (op) => (op.selector === ".stuck" ? { count: 1 } : page.exec(op)),
-      onNotice: (message) => notices.push(message),
+      onNotice: (message, ok) => notices.push([message, ok]),
     });
-    expect(notices).toEqual(["Closing: done", "Stuck: timed out"]);
+    expect(notices).toEqual([
+      ["Closing: done", true],
+      ["Stuck: timed out", false],
+    ]);
   });
 
   test("stops when the signal is aborted, before or during a pass", async () => {

@@ -12,6 +12,7 @@
  * - `join`: with a list `nth`, join the non-empty values with this string.
  * - `then`: transforms to apply to the value (see transforms.js).
  * - `wait`: how long to wait for `selector` to appear, in ms.
+ * - `label`: what people see for this field in the side panel (default: from its path).
  *
  * A field whose element is missing reads as "" (or [] / {} for lists and pairs), and
  * its transforms still run, so `then: ["lines"]` gives [] for a missing element.
@@ -42,6 +43,7 @@ function field(selector, read, options = {}) {
     then = [],
     wait = DEFAULT_FIELD_WAIT_MS,
     pair = null,
+    label = null,
   } = options;
   return {
     kind: "field",
@@ -54,12 +56,19 @@ function field(selector, read, options = {}) {
     join,
     then,
     wait,
+    ...(label ? { label } : {}),
     ...(pair ? { pair } : {}),
   };
 }
 
 /** The element's rendered text (innerText). */
 export const text = (selector, options) => field(selector, "text", options);
+
+/** The element's text as written in the HTML, hidden text included (textContent). */
+export const rawText = (selector, options) => field(selector, "textContent", options);
+
+/** The element's markup (outerHTML). */
+export const html = (selector, options) => field(selector, "html", options);
 
 /** An attribute exactly as written in the HTML. */
 export const attr = (selector, name, options) => field(selector, `attr:${name}`, options);

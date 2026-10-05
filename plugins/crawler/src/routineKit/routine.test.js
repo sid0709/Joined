@@ -74,7 +74,7 @@ describe("routineProblems", () => {
       ...listDetail({}),
       open: [{ kind: "dance" }, click(""), { kind: "pause" }],
       ready: "soon",
-      dismiss: [click(".x", { onMissing: "panic" })],
+      dismiss: [click(".x", { onMissing: "panic" }), { ...waitGone(".x"), label: "" }],
     };
     expect(routineProblems({ ...validRoutine(), strategy })).toEqual([
       'open step 1 has unknown kind "dance"',
@@ -82,6 +82,7 @@ describe("routineProblems", () => {
       "open step 3 needs ms",
       "strategy ready must be a list of steps",
       'dismiss step 1 has unknown onMissing "panic"',
+      "dismiss step 2 label must be text",
     ]);
   });
 
@@ -96,6 +97,7 @@ describe("routineProblems", () => {
       innerWithList: text("h1", { nth: [0, 1], inner: "span" }),
       badInner: text("h1", { inner: " " }),
       badTransform: text("h1", { then: ["lines", "shout"] }),
+      badLabel: { ...text("h1"), label: 3 },
     };
     expect(routineProblems({ ...validRoutine(), fields })).toEqual([
       'field "raw" must be built with text(), attr(), prop() or pairs()',
@@ -111,6 +113,7 @@ describe("routineProblems", () => {
       'field "innerWithList" cannot combine inner with a list nth',
       'field "badInner" inner must be a selector',
       'field "badTransform" uses unknown transform "shout"',
+      'field "badLabel" label must be text',
     ]);
     expect(routineProblems({ ...validRoutine(), fields: {} })).toEqual([
       "fields must define at least one field",

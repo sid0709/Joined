@@ -1,5 +1,5 @@
 // Everything a routine module needs to describe a site. See src/routines/ for examples.
-export { attr, pairs, prop, text } from "./fields.js";
+export { attr, html, pairs, prop, rawText, text } from "./fields.js";
 export { defineRoutine } from "./routine.js";
 export {
   click,

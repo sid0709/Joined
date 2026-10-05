@@ -1,3 +1,4 @@
+import { describeSelector, describeStep, fieldLabel } from "./describe.js";
 import { listFields } from "./routine.js";
 import { ON_MISSING } from "./steps.js";
 import { STRATEGY_PHASES } from "./strategies.js";
@@ -12,7 +13,10 @@ import { STRATEGY_PHASES } from "./strategies.js";
  * - `exec(op)` → Promise of the op's result. Required.
  * - `signal`: an AbortSignal; aborting stops the pass with RoutineStoppedError.
  * - `opTimeoutMs`: overrides OP_TIMEOUT_MS.
- * - `onProgress(percent)`, `onNotice(message)`.
+ * - `onProgress(percent)`, `onNotice(message, ok)`: ok is false when a wait timed out.
+ * - `onActivity({ phase, label, kind?, field? })` before each step (with its kind), each
+ *   field (with its path), and the record hand-off.
+ *   Phases: the strategy's phase names, plus "read" (fields) and "submit" (onRecord).
  * - `onField(path, value, record, found)` after each field is read.
  * - `onRecord(record)` with the finished record. Throw to reject it.
  */
@@ -43,9 +47,6 @@ export class RoutineStepError extends Error {
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const describeSelector = (selector) =>
-  Array.isArray(selector) ? selector.join(" | ") : String(selector);
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -115,12 +116,13 @@ const STEP_RUNNERS = {
   },
   waitGone: async (ctx, step) => {
     const gone = await pollCount(ctx, step, (count) => count === 0);
-    if (step.notice) ctx.hooks.onNotice?.(`${step.notice}: ${gone ? "done" : "timed out"}`);
+    if (step.notice) ctx.hooks.onNotice?.(`${step.notice}: ${gone ? "done" : "timed out"}`, gone);
   },
 };
 
-async function runSteps(ctx, steps, progress) {
+async function runSteps(ctx, steps, progress, phase) {
   for (const step of steps) {
+    ctx.hooks.onActivity?.({ phase, label: describeStep(step), kind: step.kind });
     await STEP_RUNNERS[step.kind](ctx, step);
     progress.tick();
   }
@@ -141,6 +143,11 @@ async function readFields(ctx, progress) {
   const { highlightFields, fieldPauseMs } = ctx.routine.options;
   const record = {};
   for (const { path, field } of listFields(ctx.routine)) {
+    ctx.hooks.onActivity?.({
+      phase: "read",
+      label: `Reading ${fieldLabel(path, field).toLowerCase()}`,
+      field: path,
+    });
     if (highlightFields) await ctx.call("highlight", { selector: field.selector });
     const { found = false, value } = await ctx.call("extract", { field }, field.wait);
     setPath(record, path, value);
@@ -154,12 +161,13 @@ async function readFields(ctx, progress) {
 
 async function runListDetailPass(ctx, progress) {
   const { open, ready, dismiss, settle } = ctx.routine.strategy;
-  await runSteps(ctx, open, progress);
-  await runSteps(ctx, ready, progress);
+  await runSteps(ctx, open, progress, "open");
+  await runSteps(ctx, ready, progress, "ready");
 
   let rejection = null;
   try {
     const record = await readFields(ctx, progress);
+    ctx.hooks.onActivity?.({ phase: "submit", label: "Saving record" });
     await ctx.hooks.onRecord?.(record);
   } catch (error) {
     if (error instanceof RoutineStoppedError) throw error;
@@ -168,9 +176,9 @@ async function runListDetailPass(ctx, progress) {
   progress.tick();
 
   // Dismiss even a rejected record, or the next pass would open the same item again.
-  await runSteps(ctx, dismiss, progress);
+  await runSteps(ctx, dismiss, progress, "dismiss");
   if (rejection) throw rejection;
-  await runSteps(ctx, settle, progress);
+  await runSteps(ctx, settle, progress, "settle");
 }
 
 const STRATEGY_RUNNERS = {

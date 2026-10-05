@@ -1,7 +1,4 @@
-import { getJobValidationChecklist } from "../../../api/jobValidation";
-import { DUPLICATE_WINDOW_DAYS, SCRAPE_SOURCE } from "../../../config/env";
-
-export const pendingValidationChecklist = () => getJobValidationChecklist({}, []);
+import { DUPLICATE_WINDOW_DAYS, SCRAPE_SOURCE } from "../../config/env";
 
 /** A job routine's record, plus the fields the extension adds, as POST /jobs/ingest expects. */
 export function toJobPayload(record) {

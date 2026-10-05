@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { findRoutineForUrl, hostMatches, routineMatchesUrl } from "./match.js";
+import { findRoutineForUrl, findRoutinesForUrl, hostMatches, routineMatchesUrl } from "./match.js";
 
 const jobs = { id: "jobs", match: { hosts: ["jobs.example"] } };
 const other = { id: "other", match: { hosts: ["other.example"] } };
@@ -22,5 +22,10 @@ describe("routine matching", () => {
   test("finds the routine for a page", () => {
     expect(findRoutineForUrl([jobs, other], "https://other.example/")).toBe(other);
     expect(findRoutineForUrl([jobs, other], "https://unknown.example/")).toBeNull();
+    const alsoJobs = { id: "also", match: { hosts: ["example", "jobs.example"] } };
+    expect(findRoutinesForUrl([jobs, other, alsoJobs], "https://jobs.example/")).toEqual([
+      jobs,
+      alsoJobs,
+    ]);
   });
 });

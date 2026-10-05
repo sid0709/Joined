@@ -1,174 +1,166 @@
-/* global chrome */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   assertCompleteJob,
-  getJobValidationChecklist,
   IncompleteJobDataError,
-  mergeJobValidationChecklist,
-  validationRuleIdsForField,
-} from "../../../api/jobValidation";
-import { useRuntime } from "../../../api/runtimeContext";
+  isJobFieldValid,
+} from "../../api/jobValidation";
+import { useRuntime } from "../../api/runtimeContext";
+import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
   createScrapeRunStats,
   incrementScrapeRunStats,
   SCRAPE_OUTCOMES,
-} from "../../../api/scrapeRunStats";
-import useNotification from "../../../api/useNotification";
-import { API_URL, DUPLICATE_WINDOW_DAYS } from "../../../config/env";
+} from "../../api/scrapeRunStats";
+import useNotification from "../../api/useNotification";
+import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../../routineKit/runner";
+
+import { toJobPayload } from "./jobPayload";
 import {
-  clearRememberedPageTab,
-  rememberActivePageTab,
-} from "../../../contentScript/interactionBridge";
-import { findRoutineForUrl } from "../../../routineKit/match";
-import { ROUTINE_EXEC_ACTION } from "../../../routineKit/protocol";
-import {
-  RoutineFinishedError,
-  RoutineStoppedError,
-  runRoutinePass,
-} from "../../../routineKit/runner";
-import { ROUTINES } from "../../../routines";
-import { ROUTINE_OUTPUTS } from "../../../routines/outputs";
+  addRecentJob,
+  fieldStatus,
+  pendingFields,
+  recordFieldHit,
+  updateRecentJob,
+} from "./runState";
 
-import { pendingValidationChecklist, toJobPayload } from "./jobPayload";
+/** Run states: "idle" (never run), "running", "finished" (nothing left), "stopped". */
+export const RUN_STATUS = Object.freeze({
+  IDLE: "idle",
+  RUNNING: "running",
+  FINISHED: "finished",
+  STOPPED: "stopped",
+});
 
-const JOB_ROUTINES = ROUTINES.filter((routine) => routine.output === ROUTINE_OUTPUTS.JOB);
+const EMPTY_QUEUE = { queued: 0, saving: 0 };
 
-function describeHost(url) {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "this page";
-  }
-}
+const newRunId = () =>
+  globalThis.crypto?.randomUUID?.() || `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-/** The scrape loop's state, its runtime listeners, and Start/Stop. Each pass runs the tab's routine. */
-export function useScrapeRun() {
+/**
+ * A routine run: start/stop, the pass loop, and everything the Run tab shows about it.
+ * Each pass runs the routine once in the target tab and queues the job it reads.
+ */
+export function useRoutineRun() {
+  const [status, setStatus] = useState(RUN_STATUS.IDLE);
+  const [target, setTarget] = useState(null);
+  const [isStarting, setIsStarting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [scrapFlag, setScrapFlag] = useState(false);
-  const [validationChecks, setValidationChecks] = useState(pendingValidationChecklist);
+  const [activity, setActivity] = useState(null);
+  const [passCount, setPassCount] = useState(0);
+  const [fieldStates, setFieldStates] = useState({});
+  const [fieldHits, setFieldHits] = useState({});
   const [runStats, setRunStats] = useState(createScrapeRunStats);
+  const [queueCounts, setQueueCounts] = useState(EMPTY_QUEUE);
+  const [recentJobs, setRecentJobs] = useState([]);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [starting, setStarting] = useState(false);
-  const [targetTab, setTargetTab] = useState(null);
-  const [routine, setRoutine] = useState(null);
-  const [queueCounts, setQueueCounts] = useState({ queued: 0, saving: 0 });
 
   const { addListener, removeListener } = useRuntime();
   const notification = useNotification();
   const runStartedAt = useRef(null);
   const runIdRef = useRef(null);
   const abortRef = useRef(null);
-  const targetTabRef = useRef(null);
-  const routineRef = useRef(null);
+  const targetRef = useRef(null);
   const passHooksRef = useRef(null);
-
-  const sendRuntimeMessage = useCallback(
-    (message) =>
-      new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage(message, (response) => {
-          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-          else if (response?.success === false)
-            reject(new Error(response.error || "Background request failed"));
-          else resolve(response);
-        });
-      }),
-    [],
-  );
-
-  /** Run one routine op in the remembered tab (see contentScript/messages/routineOps.js). */
-  const execOnPage = useCallback(
-    (payload) =>
-      sendRuntimeMessage({
-        action: ROUTINE_EXEC_ACTION,
-        tabId: targetTabRef.current?.id,
-        payload,
-      }).then((response) => response?.result ?? {}),
-    [sendRuntimeMessage],
-  );
+  // Queue item id → recent-job key, and results that arrived before their enqueue ack.
+  const queueKeys = useRef(new Map());
+  const earlyResults = useRef(new Map());
 
   const notifyFailure = useCallback(
     (err, fallback) => {
-      notification.fail(err, { key: "scrap-failure", autoHideDuration: 2200 });
+      notification.fail(err, { key: "run-failure", autoHideDuration: 2600 });
       if (fallback) console.error(fallback, err);
     },
     [notification],
   );
 
-  const recordOutcome = useCallback(
-    (outcome) => {
-      setRunStats((current) => incrementScrapeRunStats(current, outcome));
-      if (runIdRef.current) {
-        void sendRuntimeMessage({
-          action: "scrapeQueue:recordOutcome",
-          payload: { runId: runIdRef.current, outcome },
-        }).catch((error) => console.error("Failed to persist scrape outcome", error));
-      }
-    },
-    [sendRuntimeMessage],
-  );
+  const recordOutcome = useCallback((outcome) => {
+    setRunStats((current) => incrementScrapeRunStats(current, outcome));
+    if (runIdRef.current) {
+      void sendRuntimeMessage({
+        action: "scrapeQueue:recordOutcome",
+        payload: { runId: runIdRef.current, outcome },
+      }).catch((error) => console.error("Failed to persist scrape outcome", error));
+    }
+  }, []);
+
+  const applyItemResult = useCallback((key, outcome) => {
+    setRecentJobs((jobs) => updateRecentJob(jobs, key, { status: outcome }));
+  }, []);
 
   /** Validate a finished record and queue it for the backend. Throws IncompleteJobDataError. */
   const submitJob = useCallback(
     (record) => {
       const job = toJobPayload(record);
-      console.log("Scraped job data:", job);
-      if (job.applyLink) {
-        setValidationChecks(getJobValidationChecklist(job));
-        assertCompleteJob(job);
+      const entry = {
+        key: `job-${job.id}`,
+        title: job.title?.trim() || "Untitled job",
+        company: job.company?.name?.trim() || "",
+        status: "queued",
+      };
+      try {
+        if (job.applyLink) assertCompleteJob(job);
+      } catch (error) {
+        setRecentJobs((jobs) =>
+          addRecentJob(jobs, { ...entry, status: SCRAPE_OUTCOMES.VALIDATION }),
+        );
+        throw error;
       }
-      // Fire-and-forget: the scrape loop must not block on the background
-      // script acking storage/backend work, or a slow drain/backend stalls scraping.
+      setRecentJobs((jobs) => addRecentJob(jobs, entry));
+      // Fire-and-forget: the pass must not wait on storage or the backend.
       sendRuntimeMessage({
         action: "scrapeQueue:enqueue",
         payload: { runId: runIdRef.current, job },
-      }).catch((error) => console.error("Failed to enqueue scraped job", error));
+      })
+        .then((response) => {
+          if (!response?.id) return;
+          queueKeys.current.set(response.id, entry.key);
+          const early = earlyResults.current.get(response.id);
+          if (early) {
+            earlyResults.current.delete(response.id);
+            applyItemResult(entry.key, early);
+          }
+        })
+        .catch((error) => {
+          applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
+          console.error("Failed to enqueue scraped job", error);
+        });
     },
-    [sendRuntimeMessage],
+    [applyItemResult],
   );
 
-  const stopRun = useCallback(() => {
+  const endRun = useCallback((nextStatus) => {
     abortRef.current?.abort();
     if (runStartedAt.current) {
       setElapsedMs(Date.now() - runStartedAt.current);
       runStartedAt.current = null;
     }
-    clearRememberedPageTab();
-    setScrapFlag(false);
+    setStatus(nextStatus);
     setProgress(0);
-    setValidationChecks(pendingValidationChecklist());
+    setActivity(null);
   }, []);
 
+  const stop = useCallback(() => endRun(RUN_STATUS.STOPPED), [endRun]);
+
+  // Queue state and per-job results from the background.
   useEffect(() => {
     const listener = (message) => {
       if (message?.action === "scrapeQueue:state") {
         const state = message.payload;
         if (!state?.runId || (runIdRef.current && state.runId !== runIdRef.current)) return;
         if (!runIdRef.current) runIdRef.current = state.runId;
-        setQueueCounts(state.counts || { queued: 0, saving: 0 });
+        setQueueCounts(state.counts || EMPTY_QUEUE);
         if (state.summary) setRunStats({ ...createScrapeRunStats(), ...state.summary });
       }
       if (
         message?.action === "scrapeQueue:itemResult" &&
         message.payload?.runId === runIdRef.current
       ) {
-        const outcome = message.payload.outcome;
-        if (outcome === SCRAPE_OUTCOMES.REGISTERED) {
-          notification.success("Job registered successfully", {
-            key: "scrap-outcome",
-            autoHideDuration: 1200,
-          });
-        } else if (outcome === SCRAPE_OUTCOMES.DUPLICATE) {
-          notification.info(message.payload.result?.reason || "Duplicate job skipped", {
-            key: "scrap-outcome",
-            autoHideDuration: 1200,
-          });
-        } else if (outcome === SCRAPE_OUTCOMES.BLOCKED) {
-          notification.warning(message.payload.result?.reason || "Job skipped by a blocking rule", {
-            key: "scrap-outcome",
-            autoHideDuration: 1500,
-          });
-        } else {
+        const { id, outcome } = message.payload;
+        const key = queueKeys.current.get(id);
+        if (key) applyItemResult(key, outcome);
+        else earlyResults.current.set(id, outcome);
+        if (outcome === SCRAPE_OUTCOMES.FAILED) {
           notifyFailure(
             new Error(
               message.payload.error || message.payload.result?.error || "Failed to register job",
@@ -180,60 +172,68 @@ export function useScrapeRun() {
     addListener(listener);
     void sendRuntimeMessage({ action: "scrapeQueue:getState" })
       .then((response) => listener({ action: "scrapeQueue:state", payload: response?.state }))
-      .catch((error) => console.error("Failed to restore scrape queue state", error));
+      .catch(() => {
+        // Outside the extension there is no queue to restore.
+      });
     return () => removeListener(listener);
-  }, [addListener, removeListener, notification, notifyFailure, sendRuntimeMessage]);
+  }, [addListener, removeListener, applyItemResult, notifyFailure]);
 
   useEffect(() => {
-    if (!scrapFlag || !runStartedAt.current) return undefined;
+    if (status !== RUN_STATUS.RUNNING || !runStartedAt.current) return undefined;
     const updateElapsed = () => setElapsedMs(Date.now() - runStartedAt.current);
     updateElapsed();
     const interval = window.setInterval(updateElapsed, 1000);
     return () => window.clearInterval(interval);
-  }, [scrapFlag]);
+  }, [status]);
 
-  // The loop below reads the latest callbacks through this ref, so a re-render never
-  // restarts a running scrape loop.
+  // The loop reads the latest callbacks through this ref, so a re-render never restarts it.
   useEffect(() => {
     passHooksRef.current = {
-      exec: execOnPage,
+      exec: (payload) => execRoutineOp(targetRef.current?.tab.id, payload),
       onProgress: setProgress,
-      onField: (path, _value, record) =>
-        setValidationChecks((current) =>
-          mergeJobValidationChecklist(
-            current,
-            toJobPayload(record),
-            validationRuleIdsForField(path),
-          ),
-        ),
+      onActivity: (next) => {
+        // Pauses and highlight tidying keep the last meaningful label on screen.
+        setActivity((current) =>
+          QUIET_STEP_KINDS.has(next.kind) && current ? { ...current, phase: next.phase } : next,
+        );
+        if (next.field) setFieldStates((current) => ({ ...current, [next.field]: "reading" }));
+      },
+      onField: (path, _value, record, found) => {
+        const valid = isJobFieldValid(toJobPayload(record), path);
+        setFieldStates((current) => ({ ...current, [path]: fieldStatus(found, valid) }));
+        setFieldHits((hits) => recordFieldHit(hits, path, found));
+      },
       onRecord: submitJob,
-      onNotice: (message) =>
-        notification.info(message, { key: "scrap-close", autoHideDuration: 1200 }),
+      onNotice: (message, ok) => {
+        if (!ok) notification.warning(message, { key: "run-notice", autoHideDuration: 2000 });
+      },
       onFinished: (message) => {
-        notification.info(message, { key: "scrap-finished", autoHideDuration: 2500 });
-        stopRun();
+        notification.success(message, { key: "run-finished", autoHideDuration: 3000 });
+        endRun(RUN_STATUS.FINISHED);
       },
       recordOutcome,
       notifyFailure,
     };
-  }, [execOnPage, submitJob, recordOutcome, notifyFailure, notification, stopRun]);
+  }, [submitJob, recordOutcome, notifyFailure, notification, endRun]);
 
   useEffect(() => {
-    if (!scrapFlag) return undefined;
+    if (status !== RUN_STATUS.RUNNING) return undefined;
     let active = true;
 
     const run = async () => {
       while (active) {
         const hooks = passHooksRef.current;
-        setValidationChecks(pendingValidationChecklist());
+        const { routine } = targetRef.current;
+        setPassCount((count) => count + 1);
+        setFieldStates(pendingFields(routine));
         try {
-          await runRoutinePass(routineRef.current, { ...hooks, signal: abortRef.current?.signal });
+          await runRoutinePass(routine, { ...hooks, signal: abortRef.current?.signal });
         } catch (err) {
           if (err instanceof RoutineStoppedError) break;
           void hooks.exec({ op: "clear" }).catch(() => {});
           setProgress(0);
           if (err instanceof RoutineFinishedError) {
-            hooks.onFinished(err.message);
+            hooks.onFinished("No more jobs in the list. Run finished.");
             break;
           }
           if (err instanceof IncompleteJobDataError) {
@@ -242,7 +242,7 @@ export function useScrapeRun() {
             continue;
           }
           hooks.recordOutcome(SCRAPE_OUTCOMES.FAILED);
-          hooks.notifyFailure(err, "Error in scrape loop");
+          hooks.notifyFailure(err, "Error in routine pass");
         }
       }
     };
@@ -251,69 +251,52 @@ export function useScrapeRun() {
     return () => {
       active = false;
     };
-  }, [scrapFlag]);
+  }, [status]);
 
-  const onScrapStart = async () => {
-    if (!API_URL) {
-      notifyFailure(new Error("API base URL is not configured"));
-      return;
-    }
-    if (!DUPLICATE_WINDOW_DAYS) {
-      notifyFailure(
-        new Error(
-          "VITE_DUPLICATE_WINDOW_DAYS must be a whole number from 1 to 365 in Extension/.env.",
-        ),
-      );
-      return;
-    }
-    setStarting(true);
+  /** Start running `routine` in `tab`. The caller has already checked startBlocker. */
+  const start = async (tab, routine) => {
+    setIsStarting(true);
     try {
-      const rememberedTab = await rememberActivePageTab();
-      if (!rememberedTab) {
-        throw new Error("Focus the job scraping website, then click Start again.");
-      }
-      const tabRoutine = findRoutineForUrl(JOB_ROUTINES, rememberedTab.url);
-      if (!tabRoutine) {
-        throw new Error(
-          `No routine runs on ${describeHost(rememberedTab.url)}. Open a supported job site, then click Start again.`,
-        );
-      }
-      targetTabRef.current = rememberedTab;
-      routineRef.current = tabRoutine;
-      setTargetTab(rememberedTab);
-      setRoutine(tabRoutine);
-      runIdRef.current =
-        globalThis.crypto?.randomUUID?.() ||
-        `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      targetRef.current = { tab, routine };
+      setTarget({ tab, routine });
+      runIdRef.current = newRunId();
+      queueKeys.current.clear();
+      earlyResults.current.clear();
       // Drop leftover queue items from earlier failed retries (delayed nextAttemptAt).
       await sendRuntimeMessage({ action: "scrapeQueue:clear" }).catch(() => {});
       setRunStats(createScrapeRunStats());
-      setQueueCounts({ queued: 0, saving: 0 });
-      setValidationChecks(pendingValidationChecklist());
+      setQueueCounts(EMPTY_QUEUE);
+      setRecentJobs([]);
+      setFieldHits({});
+      setFieldStates(pendingFields(routine));
+      setPassCount(0);
       setProgress(0);
+      setActivity(null);
       setElapsedMs(0);
       abortRef.current = new AbortController();
       runStartedAt.current = Date.now();
-      setScrapFlag(true);
+      setStatus(RUN_STATUS.RUNNING);
     } catch (error) {
-      clearRememberedPageTab();
-      notifyFailure(error, "Unable to start the scrape run");
+      notifyFailure(error, "Unable to start the run");
     } finally {
-      setStarting(false);
+      setIsStarting(false);
     }
   };
 
   return {
+    status,
+    target,
+    isStarting,
     progress,
-    scrapFlag,
-    starting,
-    validationChecks,
+    activity,
+    passCount,
+    fieldStates,
+    fieldHits,
     runStats,
-    elapsedMs,
-    targetTab,
-    routine,
     queueCounts,
-    onScrapStart,
-    onScrapStop: stopRun,
+    recentJobs,
+    elapsedMs,
+    start,
+    stop,
   };
 }

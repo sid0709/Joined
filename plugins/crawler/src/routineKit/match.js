@@ -18,6 +18,11 @@ export function routineMatchesUrl(routine, url) {
   }
 }
 
+/** Every routine that runs on `url`, in registry order. */
+export function findRoutinesForUrl(routines, url) {
+  return routines.filter((routine) => routineMatchesUrl(routine, url));
+}
+
 /** The first routine that runs on `url`, or null. */
 export function findRoutineForUrl(routines, url) {
   return routines.find((routine) => routineMatchesUrl(routine, url)) ?? null;

@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from "bun:test";
 
 import { extractField, queryAll, readElement, waitForMatches } from "./extract.js";
-import { attr, pairs, prop, text } from "./fields.js";
+import { attr, html, pairs, prop, rawText, text } from "./fields.js";
 import { fakeElement, fakeRoot } from "./testing/fakeDom.js";
 
 describe("queryAll", () => {
@@ -102,6 +102,8 @@ describe("extractField", () => {
 
   test("reads a single match", () => {
     expect(extractField(root, text("h1"))).toEqual({ found: true, value: "Engineer" });
+    expect(extractField(root, rawText("h1")).value).toBe("Engineer");
+    expect(extractField(root, html("h1")).value).toBe("<fake>Engineer</fake>");
     expect(extractField(root, prop("a", "href")).value).toBe("https://acme.com/apply");
   });
 
