@@ -13,9 +13,9 @@ test.describe("joined-frontend smoke", () => {
     await page.waitForLoadState("networkidle");
   });
 
-  test.skip("/company redirect to / when company mode is off", async ({ page }) => {
+  test.skip("/company redirect to / when company mode is off", async ({ page: _page }) => {
     // TODO: Enable after step-04 merges (company mode toggle).
-    // await page.goto("http://localhost:6002/company");
-    // await expect(page).toHaveURL("http://localhost:6002/");
+    // await _page.goto("http://localhost:6002/company");
+    // await expect(_page).toHaveURL("http://localhost:6002/");
   });
 });
