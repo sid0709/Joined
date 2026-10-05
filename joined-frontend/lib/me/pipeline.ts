@@ -1,5 +1,5 @@
-import type { Application } from "@/lib/applications";
-import { hydrateApplication } from "@/lib/applications";
+import type { ApplicationPatch } from "@/lib/application-patch";
+import { hydrateApplication, type Application } from "@/lib/applications";
 import { browserTimeZone, type GoogleCalendarFeed } from "@/lib/google-calendar";
 import type { Interview } from "@/lib/interviews";
 import { hydrateInterview } from "@/lib/interviews";
@@ -49,7 +49,7 @@ export function createApplication(input: {
   return meSend<Application>("/applications", "POST", input).then(hydrateApplication);
 }
 
-export function updateApplication(id: string, patch: { columnId?: string; closedReason?: string }) {
+export function updateApplication(id: string, patch: ApplicationPatch) {
   return meSend<Application>(`/applications/${encodeURIComponent(id)}`, "PATCH", patch).then(
     hydrateApplication,
   );
