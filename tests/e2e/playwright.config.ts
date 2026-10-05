@@ -13,7 +13,7 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
   workers: isCI ? 1 : undefined,
-  reporter: "html",
+  reporter: [["html", { outputFolder: "playwright-report" }]],
   use: {
     baseURL: "http://localhost:6002",
     trace: "on-first-retry",

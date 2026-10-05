@@ -37,24 +37,64 @@ jobs:
             admin-backend/go.sum
             scoutwell-backend/go.sum
 
+      - name: Start MongoDB
+        run: |
+          docker run -d \
+            --name mongodb \
+            -p 27017:27017 \
+            -e MONGO_INITDB_ROOT_USERNAME=testuser \
+            -e MONGO_INITDB_ROOT_PASSWORD=testpass \
+            mongo:7
+          
+          # Wait for MongoDB to be ready
+          for i in {1..30}; do
+            if docker exec mongodb mongosh --quiet --eval "db.version()" >/dev/null 2>&1; then
+              echo "MongoDB is ready"
+              break
+            fi
+            echo "Waiting for MongoDB... ($i/30)"
+            sleep 1
+          done
+          
+          if ! docker exec mongodb mongosh --quiet --eval "db.version()" >/dev/null 2>&1; then
+            echo "MongoDB failed to start"
+            exit 1
+          fi
+
       - name: Start backend services
         run: |
           # Start joined-backend
           cd joined-backend
+          export MONGO_URI="mongodb://testuser:testpass@127.0.0.1:27017/"
+          export DEST_DB="JoinedTestDB"
+          export DEST_COLLECTION="temp_jobs"
+          export JOBS_COLLECTION="jobs"
+          export COMPANIES_COLLECTION="companies"
+          export TEMP_COMPANIES_COLLECTION="temp_companies"
+          export HTTP_ADDR="127.0.0.1:8080"
+          export CORS_ORIGINS="http://127.0.0.1:6002,http://localhost:6002"
+          export FRONTEND_ORIGIN="http://localhost:6002"
           go run ./cmd/server &
           JOINED_API_PID=$!
           echo "Started joined-backend (PID: $JOINED_API_PID)"
           cd ..
 
           # Wait for joined-backend health
+          BACKEND_READY=false
           for i in {1..30}; do
             if curl -f http://127.0.0.1:8080/health >/dev/null 2>&1; then
               echo "joined-backend is ready"
+              BACKEND_READY=true
               break
             fi
             echo "Waiting for joined-backend... ($i/30)"
             sleep 2
           done
+          
+          if [ "$BACKEND_READY" = false ]; then
+            echo "joined-backend failed to start"
+            exit 1
+          fi
 
       - name: Start frontend services
         run: |
@@ -69,15 +109,22 @@ jobs:
           echo "Started scoutwell-frontend (PID: $SCOUTWELL_FRONTEND_PID)"
 
           # Wait for frontends to be ready
+          FRONTENDS_READY=false
           for i in {1..60}; do
             if curl -f http://localhost:6002 >/dev/null 2>&1 && \
                curl -f http://localhost:6003 >/dev/null 2>&1; then
               echo "Frontends are ready"
+              FRONTENDS_READY=true
               break
             fi
             echo "Waiting for frontends... ($i/60)"
             sleep 2
           done
+          
+          if [ "$FRONTENDS_READY" = false ]; then
+            echo "Frontends failed to start"
+            exit 1
+          fi
         env:
           JOINED_API_URL: http://127.0.0.1:8080
           SCOUTWELL_API_URL: http://127.0.0.1:8082

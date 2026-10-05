@@ -8,8 +8,8 @@ test.describe("joined-frontend smoke", () => {
   });
 
   test("search page loads", async ({ page }) => {
-    await page.goto("http://localhost:6002/search");
-    await expect(page.locator("body")).toBeVisible();
+    await page.goto("http://localhost:6002/");
+    await expect(page).toHaveTitle(/Joined/i);
     await page.waitForLoadState("networkidle");
   });
 
