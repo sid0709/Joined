@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/auth/authtest"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 func TestStaffAndScoutRoutesLiveInTheirOwnServices(t *testing.T) {
@@ -33,5 +35,16 @@ func TestNilEmailSenderFallsBackToLog(t *testing.T) {
 	}
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400 for invalid JSON, body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSignupKillSwitchOnJoinedAPI(t *testing.T) {
+	switches := killswitch.NewMemory(killswitch.Defaults{killswitch.Signup: false})
+	handler := New(nil, authtest.NewStore(), nil, nil, nil, nil, Options{KillSwitches: switches})
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/signup", strings.NewReader(`{"email":"a@b.co","password":"password123","name":"A"}`))
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }

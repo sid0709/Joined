@@ -72,6 +72,7 @@ func main() {
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 		CompanyMode:       companyModeEnabled(config.Env(companyModeEnv, "")),
 		EmailSender:       emailSender,
+		KillSwitches:      p.KillSwitches,
 	})
 	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
