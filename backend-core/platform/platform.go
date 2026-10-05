@@ -99,6 +99,7 @@ func (p *Platform) ensureIndexes(ctx context.Context) error {
 		{"employer", p.Hiring},
 		{"staff", p.Staff},
 		{"scout", p.Scouts},
+		{"jobs", p.Jobs},
 	}
 	for _, item := range indexed {
 		if err := item.store.EnsureIndexes(ctx); err != nil {
