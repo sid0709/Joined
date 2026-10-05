@@ -81,6 +81,30 @@ func main() {
 	if !migrationAI.Ready() {
 		slog.Warn("no DeepSeek key yet: save one under Settings → DeepSeek, or set DEEPSEEK_API_KEY, before analyzing or researching")
 	}
+	importCfg := config.LoadJobImport()
+	importRegistry := jobs.NewSourceRegistry()
+	importRegistry.Register(jobs.NewAthensSource(p.Jobs, importCfg.SourceEnabled(jobs.AthensSourceID)))
+	importLog := jobs.NewStoreRunLog(p.Jobs, importCfg.RunsCollection)
+	if err := p.Jobs.EnsureImportIndexes(context.Background(), importCfg.RunsCollection); err != nil {
+		slog.Error("import indexes", "error", config.Redact(err, db.MongoURI))
+	}
+	importGate := jobs.LookupImportKillSwitch()
+	if importGate == nil {
+		importGate = jobs.KillSwitchFrom(p)
+	}
+	importRunner := jobs.NewRunner(jobs.RunnerOptions{
+		Enabled:  importCfg.Enabled,
+		Interval: importCfg.Interval,
+		Timeout:  importCfg.RunTimeout,
+		Registry: importRegistry,
+		Lock:     jobs.NewStoreImportLock(p.Jobs, importCfg.LocksCollection, importCfg.RunTimeout),
+		Log:      importLog,
+		Gate:     importGate,
+		Sink:     p.Jobs,
+		Pool:     p.Jobs,
+	})
+	go importRunner.Start(context.Background())
+
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
 		Origins:       server.Origins,
 		AdminToken:    adminToken,
@@ -94,6 +118,12 @@ func main() {
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
 			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
+		},
+		Import: httpapi.ImportOptions{
+			Enabled:     importCfg.Enabled,
+			Sources:     importRegistry.Status(),
+			RecentLimit: importCfg.RecentLimit,
+			Runs:        importLog,
 		},
 	})
 	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
