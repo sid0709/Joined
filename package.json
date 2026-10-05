@@ -12,7 +12,8 @@
       "packages/*",
       "acorn/extension",
       "acorn/packages/*",
-      "acorn/demo"
+      "acorn/demo",
+      "plugins/crawler"
     ],
     "catalog": {
       "@astryxdesign/cli": "0.6.3",
@@ -68,6 +69,7 @@
     "dev:scout": "bun tools/run-service.mjs dev scoutwell-frontend",
     "dev:acorn": "bun --filter acorn-extension dev",
     "dev:acorn-face": "bun --filter @acorn/face dev",
+    "dev:crawler": "bun --filter avalon-scrapper dev",
     "build": "turbo run build",
     "build:joined": "bun --filter joined-frontend build",
     "build:app": "bun --filter connected-frontend build",
@@ -75,6 +77,7 @@
     "build:scout": "bun --filter scoutwell-frontend build",
     "build:admin": "bun --filter admin-frontend build",
     "build:acorn": "bun --filter acorn-extension build",
+    "build:crawler": "bun --filter avalon-scrapper build",
     "build:frontends": "bun run build:app && bun run build:joined && bun run build:scout && bun run build:admin",
     "audit": "bun tools/audit-all-frontends.mjs",
     "audit:joined": "bun tools/unlighthouse-target.mjs joined-frontend",

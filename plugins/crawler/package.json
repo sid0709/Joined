@@ -1,0 +1,23 @@
+{
+  "name": "avalon-scrapper",
+  "private": true,
+  "version": "2.3.0",
+  "releaseDate": "2026-10-04",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint src --max-warnings=0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@joined/design-system": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "catalog:",
+    "eslint": "catalog:",
+    "vite": "catalog:"
+  }
+}

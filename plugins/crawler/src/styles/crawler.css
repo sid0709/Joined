@@ -1,0 +1,115 @@
+@import "@joined/design-system/styles/joined.css";
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+}
+
+body {
+  background: var(--color-background-body);
+}
+
+/* Side panel shell */
+.crawler-app {
+  --crawler-panel-max-width: 420px;
+  --crawler-logo-size: 40px;
+  --crawler-api-url-max-width: 140px;
+
+  min-height: 100%;
+  padding: var(--spacing-3);
+  overflow: auto;
+}
+
+.crawler-layout {
+  width: 100%;
+  max-width: var(--crawler-panel-max-width);
+  margin: 0 auto;
+}
+
+.crawler-header {
+  padding-bottom: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.crawler-logo {
+  width: var(--crawler-logo-size);
+  height: var(--crawler-logo-size);
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--radius-inner);
+}
+
+.crawler-tab-panel {
+  padding-top: var(--spacing-4);
+}
+
+.crawler-divider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.crawler-api-url {
+  max-width: var(--crawler-api-url-max-width);
+  overflow: hidden;
+  font-family: var(--font-family-code);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Validation checklist and run results */
+.crawler-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-2);
+}
+
+.crawler-stat-grid {
+  /* Narrowest stat that still shows its full label; narrower panels wrap to a second row. */
+  --crawler-stat-min-width: 84px;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--crawler-stat-min-width), 1fr));
+  gap: var(--spacing-2);
+}
+
+.crawler-check-wide {
+  grid-column: 1 / -1;
+}
+
+.crawler-check,
+.crawler-stat {
+  min-width: 0;
+  padding: var(--spacing-2);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+}
+
+.crawler-stat {
+  text-align: center;
+}
+
+.crawler-tone-success {
+  color: var(--color-success);
+}
+
+.crawler-tone-warning {
+  color: var(--color-warning);
+}
+
+.crawler-tone-error {
+  color: var(--color-error);
+}
+
+.crawler-tone-accent {
+  color: var(--color-accent);
+}
+
+.crawler-tone-muted {
+  color: var(--color-text-secondary);
+}
