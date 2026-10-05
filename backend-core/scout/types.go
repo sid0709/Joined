@@ -89,23 +89,27 @@ const (
 	RewardConversion = "conversion"
 
 	PayoutRequested = "requested"
+	PayoutApproved  = "approved"
+	PayoutSent      = "sent"
 	PayoutPaid      = "paid"
+	PayoutFailed    = "failed"
 	PayoutRejected  = "rejected"
 )
 
 var (
-	ErrNotFound       = errors.New("not found")
-	ErrInvalidInput   = errors.New("check the form and try again")
-	ErrForbidden      = errors.New("not allowed")
-	ErrNotScout       = errors.New("this account is not a scout")
-	ErrTermsRequired  = errors.New("accept the scout terms before submitting jobs")
-	ErrQuotaExceeded  = errors.New("daily submission limit reached")
-	ErrConflict       = errors.New("conflict")
-	ErrIdempotency    = errors.New("Idempotency-Key was already used with a different request body")
-	ErrPayoutBlocked  = errors.New("payout requirements are not met")
-	ErrKeyLimit       = errors.New("revoke an API key before creating another")
-	ErrNotDecidable   = errors.New("this submission is not waiting on a decision")
-	ErrAlreadyDecided = errors.New("this item was already decided")
+	ErrNotFound          = errors.New("not found")
+	ErrInvalidInput      = errors.New("check the form and try again")
+	ErrForbidden         = errors.New("not allowed")
+	ErrNotScout          = errors.New("this account is not a scout")
+	ErrTermsRequired     = errors.New("accept the scout terms before submitting jobs")
+	ErrQuotaExceeded     = errors.New("daily submission limit reached")
+	ErrConflict          = errors.New("conflict")
+	ErrIdempotency       = errors.New("Idempotency-Key was already used with a different request body")
+	ErrPayoutBlocked     = errors.New("payout requirements are not met")
+	ErrPayoutNotApproved = errors.New("payout has not been approved by staff")
+	ErrKeyLimit          = errors.New("revoke an API key before creating another")
+	ErrNotDecidable      = errors.New("this submission is not waiting on a decision")
+	ErrAlreadyDecided    = errors.New("this item was already decided")
 )
 
 // FieldError explains one invalid input field (RFC 9457 extension member).
@@ -277,12 +281,19 @@ type TaxInfo struct {
 	CompletedAt time.Time `json:"completed_at" bson:"completedAt"`
 }
 
-// PayoutMethod is a masked destination; account numbers are never stored.
+// PayoutMethod is a masked destination. Raw bank numbers are never stored;
+// the provider's opaque recipient id is preferred after create-recipient.
 type PayoutMethod struct {
-	Type      string    `json:"type" bson:"type"`
-	Label     string    `json:"label" bson:"label"`
-	Last4     string    `json:"last4" bson:"last4"`
-	UpdatedAt time.Time `json:"updated_at" bson:"updatedAt"`
+	Type        string    `json:"type" bson:"type"`
+	Label       string    `json:"label" bson:"label"`
+	Last4       string    `json:"last4" bson:"last4"`
+	HolderName  string    `json:"holder_name,omitempty" bson:"holderName,omitempty"`
+	Country     string    `json:"country,omitempty" bson:"country,omitempty"`
+	Currency    string    `json:"currency,omitempty" bson:"currency,omitempty"`
+	Email       string    `json:"email,omitempty" bson:"email,omitempty"`
+	AccountRef  string    `json:"account_ref,omitempty" bson:"accountRef,omitempty"`
+	RecipientID string    `json:"recipient_id,omitempty" bson:"recipientId,omitempty"`
+	UpdatedAt   time.Time `json:"updated_at" bson:"updatedAt"`
 }
 
 // Earning is one reward line. Held rewards release after the hold window.
@@ -308,18 +319,24 @@ type Earning struct {
 
 // Payout moves released earnings to the scout's payout method.
 type Payout struct {
-	ObjectID    bson.ObjectID `json:"-" bson:"_id"`
-	ID          string        `json:"id" bson:"-"`
-	ScoutUserID string        `json:"scout_user_id" bson:"scoutUserId"`
-	ScoutName   string        `json:"scout_name,omitempty" bson:"-"`
-	ScoutEmail  string        `json:"scout_email,omitempty" bson:"-"`
-	Amount      Money         `json:"amount" bson:"amount"`
-	Method      PayoutMethod  `json:"method" bson:"method"`
-	EarningIDs  []string      `json:"earning_ids" bson:"earningIds"`
-	Status      string        `json:"status" bson:"status"`
-	Note        string        `json:"note,omitempty" bson:"note,omitempty"`
-	RequestedAt time.Time     `json:"requested_at" bson:"requestedAt"`
-	DecidedAt   *time.Time    `json:"decided_at,omitempty" bson:"decidedAt,omitempty"`
+	ObjectID        bson.ObjectID `json:"-" bson:"_id"`
+	ID              string        `json:"id" bson:"-"`
+	ScoutUserID     string        `json:"scout_user_id" bson:"scoutUserId"`
+	ScoutName       string        `json:"scout_name,omitempty" bson:"-"`
+	ScoutEmail      string        `json:"scout_email,omitempty" bson:"-"`
+	Amount          Money         `json:"amount" bson:"amount"`
+	Method          PayoutMethod  `json:"method" bson:"method"`
+	EarningIDs      []string      `json:"earning_ids" bson:"earningIds"`
+	Status          string        `json:"status" bson:"status"`
+	Note            string        `json:"note,omitempty" bson:"note,omitempty"`
+	ProviderRef     string        `json:"provider_ref,omitempty" bson:"providerRef,omitempty"`
+	ProviderStatus  string        `json:"provider_status,omitempty" bson:"providerStatus,omitempty"`
+	ProviderEventID string        `json:"provider_event_id,omitempty" bson:"providerEventId,omitempty"`
+	RequestedAt     time.Time     `json:"requested_at" bson:"requestedAt"`
+	ApprovedAt      *time.Time    `json:"approved_at,omitempty" bson:"approvedAt,omitempty"`
+	SentAt          *time.Time    `json:"sent_at,omitempty" bson:"sentAt,omitempty"`
+	FailedAt        *time.Time    `json:"failed_at,omitempty" bson:"failedAt,omitempty"`
+	DecidedAt       *time.Time    `json:"decided_at,omitempty" bson:"decidedAt,omitempty"`
 }
 
 // Notification tells a scout about a decision, reward, or level change.

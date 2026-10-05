@@ -18,7 +18,7 @@ export type Channel = "web" | "api";
 export type Verification = "none" | "pending" | "verified" | "rejected";
 export type EarningStatus = "held" | "released" | "processing" | "paid" | "clawed_back";
 export type RewardType = "approval" | "apply" | "interview" | "hire" | "conversion";
-export type PayoutStatus = "requested" | "paid" | "rejected";
+export type PayoutStatus = "requested" | "approved" | "sent" | "paid" | "failed" | "rejected";
 export type NotificationTone = "accent" | "success" | "warning" | "danger" | "neutral";
 export type NotificationKind = "decision" | "reward" | "level" | "payout" | "verification";
 export type SubmissionChangeEvent = "accepted" | "rejected" | "published" | "earned";
@@ -110,12 +110,18 @@ export type TaxInfo = {
   completed_at: string;
 };
 
-export type PayoutMethodType = "bank" | "paypal";
+export type PayoutMethodType = "bank" | "paypal" | "provider";
 
 export type PayoutMethod = {
   type: PayoutMethodType;
   label: string;
   last4: string;
+  holder_name?: string;
+  country?: string;
+  currency?: string;
+  email?: string;
+  account_ref?: string;
+  recipient_id?: string;
   updated_at: string;
 };
 
@@ -173,7 +179,13 @@ export type Payout = {
   earning_ids: string[];
   status: PayoutStatus;
   note?: string;
+  provider_ref?: string;
+  provider_status?: string;
+  provider_event_id?: string;
   requested_at: string;
+  approved_at?: string;
+  sent_at?: string;
+  failed_at?: string;
   decided_at?: string;
 };
 
@@ -426,4 +438,4 @@ export type ScoutPatch = {
   note?: string;
 };
 
-export type PayoutDecision = { decision: "paid" | "rejected"; note?: string };
+export type PayoutDecision = { decision: "paid" | "approved" | "rejected"; note?: string };

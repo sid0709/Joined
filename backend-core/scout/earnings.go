@@ -42,6 +42,10 @@ func (s *Store) addEarning(ctx context.Context, sub Submission, kind string, amo
 // releaseDue moves held rewards whose hold window ended to released.
 func (s *Store) releaseDue(ctx context.Context) error {
 	now := s.now().UTC()
+	if mem, ok := s.docs.(*memDocs); ok {
+		mem.releaseDue(now)
+		return nil
+	}
 	_, err := s.collection(earningsCollection).UpdateMany(ctx,
 		bson.D{{Key: "status", Value: EarningHeld}, {Key: "holdUntil", Value: bson.D{{Key: "$lte", Value: now}}}},
 		bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: EarningReleased}, {Key: "releasedAt", Value: now}}}},
@@ -106,23 +110,11 @@ func (s *Store) Balance(ctx context.Context, userID string) (Balance, error) {
 	return ComputeBalance(all), nil
 }
 
-func (s *Store) allEarnings(ctx context.Context, filter bson.D) ([]Earning, error) {
-	cursor, err := s.collection(earningsCollection).Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	earnings := []Earning{}
-	if err := cursor.All(ctx, &earnings); err != nil {
-		return nil, err
-	}
-	for i := range earnings {
-		earnings[i].fill()
-	}
-	return earnings, nil
-}
-
 // ListPayouts pages a scout's payouts newest first.
 func (s *Store) ListPayouts(ctx context.Context, userID string, cursorValue string, limit int) (List[Payout], error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.listPayouts(userID, cursorValue, limit)
+	}
 	filter, err := cursorFilter(bson.D{{Key: "scoutUserId", Value: userID}}, cursorValue)
 	if err != nil {
 		return List[Payout]{}, err
@@ -185,13 +177,10 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 		Status:      PayoutRequested,
 		RequestedAt: now,
 	}
-	if _, err := s.collection(payoutsCollection).InsertOne(ctx, payout); err != nil {
+	if err := s.insertPayout(ctx, payout); err != nil {
 		return Payout{}, err
 	}
-	if _, err := s.collection(earningsCollection).UpdateMany(ctx,
-		bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}, {Key: "status", Value: EarningReleased}},
-		bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: EarningProcessing}, {Key: "payoutId", Value: payout.ObjectID.Hex()}}}},
-	); err != nil {
+	if err := s.markEarningsProcessing(ctx, ids, payout.ObjectID.Hex()); err != nil {
 		return Payout{}, err
 	}
 	payout.fill()
@@ -200,6 +189,9 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 }
 
 func (s *Store) payout(ctx context.Context, id string) (Payout, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.payout(id)
+	}
 	oid, err := objectID(id)
 	if err != nil {
 		return Payout{}, err

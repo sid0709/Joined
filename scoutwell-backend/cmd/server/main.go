@@ -11,6 +11,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
+	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/scoutwell-backend/internal/httpapi"
 )
 
@@ -37,6 +38,19 @@ func main() {
 		os.Exit(1)
 	}
 	defer p.Close()
+
+	payoutCfg, err := scout.LoadPayoutConfig()
+	if err != nil {
+		slog.Error("payout config", "error", err)
+		os.Exit(1)
+	}
+	provider, err := scout.NewProvider(payoutCfg)
+	if err != nil {
+		slog.Error("payout provider", "error", err)
+		os.Exit(1)
+	}
+	p.Scouts.SetPayoutProvider(provider)
+
 	// Submissions are checked here, so this service picks up checks a restart interrupted.
 	if resumed, err := p.Scouts.ResumePending(context.Background()); err != nil {
 		slog.Error("resume scout checks", "error", config.Redact(err, db.MongoURI))
@@ -51,6 +65,7 @@ func main() {
 		SessionCookie:     config.Env("SCOUTWELL_SESSION_COOKIE", httpapi.SessionCookie),
 		Google:            &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret},
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
+		PayoutWebhook:     scout.NewPayoutWebhook(p.Scouts, payoutCfg.WebhookSecret),
 	})
 	if err := httpkit.Serve("scoutwell api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)

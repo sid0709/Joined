@@ -3,8 +3,10 @@ package scout
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
@@ -14,16 +16,23 @@ import (
 )
 
 const (
-	maxLegalName    = 120
-	maxPayoutLabel  = 80
-	payoutBank      = "bank"
-	payoutPayPal    = "paypal"
-	countryCodeSize = 2
+	maxLegalName     = 120
+	maxPayoutLabel   = 80
+	maxPayoutEmail   = 254
+	maxAccountRef    = 80
+	payoutBank       = "bank"
+	payoutPayPal     = "paypal"
+	payoutProvider   = "provider"
+	countryCodeSize  = 2
+	currencyCodeSize = 3
 )
 
 var (
-	last4Pattern   = regexp.MustCompile(`^[0-9A-Za-z]{4}$`)
-	countryPattern = regexp.MustCompile(`^[A-Z]{2}$`)
+	last4Pattern    = regexp.MustCompile(`^[0-9A-Za-z]{4}$`)
+	countryPattern  = regexp.MustCompile(`^[A-Z]{2}$`)
+	currencyPattern = regexp.MustCompile(`^[A-Z]{3}$`)
+	emailPattern    = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
+	ibanPattern     = regexp.MustCompile(`^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$`)
 )
 
 // EnsureProfile returns the scout profile, creating a probation one the first
@@ -222,42 +231,119 @@ func (s *Store) SaveTaxInfo(ctx context.Context, userID string, input TaxInput) 
 	return s.Profile(ctx, userID)
 }
 
-// PayoutMethodInput names where payouts go. Only a masked last four is accepted.
+// PayoutMethodInput names where payouts go. Raw bank numbers are refused;
+// send a country, currency, and email or opaque account reference.
 type PayoutMethodInput struct {
-	Type  string `json:"type"`
-	Label string `json:"label"`
-	Last4 string `json:"last4"`
+	Type       string `json:"type"`
+	Label      string `json:"label"`
+	Last4      string `json:"last4"`
+	HolderName string `json:"holder_name"`
+	Country    string `json:"country"`
+	Currency   string `json:"currency"`
+	Email      string `json:"email"`
+	AccountRef string `json:"account_ref"`
 }
 
-// SavePayoutMethod stores the payout destination.
+// SavePayoutMethod stores the payout destination and creates a provider recipient.
 func (s *Store) SavePayoutMethod(ctx context.Context, userID string, input PayoutMethodInput) (Profile, error) {
 	if _, err := s.EnsureProfile(ctx, userID); err != nil {
 		return Profile{}, err
 	}
+	method, err := normalizePayoutMethod(input, s.now().UTC())
+	if err != nil {
+		return Profile{}, err
+	}
+	result, err := s.provider().CreateRecipient(ctx, recipientFromMethod(userID, method))
+	if err != nil {
+		return Profile{}, fmt.Errorf("create payout recipient: %w", err)
+	}
+	method.RecipientID = result.RecipientID
+	if err := s.savePayoutMethodOnProfile(ctx, userID, method); err != nil {
+		return Profile{}, err
+	}
+	return s.Profile(ctx, userID)
+}
+
+func normalizePayoutMethod(input PayoutMethodInput, now time.Time) (PayoutMethod, error) {
 	problems := &ValidationError{}
 	kind := strings.ToLower(strings.TrimSpace(input.Type))
-	if kind != payoutBank && kind != payoutPayPal {
-		problems.add("type", "choose bank or paypal")
+	if kind != payoutBank && kind != payoutPayPal && kind != payoutProvider {
+		problems.add("type", "choose bank, paypal, or provider")
 	}
 	label := clean(input.Label)
 	if label == "" || utf8.RuneCountInString(label) > maxPayoutLabel {
 		problems.add("label", "name this payout method (up to 80 characters)")
 	}
+	country := strings.ToUpper(strings.TrimSpace(input.Country))
+	if country != "" && (len(country) != countryCodeSize || !countryPattern.MatchString(country)) {
+		problems.add("country", "use a two-letter country code, like US")
+	}
+	currency := strings.ToUpper(strings.TrimSpace(input.Currency))
+	if currency == "" {
+		currency = Currency
+	}
+	if len(currency) != currencyCodeSize || !currencyPattern.MatchString(currency) {
+		problems.add("currency", "use a three-letter currency code, like USD")
+	}
+	email := strings.ToLower(strings.TrimSpace(input.Email))
+	if email != "" {
+		if utf8.RuneCountInString(email) > maxPayoutEmail || !emailPattern.MatchString(email) {
+			problems.add("email", "enter a valid email")
+		}
+	}
+	accountRef := strings.TrimSpace(input.AccountRef)
+	if accountRef != "" {
+		compact := strings.ToUpper(strings.ReplaceAll(accountRef, " ", ""))
+		if utf8.RuneCountInString(accountRef) > maxAccountRef {
+			problems.add("account_ref", "keep the account reference under 80 characters")
+		} else if ibanPattern.MatchString(compact) {
+			problems.add("account_ref", "do not send a bank account number; use the provider recipient reference")
+		}
+	}
+	if kind == payoutProvider && country == "" {
+		problems.add("country", "use a two-letter country code, like US")
+	}
+	if kind == payoutProvider && email == "" && accountRef == "" {
+		problems.add("email", "enter an email or account reference")
+	}
 	last4 := strings.TrimSpace(input.Last4)
+	if last4 == "" {
+		last4 = deriveLast4(email, accountRef)
+	}
 	if !last4Pattern.MatchString(last4) {
 		problems.add("last4", "enter only the last 4 characters")
 	}
 	if err := problems.orNil(); err != nil {
-		return Profile{}, err
+		return PayoutMethod{}, err
 	}
-	now := s.now().UTC()
-	method := PayoutMethod{Type: kind, Label: label, Last4: last4, UpdatedAt: now}
-	if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{
-		{Key: "$set", Value: bson.D{{Key: "payoutMethod", Value: method}, {Key: "updatedAt", Value: now}}},
-	}); err != nil {
-		return Profile{}, err
+	return PayoutMethod{
+		Type:       kind,
+		Label:      label,
+		Last4:      last4,
+		HolderName: clean(input.HolderName),
+		Country:    country,
+		Currency:   currency,
+		Email:      email,
+		AccountRef: accountRef,
+		UpdatedAt:  now,
+	}, nil
+}
+
+func deriveLast4(email, accountRef string) string {
+	source := accountRef
+	if source == "" {
+		source = email
 	}
-	return s.Profile(ctx, userID)
+	alnum := make([]rune, 0, len(source))
+	for _, r := range source {
+		if r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' {
+			alnum = append(alnum, r)
+		}
+	}
+	if len(alnum) < 4 {
+		return ""
+	}
+	return string(alnum[len(alnum)-4:])
 }
 
 func legalIdentity(name, country string) (string, string, error) {
