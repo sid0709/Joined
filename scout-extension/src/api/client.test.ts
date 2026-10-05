@@ -89,7 +89,9 @@ describe("ScoutApiClient", () => {
       { name: "scoutwell_session", value: "invalid-token" } as chrome.cookies.Cookie,
     ]);
 
-    global.fetch = mock(async () => new Response(null, { status: 401 })) as unknown as typeof global.fetch;
+    global.fetch = mock(
+      async () => new Response(null, { status: 401 }),
+    ) as unknown as typeof global.fetch;
 
     const client = new ScoutApiClient();
     const profile = await client.getMe();
