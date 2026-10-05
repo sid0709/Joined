@@ -10,18 +10,20 @@ If this folder and Notion disagree, Notion wins. Fix the step file to match.
 ## How this folder works
 
 - Every step is one small feature or task, in `roadmap/step-NN-short-slug.md` (NN = 01, 02, ...).
-- Each step file states its goal, in-scope files and areas, out-of-scope items, acceptance criteria, and target branch.
-- **Active target branch for W3/W4 is `stage-roadmap-w34`.** W1/W2 step files still name `stage-roadmap` because those PRs landed there. Nothing here merges to `main`. Never open a PR into an `acorn*` branch.
+- **Each step file is a standalone Cursor task doc.** A cloud agent should be able to pick up one file, with no tribal knowledge, and ship one PR. Files include goal, context, in/out of scope, real paths, contracts, acceptance criteria, test commands, risks, and definition of done.
+- **Active target branch for W3/W4 is `stage-roadmap-w34`.** W1/W2 work originally merged into the retired `stage-roadmap`. Follow-ups land on `stage-roadmap-w34`. Nothing here merges to `main`. Never open a PR into an `acorn*` branch.
 - No backend changes unless the step explicitly requires them for that feature.
 - Elon (engineering manager) assigns each step to one specialist. Specialists work in parallel, each only in its own folders, and open one small PR into that week's target branch per step.
 - Quinn reviews each PR. Gate: Quinn PASS → Elon merges. Bugbot is skipped. Nothing merges to `main`.
 - Jack posts progress in Slack `#sid-development`; Sid coordinates with the user.
 
+Status values in the index: **Done**, **In review**, **Planned**.
+
 ## Target branches
 
 | Week  | Target branch       | Notes                                                                                     |
 | ----- | ------------------- | ----------------------------------------------------------------------------------------- |
-| W1–W2 | `stage-roadmap`     | Historical. Step files 01–14 keep this target.                                            |
+| W1–W2 | `stage-roadmap`     | Historical. Step files 01–32 that already merged name this as the original target.        |
 | W3–W4 | `stage-roadmap-w34` | **Active.** Cut from `main` at `af09b2adb0aeac2959f982be92850afcbce83fd6`.                |
 | —     | `main`              | Deploy stays main-only. Do not merge roadmap work to `main` until launch.                 |
 | —     | `acorn*`            | Never touch. Coordinate with Elon for `acorn/**` work; still PR into `stage-roadmap-w34`. |
@@ -41,30 +43,59 @@ A step that needs a file outside its owner's paths is split, or Elon coordinates
 
 Leo + Elon for `acorn/website` (Elon owns `acorn/**`; Leo implements with Elon coordinating the PR).
 
-## Weekly buckets
+## Step index
+
+All 66 steps. Status is Done / In review / Planned.
 
 ### W1: Oct 5 to 11. Foundations and the Scout critical path
 
-Areas: email sign-up and log-in, hide company/recruiter mode for launch, role checks per app, email sending, error logging, basic analytics, Stripe account and products, **Scout extension built from scratch**, Scout share-of-applies earnings backend, server-side job search.
+Areas: email sign-up and log-in, hide company/recruiter mode for launch, role checks per app, email sending, error logging, Stripe account and products, Scout extension scaffold through capture, Scout share-of-applies earnings, server-side job search, e2e smoke.
 
-| Step                                                  | Slice                                   | Owner | Status                         |
-| ----------------------------------------------------- | --------------------------------------- | ----- | ------------------------------ |
-| [step-01](step-01-scout-extension-scaffold.md)        | Scout extension scaffold                | Maya  | Merged (PR #63)                |
-| [step-02](step-02-scout-extension-signin.md)          | Scout extension sign-in state           | Maya  | In progress                    |
-| [step-03](step-03-email-auth-backend.md)              | Email sign-up and log-in backend        | Ravi  | In progress                    |
-| [step-04](step-04-hide-recruiter-mode.md)             | Hide company/recruiter mode for launch  | Leo   | In progress                    |
-| [step-05](step-05-scout-share-of-applies-earnings.md) | Scout share-of-applies earnings backend | Penny | In progress                    |
-| [step-06](step-06-ci-for-stage-roadmap.md)            | CI for PRs into stage-roadmap           | Quinn | In progress                    |
-| [step-07](step-07-server-side-job-search.md)          | Server-side job search                  | Ravi  | In progress (parallel with 03) |
-| [step-08](step-08-stripe-products-test-mode.md)       | Stripe products in test mode            | Penny | In progress (parallel with 05) |
+| Step                                                  | Slice                                   | Owner | Status                    |
+| ----------------------------------------------------- | --------------------------------------- | ----- | ------------------------- |
+| [step-01](step-01-scout-extension-scaffold.md)        | Scout extension scaffold                | Maya  | Done (#63)                |
+| [step-02](step-02-scout-extension-signin.md)          | Scout extension sign-in state           | Maya  | Done (#68)                |
+| [step-03](step-03-email-auth-backend.md)              | Email sign-up and log-in backend        | Ravi  | Done (#72; follow-up #81) |
+| [step-04](step-04-hide-recruiter-mode.md)             | Hide company/recruiter mode for launch  | Leo   | Done (#70)                |
+| [step-05](step-05-scout-share-of-applies-earnings.md) | Scout share-of-applies earnings backend | Penny | Done (#69; follow-up #84) |
+| [step-06](step-06-ci-for-stage-roadmap.md)            | CI for PRs into stage-roadmap           | Quinn | Done (#64)                |
+| [step-07](step-07-server-side-job-search.md)          | Server-side job search                  | Ravi  | Done (#71)                |
+| [step-08](step-08-stripe-products-test-mode.md)       | Stripe products in test mode            | Penny | Done (#66)                |
+| [step-09](step-09-role-checks-per-app.md)             | Role checks per app                     | Ravi  | Done (#77)                |
+| [step-10](step-10-email-auth-screens.md)              | Email sign-up and log-in screens        | Leo   | Done (#79)                |
+| [step-11](step-11-email-provider.md)                  | Email sending provider                  | Ravi  | Done (#76)                |
+| [step-12](step-12-error-logging.md)                   | Structured error logging                | Ravi  | Done (#75)                |
+| [step-13](step-13-scout-job-capture-ats.md)           | Scout job capture and ATS detect        | Maya  | Done (#85)                |
+| [step-14](step-14-e2e-smoke-harness.md)               | E2E smoke harness                       | Quinn | Done (#67)                |
 
-Planned next in W1: role checks per app (Ravi), email sign-up and log-in screens (Leo), email sending provider and error logging (Ravi), analytics events (Ravi + Leo), Scout extension job capture and ATS detect (Maya).
+W1/W2 follow-ups (not new steps): #81 (step-03 fix), #84 (step-05 hardening), #87 (Penny soft follow-ups), #93 (billing mount).
 
 ### W2: Oct 12 to 18. Scout complete, Premium billing, job quality
 
-Areas: Scout extension finish (draft queue, ATS board detect, status badge, notifications, Chrome Web Store unlisted by Oct 14), Scout website gaps and earnings dashboard, Premium Stripe checkout and billing page, server-side hidden-jobs feed, job import schedule, kill switches, dedupe, dead-link expiry, Acorn website start.
+Areas: Scout extension finish (draft queue, ATS boards, status badge, notifications, Chrome Web Store unlisted), Scout website gaps and earnings dashboard, Premium Stripe checkout and billing page, hidden-jobs feed, job import schedule, kill switches, dedupe, dead-link expiry, Acorn website start.
 
-W2 step files stay in this folder if they already exist. Do not delete historical W1/W2 docs.
+| Step                                                             | Slice                                   | Owner | Status      |
+| ---------------------------------------------------------------- | --------------------------------------- | ----- | ----------- |
+| [step-15](step-15-scout-extension-store-package.md)              | Chrome Web Store unlisted package       | Maya  | Done (#89)  |
+| [step-16](step-16-scout-extension-draft-queue-submit.md)         | Draft queue and submit                  | Maya  | Done (#92)  |
+| [step-17](step-17-scout-extension-more-ats-boards.md)            | Detect more ATS boards                  | Maya  | Done (#99)  |
+| [step-18](step-18-scout-extension-status-badge-notifications.md) | Status badge and notifications          | Maya  | Done (#100) |
+| [step-19](step-19-scoutwell-website-gaps.md)                     | Scoutwell website launch gaps           | Leo   | Done (#83)  |
+| [step-20](step-20-scout-earnings-dashboard.md)                   | Scout earnings dashboard                | Leo   | Done (#86)  |
+| [step-21](step-21-premium-billing-page.md)                       | Premium pricing and billing page        | Leo   | Done (#96)  |
+| [step-22](step-22-job-dedupe.md)                                 | Job dedupe key and merge                | Ravi  | Done (#88)  |
+| [step-23](step-23-hidden-jobs-feed.md)                           | Server-side hidden-jobs feed            | Ravi  | Done (#91)  |
+| [step-24](step-24-dead-link-expiry.md)                           | Dead-link expiry checker                | Ravi  | Done (#95)  |
+| [step-25](step-25-job-import-schedule.md)                        | Scheduled job import runner             | Ravi  | Done (#97)  |
+| [step-26](step-26-kill-switches.md)                              | Runtime kill switches                   | Ravi  | Done (#98)  |
+| [step-27](step-27-scout-extension-intake-api.md)                 | Extension submission intake API         | Penny | Done (#82)  |
+| [step-28](step-28-scout-submission-status-api.md)                | Submission status and notifications API | Penny | Done (#94)  |
+| [step-29](step-29-premium-checkout-api.md)                       | Premium checkout and portal (test mode) | Penny | Done (#90)  |
+| [step-30](step-30-scout-extension-ci.md)                         | Scout extension CI                      | Quinn | Done (#74)  |
+| [step-31](step-31-e2e-email-auth-journey.md)                     | E2E email sign-up and log-in journey    | Quinn | Done (#101) |
+| [step-32](step-32-acorn-website-scaffold.md)                     | Acorn website scaffold                  | Leo   | Done (#80)  |
+
+W2 step files stay in this folder. Do not delete historical W1/W2 docs.
 
 ### W3: Oct 19 to 25. Scraper onboarding; build freeze Friday Oct 23
 
@@ -74,30 +105,30 @@ Target branch: **`stage-roadmap-w34`**. Ops-only (not coding steps): scraper acc
 
 Kickoff in parallel after step-33 CI is green (or concurrent if workflows already cover the branch): Ravi 34/36/42, Leo 38/39/40 (35/37 wait on APIs), Penny 46/47. Maya is idle in W3 unless scraper onboarding needs extension tweaks.
 
-| Step                                                          | Slice                                              | Owner      | Status  |
-| ------------------------------------------------------------- | -------------------------------------------------- | ---------- | ------- |
-| [step-33](step-33-ci-for-stage-roadmap-w34.md)                | CI for PRs into stage-roadmap-w34                  | Quinn      | Planned |
-| [step-34](step-34-saved-searches-api.md)                      | Persist saved searches; alert schedule hooks       | Ravi       | Planned |
-| [step-35](step-35-saved-searches-ui-alerts.md)                | Saved-search UI + email alert preferences          | Leo        | Planned |
-| [step-36](step-36-fit-score-api.md)                           | Fit score + short reason on jobs                   | Ravi       | Planned |
-| [step-37](step-37-fit-score-ui.md)                            | Show fit score/reason in search                    | Leo        | Planned |
-| [step-38](step-38-seo-job-pages.md)                           | SSR job pages, titles, JobPosting, sitemap, robots | Leo        | Planned |
-| [step-39](step-39-resume-builder-gaps.md)                     | Close résumé builder gaps                          | Leo        | Planned |
-| [step-40](step-40-application-tracker.md)                     | Saved stage, notes, reminders                      | Leo        | Planned |
-| [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Planned |
-| [step-42](step-42-scam-job-score.md)                          | Scam/fake score; hold risky for admin              | Ravi       | Planned |
-| [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Planned |
-| [step-44](step-44-account-data-export-ui.md)                  | Export UI + privacy settings surface               | Leo        | Planned |
-| [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Planned |
-| [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Planned |
-| [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | Planned |
-| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (coord Elon for acorn/**)     | Leo        | Planned |
-| [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned |
-| [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned |
-| [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned |
-| [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Planned |
-| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Planned |
-| [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Planned |
+| Step                                                          | Slice                                              | Owner      | Status           |
+| ------------------------------------------------------------- | -------------------------------------------------- | ---------- | ---------------- |
+| [step-33](step-33-ci-for-stage-roadmap-w34.md)                | CI for PRs into stage-roadmap-w34                  | Quinn      | Done (#104)      |
+| [step-34](step-34-saved-searches-api.md)                      | Persist saved searches; alert schedule hooks       | Ravi       | Done (#106)      |
+| [step-35](step-35-saved-searches-ui-alerts.md)                | Saved-search UI + email alert preferences          | Leo        | Planned          |
+| [step-36](step-36-fit-score-api.md)                           | Fit score + short reason on jobs                   | Ravi       | In review (#108) |
+| [step-37](step-37-fit-score-ui.md)                            | Show fit score/reason in search                    | Leo        | Planned          |
+| [step-38](step-38-seo-job-pages.md)                           | SSR job pages, titles, JobPosting, sitemap, robots | Leo        | Done (#107)      |
+| [step-39](step-39-resume-builder-gaps.md)                     | Close résumé builder gaps                          | Leo        | In review (#109) |
+| [step-40](step-40-application-tracker.md)                     | Saved stage, notes, reminders                      | Leo        | Done (#112)      |
+| [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Planned          |
+| [step-42](step-42-scam-job-score.md)                          | Scam/fake score; hold risky for admin              | Ravi       | Done (#110)      |
+| [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Planned          |
+| [step-44](step-44-account-data-export-ui.md)                  | Export UI + privacy settings surface               | Leo        | Planned          |
+| [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Planned          |
+| [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111)      |
+| [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | In review (#113) |
+| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (coord Elon for acorn/**)     | Leo        | Planned          |
+| [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned          |
+| [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned          |
+| [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned          |
+| [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Planned          |
+| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Planned          |
+| [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Planned          |
 
 If step-54 is too large, split into 54a sources (Ravi), 54b quality dashboard (Ravi), 54c earnings report (Penny), 54d disputes (Penny) and adjust counts with Sid.
 
