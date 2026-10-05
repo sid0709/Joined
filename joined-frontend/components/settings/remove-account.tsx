@@ -63,7 +63,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
       description={
         creator
           ? `You created ${companyName}. Removing your profile also deletes that company, its jobs, and activity on those jobs.`
-          : "This permanently removes your account."
+          : "This permanently removes your account. Export your data from Privacy first."
       }
       footer={
         <SaveFooter
