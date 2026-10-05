@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Banner,
   Button,
+  FileUploader,
   FormLayout,
   Grid,
   GridColumn,
@@ -16,7 +17,14 @@ import {
   TextInput,
 } from "@joined/design-system";
 import type { AcornAccount } from "@/lib/auth/session";
-import { PHONE_MAX } from "@/lib/workspace/model";
+import { PHONE_MAX, type LibraryResume } from "@/lib/workspace/model";
+import {
+  MIN_RESUME_TEXT,
+  RESUME_ACCEPT,
+  RESUME_MAX_BYTES,
+  profileFromResumeText,
+  readResumeFile,
+} from "@/lib/workspace/resume-file";
 import {
   ADDRESS_MAX,
   AGE_MAX,
@@ -49,7 +57,38 @@ export function ProfilePanel({ account }: { account: AcornAccount }) {
   const base = workspace.profile ?? sampleProfile(account);
   const [draft, setDraft] = useState<ApplicantProfile | null>(null);
   const [saved, setSaved] = useState(false);
+  const [uploadNote, setUploadNote] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const seenUpload = useRef("");
   const profile = draft ?? base;
+
+  const fillFromUpload = async (file: File | undefined) => {
+    if (!file) return;
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    if (seenUpload.current === key) return;
+    seenUpload.current = key;
+    setUploadError("");
+    setUploadNote("");
+    const text = await readResumeFile(file);
+    if (text.trim().length < MIN_RESUME_TEXT) {
+      setUploadError(
+        "Couldn't read text from that file. Use a PDF with selectable text, or a .txt file.",
+      );
+      return;
+    }
+    const next = profileFromResumeText(text, profile);
+    const item: LibraryResume = {
+      id: crypto.randomUUID(),
+      name: file.name,
+      source: "upload",
+      detail: "Uploaded résumé",
+      addedAt: new Date().toISOString(),
+    };
+    setDraft(next);
+    update({ ...workspace, profile: next, library: [item, ...workspace.library].slice(0, 20) });
+    setUploadNote(`Filled the profile from ${file.name}.`);
+    setSaved(false);
+  };
 
   const set = <K extends keyof ApplicantProfile>(key: K, value: ApplicantProfile[K]) => {
     setDraft({ ...profile, [key]: value });
@@ -70,6 +109,23 @@ export function ProfilePanel({ account }: { account: AcornAccount }) {
         action={<Button label="Save profile" variant="primary" onClick={save} />}
       />
       {saved ? <Banner status="success" title="Profile saved on this browser." /> : null}
+      {uploadNote ? <Banner status="success" title={uploadNote} /> : null}
+      {uploadError ? <Banner status="error" title={uploadError} /> : null}
+      <SectionCard
+        title="Upload résumé"
+        description="Drop a PDF or text résumé. Acorn fills your name, contact, links, and career timeline from it."
+      >
+        <FileUploader
+          label="Résumé file"
+          accept={RESUME_ACCEPT}
+          isMultiple={false}
+          maxFiles={1}
+          maxSize={RESUME_MAX_BYTES}
+          onChange={(files) => {
+            void fillFromUpload(files[0]);
+          }}
+        />
+      </SectionCard>
       <GridSystem gap={4} align="start">
         <GridColumn span="full" lg={4}>
           <Identity profile={profile} onChange={set} />

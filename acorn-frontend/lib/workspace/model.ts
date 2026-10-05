@@ -7,6 +7,7 @@ const WORKSPACE_CHANGE = "acorn-workspace-change";
 const EMPTY_WORKSPACE: Workspace = {
   profile: null,
   resumes: [],
+  library: [],
   mailboxes: [],
 };
 
@@ -31,6 +32,15 @@ export type ResumeDraft = {
   createdAt: string;
 };
 
+/** A file in the library: an upload, or a draft kept after generation. */
+export type LibraryResume = {
+  id: string;
+  name: string;
+  source: "upload" | "generated";
+  detail: string;
+  addedAt: string;
+};
+
 export type Mailbox = {
   id: string;
   email: string;
@@ -43,6 +53,7 @@ export type Mailbox = {
 export type Workspace = {
   profile: ApplicantProfile | null;
   resumes: ResumeDraft[];
+  library: LibraryResume[];
   mailboxes: Mailbox[];
 };
 
@@ -56,6 +67,7 @@ function parseWorkspace(raw: string): Workspace {
     return {
       profile: isApplicantProfile(parsed.profile) ? parsed.profile : null,
       resumes: Array.isArray(parsed.resumes) ? parsed.resumes : [],
+      library: Array.isArray(parsed.library) ? parsed.library : [],
       mailboxes: Array.isArray(parsed.mailboxes) ? parsed.mailboxes : [],
     };
   } catch {
