@@ -18,14 +18,20 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
+type sessionLookup interface {
+	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
+}
+
 type Server struct {
-	store    *jobs.Store
-	auth     *auth.Store
-	people   *candidate.Store
-	hiring   *employer.Store
-	staff    staff.API
-	reader   jobs.ModelReader
-	frontend string
+	store       *jobs.Store
+	auth        *auth.Store
+	sessions    sessionLookup
+	people      *candidate.Store
+	hiring      *employer.Store
+	staff       staff.API
+	reader      jobs.ModelReader
+	frontend    string
+	companyMode bool
 }
 
 // Options are the HTTP server's settings.
@@ -37,17 +43,27 @@ type Options struct {
 	Google *google.Client
 	// GoogleRedirectURL is joined-frontend's Google sign-in callback page.
 	GoogleRedirectURL string
+	// CompanyMode lets recruiter accounts use /v1/company/*. Off for launch.
+	CompanyMode bool
+	// Sessions, when set, is used for role checks instead of accounts.
+	Sessions sessionLookup
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
+	sessions := sessionLookup(accounts)
+	if opts.Sessions != nil {
+		sessions = opts.Sessions
+	}
 	server := &Server{
-		store:    store,
-		auth:     accounts,
-		people:   people,
-		hiring:   hiring,
-		staff:    moderation,
-		reader:   reader,
-		frontend: opts.Frontend,
+		store:       store,
+		auth:        accounts,
+		sessions:    sessions,
+		people:      people,
+		hiring:      hiring,
+		staff:       moderation,
+		reader:      reader,
+		frontend:    opts.Frontend,
+		companyMode: opts.CompanyMode,
 	}
 	identity := authapi.Handlers{
 		Accounts:       accounts,
@@ -104,7 +120,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux.HandleFunc("GET /v1/me/threads/{id}", server.getMyThread)
 	candidateMux.HandleFunc("POST /v1/me/threads/{id}/messages", server.postMyMessage)
 	candidateMux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
-	mux.Handle("/v1/me/", authapi.RequireRole(accounts, []string{auth.RoleCandidate}, candidateMux))
+	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
 
 	companyMux := http.NewServeMux()
 	companyMux.HandleFunc("GET /v1/company/threads", server.getCompanyThreads)
@@ -112,7 +128,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	companyMux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
 	companyMux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
 	server.registerEmployer(companyMux)
-	mux.Handle("/v1/company/", authapi.RequireRole(accounts, []string{auth.RoleEmployee}, companyMux))
+	mux.Handle("/v1/company/", authapi.RequireRole(sessions, []string{auth.RoleEmployee}, requireCompanyMode(opts.CompanyMode, companyMux)))
 
 	return httpkit.CORS(opts.Origins, mux)
 }
