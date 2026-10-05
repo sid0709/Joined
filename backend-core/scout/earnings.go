@@ -195,7 +195,7 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 		return Payout{}, err
 	}
 	payout.fill()
-	s.notify(ctx, userID, kindPayout, toneAccent, "Payout requested", formatMoney(payout.Amount)+" to "+payout.Method.Label+" is being processed.", payout.ID)
+	s.notify(ctx, userID, notice{kind: kindPayout, tone: toneAccent, title: "Payout requested", body: formatMoney(payout.Amount) + " to " + payout.Method.Label + " is being processed.", subjectID: payout.ID})
 	return payout, nil
 }
 

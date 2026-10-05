@@ -144,6 +144,12 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
 		{payoutsCollection, mongo.IndexModel{Keys: bson.D{{Key: "status", Value: 1}, {Key: "_id", Value: 1}}}},
 		{notificationsCollection, mongo.IndexModel{Keys: bson.D{{Key: "scoutUserId", Value: 1}, {Key: "_id", Value: -1}}}},
+		{notificationsCollection, mongo.IndexModel{
+			Keys: bson.D{{Key: "key", Value: 1}},
+			Options: options.Index().SetUnique(true).SetPartialFilterExpression(bson.D{
+				{Key: "key", Value: bson.D{{Key: "$type", Value: "string"}}},
+			}),
+		}},
 		{apiKeysCollection, mongo.IndexModel{Keys: bson.D{{Key: "hash", Value: 1}}, Options: options.Index().SetUnique(true)}},
 		{apiKeysCollection, mongo.IndexModel{Keys: bson.D{{Key: "userId", Value: 1}}}},
 		{idempotencyCollection, mongo.IndexModel{

@@ -332,6 +332,8 @@ type Notification struct {
 	Title       string        `json:"title" bson:"title"`
 	Body        string        `json:"body" bson:"body"`
 	SubjectID   string        `json:"subject_id,omitempty" bson:"subjectId,omitempty"`
+	Event       string        `json:"event,omitempty" bson:"event,omitempty"`
+	Key         string        `json:"-" bson:"key,omitempty"`
 	Read        bool          `json:"read" bson:"read"`
 	CreatedAt   time.Time     `json:"created_at" bson:"createdAt"`
 }

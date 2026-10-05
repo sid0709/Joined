@@ -48,8 +48,8 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/scout/earnings/summary", s.scoutEarningsSummary)
 	mux.HandleFunc("GET /v1/scout/payouts", s.scoutPayouts)
 	mux.HandleFunc("POST /v1/scout/payouts", s.scoutRequestPayout)
-	mux.HandleFunc("GET /v1/scout/notifications", s.scoutNotifications)
-	mux.HandleFunc("POST /v1/scout/notifications/read", s.scoutMarkRead)
+	mux.HandleFunc(scout.NotificationsPath, s.scoutNotifications)
+	mux.HandleFunc(scout.MarkReadPath, s.scoutMarkRead)
 	mux.HandleFunc("GET /v1/scout/api-keys", s.scoutListKeys)
 	mux.HandleFunc("POST /v1/scout/api-keys", s.scoutCreateKey)
 	mux.HandleFunc("DELETE /v1/scout/api-keys/{id}", s.scoutRevokeKey)
@@ -508,7 +508,15 @@ func (s *Server) scoutNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query := r.URL.Query()
-	list, err := s.scouts.ListNotifications(r.Context(), actor.UserID, query.Get("cursor"), atoi(query.Get("limit")))
+	parsed := scout.NotificationQuery{
+		Cursor: query.Get("cursor"),
+		Limit:  atoi(query.Get("limit")),
+	}
+	if _, ok := query[scout.SinceQuery]; ok {
+		parsed.SinceSet = true
+		parsed.Since = query.Get(scout.SinceQuery)
+	}
+	list, err := s.scouts.ListNotifications(r.Context(), actor.UserID, parsed)
 	if err != nil {
 		httpkit.WriteScoutError(w, err)
 		return
