@@ -265,7 +265,7 @@ export function strengthSteps(profile: Profile, hasResume: boolean): StrengthSte
   return [
     { id: "headline", label: "Add a headline", done: Boolean(profile.headline.trim()) },
     { id: "roles", label: "Choose target roles", done: profile.targetRoles.length > 0 },
-    { id: "resume", label: "Upload a default resume", done: hasResume },
+    { id: "resume", label: "Add résumé details", done: hasResume },
     { id: "experience", label: "Add work experience", done: profile.experience.length > 0 },
     { id: "education", label: "Add education", done: profile.education.length > 0 },
     { id: "phone", label: "Add a phone number", done: Boolean(profile.phone.trim()) },

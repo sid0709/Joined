@@ -17,19 +17,24 @@ import {
   Token,
   icons,
 } from "sid-ui";
-import { STRONG_SCORE, type Resume } from "@/lib/resumes";
+import { STRONG_SCORE, isProfileResume, type Resume } from "@/lib/resumes";
+import type { Profile } from "@/lib/profile";
+import { ResumeDocument } from "./resume-document";
 
-/** What the parser read from the selected resume, and how to make it stronger. */
+/** Completeness, parsed sections, and a live preview of the selected version. */
 export function ResumeInsights({
   resume,
+  profile,
   onSetDefault,
   onDownload,
 }: {
   resume: Resume;
+  profile?: Profile;
   onSetDefault: () => void;
   onDownload: () => void;
 }) {
   const strong = resume.score >= STRONG_SCORE;
+  const isProfile = isProfileResume(resume.id);
 
   return (
     <Card padding={6}>
@@ -59,50 +64,69 @@ export function ResumeInsights({
           />
         ) : null}
 
+        {resume.file ? (
+          <Banner
+            status="info"
+            title="File stays on this device"
+            description={resume.suggestions[0]}
+          />
+        ) : null}
+
         {resume.parse === "parsed" ? (
           <>
             <Stack gap={2}>
               <HStack hAlign="between" vAlign="end">
-                <Text type="label">Parser readability</Text>
+                <Text type="label">{isProfile ? "Completeness" : "Readability"}</Text>
                 <Heading level={3} type="display-3">
                   {`${resume.score}`}
                 </Heading>
               </HStack>
               <ProgressBar
-                label="Parser readability"
+                label={isProfile ? "Completeness" : "Readability"}
                 isLabelHidden
                 value={resume.score}
                 variant={strong ? "success" : "warning"}
               />
               <Text type="supporting" color="secondary" display="block">
-                {strong
-                  ? "Recruiter systems read this cleanly."
-                  : "Some sections may be missed by recruiter systems."}
+                {isProfile
+                  ? strong
+                    ? "Contact, summary, experience, education, and skills are filled in."
+                    : "Fill the sections below so applications go out with a complete résumé."
+                  : strong
+                    ? "Recruiter systems read this cleanly."
+                    : "Some sections may be missed by recruiter systems."}
               </Text>
             </Stack>
 
-            <Divider />
-
-            <MetadataList>
-              {resume.sections.map((section) => (
-                <MetadataListItem key={section.label} label={section.label}>
-                  {section.value}
-                </MetadataListItem>
-              ))}
-            </MetadataList>
-
-            {resume.skills.length > 0 ? (
-              <Stack gap={2}>
-                <Text type="label">Skills found</Text>
-                <HStack gap={2} wrap="wrap">
-                  {resume.skills.map((skill) => (
-                    <Token key={skill} label={skill} size="sm" />
+            {isProfile && profile ? (
+              <>
+                <Divider />
+                <ResumeDocument profile={profile} />
+              </>
+            ) : (
+              <>
+                <Divider />
+                <MetadataList>
+                  {resume.sections.map((section) => (
+                    <MetadataListItem key={section.label} label={section.label}>
+                      {section.value}
+                    </MetadataListItem>
                   ))}
-                </HStack>
-              </Stack>
-            ) : null}
+                </MetadataList>
+                {resume.skills.length > 0 ? (
+                  <Stack gap={2}>
+                    <Text type="label">Skills found</Text>
+                    <HStack gap={2} wrap="wrap">
+                      {resume.skills.map((skill) => (
+                        <Token key={skill} label={skill} size="sm" />
+                      ))}
+                    </HStack>
+                  </Stack>
+                ) : null}
+              </>
+            )}
 
-            {resume.suggestions.length > 0 ? (
+            {resume.suggestions.length > 0 && !resume.file ? (
               <Stack gap={3}>
                 <Text type="label">Suggestions</Text>
                 {resume.suggestions.map((tip) => (
@@ -123,7 +147,7 @@ export function ResumeInsights({
             <Button label="Make default" variant="primary" onClick={onSetDefault} />
           ) : null}
           <Button
-            label="Download"
+            label={isProfile ? "Export" : "Download"}
             variant="secondary"
             icon={<Icon icon={icons.download} />}
             onClick={onDownload}
