@@ -17,15 +17,25 @@ type Meta struct {
 	Reasons   []Reason      `json:"rejection_reasons"`
 }
 
-// Rulebook returns the scout rules.
+// Rulebook returns the scout rules with the default config.
 func Rulebook() Meta {
+	return RulebookWithConfig(DefaultConfig())
+}
+
+// RulebookWithConfig returns the scout rules with the given config.
+func RulebookWithConfig(cfg Config) Meta {
 	return Meta{
 		Levels:    Levels(),
 		Promotion: Promotion(),
-		Rewards:   Rewards(),
+		Rewards:   Rewards(cfg),
 		Limits:    InputLimits(),
 		Reasons:   RejectReasons(),
 	}
+}
+
+// Rulebook returns the scout rules with this store's config.
+func (s *Store) Rulebook() Meta {
+	return RulebookWithConfig(s.config)
 }
 
 // Stats is a scout's dashboard: level, quality, money, and today's allowance.

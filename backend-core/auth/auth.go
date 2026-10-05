@@ -112,9 +112,9 @@ type CompanyChoice struct {
 	URL  string
 }
 
-// storedUser is an account. Sign in with Google is the only way in; accounts made
-// with a password before that still carry a passwordHash nothing reads, and link
-// their Google account the first time they sign in with it.
+// storedUser is an account. Sign in with Google or email+password are supported.
+// Accounts with email+password store passwordHash/passwordSalt and must be verified.
+// Accounts may link their Google account the first time they sign in with it.
 type storedUser struct {
 	ID    string `bson:"id"`
 	Name  string `bson:"name"`

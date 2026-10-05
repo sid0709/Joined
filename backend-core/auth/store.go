@@ -26,10 +26,20 @@ type Store struct {
 	db        string
 	companies string
 	data      UserData
+	// passwordHasher allows injection for testing timing
+	passwordHasher func(password string) ([]byte, []byte, error)
 }
 
+// Ensure Store implements AuthStore
+var _ AuthStore = (*Store)(nil)
+
 func NewStore(client *mongo.Client, db, companies string) *Store {
-	return &Store{client: client, db: db, companies: companies}
+	return &Store{
+		client:         client,
+		db:             db,
+		companies:      companies,
+		passwordHasher: hashPassword,
+	}
 }
 
 func (s *Store) SetUserData(data UserData) {
@@ -93,7 +103,10 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	if err := s.ensureStaffIndexes(ctx); err != nil {
 		return err
 	}
-	return s.ensureGoogleIndexes(ctx)
+	if err := s.ensureGoogleIndexes(ctx); err != nil {
+		return err
+	}
+	return s.ensureEmailIndexes(ctx)
 }
 
 func (s *Store) Signout(ctx context.Context, token string) error {

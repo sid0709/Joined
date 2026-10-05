@@ -32,13 +32,20 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     }
   }
 
+  const session = await loadSession();
+  // On public pages, treat employees as guests: no candidate APIs, signedIn=false
+  const isEmployeeSession = session?.company != null;
+  const [savedIds, appliedIds] = !isEmployeeSession
+    ? await Promise.all([loadSavedJobIds(), loadAppliedJobIds()])
+    : [[], []];
+
   return (
     <JobPageView
       job={job}
       jobs={jobs}
-      saved={(await loadSavedJobIds()).includes(job.id)}
-      applied={(await loadAppliedJobIds()).includes(job.id)}
-      signedIn={Boolean(await loadSession())}
+      saved={savedIds.includes(job.id)}
+      applied={appliedIds.includes(job.id)}
+      signedIn={Boolean(session) && !isEmployeeSession}
     />
   );
 }

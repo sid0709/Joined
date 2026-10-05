@@ -18,9 +18,35 @@ import (
 
 const maxAuthBody = 16 << 10
 
+// AccountsStore defines the subset of auth.Store methods used by Handlers.
+// Both *auth.Store and test mocks implement this interface.
+type AccountsStore interface {
+	// Email auth methods (AuthStore interface)
+	EmailSignup(ctx context.Context, email, password, name, role string, now time.Time) (string, bool, error)
+	CreateVerificationToken(ctx context.Context, userID string, now time.Time) (string, error)
+	VerifyEmail(ctx context.Context, token string, now time.Time) error
+	EmailSignin(ctx context.Context, email, password, audience string, now time.Time) (string, auth.Session, error)
+	RequestPasswordReset(ctx context.Context, email string, now time.Time) (string, error)
+	ResetPassword(ctx context.Context, token, newPassword string, now time.Time) error
+
+	// Session and account methods
+	Signout(ctx context.Context, token string) error
+	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
+	DeleteAccount(ctx context.Context, token string, now time.Time) error
+
+	// Company methods
+	AttachCompany(ctx context.Context, token string, choice auth.CompanyChoice, now time.Time) (auth.Session, error)
+	InvitedCompanies(ctx context.Context, token string, now time.Time) ([]auth.Company, error)
+
+	// Google auth methods
+	SaveGoogleState(ctx context.Context, state string, saved auth.GoogleState, now time.Time) error
+	TakeGoogleState(ctx context.Context, state string, now time.Time) (auth.GoogleState, error)
+	GoogleSignin(ctx context.Context, identity auth.GoogleIdentity, audience, newRole string, now time.Time) (string, auth.Session, error)
+}
+
 // Handlers are the identity routes of one app.
 type Handlers struct {
-	Accounts *auth.Store
+	Accounts AccountsStore
 	// Audience is the app these routes sign in to: auth.AudienceJoined or
 	// auth.RoleScout. Sign-in is pinned to it, and sign-up only creates
 	// accounts that app can use.
@@ -29,6 +55,8 @@ type Handlers struct {
 	CompanyCreated func(context.Context, auth.Session)
 	// Google turns on Sign in with Google. Nil, or without credentials, answers 503.
 	Google *GoogleSignIn
+	// Email turns on email authentication. Nil answers 503.
+	Email *EmailAuth
 }
 
 type authResponse struct {
@@ -37,10 +65,15 @@ type authResponse struct {
 }
 
 // Register adds Sign in with Google (the only way to sign in or sign up),
-// sign-out, the session, and account deletion.
+// email sign-up and sign-in, sign-out, the session, and account deletion.
 func (h Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/google/start", h.startGoogle)
 	mux.HandleFunc("POST /v1/auth/google/callback", h.finishGoogle)
+	mux.HandleFunc("POST /v1/auth/signup", h.signup)
+	mux.HandleFunc("POST /v1/auth/verify", h.verifyEmail)
+	mux.HandleFunc("POST /v1/auth/signin", h.emailSignin)
+	mux.HandleFunc("POST /v1/auth/password/reset-request", h.requestPasswordReset)
+	mux.HandleFunc("POST /v1/auth/password/reset", h.resetPassword)
 	mux.HandleFunc("POST /v1/auth/signout", h.signout)
 	mux.HandleFunc("DELETE /v1/auth/account", h.deleteAccount)
 	mux.HandleFunc("GET /v1/auth/session", h.session)
@@ -163,3 +196,6 @@ func decodeAuth(w http.ResponseWriter, r *http.Request, dest any) bool {
 	}
 	return true
 }
+
+// Ensure auth.Store implements AccountsStore
+var _ AccountsStore = (*auth.Store)(nil)
