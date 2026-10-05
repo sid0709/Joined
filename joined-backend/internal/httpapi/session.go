@@ -10,6 +10,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/authapi"
+	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
@@ -37,6 +38,27 @@ func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) (auth.Se
 		return auth.Session{}, false
 	}
 	return session, true
+}
+
+func (s *Server) billingCurrentUser(r *http.Request) (userID, email string, err error) {
+	if session, ok := authapi.Session(r.Context()); ok {
+		return session.User.ID, session.User.Email, nil
+	}
+	lookup := s.sessions
+	if lookup == nil && s.auth != nil {
+		lookup = s.auth
+	}
+	if lookup == nil {
+		return "", "", billing.ErrUnauthorized
+	}
+	session, err := lookup.Session(r.Context(), httpkit.BearerToken(r), time.Now())
+	if errors.Is(err, auth.ErrInvalidLogin) {
+		return "", "", billing.ErrUnauthorized
+	}
+	if err != nil {
+		return "", "", err
+	}
+	return session.User.ID, session.User.Email, nil
 }
 
 func (s *Server) requireCandidate(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {

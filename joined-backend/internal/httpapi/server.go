@@ -10,6 +10,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/authapi"
+	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/employer"
 	"github.com/sid0709/OpenSeat/backend-core/google"
@@ -49,6 +50,10 @@ type Options struct {
 	Sessions sessionLookup
 	// EmailSender delivers transactional email.
 	EmailSender auth.EmailSender
+	// Billing is Premium checkout, portal, and subscription status. Nil leaves those routes unmounted.
+	Billing *billing.Service
+	// BillingWebhook receives Stripe-signed events. Nil leaves POST /v1/webhooks/stripe unmounted.
+	BillingWebhook *billing.WebhookRouter
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -122,9 +127,16 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux.HandleFunc("GET /v1/me/threads/{id}", server.getMyThread)
 	candidateMux.HandleFunc("POST /v1/me/threads/{id}/messages", server.postMyMessage)
 	candidateMux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
+	if opts.Billing != nil {
+		billing.Handlers{Service: opts.Billing, CurrentUser: server.billingCurrentUser}.Register(candidateMux)
+	}
 	// Google's OAuth redirect has no Authorization header; it authenticates via state.
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
 	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
+	if opts.BillingWebhook != nil {
+		opts.BillingWebhook.UseService(opts.Billing)
+		mux.Handle("POST "+billing.WebhookPath, opts.BillingWebhook)
+	}
 
 	companyMux := http.NewServeMux()
 	companyMux.HandleFunc("GET /v1/company/threads", server.getCompanyThreads)
