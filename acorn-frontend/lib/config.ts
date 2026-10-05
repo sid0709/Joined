@@ -12,3 +12,9 @@ export function extensionInstallUrl(): string | null {
   const url = process.env.ACORN_EXTENSION_INSTALL_URL?.trim();
   return url ? url.replace(/\/$/, "") : null;
 }
+
+/** A packed build (.zip) for sideloading while there is no store listing. */
+export function extensionDownloadUrl(): string | null {
+  const url = process.env.ACORN_EXTENSION_DOWNLOAD_URL?.trim();
+  return url || null;
+}

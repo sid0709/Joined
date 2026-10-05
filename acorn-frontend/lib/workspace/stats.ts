@@ -22,7 +22,6 @@ const MIN_TREND_WEEKS = 8;
 const DAYS_PER_WEEK = 7;
 const PERCENT = 100;
 const RECENT_LIMIT = 8;
-const UPCOMING_LIMIT = 5;
 
 export type Window = { from: Day; to: Day };
 
@@ -43,8 +42,8 @@ export function within(day: Day | null, window: Window): day is Day {
 export type Summary = {
   applied: number;
   replied: number;
-  interviews: number;
-  offers: number;
+  /** Applications sent in the window that have no reply yet. */
+  waiting: number;
   /** Replies among the applications sent in the window, in percent. */
   responseRate: number;
   /** Median days from applying to the first reply; null with no replies. */
@@ -58,8 +57,7 @@ export function summarize(apps: Application[], window: Window): Summary {
   return {
     applied: cohort.length,
     replied: apps.filter((app) => within(app.repliedOn, window)).length,
-    interviews: apps.filter((app) => within(app.interviewOn, window)).length,
-    offers: apps.filter((app) => within(app.offerOn, window)).length,
+    waiting: cohort.length - answered.length,
     responseRate: cohort.length ? Math.round((answered.length / cohort.length) * PERCENT) : 0,
     medianReplyDays: waits.length ? median(waits) : null,
   };
@@ -88,7 +86,6 @@ export type Weekly = {
   labels: string[];
   applied: number[];
   replies: number[];
-  interviews: number[];
   /** Replies over applications per week, in percent. */
   rate: number[];
   /** Median days from applying to the replies that arrived that week; 0 with none. */
@@ -130,7 +127,6 @@ export function weekly(apps: Application[], range: RangeValue, today: Day): Week
     labels: starts.map(formatDay),
     applied,
     replies,
-    interviews: count((app) => app.interviewOn),
     rate: applied.map((total, index) =>
       total ? Math.round((Math.min(replies[index], total) / total) * PERCENT) : 0,
     ),
@@ -138,22 +134,40 @@ export function weekly(apps: Application[], range: RangeValue, today: Day): Week
   };
 }
 
-const STAGE_ORDER = ["applied", "replied", "interview", "offer", "rejected"] as const;
-const STAGE_TONE = {
+/**
+ * How Statistics groups an application: an interview counts as a reply, since this page
+ * tracks what was sent and what came back, not the calendar.
+ */
+export type Status = "saved" | "applied" | "replied" | "offer" | "rejected";
+
+export function statusOf(app: Application): Status {
+  const stage = stageOf(app);
+  return stage === "interview" ? "replied" : stage;
+}
+
+export const STATUS_LABEL = {
+  saved: STAGE_LABEL.saved,
+  applied: STAGE_LABEL.applied,
+  replied: STAGE_LABEL.replied,
+  offer: STAGE_LABEL.offer,
+  rejected: STAGE_LABEL.rejected,
+} as const satisfies Record<Status, string>;
+
+const STATUS_ORDER = ["applied", "replied", "offer", "rejected"] as const;
+const STATUS_TONE = {
   applied: "blue",
   replied: "orange",
-  interview: "purple",
   offer: "green",
   rejected: "neutral",
-} as const satisfies Record<(typeof STAGE_ORDER)[number], DonutSlice["tone"]>;
+} as const satisfies Record<(typeof STATUS_ORDER)[number], DonutSlice["tone"]>;
 
 /** Where each application sent in the window stands now. */
 export function stageMix(apps: Application[], window: Window): DonutSlice[] {
   const cohort = apps.filter((app) => within(app.appliedOn, window));
-  return STAGE_ORDER.map((stage) => ({
-    label: STAGE_LABEL[stage],
-    value: cohort.filter((app) => stageOf(app) === stage).length,
-    tone: STAGE_TONE[stage],
+  return STATUS_ORDER.map((status) => ({
+    label: STATUS_LABEL[status],
+    value: cohort.filter((app) => statusOf(app) === status).length,
+    tone: STATUS_TONE[status],
   }));
 }
 
@@ -170,11 +184,6 @@ export function funnel(apps: Application[], window: Window): FunnelStage[] {
       label: "Replied",
       value: cohort.filter((app) => app.repliedOn).length,
       hint: "A person wrote back",
-    },
-    {
-      label: "Interview",
-      value: cohort.filter((app) => app.interviewOn).length,
-      hint: "On the calendar",
     },
     { label: "Offer", value: cohort.filter((app) => app.offerOn).length },
   ];
@@ -242,25 +251,9 @@ export function habits(days: HeatmapDay[]) {
   return { bestStreak: best, currentStreak: current, activeDays: active, totalDays: days.length };
 }
 
-export type Upcoming = { id: string; company: string; role: string; contact: string; on: Day };
-
-export function upcomingInterviews(apps: Application[], today: Day): Upcoming[] {
-  return apps
-    .filter((app) => app.interviewOn && app.interviewOn >= today && !app.offerOn)
-    .map((app) => ({
-      id: app.id,
-      company: app.company,
-      role: app.role,
-      contact: app.contact,
-      on: app.interviewOn as Day,
-    }))
-    .sort((a, b) => a.on.localeCompare(b.on))
-    .slice(0, UPCOMING_LIMIT);
-}
-
 /** The latest thing that happened to an application, for sorting a recent list. */
 export function lastEvent(app: Application, today: Day): Day {
-  const days = [app.savedOn, app.appliedOn, app.repliedOn, app.interviewOn, app.offerOn].filter(
+  const days = [app.savedOn, app.appliedOn, app.repliedOn, app.offerOn].filter(
     (day): day is Day => day !== null && day <= today,
   );
   return days.sort().at(-1) ?? app.savedOn;

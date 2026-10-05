@@ -33,15 +33,11 @@ export function KpiRow({
         <Sparkline label="Reply rate per week" values={trend.rate} tone="orange" />
       </KpiWidget>
       <KpiWidget
-        label="Interviews"
-        value={current.interviews.toLocaleString()}
-        delta={deltaOf(current.interviews, previous.interviews)}
-        hint={
-          current.offers ? `${current.offers} turned into offers` : "No offers yet in this period"
-        }
-      >
-        <Sparkline label="Interviews per week" values={trend.interviews} tone="purple" />
-      </KpiWidget>
+        label="Waiting on a reply"
+        value={current.waiting.toLocaleString()}
+        delta={deltaOf(current.waiting, previous.waiting, { lowerIsBetter: true })}
+        hint={`Of ${current.applied} sent in this period`}
+      />
       <KpiWidget
         label="Days to first reply"
         value={current.medianReplyDays === null ? "—" : String(current.medianReplyDays)}

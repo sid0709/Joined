@@ -66,9 +66,6 @@ const SAMPLE_SIZE = 160;
 const HISTORY_DAYS = 210;
 /** Below 1 leans the sample toward recent days, so activity grows week over week. */
 const RECENCY = 0.75;
-/** Replies that get an interview on the calendar ahead of today, so Coming up has rows. */
-const UPCOMING_SEEDED = 3;
-const UPCOMING_WITHIN = 9;
 const APPLY_RATE = 0.84;
 const REPLY_RATE = 0.34;
 const REJECT_SHARE = 0.42;
@@ -203,13 +200,5 @@ export function sampleApplications(today: Day): Application[] {
       rejectedOn: rejected ? repliedOn : null,
     };
   });
-  // The latest open replies get an interview in the coming days.
-  apps
-    .filter((app) => app.repliedOn && !app.rejectedOn && !app.offerOn)
-    .sort((a, b) => (b.repliedOn ?? "").localeCompare(a.repliedOn ?? ""))
-    .slice(0, UPCOMING_SEEDED)
-    .forEach((app) => {
-      app.interviewOn = workday(random, addDays(today, between(random, 1, UPCOMING_WITHIN)));
-    });
   return apps;
 }

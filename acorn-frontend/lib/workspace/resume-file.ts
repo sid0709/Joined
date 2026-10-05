@@ -40,13 +40,17 @@ export function profileFromResumeText(text: string, current: ApplicantProfile): 
       ? text.match(PORTFOLIO)?.[0]
       : urlsExcept(text, linkedin, github) || current.portfolio;
   const name = lines.find(looksLikeName);
+  // "Jordan Avery Lee": first, middle, last. Two words have no middle name.
   const [firstName, ...rest] = (name ?? current.fullName).split(/\s+/);
+  const lastName = rest.length > 1 ? rest.slice(1).join(" ") : rest.join(" ");
+  const middleName = rest.length > 1 ? rest[0] : "";
   const timeline = timelineFromLines(lines);
   return {
     ...current,
     fullName: name ?? current.fullName,
     firstName: firstName || current.firstName,
-    lastName: rest.join(" ") || current.lastName,
+    middleName: name ? middleName : current.middleName,
+    lastName: lastName || current.lastName,
     email,
     phone,
     linkedin,

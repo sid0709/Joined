@@ -25,6 +25,7 @@ export type CareerEntry = {
 export type ApplicantProfile = {
   fullName: string;
   firstName: string;
+  middleName: string;
   lastName: string;
   age: string;
   gender: string;
@@ -45,6 +46,16 @@ export type ApplicantProfile = {
   hispanicLatino: string;
   raceEthnicity: string;
   visaSponsorship: string;
+  /** Legally authorized to work in the country of the job. */
+  workAuthorized: string;
+  publicTrust: string;
+  securityClearance: string;
+  over18: string;
+  backgroundCheck: string;
+  willingToRelocate: string;
+  workModePreference: string;
+  willingToTravel: string;
+  noticePeriod: string;
   disability: string;
   veteranStatus: string;
   desiredSalary: string;
@@ -97,6 +108,18 @@ export const CITIZENSHIP_OPTIONS = choice([
   "Work visa",
   "Other",
 ]);
+export const YES_NO_OPTIONS = choice(["Yes", "No"]);
+export const PUBLIC_TRUST_OPTIONS = choice([
+  "Active public trust",
+  "Eligible and willing to obtain",
+  "Not eligible",
+  "Decline to answer",
+]);
+export const CLEARANCE_OPTIONS = choice(["None", "Secret", "Top Secret", "TS/SCI"]);
+export const RELOCATE_OPTIONS = choice(["Yes", "No", "Depends on the role"]);
+export const WORK_MODE_OPTIONS = choice(["Remote", "Hybrid", "On-site", "Open to any"]);
+export const TRAVEL_OPTIONS = choice(["None", "Up to 25%", "Up to 50%", "More than 50%"]);
+export const NOTICE_OPTIONS = choice(["Immediately", "2 weeks", "1 month", "2 months or more"]);
 export const COUNTRY_OPTIONS = choice(["United States", "Canada", "United Kingdom", "Other"]);
 export const PROVIDER_OPTIONS = choice(["DeepSeek", "OpenAI"]);
 export const MODEL_OPTIONS = choice([
@@ -119,10 +142,12 @@ export const YEAR_OPTIONS = Array.from({ length: 20 }, (_, index) => {
 export function sampleProfile(account: AcornAccount): ApplicantProfile {
   const parts = account.name.trim().split(/\s+/).filter(Boolean);
   const firstName = parts[0] ?? account.name;
-  const lastName = parts.slice(1).join(" ");
+  const middleName = parts.length > 2 ? parts[1] : "";
+  const lastName = parts.slice(parts.length > 2 ? 2 : 1).join(" ");
   return {
     fullName: account.name,
     firstName,
+    middleName,
     lastName,
     age: "32",
     gender: "Decline to answer",
@@ -143,6 +168,15 @@ export function sampleProfile(account: AcornAccount): ApplicantProfile {
     hispanicLatino: "No",
     raceEthnicity: "Decline to answer",
     visaSponsorship: "No — no sponsorship",
+    workAuthorized: "Yes",
+    publicTrust: "Eligible and willing to obtain",
+    securityClearance: "None",
+    over18: "Yes",
+    backgroundCheck: "Yes",
+    willingToRelocate: "Depends on the role",
+    workModePreference: "Open to any",
+    willingToTravel: "Up to 25%",
+    noticePeriod: "2 weeks",
     disability: "No — no disability",
     veteranStatus: "I am not a protected veteran",
     desiredSalary: "150000",
@@ -205,6 +239,25 @@ export function sampleProfile(account: AcornAccount): ApplicantProfile {
   };
 }
 
+/** Answers added after a profile may already have been saved; old profiles get these. */
+const LATER_FIELDS = {
+  middleName: "",
+  workAuthorized: "",
+  publicTrust: "",
+  securityClearance: "",
+  over18: "",
+  backgroundCheck: "",
+  willingToRelocate: "",
+  workModePreference: "",
+  willingToTravel: "",
+  noticePeriod: "",
+} satisfies Partial<ApplicantProfile>;
+
+/** A stored profile with every field present, whichever version saved it. */
+export function withDefaults(profile: ApplicantProfile): ApplicantProfile {
+  return { ...LATER_FIELDS, ...profile };
+}
+
 export function isApplicantProfile(value: unknown): value is ApplicantProfile {
   return Boolean(value && typeof value === "object" && "timeline" in value && "firstName" in value);
 }
@@ -249,7 +302,19 @@ export function profileChecklist(profile: ApplicantProfile): ChecklistItem[] {
     { label: "GitHub or portfolio", done: filled(profile.github) || filled(profile.portfolio) },
     {
       label: "Work authorization",
-      done: filled(profile.citizenship) && filled(profile.visaSponsorship),
+      done:
+        filled(profile.citizenship) &&
+        filled(profile.visaSponsorship) &&
+        filled(profile.workAuthorized),
+    },
+    {
+      label: "Screening questions",
+      done: [
+        profile.publicTrust,
+        profile.securityClearance,
+        profile.over18,
+        profile.noticePeriod,
+      ].every(filled),
     },
     { label: "Desired salary", done: filled(profile.desiredSalary) },
     {
@@ -284,10 +349,25 @@ export function monthsInRole(entry: CareerEntry, today: Date) {
   return Math.max(0, end - start);
 }
 
-/** Years across every role, counting overlaps once per role. */
-export function yearsOfExperience(profile: ApplicantProfile, today: Date) {
-  const months = profile.timeline
+/** Months across every role, counting overlaps once per role. */
+export function experienceMonths(profile: ApplicantProfile, today: Date) {
+  return profile.timeline
     .filter((entry) => entry.kind === "role")
     .reduce((total, entry) => total + monthsInRole(entry, today), 0);
-  return Math.round((months / MONTHS_PER_YEAR) * 10) / 10;
 }
+
+const plural = (count: number, unit: string) => `${count} ${unit}${count === 1 ? "" : "s"}`;
+
+/** "11 years 3 months", "8 months", "2 years". */
+export function formatDuration(months: number) {
+  const years = Math.floor(months / MONTHS_PER_YEAR);
+  const rest = months % MONTHS_PER_YEAR;
+  if (years === 0) return plural(rest, "month");
+  return rest === 0 ? plural(years, "year") : `${plural(years, "year")} ${plural(rest, "month")}`;
+}
+
+/** Sets one profile answer; every profile form takes this. */
+export type SetProfileField = <K extends keyof ApplicantProfile>(
+  key: K,
+  value: ApplicantProfile[K],
+) => void;

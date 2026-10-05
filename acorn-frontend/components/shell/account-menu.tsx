@@ -33,6 +33,8 @@ export function AccountMenu({ account }: { account: AcornAccount }) {
     { id: ROUTES.profile, label: "Profile", icon: icons.user, onClick: go(ROUTES.profile) },
     { id: ROUTES.resume, label: "Resumes", icon: icons.file, onClick: go(ROUTES.resume) },
     { id: ROUTES.gmail, label: "Mailboxes", icon: icons.mail, onClick: go(ROUTES.gmail) },
+    { id: ROUTES.apps, label: "Apps & plugins", icon: icons.grid, onClick: go(ROUTES.apps) },
+    { id: ROUTES.billing, label: "Billing", icon: icons.creditCard, onClick: go(ROUTES.billing) },
     { type: "divider" },
     {
       id: "sign-out",

@@ -26,6 +26,7 @@ export function MailboxSidebar({
   view,
   onView,
   totals,
+  labelNames,
   unread,
   onManage,
 }: {
@@ -34,6 +35,8 @@ export function MailboxSidebar({
   view: MailView;
   onView: (view: MailView) => void;
   totals: Record<MailLabel, number>;
+  /** Gmail label names once auto-label has run; the Acorn category names until then. */
+  labelNames?: Record<MailLabel, string | null>;
   unread: number;
   onManage: () => void;
 }) {
@@ -73,12 +76,12 @@ export function MailboxSidebar({
           endContent={count(unread)}
         />
       </SideNavSection>
-      <SideNavSection title="Labels">
+      <SideNavSection title={labelNames ? "Gmail labels" : "Categories"}>
         {MAIL_LABEL_ORDER.map((label) => (
           <SideNavItem
             key={label}
-            label={MAIL_LABELS[label].label}
-            icon={<Glyph name={MAIL_LABELS[label].icon} />}
+            label={labelNames?.[label] ?? MAIL_LABELS[label].label}
+            icon={<Glyph name={labelNames?.[label] ? "tag" : MAIL_LABELS[label].icon} />}
             isSelected={view === label}
             onClick={() => onView(label)}
             endContent={count(totals[label])}

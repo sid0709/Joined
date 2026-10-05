@@ -9,13 +9,28 @@ const ITEMS: PillNavItem[] = [
   { href: ROUTES.profile, label: "Profile", icon: "user" },
   { href: ROUTES.resume, label: "Resume", icon: "file" },
   { href: ROUTES.gmail, label: "Gmail", icon: "mail" },
+  { href: ROUTES.apps, label: "Apps", icon: "grid" },
+  { href: ROUTES.billing, label: "Billing", icon: "creditCard" },
 ];
+
+/** The pill whose page holds `pathname`; Resume stays lit on /resume/library and /resume/history. */
+function activeFor(pathname: string) {
+  const match = ITEMS.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+  return match?.href ?? ROUTES.overview;
+}
 
 /** The workspace pages as pills; the current one opens to show its name. */
 export function WorkspaceNav({ placement = "top" }: { placement?: "top" | "bottom" }) {
-  const pathname = usePathname();
-  const active = ITEMS.some((item) => item.href === pathname) ? pathname : ROUTES.overview;
-  return <PillNav label="Acorn" items={ITEMS} activeHref={active} placement={placement} />;
+  return (
+    <PillNav
+      label="Acorn"
+      items={ITEMS}
+      activeHref={activeFor(usePathname())}
+      placement={placement}
+    />
+  );
 }
 
 /** On small screens the pills leave the header for a bar along the bottom edge. */

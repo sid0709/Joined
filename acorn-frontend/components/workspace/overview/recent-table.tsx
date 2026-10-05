@@ -1,9 +1,9 @@
 "use client";
 
 import { Avatar, Badge, HStack, Stack, Table, Text, type TableColumn } from "@joined/design-system";
-import { STAGE_BADGE, STAGE_LABEL, stageOf, type Application } from "@/lib/workspace/applications";
+import { STAGE_BADGE, type Application } from "@/lib/workspace/applications";
 import { formatDay, type Day } from "@/lib/workspace/dates";
-import { lastEvent } from "@/lib/workspace/stats";
+import { STATUS_LABEL, lastEvent, statusOf } from "@/lib/workspace/stats";
 
 const PAGE_SIZE = 6;
 
@@ -31,10 +31,10 @@ export function RecentTable({ applications, today }: { applications: Application
       key: "stage",
       header: "Status",
       sortable: true,
-      sortValue: (app) => stageOf(app),
+      sortValue: (app) => statusOf(app),
       render: (app) => {
-        const stage = stageOf(app);
-        return <Badge label={STAGE_LABEL[stage]} variant={STAGE_BADGE[stage]} />;
+        const status = statusOf(app);
+        return <Badge label={STATUS_LABEL[status]} variant={STAGE_BADGE[status]} />;
       },
     },
     {

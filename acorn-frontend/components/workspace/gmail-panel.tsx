@@ -35,7 +35,14 @@ import {
   repliesByWeek,
   type MailMessage,
 } from "@/lib/workspace/mail";
-import type { Mailbox } from "@/lib/workspace/model";
+import {
+  SAMPLE_GMAIL_LABELS,
+  gmailLabelOf,
+  labelCounts,
+  type Labeling,
+} from "@/lib/workspace/labels";
+import { formatWhen, type Mailbox } from "@/lib/workspace/model";
+import { AutoLabelDialog } from "./gmail/auto-label-dialog";
 import { MailReader } from "./gmail/mail-reader";
 import { MailboxManager } from "./gmail/mailbox-manager";
 import { MailboxSidebar, type MailView } from "./gmail/mailbox-sidebar";
@@ -95,6 +102,8 @@ export function GmailPanel({
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [managing, setManaging] = useState(false);
+  const [labelingOpen, setLabelingOpen] = useState(false);
+  const [justLabeled, setJustLabeled] = useState<{ total: number; summary: string } | null>(null);
 
   const isSample = workspace.mailboxes.length === 0;
   const mailboxes = isSample
@@ -106,6 +115,8 @@ export function GmailPanel({
     (mailboxes.find((mailbox) => mailbox.isDefault) ?? mailboxes[0])?.email ?? account.email;
 
   const read = workspace.readMail;
+  const labeling = workspace.labeling;
+  const gmailLabels = workspace.gmailLabels.length ? workspace.gmailLabels : SAMPLE_GMAIL_LABELS;
   const unreadOf = (message: MailMessage) => isUnread(message, today, read);
   const unreadCount = mail.filter(unreadOf).length;
   const totals = countByLabel(mail);
@@ -122,7 +133,12 @@ export function GmailPanel({
     snippet: message.snippet,
     time: formatReceived(message.receivedOn, message.receivedAt, today),
     isUnread: unreadOf(message),
-    tag: { label: MAIL_LABELS[message.label].label, variant: MAIL_LABELS[message.label].badge },
+    tag: gmailLabelOf(message, labeling)
+      ? {
+          label: gmailLabelOf(message, labeling) as string,
+          variant: MAIL_LABELS[message.label].badge,
+        }
+      : undefined,
   });
   const unreadItems = visible.filter(unreadOf).map(toItem);
   const readItems = visible.filter((message) => !unreadOf(message)).map(toItem);
@@ -148,6 +164,15 @@ export function GmailPanel({
   const replies = repliesByWeek(mail, today);
   const opened = mail.find((message) => message.id === openId) ?? null;
 
+  const applyLabels = (next: Labeling) => {
+    update({ ...workspace, labeling: next, gmailLabels });
+    const counts = labelCounts(mail, next.map);
+    setJustLabeled({
+      total: counts.reduce((sum, item) => sum + item.count, 0),
+      summary: counts.map((item) => `${item.label} (${item.count})`).join(" · "),
+    });
+  };
+
   return (
     <Stack gap={6}>
       <PageHeader
@@ -155,7 +180,19 @@ export function GmailPanel({
         description="Replies to your applications, sorted by what they ask of you."
         action={
           <HStack gap={2} vAlign="center" wrap="wrap">
-            <Badge label="Auto-labeled" variant="purple" icon={<Glyph name="sparkle" />} />
+            {labeling ? (
+              <Badge
+                label={`Labeled ${formatWhen(labeling.appliedAt)}`}
+                variant="success"
+                icon={<Glyph name="check" />}
+              />
+            ) : null}
+            <Button
+              label="Auto-label"
+              variant="primary"
+              icon={<Glyph name="tag" />}
+              onClick={() => setLabelingOpen(true)}
+            />
             <Button
               label="Mailboxes"
               variant="secondary"
@@ -170,6 +207,31 @@ export function GmailPanel({
         title="Sample inbox"
         description="Acorn doesn't read Gmail yet. These messages are built from your sample applications, so the labels and counts line up with Statistics."
       />
+      {justLabeled ? (
+        <Banner
+          status="success"
+          title={`Labeled ${justLabeled.total} messages`}
+          description={justLabeled.summary}
+          isDismissable
+          onDismiss={() => setJustLabeled(null)}
+        />
+      ) : null}
+      {labeling ? null : (
+        <Banner
+          status="warning"
+          title={`${mail.length} messages aren't labeled in Gmail yet`}
+          description="Use your own Gmail labels or let Acorn create a set, then label everything in one go."
+          endContent={
+            <Button
+              label="Auto-label"
+              variant="secondary"
+              size="sm"
+              icon={<Glyph name="tag" />}
+              onClick={() => setLabelingOpen(true)}
+            />
+          }
+        />
+      )}
       <StatGrid
         stats={[
           { label: "Unread", value: String(unreadCount), hint: "From the last few days" },
@@ -200,6 +262,7 @@ export function GmailPanel({
                 view={view}
                 onView={setView}
                 totals={totals}
+                labelNames={labeling?.map}
                 unread={unreadCount}
                 onManage={() => setManaging(true)}
               />
@@ -212,7 +275,11 @@ export function GmailPanel({
                   <Glyph
                     name={view === "inbox" || view === "unread" ? "mail" : MAIL_LABELS[view].icon}
                   />
-                  <Heading level={2}>{viewTitle(view)}</Heading>
+                  <Heading level={2}>
+                    {view !== "inbox" && view !== "unread" && labeling?.map[view]
+                      ? labeling.map[view]
+                      : viewTitle(view)}
+                  </Heading>
                 </HStack>
                 <HStack gap={2} vAlign="center" wrap="wrap">
                   <Show below="lg" responsiveTo="viewport">
@@ -303,6 +370,15 @@ export function GmailPanel({
         mailbox={inboxAddress}
         onClose={() => setOpenId(null)}
         onMarkUnread={markUnread}
+      />
+      <AutoLabelDialog
+        isOpen={labelingOpen}
+        onOpenChange={setLabelingOpen}
+        mail={mail}
+        gmailLabels={gmailLabels}
+        labeling={labeling}
+        onAddLabel={(name) => update({ ...workspace, gmailLabels: [...gmailLabels, name] })}
+        onApply={applyLabels}
       />
       <MailboxManager
         isOpen={managing}

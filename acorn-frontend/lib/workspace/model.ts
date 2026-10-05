@@ -1,5 +1,6 @@
 import type { AcornAccount } from "@/lib/auth/session";
-import { isApplicantProfile, type ApplicantProfile } from "./profile";
+import { isLabeling, type Labeling } from "./labels";
+import { isApplicantProfile, withDefaults, type ApplicantProfile } from "./profile";
 
 export const WORKSPACE_STORAGE_KEY = "acorn.workspace.v2";
 const WORKSPACE_CHANGE = "acorn-workspace-change";
@@ -10,6 +11,9 @@ const EMPTY_WORKSPACE: Workspace = {
   library: [],
   mailboxes: [],
   readMail: [],
+  gmailLabels: [],
+  labeling: null,
+  plugins: {},
 };
 
 export const HEADLINE_MAX = 80;
@@ -33,14 +37,28 @@ export type ResumeDraft = {
   createdAt: string;
 };
 
-/** A file in the library: an upload, or a draft kept after generation. */
+/** A résumé file you uploaded. Generated drafts live in `resumes` (History), never here. */
 export type LibraryResume = {
   id: string;
   name: string;
-  source: "upload" | "generated";
   detail: string;
   addedAt: string;
+  /** Bytes; absent on files added before sizes were kept. */
+  size?: number;
+  /** The file Acorn attaches when a posting has no generated draft. */
+  isDefault?: boolean;
 };
+
+export const LIBRARY_LIMIT = 20;
+
+/** Early versions kept generated drafts in the library too; those belong to History. */
+function uploadsOnly(items: unknown[]): LibraryResume[] {
+  return items.filter(
+    (item): item is LibraryResume =>
+      Boolean(item && typeof item === "object" && "name" in item) &&
+      (item as { source?: string }).source !== "generated",
+  );
+}
 
 export type Mailbox = {
   id: string;
@@ -58,6 +76,12 @@ export type Workspace = {
   mailboxes: Mailbox[];
   /** Message ids opened in the Gmail view. */
   readMail: string[];
+  /** Your own Gmail labels; empty until you add one. */
+  gmailLabels: string[];
+  /** The last auto-label run, or null if it never ran. */
+  labeling: Labeling | null;
+  /** Plugin id → on or off, for plugins you switched from their default. */
+  plugins: Record<string, boolean>;
 };
 
 export function emptyWorkspace(): Workspace {
@@ -68,11 +92,17 @@ function parseWorkspace(raw: string): Workspace {
   try {
     const parsed = JSON.parse(raw) as Partial<Workspace>;
     return {
-      profile: isApplicantProfile(parsed.profile) ? parsed.profile : null,
+      profile: isApplicantProfile(parsed.profile) ? withDefaults(parsed.profile) : null,
       resumes: Array.isArray(parsed.resumes) ? parsed.resumes : [],
-      library: Array.isArray(parsed.library) ? parsed.library : [],
+      library: Array.isArray(parsed.library) ? uploadsOnly(parsed.library) : [],
       mailboxes: Array.isArray(parsed.mailboxes) ? parsed.mailboxes : [],
       readMail: Array.isArray(parsed.readMail) ? parsed.readMail : [],
+      gmailLabels: Array.isArray(parsed.gmailLabels) ? parsed.gmailLabels : [],
+      labeling: isLabeling(parsed.labeling) ? parsed.labeling : null,
+      plugins:
+        parsed.plugins && typeof parsed.plugins === "object" && !Array.isArray(parsed.plugins)
+          ? parsed.plugins
+          : {},
     };
   } catch {
     return EMPTY_WORKSPACE;

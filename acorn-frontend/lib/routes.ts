@@ -5,22 +5,12 @@ export const ROUTES = {
   overview: "/overview",
   profile: "/profile",
   resume: "/resume",
+  resumeLibrary: "/resume/library",
+  resumeHistory: "/resume/history",
   gmail: "/gmail",
+  apps: "/apps",
+  billing: "/billing",
 } as const;
-
-export const WORKSPACE_TABS = [
-  { value: "overview", label: "Statistics", href: ROUTES.overview },
-  { value: "profile", label: "Profile", href: ROUTES.profile },
-  { value: "resume", label: "Resume", href: ROUTES.resume },
-  { value: "gmail", label: "Gmail", href: ROUTES.gmail },
-] as const;
-
-export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]["value"];
-
-export function workspaceTab(pathname: string): WorkspaceTab {
-  const match = WORKSPACE_TABS.find((tab) => tab.href === pathname);
-  return match?.value ?? "overview";
-}
 
 /** Only same-site paths. Anything else lands on the home page. */
 export function safeNextPath(value: string | null | undefined) {
