@@ -2,6 +2,12 @@ import "@joined/design-system/styles/joined.css";
 import { Button, Spinner } from "@joined/design-system";
 import { useAuth } from "../hooks/useAuth";
 import { getSignInUrl } from "../api";
+import {
+  SIGN_IN_TAB_WATCH_INTERVAL_MS,
+  SIGN_IN_TAB_WATCH_TIMEOUT_MS,
+  applySignInTabClose,
+  scheduleAuthRefresh,
+} from "../auth/signInTab";
 
 function App() {
   const { authState, checkAuth, setSignInTabId } = useAuth();
@@ -20,16 +26,17 @@ function App() {
       const checkInterval = setInterval(() => {
         if (newTab.closed) {
           clearInterval(checkInterval);
-          setTimeout(() => {
-            checkAuth(false);
-          }, 1000);
-          setSignInTabId(null);
+          const decision = applySignInTabClose(null);
+          if (decision.refresh) {
+            scheduleAuthRefresh(checkAuth);
+          }
+          setSignInTabId(decision.nextTabId);
         }
-      }, 500);
+      }, SIGN_IN_TAB_WATCH_INTERVAL_MS);
 
       setTimeout(() => {
         clearInterval(checkInterval);
-      }, 300000);
+      }, SIGN_IN_TAB_WATCH_TIMEOUT_MS);
     }
   };
 

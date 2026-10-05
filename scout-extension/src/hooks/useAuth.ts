@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ScoutApiClient, type AuthState } from "../api";
+import {
+  parseTabAuthMessage,
+  resolveSignInTabRefresh,
+  scheduleAuthRefresh,
+} from "../auth/signInTab";
 
 const client = new ScoutApiClient();
 
@@ -28,22 +33,22 @@ export function useAuth() {
     checkAuth();
 
     const handleMessage = (message: unknown) => {
-      if (typeof message === "object" && message !== null && "type" in message) {
-        if (message.type === "tab-closed" && "tabId" in message) {
-          if (signInTabIdRef.current === message.tabId) {
-            signInTabIdRef.current = null;
-            setTimeout(() => {
-              checkAuth(false);
-            }, 1000);
-          }
-        } else if (message.type === "tab-updated" && "tabId" in message) {
-          if (signInTabIdRef.current === message.tabId) {
-            setTimeout(() => {
-              checkAuth(false);
-            }, 1000);
-          }
-        }
+      const parsed = parseTabAuthMessage(message);
+      if (!parsed) {
+        return;
       }
+
+      const decision = resolveSignInTabRefresh({
+        trackedTabId: signInTabIdRef.current,
+        eventType: parsed.type,
+        eventTabId: parsed.tabId,
+      });
+      if (!decision.refresh) {
+        return;
+      }
+
+      scheduleAuthRefresh(checkAuth);
+      signInTabIdRef.current = decision.nextTabId;
     };
 
     chrome.runtime.onMessage.addListener(handleMessage);
