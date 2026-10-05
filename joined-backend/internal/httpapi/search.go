@@ -17,11 +17,8 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	query := parseSearchQuery(r)
-	
-	if query.Keyword == "" && query.Location == "" && query.Company == "" &&
-		query.Workplace == "" && query.Employment == "" && query.Seniority == "" &&
-		query.SalaryMin == 0 && query.SalaryMax == 0 && query.PostedDays == 0 &&
-		!query.Remote && query.Cursor == "" && query.Limit == 0 && query.SortBy == "" {
+
+	if !query.HasCriteria() {
 		catalog, err := s.store.ListCatalog(ctx, time.Now())
 		if err != nil {
 			slog.Error("list search catalog", "error", err)
@@ -59,6 +56,7 @@ func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 		SortBy:     q.Get("sort"),
 		Cursor:     q.Get("cursor"),
 		Remote:     q.Get("remote") == "true",
+		Source:     q.Get("source"),
 	}
 
 	if salaryMin := q.Get("salaryMin"); salaryMin != "" {

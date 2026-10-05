@@ -84,6 +84,7 @@ type catalogJob struct {
 	CompanyLogo    string         `json:"companyLogo,omitempty"`
 	CreatedBy      string         `json:"createdBy,omitempty"`
 	ListingSource  string         `json:"listingSource,omitempty"`
+	Hidden         bool           `json:"hidden"`
 	CompanyProfile *PublicCompany `json:"companyProfile,omitempty"`
 }
 
@@ -98,6 +99,7 @@ func CatalogJob(record SearchRecord) catalogJob {
 		ApplyLink:     record.ApplyLink,
 		CreatedBy:     record.CreatedBy,
 		ListingSource: record.Source,
+		Hidden:        isHiddenJob(record.Job.Source, record.Source),
 	}
 }
 

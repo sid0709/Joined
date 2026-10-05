@@ -18,6 +18,8 @@ const (
 	defaultPageSize     = 50
 	maxPageSize         = 100
 	maxRegexFilterChars = 200
+	// SearchSourceHidden is the /v1/search/jobs?source= query value for scouted jobs.
+	SearchSourceHidden = "hidden"
 )
 
 var ErrCursorNotSupportedForRelevance = errors.New("cursor-based paging not supported with relevance sort")
@@ -37,6 +39,8 @@ type SearchQuery struct {
 	SortBy     string
 	Limit      int
 	Cursor     string
+	// Source is an optional listing origin filter. "hidden" keeps scouted jobs only.
+	Source string
 }
 
 type SearchResults struct {
@@ -58,13 +62,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 		return SearchResults{}, fmt.Errorf("count documents: %w", err)
 	}
 
-	limit := query.Limit
-	if limit <= 0 {
-		limit = defaultPageSize
-	}
-	if limit > maxPageSize {
-		limit = maxPageSize
-	}
+	limit := clampSearchLimit(query.Limit)
 
 	opts := options.Find().SetLimit(int64(limit + 1))
 	
@@ -125,9 +123,64 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	}, nil
 }
 
+// HasCriteria reports whether the query should use the paged search path
+// instead of the unfiltered catalog. source=hidden counts, even alone.
+func (q SearchQuery) HasCriteria() bool {
+	return q.Keyword != "" || q.Location != "" || q.Company != "" ||
+		q.Workplace != "" || q.Employment != "" || q.Seniority != "" ||
+		q.SalaryMin != 0 || q.SalaryMax != 0 || q.PostedDays != 0 ||
+		q.Remote || q.Cursor != "" || q.Limit != 0 || q.SortBy != "" ||
+		q.hiddenOnly()
+}
+
+func (q SearchQuery) hiddenOnly() bool {
+	return strings.EqualFold(strings.TrimSpace(q.Source), SearchSourceHidden)
+}
+
+func clampSearchLimit(limit int) int {
+	if limit <= 0 {
+		return defaultPageSize
+	}
+	if limit > maxPageSize {
+		return maxPageSize
+	}
+	return limit
+}
+
+// isHiddenJob reports whether a search row is a scouted listing. Published
+// scout jobs store job.source as "scouted" (PublishScouted) or "scoutwell"
+// (analysis path) and document source as ScoutedSource.
+func isHiddenJob(jobSource, listingSource string) bool {
+	return jobSource == scoutedJobType || jobSource == ScoutedSource || listingSource == ScoutedSource
+}
+
+// listingMatchesSearch is the candidate-search visibility contract. Pending,
+// draft, and removed rows never match. source=hidden keeps only scouted jobs.
+func listingMatchesSearch(listingStatus, jobSource, listingSource string, query SearchQuery) bool {
+	if !ListingPublic(listingStatus) {
+		return false
+	}
+	if query.hiddenOnly() && !isHiddenJob(jobSource, listingSource) {
+		return false
+	}
+	return true
+}
+
+func hiddenSourceFilter() bson.D {
+	return bson.D{{Key: "$or", Value: bson.A{
+		bson.D{{Key: "job.source", Value: scoutedJobType}},
+		bson.D{{Key: "job.source", Value: ScoutedSource}},
+		bson.D{{Key: "source", Value: ScoutedSource}},
+	}}}
+}
+
 func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 	filter := publicListingFilter()
 	conditions := []bson.D{filter}
+
+	if query.hiddenOnly() {
+		conditions = append(conditions, hiddenSourceFilter())
+	}
 
 	if query.Keyword != "" {
 		conditions = append(conditions, bson.D{{Key: "$text", Value: bson.D{{Key: "$search", Value: query.Keyword}}}})
