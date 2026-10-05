@@ -81,7 +81,10 @@ export const EARNING_STATUS: Record<EarningStatus, Meta> = {
 
 export const PAYOUT_STATUS: Record<PayoutStatus, Meta> = {
   requested: { label: "Requested", badge: "warning" },
+  approved: { label: "Approved", badge: "info" },
+  sent: { label: "Sending", badge: "blue" },
   paid: { label: "Paid", badge: "success" },
+  failed: { label: "Failed", badge: "error" },
   rejected: { label: "Declined", badge: "error" },
 };
 

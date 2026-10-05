@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 import {
   isPending,
   options,
+  PAYOUT_STATUS,
   SENIORITY_LABEL,
   SUBMISSION_CHANGE,
   SUBMISSION_STATUS,
@@ -10,6 +11,16 @@ import {
 
 test("every submission status has a label and badge", () => {
   for (const meta of Object.values(SUBMISSION_STATUS)) {
+    expect(meta.label.length).toBeGreaterThan(0);
+    expect(meta.badge.length).toBeGreaterThan(0);
+  }
+});
+
+test("every payout status has a label and badge", () => {
+  expect(Object.keys(PAYOUT_STATUS).sort()).toEqual(
+    ["approved", "failed", "paid", "rejected", "requested", "sent"].sort(),
+  );
+  for (const meta of Object.values(PAYOUT_STATUS)) {
     expect(meta.label.length).toBeGreaterThan(0);
     expect(meta.badge.length).toBeGreaterThan(0);
   }

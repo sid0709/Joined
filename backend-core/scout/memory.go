@@ -305,10 +305,11 @@ func NewMemoryStore(accounts Accounts, now func() time.Time) *Store {
 		now = time.Now
 	}
 	s := &Store{
-		accounts: accounts,
-		docs:     newMemDocs(),
-		now:      now,
-		config:   DefaultConfig(),
+		accounts:       accounts,
+		docs:           newMemDocs(),
+		now:            now,
+		config:         DefaultConfig(),
+		payoutProvider: NewFakeProvider(),
 	}
 	s.notifyReward = func(ctx context.Context, userID string, earning Earning) {
 		s.notifyRewardImpl(ctx, userID, earning)
