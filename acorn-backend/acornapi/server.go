@@ -14,6 +14,7 @@ import (
 	"github.com/sid0709/OpenSeat/acorn-backend/account"
 	"github.com/sid0709/OpenSeat/acorn-backend/acorn"
 	"github.com/sid0709/OpenSeat/acorn-backend/acornapi/gateway"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
@@ -22,6 +23,10 @@ import (
 const (
 	// Prefix is the path every Acorn route starts with.
 	Prefix = "/acorn"
+
+	// GooglePrefix is where @joined/google-signin calls this API. The frontend
+	// owns the browser redirect; these two routes only start and finish it.
+	GooglePrefix = "/v1/auth/google"
 
 	// DefaultSessionCookie is the cookie acorn-frontend keeps the Acorn session token in.
 	DefaultSessionCookie = "acorn_session"
@@ -40,6 +45,9 @@ type Accounts interface {
 	SavedJobIDs(ctx context.Context, userID string) ([]string, error)
 	AppliedJobIDs(ctx context.Context, userID string) ([]string, error)
 	MarkApplied(ctx context.Context, userID, jobID string) error
+	SaveGoogleState(ctx context.Context, state, verifier string, now time.Time) error
+	TakeGoogleState(ctx context.Context, state string, now time.Time) (string, error)
+	GoogleSignIn(ctx context.Context, id account.GoogleIdentity, now time.Time) (string, account.User, error)
 }
 
 type Server struct {
@@ -47,8 +55,10 @@ type Server struct {
 	listings *jobs.Store
 	acorn    *acorn.Service
 	files    RuntimeFile
-	cookie   string
-	switches killswitch.Switches
+	cookie         string
+	switches       killswitch.Switches
+	google         *google.Client
+	googleRedirect string
 }
 
 // Options are the Acorn API's settings. CORS is the server's: see acorn-backend/cmd/server.
@@ -59,10 +69,18 @@ type Options struct {
 	Runtime RuntimeFile
 	// KillSwitches turns off Acorn's model routes. Nil leaves them on.
 	KillSwitches killswitch.Switches
+	// Google is Sign in with Google. An unconfigured client answers 503.
+	Google *google.Client
+	// GoogleRedirectURL is acorn-frontend's callback, registered in Google Cloud.
+	GoogleRedirectURL string
 }
 
 func New(accounts Accounts, listings *jobs.Store, brain *acorn.Service, opts Options) (http.Handler, *gateway.Gateway) {
-	s := &Server{accounts: accounts, listings: listings, acorn: brain, files: opts.Runtime, cookie: opts.SessionCookie, switches: opts.KillSwitches}
+	s := &Server{
+		accounts: accounts, listings: listings, acorn: brain, files: opts.Runtime,
+		cookie: opts.SessionCookie, switches: opts.KillSwitches,
+		google: opts.Google, googleRedirect: opts.GoogleRedirectURL,
+	}
 	if s.cookie == "" {
 		s.cookie = DefaultSessionCookie
 	}
@@ -74,6 +92,8 @@ func New(accounts Accounts, listings *jobs.Store, brain *acorn.Service, opts Opt
 	mux.HandleFunc("POST /acorn/auth/signin", s.signIn)
 	mux.HandleFunc("GET /acorn/auth/me", s.me)
 	mux.HandleFunc("POST /acorn/auth/signout", s.signOut)
+	mux.HandleFunc("POST /v1/auth/google/start", s.startGoogle)
+	mux.HandleFunc("POST /v1/auth/google/callback", s.finishGoogle)
 
 	mux.HandleFunc("POST /acorn/ai-analyze", s.requireAI(s.aiAnalyze))
 	mux.HandleFunc("POST /acorn/match-option", s.requireAI(s.matchOption))

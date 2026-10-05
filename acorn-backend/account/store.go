@@ -38,6 +38,10 @@ var (
 	ErrInvalid = errors.New("check the name, email, and password")
 	// ErrAlreadyApplied is a job this account already marked applied.
 	ErrAlreadyApplied = errors.New("already applied")
+	// ErrGoogleState is a Google sign-in that expired or was already used.
+	ErrGoogleState = errors.New("the Google sign-in expired; try again")
+	// ErrGoogleMismatch is a Google account that is not the one linked to this email.
+	ErrGoogleMismatch = errors.New("this email is linked to a different Google account")
 )
 
 // User is one Acorn account.
@@ -56,8 +60,9 @@ type storedAccount struct {
 	ID           string    `bson:"id"`
 	Name         string    `bson:"name"`
 	Email        string    `bson:"email"`
-	PasswordHash []byte    `bson:"passwordHash"`
-	PasswordSalt []byte    `bson:"passwordSalt"`
+	PasswordHash []byte    `bson:"passwordHash,omitempty"`
+	PasswordSalt []byte    `bson:"passwordSalt,omitempty"`
+	GoogleID     string    `bson:"googleId,omitempty"`
 	SavedJobIDs  []string  `bson:"savedJobIds,omitempty"`
 	AppliedIDs   []string  `bson:"appliedJobIds,omitempty"`
 	CreatedAt    time.Time `bson:"createdAt"`
@@ -72,15 +77,17 @@ type storedSession struct {
 
 // Store keeps Acorn accounts and sessions in their own collections.
 type Store struct {
-	accounts *mongo.Collection
-	sessions *mongo.Collection
+	accounts     *mongo.Collection
+	sessions     *mongo.Collection
+	googleStates *mongo.Collection
 }
 
 func NewStore(client *mongo.Client, database string) *Store {
 	db := client.Database(database)
 	return &Store{
-		accounts: db.Collection(accountsCollection),
-		sessions: db.Collection(sessionsCollection),
+		accounts:     db.Collection(accountsCollection),
+		sessions:     db.Collection(sessionsCollection),
+		googleStates: db.Collection(googleStatesCollection),
 	}
 }
 
@@ -100,6 +107,27 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 	_, err = s.sessions.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(0),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = s.accounts.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "googleId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = s.googleStates.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "state", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		return err
+	}
+	_, err = s.googleStates.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "expiresAt", Value: 1}},
 		Options: options.Index().SetExpireAfterSeconds(0),
 	})

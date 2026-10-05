@@ -14,6 +14,7 @@ func routes(origins []string, health, acorn http.Handler, logger *slog.Logger, r
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", health)
 	mux.Handle(acornapi.Prefix+"/", acorn)
+	mux.Handle(acornapi.GooglePrefix+"/", acorn)
 	wrapped := httpkit.CORS(origins, mux)
 	wrapped = httpkit.Wrap(logger, reporter, wrapped)
 	return wrapped

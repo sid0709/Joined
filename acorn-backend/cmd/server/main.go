@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/acorn-backend/acornapi"
 	"github.com/sid0709/OpenSeat/backend-core/aisettings"
 	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 )
@@ -42,6 +43,11 @@ func main() {
 		os.Exit(1)
 	}
 	ai := config.LoadOpenAI()
+	googleConfig := config.LoadGoogle()
+	oauth := &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret}
+	if !oauth.Configured() || googleConfig.SignInRedirectURL == "" {
+		slog.Warn("Google sign-in is off until GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_SIGNIN_REDIRECT_URL are set")
+	}
 
 	p, err := platform.Open(context.Background(), db, platform.Options{SettingsKey: config.Env("SETTINGS_ENCRYPTION_KEY", "")})
 	if err != nil {
@@ -67,7 +73,9 @@ func main() {
 			Path: config.Env("ACORN_RUNTIME_FILE_PATH", ""),
 			Key:  config.Env("ACORN_RUNTIME_FILE_KEY", defaultRuntimeKey),
 		},
-		KillSwitches: p.KillSwitches,
+		KillSwitches:      p.KillSwitches,
+		Google:            oauth,
+		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 	})
 	defer gateway.Close()
 
