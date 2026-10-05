@@ -10,6 +10,7 @@ import (
 	// the zone database instead of relying on the container's.
 	_ "time/tzdata"
 
+	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/google"
@@ -45,7 +46,7 @@ func main() {
 	calendar := &candidate.Google{OAuth: oauth, RedirectURL: config.Env("GOOGLE_REDIRECT_URL", "")}
 
 	emailConfig := config.LoadEmail(frontend)
-	emailSender, err := emailConfig.NewEmailSender()
+	emailSender, err := auth.NewEmailSender(emailConfig)
 	if err != nil {
 		slog.Error("email config", "error", err)
 		os.Exit(1)
