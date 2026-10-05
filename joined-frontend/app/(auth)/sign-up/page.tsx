@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { isCompanyModeEnabled } from "@/lib/config";
 import { loadSession, safeNextPath } from "@/lib/auth/session";
 import { ROUTES } from "@/lib/routes";
 
@@ -12,7 +13,8 @@ export default async function SignUpPage({
   searchParams: Promise<{ next?: string; intent?: string }>;
 }) {
   const params = await searchParams;
-  const hiring = params.intent === "hiring";
+  const companyModeEnabled = isCompanyModeEnabled();
+  const hiring = companyModeEnabled && params.intent === "hiring";
   const session = await loadSession();
   if (session && hiring) {
     if (session.company) redirect(ROUTES.company);

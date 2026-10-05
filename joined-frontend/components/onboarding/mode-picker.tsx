@@ -17,6 +17,7 @@ import {
   Text,
   type GlyphName,
 } from "@joined/design-system";
+import { isCompanyModeEnabled } from "@/lib/config";
 import { BRAND, HIRING_SIGN_UP_HREF, ROUTES, type WorkspaceMode } from "@/lib/routes";
 import {
   getServerWorkspaceMode,
@@ -81,6 +82,7 @@ export function ModePicker() {
   const pathname = usePathname();
   const router = useRouter();
   const switchMode = useSwitchMode();
+  const companyModeEnabled = isCompanyModeEnabled();
   // "unresolved" (SSR / first client render) reads as already-chosen, so nobody sees a flash
   // of the picker before React can check localStorage; a genuine `null` opens it for real.
   const storedMode = useSyncExternalStore(
@@ -93,7 +95,8 @@ export function ModePicker() {
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
   const onPublicPath = PUBLIC_PATH_PREFIXES.some((path) => pathname.startsWith(path));
-  const isOpen = storedMode === null && !dismissed && !onAuthPath && !onPublicPath;
+  const isOpen =
+    companyModeEnabled && storedMode === null && !dismissed && !onAuthPath && !onPublicPath;
 
   const choose = (path: Path) => {
     setDismissed(true);
@@ -103,6 +106,8 @@ export function ModePicker() {
     }
     switchMode(path.mode);
   };
+
+  const visiblePaths = companyModeEnabled ? PATHS : PATHS.filter((p) => p.mode === "hunter");
 
   return (
     <Dialog
@@ -127,7 +132,7 @@ export function ModePicker() {
 
           <Stack width="100%" maxWidth={CONTENT_MAX_WIDTH}>
             <GridSystem gap={5} align="stretch" responsiveTo="viewport">
-              {PATHS.map((path) => (
+              {visiblePaths.map((path) => (
                 <GridColumn key={path.mode} span="full" md={6}>
                   <ClickableCard
                     label={path.cta}

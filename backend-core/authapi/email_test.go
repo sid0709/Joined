@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type testEmailSender struct {
@@ -47,15 +45,52 @@ func (t *testEmailSender) SendDuplicateSignupNotice(ctx context.Context, to stri
 	return nil
 }
 
-func TestEmailSignup(t *testing.T) {
-	client := testClient(t)
-	store := auth.NewStore(client, testDB, testCompanies)
-	sender := &testEmailSender{}
+// testAccountsStore wraps AuthStore with stubs for handler testing
+type testAccountsStore struct {
+	auth.AuthStore
+}
 
-	// Ensure indexes
-	if err := store.EnsureIndexes(context.Background()); err != nil {
-		t.Fatalf("Failed to ensure indexes: %v", err)
-	}
+func newTestAccountsStore() *testAccountsStore {
+	return &testAccountsStore{AuthStore: auth.NewMemStore()}
+}
+
+// Stub non-AuthStore methods
+func (t *testAccountsStore) Signout(ctx context.Context, token string) error {
+	return nil
+}
+
+func (t *testAccountsStore) Session(ctx context.Context, token string, now time.Time) (auth.Session, error) {
+	return auth.Session{}, nil
+}
+
+func (t *testAccountsStore) DeleteAccount(ctx context.Context, token string, now time.Time) error {
+	return nil
+}
+
+func (t *testAccountsStore) AttachCompany(ctx context.Context, token string, choice auth.CompanyChoice, now time.Time) (auth.Session, error) {
+	return auth.Session{}, nil
+}
+
+func (t *testAccountsStore) InvitedCompanies(ctx context.Context, token string, now time.Time) ([]auth.Company, error) {
+	return nil, nil
+}
+
+func (t *testAccountsStore) SaveGoogleState(ctx context.Context, state string, saved auth.GoogleState, now time.Time) error {
+	return nil
+}
+
+func (t *testAccountsStore) TakeGoogleState(ctx context.Context, state string, now time.Time) (auth.GoogleState, error) {
+	return auth.GoogleState{}, nil
+}
+
+func (t *testAccountsStore) GoogleSignin(ctx context.Context, identity auth.GoogleIdentity, audience, newRole string, now time.Time) (string, auth.Session, error) {
+	return "", auth.Session{}, nil
+}
+
+
+func TestEmailSignup(t *testing.T) {
+	store := newTestAccountsStore()
+	sender := &testEmailSender{}
 
 	handlers := Handlers{
 		Accounts: store,
@@ -134,8 +169,7 @@ func TestEmailSignup(t *testing.T) {
 }
 
 func TestEmailVerification(t *testing.T) {
-	client := testClient(t)
-	store := auth.NewStore(client, testDB, testCompanies)
+	store := newTestAccountsStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -183,8 +217,7 @@ func TestEmailVerification(t *testing.T) {
 }
 
 func TestEmailSignin(t *testing.T) {
-	client := testClient(t)
-	store := auth.NewStore(client, testDB, testCompanies)
+	store := newTestAccountsStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -272,8 +305,7 @@ func TestEmailSignin(t *testing.T) {
 }
 
 func TestPasswordReset(t *testing.T) {
-	client := testClient(t)
-	store := auth.NewStore(client, testDB, testCompanies)
+	store := newTestAccountsStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -364,26 +396,3 @@ func TestPasswordReset(t *testing.T) {
 		t.Errorf("status = %v, want %v (new password should work)", w.Code, http.StatusOK)
 	}
 }
-
-func testClient(t *testing.T) *mongo.Client {
-	t.Helper()
-	uri := "mongodb://localhost:27017"
-	client, err := mongo.Connect(options.Client().ApplyURI(uri))
-	if err != nil {
-		t.Fatalf("mongo connect: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := client.Database(testDB).Drop(context.Background()); err != nil {
-			t.Logf("drop test database: %v", err)
-		}
-		if err := client.Disconnect(context.Background()); err != nil {
-			t.Logf("disconnect: %v", err)
-		}
-	})
-	return client
-}
-
-const (
-	testDB        = "test_email_authapi"
-	testCompanies = "test_companies"
-)

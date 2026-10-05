@@ -38,16 +38,18 @@ var hireRewardCents = map[string]int64{
 type RewardTable struct {
 	HoldDays             int              `json:"hold_days"`
 	MinPayout            Money            `json:"min_payout"`
+	ApplyReward          Money            `json:"apply_reward"`
 	InterviewBySeniority map[string]Money `json:"interview_by_seniority"`
 	HireBySeniority      map[string]Money `json:"hire_by_seniority"`
 	ConversionShare      float64          `json:"conversion_share"`
 }
 
-// Rewards returns the reward table.
-func Rewards() RewardTable {
+// Rewards returns the reward table with the given config.
+func Rewards(cfg Config) RewardTable {
 	return RewardTable{
 		HoldDays:             HoldDays,
 		MinPayout:            cents(MinPayoutCents),
+		ApplyReward:          cents(cfg.ApplyRewardCents),
 		InterviewBySeniority: moneyMap(interviewRewardCents),
 		HireBySeniority:      moneyMap(hireRewardCents),
 		ConversionShare:      ConversionShare,

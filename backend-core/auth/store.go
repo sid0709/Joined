@@ -30,6 +30,9 @@ type Store struct {
 	passwordHasher func(password string) ([]byte, []byte, error)
 }
 
+// Ensure Store implements AuthStore
+var _ AuthStore = (*Store)(nil)
+
 func NewStore(client *mongo.Client, db, companies string) *Store {
 	return &Store{
 		client:         client,
