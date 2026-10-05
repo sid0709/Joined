@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // ErrNotScoutJob is returned when a job did not come from a scout submission.
@@ -80,12 +81,71 @@ func (s *Store) insertEarningMongo(ctx context.Context, earning Earning) error {
 	return err
 }
 
-// submissionByJobID finds the submission that produced the given jobID.
+// applyCreditSubmissionFilter is the lookup used by apply crediting.
+func applyCreditSubmissionFilter(jobID string) bson.D {
+	return bson.D{
+		{Key: "jobId", Value: jobID},
+		{Key: "status", Value: StatusApproved},
+	}
+}
+
+// applyCreditSubmissionSort picks the newest approved row: submittedAt desc, then _id desc.
+func applyCreditSubmissionSort() bson.D {
+	return bson.D{
+		{Key: "submittedAt", Value: -1},
+		{Key: "_id", Value: -1},
+	}
+}
+
+// newestApprovedSubmission is the in-memory form of submissionByJobID. Tests and
+// fake storage hooks call this so crediting uses the same approved/newest rule
+// without a live MongoDB.
+func newestApprovedSubmission(jobID string, subs []Submission) (Submission, error) {
+	var best Submission
+	found := false
+	for _, sub := range subs {
+		if sub.JobID != jobID || sub.Status != StatusApproved {
+			continue
+		}
+		if !found || submissionIsNewer(sub, best) {
+			best = sub
+			found = true
+		}
+	}
+	if !found {
+		return Submission{}, ErrNotFound
+	}
+	best.fill()
+	return best, nil
+}
+
+func submissionIsNewer(a, b Submission) bool {
+	aAt := submissionSubmittedAt(a)
+	bAt := submissionSubmittedAt(b)
+	if aAt.After(bAt) {
+		return true
+	}
+	if aAt.Before(bAt) {
+		return false
+	}
+	return a.ObjectID.Hex() > b.ObjectID.Hex()
+}
+
+func submissionSubmittedAt(s Submission) time.Time {
+	if !s.SubmittedAt.IsZero() {
+		return s.SubmittedAt
+	}
+	return s.ObjectID.Timestamp()
+}
+
+// submissionByJobID finds the newest approved submission that produced jobID.
 func (s *Store) submissionByJobID(ctx context.Context, jobID string) (Submission, error) {
 	var sub Submission
-	err := s.collection(submissionsCollection).FindOne(ctx, bson.D{
-		{Key: "jobId", Value: jobID},
-	}).Decode(&sub)
+	err := s.collection(submissionsCollection).FindOne(
+		ctx,
+		applyCreditSubmissionFilter(jobID),
+		options.FindOne().SetSort(applyCreditSubmissionSort()),
+	).Decode(&sub)
 	if err == mongo.ErrNoDocuments {
 		return Submission{}, ErrNotFound
 	}
