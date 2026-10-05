@@ -6,6 +6,11 @@ import (
 	"sync"
 )
 
+const (
+	fakeCheckoutURLPrefix = "https://checkout.stripe.test/c/pay/"
+	fakePortalURLPrefix   = "https://billing.stripe.test/session/"
+)
+
 // FakeClient is an in-memory Stripe client for tests.
 type FakeClient struct {
 	mu                  sync.Mutex
@@ -13,6 +18,10 @@ type FakeClient struct {
 	prices              map[string]*Price
 	lookupKeyIndex      map[string]string
 	idempotencyReplays  map[string]*Price
+	customers           map[string]*Customer
+	customersByUser     map[string]string
+	checkoutSessions    map[string]*CheckoutSession
+	portalSessions      map[string]*PortalSession
 	failNextPriceCreate bool
 	nextID              int
 }
@@ -24,6 +33,10 @@ func NewFakeClient() *FakeClient {
 		prices:             make(map[string]*Price),
 		lookupKeyIndex:     make(map[string]string),
 		idempotencyReplays: make(map[string]*Price),
+		customers:          make(map[string]*Customer),
+		customersByUser:    make(map[string]string),
+		checkoutSessions:   make(map[string]*CheckoutSession),
+		portalSessions:     make(map[string]*PortalSession),
 		nextID:             1,
 	}
 }
@@ -177,4 +190,87 @@ func (f *FakeClient) ListPrices(ctx context.Context, productID string) ([]*Price
 		}
 	}
 	return result, nil
+}
+
+func (f *FakeClient) PriceByLookupKey(ctx context.Context, lookupKey string) (*Price, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if id, ok := f.lookupKeyIndex[lookupKey]; ok {
+		if price, exists := f.prices[id]; exists && price.Active && price.LookupKey == lookupKey {
+			return price, nil
+		}
+	}
+	for _, price := range f.prices {
+		if price.Active && price.LookupKey == lookupKey {
+			return price, nil
+		}
+	}
+	return nil, fmt.Errorf("price not found for lookup key %q", lookupKey)
+}
+
+func (f *FakeClient) CreateCustomer(ctx context.Context, req CreateCustomerRequest) (*Customer, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if req.Metadata != nil {
+		if userID := req.Metadata[metadataUserIDKey]; userID != "" {
+			if id, ok := f.customersByUser[userID]; ok {
+				return f.customers[id], nil
+			}
+		}
+	}
+	id := fmt.Sprintf("cus_%d", f.nextID)
+	f.nextID++
+	customer := &Customer{
+		ID:       id,
+		Email:    req.Email,
+		Metadata: req.Metadata,
+	}
+	f.customers[id] = customer
+	if req.Metadata != nil {
+		if userID := req.Metadata[metadataUserIDKey]; userID != "" {
+			f.customersByUser[userID] = id
+		}
+	}
+	return customer, nil
+}
+
+func (f *FakeClient) CreateCheckoutSession(ctx context.Context, req CreateCheckoutSessionRequest) (*CheckoutSession, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.prices[req.PriceID]; !ok {
+		return nil, fmt.Errorf("price not found: %s", req.PriceID)
+	}
+	if req.CustomerID != "" {
+		if _, ok := f.customers[req.CustomerID]; !ok {
+			return nil, fmt.Errorf("customer not found: %s", req.CustomerID)
+		}
+	}
+	id := fmt.Sprintf("cs_%d", f.nextID)
+	f.nextID++
+	session := &CheckoutSession{
+		ID:             id,
+		URL:            fakeCheckoutURLPrefix + id,
+		CustomerID:     req.CustomerID,
+		ClientRef:      req.ClientReferenceID,
+		Metadata:       req.Metadata,
+		SubscriptionID: fmt.Sprintf("sub_%s", id),
+	}
+	f.checkoutSessions[id] = session
+	return session, nil
+}
+
+func (f *FakeClient) CreateBillingPortalSession(ctx context.Context, req CreatePortalSessionRequest) (*PortalSession, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, ok := f.customers[req.CustomerID]; !ok {
+		return nil, fmt.Errorf("customer not found: %s", req.CustomerID)
+	}
+	id := fmt.Sprintf("bps_%d", f.nextID)
+	f.nextID++
+	session := &PortalSession{
+		ID:  id,
+		URL: fakePortalURLPrefix + id,
+	}
+	f.portalSessions[id] = session
+	return session, nil
 }

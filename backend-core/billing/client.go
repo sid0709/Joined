@@ -11,6 +11,13 @@ import (
 	"strings"
 )
 
+var (
+	_ Client = (*HTTPClient)(nil)
+	_ Client = (*FakeClient)(nil)
+	_ Store  = (*MemoryStore)(nil)
+	_ Store  = (*MongoStore)(nil)
+)
+
 // Client is a thin interface to the Stripe API. Tests use a fake.
 type Client interface {
 	// CreateProduct creates a product with metadata for idempotent sync.
@@ -25,6 +32,60 @@ type Client interface {
 	UpdatePrice(ctx context.Context, id string, req UpdatePriceRequest) (*Price, error)
 	// ListPrices lists prices for a product.
 	ListPrices(ctx context.Context, productID string) ([]*Price, error)
+	// PriceByLookupKey returns the active price for a Stripe lookup key.
+	PriceByLookupKey(ctx context.Context, lookupKey string) (*Price, error)
+	// CreateCustomer creates a Stripe customer with metadata for Joined user mapping.
+	CreateCustomer(ctx context.Context, req CreateCustomerRequest) (*Customer, error)
+	// CreateCheckoutSession starts a Stripe Checkout session for a Premium price.
+	CreateCheckoutSession(ctx context.Context, req CreateCheckoutSessionRequest) (*CheckoutSession, error)
+	// CreateBillingPortalSession starts a Stripe customer-portal session.
+	CreateBillingPortalSession(ctx context.Context, req CreatePortalSessionRequest) (*PortalSession, error)
+}
+
+// Customer is a Stripe customer mapped to a Joined user via metadata.
+type Customer struct {
+	ID       string            `json:"id"`
+	Email    string            `json:"email"`
+	Metadata map[string]string `json:"metadata"`
+}
+
+// CheckoutSession is a Stripe Checkout session.
+type CheckoutSession struct {
+	ID             string            `json:"id"`
+	URL            string            `json:"url"`
+	CustomerID     string            `json:"customer"`
+	SubscriptionID string            `json:"subscription"`
+	ClientRef      string            `json:"client_reference_id"`
+	Metadata       map[string]string `json:"metadata"`
+}
+
+// PortalSession is a Stripe billing-portal session.
+type PortalSession struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
+}
+
+// CreateCustomerRequest creates a Stripe customer.
+type CreateCustomerRequest struct {
+	Email    string            `json:"email"`
+	Metadata map[string]string `json:"metadata"`
+}
+
+// CreateCheckoutSessionRequest starts Checkout for a recurring price.
+type CreateCheckoutSessionRequest struct {
+	CustomerID        string
+	PriceID           string
+	SuccessURL        string
+	CancelURL         string
+	ClientReferenceID string
+	Metadata          map[string]string
+	SubscriptionMeta  map[string]string
+}
+
+// CreatePortalSessionRequest starts the customer portal.
+type CreatePortalSessionRequest struct {
+	CustomerID string
+	ReturnURL  string
 }
 
 // Product is a Stripe product.
@@ -207,6 +268,63 @@ func (c *HTTPClient) ListPrices(ctx context.Context, productID string) ([]*Price
 	return resp.Data, nil
 }
 
+func (c *HTTPClient) PriceByLookupKey(ctx context.Context, lookupKey string) (*Price, error) {
+	path := "/prices?limit=1&active=true&lookup_keys[]=" + url.QueryEscape(lookupKey)
+	var resp struct {
+		Data []*Price `json:"data"`
+	}
+	if err := c.get(ctx, path, &resp); err != nil {
+		return nil, err
+	}
+	if len(resp.Data) == 0 {
+		return nil, fmt.Errorf("price not found for lookup key %q", lookupKey)
+	}
+	return resp.Data[0], nil
+}
+
+func (c *HTTPClient) CreateCustomer(ctx context.Context, req CreateCustomerRequest) (*Customer, error) {
+	body, err := encodeForm(map[string]interface{}{
+		"email":    req.Email,
+		"metadata": req.Metadata,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("encode customer form: %w", err)
+	}
+	idempotencyKey := ""
+	if req.Metadata != nil && req.Metadata[metadataUserIDKey] != "" {
+		idempotencyKey = customerIdempotencyPrefix + req.Metadata[metadataUserIDKey]
+	}
+	var customer Customer
+	if err := c.postWithIdempotency(ctx, "/customers", body, idempotencyKey, &customer); err != nil {
+		return nil, err
+	}
+	return &customer, nil
+}
+
+func (c *HTTPClient) CreateCheckoutSession(ctx context.Context, req CreateCheckoutSessionRequest) (*CheckoutSession, error) {
+	body := strings.NewReader(checkoutForm(req).Encode())
+	var session stripeCheckoutSession
+	if err := c.post(ctx, "/checkout/sessions", body, &session); err != nil {
+		return nil, err
+	}
+	return session.toCheckoutSession(), nil
+}
+
+func (c *HTTPClient) CreateBillingPortalSession(ctx context.Context, req CreatePortalSessionRequest) (*PortalSession, error) {
+	body, err := encodeForm(map[string]interface{}{
+		"customer":   req.CustomerID,
+		"return_url": req.ReturnURL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("encode portal form: %w", err)
+	}
+	var session PortalSession
+	if err := c.post(ctx, "/billing_portal/sessions", body, &session); err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
 func (c *HTTPClient) get(ctx context.Context, path string, result interface{}) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+path, nil)
 	if err != nil {
@@ -255,6 +373,48 @@ func (c *HTTPClient) postWithIdempotency(ctx context.Context, path string, body 
 		return fmt.Errorf("decode response: %w", err)
 	}
 	return nil
+}
+
+type stripeCheckoutSession struct {
+	ID                 string            `json:"id"`
+	URL                string            `json:"url"`
+	Customer           string            `json:"customer"`
+	Subscription       string            `json:"subscription"`
+	ClientReferenceID  string            `json:"client_reference_id"`
+	Metadata           map[string]string `json:"metadata"`
+}
+
+func (s stripeCheckoutSession) toCheckoutSession() *CheckoutSession {
+	return &CheckoutSession{
+		ID:             s.ID,
+		URL:            s.URL,
+		CustomerID:     s.Customer,
+		SubscriptionID: s.Subscription,
+		ClientRef:      s.ClientReferenceID,
+		Metadata:       s.Metadata,
+	}
+}
+
+func checkoutForm(req CreateCheckoutSessionRequest) url.Values {
+	values := url.Values{}
+	values.Set("mode", checkoutModeSubscription)
+	values.Set("success_url", req.SuccessURL)
+	values.Set("cancel_url", req.CancelURL)
+	if req.CustomerID != "" {
+		values.Set("customer", req.CustomerID)
+	}
+	if req.ClientReferenceID != "" {
+		values.Set("client_reference_id", req.ClientReferenceID)
+	}
+	values.Set("line_items[0][price]", req.PriceID)
+	values.Set("line_items[0][quantity]", strconv.Itoa(checkoutLineQuantity))
+	for key, value := range req.Metadata {
+		values.Set(fmt.Sprintf("metadata[%s]", key), value)
+	}
+	for key, value := range req.SubscriptionMeta {
+		values.Set(fmt.Sprintf("subscription_data[metadata][%s]", key), value)
+	}
+	return values
 }
 
 func encodeForm(data map[string]interface{}) (io.Reader, error) {

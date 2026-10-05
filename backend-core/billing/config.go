@@ -29,6 +29,13 @@ type Config struct {
 	PremiumMonthlyPriceCents int
 	// PremiumYearlyPriceCents is the yearly Premium subscription price in cents.
 	PremiumYearlyPriceCents int
+
+	// CheckoutSuccessURL is the default Stripe Checkout success redirect.
+	CheckoutSuccessURL string
+	// CheckoutCancelURL is the default Stripe Checkout cancel redirect.
+	CheckoutCancelURL string
+	// PortalReturnURL is the default customer-portal return redirect.
+	PortalReturnURL string
 }
 
 // LoadConfig reads billing settings from the environment.
@@ -40,6 +47,9 @@ func LoadConfig() (Config, error) {
 		AllowLive:                envBool("STRIPE_ALLOW_LIVE", false),
 		PremiumMonthlyPriceCents: config.EnvInt("PREMIUM_MONTHLY_PRICE_CENTS", defaultPremiumMonthlyPriceCents),
 		PremiumYearlyPriceCents:  config.EnvInt("PREMIUM_YEARLY_PRICE_CENTS", defaultPremiumYearlyPriceCents),
+		CheckoutSuccessURL:       config.Env("BILLING_CHECKOUT_SUCCESS_URL", ""),
+		CheckoutCancelURL:        config.Env("BILLING_CHECKOUT_CANCEL_URL", ""),
+		PortalReturnURL:          config.Env("BILLING_PORTAL_RETURN_URL", ""),
 	}
 	if cfg.SecretKey == "" {
 		return Config{}, fmt.Errorf("STRIPE_SECRET_KEY is required")
