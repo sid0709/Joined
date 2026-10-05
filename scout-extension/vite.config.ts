@@ -14,7 +14,7 @@ import {
   PRODUCTION_WEB_ORIGIN,
   resolveHost,
   uniqueHostPermissions,
-} from "./src/api/hosts";
+} from "./src/api/hosts.ts";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
