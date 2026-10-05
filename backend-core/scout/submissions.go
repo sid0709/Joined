@@ -58,10 +58,16 @@ func (s *Store) Quota(ctx context.Context, userID string) (Quota, error) {
 
 func (s *Store) quotaFor(ctx context.Context, userID, level string) (Quota, error) {
 	dayStart := startOfDay(s.now())
-	used, err := s.collection(submissionsCollection).CountDocuments(ctx, bson.D{
-		{Key: "scoutUserId", Value: userID},
-		{Key: "submittedAt", Value: bson.D{{Key: "$gte", Value: dayStart}}},
-	})
+	var used int64
+	var err error
+	if s.docs != nil {
+		used, err = s.docs.countSubmissionsSince(ctx, userID, dayStart)
+	} else {
+		used, err = s.collection(submissionsCollection).CountDocuments(ctx, bson.D{
+			{Key: "scoutUserId", Value: userID},
+			{Key: "submittedAt", Value: bson.D{{Key: "$gte", Value: dayStart}}},
+		})
+	}
 	if err != nil {
 		return Quota{}, err
 	}
@@ -96,12 +102,22 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 			return Submission{}, err
 		}
 	}
-	matches, err := s.FindMatches(ctx, MatchQuery{
-		URL:         normalized.URL,
-		CompanyID:   normalized.CompanyID,
-		CompanyName: normalized.CompanyName,
-		Title:       normalized.Title,
-	}, bson.ObjectID{})
+	var matches []Match
+	if s.docs != nil {
+		matches, err = s.docs.matches(ctx, MatchQuery{
+			URL:         normalized.URL,
+			CompanyID:   normalized.CompanyID,
+			CompanyName: normalized.CompanyName,
+			Title:       normalized.Title,
+		}, bson.ObjectID{})
+	} else {
+		matches, err = s.FindMatches(ctx, MatchQuery{
+			URL:         normalized.URL,
+			CompanyID:   normalized.CompanyID,
+			CompanyName: normalized.CompanyName,
+			Title:       normalized.Title,
+		}, bson.ObjectID{})
+	}
 	if err != nil {
 		return Submission{}, err
 	}
@@ -166,6 +182,33 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 	return sub, nil
 }
 
+// SubmitFromExtension accepts a captured job from the Scout extension and
+// stores it through Submit (same scout_submissions collection).
+func (s *Store) SubmitFromExtension(ctx context.Context, actor Actor, input ExtensionSubmissionInput) (Submission, error) {
+	normalized, err := NormalizeExtensionInput(input)
+	if err != nil {
+		return Submission{}, err
+	}
+	return s.Submit(ctx, actor, extensionToSubmission(normalized))
+}
+
+// extensionToSubmission maps the captured-job shape onto the existing
+// submission input. The extension does not collect pay, workplace, or
+// employment; those use documented defaults so Submit stays the one path.
+func extensionToSubmission(in ExtensionSubmissionInput) SubmissionInput {
+	return SubmissionInput{
+		URL:               in.ApplyURL,
+		CompanyName:       in.Company,
+		Title:             in.Title,
+		LocationText:      in.Location,
+		Summary:           in.Description,
+		Workplace:         WorkplaceRemote,
+		Employment:        EmploymentFullTime,
+		Equity:            true,
+		NotDuplicateClaim: true,
+	}
+}
+
 func stagedListing(sub Submission) jobs.ScoutedListing {
 	return jobs.ScoutedListing{
 		SubmissionID: sub.ID,
@@ -189,6 +232,9 @@ func stagedListing(sub Submission) jobs.ScoutedListing {
 // insertSubmission leaves externalRef out when empty so the unique index only
 // covers refs that were actually sent.
 func (s *Store) insertSubmission(ctx context.Context, sub Submission) (*mongo.InsertOneResult, error) {
+	if s.docs != nil {
+		return &mongo.InsertOneResult{}, s.docs.insertSubmission(ctx, sub)
+	}
 	raw, err := bson.Marshal(sub)
 	if err != nil {
 		return nil, err
@@ -347,6 +393,9 @@ func (s *Store) submission(ctx context.Context, id string) (Submission, error) {
 }
 
 func (s *Store) byExternalRef(ctx context.Context, userID, ref string) (Submission, error) {
+	if s.docs != nil {
+		return s.docs.submissionByExternalRef(ctx, userID, ref)
+	}
 	var sub Submission
 	err := s.collection(submissionsCollection).FindOne(ctx, bson.D{
 		{Key: "scoutUserId", Value: userID},

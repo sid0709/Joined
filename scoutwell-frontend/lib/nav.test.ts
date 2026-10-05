@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { activeHref, navItems } from "./nav";
+import { activeHref, MARKETING_PAGES, navItems } from "./nav";
 
 describe("nav", () => {
   test("a detail page keeps its list page active", () => {
@@ -28,5 +28,17 @@ describe("nav", () => {
 
   test("every pill page is active on its own path", () => {
     for (const item of navItems(0, 0)) expect(activeHref(item.href)).toBe(item.href);
+  });
+
+  test("the public nav lists how it works, earn, install, and faq", () => {
+    expect(MARKETING_PAGES.map((page) => page.href)).toEqual([
+      "/how-it-works",
+      "/earn",
+      "/install",
+      "/faq",
+    ]);
+    for (const page of MARKETING_PAGES) {
+      expect(activeHref(page.href, MARKETING_PAGES)).toBe(page.href);
+    }
   });
 });

@@ -39,11 +39,13 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/scout/stats", s.scoutStats)
 	mux.HandleFunc("POST /v1/scout/submissions", s.scoutSubmit)
 	mux.HandleFunc("POST /v1/scout/submissions/batch", s.scoutSubmitBatch)
+	mux.HandleFunc("POST /v1/scout/submissions/extension", s.scoutSubmitExtension)
 	mux.HandleFunc("POST /v1/scout/submissions/precheck", s.scoutPrecheck)
 	mux.HandleFunc("POST /v1/scout/submissions/matches", s.scoutMatches)
 	mux.HandleFunc("GET /v1/scout/submissions", s.scoutListSubmissions)
 	mux.HandleFunc("GET /v1/scout/submissions/{id}", s.scoutGetSubmission)
 	mux.HandleFunc("GET /v1/scout/earnings", s.scoutEarnings)
+	mux.HandleFunc("GET /v1/scout/earnings/summary", s.scoutEarningsSummary)
 	mux.HandleFunc("GET /v1/scout/payouts", s.scoutPayouts)
 	mux.HandleFunc("POST /v1/scout/payouts", s.scoutRequestPayout)
 	mux.HandleFunc("GET /v1/scout/notifications", s.scoutNotifications)
@@ -53,12 +55,32 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /v1/scout/api-keys/{id}", s.scoutRevokeKey)
 }
 
-// scoutActor resolves the bearer token to a scout: a web session, or an API
-// key when the endpoint allows keys.
+// sessionToken is the scout session: Authorization Bearer first, then the
+// Scoutwell session cookie (step-02 / extension sign-in).
+func (s *Server) sessionToken(r *http.Request) string {
+	if token := httpkit.BearerToken(r); token != "" {
+		return token
+	}
+	name := s.cookie
+	if name == "" {
+		name = SessionCookie
+	}
+	if cookie, err := r.Cookie(name); err == nil {
+		return strings.TrimSpace(cookie.Value)
+	}
+	return ""
+}
+
+// scoutActor resolves the session to a scout: a web session (cookie or bearer),
+// or an API key when the endpoint allows keys.
 func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bool) (scout.Actor, bool) {
-	token := httpkit.BearerToken(r)
+	token := s.sessionToken(r)
 	if token == "" {
-		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Send Authorization: Bearer <session token or API key>."))
+		detail := "Send a scout session cookie or Authorization: Bearer <session token>."
+		if allowKeys {
+			detail = "Send a scout session cookie or Authorization: Bearer <session token or API key>."
+		}
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", detail))
 		return scout.Actor{}, false
 	}
 	if scout.IsAPIKey(token) {
@@ -73,7 +95,11 @@ func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bo
 		}
 		return actor, true
 	}
-	userID, err := s.auth.SessionUserID(r.Context(), token, time.Now())
+	if s.sessions == nil {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Session expired or invalid; sign in again."))
+		return scout.Actor{}, false
+	}
+	userID, err := s.sessions.SessionUserID(r.Context(), token, time.Now())
 	if errors.Is(err, auth.ErrInvalidLogin) {
 		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusUnauthorized, "unauthorized", "Session expired or invalid; sign in again."))
 		return scout.Actor{}, false
@@ -86,7 +112,11 @@ func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bo
 }
 
 func (s *Server) scoutMeta(w http.ResponseWriter, r *http.Request) {
-	httpkit.WriteJSON(w, http.StatusOK, scout.Rulebook())
+	meta := scout.Rulebook()
+	if s.scouts != nil {
+		meta = s.scouts.Rulebook()
+	}
+	httpkit.WriteJSON(w, http.StatusOK, meta)
 }
 
 func (s *Server) scoutMe(w http.ResponseWriter, r *http.Request) {
@@ -293,6 +323,48 @@ func (s *Server) scoutSubmitBatch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+const maxExtensionBody = 64 << 10
+
+func (s *Server) scoutSubmitExtension(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.scoutActor(w, r, sessionOnly)
+	if !ok {
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get(httpkit.IdempotencyHeader))
+	if key == "" {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key header is required."))
+		return
+	}
+	if !scout.ValidIdempotencyKey(key) {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key must be 1 to 255 characters."))
+		return
+	}
+	body, ok := httpkit.ReadBody(w, r, maxExtensionBody)
+	if !ok {
+		return
+	}
+	s.idempotent(w, r, actor, body, func() (int, any) {
+		var input scout.ExtensionSubmissionInput
+		if err := json.NewDecoder(bytes.NewReader(body)).Decode(&input); err != nil {
+			return http.StatusBadRequest, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON.")
+		}
+		sub, err := s.scouts.SubmitFromExtension(r.Context(), actor, input)
+		if err != nil {
+			var quota *scout.QuotaError
+			if errors.As(err, &quota) {
+				httpkit.SetQuotaHeaders(w, quota.Quota)
+			}
+			p := httpkit.ScoutProblem(err)
+			return p.Status, p
+		}
+		if quota, err := s.scouts.Quota(r.Context(), actor.UserID); err == nil {
+			httpkit.SetQuotaHeaders(w, quota)
+		}
+		w.Header().Set("Location", "/v1/scout/submissions/"+sub.ID)
+		return http.StatusCreated, map[string]any{"submission": sub}
+	})
+}
+
 func (s *Server) scoutPrecheck(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.scoutActor(w, r, sessionOrKey); !ok {
 		return
@@ -388,6 +460,19 @@ func (s *Server) scoutEarnings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusOK, list)
+}
+
+func (s *Server) scoutEarningsSummary(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.scoutActor(w, r, sessionOrKey)
+	if !ok {
+		return
+	}
+	summary, err := s.scouts.EarningsSummary(r.Context(), actor.UserID)
+	if err != nil {
+		httpkit.WriteScoutError(w, err)
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, summary)
 }
 
 func (s *Server) scoutPayouts(w http.ResponseWriter, r *http.Request) {

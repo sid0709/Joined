@@ -37,6 +37,8 @@ type Options struct {
 	Google *google.Client
 	// GoogleRedirectURL is joined-frontend's Google sign-in callback page.
 	GoogleRedirectURL string
+	// EmailSender delivers transactional email.
+	EmailSender auth.EmailSender
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -62,6 +64,9 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 			Roles:       []string{auth.RoleCandidate, auth.RoleEmployee},
 			Scopes:      []string{google.ScopeCalendarEvents},
 			Granted:     server.attachCalendar,
+		},
+		Email: &authapi.EmailAuth{
+			Sender: emailSenderOrDev(opts.EmailSender),
 		},
 	}
 	mux := http.NewServeMux()
@@ -104,6 +109,13 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
 	server.registerEmployer(mux)
 	return httpkit.CORS(opts.Origins, mux)
+}
+
+func emailSenderOrDev(sender auth.EmailSender) auth.EmailSender {
+	if sender == nil {
+		return auth.DevEmailSender{}
+	}
+	return sender
 }
 
 // attachCalendar keeps the calendar a job hunter granted while signing in with

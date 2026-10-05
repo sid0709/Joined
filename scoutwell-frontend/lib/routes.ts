@@ -1,5 +1,10 @@
 export const ROUTES = {
   home: "/",
+  howItWorks: "/how-it-works",
+  earn: "/earn",
+  install: "/install",
+  faq: "/faq",
+  extension: "/extension",
   signIn: "/sign-in",
   signUp: "/sign-up",
   onboarding: "/onboarding",
@@ -88,4 +93,44 @@ export const DEVELOPERS_PAGE: PageLink = {
   href: ROUTES.developers,
   label: "API access",
   description: "Keys and docs for submitting jobs from your own systems.",
+};
+
+export const HOME_PAGE: PageLink = {
+  href: ROUTES.home,
+  label: "Scout",
+  description:
+    "Find official jobs the big boards miss. Earn when hunters apply, interview, and get hired.",
+};
+
+export const HOW_IT_WORKS_PAGE: PageLink = {
+  href: ROUTES.howItWorks,
+  label: "How it works",
+  description: "Install Scout, submit an official opening, and earn when candidates use it.",
+};
+
+export const EARN_PAGE: PageLink = {
+  href: ROUTES.earn,
+  label: "Earn",
+  description:
+    "Scouts earn a share of applies, plus more when interviews and hires land on their jobs.",
+};
+
+export const INSTALL_PAGE: PageLink = {
+  href: ROUTES.install,
+  label: "Install",
+  description:
+    "Add the Scout browser extension and start capturing official openings as you browse.",
+};
+
+export const FAQ_PAGE: PageLink = {
+  href: ROUTES.faq,
+  label: "FAQ",
+  description:
+    "What Scout is, how pay works, how to install the extension, and how to sign in from it.",
+};
+
+export const EXTENSION_PAGE: PageLink = {
+  href: ROUTES.extension,
+  label: "Extension sign-in",
+  description: "Sign in so the Scout extension can use your account.",
 };

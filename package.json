@@ -13,6 +13,7 @@
       "acorn/extension",
       "acorn/packages/*",
       "acorn/demo",
+      "acorn/website",
       "plugins/crawler",
       "scout-extension"
     ],
@@ -20,6 +21,7 @@
       "@astryxdesign/cli": "0.6.3",
       "@astryxdesign/core": "0.6.3",
       "@astryxdesign/theme-neutral": "0.6.3",
+      "@playwright/test": "1.63.0",
       "@commitlint/cli": "21.2.3",
       "@commitlint/config-conventional": "21.2.3",
       "@crxjs/vite-plugin": "2.7.1",
@@ -113,6 +115,7 @@
     "commitlint": "commitlint"
   },
   "devDependencies": {
+    "@playwright/test": "catalog:",
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@types/bun": "catalog:",

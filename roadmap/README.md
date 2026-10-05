@@ -13,8 +13,22 @@ If this folder and Notion disagree, Notion wins. Fix the step file to match.
 - Each step file states its goal, in-scope files and areas, out-of-scope items, acceptance criteria, and target branch.
 - Target branch for every step is `stage-roadmap`. Nothing here merges to `main`.
 - No backend changes unless the step explicitly requires them for that feature.
-- Implementation order is owned by the Jack / @Claude loop in Slack `#sid-development`. Jack posts one step path at a time and Claude opens one PR into `stage-roadmap` for that step only.
-- Elon (engineering) reviews each step PR lightly and merges it into `stage-roadmap`. The next step starts only when Sid says so.
+- Elon (engineering manager) assigns each step to one specialist. Specialists work in parallel, each only in its own folders, and open one small PR into `stage-roadmap` per step.
+- Quinn reviews each PR, Elon does a light review and merges it into `stage-roadmap`. Nothing merges to `main`.
+- Jack posts progress in Slack `#sid-development`; Sid coordinates with the user.
+
+## Team and file ownership
+
+| Specialist                     | Owns (only these paths)                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Maya, Scout extension          | `scout-extension/**`                                                                                                                                                     |
+| Leo, web frontends             | `joined-frontend/**`, `scoutwell-frontend/**`, `admin-frontend/**`, `connected-frontend/**`, `joined-theme/**`, `packages/design-system/**`, `packages/google-signin/**` |
+| Ravi, platform backend         | `joined-backend/**`, `admin-backend/**`, `backend-core/**` except `scout/` and `billing/`, `packages/job-schema/**`                                                      |
+| Penny, money and Scout backend | `backend-core/scout/**`, `backend-core/billing/**`, `scoutwell-backend/**`, `packages/scout/**`                                                                          |
+| Quinn, QA and review           | `tests/**`, `.github/workflows/**`                                                                                                                                       |
+| Elon, integrator               | root files, `bun.lock`, `go.work`, `deploy/**`, `docker/**`, `tools/**`, `roadmap/**`, `acorn/**`                                                                        |
+
+A step that needs a file outside its owner's paths is split, or Elon coordinates the other owner. Live keys, real email, and production data stay off unless the user approves that exact change.
 
 ## Weekly buckets
 
@@ -22,11 +36,18 @@ If this folder and Notion disagree, Notion wins. Fix the step file to match.
 
 Areas: email sign-up and log-in, hide company/recruiter mode for launch, role checks per app, email sending, error logging, basic analytics, Stripe account and products, **Scout extension built from scratch**, Scout share-of-applies earnings backend, server-side job search.
 
-| Step                                           | Slice                                                    | Status |
-| ---------------------------------------------- | -------------------------------------------------------- | ------ |
-| [step-01](step-01-scout-extension-scaffold.md) | Scout extension scaffold (shell, manifest, entry points) | Ready  |
+| Step                                                  | Slice                                   | Owner | Status                         |
+| ----------------------------------------------------- | --------------------------------------- | ----- | ------------------------------ |
+| [step-01](step-01-scout-extension-scaffold.md)        | Scout extension scaffold                | Maya  | Merged (PR #63)                |
+| [step-02](step-02-scout-extension-signin.md)          | Scout extension sign-in state           | Maya  | In progress                    |
+| [step-03](step-03-email-auth-backend.md)              | Email sign-up and log-in backend        | Ravi  | In progress                    |
+| [step-04](step-04-hide-recruiter-mode.md)             | Hide company/recruiter mode for launch  | Leo   | In progress                    |
+| [step-05](step-05-scout-share-of-applies-earnings.md) | Scout share-of-applies earnings backend | Penny | In progress                    |
+| [step-06](step-06-ci-for-stage-roadmap.md)            | CI for PRs into stage-roadmap           | Quinn | In progress                    |
+| [step-07](step-07-server-side-job-search.md)          | Server-side job search                  | Ravi  | In progress (parallel with 03) |
+| [step-08](step-08-stripe-products-test-mode.md)       | Stripe products in test mode            | Penny | In progress (parallel with 05) |
 
-More W1 steps are added after step-01 merges and Sid approves the next one.
+Planned next in W1: role checks per app (Ravi), email sign-up and log-in screens (Leo), email sending provider and error logging (Ravi), analytics events (Ravi + Leo), Scout extension job capture and ATS detect (Maya).
 
 ### W2: Oct 12 to 18. Scout complete, Premium billing, job quality
 

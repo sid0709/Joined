@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/google"
@@ -46,6 +47,8 @@ func main() {
 	googleConfig := config.LoadGoogle()
 	handler := httpapi.New(p.Jobs, p.Accounts, p.Scouts, httpapi.Options{
 		Origins:           server.Origins,
+		ExtensionOrigins:  originsFromEnv("EXTENSION_ORIGINS"),
+		SessionCookie:     config.Env("SCOUTWELL_SESSION_COOKIE", httpapi.SessionCookie),
 		Google:            &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret},
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 	})
@@ -53,4 +56,16 @@ func main() {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}
+}
+
+func originsFromEnv(key string) []string {
+	parts := strings.Split(config.Env(key, ""), ",")
+	origins := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			origins = append(origins, part)
+		}
+	}
+	return origins
 }

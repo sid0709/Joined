@@ -83,6 +83,7 @@ const (
 	EarningClawedBack = "clawed_back"
 
 	RewardApproval   = "approval"
+	RewardApply      = "apply"
 	RewardInterview  = "interview"
 	RewardHire       = "hire"
 	RewardConversion = "conversion"
@@ -178,6 +179,16 @@ type SubmissionInput struct {
 	Summary           string `json:"summary"`
 	NotDuplicateClaim bool   `json:"not_duplicate_claim"`
 	ExternalRef       string `json:"external_ref"`
+}
+
+// ExtensionSubmissionInput is what the Scout extension sends (step-13 captured job shape).
+type ExtensionSubmissionInput struct {
+	Title       string `json:"title"`
+	Company     string `json:"company"`
+	Location    string `json:"location"`
+	ApplyURL    string `json:"apply_url"`
+	Description string `json:"description"`
+	Board       string `json:"board"`
 }
 
 // Submission is a scout's job link and everything the pipeline learned about it.
@@ -280,6 +291,8 @@ type Earning struct {
 	ID           string        `json:"id" bson:"-"`
 	ScoutUserID  string        `json:"scout_user_id" bson:"scoutUserId"`
 	SubmissionID string        `json:"submission_id,omitempty" bson:"submissionId,omitempty"`
+	JobID        string        `json:"job_id,omitempty" bson:"jobId,omitempty"`
+	CandidateID  string        `json:"candidate_id,omitempty" bson:"candidateId,omitempty"`
 	JobTitle     string        `json:"job_title,omitempty" bson:"jobTitle,omitempty"`
 	CompanyName  string        `json:"company_name,omitempty" bson:"companyName,omitempty"`
 	Type         string        `json:"type" bson:"type"`

@@ -62,7 +62,7 @@ func (s *Store) notifyDecision(ctx context.Context, sub Submission, status, reas
 	}
 }
 
-func (s *Store) notifyReward(ctx context.Context, userID string, earning Earning) {
+func (s *Store) notifyRewardImpl(ctx context.Context, userID string, earning Earning) {
 	body := formatMoney(earning.Amount) + " for " + earning.JobTitle
 	if earning.Status == EarningHeld {
 		body += ", held until " + earning.HoldUntil.Format("Jan 2")
@@ -74,6 +74,8 @@ func rewardTitle(kind string) string {
 	switch kind {
 	case RewardApproval:
 		return "Approval reward"
+	case RewardApply:
+		return "Apply reward"
 	case RewardInterview:
 		return "Interview reward"
 	case RewardHire:

@@ -2,10 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import { Button, TopNavItem } from "@joined/design-system";
+import { isCompanyModeEnabled } from "@/lib/config";
 import { HIRING_SIGN_UP_HREF, ROUTES, signInHref } from "@/lib/routes";
 
 /** The employer door for signed-out visitors. On phones it lives in the nav drawer instead. */
 export function ForEmployersNavItem() {
+  if (!isCompanyModeEnabled()) return null;
   return <TopNavItem label="For employers" href={HIRING_SIGN_UP_HREF} />;
 }
 
@@ -15,9 +17,10 @@ export function ForEmployersNavItem() {
  */
 export function GuestActions({ isCompact }: { isCompact: boolean }) {
   const pathname = usePathname();
+  const companyModeEnabled = isCompanyModeEnabled();
   return (
     <>
-      {isCompact ? null : <ForEmployersNavItem />}
+      {isCompact || !companyModeEnabled ? null : <ForEmployersNavItem />}
       <Button label="Sign in" variant="secondary" size="md" href={signInHref(pathname)} />
       <Button
         label={isCompact ? "Sign up" : "Create account"}
