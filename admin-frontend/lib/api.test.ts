@@ -16,13 +16,21 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 function answer(status: number, body: unknown) {
-  const fetchMock = mock(() => Promise.resolve(jsonResponse(status, body)));
+  const fetchMock = mock((input: RequestInfo | URL, init?: RequestInit) => {
+    void input;
+    void init;
+    return Promise.resolve(jsonResponse(status, body));
+  });
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
 }
 
 function answerRaw(status: number, body: string) {
-  const fetchMock = mock(() => Promise.resolve(new Response(body, { status })));
+  const fetchMock = mock((input: RequestInfo | URL, init?: RequestInit) => {
+    void input;
+    void init;
+    return Promise.resolve(new Response(body, { status }));
+  });
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   return fetchMock;
 }
