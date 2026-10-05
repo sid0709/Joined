@@ -7,7 +7,11 @@
     "dev": "vite build --watch --mode development",
     "build": "tsc && vite build",
     "typecheck": "tsc",
-    "test": "bun test"
+    "lint": "eslint scripts src/packaging/checkManifest.ts src/api/hosts.ts src/api/config.ts vite.config.ts --max-warnings=0",
+    "lint:fix": "eslint scripts src/packaging/checkManifest.ts src/api/hosts.ts src/api/config.ts vite.config.ts --fix --max-warnings=0",
+    "test": "bun test",
+    "check:package": "bun scripts/check-package.ts",
+    "package": "bun run build && bun run check:package && bun scripts/zip-release.ts"
   },
   "dependencies": {
     "@joined/design-system": "workspace:*",
