@@ -3,6 +3,7 @@
   "name": "Scout",
   "description": "Scout browser extension",
   "permissions": ["activeTab", "storage", "sidePanel"],
+  "host_permissions": ["http://127.0.0.1:8082/*", "http://localhost:8082/*"],
   "side_panel": {
     "default_path": "popup.html"
   },
