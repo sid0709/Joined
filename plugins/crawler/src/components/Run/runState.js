@@ -20,11 +20,11 @@ export function runStepIndex(phase) {
 
 /** How a job (or a run outcome) reads in the panel: label, Badge variant, SegmentBar tone. */
 export const JOB_STATUS = {
-  queued: { label: "Queued", badge: "neutral" },
+  queued: { label: "Queued", badge: "cyan" },
   [SCRAPE_OUTCOMES.REGISTERED]: { label: "Saved", badge: "success", tone: "green" },
-  [SCRAPE_OUTCOMES.DUPLICATE]: { label: "Duplicate", badge: "info", tone: "blue" },
-  [SCRAPE_OUTCOMES.BLOCKED]: { label: "Blocked", badge: "warning", tone: "neutral" },
-  [SCRAPE_OUTCOMES.VALIDATION]: { label: "Incomplete", badge: "orange", tone: "orange" },
+  [SCRAPE_OUTCOMES.DUPLICATE]: { label: "Duplicate", badge: "blue", tone: "blue" },
+  [SCRAPE_OUTCOMES.BLOCKED]: { label: "Blocked", badge: "orange", tone: "orange" },
+  [SCRAPE_OUTCOMES.VALIDATION]: { label: "Incomplete", badge: "neutral", tone: "neutral" },
   [SCRAPE_OUTCOMES.FAILED]: { label: "Failed", badge: "error", tone: "red" },
 };
 

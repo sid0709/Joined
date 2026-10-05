@@ -7,6 +7,7 @@ import {
   EmptyState,
   Glyph,
   HStack,
+  IconButton,
   NumberInput,
   Selector,
   Switch,
@@ -169,12 +170,13 @@ export default function Inspector() {
               isDisabled={!selector || !selectorIsValid}
               width="100%"
             />
-            <Button
+            <IconButton
               variant="ghost"
-              label="Clear"
+              label="Clear highlights"
+              tooltip="Clear highlights"
               icon={<Glyph name="close" />}
               onClick={() => runOp({ op: "clear" })}
-              width="100%"
+              className="crawler-fixed"
             />
           </HStack>
         </VStack>
@@ -212,7 +214,7 @@ export default function Inspector() {
             <TextInput
               label="Inside"
               isOptional
-              placeholder="span"
+              placeholder="e.g. span"
               value={draft.inner}
               onChange={(value) => update({ inner: value })}
               width="100%"
@@ -267,7 +269,7 @@ export default function Inspector() {
           <VStack gap={2}>
             <Text weight="semibold">Routine code</Text>
             <Text type="supporting" color="secondary">
-              Paste into a routine&apos;s <Code>fields</Code>.
+              Paste into a routine&apos;s <Code size="inherit">fields</Code>.
             </Text>
             <CodeBlock
               code={draftToSnippet(draft)}

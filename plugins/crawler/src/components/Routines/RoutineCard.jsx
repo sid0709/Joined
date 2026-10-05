@@ -43,7 +43,9 @@ function FieldRow({ path, field }) {
         </HStack>
       </HStack>
       <Text type="supporting" color="secondary" maxLines={1} hasTruncateTooltip>
-        <Code color="secondary">{describeSelector(field.selector)}</Code>
+        <Code color="secondary" size="inherit">
+          {describeSelector(field.selector)}
+        </Code>
       </Text>
     </li>
   );

@@ -9,6 +9,9 @@ import Inspector from "./Inspector";
 import RoutineLibrary from "./Routines";
 import RunPanel from "./Run";
 
+/** The one tab panel; each tab swaps what it shows. */
+const PANEL_ID = "crawler-panel";
+
 const TABS = {
   run: { label: "Run", icon: "play" },
   routines: { label: "Routines", icon: "list" },
@@ -57,14 +60,27 @@ export default function LayoutPage() {
       <div className="crawler-top">
         <Header />
         <nav className="crawler-tabs">
-          <TabList value={tab} onChange={setTab} layout="fill" size="sm" aria-label="Panels">
+          <TabList
+            value={tab}
+            onChange={setTab}
+            layout="fill"
+            size="sm"
+            role="tablist"
+            aria-label="Panels"
+          >
             {Object.entries(TABS).map(([value, { label, icon }]) => (
-              <Tab key={value} value={value} label={label} icon={<Glyph name={icon} />} />
+              <Tab
+                key={value}
+                value={value}
+                label={label}
+                icon={<Glyph name={icon} />}
+                panelId={PANEL_ID}
+              />
             ))}
           </TabList>
         </nav>
       </div>
-      <main className="crawler-main" aria-label={TABS[tab].label}>
+      <main id={PANEL_ID} className="crawler-main" role="tabpanel" aria-label={TABS[tab].label}>
         {tab === "run" ? <RunPanel onBrowseRoutines={() => setTab("routines")} /> : null}
         {tab === "routines" ? <RoutineLibrary /> : null}
         {tab === "inspector" ? <Inspector /> : null}

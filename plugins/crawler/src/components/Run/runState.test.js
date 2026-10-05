@@ -72,8 +72,8 @@ describe("run state", () => {
     expect(outcomeSegments(stats)).toEqual([
       { label: "Saved", value: 1, tone: "green" },
       { label: "Duplicate", value: 0, tone: "blue" },
-      { label: "Blocked", value: 0, tone: "neutral" },
-      { label: "Incomplete", value: 0, tone: "orange" },
+      { label: "Blocked", value: 0, tone: "orange" },
+      { label: "Incomplete", value: 0, tone: "neutral" },
       { label: "Failed", value: 0, tone: "red" },
     ]);
     expect(outcomeSegments({})[0].value).toBe(0);

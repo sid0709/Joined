@@ -4,10 +4,10 @@ This is the browser extension for the AIMS (Automated intelligent-sourcing for j
 
 ## Features
 
-- **Sidebar UI:** Provides a user interface within a side panel in the browser.
-- **Element Highlighting:** Highlights elements on the web page based on user-defined patterns.
-- **Action Execution:** Executes actions such as 'click', 'fill', and 'type' on web page elements.
-- **Real-time Communication:** Communicates with the AIMS backend in real-time using Socket.io.
+- **Routines:** each supported site is a routine module in `src/routines/`: plain data that says which pages it runs on, how to move through the site, and which fields to read. The crawler runs whichever routine matches the focused tab.
+- **Run tab:** shows the routine for the focused tab, then runs it: the current phase and step, every field's state and hit rate, the results by outcome, and the latest jobs.
+- **Routines tab:** every routine the crawler knows, with its sites, fields, and steps.
+- **Inspector tab:** try a CSS selector on the focused page (live match count, highlight, click), read a field, and copy it as routine code.
 
 ## Technologies Used
 
@@ -40,30 +40,36 @@ The side panel follows the system light/dark setting until you pick one with the
 
 ## Project Structure
 
-The project structure is as follows:
-
 - **dist/**: The built extension (not committed).
 - **public/**: Contains the public assets of the extension.
 - **src/**: Contains the source code of the extension.
-  - **api/**: The REST API, backend health, runtime messaging, and notification hooks.
-  - **components/**: The side panel: the header and tabs (`layout.jsx`), the Scrap panel (`Scrapper/Scrap/`), and the Tracker.
+  - **routines/**: One module per site (`JobRightRoutine.js`) and the registry (`index.js`).
+  - **routineKit/**: The toolkit routines are written with: field and step builders, strategies, transforms, the runner, and the page-side extractor.
+  - **api/**: Runtime messaging, the focused tab, backend health, job validation, and notifications.
+  - **components/**: The side panel: the header and tabs (`layout.jsx`), `Run/`, `Routines/`, and `Inspector/`.
   - **theme/colorMode.jsx**: The light/dark mode and the Joined theme provider.
   - **styles/crawler.css**: Side panel layout on top of the Joined tokens.
-  - **App.jsx**: The main component of the extension's UI.
-  - **main.jsx**: The entry point of the extension's UI.
   - **background.js**: The service worker's startup wiring; its modules live in `background/`.
-  - **contentScript/**: The content script: `index.js` is the entry, `messageHandler.js` routes messages to `messages/`, and `actionExecutor.js` runs actions from `actions/`.
+  - **contentScript/**: The content script: `index.js` is the entry, `messageHandler.js` routes messages, and `messages/routineOps.js` runs routine ops on the page.
 - Lint uses the repo's shared ESLint rules (root `eslint.config.mjs`).
-- **package.json**: The package.json file.
-- **vite.config.js**: The Vite configuration file.
+- **vite.config.js** builds the side panel and service worker; **vite.contentScript.config.js** builds the content script as one self-contained file, because Chrome cannot load shared chunks into a content script.
+
+## Adding a routine
+
+1. Copy `src/routines/JobRightRoutine.js` to `src/routines/<Site>Routine.js`.
+2. Set `id`, `label`, `match.hosts`, and the `strategy` steps (`click`, `waitFor`, `waitGone`, …).
+3. Describe each field with `text()`, `prop()`, `attr()`, `rawText()`, `html()`, or `pairs()`. The Inspector tab writes these for you.
+4. List the routine in `src/routines/index.js`, and add a test beside it like `JobRightRoutine.test.js`.
+
+`defineRoutine()` checks the routine when the extension loads and names every problem it finds.
 
 ## Architecture
 
 The extension is composed of three main parts:
 
-- **Background Script (`background.js`):** The background script is the central communication hub of the extension. It listens for messages from the UI and the content script and forwards them to the appropriate destination. It also manages the side panel.
-- **Content Script (`contentScript.js`):** The content script is injected into the web page and has access to the DOM. It is responsible for highlighting elements, executing actions, and fetching data from the page.
-- **Sidebar UI (React components):** The sidebar UI is built with React and provides the user interface for interacting with the extension. It communicates with the background script to send commands and receive data.
+- **Background Script (`background.js`):** The central communication hub. It relays routine ops from the side panel to the page, keeps the job save queue, and manages the side panel.
+- **Content Script (`contentScript.js`):** Runs on the page with DOM access. It answers routine ops (count, highlight, click, extract) and watches for job applications.
+- **Sidebar UI (React components):** Picks the routine for the focused tab and runs it through the routine runner, one op at a time.
 
 ## Communication
 

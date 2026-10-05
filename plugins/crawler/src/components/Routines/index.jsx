@@ -19,7 +19,8 @@ export default function RoutineLibrary() {
         </Text>
         <Text type="supporting" color="secondary">
           {count} {count === 1 ? "routine teaches" : "routines teach"} the crawler a site. Add one
-          in <Code>src/routines/</Code> and list it in <Code>src/routines/index.js</Code>.
+          in <Code size="inherit">src/routines/</Code> and list it in{" "}
+          <Code size="inherit">src/routines/index.js</Code>.
         </Text>
       </VStack>
       {ROUTINES.map((routine) => (

@@ -13,6 +13,7 @@ import {
   SCRAPE_OUTCOMES,
 } from "../../api/scrapeRunStats";
 import useNotification from "../../api/useNotification";
+import { QUIET_STEP_KINDS } from "../../routineKit/describe";
 import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../../routineKit/runner";
 
 import { toJobPayload } from "./jobPayload";
@@ -62,6 +63,7 @@ export function useRoutineRun() {
   const abortRef = useRef(null);
   const targetRef = useRef(null);
   const passHooksRef = useRef(null);
+  const phaseRef = useRef(null);
   // Queue item id → recent-job key, and results that arrived before their enqueue ack.
   const queueKeys = useRef(new Map());
   const earlyResults = useRef(new Map());
@@ -192,11 +194,22 @@ export function useRoutineRun() {
       exec: (payload) => execRoutineOp(targetRef.current?.tab.id, payload),
       onProgress: setProgress,
       onActivity: (next) => {
+        // A pass's field states reset when it starts reading, so a pass that ends early
+        // (nothing left to open) leaves the last pass's results on screen.
+        const isFirstRead = next.phase === "read" && phaseRef.current !== "read";
+        phaseRef.current = next.phase;
         // Pauses and highlight tidying keep the last meaningful label on screen.
         setActivity((current) =>
-          QUIET_STEP_KINDS.has(next.kind) && current ? { ...current, phase: next.phase } : next,
+          QUIET_STEP_KINDS.has(next.kind)
+            ? { ...current, phase: next.phase, label: current?.label ?? null }
+            : next,
         );
-        if (next.field) setFieldStates((current) => ({ ...current, [next.field]: "reading" }));
+        if (next.field) {
+          setFieldStates((current) => ({
+            ...(isFirstRead ? pendingFields(targetRef.current.routine) : current),
+            [next.field]: "reading",
+          }));
+        }
       },
       onField: (path, _value, record, found) => {
         const valid = isJobFieldValid(toJobPayload(record), path);
@@ -225,7 +238,6 @@ export function useRoutineRun() {
         const hooks = passHooksRef.current;
         const { routine } = targetRef.current;
         setPassCount((count) => count + 1);
-        setFieldStates(pendingFields(routine));
         try {
           await runRoutinePass(routine, { ...hooks, signal: abortRef.current?.signal });
         } catch (err) {
@@ -270,6 +282,7 @@ export function useRoutineRun() {
       setFieldHits({});
       setFieldStates(pendingFields(routine));
       setPassCount(0);
+      phaseRef.current = null;
       setProgress(0);
       setActivity(null);
       setElapsedMs(0);
