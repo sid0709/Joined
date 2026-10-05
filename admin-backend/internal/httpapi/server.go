@@ -39,6 +39,7 @@ type Server struct {
 	researchWorkers   int
 	adminToken        string
 	analyzerToken     string
+	crawlerToken      string
 	importEnabled     bool
 	importSources     []jobs.SourceStatus
 	importRecentLimit int
@@ -50,11 +51,14 @@ type Server struct {
 type Options struct {
 	Origins []string
 	// AdminToken, when set, is required as a bearer token on every route but /health
-	// and the public analyzer routes.
+	// and the public analyzer and crawler routes.
 	AdminToken string
 	// AnalyzerToken secures /v1/public/analyzer/* for external callers such as Postman.
 	AnalyzerToken string
-	Migration     MigrationOptions
+	// CrawlerToken secures /v1/public/crawler/*, where the crawler extension stages
+	// scraped jobs in temp_jobs.
+	CrawlerToken string
+	Migration    MigrationOptions
 	// Staff turns on Sign in with Google for the console. Once it is set up, every
 	// route but sign-in needs a staff session as well as the admin token.
 	Staff StaffSignIn
@@ -93,6 +97,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		deepSeekEnv:       opts.DeepSeekEnv,
 		adminToken:        opts.AdminToken,
 		analyzerToken:     opts.AnalyzerToken,
+		crawlerToken:      opts.CrawlerToken,
 		importEnabled:     opts.Import.Enabled,
 		importSources:     opts.Import.Sources,
 		importRecentLimit: opts.Import.RecentLimit,
@@ -108,6 +113,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	api.HandleFunc("PATCH /v1/jobs/temp/{id}", server.updateTempJob)
 	api.HandleFunc("GET /v1/companies", server.listCompanies)
 	api.HandleFunc("GET /v1/companies/temp", server.listStagedCompanies)
+	api.HandleFunc("GET /v1/companies/temp/export", server.exportStagedCompanies)
+	api.HandleFunc("POST /v1/companies/temp/import", server.importStagedCompanies)
 	api.HandleFunc("GET /v1/companies/{id}", server.getAdminCompany)
 	api.HandleFunc("PATCH /v1/companies/{id}", server.updateCompany)
 	api.HandleFunc("POST /v1/companies/{id}/autofill", server.autofillCompany)
@@ -129,6 +136,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", httpkit.Health(store))
 	server.registerPublicAnalyzer(mux)
+	server.registerPublicCrawler(mux)
 	mux.Handle("/", server.admin(server.requireStaff(api)))
 	return httpkit.CORS(opts.Origins, mux)
 }

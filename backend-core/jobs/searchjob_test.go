@@ -96,6 +96,9 @@ func TestExtractionSchemaIsJSON(t *testing.T) {
 	if !strings.Contains(extractSystemPrompt, "web search") || !strings.Contains(extractSystemPrompt, "estimated to true") {
 		t.Fatal("job analysis must search and mark a published average as estimated")
 	}
+	if strings.Contains(extractSystemPromptNoSearch, "web search") || !strings.Contains(extractSystemPromptNoSearch, "Do not search the web") {
+		t.Fatal("analysis without web search must read the posting only")
+	}
 	var schema struct {
 		Properties struct {
 			Pay struct {

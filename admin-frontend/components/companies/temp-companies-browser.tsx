@@ -8,6 +8,7 @@ import {
   Button,
   CheckboxInput,
   EmptyState,
+  FileInput,
   HStack,
   Link,
   Pagination,
@@ -25,7 +26,10 @@ import { SearchBox } from "@/components/search-box";
 import {
   STAGED_COMPANY_STATUS,
   TEMP_COMPANIES_PATH,
+  downloadStagedCompanies,
+  importStagedCompanies,
   stagedCompanyStatusLabel,
+  type CompanyImportResult,
   type StagedCompany,
   type StagedCompanyList,
   type StagedCompanyStatus,
@@ -64,8 +68,23 @@ type TempCompaniesBrowserProps = {
   refreshKey?: number;
   /** Starts research for the checked companies and returns what to tell the admin. */
   onResearch?: (ids: string[]) => Promise<Notice>;
+  /** Disables import while a research run is using the same list. */
+  busy?: boolean;
   maxSelection?: number;
 };
+
+function importNotice(result: CompanyImportResult): Notice {
+  const unmatched = result.unmatched.length;
+  if (unmatched === 0) {
+    return { status: "success", title: `Published ${formatCount(result.published)}.` };
+  }
+  const shown = result.unmatched.slice(0, 3).join(", ");
+  const more = unmatched > 3 ? `, and ${formatCount(unmatched - 3)} more` : "";
+  return {
+    status: result.published === 0 ? "error" : "success",
+    title: `Published ${formatCount(result.published)}. ${formatCount(unmatched)} did not match a staged company: ${shown}${more}.`,
+  };
+}
 
 /** Companies copied into staging. Published ones leave this list. */
 export function TempCompaniesBrowser({
@@ -73,6 +92,7 @@ export function TempCompaniesBrowser({
   description = "Copied companies, busiest first. Research publishes the ones it finds; not found stay in this list.",
   refreshKey = 0,
   onResearch,
+  busy = false,
   maxSelection = MAX_MIGRATION_SELECTION,
 }: TempCompaniesBrowserProps = {}) {
   const router = useRouter();
@@ -83,6 +103,8 @@ export function TempCompaniesBrowser({
   const hideNotFound = searchParams.get("hide") === "notFound";
   const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [importKey, setImportKey] = useState(0);
+  const [transferring, setTransferring] = useState(false);
   const overLimit = selected.length > maxSelection;
 
   async function researchSelected() {
@@ -104,6 +126,40 @@ export function TempCompaniesBrowser({
   const { result, loading, error, reload } = useAdminQuery<StagedCompanyList>(
     `${TEMP_COMPANIES_PATH}?${params}`,
   );
+
+  async function exportCompanies() {
+    setNotice(null);
+    setTransferring(true);
+    try {
+      await downloadStagedCompanies();
+    } catch (cause) {
+      setNotice({
+        status: "error",
+        title: cause instanceof Error ? cause.message : "Could not export staged companies",
+      });
+    } finally {
+      setTransferring(false);
+    }
+  }
+
+  async function importCompanies(file: File | null) {
+    if (!file) return;
+    setNotice(null);
+    setTransferring(true);
+    try {
+      const result = await importStagedCompanies(await file.text());
+      setNotice(importNotice(result));
+      if (result.published > 0) reload();
+    } catch (cause) {
+      setNotice({
+        status: "error",
+        title: cause instanceof Error ? cause.message : "Could not import companies",
+      });
+    } finally {
+      setTransferring(false);
+      setImportKey((key) => key + 1);
+    }
+  }
 
   useEffect(() => {
     if (refreshKey) reload();
@@ -171,14 +227,37 @@ export function TempCompaniesBrowser({
       title={title}
       description={description}
       action={
-        onResearch ? (
+        <HStack gap={2} wrap="wrap" vAlign="center">
           <Button
-            label={selected.length ? `Research ${formatCount(selected.length)}` : "Research"}
-            variant="primary"
-            clickAction={researchSelected}
-            isDisabled={selected.length === 0 || overLimit}
+            label="Export"
+            variant="secondary"
+            clickAction={exportCompanies}
+            isDisabled={transferring}
           />
-        ) : undefined
+          <HStack width={280}>
+            <FileInput
+              key={importKey}
+              label="Import JSON"
+              mode="input"
+              accept="application/json,.json"
+              placeholder="Import JSON"
+              value={null}
+              isDisabled={busy || transferring}
+              onChange={(value) => {
+                const file = Array.isArray(value) ? (value[0] ?? null) : value;
+                void importCompanies(file);
+              }}
+            />
+          </HStack>
+          {onResearch ? (
+            <Button
+              label={selected.length ? `Research ${formatCount(selected.length)}` : "Research"}
+              variant="primary"
+              clickAction={researchSelected}
+              isDisabled={selected.length === 0 || overLimit || busy}
+            />
+          ) : null}
+        </HStack>
       }
     >
       <Stack gap={5}>

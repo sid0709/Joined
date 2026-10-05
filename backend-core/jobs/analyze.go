@@ -17,8 +17,9 @@ import (
 type ModelReader interface {
 	Model() string
 	JSON(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, error)
-	// JSONWebSearch is how analyze and reanalyze read a posting: the model must
-	// search, including for a published salary the posting leaves out.
+	// JSONWebSearch is how analyze reads a posting when web search is on: the model
+	// must search, including for a published salary the posting leaves out.
+	// JSON reads the posting alone when migration turns web search off.
 	WebResearcher
 }
 
@@ -181,7 +182,7 @@ func normalizeSelection(ids []string) ([]string, error) {
 }
 
 func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (SearchRecord, error) {
-	record, err := s.analysisRecord(ctx, reader, listing, now)
+	record, err := s.analysisRecord(ctx, reader, listing, now, true)
 	if err != nil {
 		return SearchRecord{}, err
 	}
@@ -192,11 +193,12 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 }
 
 // analysisRecord reads a temp job with the model and builds its public record, unsaved.
-func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (storedSearchJob, error) {
+// webSearch tells the model to look past the posting, including for a published salary.
+func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing tempListing, now time.Time, webSearch bool) (storedSearchJob, error) {
 	if originalDescription(listing.Description) == "" {
 		return storedSearchJob{}, ErrMissingDescription
 	}
-	payload, _, err := reader.JSONWebSearch(ctx, extractSystemPrompt, listingPrompt(listing), json.RawMessage(extractionSchema))
+	payload, err := readExtraction(ctx, reader, listing, webSearch)
 	if err != nil {
 		return storedSearchJob{}, err
 	}
@@ -230,17 +232,30 @@ func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing 
 	), listing)
 	job.Description = originalDescription(listing.Description)
 	return storedSearchJob{
-		ID:         listing.ID,
-		TempJobID:  listing.ID.Hex(),
-		PostedAt:   listing.PostedAt,
-		ApplyLink:  listing.ApplyLink,
-		AnalyzedAt: now.UTC(),
-		Model:      reader.Model(),
-		CreatedBy:  strings.TrimSpace(listing.CreatedBy),
-		Source:     strings.TrimSpace(listing.Source),
-		SourceRef:  strings.TrimSpace(listing.SourceRef),
-		Job:        job,
+		ID:              listing.ID,
+		TempJobID:       listing.ID.Hex(),
+		PostedAt:        listing.PostedAt,
+		ApplyLink:       listing.ApplyLink,
+		AnalyzedAt:      now.UTC(),
+		Model:           reader.Model(),
+		CreatedBy:       strings.TrimSpace(listing.CreatedBy),
+		Source:          strings.TrimSpace(listing.Source),
+		SourceRef:       strings.TrimSpace(listing.SourceRef),
+		SourceCompanyID: listing.sourceCompanyID(),
+		Job:             job,
 	}, nil
+}
+
+// readExtraction asks the model for the structured posting. With web search it must
+// look the company up; without it, the posting is the only source.
+func readExtraction(ctx context.Context, reader ModelReader, listing tempListing, webSearch bool) ([]byte, error) {
+	user := listingPrompt(listing)
+	schema := json.RawMessage(extractionSchema)
+	if !webSearch {
+		return reader.JSON(ctx, extractSystemPromptNoSearch, user, schema)
+	}
+	payload, _, err := reader.JSONWebSearch(ctx, extractSystemPrompt, user, schema)
+	return payload, err
 }
 
 func (s *Store) listingFrom(ctx context.Context, coll *mongo.Collection, idHex string) (tempListing, error) {

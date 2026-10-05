@@ -48,6 +48,7 @@ func main() {
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 	analyzerToken := config.Env("ANALYZER_API_TOKEN", "")
+	crawlerToken := config.Env("CRAWLER_INGEST_TOKEN", "")
 
 	p, err := platform.Open(context.Background(), db, platform.Options{SettingsKey: config.Env("SETTINGS_ENCRYPTION_KEY", "")})
 	if err != nil {
@@ -63,6 +64,9 @@ func main() {
 	}
 	if analyzerToken == "" {
 		slog.Warn("ANALYZER_API_TOKEN is not set: public analyzer routes are disabled")
+	}
+	if crawlerToken == "" {
+		slog.Warn("CRAWLER_INGEST_TOKEN is not set: the crawler extension cannot stage jobs")
 	}
 	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
@@ -110,6 +114,7 @@ func main() {
 		Origins:       server.Origins,
 		AdminToken:    adminToken,
 		AnalyzerToken: analyzerToken,
+		CrawlerToken:  crawlerToken,
 		Staff:         staff,
 		AcornAI:       p.AISettings,
 		AcornAIEnv:    ai,
@@ -145,6 +150,14 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 		slog.Error("backfill job provenance", "error", config.Redact(err, mongoURI))
 	} else {
 		slog.Info("backfill job provenance", "updated", updated)
+	}
+	purgeCtx, cancelPurge := context.WithTimeout(context.Background(), backfillTimeout)
+	purged, err := store.PurgePublishedTemp(purgeCtx)
+	cancelPurge()
+	if err != nil {
+		slog.Error("purge published temp rows", "error", config.Redact(err, mongoURI))
+	} else if purged.Jobs+purged.Companies > 0 {
+		slog.Info("purge published temp rows", "jobs", purged.Jobs, "companies", purged.Companies)
 	}
 	dropCtx, cancelDrop := context.WithTimeout(context.Background(), dropTimeout)
 	dropped, err := store.DropCompanyLeadership(dropCtx)

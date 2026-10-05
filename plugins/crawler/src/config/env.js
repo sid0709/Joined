@@ -1,4 +1,4 @@
-/** Server endpoints — configure in Extension/.env only. */
+/** Server endpoints — configure in plugins/crawler/.env only. */
 /* global chrome */
 
 import { parseDuplicateWindowDays } from "./duplicateWindow.js";
@@ -13,8 +13,17 @@ function normalizeBaseUrl(raw) {
   return raw.replace(/\/$/, "");
 }
 
-/** REST API base (scrap POST /jobs). */
+/** Joined admin API base, e.g. http://127.0.0.1:8081 locally. Scraped jobs go to its temp_jobs. */
 export const API_URL = normalizeBaseUrl(trimEnv(import.meta.env.VITE_API_URL));
+
+/** Where the admin API stages scraped jobs in temp_jobs for AI analysis. */
+export const CRAWLER_INGEST_PATH = "/v1/public/crawler/jobs";
+
+/** The admin API's health check: `{ ok: true }` when it and its database are up. */
+export const HEALTH_PATH = "/health";
+
+/** Bearer token for CRAWLER_INGEST_PATH; the same value as CRAWLER_INGEST_TOKEN on the admin API. */
+export const CRAWLER_INGEST_TOKEN = trimEnv(import.meta.env.VITE_CRAWLER_INGEST_TOKEN);
 export const JOB_API_STORAGE_KEY = "jobApiBaseUrl";
 
 export function persistJobApiUrlToStorage() {

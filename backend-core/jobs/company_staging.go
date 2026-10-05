@@ -122,19 +122,22 @@ func (s *Store) unpublishUnresearched(ctx context.Context) (int64, error) {
 
 // dropPublishedFromStaging removes staged copies of companies that are already
 // published, left behind by an interrupted move or a copy that ran beside research.
-func (s *Store) dropPublishedFromStaging(ctx context.Context, published map[string]struct{}) error {
+// It returns how many it removed.
+func (s *Store) dropPublishedFromStaging(ctx context.Context, published map[string]struct{}) (int64, error) {
 	sourceIDs := make([]string, 0, len(published))
 	for id := range published {
 		sourceIDs = append(sourceIDs, id)
 	}
+	var dropped int64
 	for start := 0; start < len(sourceIDs); start += stageBatch {
 		chunk := sourceIDs[start:min(start+stageBatch, len(sourceIDs))]
-		_, err := s.stagedCompanies().DeleteMany(ctx, bson.D{{Key: "sourceId", Value: bson.D{{Key: "$in", Value: chunk}}}})
+		result, err := s.stagedCompanies().DeleteMany(ctx, bson.D{{Key: "sourceId", Value: bson.D{{Key: "$in", Value: chunk}}}})
 		if err != nil {
-			return fmt.Errorf("clear published companies from staging: %w", err)
+			return dropped, fmt.Errorf("clear published companies from staging: %w", err)
 		}
+		dropped += result.DeletedCount
 	}
-	return nil
+	return dropped, nil
 }
 
 // publishStaged moves a staged company into companies as it stands. A company that is

@@ -9,6 +9,7 @@ import {
   PageHeader,
   Stack,
   StatGrid,
+  Switch,
 } from "@joined/design-system";
 import { TempCompaniesBrowser } from "@/components/companies/temp-companies-browser";
 import { MigrationStep } from "@/components/migration/migration-step";
@@ -35,6 +36,7 @@ export function CompanyMigration() {
   const { status, error, finished, start, cancel } = useMigration();
   const [confirmRedo, setConfirmRedo] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [webSearch, setWebSearch] = useState(true);
 
   const counts = status?.counts;
   const runs = status?.runs ?? {};
@@ -116,7 +118,11 @@ export function CompanyMigration() {
       />
       <MigrationStep
         title="2. Research with AI"
-        description={`${model} searches the web for each staged company, busiest first and many at once, and fills in its about, industry, size, founding year, headquarters, offices, values, and benefits. Each company it finds is published to the directory right away; ones it cannot find stay staged as not found. It only fills blank fields, so admin edits stay, and answers that did not come from a web search are thrown away. It can run while companies are still copying and picks up newly staged ones before it finishes.`}
+        description={
+          webSearch
+            ? `${model} searches the web for each staged company, busiest first and many at once, and fills in its about, industry, size, founding year, headquarters, offices, values, and benefits. Each company it finds is published to the directory right away; ones it cannot find stay staged as not found. It only fills blank fields, so admin edits stay, and answers that did not come from a web search are thrown away. It can run while companies are still copying and picks up newly staged ones before it finishes.`
+            : `${model} fills each staged company from what it already knows, without web search, busiest first and many at once. Each company it can describe is published to the directory right away; ones it leaves blank stay staged as not found. It only fills blank fields, so admin edits stay. It can run while companies are still copying and picks up newly staged ones before it finishes.`
+        }
         run={runs[researchCompanies]}
         onCancel={() => stop(researchCompanies)}
         actions={
@@ -131,11 +137,18 @@ export function CompanyMigration() {
               label={waiting ? `Research ${formatCount(waiting)} waiting` : "Research waiting"}
               variant="primary"
               isDisabled={researching || !status?.modelReady || (waiting === 0 && !copying)}
-              clickAction={() => run(researchCompanies)}
+              clickAction={() => run(researchCompanies, { webSearch })}
             />
           </>
         }
       >
+        <Switch
+          label="Web search"
+          description="The model searches the live web before it answers. Off, it uses what it already knows and leaves a field empty when it is not sure."
+          value={webSearch}
+          onChange={setWebSearch}
+          isDisabled={researching}
+        />
         {runs[researchCompanies]?.status === "succeeded" ? (
           <Link href={ROUTES.companies}>Review published companies</Link>
         ) : null}
@@ -143,9 +156,10 @@ export function CompanyMigration() {
       <TempCompaniesBrowser
         refreshKey={finished}
         maxSelection={MAX_MIGRATION_SELECTION}
-        description={`Or pick companies and research just those with ${model}. Ones it finds show in the directory.`}
+        description={`Or pick companies and research just those with ${model}. Export the list, fill empty fields locally, and import the file to publish matches. Ones research or import lands show in the directory.`}
+        busy={researching}
         onResearch={async (ids) => {
-          await start(researchCompanies, { companyIds: ids });
+          await start(researchCompanies, { companyIds: ids, webSearch });
           return {
             status: "success",
             title: `Researching ${formatCount(ids.length)} companies. Progress shows under Research with AI.`,
@@ -156,9 +170,13 @@ export function CompanyMigration() {
         isOpen={confirmRedo}
         onOpenChange={setConfirmRedo}
         title="Retry companies research could not find?"
-        description={`This searches the web again for the ${formatCount(notFound)} not found, along with the ${formatCount(waiting)} still waiting. It still only fills blank fields.`}
+        description={
+          webSearch
+            ? `This searches the web again for the ${formatCount(notFound)} not found, along with the ${formatCount(waiting)} still waiting. It still only fills blank fields.`
+            : `This asks ${model} again, without web search, for the ${formatCount(notFound)} not found, along with the ${formatCount(waiting)} still waiting. It still only fills blank fields.`
+        }
         actionLabel="Retry"
-        onAction={() => run(researchCompanies, { redo: true })}
+        onAction={() => run(researchCompanies, { redo: true, webSearch })}
       />
     </Stack>
   );

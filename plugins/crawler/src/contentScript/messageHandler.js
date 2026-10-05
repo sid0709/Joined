@@ -1,3 +1,5 @@
+import { ROUTINE_OP_ACTION } from "../routineKit/protocol.js";
+
 import { clearHighlights } from "./highlighter";
 import {
   handleExecuteAction,
@@ -6,8 +8,14 @@ import {
 } from "./messages/executeActions";
 import { handleHighlightByPattern, handleHighlightInteractables } from "./messages/highlight";
 import { handleExtractMainContent, handleFindInteractableElements } from "./messages/pageQueries";
+import { handleRoutineOp } from "./messages/routineOps";
 
 export const messageHandler = (request, sender, sendResponse) => {
+  if (request.action === ROUTINE_OP_ACTION) {
+    handleRoutineOp(request.payload, sendResponse);
+    return true;
+  }
+
   (async () => {
     try {
       switch (request.action) {

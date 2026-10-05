@@ -100,15 +100,27 @@ export function applyHighlight(element, color) {
  * @returns {{ matched: number, highlighted: number }}
  */
 export function highlightByPattern(componentType, propertyName, pattern, color) {
-  const elementsToHighlight = findElements(componentType, propertyName, pattern);
+  const result = highlightElements(findElements(componentType, propertyName, pattern), color);
+  console.log(`Found ${result.matched} elements, highlighted ${result.highlighted}.`);
+  return result;
+}
+
+/**
+ * Outline each element.
+ * @param {Iterable<HTMLElement>} elements The elements to highlight.
+ * @param {string} color The highlight color.
+ * @returns {{ matched: number, highlighted: number }}
+ */
+export function highlightElements(elements, color) {
+  let matched = 0;
   let highlighted = 0;
-  elementsToHighlight.forEach((el) => {
+  for (const el of elements) {
+    matched += 1;
     const before = el.hasAttribute("data-highlighter-outline");
     applyHighlight(el, color);
     if (!before && el.hasAttribute("data-highlighter-outline")) highlighted += 1;
-  });
-  console.log(`Found ${elementsToHighlight.length} elements, highlighted ${highlighted}.`);
-  return { matched: elementsToHighlight.length, highlighted };
+  }
+  return { matched, highlighted };
 }
 
 function addLabel(el, id) {

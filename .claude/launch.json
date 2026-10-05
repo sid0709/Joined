@@ -36,6 +36,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "acorn/demo", "dev"],
       "port": 5180
+    },
+    {
+      "name": "crawler-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "plugins/crawler", "dev"],
+      "port": 7173
     }
   ]
 }

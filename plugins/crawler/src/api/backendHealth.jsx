@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { API_URL } from "../config/env";
+import { API_URL, HEALTH_PATH } from "../config/env";
 
 import { BackendHealthContext } from "./backendHealthContext";
 
@@ -10,7 +10,7 @@ function resolveHealthUrl(apiUrl) {
   if (!apiUrl) return null;
   try {
     const url = new URL(apiUrl);
-    url.pathname = "/healthz";
+    url.pathname = HEALTH_PATH;
     url.search = "";
     url.hash = "";
     return url.toString();
