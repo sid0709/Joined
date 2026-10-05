@@ -73,7 +73,6 @@ const DEFAULT_PAY = { min: 130_000, max: 160_000 };
 const SUMMARY_ROWS = 4;
 const DESCRIPTION_ROWS = 10;
 const FIELD_MIN_WIDTH = 160;
-const PREVIEW_SCORE = 90;
 const PERCENT = 100;
 
 type Draft = {
@@ -585,7 +584,6 @@ export function JobPostEditor({
             <Text type="label">Preview in search</Text>
             <JobResultCard
               job={toPreviewJob(draft, company)}
-              score={PREVIEW_SCORE}
               selected={false}
               saved={false}
               applied={false}
