@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -80,7 +81,13 @@ func (s *Store) Idempotent(ctx context.Context, userID, route, key string, body 
 	if result.Status >= 500 {
 		return result, false, s.dropIdempotency(ctx, userID, route, key)
 	}
-	return result, false, s.completeIdempotency(ctx, userID, route, key, result)
+	if err := s.completeIdempotency(ctx, userID, route, key, result); err != nil {
+		if dropErr := s.dropIdempotency(ctx, userID, route, key); dropErr != nil {
+			return result, false, fmt.Errorf("complete idempotency: %w (also drop: %v)", err, dropErr)
+		}
+		return result, false, fmt.Errorf("complete idempotency: %w", err)
+	}
+	return result, false, nil
 }
 
 func (s *Store) claimIdempotency(ctx context.Context, rec idempotencyRecord) error {
