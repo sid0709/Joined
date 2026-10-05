@@ -1,10 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { JOINED_FRONTEND_ORIGIN } from "./helpers/origins";
+
 const isCI = !!(process.env as Record<string, string | undefined>)["CI"];
 
 /**
  * E2E smoke harness for Joined platform.
  * Targets local services; must run while dev services are up.
+ * The email journey reads verify/reset links from the log email sender
+ * (`JOINED_BACKEND_LOG`, default `/tmp/joined-backend-e2e.log`).
  */
 export default defineConfig({
   testDir: "./specs",
@@ -15,7 +19,7 @@ export default defineConfig({
   workers: isCI ? 1 : undefined,
   reporter: [["html", { outputFolder: `${process.cwd()}/playwright-report` }]],
   use: {
-    baseURL: "http://localhost:6002",
+    baseURL: JOINED_FRONTEND_ORIGIN,
     trace: "on-first-retry",
   },
   projects: [
