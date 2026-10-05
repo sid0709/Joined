@@ -68,7 +68,7 @@ func (w *WebhookRouter) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "invalid event", http.StatusBadRequest)
 		return
 	}
-	if !w.Idempotency.MarkProcessed(event.ID) {
+	if w.Idempotency.IsProcessed(event.ID) {
 		slog.Info("webhook event already processed", "event_id", event.ID)
 		rw.WriteHeader(http.StatusOK)
 		return
@@ -76,6 +76,7 @@ func (w *WebhookRouter) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	handler, ok := w.Handlers[event.Type]
 	if !ok {
 		slog.Info("no handler for event type", "type", event.Type)
+		w.Idempotency.MarkProcessed(event.ID)
 		rw.WriteHeader(http.StatusOK)
 		return
 	}
@@ -84,6 +85,7 @@ func (w *WebhookRouter) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "handler error", http.StatusInternalServerError)
 		return
 	}
+	w.Idempotency.MarkProcessed(event.ID)
 	rw.WriteHeader(http.StatusOK)
 }
 
@@ -112,7 +114,12 @@ func (w *WebhookRouter) verifySignature(payload []byte, header string) bool {
 	if err != nil {
 		return false
 	}
-	if time.Now().Unix()-ts > 300 {
+	now := time.Now().Unix()
+	skew := now - ts
+	if skew < 0 {
+		skew = -skew
+	}
+	if skew > 300 {
 		return false
 	}
 	signedPayload := fmt.Sprintf("%s.%s", timestamp, payload)

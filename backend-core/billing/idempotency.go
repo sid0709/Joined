@@ -7,8 +7,10 @@ import (
 
 // IdempotencyStore tracks processed webhook events to prevent duplicate handling.
 type IdempotencyStore interface {
-	// MarkProcessed marks an event as processed. Returns false if already processed.
-	MarkProcessed(eventID string) bool
+	// IsProcessed checks if an event has been processed.
+	IsProcessed(eventID string) bool
+	// MarkProcessed marks an event as processed.
+	MarkProcessed(eventID string)
 }
 
 // MemoryIdempotencyStore is an in-memory idempotency store.
@@ -24,14 +26,17 @@ func NewMemoryIdempotencyStore() *MemoryIdempotencyStore {
 	}
 }
 
-func (m *MemoryIdempotencyStore) MarkProcessed(eventID string) bool {
+func (m *MemoryIdempotencyStore) IsProcessed(eventID string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, exists := m.processed[eventID]; exists {
-		return false
-	}
+	_, exists := m.processed[eventID]
+	return exists
+}
+
+func (m *MemoryIdempotencyStore) MarkProcessed(eventID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.processed[eventID] = time.Now()
-	return true
 }
 
 func (m *MemoryIdempotencyStore) Cleanup(before time.Time) {

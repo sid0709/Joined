@@ -7,14 +7,23 @@ import (
 
 func TestMemoryIdempotencyStoreMarkProcessed(t *testing.T) {
 	store := NewMemoryIdempotencyStore()
-	if !store.MarkProcessed("evt_1") {
-		t.Fatal("expected first mark to succeed")
+	if store.IsProcessed("evt_1") {
+		t.Fatal("expected event not processed initially")
 	}
-	if store.MarkProcessed("evt_1") {
-		t.Fatal("expected duplicate mark to fail")
+	store.MarkProcessed("evt_1")
+	if !store.IsProcessed("evt_1") {
+		t.Fatal("expected event to be marked as processed")
 	}
-	if !store.MarkProcessed("evt_2") {
-		t.Fatal("expected different event to succeed")
+	store.MarkProcessed("evt_1")
+	if !store.IsProcessed("evt_1") {
+		t.Fatal("expected event to still be marked as processed after duplicate mark")
+	}
+	if store.IsProcessed("evt_2") {
+		t.Fatal("expected different event not processed")
+	}
+	store.MarkProcessed("evt_2")
+	if !store.IsProcessed("evt_2") {
+		t.Fatal("expected second event to be marked as processed")
 	}
 }
 
@@ -26,10 +35,10 @@ func TestMemoryIdempotencyStoreCleanup(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	store.MarkProcessed("evt_new")
 	store.Cleanup(cutoff)
-	if !store.MarkProcessed("evt_old") {
-		t.Fatal("expected cleaned event to be processable again")
+	if store.IsProcessed("evt_old") {
+		t.Fatal("expected cleaned event to be removed")
 	}
-	if store.MarkProcessed("evt_new") {
-		t.Fatal("expected recent event to still be marked as processed")
+	if !store.IsProcessed("evt_new") {
+		t.Fatal("expected recent event to remain")
 	}
 }
