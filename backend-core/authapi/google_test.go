@@ -51,14 +51,15 @@ func TestSignUpModePicksOnlyRolesTheAppOffers(t *testing.T) {
 	}
 }
 
-func TestPasswordRoutesAreGone(t *testing.T) {
+func TestPasswordRoutesExist(t *testing.T) {
 	mux := http.NewServeMux()
+	// Without Email configured, routes should return 503
 	Handlers{Audience: auth.AudienceJoined}.Register(mux)
 	for _, path := range []string{"/v1/auth/signup", "/v1/auth/signin"} {
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`)))
-		if rec.Code != http.StatusNotFound {
-			t.Errorf("%s status = %d, want 404", path, rec.Code)
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Errorf("%s status = %d, want 503 (unconfigured)", path, rec.Code)
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/database"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 const copyTimeout = 20 * time.Minute
@@ -41,6 +42,10 @@ func main() {
 	)
 	ctx, cancel := context.WithTimeout(context.Background(), copyTimeout)
 	defer cancel()
+	if err := killswitch.Check(ctx, killswitch.NewStore(client, cfg.DestDB, killswitch.LoadDefaults()), killswitch.JobImports); err != nil {
+		slog.Error("job imports", "error", err)
+		os.Exit(1)
+	}
 
 	slog.Info("copying companies", "source", cfg.SourceDB+"."+cfg.SourceCompanies, "staging", cfg.DestDB+"."+cfg.TempCompaniesCollection)
 	result, err := store.CopyCompanies(ctx, nil)

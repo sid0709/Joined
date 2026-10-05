@@ -37,6 +37,13 @@ func (s *Store) EnsureProfile(ctx context.Context, userID string) (Profile, erro
 		return Profile{}, ErrNotScout
 	}
 	now := s.now().UTC()
+	if s.docs != nil {
+		profile, err := s.docs.upsertProfile(ctx, userID, now)
+		if err != nil {
+			return Profile{}, err
+		}
+		return withAccount(profile, user), nil
+	}
 	var profile Profile
 	err = s.collection(profilesCollection).FindOneAndUpdate(ctx,
 		bson.D{{Key: "userId", Value: userID}},
@@ -68,6 +75,9 @@ func (s *Store) Profile(ctx context.Context, userID string) (Profile, error) {
 }
 
 func (s *Store) storedProfile(ctx context.Context, userID string) (Profile, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.profile(userID)
+	}
 	var profile Profile
 	err := s.collection(profilesCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&profile)
 	if errors.Is(err, mongo.ErrNoDocuments) {

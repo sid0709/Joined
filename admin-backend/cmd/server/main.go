@@ -13,6 +13,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 )
@@ -47,6 +48,7 @@ func main() {
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
 	analyzerToken := config.Env("ANALYZER_API_TOKEN", "")
+	crawlerToken := config.Env("CRAWLER_INGEST_TOKEN", "")
 
 	p, err := platform.Open(context.Background(), db, platform.Options{SettingsKey: config.Env("SETTINGS_ENCRYPTION_KEY", "")})
 	if err != nil {
@@ -63,6 +65,10 @@ func main() {
 	if analyzerToken == "" {
 		slog.Warn("ANALYZER_API_TOKEN is not set: public analyzer routes are disabled")
 	}
+	if crawlerToken == "" {
+		slog.Warn("CRAWLER_INGEST_TOKEN is not set: the crawler extension cannot stage jobs")
+	}
+	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	staff := httpapi.StaffSignIn{
 		Accounts:    p.Accounts,
@@ -80,22 +86,54 @@ func main() {
 	if !migrationAI.Ready() {
 		slog.Warn("no DeepSeek key yet: save one under Settings → DeepSeek, or set DEEPSEEK_API_KEY, before analyzing or researching")
 	}
+	importCfg := config.LoadJobImport()
+	importRegistry := jobs.NewSourceRegistry()
+	importRegistry.Register(jobs.NewAthensSource(p.Jobs, importCfg.SourceEnabled(jobs.AthensSourceID)))
+	importLog := jobs.NewStoreRunLog(p.Jobs, importCfg.RunsCollection)
+	if err := p.Jobs.EnsureImportIndexes(context.Background(), importCfg.RunsCollection); err != nil {
+		slog.Error("import indexes", "error", config.Redact(err, db.MongoURI))
+	}
+	importGate := jobs.LookupImportKillSwitch()
+	if importGate == nil {
+		importGate = jobImportsGate(p.KillSwitches)
+	}
+	importRunner := jobs.NewRunner(jobs.RunnerOptions{
+		Enabled:  importCfg.Enabled,
+		Interval: importCfg.Interval,
+		Timeout:  importCfg.RunTimeout,
+		Registry: importRegistry,
+		Lock:     jobs.NewStoreImportLock(p.Jobs, importCfg.LocksCollection, importCfg.RunTimeout),
+		Log:      importLog,
+		Gate:     importGate,
+		Sink:     p.Jobs,
+		Pool:     p.Jobs,
+	})
+	go importRunner.Start(context.Background())
+
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
-		Origins:     server.Origins,
+		Origins:       server.Origins,
 		AdminToken:    adminToken,
 		AnalyzerToken: analyzerToken,
-		Staff:       staff,
-		AcornAI:     p.AISettings,
-		AcornAIEnv:  ai,
-		DeepSeek:    p.DeepSeekSettings,
-		DeepSeekEnv: deepSeekEnv,
+		CrawlerToken:  crawlerToken,
+		Staff:         staff,
+		AcornAI:       p.AISettings,
+		AcornAIEnv:    ai,
+		DeepSeek:      p.DeepSeekSettings,
+		DeepSeekEnv:   deepSeekEnv,
 		Migration: httpapi.MigrationOptions{
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
 			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
 		},
+		Import: httpapi.ImportOptions{
+			Enabled:     importCfg.Enabled,
+			Sources:     importRegistry.Status(),
+			RecentLimit: importCfg.RecentLimit,
+			Runs:        importLog,
+		},
+		KillSwitches: p.KillSwitches,
 	})
-	if err := httpkit.Serve("admin api", server.Addr, handler); err != nil {
+	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}
@@ -113,6 +151,14 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 	} else {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
+	purgeCtx, cancelPurge := context.WithTimeout(context.Background(), backfillTimeout)
+	purged, err := store.PurgePublishedTemp(purgeCtx)
+	cancelPurge()
+	if err != nil {
+		slog.Error("purge published temp rows", "error", config.Redact(err, mongoURI))
+	} else if purged.Jobs+purged.Companies > 0 {
+		slog.Info("purge published temp rows", "jobs", purged.Jobs, "companies", purged.Companies)
+	}
 	dropCtx, cancelDrop := context.WithTimeout(context.Background(), dropTimeout)
 	dropped, err := store.DropCompanyLeadership(dropCtx)
 	cancelDrop()
@@ -121,4 +167,19 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 	} else if dropped > 0 {
 		slog.Info("drop company leadership", "companies", dropped)
 	}
+}
+
+type jobImportsSwitch struct {
+	switches killswitch.Switches
+}
+
+func jobImportsGate(switches killswitch.Switches) jobs.ImportKillSwitch {
+	if switches == nil {
+		return nil
+	}
+	return jobImportsSwitch{switches: switches}
+}
+
+func (g jobImportsSwitch) Allow(string) bool {
+	return killswitch.On(g.switches, context.Background(), killswitch.JobImports)
 }

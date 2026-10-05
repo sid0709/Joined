@@ -1,101 +1,90 @@
-import { Badge, Glyph, HStack, Tab, TabList, Text, VStack } from "@joined/design-system";
-import * as React from "react";
+import { Glyph, HStack, Tab, TabList, Text, VStack } from "@joined/design-system";
+import { useState } from "react";
 
 import packageJson from "../../package.json";
 
-import BackendTrafficLight from "./BackendTrafficLight";
+import BackendStatus from "./BackendStatus";
 import ColorModeToggle from "./ColorModeToggle";
-import ScrapeSourceBadge from "./ScrapeSourceBadge";
-import ScrapperPage from "./Scrapper";
-import ComponentTracker from "./Tracker";
+import Inspector from "./Inspector";
+import RoutineLibrary from "./Routines";
+import RunPanel from "./Run";
 
-function CustomTabPanel(props) {
-  const { children, value, index, ...other } = props;
+/** The one tab panel; each tab swaps what it shows. */
+const PANEL_ID = "crawler-panel";
 
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      className="crawler-tab-panel"
-      {...other}
-    >
-      {value === index && children}
-    </div>
-  );
-}
-
-const TabInfo = [
-  {
-    value: "scrap",
-    label: "Scrap",
-    content: <ScrapperPage />,
-    icon: <Glyph name="search" />,
-  },
-  {
-    value: "tracker",
-    label: "Tracker",
-    content: <ComponentTracker />,
-    icon: <Glyph name="eye" />,
-  },
-];
+const TABS = {
+  run: { label: "Run", icon: "play" },
+  routines: { label: "Routines", icon: "list" },
+  inspector: { label: "Inspector", icon: "search" },
+};
 
 function formatReleaseDate(isoDate) {
   if (typeof isoDate !== "string" || !isoDate) return null;
   const parsed = new Date(`${isoDate}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return isoDate;
-  return parsed.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 const releaseDateLabel = formatReleaseDate(packageJson.releaseDate);
+const versionLabel = [`v${packageJson.version}`, releaseDateLabel].filter(Boolean).join(" · ");
+
+function Header() {
+  return (
+    <header className="crawler-header">
+      <HStack gap={3} align="center" justify="between">
+        <HStack gap={2} align="center">
+          <img className="crawler-logo" src="/logo.png" alt="" />
+          <VStack gap={0}>
+            <Text as="h1" weight="semibold">
+              Avalon Scrapper
+            </Text>
+            <Text type="supporting" color="secondary" hasTabularNumbers>
+              {versionLabel}
+            </Text>
+          </VStack>
+        </HStack>
+        <HStack gap={2} align="center">
+          <BackendStatus />
+          <ColorModeToggle />
+        </HStack>
+      </HStack>
+    </header>
+  );
+}
 
 export default function LayoutPage() {
-  const [value, setValue] = React.useState(TabInfo[0].value);
+  const [tab, setTab] = useState("run");
 
   return (
     <div className="crawler-layout">
-      <HStack gap={3} align="center" justify="between" className="crawler-header">
-        <HStack gap={3} align="center">
-          <img className="crawler-logo" src="/logo.png" alt="Avalon Scrapper" />
-          <VStack gap={1} align="start">
-            <Text as="h1" type="large" weight="semibold">
-              Avalon Scrapper
-            </Text>
-            <Text type="supporting" color="secondary">
-              Extension · v{packageJson.version}
-            </Text>
-            <ScrapeSourceBadge compact />
-            {releaseDateLabel && <Badge variant="purple" label={releaseDateLabel} />}
-          </VStack>
-        </HStack>
-        <VStack gap={2} align="end">
-          <ColorModeToggle />
-          <BackendTrafficLight />
-        </VStack>
-      </HStack>
-
-      <TabList value={value} onChange={setValue} layout="fill" aria-label="extension tabs">
-        {TabInfo.map((tab) => (
-          <Tab
-            key={tab.value}
-            value={tab.value}
-            label={tab.label}
-            icon={tab.icon}
-            panelId={`simple-tabpanel-${tab.value}`}
-          />
-        ))}
-      </TabList>
-
-      {TabInfo.map((tab) => (
-        <CustomTabPanel key={tab.value} value={value} index={tab.value}>
-          {tab.content}
-        </CustomTabPanel>
-      ))}
+      <div className="crawler-top">
+        <Header />
+        <nav className="crawler-tabs">
+          <TabList
+            value={tab}
+            onChange={setTab}
+            layout="fill"
+            size="sm"
+            role="tablist"
+            aria-label="Panels"
+          >
+            {Object.entries(TABS).map(([value, { label, icon }]) => (
+              <Tab
+                key={value}
+                value={value}
+                label={label}
+                icon={<Glyph name={icon} />}
+                panelId={PANEL_ID}
+              />
+            ))}
+          </TabList>
+        </nav>
+      </div>
+      <main id={PANEL_ID} className="crawler-main" role="tabpanel" aria-label={TABS[tab].label}>
+        {tab === "run" ? <RunPanel onBrowseRoutines={() => setTab("routines")} /> : null}
+        {tab === "routines" ? <RoutineLibrary /> : null}
+        {tab === "inspector" ? <Inspector /> : null}
+      </main>
     </div>
   );
 }

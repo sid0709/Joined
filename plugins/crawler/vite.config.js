@@ -34,11 +34,11 @@ export default defineConfig({
       input: {
         sidepanel: resolve(__dirname, "index.html"),
         background: resolve(__dirname, "src/background.js"),
-        contentScript: resolve(__dirname, "src/contentScript/index.js"),
+        // The content script is built on its own: see vite.contentScript.config.js.
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === "background" || chunkInfo.name === "contentScript") {
+          if (chunkInfo.name === "background") {
             return "[name].js";
           }
           return "assets/[name]-[hash].js";

@@ -1,0 +1,11 @@
+@import "@joined/design-system/styles/joined.css";
+
+html,
+body {
+  height: 100%;
+  font-family: var(--font-family-body);
+}
+
+html {
+  scrollbar-gutter: stable;
+}

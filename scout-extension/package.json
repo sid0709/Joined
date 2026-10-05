@@ -1,0 +1,30 @@
+{
+  "name": "scout-extension",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "tsc && vite build",
+    "typecheck": "tsc",
+    "lint": "eslint scripts src/packaging/checkManifest.ts src/api/hosts.ts src/api/config.ts vite.config.ts --max-warnings=0",
+    "lint:fix": "eslint scripts src/packaging/checkManifest.ts src/api/hosts.ts src/api/config.ts vite.config.ts --fix --max-warnings=0",
+    "test": "bun test",
+    "check:package": "bun scripts/check-package.ts",
+    "package": "bun run build && bun run check:package && bun scripts/zip-release.ts"
+  },
+  "dependencies": {
+    "@joined/design-system": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "catalog:",
+    "@types/chrome": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

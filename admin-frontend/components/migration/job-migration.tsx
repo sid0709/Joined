@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDialog, Banner, Button, PageHeader, Stack, StatGrid } from "@joined/design-system";
+import {
+  AlertDialog,
+  Banner,
+  Button,
+  PageHeader,
+  Stack,
+  StatGrid,
+  Switch,
+} from "@joined/design-system";
 import { TempJobsBrowser } from "@/components/jobs/temp-jobs-browser";
 import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";
@@ -21,13 +29,14 @@ const { copyJobs, analyzeJobs } = MIGRATION_TASKS;
 
 /**
  * Copy Athens jobs into temp_jobs, then analyze them with DeepSeek. Analysis publishes
- * each job it can describe well enough to the job pool. The two steps run
- * independently, so analysis can start while a copy is still running.
+ * each job it can describe well enough to the job pool and drops it from temp_jobs. The
+ * two steps run independently, so analysis can start while a copy is still running.
  */
 export function JobMigration() {
   const { status, error, finished, start, cancel } = useMigration();
   const [confirm, setConfirm] = useState<"copy" | "redo" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [webSearch, setWebSearch] = useState(true);
 
   const counts = status?.counts;
   const runs = status?.runs ?? {};
@@ -35,7 +44,8 @@ export function JobMigration() {
   const analyzing = isRunning(runs[analyzeJobs]);
   const model = status?.model || "DeepSeek";
   const notPublishable = counts?.notPublishableJobs ?? 0;
-  const pending = counts ? remaining(counts.tempJobs, counts.analyzedJobs + notPublishable) : 0;
+  // Published jobs leave temp_jobs, so every temp job not marked is still waiting.
+  const pending = counts ? remaining(counts.tempJobs, notPublishable) : 0;
 
   async function run(task: MigrationTask, body?: MigrationStart) {
     setNotice(null);
@@ -88,7 +98,7 @@ export function JobMigration() {
       ) : null}
       <MigrationStep
         title="1. Copy jobs"
-        description="Replaces temp_jobs with a fresh copy of every Athens job, written in parallel batches. Analyzed and scouted jobs are not affected."
+        description="Replaces temp_jobs with a fresh copy of every Athens job not yet published, written in parallel batches. Published and scouted jobs are not affected."
         run={runs[copyJobs]}
         onCancel={() => stop(copyJobs)}
         actions={
@@ -102,7 +112,7 @@ export function JobMigration() {
       />
       <MigrationStep
         title="2. Analyze with AI"
-        description={`${model} reads each job's description into the Joined job schema, many jobs at once, and publishes each job whose analysis has a real title and company, a summary, its duties or requirements, and its skills. Jobs it cannot describe that well, or without a description, are marked not publishable; failed ones stay waiting for the next run. It can run while jobs are still copying.`}
+        description={`${model} reads each job's description into the Joined job schema, many jobs at once, and publishes each job whose analysis has a real title and company, a summary, its duties or requirements, and its skills. Published jobs are removed from temp_jobs. Jobs it cannot describe that well, or without a description, are marked not publishable; failed ones stay waiting for the next run. It can run while jobs are still copying.`}
         run={runs[analyzeJobs]}
         onCancel={() => stop(analyzeJobs)}
         actions={
@@ -117,11 +127,19 @@ export function JobMigration() {
               label={pending ? `Analyze ${formatCount(pending)} waiting` : "Analyze waiting"}
               variant="primary"
               isDisabled={analyzing || !status?.modelReady || pending === 0}
-              clickAction={() => run(analyzeJobs)}
+              clickAction={() => run(analyzeJobs, { webSearch })}
             />
           </>
         }
-      />
+      >
+        <Switch
+          label="Web search"
+          description="The model searches the live web before it answers, including for a salary the posting leaves out. Off, it only uses the posting."
+          value={webSearch}
+          onChange={setWebSearch}
+          isDisabled={analyzing}
+        />
+      </MigrationStep>
       <TempJobsBrowser
         layout="section"
         description={`Or pick listings and analyze just those with ${model}. Finished records appear on Jobs.`}
@@ -129,7 +147,7 @@ export function JobMigration() {
         pageSizes={MIGRATION_PAGE_SIZES}
         refreshKey={finished}
         onAnalyze={async (ids) => {
-          await start(analyzeJobs, { tempJobIds: ids });
+          await start(analyzeJobs, { tempJobIds: ids, webSearch });
           return {
             status: "success",
             title: `Analyzing ${formatCount(ids.length)} jobs. Progress shows under Analyze with AI.`,
@@ -140,7 +158,7 @@ export function JobMigration() {
         isOpen={confirm === "copy"}
         onOpenChange={(open) => setConfirm(open ? "copy" : null)}
         title="Replace every temp job?"
-        description={`This replaces ${counts?.jobDestination ?? "temp_jobs"} with a fresh copy of ${counts?.jobSource ?? "the Athens jobs"}. Published and scouted jobs are not affected, and jobs marked not publishable get another try.`}
+        description={`This replaces ${counts?.jobDestination ?? "temp_jobs"} with a fresh copy of ${counts?.jobSource ?? "the Athens jobs"}. Published jobs are left out, scouted jobs are not affected, and jobs marked not publishable get another try.`}
         actionLabel="Replace temp jobs"
         actionVariant="destructive"
         onAction={() => run(copyJobs)}
@@ -149,9 +167,9 @@ export function JobMigration() {
         isOpen={confirm === "redo"}
         onOpenChange={(open) => setConfirm(open ? "redo" : null)}
         title="Analyze every temp job again?"
-        description={`This sends all ${formatCount(counts?.tempJobs ?? 0)} temp jobs to ${model} again, including ones already published or marked not publishable, and replaces the public records of those it can publish.`}
+        description={`This sends all ${formatCount(counts?.tempJobs ?? 0)} temp jobs to ${model} again, including ones marked not publishable, and publishes those it can. Published jobs have already left temp jobs.`}
         actionLabel="Re-analyze all"
-        onAction={() => run(analyzeJobs, { redo: true })}
+        onAction={() => run(analyzeJobs, { redo: true, webSearch })}
       />
     </Stack>
   );

@@ -119,7 +119,7 @@ func (s *Store) CopyCompanies(ctx context.Context, progress Progress) (CompanyCo
 	if err != nil {
 		return CompanyCopyResult{}, err
 	}
-	if err := s.dropPublishedFromStaging(ctx, published); err != nil {
+	if _, err := s.dropPublishedFromStaging(ctx, published); err != nil {
 		return CompanyCopyResult{}, err
 	}
 	source := s.sourceCompaniesColl()
@@ -358,6 +358,7 @@ func (s *Store) linkJobsToCompanies(ctx context.Context, companyIDs map[string]s
 	cursor, err := s.structured().Find(ctx, bson.D{}, options.Find().SetProjection(bson.D{
 		{Key: "_id", Value: 1},
 		{Key: "tempJobId", Value: 1},
+		{Key: "sourceCompanyId", Value: 1},
 		{Key: "job.id", Value: 1},
 		{Key: "job.companyId", Value: 1},
 	}))
@@ -402,7 +403,8 @@ func (s *Store) linkJobsToCompanies(ctx context.Context, companyIDs map[string]s
 }
 
 // linkModels builds one update per job. Jobs without a company are matched through
-// their temp job's source company, read for the whole batch at once.
+// the source company stored on them or, for older records, their temp job's, read for
+// the whole batch at once.
 func (s *Store) linkModels(ctx context.Context, docs []storedSearchJob, companyIDs map[string]string) ([]mongo.WriteModel, error) {
 	sources, err := s.tempCompanySources(ctx, docs)
 	if err != nil {
@@ -419,7 +421,11 @@ func (s *Store) linkModels(ctx context.Context, docs []storedSearchJob, companyI
 		}
 		companyID := doc.Job.CompanyID
 		if companyID == "" {
-			companyID = companyIDs[sources[doc.TempJobID]]
+			source := doc.SourceCompanyID
+			if source == "" {
+				source = sources[doc.TempJobID]
+			}
+			companyID = companyIDs[source]
 		}
 		models = append(models, mongo.NewUpdateOneModel().
 			SetFilter(bson.D{{Key: "_id", Value: doc.ID}}).
@@ -439,7 +445,7 @@ func (s *Store) linkModels(ctx context.Context, docs []storedSearchJob, companyI
 func (s *Store) tempCompanySources(ctx context.Context, docs []storedSearchJob) (map[string]string, error) {
 	ids := make([]bson.ObjectID, 0, len(docs))
 	for _, doc := range docs {
-		if doc.Job.CompanyID != "" {
+		if doc.Job.CompanyID != "" || doc.SourceCompanyID != "" {
 			continue
 		}
 		if id, err := bson.ObjectIDFromHex(doc.TempJobID); err == nil {

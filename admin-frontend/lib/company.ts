@@ -1,9 +1,13 @@
+import { adminDownload, adminFetch } from "@/lib/api";
 import { API_PROXY } from "@/lib/config";
 
 export const COMPANIES_PATH = "/v1/companies";
 export const COMPANIES_PAGE_SIZE = 25;
 /** Staged copies on the company migration page. */
 export const TEMP_COMPANIES_PATH = "/v1/companies/temp";
+export const TEMP_COMPANIES_EXPORT_PATH = "/v1/companies/temp/export";
+export const TEMP_COMPANIES_IMPORT_PATH = "/v1/companies/temp/import";
+export const STAGED_COMPANIES_FILE = "staged-companies.json";
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
 export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@joined/job-schema";
@@ -101,6 +105,26 @@ export type StagedCompanyList = {
   page: number;
   pageSize: number;
 };
+
+/** What POST /v1/companies/temp/import reports after a valid file. */
+export type CompanyImportResult = {
+  published: number;
+  unmatched: string[];
+};
+
+/** Downloads every staged company. Empty profile fields are null. */
+export function downloadStagedCompanies() {
+  return adminDownload(TEMP_COMPANIES_EXPORT_PATH, STAGED_COMPANIES_FILE);
+}
+
+/** Publishes staged companies that match a filled export file. */
+export function importStagedCompanies(body: string) {
+  return adminFetch<CompanyImportResult>(TEMP_COMPANIES_IMPORT_PATH, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+}
 
 export function stagedCompanyStatusLabel(status: StagedCompanyStatus): string {
   switch (status) {

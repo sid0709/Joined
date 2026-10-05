@@ -1,17 +1,17 @@
-import { Button, Card, PageHeader, PageTabs, Stack } from "@joined/design-system";
+import { Card, PageHeader, PageTabs, Stack } from "@joined/design-system";
 import { type Earning, type List } from "@joined/scout";
-import { redirect } from "next/navigation";
 
 import type { Metadata } from "next";
 
 import { CursorPager } from "@/components/cursor-pager";
 import { BalanceOverview } from "@/components/earnings/balance-overview";
 import { EarningsList } from "@/components/earnings/earnings-list";
+import { EarningsSignedOut } from "@/components/earnings/earnings-signed-out";
 import { RewardRules } from "@/components/earnings/reward-rules";
 import { PAGE_LIMIT } from "@/lib/config";
 import { param, type SearchParams } from "@/lib/page";
-import { ROUTES, signInHref } from "@/lib/routes";
-import { loadMeta, loadStats } from "@/lib/scout/load";
+import { ROUTES } from "@/lib/routes";
+import { loadEarningsSummary, loadMeta, loadStats } from "@/lib/scout/load";
 import { scoutGet } from "@/lib/scout/server";
 
 export const metadata: Metadata = { title: "Earnings" };
@@ -29,22 +29,22 @@ export default async function EarningsPage({ searchParams }: { searchParams: Sea
   const tab = param(query.tab) === TAB_RULES ? TAB_RULES : TAB_HISTORY;
   const search = new URLSearchParams({ limit: String(PAGE_LIMIT) });
   if (cursor) search.set("cursor", cursor);
-  const [stats, meta, earnings] = await Promise.all([
+  const [stats, meta, summary, earnings] = await Promise.all([
     loadStats(),
     loadMeta(),
+    loadEarningsSummary(),
     scoutGet<List<Earning>>(`/earnings?${search.toString()}`),
   ]);
-  if (!stats || !earnings) redirect(signInHref(ROUTES.earnings));
+  if (!stats || !summary || !earnings) return <EarningsSignedOut />;
   const { rewards } = meta;
 
   return (
     <Stack gap={6}>
       <PageHeader
         title="Earnings"
-        description={`New rewards are held ${rewards.hold_days} days, then become available to pay out.`}
-        action={<Button label="Request payout" variant="primary" href={ROUTES.payouts} />}
+        description="What you’ve earned, from which jobs, and what’s still pending."
       />
-      <BalanceOverview balance={stats.balance} rewards={rewards} />
+      <BalanceOverview balance={stats.balance} summary={summary} rewards={rewards} />
       <PageTabs tabs={TABS} value={tab} label="Earnings views" />
       {tab === TAB_RULES ? (
         <Card padding={6}>
@@ -54,9 +54,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Sea
         </Card>
       ) : (
         <Stack gap={4}>
-          <Card padding={2}>
-            <EarningsList rows={earnings.data} />
-          </Card>
+          <EarningsList rows={earnings.data} />
           <CursorPager
             basePath={ROUTES.earnings}
             params={{}}

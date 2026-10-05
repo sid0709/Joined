@@ -1,0 +1,164 @@
+name: E2E Smoke Tests
+
+# Runs on PRs into stage-roadmap only (roadmap feature testing).
+on:
+  pull_request:
+    branches: [stage-roadmap]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-smoke:
+    name: E2E smoke suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Non-blocking: services are heavy to start, and this suite is exploratory for now.
+    continue-on-error: true
+    env:
+      JOINED_BACKEND_LOG: /tmp/joined-backend-e2e.log
+      EMAIL_PROVIDER: log
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-bun
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Setup Go for backend services
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            go.work.sum
+            backend-core/go.sum
+            joined-backend/go.sum
+            admin-backend/go.sum
+            scoutwell-backend/go.sum
+
+      - name: Start MongoDB
+        run: |
+          docker run -d \
+            --name mongodb \
+            -p 27017:27017 \
+            -e MONGO_INITDB_ROOT_USERNAME=testuser \
+            -e MONGO_INITDB_ROOT_PASSWORD=testpass \
+            mongo:7
+
+          # Wait for MongoDB to be ready
+          for i in {1..30}; do
+            if docker exec mongodb mongosh --quiet --eval "db.version()" >/dev/null 2>&1; then
+              echo "MongoDB is ready"
+              break
+            fi
+            echo "Waiting for MongoDB... ($i/30)"
+            sleep 1
+          done
+
+          if ! docker exec mongodb mongosh --quiet --eval "db.version()" >/dev/null 2>&1; then
+            echo "MongoDB failed to start"
+            exit 1
+          fi
+
+      - name: Start backend services
+        env:
+          MONGO_URI: mongodb://testuser:testpass@127.0.0.1:27017/
+          DEST_DB: JoinedTestDB
+          DEST_COLLECTION: temp_jobs
+          JOBS_COLLECTION: jobs
+          COMPANIES_COLLECTION: companies
+          TEMP_COMPANIES_COLLECTION: temp_companies
+        run: |
+          : > "$JOINED_BACKEND_LOG"
+          (
+            cd joined-backend
+            export HTTP_ADDR="127.0.0.1:8080"
+            export CORS_ORIGINS="http://127.0.0.1:6002,http://localhost:6002"
+            export FRONTEND_ORIGIN="http://localhost:6002"
+            export EMAIL_PROVIDER="$EMAIL_PROVIDER"
+            go run ./cmd/server
+          ) >> "$JOINED_BACKEND_LOG" 2>&1 &
+          echo "Started joined-backend"
+          tail -n +1 -F "$JOINED_BACKEND_LOG" &
+
+          (
+            cd scoutwell-backend
+            export HTTP_ADDR="127.0.0.1:8082"
+            export CORS_ORIGINS="http://127.0.0.1:6003,http://localhost:6003"
+            go run ./cmd/server
+          ) &
+          echo "Started scoutwell-backend"
+
+          BACKEND_READY=false
+          for i in {1..30}; do
+            if curl -f http://127.0.0.1:8080/health >/dev/null 2>&1 && \
+              curl -f http://127.0.0.1:8082/health >/dev/null 2>&1; then
+              echo "backends are ready"
+              BACKEND_READY=true
+              break
+            fi
+            echo "Waiting for backends... ($i/30)"
+            sleep 2
+          done
+
+          if [ "$BACKEND_READY" = false ]; then
+            echo "backends failed to start"
+            exit 1
+          fi
+
+      - name: Start frontend services
+        run: |
+          # Start joined-frontend
+          bun --filter joined-frontend dev &
+          JOINED_FRONTEND_PID=$!
+          echo "Started joined-frontend (PID: $JOINED_FRONTEND_PID)"
+
+          # Start scoutwell-frontend
+          bun --filter scoutwell-frontend dev &
+          SCOUTWELL_FRONTEND_PID=$!
+          echo "Started scoutwell-frontend (PID: $SCOUTWELL_FRONTEND_PID)"
+
+          # Wait for frontends to be ready
+          FRONTENDS_READY=false
+          for i in {1..60}; do
+            if curl -f http://localhost:6002 >/dev/null 2>&1 && \
+               curl -f http://localhost:6003 >/dev/null 2>&1; then
+              echo "Frontends are ready"
+              FRONTENDS_READY=true
+              break
+            fi
+            echo "Waiting for frontends... ($i/60)"
+            sleep 2
+          done
+
+          if [ "$FRONTENDS_READY" = false ]; then
+            echo "Frontends failed to start"
+            exit 1
+          fi
+        env:
+          JOINED_API_URL: http://127.0.0.1:8080
+          SCOUTWELL_API_URL: http://127.0.0.1:8082
+
+      - name: Run E2E smoke tests
+        run: bunx playwright test --config tests/e2e/playwright.config.ts
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload joined-backend log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: joined-backend-e2e-log
+          path: ${{ env.JOINED_BACKEND_LOG }}
+          if-no-files-found: ignore
+          retention-days: 7

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -49,19 +50,19 @@ func ValidIdempotencyKey(key string) bool {
 func (s *Store) Idempotent(ctx context.Context, userID, route, key string, body []byte, fn func() Replay) (Replay, bool, error) {
 	sum := sha256.Sum256(body)
 	hash := hex.EncodeToString(sum[:])
-	filter := bson.D{{Key: "userId", Value: userID}, {Key: "route", Value: route}, {Key: "key", Value: key}}
-
-	_, err := s.collection(idempotencyCollection).InsertOne(ctx, idempotencyRecord{
+	rec := idempotencyRecord{
 		UserID:    userID,
 		Route:     route,
 		Key:       key,
 		BodyHash:  hash,
 		CreatedAt: s.now().UTC(),
-	})
+	}
+
+	err := s.claimIdempotency(ctx, rec)
 	if mongo.IsDuplicateKeyError(err) {
-		var existing idempotencyRecord
-		if err := s.collection(idempotencyCollection).FindOne(ctx, filter).Decode(&existing); err != nil {
-			return Replay{}, false, err
+		existing, loadErr := s.loadIdempotency(ctx, userID, route, key)
+		if loadErr != nil {
+			return Replay{}, false, loadErr
 		}
 		if existing.BodyHash != hash {
 			return Replay{}, false, ErrIdempotency
@@ -78,13 +79,56 @@ func (s *Store) Idempotent(ctx context.Context, userID, route, key string, body 
 	result := fn()
 	// Server errors are not cached, so the client can retry with the same key.
 	if result.Status >= 500 {
-		_, err := s.collection(idempotencyCollection).DeleteOne(ctx, filter)
-		return result, false, err
+		return result, false, s.dropIdempotency(ctx, userID, route, key)
 	}
-	_, err = s.collection(idempotencyCollection).UpdateOne(ctx, filter, bson.D{{Key: "$set", Value: bson.D{
+	if err := s.completeIdempotency(ctx, userID, route, key, result); err != nil {
+		if dropErr := s.dropIdempotency(ctx, userID, route, key); dropErr != nil {
+			return result, false, fmt.Errorf("complete idempotency: %w (also drop: %v)", err, dropErr)
+		}
+		return result, false, fmt.Errorf("complete idempotency: %w", err)
+	}
+	return result, false, nil
+}
+
+func (s *Store) claimIdempotency(ctx context.Context, rec idempotencyRecord) error {
+	if s.docs != nil {
+		return s.docs.insertIdempotency(ctx, rec)
+	}
+	_, err := s.collection(idempotencyCollection).InsertOne(ctx, rec)
+	return err
+}
+
+func (s *Store) loadIdempotency(ctx context.Context, userID, route, key string) (idempotencyRecord, error) {
+	if s.docs != nil {
+		return s.docs.findIdempotency(ctx, userID, route, key)
+	}
+	var existing idempotencyRecord
+	err := s.collection(idempotencyCollection).FindOne(ctx, bson.D{
+		{Key: "userId", Value: userID}, {Key: "route", Value: route}, {Key: "key", Value: key},
+	}).Decode(&existing)
+	return existing, err
+}
+
+func (s *Store) dropIdempotency(ctx context.Context, userID, route, key string) error {
+	if s.docs != nil {
+		return s.docs.deleteIdempotency(ctx, userID, route, key)
+	}
+	_, err := s.collection(idempotencyCollection).DeleteOne(ctx, bson.D{
+		{Key: "userId", Value: userID}, {Key: "route", Value: route}, {Key: "key", Value: key},
+	})
+	return err
+}
+
+func (s *Store) completeIdempotency(ctx context.Context, userID, route, key string, result Replay) error {
+	if s.docs != nil {
+		return s.docs.finishIdempotency(ctx, userID, route, key, result.Status, result.Body)
+	}
+	_, err := s.collection(idempotencyCollection).UpdateOne(ctx, bson.D{
+		{Key: "userId", Value: userID}, {Key: "route", Value: route}, {Key: "key", Value: key},
+	}, bson.D{{Key: "$set", Value: bson.D{
 		{Key: "done", Value: true},
 		{Key: "status", Value: result.Status},
 		{Key: "body", Value: result.Body},
 	}}})
-	return result, false, err
+	return err
 }

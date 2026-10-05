@@ -5,34 +5,43 @@ body,
 #root {
   margin: 0;
   min-height: 100%;
-  height: 100%;
 }
 
 body {
   background: var(--color-background-body);
 }
 
-/* Side panel shell */
+/* Side panel shell: sticky header and tabs, scrolling content. */
 .crawler-app {
-  --crawler-panel-max-width: 420px;
-  --crawler-logo-size: 40px;
-  --crawler-api-url-max-width: 140px;
-
-  min-height: 100%;
-  padding: var(--spacing-3);
-  overflow: auto;
+  min-height: 100vh;
 }
 
 .crawler-layout {
-  width: 100%;
+  --crawler-panel-max-width: 480px;
+  --crawler-logo-size: 32px;
+  --crawler-transition: 160ms ease-out;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   max-width: var(--crawler-panel-max-width);
   margin: 0 auto;
 }
 
+.crawler-top {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-background-body);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
 .crawler-header {
-  padding-bottom: var(--spacing-4);
-  margin-bottom: var(--spacing-4);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
+}
+
+.crawler-tabs {
+  padding-inline: var(--spacing-2);
 }
 
 .crawler-logo {
@@ -43,57 +52,95 @@ body {
   border-radius: var(--radius-inner);
 }
 
-.crawler-tab-panel {
-  padding-top: var(--spacing-4);
+.crawler-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-4);
 }
 
-.crawler-divider {
-  width: 100%;
-  margin: 0;
-  border: 0;
-  border-top: 1px solid var(--color-border);
+/* A stack child that keeps its size beside text that truncates. */
+.crawler-fixed {
+  flex-shrink: 0;
 }
 
-.crawler-api-url {
-  max-width: var(--crawler-api-url-max-width);
-  overflow: hidden;
-  font-family: var(--font-family-code);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* A stack child that takes the free width and may truncate. */
+.crawler-grow {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-/* Validation checklist and run results */
-.crawler-check-grid {
+/* Run tab: content, then an action bar pinned to the bottom of the panel. */
+.crawler-run {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.crawler-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0 calc(-1 * var(--spacing-3)) calc(-1 * var(--spacing-4));
+  padding: var(--spacing-3);
+  background: var(--color-background-body);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* Field checklist: two columns of fields, each with its state and hit rate. */
+.crawler-field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-2);
+  gap: var(--spacing-1-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.crawler-stat-grid {
-  /* Narrowest stat that still shows its full label; narrower panels wrap to a second row. */
-  --crawler-stat-min-width: 84px;
-
+.crawler-field {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--crawler-stat-min-width), 1fr));
-  gap: var(--spacing-2);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-1-5);
+  padding: var(--spacing-1-5) var(--spacing-2);
+  border-radius: var(--radius-inner);
+  background: var(--color-background-muted);
+  transition:
+    background-color var(--crawler-transition),
+    box-shadow var(--crawler-transition);
 }
 
-.crawler-check-wide {
-  grid-column: 1 / -1;
+.crawler-field[data-state="reading"] {
+  background: var(--color-accent-muted);
+  box-shadow: inset 0 0 0 1px var(--color-border-focus);
 }
 
-.crawler-check,
-.crawler-stat {
-  min-width: 0;
+.crawler-field[data-state="invalid"] {
+  background: var(--color-error-muted);
+}
+
+/* Routine library: the fields a routine reads. */
+.crawler-routine-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1-5);
+  margin: var(--spacing-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crawler-routine-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-0-5);
   padding: var(--spacing-2);
   border-radius: var(--radius-inner);
   background: var(--color-background-muted);
 }
 
-.crawler-stat {
-  text-align: center;
-}
-
+/* Text tones on top of the Joined palette. */
 .crawler-tone-success {
   color: var(--color-success);
 }
@@ -112,4 +159,16 @@ body {
 
 .crawler-tone-muted {
   color: var(--color-text-secondary);
+}
+
+@media (max-width: 340px) {
+  .crawler-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crawler-field {
+    transition: none;
+  }
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/admin-backend/internal/migration"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 const (
@@ -51,6 +52,15 @@ type migrationStartRequest struct {
 	CompanyIDs []string `json:"companyIds"`
 	// Redo works through items an earlier run already finished.
 	Redo bool `json:"redo"`
+	// WebSearch is whether the model may use web_search. Nil keeps it on.
+	WebSearch *bool `json:"webSearch"`
+}
+
+func (r migrationStartRequest) useWebSearch() bool {
+	if r.WebSearch == nil {
+		return true
+	}
+	return *r.WebSearch
 }
 
 func (s *Server) registerMigration(api *http.ServeMux) {
@@ -89,6 +99,12 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task := migration.Task(r.PathValue("task"))
+	if task == migration.CopyJobs || task == migration.CopyCompanies {
+		if err := killswitch.Check(r.Context(), s.switches, killswitch.JobImports); err != nil {
+			killswitch.WriteDisabled(w, killswitch.JobImports)
+			return
+		}
+	}
 	work, usesModel, ok := s.migrationWork(task, body)
 	if !ok {
 		httpkit.WriteError(w, http.StatusNotFound, "unknown migration step")
@@ -137,7 +153,7 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 			if err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("Copied %d jobs from %s into %s.", result.Copied, result.Source, result.Destination), nil
+			return jobCopySummary(result), nil
 		}, false, true
 	case migration.CopyCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
@@ -148,18 +164,27 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 			return companyCopySummary(result), nil
 		}, false, true
 	case migration.AnalyzeJobs:
-		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo}
+		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
 			err := s.store.AnalyzeTempJobs(ctx, s.ai, scope, s.analyzeWorkers, progress)
 			return tally("Published", "not publishable", progress.Snapshot()), err
 		}, true, true
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo}, s.researchWorkers, progress)
+			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}, s.researchWorkers, progress)
 			return tally("Published", "not found", progress.Snapshot()), err
 		}, true, true
 	}
 	return nil, false, false
+}
+
+// jobCopySummary says how many copied jobs wait in temp_jobs.
+func jobCopySummary(result jobs.CopyResult) string {
+	summary := fmt.Sprintf("Copied %d jobs from %s into %s.", result.Copied, result.Source, result.Destination)
+	if result.Published > 0 {
+		summary += fmt.Sprintf(" Left out %d already published.", result.Published)
+	}
+	return summary
 }
 
 // companyCopySummary says where the copied companies went.

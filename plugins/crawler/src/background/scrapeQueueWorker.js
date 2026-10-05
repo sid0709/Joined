@@ -13,7 +13,13 @@ import {
   retryDelayMs,
   selectReadyItems,
 } from "../api/scrapeQueue.js";
-import { API_URL, JOB_API_STORAGE_KEY, SCRAPE_SOURCE } from "../config/env.js";
+import {
+  API_URL,
+  CRAWLER_INGEST_PATH,
+  CRAWLER_INGEST_TOKEN,
+  JOB_API_STORAGE_KEY,
+  SCRAPE_SOURCE,
+} from "../config/env.js";
 
 import { normalizeBaseUrl, safeSendMessage, storageGet, storageSet } from "./runtime.js";
 
@@ -116,12 +122,21 @@ async function processScrapeBatch(batch) {
     return;
   }
 
-  console.log("[scrapeQueue] POST", `${baseUrl}/jobs/ingest`, `(${batch.length} jobs)`);
+  if (!CRAWLER_INGEST_TOKEN) {
+    await requeueScrapeBatch(batch, "VITE_CRAWLER_INGEST_TOKEN is not configured");
+    return;
+  }
+
+  const ingestUrl = `${baseUrl}${CRAWLER_INGEST_PATH}`;
+  console.log("[scrapeQueue] POST", ingestUrl, `(${batch.length} jobs)`);
   let response;
   try {
-    response = await fetch(`${baseUrl}/jobs/ingest`, {
+    response = await fetch(ingestUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CRAWLER_INGEST_TOKEN}`,
+      },
       body: JSON.stringify({
         createdBy: SCRAPE_SOURCE,
         jobs: batch.map((item) => item.job),

@@ -43,10 +43,19 @@ type storedSearchJob struct {
 	ListingStatus         string        `bson:"listingStatus,omitempty"`
 	PreviousListingStatus string        `bson:"previousListingStatus,omitempty"`
 	TakedownCause         string        `bson:"takedownCause,omitempty"`
+	LinkCheckFailures     int           `bson:"linkCheckFailures,omitempty"`
+	LastLinkCheckedAt     time.Time     `bson:"lastLinkCheckedAt,omitempty"`
+	LastVerifiedOpenAt    time.Time     `bson:"lastVerifiedOpenAt,omitempty"`
+	ExpiredAt             time.Time     `bson:"expiredAt,omitempty"`
+	LinkCheckSignal       string        `bson:"linkCheckSignal,omitempty"`
 	ReviewNote            string        `bson:"reviewNote,omitempty"`
 	ReviewedBy            string        `bson:"reviewedBy,omitempty"`
 	ReviewedAt            time.Time     `bson:"reviewedAt,omitempty"`
 	Job                   SearchJob     `bson:"job"`
+	DedupeKey             string        `bson:"dedupeKey,omitempty"`
+	// SourceCompanyID is the temp job's source company, kept so the job can still be
+	// linked to its company once the temp job is dropped.
+	SourceCompanyID string `bson:"sourceCompanyId,omitempty"`
 }
 
 type tempListing struct {
@@ -74,6 +83,14 @@ type tempListing struct {
 	} `bson:"metadata"`
 }
 
+// sourceCompanyID is the source company id the listing was copied with, if any.
+func (listing tempListing) sourceCompanyID() string {
+	if listing.CompanyID.IsZero() {
+		return ""
+	}
+	return listing.CompanyID.Hex()
+}
+
 const maxSearchCatalog = 2000
 
 type catalogJob struct {
@@ -83,6 +100,7 @@ type catalogJob struct {
 	CompanyLogo    string         `json:"companyLogo,omitempty"`
 	CreatedBy      string         `json:"createdBy,omitempty"`
 	ListingSource  string         `json:"listingSource,omitempty"`
+	Hidden         bool           `json:"hidden"`
 	CompanyProfile *PublicCompany `json:"companyProfile,omitempty"`
 }
 
@@ -97,6 +115,7 @@ func CatalogJob(record SearchRecord) catalogJob {
 		ApplyLink:     record.ApplyLink,
 		CreatedBy:     record.CreatedBy,
 		ListingSource: record.Source,
+		Hidden:        isHiddenJob(record.Job.Source, record.Source),
 	}
 }
 
@@ -312,13 +331,7 @@ func (s *Store) saveSearchJob(ctx context.Context, doc storedSearchJob) error {
 	if strings.TrimSpace(doc.Job.Description) == "" {
 		return ErrMissingDescription
 	}
-	_, err := s.structured().ReplaceOne(
-		ctx,
-		bson.D{{Key: "_id", Value: doc.ID}},
-		doc,
-		options.Replace().SetUpsert(true),
-	)
-	return err
+	return s.upsertDeduped(ctx, doc)
 }
 
 func (s *Store) pendingCount(ctx context.Context) (int64, error) {
@@ -326,16 +339,12 @@ func (s *Store) pendingCount(ctx context.Context) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	// Scouted jobs are published without a temp job, so only count analyzed temp jobs.
-	structured, err := s.structured().CountDocuments(ctx, bson.D{{Key: "tempJobId", Value: bson.D{{Key: "$gt", Value: ""}}}})
-	if err != nil {
-		return 0, err
-	}
+	// Published temp jobs are dropped, so every temp job not marked is still pending.
 	notPublishable, err := s.dest().CountDocuments(ctx, bson.D{{Key: notPublishableField, Value: bson.D{{Key: "$exists", Value: true}}}})
 	if err != nil {
 		return 0, err
 	}
-	pending := tempCount - structured - notPublishable
+	pending := tempCount - notPublishable
 	if pending < 0 {
 		return 0, nil
 	}

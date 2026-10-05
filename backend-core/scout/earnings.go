@@ -35,7 +35,7 @@ func (s *Store) addEarning(ctx context.Context, sub Submission, kind string, amo
 	if _, err := s.collection(earningsCollection).InsertOne(ctx, earning); err != nil {
 		return err
 	}
-	s.notifyReward(ctx, sub.ScoutUserID, earning)
+	s.notifyRewardImpl(ctx, sub.ScoutUserID, earning)
 	return nil
 }
 
@@ -195,7 +195,7 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 		return Payout{}, err
 	}
 	payout.fill()
-	s.notify(ctx, userID, kindPayout, toneAccent, "Payout requested", formatMoney(payout.Amount)+" to "+payout.Method.Label+" is being processed.", payout.ID)
+	s.notify(ctx, userID, notice{kind: kindPayout, tone: toneAccent, title: "Payout requested", body: formatMoney(payout.Amount) + " to " + payout.Method.Label + " is being processed.", subjectID: payout.ID})
 	return payout, nil
 }
 

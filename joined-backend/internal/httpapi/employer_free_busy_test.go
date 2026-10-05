@@ -52,10 +52,10 @@ func TestFreeBusyRouteIsRegistered(t *testing.T) {
 	if rec.Code == http.StatusNotFound {
 		t.Fatalf("free-busy route is missing: %s", rec.Body.String())
 	}
-	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d body = %s (route is protected, expects 401 without auth)", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), "hiring workspace is unavailable") {
+	if !strings.Contains(rec.Body.String(), "sign in required") {
 		t.Fatalf("body = %s", rec.Body.String())
 	}
 }

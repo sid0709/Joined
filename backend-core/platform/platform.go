@@ -15,6 +15,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/database"
 	"github.com/sid0709/OpenSeat/backend-core/employer"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -34,6 +35,8 @@ type Platform struct {
 	AISettings *aisettings.Store
 	// DeepSeekSettings holds the DeepSeek settings staff save for admin analysis.
 	DeepSeekSettings *aisettings.Store
+	// KillSwitches are runtime feature toggles. Env is the default; Mongo can override.
+	KillSwitches *killswitch.Store
 }
 
 // Options are the parts of the platform only some services configure.
@@ -43,6 +46,9 @@ type Options struct {
 	// SettingsKey is the base64 AES-256 key that seals secrets saved in the database
 	// (SETTINGS_ENCRYPTION_KEY). Blank leaves saving a secret unavailable.
 	SettingsKey string
+	// EnsureSearchIndex controls whether the job search text index is created at startup.
+	// Defaults to false; enable in dev environments via SEARCH_ENSURE_INDEX=true.
+	EnsureSearchIndex bool
 }
 
 // Open connects to the database, builds every store, and ensures their indexes.
@@ -81,10 +87,21 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 
 		AISettings:       aisettings.NewStore(client, db.DestDB, box),
 		DeepSeekSettings: aisettings.NewStoreFor(client, db.DestDB, box, aisettings.DocumentDeepSeek),
+		KillSwitches:     killswitch.NewStore(client, db.DestDB, killswitch.LoadDefaults()),
 	}
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()
 		return nil, err
+	}
+	if opts.EnsureSearchIndex {
+		if err := listings.EnsureSearchIndexes(ctx); err != nil {
+			p.Close()
+			return nil, fmt.Errorf("jobs search indexes: %w", err)
+		}
+		if err := listings.EnsureDedupeIndexes(ctx); err != nil {
+			p.Close()
+			return nil, fmt.Errorf("jobs dedupe indexes: %w", err)
+		}
 	}
 	return p, nil
 }
@@ -106,6 +123,11 @@ func (p *Platform) ensureIndexes(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// Mongo returns the shared database client.
+func (p *Platform) Mongo() *mongo.Client {
+	return p.client
 }
 
 // Close disconnects from the database.

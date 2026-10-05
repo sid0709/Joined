@@ -520,6 +520,7 @@ func (s *Store) Analyze(ctx context.Context, id, actor string, edits *Submission
 		return sub, result, nil
 	}
 	record := result.Record
+	wasLive := sub.JobID != ""
 	set := bson.D{
 		{Key: "jobId", Value: record.Job.ID},
 		{Key: "jobRef", Value: record.TempJobID},
@@ -535,6 +536,9 @@ func (s *Store) Analyze(ctx context.Context, id, actor string, edits *Submission
 	sub, err = s.submission(ctx, id)
 	if err != nil {
 		return Submission{}, jobs.AnalyzeScoutedResult{}, err
+	}
+	if !wasLive && sub.JobID != "" {
+		s.notifyPublished(ctx, sub)
 	}
 	return sub, result, nil
 }
@@ -640,7 +644,7 @@ func (s *Store) Expire(ctx context.Context, id, actor, note string) (Submission,
 	}}}); err != nil {
 		return Submission{}, err
 	}
-	s.notify(ctx, sub.ScoutUserID, kindDecision, toneNeutral, "Job expired", sub.Title+" at "+sub.CompanyName+" closed and left the pool.", sub.ID)
+	s.notify(ctx, sub.ScoutUserID, notice{kind: kindDecision, tone: toneNeutral, title: "Job expired", body: sub.Title + " at " + sub.CompanyName + " closed and left the pool.", subjectID: sub.ID})
 	s.audit(ctx, "submission.expire", "scout_submission", sub.ID, actor, note)
 	if err := s.recomputeLevel(ctx, sub.ScoutUserID); err != nil {
 		return Submission{}, err
@@ -853,13 +857,13 @@ func (s *Store) UpdateScout(ctx context.Context, userID, actor string, patch Sco
 	}
 	if patch.Verification != nil {
 		if *patch.Verification == VerificationVerified {
-			s.notify(ctx, userID, kindVerification, toneSuccess, "Identity verified", "You are tier 2: payouts are unlocked.", "")
+			s.notify(ctx, userID, notice{kind: kindVerification, tone: toneSuccess, title: "Identity verified", body: "You are tier 2: payouts are unlocked."})
 		} else {
 			body := "Your identity could not be verified."
 			if note := strings.TrimSpace(patch.Note); note != "" {
 				body += " " + note
 			}
-			s.notify(ctx, userID, kindVerification, toneDanger, "Verification declined", body, "")
+			s.notify(ctx, userID, notice{kind: kindVerification, tone: toneDanger, title: "Verification declined", body: body})
 		}
 	}
 	if patch.LevelPinned != nil && !*patch.LevelPinned && patch.Level == nil {
@@ -935,7 +939,7 @@ func (s *Store) DecidePayout(ctx context.Context, id, actor string, input Payout
 			bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: EarningPaid}, {Key: "paidAt", Value: now}}}}); err != nil {
 			return Payout{}, err
 		}
-		s.notify(ctx, payout.ScoutUserID, kindPayout, toneSuccess, "Payout sent", formatMoney(payout.Amount)+" was sent to "+payout.Method.Label+".", payout.ID)
+		s.notify(ctx, payout.ScoutUserID, notice{kind: kindPayout, tone: toneSuccess, title: "Payout sent", body: formatMoney(payout.Amount) + " was sent to " + payout.Method.Label + ".", subjectID: payout.ID})
 	case PayoutDecisionReject:
 		if note == "" {
 			return Payout{}, &ValidationError{Fields: []FieldError{{Field: "note", Detail: "explain why the payout is declined"}}}
@@ -946,7 +950,7 @@ func (s *Store) DecidePayout(ctx context.Context, id, actor string, input Payout
 		}); err != nil {
 			return Payout{}, err
 		}
-		s.notify(ctx, payout.ScoutUserID, kindPayout, toneDanger, "Payout declined", note, payout.ID)
+		s.notify(ctx, payout.ScoutUserID, notice{kind: kindPayout, tone: toneDanger, title: "Payout declined", body: note, subjectID: payout.ID})
 	default:
 		return Payout{}, &ValidationError{Fields: []FieldError{{Field: "decision", Detail: "use paid or rejected"}}}
 	}

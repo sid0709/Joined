@@ -10,22 +10,30 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/authapi"
+	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/employer"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
+type sessionLookup interface {
+	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
+}
+
 type Server struct {
-	store    *jobs.Store
-	auth     *auth.Store
-	people   *candidate.Store
-	hiring   *employer.Store
-	staff    staff.API
-	reader   jobs.ModelReader
-	frontend string
+	store       *jobs.Store
+	auth        *auth.Store
+	sessions    sessionLookup
+	people      *candidate.Store
+	hiring      *employer.Store
+	staff       staff.API
+	reader      jobs.ModelReader
+	frontend    string
+	companyMode bool
 }
 
 // Options are the HTTP server's settings.
@@ -37,22 +45,44 @@ type Options struct {
 	Google *google.Client
 	// GoogleRedirectURL is joined-frontend's Google sign-in callback page.
 	GoogleRedirectURL string
+	// CompanyMode lets recruiter accounts use /v1/company/*. Off for launch.
+	CompanyMode bool
+	// Sessions, when set, is used for role checks instead of accounts.
+	Sessions sessionLookup
+	// EmailSender delivers transactional email.
+	EmailSender auth.EmailSender
+	// KillSwitches turns off sign-up and outbound email at runtime. Nil leaves them on.
+	// Checkout is Penny's billing mount; see backend-core/killswitch/README.md.
+	KillSwitches killswitch.Switches
+	// Billing is Premium checkout, portal, and subscription status. Nil leaves those routes unmounted.
+	Billing *billing.Service
+	// BillingWebhook receives Stripe-signed events. Nil leaves POST /v1/webhooks/stripe unmounted.
+	BillingWebhook *billing.WebhookRouter
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
+	var sessions sessionLookup
+	if opts.Sessions != nil {
+		sessions = opts.Sessions
+	} else if accounts != nil {
+		sessions = accounts
+	}
 	server := &Server{
-		store:    store,
-		auth:     accounts,
-		people:   people,
-		hiring:   hiring,
-		staff:    moderation,
-		reader:   reader,
-		frontend: opts.Frontend,
+		store:       store,
+		auth:        accounts,
+		sessions:    sessions,
+		people:      people,
+		hiring:      hiring,
+		staff:       moderation,
+		reader:      reader,
+		frontend:    opts.Frontend,
+		companyMode: opts.CompanyMode,
 	}
 	identity := authapi.Handlers{
 		Accounts:       accounts,
 		Audience:       auth.AudienceJoined,
 		CompanyCreated: server.noteNewCompany,
+		Switches:       opts.KillSwitches,
 		// Google is the only way in. A sign-up is a job hunter unless it asks to be a
 		// recruiter, who then links or creates a company on the hiring setup page.
 		// A job hunter's consent screen also asks for the calendar interviews sync with.
@@ -62,6 +92,9 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 			Roles:       []string{auth.RoleCandidate, auth.RoleEmployee},
 			Scopes:      []string{google.ScopeCalendarEvents},
 			Granted:     server.attachCalendar,
+		},
+		Email: &authapi.EmailAuth{
+			Sender: emailSenderOrDev(opts.EmailSender),
 		},
 	}
 	mux := http.NewServeMux()
@@ -74,36 +107,58 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	mux.HandleFunc("GET /v1/search/jobs/{id}", server.getSearchCatalogJob)
 	mux.HandleFunc("GET /v1/search/companies/{id}/logo", httpkit.CompanyLogo(store))
 	mux.HandleFunc("GET /v1/search/companies/{id}", server.getSearchCompany)
-	mux.HandleFunc("GET /v1/me/profile", server.getProfile)
-	mux.HandleFunc("PATCH /v1/me/profile", server.patchProfile)
-	mux.HandleFunc("GET /v1/me/saved-jobs", server.getSavedJobs)
-	mux.HandleFunc("PUT /v1/me/saved-jobs/{jobId}", server.putSavedJob)
-	mux.HandleFunc("DELETE /v1/me/saved-jobs/{jobId}", server.deleteSavedJob)
-	mux.HandleFunc("GET /v1/me/applications", server.getApplications)
-	mux.HandleFunc("POST /v1/me/applications", server.postApplication)
-	mux.HandleFunc("PATCH /v1/me/applications/{id}", server.patchApplication)
-	mux.HandleFunc("GET /v1/me/applications/{id}/offer/esign", server.getMyOfferEsign)
-	mux.HandleFunc("POST /v1/me/applications/{id}/offer/esign", server.postMyOfferEsign)
-	mux.HandleFunc("DELETE /v1/me/applications/{id}", server.deleteApplication)
-	mux.HandleFunc("GET /v1/me/interviews", server.getInterviews)
-	mux.HandleFunc("POST /v1/me/interviews", server.postInterview)
-	mux.HandleFunc("PATCH /v1/me/interviews/{id}", server.patchInterview)
-	mux.HandleFunc("GET /v1/me/calendar", server.getCalendar)
-	mux.HandleFunc("GET /v1/me/calendar/events", server.getCalendarEvents)
-	mux.HandleFunc("GET /v1/me/calendar/google/start", server.startGoogleCalendar)
+
+	candidateMux := http.NewServeMux()
+	candidateMux.HandleFunc("GET /v1/me/profile", server.getProfile)
+	candidateMux.HandleFunc("PATCH /v1/me/profile", server.patchProfile)
+	candidateMux.HandleFunc("GET /v1/me/saved-jobs", server.getSavedJobs)
+	candidateMux.HandleFunc("PUT /v1/me/saved-jobs/{jobId}", server.putSavedJob)
+	candidateMux.HandleFunc("DELETE /v1/me/saved-jobs/{jobId}", server.deleteSavedJob)
+	candidateMux.HandleFunc("GET /v1/me/applications", server.getApplications)
+	candidateMux.HandleFunc("POST /v1/me/applications", server.postApplication)
+	candidateMux.HandleFunc("PATCH /v1/me/applications/{id}", server.patchApplication)
+	candidateMux.HandleFunc("GET /v1/me/applications/{id}/offer/esign", server.getMyOfferEsign)
+	candidateMux.HandleFunc("POST /v1/me/applications/{id}/offer/esign", server.postMyOfferEsign)
+	candidateMux.HandleFunc("DELETE /v1/me/applications/{id}", server.deleteApplication)
+	candidateMux.HandleFunc("GET /v1/me/interviews", server.getInterviews)
+	candidateMux.HandleFunc("POST /v1/me/interviews", server.postInterview)
+	candidateMux.HandleFunc("PATCH /v1/me/interviews/{id}", server.patchInterview)
+	candidateMux.HandleFunc("GET /v1/me/calendar", server.getCalendar)
+	candidateMux.HandleFunc("GET /v1/me/calendar/events", server.getCalendarEvents)
+	candidateMux.HandleFunc("GET /v1/me/calendar/google/start", server.startGoogleCalendar)
+	candidateMux.HandleFunc("DELETE /v1/me/calendar/google", server.disconnectGoogleCalendar)
+	candidateMux.HandleFunc("POST /v1/me/calendar/google/sync", server.syncGoogleCalendar)
+	candidateMux.HandleFunc("GET /v1/me/threads", server.getMyThreads)
+	candidateMux.HandleFunc("GET /v1/me/threads/{id}", server.getMyThread)
+	candidateMux.HandleFunc("POST /v1/me/threads/{id}/messages", server.postMyMessage)
+	candidateMux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
+	if opts.Billing != nil {
+		billing.Handlers{Service: opts.Billing, CurrentUser: server.billingCurrentUser}.Register(candidateMux)
+	}
+	// Google's OAuth redirect has no Authorization header; it authenticates via state.
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
-	mux.HandleFunc("DELETE /v1/me/calendar/google", server.disconnectGoogleCalendar)
-	mux.HandleFunc("POST /v1/me/calendar/google/sync", server.syncGoogleCalendar)
-	mux.HandleFunc("GET /v1/me/threads", server.getMyThreads)
-	mux.HandleFunc("GET /v1/me/threads/{id}", server.getMyThread)
-	mux.HandleFunc("POST /v1/me/threads/{id}/messages", server.postMyMessage)
-	mux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
-	mux.HandleFunc("GET /v1/company/threads", server.getCompanyThreads)
-	mux.HandleFunc("GET /v1/company/threads/{id}", server.getCompanyThread)
-	mux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
-	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
-	server.registerEmployer(mux)
+	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
+	if opts.BillingWebhook != nil {
+		opts.BillingWebhook.UseService(opts.Billing)
+		mux.Handle("POST "+billing.WebhookPath, opts.BillingWebhook)
+	}
+
+	companyMux := http.NewServeMux()
+	companyMux.HandleFunc("GET /v1/company/threads", server.getCompanyThreads)
+	companyMux.HandleFunc("GET /v1/company/threads/{id}", server.getCompanyThread)
+	companyMux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
+	companyMux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
+	server.registerEmployer(companyMux)
+	mux.Handle("/v1/company/", authapi.RequireRole(sessions, []string{auth.RoleEmployee}, requireCompanyMode(opts.CompanyMode, companyMux)))
+
 	return httpkit.CORS(opts.Origins, mux)
+}
+
+func emailSenderOrDev(sender auth.EmailSender) auth.EmailSender {
+	if sender == nil {
+		return auth.DevEmailSender{}
+	}
+	return sender
 }
 
 // attachCalendar keeps the calendar a job hunter granted while signing in with

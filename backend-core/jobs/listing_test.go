@@ -6,7 +6,7 @@ func TestListingPublicKeepsLegacyRowsVisible(t *testing.T) {
 	if !ListingPublic("") || !ListingPublic(ListingActive) {
 		t.Fatal("active and legacy listings should stay public")
 	}
-	for _, status := range []string{ListingPendingReview, ListingRemoved, ListingDraft} {
+	for _, status := range []string{ListingPendingReview, ListingRemoved, ListingDraft, ListingExpired} {
 		if ListingPublic(status) {
 			t.Fatalf("%s should be hidden", status)
 		}

@@ -26,17 +26,23 @@ func (s *Server) registerPublicAnalyzer(mux *http.ServeMux) {
 }
 
 func (s *Server) analyzerAuth(next http.HandlerFunc) http.HandlerFunc {
+	return bearerAuth(s.analyzerToken, "ANALYZER_API_TOKEN", "analyzer token required", next)
+}
+
+// bearerAuth guards a public route with its own token: 503 until the token is
+// configured (envName says which), 401 without a matching bearer token.
+func bearerAuth(want, envName, missing string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.analyzerToken == "" {
-			httpkit.WriteError(w, http.StatusServiceUnavailable, "ANALYZER_API_TOKEN is not configured")
+		if want == "" {
+			httpkit.WriteError(w, http.StatusServiceUnavailable, envName+" is not configured")
 			return
 		}
 		token := httpkit.BearerToken(r)
-		if subtle.ConstantTimeCompare([]byte(token), []byte(s.analyzerToken)) == 1 {
+		if subtle.ConstantTimeCompare([]byte(token), []byte(want)) == 1 {
 			next(w, r)
 			return
 		}
-		httpkit.WriteError(w, http.StatusUnauthorized, "analyzer token required")
+		httpkit.WriteError(w, http.StatusUnauthorized, missing)
 	}
 }
 

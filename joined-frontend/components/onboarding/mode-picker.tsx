@@ -17,7 +17,8 @@ import {
   Text,
   type GlyphName,
 } from "@joined/design-system";
-import { BRAND, HIRING_SIGN_UP_HREF, ROUTES, type WorkspaceMode } from "@/lib/routes";
+import { isCompanyModeEnabled } from "@/lib/config";
+import { AUTH_PAGE_PATHS, BRAND, HIRING_SIGN_UP_HREF, type WorkspaceMode } from "@/lib/routes";
 import {
   getServerWorkspaceMode,
   readStoredWorkspaceMode,
@@ -66,9 +67,6 @@ const PATHS: Path[] = [
   },
 ];
 
-/** A one-time fork on first visit (no mode cookie yet): candidate or employer decides which mode opens. */
-const AUTH_PATHS = [ROUTES.signIn, ROUTES.signUp, ROUTES.hiringSetup];
-
 /**
  * Public, shareable pages — a job or company link can land here straight from a
  * search engine or a shared URL, so the mode fork must not block them the way it
@@ -81,6 +79,7 @@ export function ModePicker() {
   const pathname = usePathname();
   const router = useRouter();
   const switchMode = useSwitchMode();
+  const companyModeEnabled = isCompanyModeEnabled();
   // "unresolved" (SSR / first client render) reads as already-chosen, so nobody sees a flash
   // of the picker before React can check localStorage; a genuine `null` opens it for real.
   const storedMode = useSyncExternalStore(
@@ -89,11 +88,12 @@ export function ModePicker() {
     getServerWorkspaceMode,
   );
   const [dismissed, setDismissed] = useState(false);
-  const onAuthPath = AUTH_PATHS.some(
+  const onAuthPath = AUTH_PAGE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
   const onPublicPath = PUBLIC_PATH_PREFIXES.some((path) => pathname.startsWith(path));
-  const isOpen = storedMode === null && !dismissed && !onAuthPath && !onPublicPath;
+  const isOpen =
+    companyModeEnabled && storedMode === null && !dismissed && !onAuthPath && !onPublicPath;
 
   const choose = (path: Path) => {
     setDismissed(true);
@@ -103,6 +103,8 @@ export function ModePicker() {
     }
     switchMode(path.mode);
   };
+
+  const visiblePaths = companyModeEnabled ? PATHS : PATHS.filter((p) => p.mode === "hunter");
 
   return (
     <Dialog
@@ -127,7 +129,7 @@ export function ModePicker() {
 
           <Stack width="100%" maxWidth={CONTENT_MAX_WIDTH}>
             <GridSystem gap={5} align="stretch" responsiveTo="viewport">
-              {PATHS.map((path) => (
+              {visiblePaths.map((path) => (
                 <GridColumn key={path.mode} span="full" md={6}>
                   <ClickableCard
                     label={path.cta}

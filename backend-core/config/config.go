@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // DefaultDeepSeekMaxSearches caps the web searches behind one research answer: enough
@@ -88,6 +89,11 @@ type HTTP struct {
 	Origins []string
 }
 
+// ErrorReporting is the error tracker DSN. Empty means no error tracking.
+type ErrorReporting struct {
+	SentryDSN string
+}
+
 // LoadEnvFile reads .env from the working directory. Variables already set in
 // the environment win.
 func LoadEnvFile() {
@@ -151,6 +157,27 @@ func LoadHTTP(defaultAddr string, defaultOrigins []string) (HTTP, error) {
 	return cfg, nil
 }
 
+// SearchEnsureIndex returns whether the job search text index should be created at startup.
+// Defaults to false. Set SEARCH_ENSURE_INDEX=true to enable in development.
+func SearchEnsureIndex() bool {
+	explicit := strings.TrimSpace(os.Getenv("SEARCH_ENSURE_INDEX"))
+	return explicit == "true" || explicit == "1"
+}
+
+// JobsExpiryCheckerEnabled reports whether the in-process dead-link checker should run.
+// Defaults to false. Set JOBS_EXPIRY_CHECKER_ENABLED=true to turn it on.
+func JobsExpiryCheckerEnabled() bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("JOBS_EXPIRY_CHECKER_ENABLED")))
+	return value == "true" || value == "1"
+}
+
+// LoadErrorReporting reads SENTRY_DSN from the environment.
+func LoadErrorReporting() ErrorReporting {
+	return ErrorReporting{
+		SentryDSN: strings.TrimSpace(os.Getenv("SENTRY_DSN")),
+	}
+}
+
 // Env returns the trimmed value of key, or fallback when it is unset or blank.
 func Env(key, fallback string) string {
 	value := strings.TrimSpace(os.Getenv(key))
@@ -167,6 +194,19 @@ func EnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+// EnvDuration returns key as a positive duration, or fallback when it is unset or not one.
+func EnvDuration(key string, fallback time.Duration) time.Duration {
+	value := Env(key, "")
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil || parsed < 1 {
+		return fallback
+	}
+	return parsed
 }
 
 func Redact(err error, uri string) string {

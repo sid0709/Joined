@@ -7,6 +7,10 @@ name: Deploy
 # deploy/README.md lists them. Each non-secret setting may be stored as either a
 # variable or a secret. workflow_dispatch builds every image, because latest may
 # already be newer than the commit being rolled out.
+#
+# IMPORTANT: Deploy is restricted to main only. The workflow_run trigger below
+# specifies branches: [main], and the ci-succeeded job validates head_branch == 'main'.
+# CI runs on stage-roadmap and other staging branches will NOT trigger deploy.
 on:
   workflow_run:
     workflows: ["CI"]
