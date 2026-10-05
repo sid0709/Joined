@@ -65,7 +65,11 @@ func syncPremiumPrices(ctx context.Context, client Client, productID string, cfg
 	pricesByLookup := make(map[string]*Price)
 	for _, p := range prices {
 		if p.LookupKey != "" {
-			pricesByLookup[p.LookupKey] = p
+			if existing, found := pricesByLookup[p.LookupKey]; !found || p.Active {
+				pricesByLookup[p.LookupKey] = p
+			} else if !existing.Active && p.Active {
+				pricesByLookup[p.LookupKey] = p
+			}
 		}
 	}
 	if err := syncPrice(ctx, client, productID, monthlyPriceLookupKey, cfg.PremiumMonthlyPriceCents, "month", pricesByLookup); err != nil {
@@ -78,34 +82,38 @@ func syncPremiumPrices(ctx context.Context, client Client, productID string, cfg
 }
 
 func syncPrice(ctx context.Context, client Client, productID, lookupKey string, amountCents int, interval string, existing map[string]*Price) error {
-	var replacedPriceID string
-	if price, ok := existing[lookupKey]; ok {
-		if price.UnitAmount != amountCents {
-			replacedPriceID = price.ID
+	price, hasKeyHolder := existing[lookupKey]
+	if hasKeyHolder && price.Active && price.UnitAmount == amountCents {
+		return nil
+	}
+	if hasKeyHolder {
+		// Inactive holder or amount change: create the replacement first so a
+		// failed create leaves the current catalog intact and retryable.
+		created, err := client.CreatePrice(ctx, CreatePriceRequest{
+			Product:    productID,
+			Currency:   "usd",
+			UnitAmount: amountCents,
+			Recurring: &Recurring{
+				Interval:      interval,
+				IntervalCount: 1,
+			},
+			LookupKey:       lookupKey,
+			ReplacedPriceID: price.ID,
+			Metadata: map[string]string{
+				"lookup_key": lookupKey,
+			},
+			TransferLookupKey: true,
+		})
+		if err != nil {
+			return fmt.Errorf("create new price: %w", err)
+		}
+		if !created.Active {
+			return fmt.Errorf("created price %s is inactive (idempotency replay returned stale price)", created.ID)
+		}
+		if price.Active {
 			deactivate := false
 			if _, err := client.UpdatePrice(ctx, price.ID, UpdatePriceRequest{Active: &deactivate}); err != nil {
 				return fmt.Errorf("deactivate old price: %w", err)
-			}
-			created, err := client.CreatePrice(ctx, CreatePriceRequest{
-				Product:    productID,
-				Currency:   "usd",
-				UnitAmount: amountCents,
-				Recurring: &Recurring{
-					Interval:      interval,
-					IntervalCount: 1,
-				},
-				LookupKey:       lookupKey,
-				ReplacedPriceID: replacedPriceID,
-				Metadata: map[string]string{
-					"lookup_key": lookupKey,
-				},
-				TransferLookupKey: true,
-			})
-			if err != nil {
-				return fmt.Errorf("create new price: %w", err)
-			}
-			if !created.Active {
-				return fmt.Errorf("created price %s is inactive (idempotency replay returned stale price)", created.ID)
 			}
 		}
 		return nil
