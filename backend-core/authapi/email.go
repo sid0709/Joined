@@ -8,6 +8,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 // EmailAuth handles email authentication routes.
@@ -21,6 +22,9 @@ func (e *EmailAuth) configured() bool {
 
 // signup creates a new account with email and password.
 func (h Handlers) signup(w http.ResponseWriter, r *http.Request) {
+	if h.blocked(w, r, killswitch.Signup) {
+		return
+	}
 	if !h.Email.configured() {
 		httpkit.WriteError(w, http.StatusServiceUnavailable, "email sign-up is not available")
 		return
@@ -64,20 +68,18 @@ func (h Handlers) signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if created {
-		// Create verification token
 		token, err := h.Accounts.CreateVerificationToken(r.Context(), userID, now)
 		if err != nil {
 			slog.Error("create verification token", "error", err)
 			httpkit.WriteError(w, http.StatusInternalServerError, "could not create account")
 			return
 		}
-
-		// Send verification email
-		if err := h.Email.Sender.SendVerification(r.Context(), body.Email, body.Name, token); err != nil {
-			slog.Error("send verification email", "error", err)
+		if killswitch.On(h.Switches, r.Context(), killswitch.Email) {
+			if err := h.Email.Sender.SendVerification(r.Context(), body.Email, body.Name, token); err != nil {
+				slog.Error("send verification email", "error", err)
+			}
 		}
-	} else {
-		// Email already taken - send notice to existing account holder
+	} else if killswitch.On(h.Switches, r.Context(), killswitch.Email) {
 		if err := h.Email.Sender.SendDuplicateSignupNotice(r.Context(), body.Email); err != nil {
 			slog.Error("send duplicate signup notice", "error", err)
 		}
@@ -152,6 +154,9 @@ func (h Handlers) emailSignin(w http.ResponseWriter, r *http.Request) {
 
 // requestPasswordReset sends a password reset email.
 func (h Handlers) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
+	if h.blocked(w, r, killswitch.Email) {
+		return
+	}
 	if !h.Email.configured() {
 		httpkit.WriteError(w, http.StatusServiceUnavailable, "password reset is not available")
 		return

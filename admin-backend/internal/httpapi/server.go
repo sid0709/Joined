@@ -11,6 +11,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
@@ -42,6 +43,7 @@ type Server struct {
 	importSources     []jobs.SourceStatus
 	importRecentLimit int
 	importRuns        jobs.ImportRunLog
+	switches          killswitch.Switches
 }
 
 // Options are the HTTP server's settings.
@@ -69,6 +71,9 @@ type Options struct {
 	DeepSeekEnv config.DeepSeek
 	// Import is the read-only scheduled import status and recent-run log.
 	Import ImportOptions
+	// KillSwitches are runtime feature toggles staff flip from the API. Nil leaves
+	// job imports on and the staff switch routes answering 503.
+	KillSwitches killswitch.Switches
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -92,6 +97,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		importSources:     opts.Import.Sources,
 		importRecentLimit: opts.Import.RecentLimit,
 		importRuns:        opts.Import.Runs,
+		switches:          opts.KillSwitches,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -116,6 +122,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerMigration(api)
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
+	server.registerKillSwitches(api)
 	server.registerAcornAI(api)
 	server.registerDeepSeek(api)
 

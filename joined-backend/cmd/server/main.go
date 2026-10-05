@@ -86,6 +86,7 @@ func main() {
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 		CompanyMode:       companyModeEnabled(config.Env(companyModeEnv, "")),
 		EmailSender:       emailSender,
+		KillSwitches:      p.KillSwitches,
 		Billing:           premium,
 		BillingWebhook:    webhook,
 	})

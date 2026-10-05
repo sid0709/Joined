@@ -13,6 +13,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 )
@@ -90,7 +91,7 @@ func main() {
 	}
 	importGate := jobs.LookupImportKillSwitch()
 	if importGate == nil {
-		importGate = jobs.KillSwitchFrom(p)
+		importGate = jobImportsGate(p.KillSwitches)
 	}
 	importRunner := jobs.NewRunner(jobs.RunnerOptions{
 		Enabled:  importCfg.Enabled,
@@ -125,6 +126,7 @@ func main() {
 			RecentLimit: importCfg.RecentLimit,
 			Runs:        importLog,
 		},
+		KillSwitches: p.KillSwitches,
 	})
 	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
@@ -152,4 +154,19 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 	} else if dropped > 0 {
 		slog.Info("drop company leadership", "companies", dropped)
 	}
+}
+
+type jobImportsSwitch struct {
+	switches killswitch.Switches
+}
+
+func jobImportsGate(switches killswitch.Switches) jobs.ImportKillSwitch {
+	if switches == nil {
+		return nil
+	}
+	return jobImportsSwitch{switches: switches}
+}
+
+func (g jobImportsSwitch) Allow(string) bool {
+	return killswitch.On(g.switches, context.Background(), killswitch.JobImports)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/acorn"
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 )
 
 type fakeSessions map[string]auth.Session
@@ -183,6 +184,24 @@ func TestMarkApplied(t *testing.T) {
 	}
 	if rec := call(handler, "POST", "/acorn/jobs/dup/mark-applied", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
 		t.Fatalf("already applied should still succeed: %d", rec.Code)
+	}
+}
+
+func TestAcornAIKillSwitch(t *testing.T) {
+	people := &fakePeople{}
+	sessions := fakeSessions{
+		"hunter": {User: auth.User{ID: "u1", Name: "Jordan Lee", Email: "j@example.com", Role: auth.RoleCandidate}},
+	}
+	handler, gw := New(sessions, people, nil, acorn.New(fakeModel{reply: `{"goal":"g"}`}), Options{
+		KillSwitches: killswitch.NewMemory(killswitch.Defaults{killswitch.AcornAI: false}),
+	})
+	t.Cleanup(gw.Close)
+	rec := call(handler, "POST", "/acorn/ai-analyze", `{"pureTree":"input[1]"}`, bearer("hunter"), "")
+	if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "Acorn AI") {
+		t.Fatalf("killed AI = %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := call(handler, "GET", "/acorn/auth/me", "", bearer("hunter"), ""); rec.Code != http.StatusOK {
+		t.Fatalf("auth should stay up: %d", rec.Code)
 	}
 }
 
