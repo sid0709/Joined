@@ -66,7 +66,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 			Granted:     server.attachCalendar,
 		},
 		Email: &authapi.EmailAuth{
-			Sender: opts.EmailSender,
+			Sender: emailSenderOrDev(opts.EmailSender),
 		},
 	}
 	mux := http.NewServeMux()
@@ -109,6 +109,13 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	mux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
 	server.registerEmployer(mux)
 	return httpkit.CORS(opts.Origins, mux)
+}
+
+func emailSenderOrDev(sender auth.EmailSender) auth.EmailSender {
+	if sender == nil {
+		return auth.DevEmailSender{}
+	}
+	return sender
 }
 
 // attachCalendar keeps the calendar a job hunter granted while signing in with
