@@ -111,7 +111,7 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | ------------------------------------------------------------- | -------------------------------------------------- | ---------- | ----------- |
 | [step-33](step-33-ci-for-stage-roadmap-w34.md)                | CI for PRs into stage-roadmap-w34                  | Quinn      | Done (#104) |
 | [step-34](step-34-saved-searches-api.md)                      | Persist saved searches; alert schedule hooks       | Ravi       | Done (#106) |
-| [step-35](step-35-saved-searches-ui-alerts.md)                | Saved-search UI + email alert preferences          | Leo        | Planned     |
+| [step-35](step-35-saved-searches-ui-alerts.md)                | Saved-search UI + email alert preferences          | Leo        | Done        |
 | [step-36](step-36-fit-score-api.md)                           | Fit score + short reason on jobs                   | Ravi       | Done (#108) |
 | [step-37](step-37-fit-score-ui.md)                            | Show fit score/reason in search                    | Leo        | Planned     |
 | [step-38](step-38-seo-job-pages.md)                           | SSR job pages, titles, JobPosting, sitemap, robots | Leo        | Done (#107) |
