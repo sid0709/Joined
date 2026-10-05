@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 func TestSearchEnsureIndex(t *testing.T) {
@@ -79,6 +80,72 @@ func TestSearchEnsureIndex(t *testing.T) {
 				t.Errorf("SearchEnsureIndex() = %v, want %v (env=%q)", got, tt.want, tt.envVal)
 			}
 		})
+	}
+}
+
+func TestJobsExpiryCheckerEnabledDefaultsOff(t *testing.T) {
+	originalVal, originalSet := os.LookupEnv("JOBS_EXPIRY_CHECKER_ENABLED")
+	defer func() {
+		if originalSet {
+			os.Setenv("JOBS_EXPIRY_CHECKER_ENABLED", originalVal)
+		} else {
+			os.Unsetenv("JOBS_EXPIRY_CHECKER_ENABLED")
+		}
+	}()
+
+	os.Unsetenv("JOBS_EXPIRY_CHECKER_ENABLED")
+	if JobsExpiryCheckerEnabled() {
+		t.Fatal("expiry checker must be off when the env flag is unset")
+	}
+
+	tests := []struct {
+		env  string
+		want bool
+	}{
+		{env: "true", want: true},
+		{env: "1", want: true},
+		{env: "TRUE", want: true},
+		{env: "false", want: false},
+		{env: "0", want: false},
+		{env: "yes", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.env, func(t *testing.T) {
+			os.Setenv("JOBS_EXPIRY_CHECKER_ENABLED", tt.env)
+			if got := JobsExpiryCheckerEnabled(); got != tt.want {
+				t.Fatalf("JobsExpiryCheckerEnabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEnvDuration(t *testing.T) {
+	key := "TEST_JOBS_EXPIRY_TIMEOUT"
+	originalVal, originalSet := os.LookupEnv(key)
+	defer func() {
+		if originalSet {
+			os.Setenv(key, originalVal)
+		} else {
+			os.Unsetenv(key)
+		}
+	}()
+
+	fallback := 10 * time.Second
+	os.Unsetenv(key)
+	if got := EnvDuration(key, fallback); got != fallback {
+		t.Fatalf("unset = %v, want fallback", got)
+	}
+	os.Setenv(key, "15s")
+	if got := EnvDuration(key, fallback); got != 15*time.Second {
+		t.Fatalf("15s = %v", got)
+	}
+	os.Setenv(key, "nope")
+	if got := EnvDuration(key, fallback); got != fallback {
+		t.Fatalf("invalid = %v, want fallback", got)
+	}
+	os.Setenv(key, "0s")
+	if got := EnvDuration(key, fallback); got != fallback {
+		t.Fatalf("zero = %v, want fallback", got)
 	}
 }
 

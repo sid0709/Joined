@@ -21,6 +21,7 @@ export type RewardType = "approval" | "apply" | "interview" | "hire" | "conversi
 export type PayoutStatus = "requested" | "paid" | "rejected";
 export type NotificationTone = "accent" | "success" | "warning" | "danger" | "neutral";
 export type NotificationKind = "decision" | "reward" | "level" | "payout" | "verification";
+export type SubmissionChangeEvent = "accepted" | "rejected" | "published" | "earned";
 
 export type Check = { id: string; label: string; outcome: CheckOutcome; detail: string };
 
@@ -183,9 +184,17 @@ export type ScoutNotification = {
   title: string;
   body: string;
   subject_id?: string;
+  /** Present on submission status and earnings rows the extension polls. */
+  event?: SubmissionChangeEvent;
   read: boolean;
   created_at: string;
 };
+
+/** GET /v1/scout/notifications — inbox (`cursor`) or change feed (`since`). */
+export type NotificationPage = List<ScoutNotification> & { unread_count: number };
+
+/** POST /v1/scout/notifications/read. Empty ids marks every notification read. */
+export type MarkReadInput = { ids?: string[] };
 
 /** Cursor pagination: pass `next_cursor` back as `cursor` until it is empty. */
 export type List<T> = { data: T[]; next_cursor: string };

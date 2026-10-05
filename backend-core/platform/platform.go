@@ -125,6 +125,11 @@ func (p *Platform) ensureIndexes(ctx context.Context) error {
 	return nil
 }
 
+// Mongo returns the shared database client.
+func (p *Platform) Mongo() *mongo.Client {
+	return p.client
+}
+
 // Close disconnects from the database.
 func (p *Platform) Close() {
 	_ = p.client.Disconnect(context.Background())
