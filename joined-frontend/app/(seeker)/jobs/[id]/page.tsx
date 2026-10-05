@@ -33,7 +33,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   }
 
   const session = await loadSession();
-  // On public pages, treat employees (when company mode off) as guests; don't call candidate APIs
+  // On public pages, treat employees as guests: no candidate APIs, signedIn=false
   const isEmployeeSession = session?.company != null;
   const [savedIds, appliedIds] = !isEmployeeSession
     ? await Promise.all([loadSavedJobIds(), loadAppliedJobIds()])
@@ -45,7 +45,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       jobs={jobs}
       saved={savedIds.includes(job.id)}
       applied={appliedIds.includes(job.id)}
-      signedIn={Boolean(session)}
+      signedIn={Boolean(session) && !isEmployeeSession}
     />
   );
 }

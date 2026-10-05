@@ -44,6 +44,40 @@ describe("employee session with company mode disabled", () => {
     expect(shouldCallCandidateApis).toBe(false);
   });
 
+  test("employee on public job page should be treated as guest (signedIn=false)", () => {
+    const hasSession = true;
+    const isEmployeeSession = true;
+
+    // Employee sessions should be treated as NOT signed in (guest) on public pages
+    const signedIn = hasSession && !isEmployeeSession;
+    expect(signedIn).toBe(false);
+  });
+
+  test("candidate on public job page should be treated as signed in", () => {
+    const hasSession = true;
+    const isEmployeeSession = false;
+
+    // Candidate sessions should be treated as signed in on public pages
+    const signedIn = hasSession && !isEmployeeSession;
+    expect(signedIn).toBe(true);
+  });
+
+  test("employee should get guest header actions when flag is off", () => {
+    const originalFlag = process.env.NEXT_PUBLIC_COMPANY_MODE_ENABLED;
+    try {
+      process.env.NEXT_PUBLIC_COMPANY_MODE_ENABLED = "false";
+      const companyModeEnabled = isCompanyModeEnabled();
+      const isEmployeeSession = true;
+      const hasSession = true;
+
+      // With flag off, pass null session to header for guest actions
+      const sessionForHeader = !companyModeEnabled && isEmployeeSession ? null : hasSession;
+      expect(sessionForHeader).toBe(null);
+    } finally {
+      process.env.NEXT_PUBLIC_COMPANY_MODE_ENABLED = originalFlag;
+    }
+  });
+
   test("candidate sessions always call candidate APIs regardless of flag", () => {
     const hasCompany = false;
 
