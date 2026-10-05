@@ -5,3 +5,7 @@ export function joinedApiUrl(): string {
   }
   return url.replace(/\/$/, "");
 }
+
+export function isCompanyModeEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_COMPANY_MODE_ENABLED === "true";
+}
