@@ -47,6 +47,7 @@ type storedSearchJob struct {
 	ReviewedBy            string        `bson:"reviewedBy,omitempty"`
 	ReviewedAt            time.Time     `bson:"reviewedAt,omitempty"`
 	Job                   SearchJob     `bson:"job"`
+	DedupeKey             string        `bson:"dedupeKey,omitempty"`
 }
 
 type tempListing struct {
@@ -312,13 +313,7 @@ func (s *Store) saveSearchJob(ctx context.Context, doc storedSearchJob) error {
 	if strings.TrimSpace(doc.Job.Description) == "" {
 		return ErrMissingDescription
 	}
-	_, err := s.structured().ReplaceOne(
-		ctx,
-		bson.D{{Key: "_id", Value: doc.ID}},
-		doc,
-		options.Replace().SetUpsert(true),
-	)
-	return err
+	return s.upsertDeduped(ctx, doc)
 }
 
 func (s *Store) pendingCount(ctx context.Context) (int64, error) {
