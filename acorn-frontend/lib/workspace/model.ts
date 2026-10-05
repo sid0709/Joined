@@ -13,7 +13,6 @@ const EMPTY_WORKSPACE: Workspace = {
   readMail: [],
   gmailLabels: [],
   labeling: null,
-  plugins: {},
 };
 
 export const HEADLINE_MAX = 80;
@@ -80,8 +79,6 @@ export type Workspace = {
   gmailLabels: string[];
   /** The last auto-label run, or null if it never ran. */
   labeling: Labeling | null;
-  /** Plugin id → on or off, for plugins you switched from their default. */
-  plugins: Record<string, boolean>;
 };
 
 export function emptyWorkspace(): Workspace {
@@ -99,10 +96,6 @@ function parseWorkspace(raw: string): Workspace {
       readMail: Array.isArray(parsed.readMail) ? parsed.readMail : [],
       gmailLabels: Array.isArray(parsed.gmailLabels) ? parsed.gmailLabels : [],
       labeling: isLabeling(parsed.labeling) ? parsed.labeling : null,
-      plugins:
-        parsed.plugins && typeof parsed.plugins === "object" && !Array.isArray(parsed.plugins)
-          ? parsed.plugins
-          : {},
     };
   } catch {
     return EMPTY_WORKSPACE;

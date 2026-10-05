@@ -50,7 +50,7 @@ export const PLANS: Plan[] = [
       "50 resume drafts a month",
       "3 Gmail mailboxes",
       "Gmail auto-label",
-      "Every ATS autofill plugin",
+      "Autofill on every supported job site",
     ],
   },
   {
@@ -64,7 +64,7 @@ export const PLANS: Plan[] = [
       "Unlimited resume drafts",
       "10 Gmail mailboxes",
       "Priority AI models",
-      "Early access to new plugins",
+      "Early access to new features",
     ],
   },
 ];
