@@ -13,7 +13,8 @@
       "acorn/extension",
       "acorn/packages/*",
       "acorn/demo",
-      "plugins/crawler"
+      "plugins/crawler",
+      "scout-extension"
     ],
     "catalog": {
       "@astryxdesign/cli": "0.6.3",
