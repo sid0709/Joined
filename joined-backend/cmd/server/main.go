@@ -43,6 +43,13 @@ func main() {
 	googleConfig := config.LoadGoogle()
 	oauth := &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret}
 	calendar := &candidate.Google{OAuth: oauth, RedirectURL: config.Env("GOOGLE_REDIRECT_URL", "")}
+	
+	emailConfig := config.LoadEmail()
+	emailSender, err := emailConfig.NewEmailSender()
+	if err != nil {
+		slog.Error("email config", "error", err)
+		os.Exit(1)
+	}
 
 	p, err := platform.Open(context.Background(), db, platform.Options{
 		Calendar:          calendar,
@@ -60,6 +67,7 @@ func main() {
 		Frontend:          frontend,
 		Google:            oauth,
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
+		EmailSender:       emailSender,
 	})
 	if err := httpkit.Serve("joined api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)

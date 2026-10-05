@@ -37,6 +37,8 @@ type Options struct {
 	Google *google.Client
 	// GoogleRedirectURL is joined-frontend's Google sign-in callback page.
 	GoogleRedirectURL string
+	// EmailSender delivers transactional email.
+	EmailSender auth.EmailSender
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -63,9 +65,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 			Scopes:      []string{google.ScopeCalendarEvents},
 			Granted:     server.attachCalendar,
 		},
-		// Email authentication with dev sender that logs messages
 		Email: &authapi.EmailAuth{
-			Sender: auth.DevEmailSender{},
+			Sender: opts.EmailSender,
 		},
 	}
 	mux := http.NewServeMux()
