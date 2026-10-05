@@ -1,9 +1,9 @@
 name: E2E Smoke Tests
 
-# Runs on PRs into stage-roadmap only (roadmap feature testing).
+# Runs on PRs into stage-roadmap and stage-roadmap-w34 only (roadmap feature testing).
 on:
   pull_request:
-    branches: [stage-roadmap]
+    branches: [stage-roadmap, stage-roadmap-w34]
 
 permissions:
   contents: read
