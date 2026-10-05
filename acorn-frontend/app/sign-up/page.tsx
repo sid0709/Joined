@@ -19,7 +19,7 @@ export default async function SignUpPage({
   return (
     <PageContainer width="narrow">
       <Stack gap={8}>
-        <SiteHeader signedIn={false} />
+        <SiteHeader />
         <Stack gap={1}>
           <Heading level={1}>Create an Acorn account</Heading>
           <Text color="secondary">The extension uses this same sign-in.</Text>

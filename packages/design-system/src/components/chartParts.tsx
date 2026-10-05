@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
-
 import { VisuallyHidden } from "./Lists";
+
+import type { ReactNode } from "react";
 
 /**
  * Shared pieces for every chart: the tone names, the legend, the hover readout, and the

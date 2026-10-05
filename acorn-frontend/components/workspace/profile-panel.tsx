@@ -2,9 +2,15 @@
 
 import { useRef, useState } from "react";
 import {
+  Badge,
   Banner,
   Button,
   FileUploader,
+  Glyph,
+  HStack,
+  Tab,
+  TabList,
+  type GlyphName,
   FormLayout,
   Grid,
   GridColumn,
@@ -45,12 +51,23 @@ import {
   VETERAN_OPTIONS,
   VISA_OPTIONS,
   sampleProfile,
+  yearsOfExperience,
   type ApplicantProfile,
 } from "@/lib/workspace/profile";
-import { useWorkspace } from "./use-workspace";
+import { CareerChart } from "./profile/career-chart";
+import { ProfileSummary } from "./profile/profile-summary";
 import { ProfileTimeline } from "./profile-timeline";
+import { useWorkspace } from "./use-workspace";
 
 const PAIR_WIDTH = 140;
+
+const SECTIONS = [
+  { value: "identity", label: "Identity", icon: "user" },
+  { value: "disclosures", label: "Disclosures", icon: "lock" },
+  { value: "assistant", label: "Job bid & AI", icon: "sparkle" },
+  { value: "career", label: "Career", icon: "calendar" },
+] as const satisfies { value: string; label: string; icon: GlyphName }[];
+type Section = (typeof SECTIONS)[number]["value"];
 
 export function ProfilePanel({ account }: { account: AcornAccount }) {
   const { workspace, update } = useWorkspace();
@@ -59,6 +76,7 @@ export function ProfilePanel({ account }: { account: AcornAccount }) {
   const [saved, setSaved] = useState(false);
   const [uploadNote, setUploadNote] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [section, setSection] = useState<Section>("identity");
   const seenUpload = useRef("");
   const profile = draft ?? base;
 
@@ -101,44 +119,82 @@ export function ProfilePanel({ account }: { account: AcornAccount }) {
     setSaved(true);
   };
 
+  const today = new Date();
+  const unsaved = draft !== null;
+
   return (
     <Stack gap={6}>
       <PageHeader
         title="Profile"
         description="Identity, disclosures, and the career timeline Acorn types into applications."
-        action={<Button label="Save profile" variant="primary" onClick={save} />}
+        action={
+          <HStack gap={3} vAlign="center">
+            {unsaved ? <Badge label="Unsaved changes" variant="warning" /> : null}
+            <Button label="Save profile" variant="primary" onClick={save} isDisabled={!unsaved} />
+          </HStack>
+        }
       />
       {saved ? <Banner status="success" title="Profile saved on this browser." /> : null}
       {uploadNote ? <Banner status="success" title={uploadNote} /> : null}
       {uploadError ? <Banner status="error" title={uploadError} /> : null}
-      <SectionCard
-        title="Upload résumé"
-        description="Drop a PDF or text résumé. Acorn fills your name, contact, links, and career timeline from it."
-      >
-        <FileUploader
-          label="Résumé file"
-          accept={RESUME_ACCEPT}
-          isMultiple={false}
-          maxFiles={1}
-          maxSize={RESUME_MAX_BYTES}
-          onChange={(files) => {
-            void fillFromUpload(files[0]);
-          }}
-        />
-      </SectionCard>
       <GridSystem gap={4} align="start">
         <GridColumn span="full" lg={4}>
-          <Identity profile={profile} onChange={set} />
-        </GridColumn>
-        <GridColumn span="full" lg={4}>
           <Stack gap={4}>
-            <Disclosures profile={profile} onChange={set} />
-            <JobBid profile={profile} onChange={set} />
-            <ModelChoice profile={profile} onChange={set} />
+            <ProfileSummary profile={profile} years={yearsOfExperience(profile, today)} />
+            <SectionCard
+              title="Upload résumé"
+              description="A PDF or text résumé fills your name, contact, links, and timeline."
+            >
+              <FileUploader
+                label="Résumé file"
+                accept={RESUME_ACCEPT}
+                isMultiple={false}
+                maxFiles={1}
+                maxSize={RESUME_MAX_BYTES}
+                onChange={(files) => {
+                  void fillFromUpload(files[0]);
+                }}
+              />
+            </SectionCard>
           </Stack>
         </GridColumn>
-        <GridColumn span="full" lg={4}>
-          <ProfileTimeline profile={profile} onChange={setDraft} />
+        <GridColumn span="full" lg={8}>
+          <Stack gap={4}>
+            <TabList
+              value={section}
+              onChange={(value) => setSection(value as Section)}
+              hasDivider
+              overflow="scroll"
+            >
+              {SECTIONS.map((item) => (
+                <Tab
+                  key={item.value}
+                  value={item.value}
+                  label={item.label}
+                  icon={<Glyph name={item.icon} />}
+                />
+              ))}
+            </TabList>
+            {section === "identity" ? <Identity profile={profile} onChange={set} /> : null}
+            {section === "disclosures" ? <Disclosures profile={profile} onChange={set} /> : null}
+            {section === "assistant" ? (
+              <Stack gap={4}>
+                <JobBid profile={profile} onChange={set} />
+                <ModelChoice profile={profile} onChange={set} />
+              </Stack>
+            ) : null}
+            {section === "career" ? (
+              <Stack gap={4}>
+                <SectionCard
+                  title="Time in each role"
+                  description="Your current role is highlighted."
+                >
+                  <CareerChart profile={profile} today={today} />
+                </SectionCard>
+                <ProfileTimeline profile={profile} onChange={setDraft} />
+              </Stack>
+            ) : null}
+          </Stack>
         </GridColumn>
       </GridSystem>
     </Stack>

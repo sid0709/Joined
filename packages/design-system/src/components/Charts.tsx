@@ -1,11 +1,13 @@
 import { segmentShares } from "./chartMath";
 
+import type { ChartTone } from "./chartParts";
+
 /**
  * A proportion bar that sits inside a KpiWidget or a card.
  * Colours come only from the theme's data tokens (see styles/components/charts.css).
  */
 
-export type SegmentTone = "blue" | "green" | "orange" | "red" | "neutral";
+export type SegmentTone = ChartTone;
 
 export type Segment = {
   label: string;

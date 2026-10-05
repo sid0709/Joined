@@ -9,6 +9,7 @@ const EMPTY_WORKSPACE: Workspace = {
   resumes: [],
   library: [],
   mailboxes: [],
+  readMail: [],
 };
 
 export const HEADLINE_MAX = 80;
@@ -55,6 +56,8 @@ export type Workspace = {
   resumes: ResumeDraft[];
   library: LibraryResume[];
   mailboxes: Mailbox[];
+  /** Message ids opened in the Gmail view. */
+  readMail: string[];
 };
 
 export function emptyWorkspace(): Workspace {
@@ -69,6 +72,7 @@ function parseWorkspace(raw: string): Workspace {
       resumes: Array.isArray(parsed.resumes) ? parsed.resumes : [],
       library: Array.isArray(parsed.library) ? parsed.library : [],
       mailboxes: Array.isArray(parsed.mailboxes) ? parsed.mailboxes : [],
+      readMail: Array.isArray(parsed.readMail) ? parsed.readMail : [],
     };
   } catch {
     return EMPTY_WORKSPACE;

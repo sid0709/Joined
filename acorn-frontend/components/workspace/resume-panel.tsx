@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import {
-  Badge,
+  Banner,
   Button,
+  Glyph,
   GridColumn,
   GridSystem,
-  Heading,
   HStack,
   PageHeader,
   SectionCard,
   Stack,
+  StatGrid,
   Text,
   TextArea,
   TextInput,
@@ -27,7 +28,12 @@ import {
   type LibraryResume,
   type ResumeDraft,
 } from "@/lib/workspace/model";
+import { matchKeywords, postingKeywords, profileText } from "@/lib/workspace/keywords";
 import { sampleProfile } from "@/lib/workspace/profile";
+import { GenerationHistory } from "./resume/generation-history";
+import { MatchAnalysis } from "./resume/match-analysis";
+import { ResumeLibrary } from "./resume/resume-library";
+import { ResumePreview } from "./resume/resume-preview";
 import { useWorkspace } from "./use-workspace";
 
 const LIBRARY_LIMIT = 20;
@@ -96,6 +102,7 @@ export function ResumePanel({ account }: { account: AcornAccount }) {
   const history = workspace.resumes.length > 0 ? workspace.resumes : SAMPLE_HISTORY;
   const library = workspace.library.length > 0 ? workspace.library : SAMPLE_LIBRARY;
   const selected = history.find((resume) => resume.id === selectedId) ?? history[0] ?? null;
+  const profile = workspace.profile ?? sampleProfile(account);
 
   const generate = () => {
     const cleanRole = role.trim();
@@ -103,13 +110,7 @@ export function ResumePanel({ account }: { account: AcornAccount }) {
       setError("Add the role this resume is for.");
       return;
     }
-    const draft = buildResume(
-      account,
-      workspace.profile ?? sampleProfile(account),
-      cleanRole,
-      company,
-      description,
-    );
+    const draft = buildResume(account, profile, cleanRole, company, description);
     const item: LibraryResume = {
       id: draft.id,
       name: draft.company ? `${draft.role} · ${draft.company}` : draft.role,
@@ -126,138 +127,120 @@ export function ResumePanel({ account }: { account: AcornAccount }) {
     setError("");
   };
 
+  const match = matchKeywords(postingKeywords(`${role}\n${description}`), profileText(profile));
+  const uploads = library.filter((item) => item.source === "upload").length;
+  const latest = history[0];
+
   return (
     <Stack gap={6}>
       <PageHeader
         title="Resume"
-        description="Generate a draft for one posting, keep the files you use, and look back at every generation."
+        description="Generate a draft for one posting, see how well your profile covers it, and keep every file in one library."
+        action={
+          <Button
+            label="Generate draft"
+            variant="primary"
+            icon={<Glyph name="sparkle" />}
+            onClick={generate}
+          />
+        }
       />
-      <SectionCard
-        title="Resume generator"
-        description="Paste the posting. Acorn shapes a draft from your profile."
-        action={<Button label="Generate" variant="primary" onClick={generate} />}
-      >
-        <GridSystem gap={6} align="start">
-          <GridColumn span="full" lg={5}>
-            <Stack gap={4}>
-              <TextInput
-                label="Role"
-                value={role}
-                onChange={(value) => setRole(value.slice(0, ROLE_MAX))}
-                isRequired
-              />
-              <TextInput
-                label="Company"
-                value={company}
-                onChange={(value) => setCompany(value.slice(0, COMPANY_MAX))}
-                isOptional
-              />
-              <TextArea
-                label="Job description"
-                value={description}
-                onChange={(value) => setDescription(value.slice(0, JOB_DESCRIPTION_MAX))}
-                rows={JOB_DESCRIPTION_ROWS}
-                maxLength={JOB_DESCRIPTION_MAX}
-                description="Lines from the posting become the focus of the draft."
-              />
-              {error ? <Text color="secondary">{error}</Text> : null}
-            </Stack>
-          </GridColumn>
-          <GridColumn span="full" lg={7}>
-            <ResumePreview account={account} resume={selected} />
-          </GridColumn>
-        </GridSystem>
-      </SectionCard>
-      <SectionCard
-        title="Resume library"
-        description="Uploads from Profile and drafts you generated."
-      >
-        <Stack gap={4}>
-          {library.map((item) => (
-            <HStack key={item.id} hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-              <Stack gap={1}>
-                <Text weight="semibold">{item.name}</Text>
-                <Text color="secondary">
-                  {item.detail}
-                  {formatWhen(item.addedAt) ? ` · ${formatWhen(item.addedAt)}` : ""}
-                </Text>
-              </Stack>
-              <HStack gap={2} vAlign="center">
-                <Badge
-                  label={item.source === "upload" ? "Upload" : "Generated"}
-                  variant={item.source === "upload" ? "neutral" : "blue"}
-                />
-                {history.some((resume) => resume.id === item.id) ? (
+      <StatGrid
+        stats={[
+          {
+            label: "Drafts generated",
+            value: String(history.length),
+            hint: `Keeps the newest ${RESUME_LIMIT}`,
+          },
+          {
+            label: "In the library",
+            value: String(library.length),
+            hint: "Ready for Acorn to attach",
+          },
+          { label: "Uploads", value: String(uploads), hint: "Résumés you added on Profile" },
+          {
+            label: "Last generated",
+            value: latest ? formatWhen(latest.createdAt) || "—" : "—",
+            hint: latest ? (latest.company ? `For ${latest.company}` : latest.role) : "Nothing yet",
+          },
+        ]}
+      />
+      <GridSystem gap={4} align="start">
+        <GridColumn span="full" lg={5}>
+          <Stack gap={4}>
+            <SectionCard
+              title="Posting"
+              description="Paste the job. Lines from it become the focus of the draft."
+              footer={
+                <HStack gap={3} hAlign="between" vAlign="center" wrap="wrap">
+                  <Text type="supporting" color="secondary">
+                    {`${description.length.toLocaleString()} / ${JOB_DESCRIPTION_MAX.toLocaleString()} characters`}
+                  </Text>
                   <Button
-                    label={item.id === selected?.id ? "Showing" : "View"}
-                    variant={item.id === selected?.id ? "primary" : "secondary"}
-                    size="sm"
-                    onClick={() => setSelectedId(item.id)}
+                    label="Generate draft"
+                    variant="primary"
+                    icon={<Glyph name="sparkle" />}
+                    onClick={generate}
                   />
-                ) : null}
-              </HStack>
-            </HStack>
-          ))}
-        </Stack>
-      </SectionCard>
-      <SectionCard title="Generation history" description="Newest first. Each Generate adds a row.">
-        <Stack gap={4}>
-          {history.map((resume) => (
-            <HStack key={resume.id} hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-              <Stack gap={1}>
-                <Heading level={3}>
-                  {resume.company ? `${resume.role} · ${resume.company}` : resume.role}
-                </Heading>
-                <Text color="secondary">{formatWhen(resume.createdAt)}</Text>
+                </HStack>
+              }
+            >
+              <Stack gap={4}>
+                <TextInput
+                  label="Role"
+                  value={role}
+                  onChange={(value) => setRole(value.slice(0, ROLE_MAX))}
+                  isRequired
+                />
+                <TextInput
+                  label="Company"
+                  value={company}
+                  onChange={(value) => setCompany(value.slice(0, COMPANY_MAX))}
+                  isOptional
+                />
+                <TextArea
+                  label="Job description"
+                  value={description}
+                  onChange={(value) => setDescription(value.slice(0, JOB_DESCRIPTION_MAX))}
+                  rows={JOB_DESCRIPTION_ROWS}
+                  maxLength={JOB_DESCRIPTION_MAX}
+                />
+                {error ? <Banner status="error" title={error} /> : null}
               </Stack>
-              <Button
-                label={resume.id === selected?.id ? "Showing" : "View"}
-                variant={resume.id === selected?.id ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setSelectedId(resume.id)}
-              />
-            </HStack>
-          ))}
-        </Stack>
-      </SectionCard>
-    </Stack>
-  );
-}
-
-function ResumePreview({ account, resume }: { account: AcornAccount; resume: ResumeDraft | null }) {
-  if (!resume) {
-    return (
-      <SectionCard title="Preview" description="A generated résumé shows up here.">
-        <Text color="secondary">Add a role, then generate.</Text>
-      </SectionCard>
-    );
-  }
-  return (
-    <SectionCard
-      title={resume.role}
-      description={resume.company || account.email}
-      action={<Badge label="Draft" variant="blue" />}
-    >
-      <Stack gap={4}>
-        <Stack gap={1}>
-          <Heading level={3}>{account.name}</Heading>
-          <Text color="secondary">{account.email}</Text>
-        </Stack>
-        <Text>{resume.summary}</Text>
-        {resume.focus.length > 0 ? (
-          <Stack gap={2}>
-            <Text weight="semibold">From the posting</Text>
-            {resume.focus.map((line) => (
-              <Text key={line} color="secondary">
-                {line}
-              </Text>
-            ))}
+            </SectionCard>
+            <SectionCard
+              title="Profile match"
+              description="The posting's most repeated words, checked against your career timeline."
+            >
+              <MatchAnalysis match={match} />
+            </SectionCard>
           </Stack>
-        ) : null}
-        {formatWhen(resume.createdAt) ? (
-          <Text color="secondary">Generated {formatWhen(resume.createdAt)}</Text>
-        ) : null}
-      </Stack>
-    </SectionCard>
+        </GridColumn>
+        <GridColumn span="full" lg={7}>
+          <ResumePreview account={account} profile={profile} resume={selected} />
+        </GridColumn>
+      </GridSystem>
+      <GridSystem gap={4} align="start">
+        <GridColumn span="full" lg={7}>
+          <SectionCard title="Library" description="Uploads from Profile and the drafts you kept.">
+            <ResumeLibrary
+              items={library}
+              selectedId={selected?.id ?? null}
+              canView={(id) => history.some((resume) => resume.id === id)}
+              onView={setSelectedId}
+            />
+          </SectionCard>
+        </GridColumn>
+        <GridColumn span="full" lg={5}>
+          <SectionCard title="History" description="Newest first. Each Generate adds a row.">
+            <GenerationHistory
+              history={history}
+              selectedId={selected?.id ?? null}
+              onView={setSelectedId}
+            />
+          </SectionCard>
+        </GridColumn>
+      </GridSystem>
+    </Stack>
   );
 }

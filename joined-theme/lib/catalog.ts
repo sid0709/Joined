@@ -667,6 +667,20 @@ export const CATALOG: CatalogGroup[] = [
         importName: "List",
       },
       {
+        slug: "message-list",
+        title: "Message List",
+        description:
+          "Mail one line per message — unread dot, sender, subject and snippet, label, time — stacking when narrow.",
+        importName: "MessageList",
+        usage: `<MessageList
+  label="Unread mail"
+  heading="Unread"
+  items={[{ id: "1", sender: "Avery Chen", subject: "Interview request", time: "1:19 PM", isUnread: true, tag: { label: "Interview", variant: "blue" } }]}
+  selectedId={selected}
+  onSelect={setSelected}
+/>`,
+      },
+      {
         slug: "metadata-list",
         title: "Metadata List",
         description: "Label and value pairs — top or start labels, columns, icons, and show more.",
@@ -695,6 +709,68 @@ export const CATALOG: CatalogGroup[] = [
         title: "Tree",
         description: "A hierarchy you can filter, select, and restyle.",
         importName: "Tree",
+      },
+    ],
+  },
+  {
+    category: "Charts",
+    icon: "funnel",
+    items: [
+      {
+        slug: "trend-chart",
+        title: "Trend Chart",
+        description:
+          "Change over time for up to four series — 2px lines, a light wash, and a crosshair that reads every series.",
+        importName: "TrendChart",
+        usage: `<TrendChart
+  label="Applications and replies per week"
+  labels={["Aug 4", "Aug 11", "Aug 18", "Aug 25"]}
+  series={[
+    { label: "Applied", values: [6, 9, 7, 12] },
+    { label: "Replies", values: [1, 3, 2, 4] },
+  ]}
+/>`,
+      },
+      {
+        slug: "bar-chart",
+        title: "Bar Chart",
+        description:
+          "Magnitude by category — columns from one baseline, or ranked bars for long names.",
+        importName: "BarChart",
+        usage: `<BarChart label="Applications by weekday" data={[{ label: "Mon", value: 8 }, { label: "Tue", value: 11 }]} />
+<BarChart orientation="bars" label="Applications by source" data={sources} />`,
+      },
+      {
+        slug: "donut-chart",
+        title: "Donut Chart",
+        description:
+          "Part of a whole for up to five slices, with the total in the middle and a full legend.",
+        importName: "DonutChart",
+        usage: `<DonutChart label="Applications by status" centerLabel="Applications" data={statuses} />`,
+      },
+      {
+        slug: "funnel-chart",
+        title: "Funnel Chart",
+        description:
+          "Stages that narrow, each drawn against the first, with step-to-step conversion.",
+        importName: "FunnelChart",
+        usage: `<FunnelChart label="Pipeline" stages={[{ label: "Applied", value: 64 }, { label: "Replied", value: 18 }]} />`,
+      },
+      {
+        slug: "heatmap-calendar",
+        title: "Heatmap Calendar",
+        description: "Daily activity as weeks of cells, one hue from light to dark.",
+        importName: "HeatmapCalendar",
+        usage: `<HeatmapCalendar label="Applications per day" unit="applications" days={[{ date: "2026-09-01", value: 3 }]} />`,
+      },
+      {
+        slug: "sparkline",
+        title: "Sparkline",
+        description: "A small axis-free trend that sits under a KPI number.",
+        importName: "Sparkline",
+        usage: `<KpiWidget label="Applications" value="64" delta={{ value: "+12%", direction: "up" }}>
+  <Sparkline label="Applications per week" values={[4, 6, 5, 9, 12]} />
+</KpiWidget>`,
       },
     ],
   },

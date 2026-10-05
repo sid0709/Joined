@@ -1,25 +1,13 @@
-import { HStack, Text } from "@joined/design-system";
+import { BrandHeading, Button, HStack } from "@joined/design-system";
 import { BRAND } from "@/lib/config";
-import { SignOutButton } from "./sign-out-button";
+import { ROUTES } from "@/lib/routes";
 
-export function SiteHeader({
-  signedIn,
-  accountLabel,
-}: {
-  signedIn: boolean;
-  accountLabel?: string;
-}) {
+/** The signed-out bar on the landing and auth pages. Signed-in pages use AcornHeader. */
+export function SiteHeader({ hasSignIn = false }: { hasSignIn?: boolean }) {
   return (
     <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-      <Text type="large" weight="semibold">
-        {BRAND}
-      </Text>
-      {signedIn ? (
-        <HStack gap={3} vAlign="center" wrap="wrap">
-          {accountLabel ? <Text color="secondary">{accountLabel}</Text> : null}
-          <SignOutButton />
-        </HStack>
-      ) : null}
+      <BrandHeading product={BRAND} headingHref={ROUTES.home} />
+      {hasSignIn ? <Button label="Sign in" variant="ghost" size="sm" href={ROUTES.signIn} /> : null}
     </HStack>
   );
 }

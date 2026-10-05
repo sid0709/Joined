@@ -19,7 +19,7 @@ export default async function SignInPage({
   return (
     <PageContainer width="narrow">
       <Stack gap={8}>
-        <SiteHeader signedIn={false} />
+        <SiteHeader />
         <Heading level={1}>Sign in</Heading>
         <AuthForm mode="sign-in" googleError={googleErrorMessage(params[GOOGLE_ERROR_PARAM])} />
       </Stack>

@@ -170,5 +170,26 @@ export { KpiWidget } from "./Kpi";
 export type { KpiDelta } from "./Kpi";
 export { SegmentBar } from "./Charts";
 export type { Segment, SegmentTone } from "./Charts";
+
+// Charts — one look for trends, magnitudes, parts of a whole, funnels, and daily activity.
+// Tones come from the theme's data tokens in a fixed, colour-blind-checked order.
+export { TrendChart } from "./TrendChart";
+export type { TrendSeries } from "./TrendChart";
+export { BarChart } from "./BarChart";
+export type { BarDatum } from "./BarChart";
+export { DonutChart } from "./DonutChart";
+export type { DonutSlice } from "./DonutChart";
+export { Sparkline } from "./Sparkline";
+export { FunnelChart } from "./FunnelChart";
+export type { FunnelStage } from "./FunnelChart";
+export { HeatmapCalendar } from "./HeatmapCalendar";
+export type { HeatmapDay } from "./HeatmapCalendar";
+export { ChartLegend, CHART_TONES } from "./chartParts";
+export type { ChartTone, LegendItem } from "./chartParts";
+export { compactNumber } from "./chartMath";
+
+// Mail — one line per message, for inboxes and reply feeds.
+export { MessageList } from "./MessageList";
+export type { MessageListItem } from "./MessageList";
 export { PageTabs } from "./PageTabs";
 export type { PageTab } from "./PageTabs";

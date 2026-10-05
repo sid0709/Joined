@@ -230,3 +230,64 @@ export function entryDates(entry: CareerEntry) {
   if (!entry.endYear) return start;
   return `${start} – ${entry.endYear}.${entry.endMonth}`;
 }
+
+export type ChecklistItem = { label: string; done: boolean };
+
+/** What an application usually asks for, and whether the profile answers it. */
+export function profileChecklist(profile: ApplicantProfile): ChecklistItem[] {
+  const filled = (value: string) => value.trim().length > 0;
+  return [
+    {
+      label: "Name and contact",
+      done: filled(profile.fullName) && filled(profile.email) && filled(profile.phone),
+    },
+    {
+      label: "Address",
+      done: filled(profile.street) && filled(profile.city) && filled(profile.zip),
+    },
+    { label: "LinkedIn", done: filled(profile.linkedin) },
+    { label: "GitHub or portfolio", done: filled(profile.github) || filled(profile.portfolio) },
+    {
+      label: "Work authorization",
+      done: filled(profile.citizenship) && filled(profile.visaSponsorship),
+    },
+    { label: "Desired salary", done: filled(profile.desiredSalary) },
+    {
+      label: "Two or more roles",
+      done: profile.timeline.filter((entry) => entry.kind === "role").length >= 2,
+    },
+    { label: "Education", done: profile.timeline.some((entry) => entry.kind === "education") },
+    {
+      label: "Role summaries",
+      done: profile.timeline
+        .filter((entry) => entry.kind === "role")
+        .every((entry) => filled(entry.summary)),
+    },
+    { label: "AI model key", done: filled(profile.openaiApiKey) || filled(profile.deepseekApiKey) },
+  ];
+}
+
+export function completeness(items: ChecklistItem[]) {
+  return items.length
+    ? Math.round((items.filter((item) => item.done).length / items.length) * 100)
+    : 0;
+}
+
+export const MONTHS_PER_YEAR = 12;
+
+/** Months between a role's start and its end, or today for a current role. */
+export function monthsInRole(entry: CareerEntry, today: Date) {
+  const start = Number(entry.startYear) * MONTHS_PER_YEAR + Number(entry.startMonth || 1);
+  const end = entry.current
+    ? today.getFullYear() * MONTHS_PER_YEAR + today.getMonth() + 1
+    : Number(entry.endYear || entry.startYear) * MONTHS_PER_YEAR + Number(entry.endMonth || 1);
+  return Math.max(0, end - start);
+}
+
+/** Years across every role, counting overlaps once per role. */
+export function yearsOfExperience(profile: ApplicantProfile, today: Date) {
+  const months = profile.timeline
+    .filter((entry) => entry.kind === "role")
+    .reduce((total, entry) => total + monthsInRole(entry, today), 0);
+  return Math.round((months / MONTHS_PER_YEAR) * 10) / 10;
+}

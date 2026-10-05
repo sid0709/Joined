@@ -3,16 +3,17 @@
 import { useRef } from "react";
 
 import { areaPath, linePath, linearScale } from "./chartMath";
-import type { ChartTone } from "./chartParts";
 import { useElementWidth } from "./Responsive";
+
+import type { ChartTone } from "./chartParts";
 
 const DEFAULT_HEIGHT = 36;
 /** Keeps the end dot and its ring inside the frame. */
 const INSET = 5;
 
 /**
- * A small trend under a KpiWidget number: the line in the quiet hue, the latest point
- * marked in the accent. It has no axes; the figure above it carries the value.
+ * A small trend under a KpiWidget number: a 2px line with a light wash and the latest
+ * point marked. It has no axes; the figure above it carries the value.
  */
 export function Sparkline({
   values,

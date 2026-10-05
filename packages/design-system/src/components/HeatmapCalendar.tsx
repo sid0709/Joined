@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { heatLevel } from "./chartMath";
 import { ChartTip } from "./chartParts";
@@ -14,6 +14,8 @@ export type HeatmapDay = {
 const LEVELS = 4;
 const DAYS_IN_WEEK = 7;
 const DAY_MS = 86_400_000;
+/** Past this date the first column skips its month name; the next month's would crowd it. */
+const LATE_IN_MONTH = 21;
 const WEEKDAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 
 function parseDay(iso: string) {
@@ -80,18 +82,18 @@ export function HeatmapCalendar({
     <div className="os-heatmap">
       <div
         className="os-heatmap-grid"
-        style={{ gridTemplateColumns: `auto repeat(${weeks}, minmax(0, 1fr))` }}
+        role="group"
+        aria-label={label}
+        style={{ "--os-heat-weeks": weeks } as CSSProperties}
       >
         <span />
         {columns.map((column, week) => {
-          const opener = column.find((cell) => cell.date.getDate() <= DAYS_IN_WEEK && cell.inRange);
+          const opener = column.find((cell) => cell.inRange && cell.date.getDate() === 1);
+          const shown =
+            opener?.date ?? (week === 0 && first.getDate() <= LATE_IN_MONTH ? first : null);
           return (
             <span key={`m-${week}`} className="os-heatmap-month">
-              {opener && (week > 0 || opener.date.getDate() === 1)
-                ? month.format(opener.date)
-                : week === 0
-                  ? month.format(first)
-                  : ""}
+              {shown ? month.format(shown) : ""}
             </span>
           );
         })}
@@ -114,7 +116,6 @@ export function HeatmapCalendar({
         ))}
         <span>More</span>
       </div>
-      <span className="os-heatmap-label">{label}</span>
     </div>
   );
 }
