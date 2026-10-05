@@ -45,6 +45,14 @@ export const LOCAL_SERVICES = [
     workspace: "admin-frontend",
     startExtraArgs: [],
   },
+  {
+    id: "acorn-website",
+    shortName: "acorn-web",
+    port: 6005,
+    color: "\x1b[95m",
+    workspace: "acorn-website",
+    startExtraArgs: ["--port", "6005"],
+  },
 ];
 
 /** A Go backend service. `go run -C <dir>` makes it read its own `<dir>/.env`. */

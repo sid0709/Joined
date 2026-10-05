@@ -64,6 +64,26 @@
       "name": "@acorn/shared",
       "version": "0.1.0",
     },
+    "acorn/website": {
+      "name": "acorn-website",
+      "version": "0.1.0",
+      "dependencies": {
+        "@joined/design-system": "workspace:*",
+        "next": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "eslint": "catalog:",
+        "eslint-config-next": "catalog:",
+        "tailwindcss": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "admin-frontend": {
       "name": "admin-frontend",
       "version": "0.1.0",
@@ -1037,6 +1057,8 @@
     "acorn-jsx": ["acorn-jsx@5.3.2", "", { "peerDependencies": { "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0" } }, "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ=="],
 
     "acorn-walk": ["acorn-walk@8.3.5", "", { "dependencies": { "acorn": "^8.11.0" } }, "sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw=="],
+
+    "acorn-website": ["acorn-website@workspace:acorn/website"],
 
     "admin-frontend": ["admin-frontend@workspace:admin-frontend"],
 

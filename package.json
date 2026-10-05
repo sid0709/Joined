@@ -13,6 +13,7 @@
       "acorn/extension",
       "acorn/packages/*",
       "acorn/demo",
+      "acorn/website",
       "plugins/crawler",
       "scout-extension"
     ],
