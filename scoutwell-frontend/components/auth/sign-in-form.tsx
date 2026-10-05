@@ -15,15 +15,24 @@ import { ROUTES } from "@/lib/routes";
  * Google is the only way in. `googleError` explains why a Google sign-in came back
  * here, when one did.
  */
-export function SignInForm({ nextPath, googleError }: { nextPath: string; googleError: string }) {
+export function SignInForm({
+  nextPath,
+  googleError,
+  title = "Welcome back",
+  description = `Sign in to ${BRAND} with your Google account. A scout account is only for submitting jobs.`,
+}: {
+  nextPath: string;
+  googleError: string;
+  title?: string;
+  description?: string;
+}) {
   return (
     <Card padding={8}>
       <Stack gap={6}>
         <Stack gap={1}>
-          <Heading level={1}>Welcome back</Heading>
+          <Heading level={1}>{title}</Heading>
           <Text color="secondary" display="block">
-            Sign in to {BRAND} with your Google account. A scout account is only for submitting
-            jobs.
+            {description}
           </Text>
         </Stack>
         {googleError ? <Banner status="error" title={googleError} /> : null}

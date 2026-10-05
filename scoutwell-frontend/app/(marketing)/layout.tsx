@@ -1,0 +1,18 @@
+import type { ReactNode } from "react";
+import { BrandFooter, PageContainer } from "@joined/design-system";
+import { AppFrame } from "@/components/shell/app-frame";
+import { ScoutHeader } from "@/components/shell/scout-header";
+import { BRAND } from "@/lib/config";
+import { loadSession } from "@/lib/auth/session";
+
+export default async function MarketingLayout({ children }: { children: ReactNode }) {
+  const session = await loadSession();
+  return (
+    <AppFrame header={<ScoutHeader user={session?.user ?? null} audience="site" />}>
+      <PageContainer>
+        {children}
+        <BrandFooter lead={`${BRAND} is part of`} />
+      </PageContainer>
+    </AppFrame>
+  );
+}

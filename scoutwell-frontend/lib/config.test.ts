@@ -1,8 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { scoutwellApiUrl, joinedWebUrl, publicApiUrl } from "./config";
+import { scoutwellApiUrl, joinedWebUrl, publicApiUrl, extensionStoreUrl } from "./config";
 
-const KEYS = ["SCOUTWELL_API_URL", "SCOUT_PUBLIC_API_URL", "JOINED_WEB_URL"] as const;
+const KEYS = [
+  "SCOUTWELL_API_URL",
+  "SCOUT_PUBLIC_API_URL",
+  "JOINED_WEB_URL",
+  "SCOUT_EXTENSION_STORE_URL",
+] as const;
 const saved = Object.fromEntries(KEYS.map((key) => [key, process.env[key]]));
 
 afterEach(() => {
@@ -33,5 +38,12 @@ describe("config", () => {
     expect(joinedWebUrl()).toBe("");
     process.env.JOINED_WEB_URL = "https://joined.test/";
     expect(joinedWebUrl()).toBe("https://joined.test");
+  });
+
+  test("the extension store URL is optional and loses its trailing slash", () => {
+    delete process.env.SCOUT_EXTENSION_STORE_URL;
+    expect(extensionStoreUrl()).toBe("");
+    process.env.SCOUT_EXTENSION_STORE_URL = "https://chromewebstore.google.com/detail/scout/";
+    expect(extensionStoreUrl()).toBe("https://chromewebstore.google.com/detail/scout");
   });
 });

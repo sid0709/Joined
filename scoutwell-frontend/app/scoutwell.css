@@ -249,6 +249,13 @@ body {
   padding-block: var(--spacing-8) calc(var(--spacing-12) * 2);
 }
 
+.sw-site {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  padding-block: var(--spacing-8) var(--spacing-12);
+}
+
 .sw-landing-hero {
   position: relative;
   display: flex;
