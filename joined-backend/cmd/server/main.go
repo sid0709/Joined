@@ -44,7 +44,10 @@ func main() {
 	oauth := &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret}
 	calendar := &candidate.Google{OAuth: oauth, RedirectURL: config.Env("GOOGLE_REDIRECT_URL", "")}
 
-	p, err := platform.Open(context.Background(), db, platform.Options{Calendar: calendar})
+	p, err := platform.Open(context.Background(), db, platform.Options{
+		Calendar:          calendar,
+		EnsureSearchIndex: config.SearchEnsureIndex(),
+	})
 	if err != nil {
 		slog.Error("platform", "error", config.Redact(err, db.MongoURI))
 		os.Exit(1)

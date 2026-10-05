@@ -43,6 +43,9 @@ type Options struct {
 	// SettingsKey is the base64 AES-256 key that seals secrets saved in the database
 	// (SETTINGS_ENCRYPTION_KEY). Blank leaves saving a secret unavailable.
 	SettingsKey string
+	// EnsureSearchIndex controls whether the job search text index is created at startup.
+	// Defaults to false; enable in dev environments via SEARCH_ENSURE_INDEX=true.
+	EnsureSearchIndex bool
 }
 
 // Open connects to the database, builds every store, and ensures their indexes.
@@ -85,6 +88,12 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()
 		return nil, err
+	}
+	if opts.EnsureSearchIndex {
+		if err := listings.EnsureSearchIndexes(ctx); err != nil {
+			p.Close()
+			return nil, fmt.Errorf("jobs search indexes: %w", err)
+		}
 	}
 	return p, nil
 }
