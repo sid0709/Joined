@@ -15,12 +15,14 @@ Scouts earn a share when candidates apply to jobs they submitted. The earnings l
 **Purpose:** Credits the scout when a candidate applies to their job.
 
 **Behavior:**
+
 - **Idempotent**: One candidate applying twice to the same job earns once
 - **Deduplication**: Uses unique index on `(jobId, candidateId)` in `scout_applies` collection
 - **Immediate release**: Apply earnings are released immediately (no hold period)
 - **Returns**: The created earning if this is the first apply, or `nil` if already recorded (not an error)
 
 **Example usage:**
+
 ```go
 import (
     "github.com/sid0709/OpenSeat/backend-core/scout"
@@ -29,9 +31,9 @@ import (
 // In your candidate apply handler:
 func handleCandidateApply(ctx context.Context, jobID, candidateID string) error {
     appliedAt := time.Now()
-    
+
     // ... existing apply logic ...
-    
+
     // Credit the scout if this job came from a scout submission
     earning, err := scoutStore.RecordApply(ctx, jobID, candidateID, appliedAt)
     if err != nil {
@@ -41,7 +43,7 @@ func handleCandidateApply(ctx context.Context, jobID, candidateID string) error 
     if earning != nil {
         slog.Info("scout apply credited", "earning", earning.ID, "scout", earning.ScoutUserID, "amount", earning.Amount.AmountCents)
     }
-    
+
     return nil
 }
 ```
@@ -57,6 +59,7 @@ const ApplyRewardCents = 50  // $0.50 per qualifying apply
 ```
 
 To change the rate:
+
 1. Update the constant in `rewards.go`
 2. The new rate applies to all future applies
 3. No code changes needed elsewhere
@@ -68,12 +71,14 @@ To change the rate:
 Tracks each credited apply to ensure dedupe.
 
 **Indexes:**
+
 - Unique: `(jobId, candidateId)` - enforces one earning per (job, candidate) pair
 - Index: `(scoutUserId, recordedAt)` - for scout's apply history (future use)
 
 ### Collection: `scout_earnings`
 
 Stores the earning record. Apply earnings have:
+
 - `type`: `"apply"`
 - `status`: `"released"` (immediately available)
 - `amount`: `{ "amount_cents": 50, "currency": "USD" }`
@@ -89,12 +94,14 @@ Scouts can view their apply earnings via existing Scoutwell endpoints:
 Lists all earnings (including apply rewards).
 
 **Query params:**
+
 - `type=apply` - filter to apply rewards only
 - `submission_id={id}` - filter to one job
 - `status=released` - filter by status
 - `cursor`, `limit` - pagination
 
 **Example:**
+
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   "https://api.scoutwell.com/v1/scout/earnings?type=apply&limit=20"
@@ -173,6 +180,7 @@ earning3, _ := store.RecordApply(ctx, "job-abc", "candidate-789", time.Now())
 ## Error Handling
 
 `RecordApply` returns an error if:
+
 - `jobID` is empty
 - `candidateID` is empty
 - Job is not found (not from a scout submission)
