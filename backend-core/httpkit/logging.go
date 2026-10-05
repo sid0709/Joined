@@ -1,78 +1,103 @@
 package httpkit
 
 import (
+	"bufio"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 )
 
-type contextKey string
+const RequestIDHeader = "X-Request-ID"
 
-const requestIDKey contextKey = "request_id"
+type contextKey int
+
+const requestRecordKey contextKey = 1
+
+// requestRecord is the mutable per-request bag Logging stores on the context.
+type requestRecord struct {
+	id       string
+	userID   string
+	panicErr string
+	stack    string
+}
+
+func recordFrom(ctx context.Context) *requestRecord {
+	rec, _ := ctx.Value(requestRecordKey).(*requestRecord)
+	return rec
+}
 
 // RequestID returns the request ID from the context, or "" if none is set.
 func RequestID(ctx context.Context) string {
-	id, _ := ctx.Value(requestIDKey).(string)
-	return id
+	if rec := recordFrom(ctx); rec != nil {
+		return rec.id
+	}
+	return ""
 }
 
-// withRequestID stores the request ID in the context.
-func withRequestID(ctx context.Context, id string) context.Context {
-	return context.WithValue(ctx, requestIDKey, id)
+// SetUserID records the authenticated user for the request log line.
+// Session and role middleware should call this once they resolve the user.
+func SetUserID(ctx context.Context, userID string) {
+	if rec := recordFrom(ctx); rec != nil {
+		rec.userID = userID
+	}
 }
 
-// generateRequestID creates a random 16-character hex request ID.
 func generateRequestID() string {
 	var bytes [8]byte
 	_, _ = rand.Read(bytes[:])
 	return hex.EncodeToString(bytes[:])
 }
 
-// Logging wraps next with structured JSON logging for each request. It logs the
-// request ID, method, path, status, latency, and user ID when one is set.
+// Wrap orders Recovery inside Logging so a panic still has a request id and
+// produces one structured log line. All service mains should call this.
+func Wrap(logger *slog.Logger, reporter ErrorReporter, next http.Handler) http.Handler {
+	return Logging(logger, Recovery(reporter, next))
+}
+
+// Logging assigns a request id, captures status and latency, and writes one
+// structured JSON line. Recovery must sit inside it so panics still log.
 func Logging(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
-		// Generate or reuse request ID
-		requestID := r.Header.Get("X-Request-ID")
+		requestID := r.Header.Get(RequestIDHeader)
 		if requestID == "" {
 			requestID = generateRequestID()
 		}
-		
-		// Store request ID in context and response header
-		ctx := withRequestID(r.Context(), requestID)
-		r = r.WithContext(ctx)
-		w.Header().Set("X-Request-ID", requestID)
-		
-		// Wrap response writer to capture status code
+		rec := &requestRecord{id: requestID}
+		r = r.WithContext(context.WithValue(r.Context(), requestRecordKey, rec))
+		w.Header().Set(RequestIDHeader, requestID)
+
 		wrapped := &responseWriter{ResponseWriter: w, status: http.StatusOK}
-		
 		next.ServeHTTP(wrapped, r)
-		
-		// Log the request
-		latency := time.Since(start)
+
+		status := wrapped.status
+		if rec.panicErr != "" {
+			status = http.StatusInternalServerError
+		}
 		attrs := []any{
 			"request_id", requestID,
 			"method", r.Method,
 			"path", r.URL.Path,
-			"status", wrapped.status,
-			"latency_ms", latency.Milliseconds(),
+			"status", status,
+			"latency_ms", time.Since(start).Milliseconds(),
 		}
-		
-		// Add user ID if present in context
-		if userID, ok := r.Context().Value("user_id").(string); ok && userID != "" {
-			attrs = append(attrs, "user_id", userID)
+		if rec.userID != "" {
+			attrs = append(attrs, "user_id", rec.userID)
 		}
-		
+		if rec.panicErr != "" {
+			attrs = append(attrs, "error", rec.panicErr, "stack", rec.stack)
+			logger.Error("request", attrs...)
+			return
+		}
 		logger.Info("request", attrs...)
 	})
 }
 
-// responseWriter wraps http.ResponseWriter to capture the status code.
 type responseWriter struct {
 	http.ResponseWriter
 	status int
@@ -93,3 +118,23 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 	}
 	return w.ResponseWriter.Write(b)
 }
+
+func (w *responseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+func (w *responseWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errNoHijacker
+	}
+	return h.Hijack()
+}
+
+var errNoHijacker = errors.New("httpkit: ResponseWriter does not implement http.Hijacker")

@@ -14,7 +14,6 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/acornapi/gateway"
 	"github.com/sid0709/OpenSeat/backend-core/auth"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func named(name string) http.Handler {
@@ -23,7 +22,7 @@ func named(name string) http.Handler {
 
 func TestRoutesSendEachPrefixToItsHandler(t *testing.T) {
 	logger := slog.Default()
-	handler := routes([]string{"http://localhost:5173"}, named("health"), named("acorn"), logger, httpkit.NoOpReporter{})
+	handler := routes([]string{"http://localhost:5173"}, named("health"), named("acorn"), logger, nil)
 	cases := []struct{ method, path, want string }{
 		{"GET", "/health", "health"},
 		{"GET", "/acorn/health", "acorn"},
@@ -53,7 +52,7 @@ func TestSocketPathIsInsideTheAcornPrefix(t *testing.T) {
 
 func TestRoutesAllowListedOrigins(t *testing.T) {
 	logger := slog.Default()
-	handler := routes([]string{"http://localhost:5173"}, named("health"), named("acorn"), logger, httpkit.NoOpReporter{})
+	handler := routes([]string{"http://localhost:5173"}, named("health"), named("acorn"), logger, nil)
 	req := httptest.NewRequest("OPTIONS", "/acorn/qa", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
 	rec := httptest.NewRecorder()
@@ -86,7 +85,7 @@ func TestAcornAnswersThroughTheServer(t *testing.T) {
 	logger := slog.Default()
 	acornHandler, gw := acornapi.New(noSessions{}, noPeople{}, nil, acorn.New(nil), acornapi.Options{})
 	t.Cleanup(gw.Close)
-	handler := routes(nil, named("health"), acornHandler, logger, httpkit.NoOpReporter{})
+	handler := routes(nil, named("health"), acornHandler, logger, nil)
 
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest("GET", gateway.Path+"/?EIO=4&transport=polling", nil))

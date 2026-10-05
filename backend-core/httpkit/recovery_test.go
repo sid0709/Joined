@@ -1,10 +1,12 @@
 package httpkit
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,118 +23,229 @@ func (m *mockReporter) ReportPanic(ctx context.Context, err any, stack string) {
 	m.stacks = append(m.stacks, stack)
 }
 
-func TestRecoveryPanic(t *testing.T) {
+func TestWrapPanicWithoutRequestID(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	reporter := &mockReporter{}
-	
-	handler := Recovery(logger, reporter, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	handler := Wrap(logger, reporter, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		panic("test panic")
 	}))
-	
-	req := httptest.NewRequest("GET", "/test", nil)
-	req = req.WithContext(withRequestID(req.Context(), "test-req-123"))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
-	
 	handler.ServeHTTP(rec, req)
-	
+
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("got status %d, want %d", rec.Code, http.StatusInternalServerError)
 	}
-	
+	requestID := rec.Header().Get(RequestIDHeader)
+	if requestID == "" {
+		t.Fatal("X-Request-ID header not set")
+	}
+
 	var response map[string]string
 	if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	
 	if response["error"] != "Internal server error" {
 		t.Errorf("got error %q, want %q", response["error"], "Internal server error")
 	}
-	
-	logLine := buf.String()
-	if logLine == "" {
-		t.Fatal("no log output")
+
+	entry := parseLogLine(t, buf.String())
+	if entry["level"] != "ERROR" {
+		t.Errorf("got level %v, want ERROR", entry["level"])
 	}
-	
-	var logEntry map[string]any
-	if err := json.Unmarshal([]byte(logLine), &logEntry); err != nil {
-		t.Fatalf("failed to parse log JSON: %v", err)
+	if entry["msg"] != "request" {
+		t.Errorf("got msg %v, want request", entry["msg"])
 	}
-	
-	if logEntry["msg"] != "panic recovered" {
-		t.Errorf("got msg %v, want %q", logEntry["msg"], "panic recovered")
+	if entry["request_id"] != requestID {
+		t.Errorf("log request_id %v does not match response header %q", entry["request_id"], requestID)
 	}
-	if logEntry["request_id"] != "test-req-123" {
-		t.Errorf("got request_id %v, want test-req-123", logEntry["request_id"])
+	if entry["method"] != http.MethodGet {
+		t.Errorf("got method %v, want GET", entry["method"])
 	}
-	if logEntry["error"] == nil {
-		t.Error("error not in log")
+	if entry["path"] != "/test" {
+		t.Errorf("got path %v, want /test", entry["path"])
 	}
-	if !strings.Contains(logEntry["error"].(string), "test panic") {
-		t.Errorf("error does not contain panic message: %v", logEntry["error"])
+	if entry["status"] != float64(http.StatusInternalServerError) {
+		t.Errorf("got status %v, want 500", entry["status"])
 	}
-	if logEntry["stack"] == nil {
+	if entry["latency_ms"] == nil {
+		t.Error("latency_ms not in log")
+	}
+	errMsg, _ := entry["error"].(string)
+	if !strings.Contains(errMsg, "test panic") {
+		t.Errorf("error does not contain panic message: %v", entry["error"])
+	}
+	if entry["stack"] == nil || entry["stack"] == "" {
 		t.Error("stack not in log")
 	}
-	
-	if len(reporter.panics) != 1 {
-		t.Fatalf("got %d panics reported, want 1", len(reporter.panics))
-	}
-	if reporter.panics[0] != "test panic" {
-		t.Errorf("got panic %v, want %q", reporter.panics[0], "test panic")
+	if len(reporter.panics) != 1 || reporter.panics[0] != "test panic" {
+		t.Errorf("got panics %v, want [test panic]", reporter.panics)
 	}
 	if len(reporter.stacks) != 1 || reporter.stacks[0] == "" {
 		t.Error("stack not reported to error reporter")
 	}
 }
 
-func TestRecoveryNoPanic(t *testing.T) {
+func TestWrapNoPanic(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	reporter := &mockReporter{}
-	
-	handler := Recovery(logger, reporter, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	handler := Wrap(logger, reporter, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	}))
-	
-	req := httptest.NewRequest("GET", "/test", nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
-	
 	handler.ServeHTTP(rec, req)
-	
+
 	if rec.Code != http.StatusOK {
 		t.Errorf("got status %d, want %d", rec.Code, http.StatusOK)
 	}
-	
-	if buf.Len() != 0 {
-		t.Errorf("got log output when no panic occurred: %s", buf.String())
+	entry := parseLogLine(t, buf.String())
+	if entry["level"] != "INFO" {
+		t.Errorf("got level %v, want INFO", entry["level"])
 	}
-	
 	if len(reporter.panics) != 0 {
 		t.Errorf("got %d panics reported, want 0", len(reporter.panics))
 	}
 }
 
-func TestRecoveryNilReporter(t *testing.T) {
+func TestWrapPanicWithUserID(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
-	
-	handler := Recovery(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic("test panic")
+
+	handler := Wrap(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		SetUserID(r.Context(), "user-456")
+		panic("user panic")
 	}))
-	
-	req := httptest.NewRequest("GET", "/test", nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
-	
 	handler.ServeHTTP(rec, req)
-	
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("got status %d, want %d", rec.Code, http.StatusInternalServerError)
+
+	entry := parseLogLine(t, buf.String())
+	if entry["user_id"] != "user-456" {
+		t.Errorf("got user_id %v, want user-456", entry["user_id"])
 	}
-	
-	logLine := buf.String()
-	if logLine == "" {
-		t.Fatal("no log output")
+	if entry["level"] != "ERROR" {
+		t.Errorf("got level %v, want ERROR", entry["level"])
+	}
+}
+
+func TestWrapRePanicsErrAbortHandler(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	handler := Wrap(logger, nil, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		panic(http.ErrAbortHandler)
+	}))
+
+	defer func() {
+		if err := recover(); err != http.ErrAbortHandler {
+			t.Fatalf("got %v, want ErrAbortHandler", err)
+		}
+		if buf.Len() != 0 {
+			t.Errorf("logged abort handler: %s", buf.String())
+		}
+	}()
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", nil))
+	t.Fatal("expected panic")
+}
+
+func TestWrapDoesNotWrite500AfterHeaders(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	handler := Wrap(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("partial"))
+		panic("late panic")
+	}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/test", nil))
+
+	if rec.Code != http.StatusCreated {
+		t.Errorf("got status %d, want %d", rec.Code, http.StatusCreated)
+	}
+	if rec.Body.String() != "partial" {
+		t.Errorf("got body %q, want %q", rec.Body.String(), "partial")
+	}
+	entry := parseLogLine(t, buf.String())
+	if entry["status"] != float64(http.StatusInternalServerError) {
+		t.Errorf("got logged status %v, want 500", entry["status"])
+	}
+}
+
+type hijackableRecorder struct {
+	*httptest.ResponseRecorder
+	hijacked bool
+	flushed  bool
+}
+
+func (h *hijackableRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h.hijacked = true
+	return nil, nil, nil
+}
+
+func (h *hijackableRecorder) Flush() {
+	h.flushed = true
+	h.ResponseRecorder.Flush()
+}
+
+func TestResponseWriterSupportsHijackAndFlush(t *testing.T) {
+	inner := &hijackableRecorder{ResponseRecorder: httptest.NewRecorder()}
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+
+	handler := Wrap(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hijacker, ok := w.(http.Hijacker)
+		if !ok {
+			t.Fatal("handler writer is not http.Hijacker")
+		}
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Fatal("handler writer is not http.Flusher")
+		}
+		unwrapper, ok := w.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			t.Fatal("handler writer has no Unwrap")
+		}
+		if unwrapper.Unwrap() != inner {
+			t.Errorf("Unwrap() = %v, want inner recorder", unwrapper.Unwrap())
+		}
+		if _, _, err := hijacker.Hijack(); err != nil {
+			t.Fatalf("Hijack: %v", err)
+		}
+		flusher.Flush()
+	}))
+
+	handler.ServeHTTP(inner, httptest.NewRequest(http.MethodGet, "/test", nil))
+	if !inner.hijacked {
+		t.Error("Hijack did not reach the inner writer")
+	}
+	if !inner.flushed {
+		t.Error("Flush did not reach the inner writer")
+	}
+}
+
+func TestNewReporter(t *testing.T) {
+	if _, ok := NewReporter("").(NoOpReporter); !ok {
+		t.Fatal("empty DSN should return NoOpReporter")
+	}
+
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	if _, ok := NewReporter("https://example.invalid/dsn").(NoOpReporter); !ok {
+		t.Fatal("set DSN should still return NoOpReporter")
+	}
+	if !strings.Contains(buf.String(), "no error tracker adapter is installed yet") {
+		t.Errorf("warning not logged: %s", buf.String())
 	}
 }

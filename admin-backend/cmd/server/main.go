@@ -43,7 +43,6 @@ func main() {
 	}
 	ai := config.LoadOpenAI()
 	deepSeekEnv := config.LoadDeepSeek()
-	errorReporting := config.LoadErrorReporting()
 	googleConfig := config.LoadGoogle()
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
@@ -64,11 +63,7 @@ func main() {
 	if analyzerToken == "" {
 		slog.Warn("ANALYZER_API_TOKEN is not set: public analyzer routes are disabled")
 	}
-	var reporter httpkit.ErrorReporter = httpkit.NoOpReporter{}
-	if errorReporting.SentryDSN != "" {
-		slog.Info("error reporting configured", "service", "sentry")
-	}
-	logger := slog.Default()
+	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	staff := httpapi.StaffSignIn{
 		Accounts:    p.Accounts,
@@ -87,23 +82,21 @@ func main() {
 		slog.Warn("no DeepSeek key yet: save one under Settings → DeepSeek, or set DEEPSEEK_API_KEY, before analyzing or researching")
 	}
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
-		Origins:     server.Origins,
+		Origins:       server.Origins,
 		AdminToken:    adminToken,
 		AnalyzerToken: analyzerToken,
-		Staff:       staff,
-		AcornAI:     p.AISettings,
-		AcornAIEnv:  ai,
-		DeepSeek:    p.DeepSeekSettings,
-		DeepSeekEnv: deepSeekEnv,
+		Staff:         staff,
+		AcornAI:       p.AISettings,
+		AcornAIEnv:    ai,
+		DeepSeek:      p.DeepSeekSettings,
+		DeepSeekEnv:   deepSeekEnv,
 		Migration: httpapi.MigrationOptions{
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
 			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
 		},
 	})
-	handler = httpkit.Logging(logger, handler)
-	handler = httpkit.Recovery(logger, reporter, handler)
-	if err := httpkit.Serve("admin api", server.Addr, handler); err != nil {
+	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}

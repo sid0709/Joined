@@ -39,7 +39,6 @@ func main() {
 		os.Exit(1)
 	}
 	ai := config.LoadOpenAI()
-	errorReporting := config.LoadErrorReporting()
 	frontend := strings.TrimRight(config.Env("FRONTEND_ORIGIN", defaultFrontendOrigin), "/")
 	googleConfig := config.LoadGoogle()
 	oauth := &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret}
@@ -55,12 +54,7 @@ func main() {
 	}
 	defer p.Close()
 
-	var reporter httpkit.ErrorReporter = httpkit.NoOpReporter{}
-	if errorReporting.SentryDSN != "" {
-		slog.Info("error reporting configured", "service", "sentry")
-	}
-
-	logger := slog.Default()
+	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
 	handler := httpapi.New(p.Jobs, p.Accounts, p.People, p.Hiring, p.Staff, reader, httpapi.Options{
 		Origins:           server.Origins,
@@ -68,9 +62,7 @@ func main() {
 		Google:            oauth,
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 	})
-	handler = httpkit.Logging(logger, handler)
-	handler = httpkit.Recovery(logger, reporter, handler)
-	if err := httpkit.Serve("joined api", server.Addr, handler); err != nil {
+	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}

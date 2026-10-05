@@ -2,7 +2,6 @@ package httpkit
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -11,119 +10,128 @@ import (
 	"testing"
 )
 
-func TestLogging(t *testing.T) {
+func parseLogLine(t *testing.T, raw string) map[string]any {
+	t.Helper()
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		t.Fatal("no log output")
+	}
+	lines := strings.Split(raw, "\n")
+	if len(lines) != 1 {
+		t.Fatalf("got %d log lines, want 1:\n%s", len(lines), raw)
+	}
+	var entry map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &entry); err != nil {
+		t.Fatalf("failed to parse log JSON: %v", err)
+	}
+	return entry
+}
+
+func TestWrapLogging(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
-	
-	handler := Logging(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	handler := Wrap(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if RequestID(r.Context()) == "" {
 			t.Error("request ID not set in context")
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	}))
-	
-	req := httptest.NewRequest("GET", "/test", nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
-	
 	handler.ServeHTTP(rec, req)
-	
+
 	if rec.Code != http.StatusOK {
 		t.Errorf("got status %d, want %d", rec.Code, http.StatusOK)
 	}
-	
-	if rec.Header().Get("X-Request-ID") == "" {
+	if rec.Header().Get(RequestIDHeader) == "" {
 		t.Error("X-Request-ID header not set")
 	}
-	
-	logLine := buf.String()
-	if logLine == "" {
-		t.Fatal("no log output")
+
+	entry := parseLogLine(t, buf.String())
+	if entry["msg"] != "request" {
+		t.Errorf("got msg %v, want request", entry["msg"])
 	}
-	
-	var logEntry map[string]any
-	if err := json.Unmarshal([]byte(logLine), &logEntry); err != nil {
-		t.Fatalf("failed to parse log JSON: %v", err)
-	}
-	
-	if logEntry["msg"] != "request" {
-		t.Errorf("got msg %v, want %q", logEntry["msg"], "request")
-	}
-	if logEntry["request_id"] == nil {
+	if entry["request_id"] == nil || entry["request_id"] == "" {
 		t.Error("request_id not in log")
 	}
-	if logEntry["method"] != "GET" {
-		t.Errorf("got method %v, want GET", logEntry["method"])
+	if entry["method"] != http.MethodGet {
+		t.Errorf("got method %v, want GET", entry["method"])
 	}
-	if logEntry["path"] != "/test" {
-		t.Errorf("got path %v, want /test", logEntry["path"])
+	if entry["path"] != "/test" {
+		t.Errorf("got path %v, want /test", entry["path"])
 	}
-	if logEntry["status"] != float64(200) {
-		t.Errorf("got status %v, want 200", logEntry["status"])
+	if entry["status"] != float64(http.StatusOK) {
+		t.Errorf("got status %v, want 200", entry["status"])
 	}
-	if logEntry["latency_ms"] == nil {
+	if entry["latency_ms"] == nil {
 		t.Error("latency_ms not in log")
 	}
 }
 
-func TestLoggingReuseRequestID(t *testing.T) {
+func TestWrapReuseRequestID(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
-	
 	existingID := "test-request-id-123"
-	
-	handler := Logging(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	handler := Wrap(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := RequestID(r.Context()); got != existingID {
 			t.Errorf("got request ID %q, want %q", got, existingID)
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
-	
-	req := httptest.NewRequest("GET", "/test", nil)
-	req.Header.Set("X-Request-ID", existingID)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set(RequestIDHeader, existingID)
 	rec := httptest.NewRecorder()
-	
 	handler.ServeHTTP(rec, req)
-	
-	if got := rec.Header().Get("X-Request-ID"); got != existingID {
+
+	if got := rec.Header().Get(RequestIDHeader); got != existingID {
 		t.Errorf("got X-Request-ID header %q, want %q", got, existingID)
 	}
-	
-	logLine := buf.String()
-	var logEntry map[string]any
-	if err := json.Unmarshal([]byte(logLine), &logEntry); err != nil {
-		t.Fatalf("failed to parse log JSON: %v", err)
-	}
-	
-	if logEntry["request_id"] != existingID {
-		t.Errorf("got request_id %v, want %q", logEntry["request_id"], existingID)
+	entry := parseLogLine(t, buf.String())
+	if entry["request_id"] != existingID {
+		t.Errorf("got request_id %v, want %q", entry["request_id"], existingID)
 	}
 }
 
-func TestLoggingWithUserID(t *testing.T) {
+func TestSetUserID(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
-	
 	userID := "user-123"
-	
-	handler := Logging(logger, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	handler := Wrap(logger, nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		SetUserID(r.Context(), userID)
 		w.WriteHeader(http.StatusOK)
 	}))
-	
-	req := httptest.NewRequest("GET", "/test", nil)
-	req = req.WithContext(context.WithValue(req.Context(), "user_id", userID))
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rec := httptest.NewRecorder()
-	
 	handler.ServeHTTP(rec, req)
-	
-	logLine := buf.String()
-	var logEntry map[string]any
-	if err := json.Unmarshal([]byte(logLine), &logEntry); err != nil {
-		t.Fatalf("failed to parse log JSON: %v", err)
+
+	entry := parseLogLine(t, buf.String())
+	if entry["user_id"] != userID {
+		t.Errorf("got user_id %v, want %q", entry["user_id"], userID)
 	}
-	
-	if logEntry["user_id"] != userID {
-		t.Errorf("got user_id %v, want %q", logEntry["user_id"], userID)
+}
+
+func TestWrapHandlerNeverWritesIsLogged200(t *testing.T) {
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+
+	handler := Wrap(logger, nil, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("got status %d, want %d", rec.Code, http.StatusOK)
+	}
+	entry := parseLogLine(t, buf.String())
+	if entry["status"] != float64(http.StatusOK) {
+		t.Errorf("got status %v, want 200", entry["status"])
 	}
 }
 
@@ -132,15 +140,12 @@ func TestGenerateRequestID(t *testing.T) {
 	if len(id) != 16 {
 		t.Errorf("got request ID length %d, want 16", len(id))
 	}
-	
 	for _, c := range id {
 		if !strings.ContainsRune("0123456789abcdef", c) {
 			t.Errorf("request ID %q contains non-hex character %q", id, c)
 		}
 	}
-	
-	id2 := generateRequestID()
-	if id == id2 {
+	if id == generateRequestID() {
 		t.Error("two generated request IDs are the same")
 	}
 }
