@@ -11,17 +11,25 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
-type sessionKey struct{}
+type sessionContextKey struct{}
+type staffContextKey struct{}
 
-type sessionStore interface {
+type roleStore interface {
 	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
+}
+
+type staffStore interface {
 	StaffSession(ctx context.Context, token string, now time.Time) (auth.Staff, error)
 }
 
 // RequireRole wraps a handler so it only runs when the session has one of roles.
 // A signed-out request gets 401. A signed-in account with the wrong role gets 403.
-func RequireRole(accounts sessionStore, roles []string, next http.Handler) http.Handler {
+func RequireRole(accounts roleStore, roles []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if accounts == nil {
+			httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
+			return
+		}
 		session, err := accounts.Session(r.Context(), httpkit.BearerToken(r), time.Now())
 		if errors.Is(err, auth.ErrInvalidLogin) {
 			httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
@@ -36,15 +44,19 @@ func RequireRole(accounts sessionStore, roles []string, next http.Handler) http.
 			httpkit.WriteError(w, http.StatusForbidden, roleMessage(session.User.Role))
 			return
 		}
-		ctx := context.WithValue(r.Context(), sessionKey{}, session)
+		ctx := context.WithValue(r.Context(), sessionContextKey{}, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // RequireStaff wraps a handler so it only runs when a staff session exists.
 // A signed-out request gets 401.
-func RequireStaff(accounts sessionStore, next http.Handler) http.Handler {
+func RequireStaff(accounts staffStore, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if accounts == nil {
+			httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
+			return
+		}
 		staff, err := accounts.StaffSession(r.Context(), httpkit.BearerToken(r), time.Now())
 		if errors.Is(err, auth.ErrInvalidLogin) {
 			httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
@@ -55,20 +67,20 @@ func RequireStaff(accounts sessionStore, next http.Handler) http.Handler {
 			httpkit.WriteError(w, http.StatusInternalServerError, "could not load the session")
 			return
 		}
-		ctx := context.WithValue(r.Context(), sessionKey{}, staff)
+		ctx := context.WithValue(r.Context(), staffContextKey{}, staff)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // Session retrieves the session stored by RequireRole.
 func Session(ctx context.Context) (auth.Session, bool) {
-	session, ok := ctx.Value(sessionKey{}).(auth.Session)
+	session, ok := ctx.Value(sessionContextKey{}).(auth.Session)
 	return session, ok
 }
 
 // Staff retrieves the staff session stored by RequireStaff.
 func Staff(ctx context.Context) (auth.Staff, bool) {
-	staff, ok := ctx.Value(sessionKey{}).(auth.Staff)
+	staff, ok := ctx.Value(staffContextKey{}).(auth.Staff)
 	return staff, ok
 }
 

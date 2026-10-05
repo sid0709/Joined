@@ -311,6 +311,21 @@ func TestSessionContext(t *testing.T) {
 	}
 }
 
+func TestSessionAndStaffUseSeparateKeys(t *testing.T) {
+	ctx := context.WithValue(context.Background(), sessionContextKey{}, auth.Session{
+		User: auth.User{ID: "user-id", Role: auth.RoleCandidate},
+	})
+	ctx = context.WithValue(ctx, staffContextKey{}, auth.Staff{Email: "admin@example.com"})
+	session, ok := Session(ctx)
+	if !ok || session.User.ID != "user-id" {
+		t.Fatalf("session = %+v ok = %v", session, ok)
+	}
+	staff, ok := Staff(ctx)
+	if !ok || staff.Email != "admin@example.com" {
+		t.Fatalf("staff = %+v ok = %v", staff, ok)
+	}
+}
+
 func TestStaffContext(t *testing.T) {
 	store := &fakeStore{
 		staff: map[string]auth.Staff{
