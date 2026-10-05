@@ -21,7 +21,6 @@ func TestApplyRewardConfig(t *testing.T) {
 		t.Errorf("Rewards(cfg).ApplyReward.AmountCents = %d, want 50", table.ApplyReward.AmountCents)
 	}
 
-	// Test with custom config
 	custom := Config{ApplyRewardCents: 100}
 	table = Rewards(custom)
 	if table.ApplyReward.AmountCents != 100 {
@@ -29,27 +28,22 @@ func TestApplyRewardConfig(t *testing.T) {
 	}
 }
 
-// testStore creates a Store with injectable storage for testing.
-type testStore struct {
-	*Store
+// fakeStorage provides in-memory storage for testing the production RecordApply.
+type fakeStorage struct {
 	submissions map[string]Submission
 	earnings    []Earning
-	insertErr   error // If set, InsertOne will fail once then clear
+	nextErr     error // If set, next insert returns this error then clears it
 }
 
-func newTestStore() *testStore {
-	return &testStore{
-		Store: &Store{
-			config: DefaultConfig(),
-			now:    func() time.Time { return time.Date(2026, 10, 5, 10, 0, 0, 0, time.UTC) },
-		},
+func newFakeStorage() *fakeStorage {
+	return &fakeStorage{
 		submissions: make(map[string]Submission),
 		earnings:    []Earning{},
 	}
 }
 
-func (s *testStore) submissionByJobID(ctx context.Context, jobID string) (Submission, error) {
-	for _, sub := range s.submissions {
+func (f *fakeStorage) findSubmission(ctx context.Context, jobID string) (Submission, error) {
+	for _, sub := range f.submissions {
 		if sub.JobID == jobID {
 			return sub, nil
 		}
@@ -57,96 +51,43 @@ func (s *testStore) submissionByJobID(ctx context.Context, jobID string) (Submis
 	return Submission{}, ErrNotFound
 }
 
-func (s *testStore) collection(name string) testCollection {
-	return testCollection{store: s, name: name}
-}
+func (f *fakeStorage) insertEarning(ctx context.Context, earning Earning) error {
+	if f.nextErr != nil {
+		err := f.nextErr
+		f.nextErr = nil
+		return err
+	}
 
-type testCollection struct {
-	store *testStore
-	name  string
-}
-
-func (c testCollection) InsertOne(ctx context.Context, doc any) (*mongo.InsertOneResult, error) {
-	if c.name == earningsCollection {
-		if c.store.insertErr != nil {
-			err := c.store.insertErr
-			c.store.insertErr = nil
-			return nil, err
-		}
-		earning := doc.(Earning)
-		// Check for duplicate
-		for _, e := range c.store.earnings {
-			if e.Type == RewardApply && e.SubmissionID == earning.SubmissionID &&
-				e.JobID == earning.JobID && e.CandidateID == earning.CandidateID {
-				return nil, mongo.WriteError{Code: 11000}
+	// Check for duplicate
+	for _, e := range f.earnings {
+		if e.Type == RewardApply && e.SubmissionID == earning.SubmissionID &&
+			e.JobID == earning.JobID && e.CandidateID == earning.CandidateID {
+			// Return an error that mongo.IsDuplicateKeyError recognizes
+			return mongo.WriteException{
+				WriteErrors: []mongo.WriteError{{Code: 11000, Message: "duplicate key"}},
 			}
 		}
-		c.store.earnings = append(c.store.earnings, earning)
-		return &mongo.InsertOneResult{InsertedID: earning.ObjectID}, nil
 	}
-	return nil, errors.New("unexpected collection")
+
+	f.earnings = append(f.earnings, earning)
+	return nil
 }
 
-func (c testCollection) FindOne(ctx context.Context, filter bson.D) *mongo.SingleResult {
-	panic("not implemented in test")
-}
-
-func (s *testStore) notifyReward(ctx context.Context, userID string, earning Earning) {}
-
-// Override RecordApply to use test storage
-func (s *testStore) RecordApply(ctx context.Context, jobID, candidateID string, appliedAt time.Time) (*Earning, error) {
-	// Use the real logic but with test storage
-	if jobID == "" || candidateID == "" {
-		return nil, errors.New("jobID and candidateID are required")
+func newTestStore(storage *fakeStorage) *Store {
+	s := &Store{
+		config: DefaultConfig(),
+		now:    func() time.Time { return time.Date(2026, 10, 5, 10, 0, 0, 0, time.UTC) },
 	}
-
-	sub, err := s.submissionByJobID(ctx, jobID)
-	if errors.Is(err, ErrNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if sub.Status != StatusApproved {
-		return nil, nil
-	}
-
-	now := s.now().UTC()
-	reward := cents(s.config.ApplyRewardCents)
-
-	earning := Earning{
-		ObjectID:     bson.NewObjectID(),
-		ScoutUserID:  sub.ScoutUserID,
-		SubmissionID: sub.ID,
-		JobID:        jobID,
-		CandidateID:  candidateID,
-		JobTitle:     sub.Title,
-		CompanyName:  sub.CompanyName,
-		Type:         RewardApply,
-		Amount:       reward,
-		Status:       EarningReleased,
-		Description:  "Candidate applied",
-		HoldUntil:    now,
-		CreatedAt:    now,
-		ReleasedAt:   &now,
-	}
-
-	if _, err := s.collection(earningsCollection).InsertOne(ctx, earning); err != nil {
-		if mongo.IsDuplicateKeyError(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	earning.fill()
-	s.notifyReward(ctx, sub.ScoutUserID, earning)
-	return &earning, nil
+	s.findSubmissionByJobID = storage.findSubmission
+	s.insertEarning = storage.insertEarning
+	s.notifyReward = func(ctx context.Context, userID string, earning Earning) {}
+	return s
 }
 
 func TestRecordApply(t *testing.T) {
 	ctx := context.Background()
-	store := newTestStore()
+	storage := newFakeStorage()
+	store := newTestStore(storage)
 
 	scoutUserID := "scout-123"
 	jobID := "job-abc"
@@ -160,7 +101,7 @@ func TestRecordApply(t *testing.T) {
 		Status:      StatusApproved,
 	}
 	sub.fill()
-	store.submissions[sub.ID] = sub
+	storage.submissions[sub.ID] = sub
 
 	candidateID := "candidate-456"
 	appliedAt := store.now().Add(1 * time.Hour)
@@ -194,9 +135,13 @@ func TestRecordApply(t *testing.T) {
 		if earning.CandidateID != candidateID {
 			t.Errorf("earning.CandidateID = %q, want %q", earning.CandidateID, candidateID)
 		}
+		if len(storage.earnings) != 1 {
+			t.Errorf("expected 1 earning in storage, got %d", len(storage.earnings))
+		}
 	})
 
 	t.Run("duplicate apply is idempotent", func(t *testing.T) {
+		beforeCount := len(storage.earnings)
 		earning, err := store.RecordApply(ctx, jobID, candidateID, appliedAt)
 		if err != nil {
 			t.Fatalf("RecordApply (duplicate): %v", err)
@@ -204,13 +149,14 @@ func TestRecordApply(t *testing.T) {
 		if earning != nil {
 			t.Errorf("expected nil for duplicate, got earning")
 		}
-		if len(store.earnings) != 1 {
-			t.Errorf("expected 1 earning, got %d", len(store.earnings))
+		if len(storage.earnings) != beforeCount {
+			t.Errorf("expected %d earnings (unchanged), got %d", beforeCount, len(storage.earnings))
 		}
 	})
 
 	t.Run("different candidate creates new earning", func(t *testing.T) {
 		candidateID2 := "candidate-789"
+		beforeCount := len(storage.earnings)
 		earning, err := store.RecordApply(ctx, jobID, candidateID2, appliedAt)
 		if err != nil {
 			t.Fatalf("RecordApply (different candidate): %v", err)
@@ -218,8 +164,8 @@ func TestRecordApply(t *testing.T) {
 		if earning == nil {
 			t.Fatal("expected earning for different candidate")
 		}
-		if len(store.earnings) != 2 {
-			t.Errorf("expected 2 earnings, got %d", len(store.earnings))
+		if len(storage.earnings) != beforeCount+1 {
+			t.Errorf("expected %d earnings, got %d", beforeCount+1, len(storage.earnings))
 		}
 	})
 
@@ -234,8 +180,9 @@ func TestRecordApply(t *testing.T) {
 			Status:      StatusApproved,
 		}
 		sub2.fill()
-		store.submissions[sub2.ID] = sub2
+		storage.submissions[sub2.ID] = sub2
 
+		beforeCount := len(storage.earnings)
 		earning, err := store.RecordApply(ctx, jobID2, candidateID, appliedAt)
 		if err != nil {
 			t.Fatalf("RecordApply (different job): %v", err)
@@ -246,19 +193,23 @@ func TestRecordApply(t *testing.T) {
 		if earning.SubmissionID != sub2.ID {
 			t.Errorf("earning.SubmissionID = %q, want %q", earning.SubmissionID, sub2.ID)
 		}
-		if len(store.earnings) != 3 {
-			t.Errorf("expected 3 earnings, got %d", len(store.earnings))
+		if len(storage.earnings) != beforeCount+1 {
+			t.Errorf("expected %d earnings, got %d", beforeCount+1, len(storage.earnings))
 		}
 	})
 
 	t.Run("job not from scout is quiet no-op", func(t *testing.T) {
 		unknownJobID := "job-unknown"
+		beforeCount := len(storage.earnings)
 		earning, err := store.RecordApply(ctx, unknownJobID, candidateID, appliedAt)
 		if err != nil {
 			t.Errorf("expected no error for non-scout job, got %v", err)
 		}
 		if earning != nil {
 			t.Errorf("expected nil for non-scout job, got earning")
+		}
+		if len(storage.earnings) != beforeCount {
+			t.Errorf("expected %d earnings (unchanged), got %d", beforeCount, len(storage.earnings))
 		}
 	})
 
@@ -273,8 +224,9 @@ func TestRecordApply(t *testing.T) {
 			Status:      StatusNeedsReview,
 		}
 		sub3.fill()
-		store.submissions[sub3.ID] = sub3
+		storage.submissions[sub3.ID] = sub3
 
+		beforeCount := len(storage.earnings)
 		earning, err := store.RecordApply(ctx, jobID3, "candidate-999", appliedAt)
 		if err != nil {
 			t.Errorf("expected no error for unapproved job, got %v", err)
@@ -282,8 +234,8 @@ func TestRecordApply(t *testing.T) {
 		if earning != nil {
 			t.Errorf("expected nil for unapproved job, got earning")
 		}
-		if len(store.earnings) != 3 {
-			t.Errorf("expected 3 earnings (unchanged), got %d", len(store.earnings))
+		if len(storage.earnings) != beforeCount {
+			t.Errorf("expected %d earnings (unchanged), got %d", beforeCount, len(storage.earnings))
 		}
 	})
 
@@ -299,7 +251,7 @@ func TestRecordApply(t *testing.T) {
 			Status:      StatusApproved,
 		}
 		sub4.fill()
-		store.submissions[sub4.ID] = sub4
+		storage.submissions[sub4.ID] = sub4
 
 		candidateID3 := "candidate-111"
 		earning, err := store.RecordApply(ctx, jobID4, candidateID3, appliedAt)
@@ -325,25 +277,25 @@ func TestRecordApply(t *testing.T) {
 			Status:      StatusApproved,
 		}
 		sub5.fill()
-		store.submissions[sub5.ID] = sub5
+		storage.submissions[sub5.ID] = sub5
 
 		candidateID4 := "candidate-retry"
-		beforeCount := len(store.earnings)
+		beforeCount := len(storage.earnings)
 
 		// First call: simulate write failure
-		store.insertErr = errors.New("simulated write failure")
+		storage.nextErr = errors.New("simulated network failure")
 		earning1, err1 := store.RecordApply(ctx, jobID5, candidateID4, appliedAt)
 		if err1 == nil {
-			t.Fatal("expected error on first call")
+			t.Fatal("expected error on first call with simulated failure")
 		}
 		if earning1 != nil {
 			t.Error("expected nil earning on error")
 		}
-		if len(store.earnings) != beforeCount {
-			t.Errorf("earning should not be saved after failure, got %d earnings", len(store.earnings))
+		if len(storage.earnings) != beforeCount {
+			t.Errorf("earning should not be saved after failure, got %d earnings", len(storage.earnings))
 		}
 
-		// Second call: should succeed
+		// Second call: should succeed and create exactly one earning
 		earning2, err2 := store.RecordApply(ctx, jobID5, candidateID4, appliedAt)
 		if err2 != nil {
 			t.Fatalf("expected success on retry, got error: %v", err2)
@@ -351,8 +303,8 @@ func TestRecordApply(t *testing.T) {
 		if earning2 == nil {
 			t.Fatal("expected earning on retry")
 		}
-		if len(store.earnings) != beforeCount+1 {
-			t.Errorf("expected %d earnings after retry, got %d", beforeCount+1, len(store.earnings))
+		if len(storage.earnings) != beforeCount+1 {
+			t.Errorf("expected %d earnings after retry, got %d", beforeCount+1, len(storage.earnings))
 		}
 
 		// Third call: idempotent, should not create another earning
@@ -361,10 +313,21 @@ func TestRecordApply(t *testing.T) {
 			t.Fatalf("expected success on third call, got error: %v", err3)
 		}
 		if earning3 != nil {
-			t.Error("expected nil on duplicate")
+			t.Error("expected nil on duplicate (idempotent)")
 		}
-		if len(store.earnings) != beforeCount+1 {
-			t.Errorf("expected %d earnings (no change), got %d", beforeCount+1, len(store.earnings))
+		if len(storage.earnings) != beforeCount+1 {
+			t.Errorf("expected %d earnings (no change on third call), got %d", beforeCount+1, len(storage.earnings))
+		}
+
+		// Verify exactly one earning for this (job, candidate) pair
+		count := 0
+		for _, e := range storage.earnings {
+			if e.JobID == jobID5 && e.CandidateID == candidateID4 {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Errorf("expected exactly 1 earning for (job, candidate) pair, got %d", count)
 		}
 	})
 }

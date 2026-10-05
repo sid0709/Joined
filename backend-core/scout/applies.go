@@ -22,8 +22,8 @@ func (s *Store) RecordApply(ctx context.Context, jobID, candidateID string, appl
 		return nil, fmt.Errorf("jobID and candidateID are required")
 	}
 
-	// Find the submission that sourced this job.
-	sub, err := s.submissionByJobID(ctx, jobID)
+	// Find the submission that sourced this job (uses hook for testing).
+	sub, err := s.findSubmissionByJobID(ctx, jobID)
 	if errors.Is(err, ErrNotFound) {
 		// Job not from a scout submission - quiet no-op
 		return nil, nil
@@ -60,7 +60,8 @@ func (s *Store) RecordApply(ctx context.Context, jobID, candidateID string, appl
 		ReleasedAt:   &now,
 	}
 
-	if _, err := s.collection(earningsCollection).InsertOne(ctx, earning); err != nil {
+	// Insert earning (uses hook for testing).
+	if err := s.insertEarning(ctx, earning); err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			// Already credited - idempotent
 			return nil, nil
@@ -71,6 +72,12 @@ func (s *Store) RecordApply(ctx context.Context, jobID, candidateID string, appl
 	earning.fill()
 	s.notifyReward(ctx, sub.ScoutUserID, earning)
 	return &earning, nil
+}
+
+// insertEarningMongo is the production MongoDB insert.
+func (s *Store) insertEarningMongo(ctx context.Context, earning Earning) error {
+	_, err := s.collection(earningsCollection).InsertOne(ctx, earning)
+	return err
 }
 
 // submissionByJobID finds the submission that produced the given jobID.

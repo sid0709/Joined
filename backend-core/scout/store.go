@@ -76,6 +76,11 @@ type Store struct {
 	now  func() time.Time
 	roll func() float64
 
+	// Storage hooks for testing RecordApply
+	findSubmissionByJobID func(ctx context.Context, jobID string) (Submission, error)
+	insertEarning         func(ctx context.Context, earning Earning) error
+	notifyReward          func(ctx context.Context, userID string, earning Earning)
+
 	workers   chan struct{}
 	pending   sync.WaitGroup
 	publishMu sync.Mutex
@@ -84,7 +89,7 @@ type Store struct {
 
 // NewStore wires the scout store. fetcher follows submitted links.
 func NewStore(client *mongo.Client, db string, accounts Accounts, publisher Publisher, usage Usage, fetcher Fetcher) *Store {
-	return &Store{
+	s := &Store{
 		client:    client,
 		db:        db,
 		accounts:  accounts,
@@ -96,6 +101,13 @@ func NewStore(client *mongo.Client, db string, accounts Accounts, publisher Publ
 		roll:      rand.Float64,
 		workers:   make(chan struct{}, checkWorkers),
 	}
+	// Default to production implementations
+	s.findSubmissionByJobID = s.submissionByJobID
+	s.insertEarning = s.insertEarningMongo
+	s.notifyReward = func(ctx context.Context, userID string, earning Earning) {
+		s.notifyRewardImpl(ctx, userID, earning)
+	}
+	return s
 }
 
 // EnsureIndexes creates every index the scout collections rely on.

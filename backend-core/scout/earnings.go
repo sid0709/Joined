@@ -35,7 +35,7 @@ func (s *Store) addEarning(ctx context.Context, sub Submission, kind string, amo
 	if _, err := s.collection(earningsCollection).InsertOne(ctx, earning); err != nil {
 		return err
 	}
-	s.notifyReward(ctx, sub.ScoutUserID, earning)
+	s.notifyRewardImpl(ctx, sub.ScoutUserID, earning)
 	return nil
 }
 
