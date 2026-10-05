@@ -2,7 +2,7 @@ import type { GlyphName } from "@joined/design-system";
 import type { Option } from "@/lib/profile";
 
 export type SettingsSectionId =
-  "account" | "notifications" | "alerts" | "connections" | "privacy" | "danger";
+  "account" | "billing" | "notifications" | "alerts" | "connections" | "privacy" | "danger";
 
 export type SettingsSection = {
   id: SettingsSectionId;
@@ -26,6 +26,12 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
         label: "Account",
         description: "Your name, email, region, and how you sign in.",
         icon: "user",
+      },
+      {
+        id: "billing",
+        label: "Billing",
+        description: "Your Premium plan, renewal date, and Stripe billing portal.",
+        icon: "star",
       },
       {
         id: "notifications",
@@ -72,6 +78,14 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
 ];
 
 export const SETTINGS_SECTIONS: SettingsSection[] = SETTINGS_NAV.flatMap((group) => group.sections);
+
+export function parseSettingsSection(
+  value: string | string[] | undefined,
+): SettingsSectionId | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw) return undefined;
+  return SETTINGS_SECTIONS.some((item) => item.id === raw) ? (raw as SettingsSectionId) : undefined;
+}
 
 export type NotificationChannel = "email" | "push" | "sms";
 

@@ -14,9 +14,11 @@ import {
   icons,
 } from "@joined/design-system";
 import type { AuthSession } from "@/lib/auth/types";
+import type { BillingSubscription, PremiumPrices } from "@/lib/billing";
 import { SETTINGS_NAV, SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings";
 import { AccountSettings } from "./account-settings";
 import { AlertSettings } from "./alert-settings";
+import { BillingSettings } from "./billing-settings";
 import { ConnectionSettings } from "./connection-settings";
 import { DangerSettings } from "./danger-settings";
 import { NotificationSettings } from "./notification-settings";
@@ -27,13 +29,28 @@ export function SettingsWorkspace({
   session,
   googleEmail,
   calendarResult,
+  initialSection,
+  subscription,
+  prices,
+  checkoutEnabled,
 }: {
   session: AuthSession | null;
   googleEmail?: string;
   calendarResult?: string;
+  initialSection?: SettingsSectionId;
+  subscription: BillingSubscription | null;
+  prices: PremiumPrices;
+  checkoutEnabled: boolean;
 }) {
   const panels: Record<SettingsSectionId, ReactNode> = {
     account: <AccountSettings session={session} />,
+    billing: (
+      <BillingSettings
+        subscription={subscription}
+        prices={prices}
+        checkoutEnabled={checkoutEnabled}
+      />
+    ),
     notifications: <NotificationSettings />,
     alerts: <AlertSettings />,
     connections: <ConnectionSettings googleEmail={googleEmail} calendarResult={calendarResult} />,
@@ -41,7 +58,7 @@ export function SettingsWorkspace({
     danger: <DangerSettings session={session} />,
   };
   const [section, setSection] = useState<SettingsSectionId>(
-    calendarResult ? "connections" : "account",
+    initialSection ?? (calendarResult ? "connections" : "account"),
   );
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0];
 
