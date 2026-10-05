@@ -96,6 +96,7 @@ func syncPrice(ctx context.Context, client Client, productID, lookupKey string, 
 				Metadata: map[string]string{
 					"lookup_key": lookupKey,
 				},
+				TransferLookupKey: true,
 			}); err != nil {
 				return fmt.Errorf("create new price: %w", err)
 			}
