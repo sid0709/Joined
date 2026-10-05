@@ -51,10 +51,10 @@ type Accounts interface {
 }
 
 type Server struct {
-	accounts Accounts
-	listings *jobs.Store
-	acorn    *acorn.Service
-	files    RuntimeFile
+	accounts       Accounts
+	listings       *jobs.Store
+	acorn          *acorn.Service
+	files          RuntimeFile
 	cookie         string
 	switches       killswitch.Switches
 	google         *google.Client

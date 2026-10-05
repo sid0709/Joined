@@ -2,11 +2,27 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Banner, Button, FormLayout, Link, Text, TextInput } from "@joined/design-system";
+import { GOOGLE_AUTH_ROUTE } from "@joined/google-signin";
+import {
+  Banner,
+  Button,
+  FormLayout,
+  GoogleSignInButton,
+  Link,
+  Stack,
+  Text,
+  TextInput,
+} from "@joined/design-system";
 import { signIn, signUp } from "@/lib/auth/actions";
 import { ROUTES } from "@/lib/routes";
 
-export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
+export function AuthForm({
+  mode,
+  googleError = "",
+}: {
+  mode: "sign-in" | "sign-up";
+  googleError?: string;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,53 +46,62 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   };
 
   return (
-    <form onSubmit={(event) => void submit(event)}>
-      <FormLayout>
-        {creating ? (
+    <Stack gap={6}>
+      {googleError ? <Banner status="error" title={googleError} /> : null}
+      <GoogleSignInButton
+        action={GOOGLE_AUTH_ROUTE}
+        next={ROUTES.home}
+        label={creating ? "Sign up with Google" : "Continue with Google"}
+      />
+      <Text color="secondary">or use email</Text>
+      <form onSubmit={(event) => void submit(event)}>
+        <FormLayout>
+          {creating ? (
+            <TextInput
+              label="Name"
+              value={name}
+              onChange={setName}
+              autoComplete="name"
+              isRequired
+              isDisabled={pending}
+            />
+          ) : null}
           <TextInput
-            label="Name"
-            value={name}
-            onChange={setName}
-            autoComplete="name"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            autoComplete="email"
             isRequired
             isDisabled={pending}
           />
-        ) : null}
-        <TextInput
-          label="Email"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          autoComplete="email"
-          isRequired
-          isDisabled={pending}
-        />
-        <TextInput
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          autoComplete={creating ? "new-password" : "current-password"}
-          isRequired
-          isDisabled={pending}
-        />
-        {error ? <Banner status="error" title={error} /> : null}
-        <Button
-          type="submit"
-          label={creating ? "Create account" : "Sign in"}
-          variant="primary"
-          width="100%"
-          isLoading={pending}
-          isDisabled={pending}
-        />
-        <Text color="secondary">
-          {creating ? (
-            <Link href={ROUTES.signIn}>Already have an account? Sign in</Link>
-          ) : (
-            <Link href={ROUTES.signUp}>New here? Create an account</Link>
-          )}
-        </Text>
-      </FormLayout>
-    </form>
+          <TextInput
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            autoComplete={creating ? "new-password" : "current-password"}
+            isRequired
+            isDisabled={pending}
+          />
+          {error ? <Banner status="error" title={error} /> : null}
+          <Button
+            type="submit"
+            label={creating ? "Create account" : "Sign in"}
+            variant="primary"
+            width="100%"
+            isLoading={pending}
+            isDisabled={pending}
+          />
+          <Text color="secondary">
+            {creating ? (
+              <Link href={ROUTES.signIn}>Already have an account? Sign in</Link>
+            ) : (
+              <Link href={ROUTES.signUp}>New here? Create an account</Link>
+            )}
+          </Text>
+        </FormLayout>
+      </form>
+    </Stack>
   );
 }

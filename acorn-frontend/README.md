@@ -1,7 +1,10 @@
 # acorn-frontend
 
 Acorn's website. Accounts created here are the same accounts the extension uses.
-Sign-in sets the `acorn_session` cookie; the extension reads it from this origin.
+Sign in with email and password, or with Google. Sign-in sets the `acorn_session`
+cookie; the extension reads it from this origin. Google needs
+`GOOGLE_SIGNIN_REDIRECT_URL` on acorn-backend set to this site's
+`/auth/google/callback`. Accounts are stored in `AcornDB`.
 
 ```bash
 bun --filter acorn-frontend dev

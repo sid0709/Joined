@@ -5,7 +5,7 @@ Acorn's HTTP API, in its own service (`acorn-backend`). Go port of the browser-e
 From the repo root:
 
 ```bash
-cp acorn-backend/.env.example acorn-backend/.env   # MONGO_URI (same as joined-backend) and OPENAI_API_KEY
+cp acorn-backend/.env.example acorn-backend/.env   # MONGO_URI and OPENAI_API_KEY; data goes in AcornDB
 bun run dev:acorn-api                              # :8083
 go test ./acorn-backend/...
 ```

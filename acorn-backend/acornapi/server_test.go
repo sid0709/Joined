@@ -15,11 +15,11 @@ import (
 )
 
 type fakeAccounts struct {
-	users           map[string]account.User
-	applied         []string
-	googleState     string
-	googleVerifier  string
-	googleErr       error
+	users          map[string]account.User
+	applied        []string
+	googleState    string
+	googleVerifier string
+	googleErr      error
 }
 
 func (f *fakeAccounts) Session(_ context.Context, token string, _ time.Time) (account.Session, error) {

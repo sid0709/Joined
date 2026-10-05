@@ -44,6 +44,12 @@ func TestRoutesSendEachPrefixToItsHandler(t *testing.T) {
 	}
 }
 
+func TestAcornDatabaseIsSeparateFromJoined(t *testing.T) {
+	if defaultDatabase != "AcornDB" {
+		t.Fatalf("Acorn database = %q, want AcornDB", defaultDatabase)
+	}
+}
+
 func TestSocketPathIsInsideTheAcornPrefix(t *testing.T) {
 	if !strings.HasPrefix(gateway.Path, acornapi.Prefix+"/") {
 		t.Fatalf("gateway.Path %q is outside %q, so the server would not route it to Acorn", gateway.Path, acornapi.Prefix)

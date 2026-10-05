@@ -46,6 +46,8 @@ are hidden in logs, variables are easier to read and edit.
 | `GOOGLE_REDIRECT_URL`                                                              | `https://joinedhq.com/v1/me/calendar/google/callback` | for the calendar        |
 | `GOOGLE_SIGNIN_REDIRECT_URL`                                                       | `https://joinedhq.com/api/auth/google/callback`       | for Sign in with Google |
 | `DEST_DB`                                                                          | `JoinedDB`                                            | optional (default)      |
+| `ACORN_DB`                                                                         | `AcornDB`                                             | optional (Acorn only)   |
+| `ACORN_GOOGLE_SIGNIN_REDIRECT_URL`                                                 | Acorn's `/auth/google/callback`                       | with Google on Acorn    |
 | `COMPOSE_PROFILES`                                                                 | e.g. `scoutwell,admin`                                | optional (Joined only)  |
 | `SCOUTWELL_ORIGIN`, `SCOUTWELL_GOOGLE_SIGNIN_REDIRECT_URL`, `SCOUT_PUBLIC_API_URL` | Scoutwell's public URLs                               | with `scoutwell`        |
 | `ADMIN_ORIGIN`                                                                     | the admin console's URL                               | with `admin`            |

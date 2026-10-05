@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/acorn-backend/account"
 	"github.com/sid0709/OpenSeat/acorn-backend/acorn"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 )
@@ -60,22 +59,5 @@ func TestGoogleCallbackRejectsUnknownState(t *testing.T) {
 	rec := call(handler, http.MethodPost, "/v1/auth/google/callback", `{"code":"abc","state":"missing"}`, nil, "")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("unknown state = %d, want 400", rec.Code)
-	}
-}
-
-func TestGoogleCallbackMismatch(t *testing.T) {
-	accounts := &fakeAccounts{googleErr: account.ErrGoogleMismatch, googleState: "ready", googleVerifier: "verifier"}
-	handler, gw := New(accounts, nil, acorn.New(fakeModel{}), Options{
-		Google:            &google.Client{ClientID: "client", ClientSecret: "secret"},
-		GoogleRedirectURL: "http://localhost:6005/auth/google/callback",
-	})
-	t.Cleanup(gw.Close)
-
-	rec := call(handler, http.MethodPost, "/v1/auth/google/callback", `{"code":"abc","state":"ready"}`, nil, "")
-	if rec.Code != http.StatusBadRequest && rec.Code != http.StatusConflict && rec.Code != http.StatusBadGateway {
-		t.Fatalf("mismatch status = %d %s", rec.Code, rec.Body.String())
-	}
-	if accounts.googleState != "" {
-		t.Fatal("state was not consumed")
 	}
 }

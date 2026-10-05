@@ -43,11 +43,14 @@ services:
     ports: ["127.0.0.1:11083:8080"]
     environment:
       MONGO_URI: ${MONGO_URI:-}
-      DEST_DB: ${DEST_DB:-JoinedDB}
+      ACORN_DB: ${ACORN_DB:-AcornDB}
       CORS_ORIGINS: ${FRONTEND_ORIGIN}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # Opens the API key staff save in the admin console. Same value as admin-backend.
+      # Seals an OpenAI key saved in AcornDB.
       SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
+      GOOGLE_CLIENT_ID: ${ACORN_GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${ACORN_GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_SIGNIN_REDIRECT_URL: ${ACORN_GOOGLE_SIGNIN_REDIRECT_URL:-}
 
   joined-frontend:
     <<: *app

@@ -50,13 +50,13 @@ func (s *Store) TakeGoogleState(ctx context.Context, state string, now time.Time
 	}
 	var record storedGoogleState
 	err := s.googleStates.FindOneAndDelete(ctx, bson.D{{Key: "state", Value: state}}).Decode(&record)
-	if errors.Is(err, mongo.ErrNoDocuments) || !record.ExpiresAt.After(now) {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return "", ErrGoogleState
 	}
 	if err != nil {
 		return "", err
 	}
-	if record.Verifier == "" {
+	if !record.ExpiresAt.After(now) || record.Verifier == "" {
 		return "", ErrGoogleState
 	}
 	return record.Verifier, nil

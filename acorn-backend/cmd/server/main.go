@@ -1,5 +1,6 @@
 // Command server runs Acorn's API. The extension calls /acorn and the Socket.IO
-// gateway on this process. Accounts belong to Acorn. The job catalog is shared.
+// gateway on this process. Accounts, sessions, and the rest of Acorn's data live
+// in AcornDB, not JoinedDB.
 package main
 
 import (
@@ -20,6 +21,8 @@ import (
 const (
 	defaultHTTPAddr   = "127.0.0.1:8083"
 	defaultRuntimeKey = "runtime_file"
+	// defaultDatabase is Acorn's own database. Joined uses JoinedDB; this process does not.
+	defaultDatabase = "AcornDB"
 )
 
 // acorn-frontend, plus the older UI board. The extension is not a browser origin.
@@ -37,6 +40,9 @@ func main() {
 		slog.Error("config", "error", err)
 		os.Exit(1)
 	}
+	// DEST_DB is Joined's database. Acorn reads ACORN_DB so a shared environment
+	// cannot point this process at JoinedDB.
+	db.DestDB = config.Env("ACORN_DB", defaultDatabase)
 	server, err := config.LoadHTTP(defaultHTTPAddr, defaultOrigins)
 	if err != nil {
 		slog.Error("config", "error", err)
