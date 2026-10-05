@@ -126,6 +126,19 @@ func TestRenderDuplicateSignupEmail(t *testing.T) {
 	}
 }
 
+func TestRenderVerificationEmailDefaultProductName(t *testing.T) {
+	content, err := RenderVerificationEmail(EmailTemplateConfig{AppBaseURL: "http://localhost:6002"}, "Ada", "tok")
+	if err != nil {
+		t.Fatalf("RenderVerificationEmail failed: %v", err)
+	}
+	if !strings.Contains(content.Subject, "Joined") {
+		t.Errorf("got subject %q, want default product name Joined", content.Subject)
+	}
+	if !strings.Contains(content.TextBody, "http://localhost:6002"+VerifyEmailPath+"?token=tok") {
+		t.Error("text body missing verify path")
+	}
+}
+
 func TestRenderEmailWithTrailingSlash(t *testing.T) {
 	cfg := EmailTemplateConfig{
 		ProductName: "TestApp",

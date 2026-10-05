@@ -7,6 +7,16 @@ import (
 	texttemplate "text/template"
 )
 
+const (
+	// VerifyEmailPath is the joined-frontend verify-link landing page (step-10).
+	VerifyEmailPath = "/verify"
+	// ResetPasswordPath is the joined-frontend reset-password page (step-10).
+	ResetPasswordPath = "/reset-password"
+	// ForgotPasswordPath is the joined-frontend forgot-password page (step-10).
+	ForgotPasswordPath = "/forgot-password"
+	defaultProductName = "Joined"
+)
+
 // EmailTemplateConfig holds the application-specific values for email templates.
 type EmailTemplateConfig struct {
 	ProductName string
@@ -37,7 +47,7 @@ type DuplicateSignupContent struct {
 // RenderVerificationEmail builds verification email content.
 func RenderVerificationEmail(cfg EmailTemplateConfig, name, token string) (VerificationEmailContent, error) {
 	baseURL := strings.TrimRight(cfg.AppBaseURL, "/")
-	verifyURL := baseURL + "/verify?token=" + token
+	verifyURL := baseURL + VerifyEmailPath + "?token=" + token
 
 	textTmpl := `Hi {{.Name}},
 
@@ -76,7 +86,7 @@ The {{.ProductName}} Team`
 
 	data := map[string]string{
 		"Name":        name,
-		"ProductName": cfg.ProductName,
+		"ProductName": cfg.productName(),
 		"VerifyURL":   verifyURL,
 	}
 
@@ -91,7 +101,7 @@ The {{.ProductName}} Team`
 	}
 
 	return VerificationEmailContent{
-		Subject:  "Verify your " + cfg.ProductName + " account",
+		Subject:  "Verify your " + cfg.productName() + " account",
 		TextBody: text,
 		HTMLBody: html,
 	}, nil
@@ -100,7 +110,7 @@ The {{.ProductName}} Team`
 // RenderPasswordResetEmail builds password reset email content.
 func RenderPasswordResetEmail(cfg EmailTemplateConfig, name, token string) (PasswordResetEmailContent, error) {
 	baseURL := strings.TrimRight(cfg.AppBaseURL, "/")
-	resetURL := baseURL + "/reset-password?token=" + token
+	resetURL := baseURL + ResetPasswordPath + "?token=" + token
 
 	textTmpl := `Hi{{if .Name}} {{.Name}}{{end}},
 
@@ -139,7 +149,7 @@ The {{.ProductName}} Team`
 
 	data := map[string]string{
 		"Name":        name,
-		"ProductName": cfg.ProductName,
+		"ProductName": cfg.productName(),
 		"ResetURL":    resetURL,
 	}
 
@@ -154,7 +164,7 @@ The {{.ProductName}} Team`
 	}
 
 	return PasswordResetEmailContent{
-		Subject:  "Reset your " + cfg.ProductName + " password",
+		Subject:  "Reset your " + cfg.productName() + " password",
 		TextBody: text,
 		HTMLBody: html,
 	}, nil
@@ -168,7 +178,7 @@ func RenderDuplicateSignupEmail(cfg EmailTemplateConfig) (DuplicateSignupContent
 
 Someone tried to create an account with your email address on {{.ProductName}}.
 
-If this was you and you've forgotten your password, you can reset it by visiting {{.BaseURL}}/forgot-password
+If this was you and you've forgotten your password, you can reset it by visiting {{.ForgotURL}}
 
 If this wasn't you, you can safely ignore this email. Your account is secure and no changes have been made.
 
@@ -187,7 +197,7 @@ The {{.ProductName}} Team`
 	<p>Someone tried to create an account with your email address on {{.ProductName}}.</p>
 	<p>If this was you and you've forgotten your password, you can reset it by visiting:</p>
 	<p style="margin: 20px 0;">
-		<a href="{{.BaseURL}}/forgot-password" style="color: #2563eb; text-decoration: none;">{{.BaseURL}}/forgot-password</a>
+		<a href="{{.ForgotURL}}" style="color: #2563eb; text-decoration: none;">{{.ForgotURL}}</a>
 	</p>
 	<p style="color: #666; font-size: 14px; margin-top: 30px;">If this wasn't you, you can safely ignore this email. Your account is secure and no changes have been made.</p>
 	<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
@@ -196,8 +206,8 @@ The {{.ProductName}} Team`
 </html>`
 
 	data := map[string]string{
-		"ProductName": cfg.ProductName,
-		"BaseURL":     baseURL,
+		"ProductName": cfg.productName(),
+		"ForgotURL":   baseURL + ForgotPasswordPath,
 	}
 
 	text, err := renderTextTemplate(textTmpl, data)
@@ -211,10 +221,17 @@ The {{.ProductName}} Team`
 	}
 
 	return DuplicateSignupContent{
-		Subject:  "Account security notice - " + cfg.ProductName,
+		Subject:  "Account security notice - " + cfg.productName(),
 		TextBody: text,
 		HTMLBody: html,
 	}, nil
+}
+
+func (c EmailTemplateConfig) productName() string {
+	if strings.TrimSpace(c.ProductName) == "" {
+		return defaultProductName
+	}
+	return c.ProductName
 }
 
 func renderTextTemplate(tmplStr string, data any) (string, error) {

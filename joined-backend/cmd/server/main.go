@@ -43,8 +43,8 @@ func main() {
 	googleConfig := config.LoadGoogle()
 	oauth := &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret}
 	calendar := &candidate.Google{OAuth: oauth, RedirectURL: config.Env("GOOGLE_REDIRECT_URL", "")}
-	
-	emailConfig := config.LoadEmail()
+
+	emailConfig := config.LoadEmail(frontend)
 	emailSender, err := emailConfig.NewEmailSender()
 	if err != nil {
 		slog.Error("email config", "error", err)
