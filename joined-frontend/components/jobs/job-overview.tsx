@@ -12,7 +12,7 @@ import {
   Text,
   Token,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   EMPLOYMENT_LABEL,
   SENIORITY_LABEL,

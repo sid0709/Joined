@@ -12,7 +12,7 @@ import {
   Text,
   TextInput,
   Token,
-} from "@joined/design-system";
+} from "sid-ui";
 import { InterviewerAssign } from "@/components/company/pipeline/interviewer-assign";
 import { SelfScheduleShare } from "@/components/company/interviews/self-schedule-share";
 import type { HiringProfile, TeamMember } from "@/lib/company";

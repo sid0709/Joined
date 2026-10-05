@@ -1,4 +1,4 @@
-import { isJoinedSessionCookie, syncJoinedSession } from "./auth/acorn-auth";
+import { isAcornSessionCookie, syncAcornSession } from "./auth/acorn-auth";
 import { isAcornSocketConnected, scheduleConnectAcornSocket } from "./acorn-socket";
 import { rekeyPipelineUsage } from "./pipeline/usage-tracker";
 import { bindContentScriptInjection, injectIntoOpenTabs } from "./inject-content";
@@ -92,14 +92,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   });
 });
 
-// Joined is the one place a person signs in or out: follow its cookie.
+// acorn-frontend is where a person signs in or out: follow its cookie.
 chrome.cookies.onChanged.addListener(({ cookie }) => {
-  if (isJoinedSessionCookie(cookie)) void syncJoinedSession();
+  if (isAcornSessionCookie(cookie)) void syncAcornSession();
 });
-void syncJoinedSession();
+void syncAcornSession();
 
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes.joinedApiUrl || changes.acornSession) {
+  if (changes.acornApiUrl || changes.acornSession) {
     scheduleConnectAcornSocket(socketHandlers);
   }
 });

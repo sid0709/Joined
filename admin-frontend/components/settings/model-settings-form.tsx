@@ -13,7 +13,7 @@ import {
   Text,
   TextInput,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { adminSend } from "@/lib/api";
 import {
   acornAIChange,

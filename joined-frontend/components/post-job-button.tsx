@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Icon, icons, type ButtonSize } from "@joined/design-system";
+import { Button, Icon, icons, type ButtonSize } from "sid-ui";
 import { ROUTES } from "@/lib/routes";
 
 export function PostJobButton({ size }: { size?: ButtonSize }) {

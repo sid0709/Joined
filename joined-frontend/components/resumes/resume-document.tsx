@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Divider, Heading, HStack, Stack, Text, Token } from "@joined/design-system";
+import { Divider, Heading, HStack, Stack, Text, Token } from "sid-ui";
 import type { EducationItem, ExperienceItem, Profile } from "@/lib/profile";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

@@ -1,15 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  Button,
-  Dialog,
-  DialogHeader,
-  HStack,
-  Layout,
-  LayoutContent,
-  LayoutFooter,
-} from "@joined/design-system";
+import { Button, Dialog, DialogHeader, HStack, Layout, LayoutContent, LayoutFooter } from "sid-ui";
 
 const DIALOG_WIDTH = 480;
 

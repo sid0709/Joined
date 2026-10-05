@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Button,
-  EmptyState,
-  Glyph,
-  GridColumn,
-  GridSystem,
-  Stack,
-  Timeline,
-} from "@joined/design-system";
+import { Button, EmptyState, Glyph, GridColumn, GridSystem, Stack, Timeline } from "sid-ui";
 import { JobsPipeline } from "@/components/company/overview/jobs-pipeline";
 import { NeedsAttention } from "@/components/company/overview/needs-attention";
 import { UpcomingInterviews } from "@/components/company/overview/upcoming-interviews";

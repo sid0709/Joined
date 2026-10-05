@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HStack, Pagination, Text } from "@joined/design-system";
+import { HStack, Pagination, Text } from "sid-ui";
 import { formatCount } from "@/lib/format";
 
 /** Offset pagination bound to the ?page= query value. */

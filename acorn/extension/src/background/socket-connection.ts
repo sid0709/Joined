@@ -43,7 +43,7 @@ export const socketHandlers: AcornSocketHandlers = {
       broadcastOperatorNotice({
         kind: "success",
         title: "Connected",
-        detail: "Connected to Joined.",
+        detail: "Connected to Acorn.",
       });
     }
   },

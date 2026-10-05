@@ -12,7 +12,7 @@ Job seekers can sign up, verify, log in, log out, and reset a password with emai
 
 ## In scope
 
-- Screens in `joined-frontend`: sign up, check your email, verify link landing, log in, forgot password, reset password. Use `@joined/design-system`.
+- Screens in `joined-frontend`: sign up, check your email, verify link landing, log in, forgot password, reset password. Use `sid-ui`.
 - Call the step-03 endpoints through the app's existing server-side API pattern; keep the `joined_session` cookie flow consistent with Google sign-in.
 - Inline validation, clear error states, no account enumeration in messages, loading and disabled states.
 - Respect the step-04 flag: no company sign-up path when company mode is off.

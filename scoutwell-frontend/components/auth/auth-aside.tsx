@@ -1,4 +1,4 @@
-import { JoinedLogo, JoinedMark } from "@joined/design-system";
+import { JoinedLogo, JoinedMark } from "sid-ui";
 import { BRAND } from "@/lib/config";
 
 const POINTS = [

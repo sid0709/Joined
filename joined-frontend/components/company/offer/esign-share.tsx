@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, Button, HStack, Stack, Text, TextInput, useToast } from "@joined/design-system";
+import { Banner, Button, HStack, Stack, Text, TextInput, useToast } from "sid-ui";
 import { scaffoldEsignUrl } from "@/lib/offer-hire";
 
 /** Share (or scaffold) a first-party offer e-sign link — no DocuSign. */

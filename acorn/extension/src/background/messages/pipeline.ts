@@ -1,5 +1,5 @@
 import { getAcornSocket } from "../../acorn-socket";
-import { getAccessToken, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { getAccessToken, getAcornApiUrl } from "../../auth/acorn-auth";
 import { runFabPipeline } from "../../pipeline/run-pipeline";
 import { getCustomTab } from "../../tab-custom-session";
 import { MSG, type DomTreePayload } from "../../types";
@@ -52,7 +52,7 @@ export function handleStartPipeline(
         return;
       }
 
-      const apiUrl = await getJoinedApiUrl();
+      const apiUrl = await getAcornApiUrl();
       await runFabPipeline({
         tabId,
         source,

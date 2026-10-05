@@ -10,7 +10,7 @@ import {
   Text,
   Token,
   VStack,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { SCRAPE_SOURCE } from "../../config/env";
 import { STRATEGY_LABELS } from "../../routineKit/describe";

@@ -11,7 +11,7 @@ import {
   PageHeader,
   Stack,
   Sticky,
-} from "@joined/design-system";
+} from "sid-ui";
 import { DEFAULT_CURRENCY } from "@joined/job-schema";
 import {
   CHANNEL_LABEL,

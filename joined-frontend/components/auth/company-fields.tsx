@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RadioList, RadioListItem, Stack, Text, TextInput } from "@joined/design-system";
+import { RadioList, RadioListItem, Stack, Text, TextInput } from "sid-ui";
 import type { CompanyChoice, CompanyOption } from "@/lib/auth/types";
 
 export type HiringPath = "link" | "create";

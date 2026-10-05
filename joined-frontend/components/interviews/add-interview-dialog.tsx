@@ -12,7 +12,7 @@ import {
   Text,
   TextInput,
   TimeField,
-} from "@joined/design-system";
+} from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
 import { type Application } from "@/lib/applications";
 import { FORMAT_LABEL, type InterviewFormat } from "@/lib/interviews";

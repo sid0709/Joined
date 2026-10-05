@@ -1,12 +1,12 @@
 import type { RuntimeAttachedFile } from "@acorn/shared/plan-runner/types";
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 import { extractError, isNestMissingRoute, readId } from "./http";
 
 const CUSTOM_STORED_FILE_UNAVAILABLE =
   "Could not load the stored editor résumé. Custom preview, download, and Fill use the Firestore file from generate, not the default Word export.";
 
 const CUSTOM_PREVIEW_UNAVAILABLE =
-  "Résumé preview needs the stored editor file on this Joined API host. Download and Fill use that same Firestore file.";
+  "Résumé preview needs the stored editor file on this Acorn API. Download and Fill use that same Firestore file.";
 
 /**
  * Stored Custom résumé from Firestore (same template-applied file the
@@ -18,7 +18,7 @@ export async function fetchCustomResume(
 ): Promise<RuntimeAttachedFile | null> {
   const id = String(generationId || "").trim();
   if (!id) return null;
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/resumes/${encodeURIComponent(id)}`, {
     headers: await authHeaders(),
   });
@@ -58,7 +58,7 @@ export async function fetchCustomResumePreview(
 ): Promise<string> {
   const id = String(generationId || "").trim();
   if (!id) throw new Error("Missing generation id");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/custom/resumes/${encodeURIComponent(id)}/preview`, {
     headers: await authHeaders(),
   });

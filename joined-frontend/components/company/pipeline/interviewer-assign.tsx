@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Stack,
-  Text,
-  Tokenizer,
-  createStaticSource,
-  type SearchableItem,
-} from "@joined/design-system";
+import { Stack, Text, Tokenizer, createStaticSource, type SearchableItem } from "sid-ui";
 import { useMemo } from "react";
 import type { TeamMember } from "@/lib/company";
 

@@ -1,4 +1,4 @@
-import type { BadgeVariant, KanbanColumn } from "@joined/design-system";
+import type { BadgeVariant, KanbanColumn } from "sid-ui";
 
 /** Hiring workspace — applicants to this company's jobs. */
 

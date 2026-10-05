@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { Center } from "@joined/design-system";
+import { Center } from "sid-ui";
 import { CompanyModeComing } from "@/components/auth/company-mode-coming";
 import { isEmployee } from "@/lib/auth/account-type";
 import { loadSession } from "@/lib/auth/session";

@@ -12,7 +12,7 @@ import {
   TextInput,
   useToast,
   type UploadHandler,
-} from "@joined/design-system";
+} from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
 import { StatGrid } from "@/components/stat-card";
 import type { Application } from "@/lib/applications";

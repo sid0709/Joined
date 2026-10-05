@@ -1,4 +1,4 @@
-import { Card, HStack, Stack, Text, type CardVariant } from "@joined/design-system";
+import { Card, HStack, Stack, Text, type CardVariant } from "sid-ui";
 import { PIPELINE_STAGES, pipelineTotal, type PipelineCounts } from "@/lib/company";
 
 const BAR_HEIGHT = 8;

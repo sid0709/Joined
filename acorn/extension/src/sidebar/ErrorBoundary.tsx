@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { Button, EmptyState } from "@joined/design-system";
+import { Button, EmptyState } from "sid-ui";
 import { AcornFaceView } from "../acorn-face/AcornFaceView";
 
 interface Props {

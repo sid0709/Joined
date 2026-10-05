@@ -13,7 +13,7 @@ import {
   TextInput,
   useToast,
   SectionCard,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ApiError, VERIFICATION, type PayoutMethodType, type Profile } from "@joined/scout";
 import { formatDay } from "@/lib/dates";
 import { scoutSend } from "@/lib/scout/client";

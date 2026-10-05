@@ -1,4 +1,4 @@
-import { Avatar, type AvatarSize } from "@joined/design-system";
+import { Avatar, type AvatarSize } from "sid-ui";
 import type { MailThread } from "@/lib/messages";
 
 /** Companies and Joined get a rounded tile, people a circle — the shape says who you're talking to. */

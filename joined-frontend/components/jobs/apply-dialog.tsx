@@ -21,7 +21,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import { companyBySlug, jobHasLogoFile, type Job } from "@/lib/jobs";
 import {
   APPLY_CONSENT_LABEL,

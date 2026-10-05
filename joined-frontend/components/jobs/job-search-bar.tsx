@@ -11,7 +11,7 @@ import {
   Text,
   TextInput,
   Token,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatCount } from "@/lib/jobs";
 
 export type SavedQuery = { q: string; where: string };

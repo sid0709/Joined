@@ -1,4 +1,4 @@
-import { Button, HStack, Text, Token } from "@joined/design-system";
+import { Button, HStack, Text, Token } from "sid-ui";
 import {
   EMPLOYMENT_LABEL,
   POSTED_WITHIN,

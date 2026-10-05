@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Grid, Stack, TextInput } from "@joined/design-system";
+import { Button, Grid, Stack, TextInput } from "sid-ui";
 import { SectionCard } from "@/components/section-card";
 import { useProfileSave } from "@/components/profile/use-profile-save";
 import type { Profile, ProfileLinks } from "@/lib/profile";

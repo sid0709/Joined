@@ -1,4 +1,4 @@
-import { Glyph, HStack, Tab, TabList, Text, VStack } from "@joined/design-system";
+import { Glyph, HStack, Tab, TabList, Text, VStack } from "sid-ui";
 import { useState } from "react";
 
 import packageJson from "../../package.json";

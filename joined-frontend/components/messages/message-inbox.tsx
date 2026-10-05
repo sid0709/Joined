@@ -12,7 +12,7 @@ import {
   LayoutPanel,
   icons,
   useElementWidth,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { MailMessage, MailThread } from "@/lib/messages";
 import { Conversation } from "./conversation";
 import { ConversationDetails } from "./conversation-details";

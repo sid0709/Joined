@@ -16,7 +16,7 @@ import {
   Text,
   Token,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { STRONG_SCORE, isProfileResume, type Resume } from "@/lib/resumes";
 import type { Profile } from "@/lib/profile";
 import { ResumeDocument } from "./resume-document";

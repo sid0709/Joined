@@ -48,7 +48,7 @@ Analyze → plan → run steps go through the existing pipeline. Custom Generate
 
 ## 5. Reuse Joined services
 
-Acorn HTTP in `backend-core/acornapi` should compose the existing My Resume Editor generate + apply-template services, and Job Search Library recommend. Do not build a parallel résumé stack, Custom-only DOCX renderer, or a second recommend catalog.
+Acorn HTTP in `acorn-backend/acornapi` should compose the existing My Resume Editor generate + apply-template services, and Job Search Library recommend. Do not build a parallel résumé stack, Custom-only DOCX renderer, or a second recommend catalog.
 
 - Custom generate extracts a job description from the same formatted **pure tree** Fill sends to AI Analyze (`POST /acorn/custom/extract-jd` with `pageText` = `formatAnalyzeTrees().pureTree`). Fill generate uses the stored Worker pool `jobDescription` and does not call extract-jd. Enqueue the editor `resume_generation` path only when a JD is present, with the signed-in stored `ResumeConfig`. If no posting is present, refuse generate.
 - Generate is five steps: `load-jd`, `summary`, `skills`, `experience`, `finalize`. Acorn persists completed steps and `partialSections`. Continue sends `checkpoint: { completedSteps, resumeFrom, partialSections }` so the API can skip finished AI sections. `POST /acorn/custom/generate/:inputId/continue` is preferred when an `inputId` exists; if that route is missing, enqueue a new generate with the same checkpoint body. Optional `jobId` on generate associates the Firestore file with the Worker pool job.

@@ -7,7 +7,7 @@ import { formatAnalyzeTrees } from "@acorn/shared/tree-export";
 import { sendPlanStepToTab, sendTabMessage } from "../tab-messaging";
 import { getTabJob } from "../tab-job-session";
 import { customTabHasResume, getCustomTab } from "../tab-custom-session";
-import { DEFAULT_JOINED_API_URL } from "../auth/acorn-auth";
+import { DEFAULT_ACORN_API_URL } from "../auth/acorn-auth";
 import { MSG, type DomTreePayload, type PipelineSource } from "../types";
 import { requestAiAnalyze } from "./api/analyze";
 import { fetchRuntimeFile } from "./api/job-files";
@@ -40,7 +40,7 @@ export async function runFabPipeline(args: RunPipelineArgs): Promise<void> {
   const {
     tabId,
     preferredFrameId = null,
-    aiServerUrl = DEFAULT_JOINED_API_URL,
+    aiServerUrl = DEFAULT_ACORN_API_URL,
     source = "fill",
     emitDomTree,
     onProgress,

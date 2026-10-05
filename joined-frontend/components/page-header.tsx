@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HStack, Heading, Stack, Text } from "@joined/design-system";
+import { HStack, Heading, Stack, Text } from "sid-ui";
 
 export function PageHeader({
   title,

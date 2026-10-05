@@ -1,13 +1,4 @@
-import {
-  Banner,
-  Card,
-  Divider,
-  GoogleSignInButton,
-  Heading,
-  Link,
-  Stack,
-  Text,
-} from "@joined/design-system";
+import { Banner, Card, Divider, GoogleSignInButton, Heading, Link, Stack, Text } from "sid-ui";
 import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
 import { isCompanyModeEnabled } from "@/lib/config";
 import { ROUTES } from "@/lib/routes";

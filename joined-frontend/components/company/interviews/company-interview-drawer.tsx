@@ -16,7 +16,7 @@ import {
   Text,
   TextArea,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SelfScheduleShare } from "@/components/company/interviews/self-schedule-share";
 import { ScorecardSubmitShell } from "@/components/company/pipeline/scorecard-shell";
 import {

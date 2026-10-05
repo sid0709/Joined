@@ -1,4 +1,4 @@
-import { BRAND_NAME } from "@joined/design-system/brand-name";
+import { BRAND_NAME } from "sid-ui/brand-name";
 
 export const BRAND = BRAND_NAME;
 

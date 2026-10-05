@@ -1,6 +1,6 @@
 "use client";
 
-import { Stack } from "@joined/design-system";
+import { Stack } from "sid-ui";
 import { ProfileAbout } from "@/components/profile/profile-about";
 import { ProfileContact } from "@/components/profile/profile-contact";
 import { ProfileEducation } from "@/components/profile/profile-education";

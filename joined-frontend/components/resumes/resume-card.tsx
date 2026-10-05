@@ -10,7 +10,7 @@ import {
   StatusDot,
   Text,
   formatBytes,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatShortDate } from "@/lib/dates";
 import { PARSE_META, isProfileResume, type Resume } from "@/lib/resumes";
 import { ResumePagePreview } from "./resume-page-preview";

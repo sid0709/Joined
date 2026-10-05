@@ -1,4 +1,4 @@
-import { MetadataList, MetadataListItem, Text } from "@joined/design-system";
+import { MetadataList, MetadataListItem, Text } from "sid-ui";
 import {
   SENIORITIES,
   SENIORITY_LABEL,
