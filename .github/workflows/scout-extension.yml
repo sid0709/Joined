@@ -34,13 +34,7 @@ jobs:
         run: bun --filter scout-extension typecheck
 
       - name: Run unit tests
-        run: |
-          # Run tests if the script exists, otherwise pass with a note
-          if jq -e '.scripts.test' scout-extension/package.json >/dev/null 2>&1; then
-            bun --filter scout-extension test
-          else
-            echo "✓ No test script defined - skipping tests (will run when tests are added)"
-          fi
+        run: bun --filter scout-extension test
 
       - name: Build extension
         run: bun --filter scout-extension build
