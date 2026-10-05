@@ -39,6 +39,7 @@ var (
 	ErrHasCompany     = errors.New("this account is already linked to a company")
 	ErrWrongRole      = errors.New("this email is registered as a different kind of account")
 	ErrInviteRequired = errors.New("an owner must invite you before you can join this company")
+	ErrExportLimited  = errors.New("export rate limited")
 )
 
 // RoleError is a sign-in or action from the wrong app for this account.

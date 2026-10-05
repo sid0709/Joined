@@ -183,6 +183,28 @@ func (r *records) DeleteSessionsByUser(ctx context.Context, userID string) error
 	return nil
 }
 
+func (r *records) SessionByToken(ctx context.Context, tokenHash string) (auth.SessionRecord, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	rec, ok := r.sessions[tokenHash]
+	if !ok {
+		return auth.SessionRecord{}, auth.ErrNotFound
+	}
+	return rec, nil
+}
+
+func (r *records) DeleteUser(ctx context.Context, userID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	user, ok := r.users[userID]
+	if !ok {
+		return auth.ErrNotFound
+	}
+	delete(r.users, userID)
+	delete(r.usersByEmail, user.Email)
+	return nil
+}
+
 func (r *records) CompanyMembership(ctx context.Context, userID string) (*auth.Company, error) {
 	return nil, auth.ErrNotFound
 }

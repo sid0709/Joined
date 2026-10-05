@@ -153,6 +153,14 @@ func (s *signupCountRecords) DeleteSessionsByUser(ctx context.Context, userID st
 	return nil
 }
 
+func (s *signupCountRecords) SessionByToken(ctx context.Context, tokenHash string) (SessionRecord, error) {
+	return SessionRecord{}, ErrNotFound
+}
+
+func (s *signupCountRecords) DeleteUser(ctx context.Context, userID string) error {
+	return nil
+}
+
 func (s *signupCountRecords) CompanyMembership(ctx context.Context, userID string) (*Company, error) {
 	return nil, ErrNotFound
 }
