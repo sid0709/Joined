@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { AUTH_PAGE_PATHS, ROUTES } from "@/lib/routes";
+import { AUTH_PAGE_PATHS, ROUTES, signInHref } from "@/lib/routes";
 import {
   EMAIL_APP_ROUTES,
   EMAIL_MESSAGES,
@@ -248,5 +248,6 @@ describe("field helpers and client submit", () => {
     expect(AUTH_PAGE_PATHS).toContain(ROUTES.resetPassword);
     expect(RESET_NOTICE_PARAM).toBe("reset");
     expect(RESET_NOTICE_VALUE).toBe("1");
+    expect(signInHref("/applications")).toBe("/sign-in?next=%2Fapplications");
   });
 });

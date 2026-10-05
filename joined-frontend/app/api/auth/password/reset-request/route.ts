@@ -1,25 +1,6 @@
-import {
-  EMAIL_API_PATHS,
-  EMAIL_MESSAGES,
-  emailAuthUserMessage,
-  parseForgotInput,
-} from "@/lib/auth/email";
-import { postJoinedAuth } from "@/lib/auth/email-api";
+import { handlePasswordResetRequest } from "@/lib/auth/email-api";
 import { joinedApiUrl } from "@/lib/config";
 
 export async function POST(request: Request) {
-  const parsed = parseForgotInput(await request.json().catch(() => null));
-  if (!parsed.ok) return Response.json({ error: parsed.message }, { status: 400 });
-  try {
-    const result = await postJoinedAuth(joinedApiUrl(), EMAIL_API_PATHS.resetRequest, parsed.value);
-    if (!result.ok) {
-      return Response.json(
-        { error: emailAuthUserMessage("forgot", result.status, result.error) },
-        { status: result.status },
-      );
-    }
-    return Response.json({ message: EMAIL_MESSAGES.forgotSuccess });
-  } catch {
-    return Response.json({ error: EMAIL_MESSAGES.genericFailure }, { status: 503 });
-  }
+  return handlePasswordResetRequest(request, joinedApiUrl());
 }
