@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JobPageView } from "@/components/jobs/job-page-view";
+import { JobPostingJsonLd } from "@/components/jobs/job-posting-json-ld";
 import { loadSession } from "@/lib/auth/session";
 import { loadCompany, loadSearchJob } from "@/lib/jobs/catalog";
 import { loadAppliedJobIds, loadSavedJobIds } from "@/lib/me/load";
+import { jobPageMetadata } from "@/lib/seo/job-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +15,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const job = await loadSearchJob(id);
-  return { title: job ? `${job.title} at ${job.company}` : "Job", description: job?.summary };
+  return jobPageMetadata(await loadSearchJob(id));
 }
 
 export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,12 +41,15 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     : [[], []];
 
   return (
-    <JobPageView
-      job={job}
-      jobs={jobs}
-      saved={savedIds.includes(job.id)}
-      applied={appliedIds.includes(job.id)}
-      signedIn={Boolean(session) && !isEmployeeSession}
-    />
+    <>
+      <JobPostingJsonLd job={job} />
+      <JobPageView
+        job={job}
+        jobs={jobs}
+        saved={savedIds.includes(job.id)}
+        applied={appliedIds.includes(job.id)}
+        signedIn={Boolean(session) && !isEmployeeSession}
+      />
+    </>
   );
 }
