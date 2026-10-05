@@ -19,7 +19,7 @@ func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) (auth.Se
 		return session, true
 	}
 	lookup := s.sessions
-	if lookup == nil {
+	if lookup == nil && s.auth != nil {
 		lookup = s.auth
 	}
 	if lookup == nil {

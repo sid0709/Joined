@@ -50,9 +50,11 @@ type Options struct {
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
-	sessions := sessionLookup(accounts)
+	var sessions sessionLookup
 	if opts.Sessions != nil {
 		sessions = opts.Sessions
+	} else if accounts != nil {
+		sessions = accounts
 	}
 	server := &Server{
 		store:       store,
@@ -113,13 +115,14 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux.HandleFunc("GET /v1/me/calendar", server.getCalendar)
 	candidateMux.HandleFunc("GET /v1/me/calendar/events", server.getCalendarEvents)
 	candidateMux.HandleFunc("GET /v1/me/calendar/google/start", server.startGoogleCalendar)
-	candidateMux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
 	candidateMux.HandleFunc("DELETE /v1/me/calendar/google", server.disconnectGoogleCalendar)
 	candidateMux.HandleFunc("POST /v1/me/calendar/google/sync", server.syncGoogleCalendar)
 	candidateMux.HandleFunc("GET /v1/me/threads", server.getMyThreads)
 	candidateMux.HandleFunc("GET /v1/me/threads/{id}", server.getMyThread)
 	candidateMux.HandleFunc("POST /v1/me/threads/{id}/messages", server.postMyMessage)
 	candidateMux.HandleFunc("GET /v1/me/unread", server.getMyUnread)
+	// Google's OAuth redirect has no Authorization header; it authenticates via state.
+	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
 	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
 
 	companyMux := http.NewServeMux()

@@ -93,6 +93,34 @@ func TestJoinedRouteGroupsRejectWrongRole(t *testing.T) {
 	}
 }
 
+func TestGoogleCalendarCallbackIsPublic(t *testing.T) {
+	handler := New(nil, nil, nil, nil, nil, nil, Options{Frontend: "http://localhost:6002"})
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/calendar/google/callback", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("callback required a session: %s", rec.Body.String())
+	}
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+	location := rec.Header().Get("Location")
+	if !strings.Contains(location, "/settings") {
+		t.Fatalf("location = %q", location)
+	}
+}
+
+func TestNilAccountsDoesNotCallSessionOnTypedNil(t *testing.T) {
+	handler := New(nil, nil, nil, nil, nil, nil, Options{})
+	req := httptest.NewRequest(http.MethodGet, "/v1/me/profile", nil)
+	req.Header.Set("Authorization", "Bearer leftover-token")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d body = %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCompanyModeOffStill401WhenSignedOut(t *testing.T) {
 	handler := New(nil, nil, nil, nil, nil, nil, Options{CompanyMode: false})
 	req := httptest.NewRequest(http.MethodGet, "/v1/company/overview", nil)
