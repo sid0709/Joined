@@ -22,6 +22,15 @@ func TestLoadConfigRefusesLiveKeyByDefault(t *testing.T) {
 	}
 }
 
+func TestLoadConfigRefusesRestrictedLiveKeyByDefault(t *testing.T) {
+	setenv(t, "STRIPE_SECRET_KEY", "rk_live_123")
+	unset(t, "STRIPE_ALLOW_LIVE")
+	_, err := LoadConfig()
+	if err == nil || err.Error() != "live key detected but STRIPE_ALLOW_LIVE is not true" {
+		t.Fatalf("expected restricted live key refusal, got %v", err)
+	}
+}
+
 func TestLoadConfigAcceptsLiveKeyWhenAllowed(t *testing.T) {
 	setenv(t, "STRIPE_SECRET_KEY", "sk_live_123")
 	setenv(t, "STRIPE_ALLOW_LIVE", "true")

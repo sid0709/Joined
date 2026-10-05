@@ -44,10 +44,14 @@ func LoadConfig() (Config, error) {
 	if cfg.SecretKey == "" {
 		return Config{}, fmt.Errorf("STRIPE_SECRET_KEY is required")
 	}
-	if strings.HasPrefix(cfg.SecretKey, "sk_live_") && !cfg.AllowLive {
+	if isLiveKey(cfg.SecretKey) && !cfg.AllowLive {
 		return Config{}, fmt.Errorf("live key detected but STRIPE_ALLOW_LIVE is not true")
 	}
 	return cfg, nil
+}
+
+func isLiveKey(key string) bool {
+	return strings.HasPrefix(key, "sk_live_") || strings.HasPrefix(key, "rk_live_")
 }
 
 func envBool(key string, fallback bool) bool {
