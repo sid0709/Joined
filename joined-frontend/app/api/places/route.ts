@@ -1,4 +1,4 @@
-import { placesResponse } from "@joined/design-system/geoapify";
+import { placesResponse } from "sid-ui/geoapify";
 
 /** Proxy Geoapify autocomplete so the API key never reaches the browser. */
 export function GET(request: Request) {

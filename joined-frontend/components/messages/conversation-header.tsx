@@ -10,7 +10,7 @@ import {
   StackItem,
   Text,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { MailThread } from "@/lib/messages";
 import { ThreadAvatar } from "./thread-avatar";
 

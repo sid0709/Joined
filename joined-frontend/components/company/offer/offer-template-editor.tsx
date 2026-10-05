@@ -11,7 +11,7 @@ import {
   TextArea,
   TextInput,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   MAX_OFFER_TEMPLATES,
   centsToDollarsInput,

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHeader, Stack } from "@joined/design-system";
+import { PageHeader, Stack } from "sid-ui";
 import type { AdminList, ScoutSummary } from "@joined/scout";
 import { ScoutFilters } from "@/components/scouting/scouts/scout-filters";
 import { ScoutTable } from "@/components/scouting/scouts/scout-table";

@@ -18,7 +18,7 @@ import {
   TextInput,
   useToast,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { ApiError, type ApiKey, type CreatedApiKey } from "@joined/scout";
 import { formatDateTime, formatDay } from "@/lib/dates";
 import { scoutSend } from "@/lib/scout/client";

@@ -1,4 +1,4 @@
-import { JoinedProvider } from "@joined/design-system/theme";
+import { JoinedProvider } from "sid-ui/theme";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 /** Where the side panel remembers a light/dark choice. Without one it follows the system. */

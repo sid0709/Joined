@@ -1,4 +1,4 @@
-import { SectionCard, SegmentBar } from "@joined/design-system";
+import { SectionCard, SegmentBar } from "sid-ui";
 import type { Metrics } from "@joined/scout";
 
 /** Every job you sent, split by where it stands. Nothing renders until there is a first submission. */

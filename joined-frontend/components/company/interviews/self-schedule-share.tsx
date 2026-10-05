@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, Button, HStack, Stack, Text, TextInput, useToast } from "@joined/design-system";
+import { Banner, Button, HStack, Stack, Text, TextInput, useToast } from "sid-ui";
 import { scaffoldSelfScheduleUrl } from "@/lib/schedule-join";
 
 /** Share (or scaffold) a candidate self-schedule link while awaiting a slot. */

@@ -1,14 +1,5 @@
 import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import {
-  Badge,
-  Banner,
-  EmptyState,
-  Glyph,
-  HStack,
-  IconButton,
-  Text,
-  VStack,
-} from "@joined/design-system";
+import { Badge, Banner, EmptyState, Glyph, HStack, IconButton, Text, VStack } from "sid-ui";
 import { IDLE_PIPELINE_PROGRESS, type PipelineProgress } from "@acorn/shared/pipeline-types";
 import type { JobAttachment } from "../tab-job-session";
 import { LoadMoreFooter } from "./LoadMoreFooter";

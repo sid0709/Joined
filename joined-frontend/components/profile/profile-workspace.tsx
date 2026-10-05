@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GridColumn, GridSystem, Stack } from "@joined/design-system";
+import { GridColumn, GridSystem, Stack } from "sid-ui";
 import { ProfileAbout } from "@/components/profile/profile-about";
 import { ProfileContact } from "@/components/profile/profile-contact";
 import { ProfileDisclosures } from "@/components/profile/profile-disclosures";

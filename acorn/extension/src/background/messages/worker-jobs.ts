@@ -1,4 +1,4 @@
-import { authHeaders, getAccessToken, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAccessToken, getAcornApiUrl } from "../../auth/acorn-auth";
 import { openWorkerJobInTab } from "../../open-worker-job";
 import { findTabIdsForJob, getTabJob, unbindJobFromAllTabs } from "../../tab-job-session";
 import { mapAcornWorkerJobs } from "../../worker-job";
@@ -13,7 +13,7 @@ export function handleListWorkerJobs(sendResponse: SendResponse): void {
         sendResponse({ ok: false, error: "Sign in required", jobs: [] });
         return;
       }
-      const base = await getJoinedApiUrl();
+      const base = await getAcornApiUrl();
       const res = await fetch(`${base}/acorn/jobs`, {
         headers: await authHeaders(),
       });
@@ -108,7 +108,7 @@ export function handleMarkJobApplied(message: RuntimeMessage, sendResponse: Send
       const attachedTabIds = await findTabIdsForJob(jobId);
       await unbindJobFromAllTabs(jobId);
       void closeTabsQuietly(attachedTabIds);
-      const base = await getJoinedApiUrl();
+      const base = await getAcornApiUrl();
       const res = await fetch(`${base}/acorn/jobs/${encodeURIComponent(jobId)}/mark-applied`, {
         method: "POST",
         headers: await authHeaders(),

@@ -7,7 +7,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 ## While you code
 
 - Use **bun only**. Never npm, yarn, or pnpm. The only lockfile is `bun.lock`.
-- Work from the repo root. Do not copy a component, token, or helper into more than one app. Shared UI lives in `packages/*` (for example `@joined/design-system`). Apps import the package's public exports, never its `src` tree.
+- Work from the repo root. Do not copy a component, token, or helper into more than one app. Shared UI lives in `packages/*` (for example `sid-ui`). Apps import the package's public exports, never its `src` tree.
 - Do not hardcode values that belong in config or tokens:
   - URLs, API hosts, feature flags → env / config
   - Colors, spacing, type, radii, shadows → design tokens (`tokens.css`)
@@ -34,7 +34,7 @@ Longer references: [Command.md](Command.md) (every command), [docs/CONTRIBUTING.
 | Joined API                    | `bun run dev:joined-api`            | http://127.0.0.1:8080      |
 | Admin API                     | `bun run dev:admin-api`             | http://127.0.0.1:8081      |
 | Scoutwell API                 | `bun run dev:scout-api`             | http://127.0.0.1:8082      |
-| Core API (Acorn)              | `bun run dev:core-api`              | http://127.0.0.1:8083      |
+| Acorn API                     | `bun run dev:acorn-api`             | http://127.0.0.1:8083      |
 | One script in one workspace   | `bun --filter <workspace> <script>` | —                          |
 
 First time, and after `package.json` or `bun.lock` changes:

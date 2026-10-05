@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BrandFooter, PageContainer } from "@joined/design-system";
+import { BrandFooter, PageContainer } from "sid-ui";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
 import { BRAND } from "@/lib/config";

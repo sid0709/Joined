@@ -1,4 +1,4 @@
-import { Card, Layout, LayoutContent, LayoutHeader, Stack } from "@joined/design-system";
+import { Card, Layout, LayoutContent, LayoutHeader, Stack } from "sid-ui";
 import {
   companyFromJob,
   matchFor,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Glyph, Table } from "@joined/design-system";
+import { Glyph, Table } from "sid-ui";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";

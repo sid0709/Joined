@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "@joined/design-system";
+import type { BadgeVariant } from "sid-ui";
 
 export type Workplace = "remote" | "hybrid" | "onsite";
 

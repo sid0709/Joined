@@ -1,4 +1,4 @@
-import { Card, GoogleSignInButton, Heading, Link, Stack, Text } from "@joined/design-system";
+import { Card, GoogleSignInButton, Heading, Link, Stack, Text } from "sid-ui";
 import { GOOGLE_AUTH_ROUTE } from "@joined/google-signin";
 import { ROUTES } from "@/lib/routes";
 

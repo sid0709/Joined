@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Banner,
-  Button,
-  SectionCard,
-  Selector,
-  Stack,
-  Text,
-  TextArea,
-  useToast,
-} from "@joined/design-system";
+import { Banner, Button, SectionCard, Selector, Stack, Text, TextArea, useToast } from "sid-ui";
 import {
   ApiError,
   type AdminSubmissionDetail,

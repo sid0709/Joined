@@ -1,4 +1,4 @@
-import { Table } from "@joined/design-system";
+import { Table } from "sid-ui";
 
 import type { StatusCounts } from "@/src/shared/lib/selectors";
 import type { PackageTier } from "@/src/shared/types/marketplace";

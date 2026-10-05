@@ -1,18 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Avatar,
-  Badge,
-  Banner,
-  Button,
-  Card,
-  Grid,
-  HStack,
-  Stack,
-  Text,
-  useToast,
-} from "@joined/design-system";
+import { Avatar, Badge, Banner, Button, Card, Grid, HStack, Stack, Text, useToast } from "sid-ui";
 import { disconnectGoogleCalendar, startGoogleCalendar } from "@/lib/me/pipeline";
 import { CONNECTIONS, type Connection } from "@/lib/settings";
 

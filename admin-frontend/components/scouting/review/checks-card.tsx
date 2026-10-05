@@ -1,4 +1,4 @@
-import { Badge, HStack, SectionCard, Stack, Text } from "@joined/design-system";
+import { Badge, HStack, SectionCard, Stack, Text } from "sid-ui";
 import { CHECK_OUTCOME, isPending, type Submission } from "@joined/scout";
 import { formatDateTime } from "@/lib/format";
 

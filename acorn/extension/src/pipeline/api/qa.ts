@@ -1,4 +1,4 @@
-import { authHeaders, getJoinedApiUrl } from "../../auth/acorn-auth";
+import { authHeaders, getAcornApiUrl } from "../../auth/acorn-auth";
 
 export type AcornQaPage = {
   title?: string;
@@ -16,7 +16,7 @@ export async function requestQaAnswer(
 ): Promise<string> {
   const question = input.question.trim();
   if (!question) throw new Error("Enter a question");
-  const base = (_apiUrl || (await getJoinedApiUrl())).replace(/\/$/, "");
+  const base = (_apiUrl || (await getAcornApiUrl())).replace(/\/$/, "");
   const res = await fetch(`${base}/acorn/qa`, {
     method: "POST",
     headers: await authHeaders(),

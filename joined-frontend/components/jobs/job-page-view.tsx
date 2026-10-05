@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  BreadcrumbItem,
-  Breadcrumbs,
-  Card,
-  GridColumn,
-  GridSystem,
-  Stack,
-} from "@joined/design-system";
+import { BreadcrumbItem, Breadcrumbs, Card, GridColumn, GridSystem, Stack } from "sid-ui";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 import {
   companyFromJob,

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { BrandHeading, TopNav, TopNavItem, useAppShellMobile } from "@joined/design-system";
+import { BrandHeading, TopNav, TopNavItem, useAppShellMobile } from "sid-ui";
 import { isCompanyModeEnabled } from "@/lib/config";
 import type { AuthSession } from "@/lib/auth/types";
 import { APPLICATIONS_PAGE, BRAND, INTERVIEWS_PAGE, ROUTES, type PageLink } from "@/lib/routes";

@@ -39,5 +39,5 @@ src/client/
 
 ## Import Rules
 
-✅ Allowed: `@/src/shared/*`, `@joined/design-system`
+✅ Allowed: `@/src/shared/*`, `sid-ui`
 ❌ Forbidden: `@/src/candidate/*`

@@ -17,7 +17,7 @@ import type {
   SubmissionStatus,
   Verification,
 } from "./types";
-import type { BadgeVariant, BannerStatus } from "@joined/design-system";
+import type { BadgeVariant, BannerStatus } from "sid-ui";
 
 export { EMPLOYMENT_LABEL, SENIORITY_LABEL, WORKPLACE_LABEL, seniorityLabel };
 

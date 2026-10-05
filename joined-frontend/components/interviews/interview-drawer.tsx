@@ -14,7 +14,7 @@ import {
   Stack,
   Text,
   TextArea,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatDay, formatTime } from "@/lib/dates";
 import {
   FORMAT_LABEL,

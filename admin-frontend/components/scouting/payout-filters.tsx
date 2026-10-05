@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Tab, TabList } from "@joined/design-system";
+import { Tab, TabList } from "sid-ui";
 import { ROUTES } from "@/lib/nav";
 
 export const PAYOUT_FILTERS = [

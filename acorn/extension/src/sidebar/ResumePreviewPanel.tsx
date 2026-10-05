@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Banner, Button, Drawer, Glyph, HStack, Spinner } from "@joined/design-system";
+import { Banner, Button, Drawer, Glyph, HStack, Spinner } from "sid-ui";
 import { triggerResumeDownload } from "./download-resume";
 
 export type ResumePreviewDownload = {

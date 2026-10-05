@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Button,
-  GridColumn,
-  GridSystem,
-  HStack,
-  Stack,
-  Sticky,
-  Text,
-  useToast,
-} from "@joined/design-system";
+import { Button, GridColumn, GridSystem, HStack, Stack, Sticky, Text, useToast } from "sid-ui";
 import { CompanyPageFields } from "@/components/company/about/company-page-fields";
 import { CompanyCard } from "@/components/jobs/company-card";
 import { SaveFooter } from "@/components/save-footer";

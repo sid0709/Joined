@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Avatar,
-  Badge,
-  HStack,
-  Rating,
-  Stack,
-  Table,
-  Text,
-  type TableColumn,
-} from "@joined/design-system";
+import { Avatar, Badge, HStack, Rating, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { formatShortDate } from "@/lib/dates";
 import { OUTCOME_META, type Interview } from "@/lib/interviews";
 

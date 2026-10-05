@@ -1,6 +1,6 @@
 "use client";
 
-import { Rating } from "@joined/design-system";
+import { Rating } from "sid-ui";
 import { useState } from "react";
 
 import { FeedbackDialog } from "@/src/client/components/monitoring/FeedbackDialog";

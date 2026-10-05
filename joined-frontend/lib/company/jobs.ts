@@ -1,6 +1,6 @@
 /** Hiring workspace — jobs the signed-in company has posted. */
 
-import type { BadgeVariant } from "@joined/design-system";
+import type { BadgeVariant } from "sid-ui";
 import type { Seniority, Workplace } from "@/lib/jobs";
 
 export type CompanyJobStatus = "open" | "paused" | "draft" | "closed";

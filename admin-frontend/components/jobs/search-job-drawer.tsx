@@ -20,7 +20,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   EMPLOYMENT_OPTIONS,
   PAY_PERIOD_OPTIONS,

@@ -1,4 +1,4 @@
-import { Badge, EmptyState, List, ListItem, Text } from "@joined/design-system";
+import { Badge, EmptyState, List, ListItem, Text } from "sid-ui";
 import { LEVEL_BADGE, type ScoutSummary } from "@joined/scout";
 import { ageLabel } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";

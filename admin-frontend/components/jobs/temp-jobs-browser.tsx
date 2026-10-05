@@ -18,7 +18,7 @@ import {
   Table,
   Text,
   type TableColumn,
-} from "@joined/design-system";
+} from "sid-ui";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { JobDetailDrawer } from "@/components/jobs/job-detail-drawer";
 import { PageSelectButton } from "@/components/page-select-button";

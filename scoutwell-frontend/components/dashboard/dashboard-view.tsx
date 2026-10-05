@@ -10,7 +10,7 @@ import {
   Timeline,
   SectionCard,
   StatGrid,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   LEVEL_BADGE,
   formatRate,
