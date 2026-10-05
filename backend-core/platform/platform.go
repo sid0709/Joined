@@ -15,6 +15,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/database"
 	"github.com/sid0709/OpenSeat/backend-core/employer"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/jobscam"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
@@ -37,6 +38,8 @@ type Platform struct {
 	DeepSeekSettings *aisettings.Store
 	// KillSwitches are runtime feature toggles. Env is the default; Mongo can override.
 	KillSwitches *killswitch.Store
+	// ScamHolds scores jobs at publish time and queues risky ones for staff.
+	ScamHolds *jobscam.Service
 }
 
 // Options are the parts of the platform only some services configure.
@@ -68,6 +71,8 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 	}
 
 	listings := jobs.NewStore(client, db.SourceDB, db.SourceCollection, db.DestDB, db.DestCollection, db.JobsCollection, db.SourceCompanies, db.CompaniesCollection, db.TempCompaniesCollection)
+	scamHolds := jobscam.NewService(jobscam.NewStore(client, db.DestDB), listings, jobscam.LoadConfig())
+	listings.SetScamHolds(scamHolds)
 	accounts := auth.NewStore(client, db.DestDB, db.CompaniesCollection)
 	people := candidate.NewStore(client, db.DestDB, newJobsCatalog(listings), accounts, calendar)
 	hiring := employer.NewStore(client, db.DestDB, listings, people, accounts)
@@ -88,6 +93,7 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		AISettings:       aisettings.NewStore(client, db.DestDB, box),
 		DeepSeekSettings: aisettings.NewStoreFor(client, db.DestDB, box, aisettings.DocumentDeepSeek),
 		KillSwitches:     killswitch.NewStore(client, db.DestDB, killswitch.LoadDefaults()),
+		ScamHolds:        scamHolds,
 	}
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()
@@ -116,6 +122,7 @@ func (p *Platform) ensureIndexes(ctx context.Context) error {
 		{"employer", p.Hiring},
 		{"staff", p.Staff},
 		{"scout", p.Scouts},
+		{"jobscam", p.ScamHolds},
 	}
 	for _, item := range indexed {
 		if err := item.store.EnsureIndexes(ctx); err != nil {
