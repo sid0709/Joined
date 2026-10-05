@@ -213,6 +213,24 @@
         "vite": "catalog:",
       },
     },
+    "scout-extension": {
+      "name": "scout-extension",
+      "version": "0.0.1",
+      "dependencies": {
+        "@joined/design-system": "workspace:*",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+      },
+      "devDependencies": {
+        "@crxjs/vite-plugin": "catalog:",
+        "@types/chrome": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "@vitejs/plugin-react": "catalog:",
+        "typescript": "catalog:",
+        "vite": "catalog:",
+      },
+    },
     "scoutwell-frontend": {
       "name": "scoutwell-frontend",
       "version": "0.1.0",
@@ -2039,6 +2057,8 @@
     "sanitize-filename": ["sanitize-filename@1.6.4", "", { "dependencies": { "truncate-utf8-bytes": "^1.0.0" } }, "sha512-9ZyI08PsvdQl2r/bBIGubpVdR3RR9sY6RDiWFPreA21C/EFlQhmgo20UZlNjZMMZNubusLhAQozkA0Od5J21Eg=="],
 
     "scheduler": ["scheduler@0.28.0", "", {}, "sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw=="],
+
+    "scout-extension": ["scout-extension@workspace:scout-extension"],
 
     "scoutwell-frontend": ["scoutwell-frontend@workspace:scoutwell-frontend"],
 
