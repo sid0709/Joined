@@ -3,17 +3,19 @@ package auth
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
-	"mime/multipart"
+	"mime/quotedprintable"
 	"net/http"
 	"net/smtp"
-	"net/textproto"
 	"strings"
+	"time"
 )
 
 // SMTPProvider sends email via an SMTP server.
@@ -130,51 +132,87 @@ func (s *SMTPProvider) send(to, subject, textBody, htmlBody string) error {
 }
 
 func buildMIMEMessage(from, to, subject, textBody, htmlBody string) (string, error) {
-	var buf bytes.Buffer
-	boundary := "boundary-openseat-email"
+	boundary, err := newMIMEBoundary()
+	if err != nil {
+		return "", err
+	}
+	messageID, err := newMessageID(from)
+	if err != nil {
+		return "", err
+	}
 
+	var buf bytes.Buffer
 	buf.WriteString("From: " + from + "\r\n")
 	buf.WriteString("To: " + to + "\r\n")
 	buf.WriteString("Subject: " + subject + "\r\n")
+	buf.WriteString("Date: " + time.Now().UTC().Format(time.RFC1123Z) + "\r\n")
+	buf.WriteString("Message-ID: " + messageID + "\r\n")
 	buf.WriteString("MIME-Version: 1.0\r\n")
 	buf.WriteString("Content-Type: multipart/alternative; boundary=\"" + boundary + "\"\r\n")
 	buf.WriteString("\r\n")
 
-	buf.WriteString("--" + boundary + "\r\n")
-	buf.WriteString("Content-Type: text/plain; charset=\"UTF-8\"\r\n")
-	buf.WriteString("Content-Transfer-Encoding: quoted-printable\r\n")
-	buf.WriteString("\r\n")
-	buf.WriteString(textBody)
-	buf.WriteString("\r\n\r\n")
-
-	buf.WriteString("--" + boundary + "\r\n")
-	buf.WriteString("Content-Type: text/html; charset=\"UTF-8\"\r\n")
-	buf.WriteString("Content-Transfer-Encoding: quoted-printable\r\n")
-	buf.WriteString("\r\n")
-	buf.WriteString(htmlBody)
-	buf.WriteString("\r\n\r\n")
-
+	if err := writeQuotedPrintablePart(&buf, boundary, `text/plain; charset="UTF-8"`, textBody); err != nil {
+		return "", err
+	}
+	if err := writeQuotedPrintablePart(&buf, boundary, `text/html; charset="UTF-8"`, htmlBody); err != nil {
+		return "", err
+	}
 	buf.WriteString("--" + boundary + "--\r\n")
-
 	return buf.String(), nil
+}
+
+func writeQuotedPrintablePart(buf *bytes.Buffer, boundary, contentType, body string) error {
+	buf.WriteString("--" + boundary + "\r\n")
+	buf.WriteString("Content-Type: " + contentType + "\r\n")
+	buf.WriteString("Content-Transfer-Encoding: quoted-printable\r\n")
+	buf.WriteString("\r\n")
+	writer := quotedprintable.NewWriter(buf)
+	if _, err := writer.Write([]byte(body)); err != nil {
+		return err
+	}
+	if err := writer.Close(); err != nil {
+		return err
+	}
+	buf.WriteString("\r\n")
+	return nil
+}
+
+func newMIMEBoundary() (string, error) {
+	raw := make([]byte, 16)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	return "b" + hex.EncodeToString(raw), nil
+}
+
+func newMessageID(from string) (string, error) {
+	raw := make([]byte, 16)
+	if _, err := rand.Read(raw); err != nil {
+		return "", err
+	}
+	domain := "localhost"
+	if at := strings.LastIndex(from, "@"); at >= 0 && at+1 < len(from) {
+		domain = from[at+1:]
+	}
+	return fmt.Sprintf("<%s@%s>", hex.EncodeToString(raw), domain), nil
 }
 
 // ResendProvider sends email via a Resend-style HTTP API.
 type ResendProvider struct {
-	APIKey   string
-	From     string
-	Config   EmailTemplateConfig
-	BaseURL  string
+	APIKey  string
+	From    string
+	Config  EmailTemplateConfig
+	BaseURL string
 	// HTTPClient allows overriding http.Client for testing
 	HTTPClient *http.Client
 }
 
 type resendEmailRequest struct {
-	From    string `json:"from"`
+	From    string   `json:"from"`
 	To      []string `json:"to"`
-	Subject string `json:"subject"`
-	Text    string `json:"text,omitempty"`
-	HTML    string `json:"html,omitempty"`
+	Subject string   `json:"subject"`
+	Text    string   `json:"text,omitempty"`
+	HTML    string   `json:"html,omitempty"`
 }
 
 func (r *ResendProvider) SendVerification(ctx context.Context, to, name, token string) error {
@@ -245,53 +283,6 @@ func (r *ResendProvider) send(ctx context.Context, to, subject, textBody, htmlBo
 	}
 
 	return nil
-}
-
-func buildMultipartMessage(from, to, subject, textBody, htmlBody string) (string, error) {
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	header := textproto.MIMEHeader{}
-	header.Set("From", from)
-	header.Set("To", to)
-	header.Set("Subject", subject)
-	header.Set("MIME-Version", "1.0")
-	header.Set("Content-Type", fmt.Sprintf("multipart/alternative; boundary=%s", writer.Boundary()))
-
-	for key, values := range header {
-		for _, value := range values {
-			buf.WriteString(key + ": " + value + "\r\n")
-		}
-	}
-	buf.WriteString("\r\n")
-
-	textPart, err := writer.CreatePart(textproto.MIMEHeader{
-		"Content-Type":              []string{"text/plain; charset=UTF-8"},
-		"Content-Transfer-Encoding": []string{"quoted-printable"},
-	})
-	if err != nil {
-		return "", err
-	}
-	if _, err := textPart.Write([]byte(textBody)); err != nil {
-		return "", err
-	}
-
-	htmlPart, err := writer.CreatePart(textproto.MIMEHeader{
-		"Content-Type":              []string{"text/html; charset=UTF-8"},
-		"Content-Transfer-Encoding": []string{"quoted-printable"},
-	})
-	if err != nil {
-		return "", err
-	}
-	if _, err := htmlPart.Write([]byte(htmlBody)); err != nil {
-		return "", err
-	}
-
-	if err := writer.Close(); err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
 }
 
 // ValidateProviderConfig checks if the provider configuration is complete.

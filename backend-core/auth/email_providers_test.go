@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/mail"
 	"net/smtp"
 	"strings"
 	"testing"
@@ -116,17 +119,15 @@ func TestSMTPProviderSendVerification(t *testing.T) {
 	if !strings.Contains(client.message, "Verify your TestApp account") {
 		t.Error("message missing subject")
 	}
-	if !strings.Contains(client.message, "Alice") {
+	textBody, htmlBody := decodeMIMEBodies(t, client.message)
+	if !strings.Contains(textBody, "Alice") {
 		t.Error("message missing recipient name")
 	}
-	if !strings.Contains(client.message, "https://example.com/verify?token=token123") {
+	if !strings.Contains(textBody, "https://example.com/verify?token=token123") {
 		t.Error("message missing verification link")
 	}
-	if !strings.Contains(client.message, "text/plain") {
-		t.Error("message missing text part")
-	}
-	if !strings.Contains(client.message, "text/html") {
-		t.Error("message missing html part")
+	if !strings.Contains(htmlBody, "https://example.com/verify?token=token123") {
+		t.Error("html part missing verification link")
 	}
 }
 
@@ -162,11 +163,15 @@ func TestSMTPProviderSendPasswordReset(t *testing.T) {
 	if !strings.Contains(client.message, "Reset your TestApp password") {
 		t.Error("message missing subject")
 	}
-	if !strings.Contains(client.message, "Bob") {
+	textBody, htmlBody := decodeMIMEBodies(t, client.message)
+	if !strings.Contains(textBody, "Bob") {
 		t.Error("message missing recipient name")
 	}
-	if !strings.Contains(client.message, "https://example.com/reset-password?token=resettoken") {
+	if !strings.Contains(textBody, "https://example.com/reset-password?token=resettoken") {
 		t.Error("message missing reset link")
+	}
+	if !strings.Contains(htmlBody, "https://example.com/reset-password?token=resettoken") {
+		t.Error("html part missing reset link")
 	}
 }
 
@@ -395,20 +400,37 @@ func TestBuildMIMEMessage(t *testing.T) {
 		t.Fatalf("buildMIMEMessage failed: %v", err)
 	}
 
-	if !strings.Contains(msg, "From: from@example.com") {
+	parsed, err := mail.ReadMessage(strings.NewReader(msg))
+	if err != nil {
+		t.Fatalf("parse message: %v", err)
+	}
+	if parsed.Header.Get("From") != "from@example.com" {
 		t.Error("message missing from header")
 	}
-	if !strings.Contains(msg, "To: to@example.com") {
+	if parsed.Header.Get("To") != "to@example.com" {
 		t.Error("message missing to header")
 	}
-	if !strings.Contains(msg, "Subject: Test Subject") {
+	if parsed.Header.Get("Subject") != "Test Subject" {
 		t.Error("message missing subject header")
 	}
-	if !strings.Contains(msg, "MIME-Version: 1.0") {
+	if parsed.Header.Get("Date") == "" {
+		t.Error("message missing Date header")
+	}
+	if parsed.Header.Get("Message-ID") == "" {
+		t.Error("message missing Message-ID header")
+	}
+	if parsed.Header.Get("MIME-Version") != "1.0" {
 		t.Error("message missing MIME version")
 	}
-	if !strings.Contains(msg, "multipart/alternative") {
-		t.Error("message missing multipart/alternative content type")
+	mediaType, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("parse content type: %v", err)
+	}
+	if mediaType != "multipart/alternative" {
+		t.Errorf("got content type %q, want multipart/alternative", mediaType)
+	}
+	if params["boundary"] == "" || params["boundary"] == "boundary-openseat-email" {
+		t.Errorf("expected random MIME boundary, got %q", params["boundary"])
 	}
 	if !strings.Contains(msg, "text/plain") {
 		t.Error("message missing text/plain part")
@@ -416,10 +438,89 @@ func TestBuildMIMEMessage(t *testing.T) {
 	if !strings.Contains(msg, "text/html") {
 		t.Error("message missing text/html part")
 	}
-	if !strings.Contains(msg, "Plain text body") {
-		t.Error("message missing text body")
+}
+
+func TestMIMEQuotedPrintableRoundTrip(t *testing.T) {
+	const token = "abc=3Ddef"
+	cfg := EmailTemplateConfig{
+		ProductName: "Joined",
+		AppBaseURL:  "http://localhost:6002",
 	}
-	if !strings.Contains(msg, "HTML body") {
-		t.Error("message missing html body")
+	verifyLink := cfg.AppBaseURL + "/verify?token=" + token
+	resetLink := cfg.AppBaseURL + "/reset-password?token=" + token
+
+	verify, err := RenderVerificationEmail(cfg, "Ada", token)
+	if err != nil {
+		t.Fatalf("RenderVerificationEmail: %v", err)
 	}
+	reset, err := RenderPasswordResetEmail(cfg, "Ada", token)
+	if err != nil {
+		t.Fatalf("RenderPasswordResetEmail: %v", err)
+	}
+
+	verifyMsg, err := buildMIMEMessage("noreply@example.com", "ada@example.com", verify.Subject, verify.TextBody, verify.HTMLBody)
+	if err != nil {
+		t.Fatalf("build verify message: %v", err)
+	}
+	resetMsg, err := buildMIMEMessage("noreply@example.com", "ada@example.com", reset.Subject, reset.TextBody, reset.HTMLBody)
+	if err != nil {
+		t.Fatalf("build reset message: %v", err)
+	}
+
+	if strings.Contains(verifyMsg, verifyLink) {
+		t.Fatal("raw verify link must be quoted-printable encoded, not written verbatim")
+	}
+	if strings.Contains(resetMsg, resetLink) {
+		t.Fatal("raw reset link must be quoted-printable encoded, not written verbatim")
+	}
+
+	verifyText, verifyHTML := decodeMIMEBodies(t, verifyMsg)
+	if !strings.Contains(verifyText, verifyLink) || !strings.Contains(verifyHTML, verifyLink) {
+		t.Fatalf("verify link did not survive quoted-printable decode: %q", verifyLink)
+	}
+
+	resetText, resetHTML := decodeMIMEBodies(t, resetMsg)
+	if !strings.Contains(resetText, resetLink) || !strings.Contains(resetHTML, resetLink) {
+		t.Fatalf("reset link did not survive quoted-printable decode: %q", resetLink)
+	}
+}
+
+func decodeMIMEBodies(t *testing.T, raw string) (textBody, htmlBody string) {
+	t.Helper()
+	msg, err := mail.ReadMessage(strings.NewReader(raw))
+	if err != nil {
+		t.Fatalf("read message: %v", err)
+	}
+	_, params, err := mime.ParseMediaType(msg.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("parse content type: %v", err)
+	}
+	reader := multipart.NewReader(msg.Body, params["boundary"])
+	for {
+		part, err := reader.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("next part: %v", err)
+		}
+		body, err := io.ReadAll(part)
+		if err != nil {
+			t.Fatalf("read part: %v", err)
+		}
+		mediaType, _, err := mime.ParseMediaType(part.Header.Get("Content-Type"))
+		if err != nil {
+			t.Fatalf("parse part type: %v", err)
+		}
+		switch mediaType {
+		case "text/plain":
+			textBody = string(body)
+		case "text/html":
+			htmlBody = string(body)
+		}
+	}
+	if textBody == "" || htmlBody == "" {
+		t.Fatal("expected both text and html parts")
+	}
+	return textBody, htmlBody
 }
