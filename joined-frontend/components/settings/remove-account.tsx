@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertDialog, Banner, Button, List, ListItem, TextInput } from "@joined/design-system";
 import { DELETE_CONFIRMATION } from "@/lib/settings";
 import { ROUTES } from "@/lib/routes";
+import { clearApplicationExtras } from "@/lib/application-extras";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
@@ -50,6 +51,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
       setError("Could not remove the account. Try again.");
       return;
     }
+    clearApplicationExtras();
     writeStoredWorkspaceMode("hunter");
     router.push(ROUTES.search);
     router.refresh();
