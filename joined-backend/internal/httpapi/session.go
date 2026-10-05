@@ -9,12 +9,24 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/authapi"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 )
 
 func (s *Server) requireSession(w http.ResponseWriter, r *http.Request) (auth.Session, bool) {
-	session, err := s.auth.Session(r.Context(), httpkit.BearerToken(r), time.Now())
+	if session, ok := authapi.Session(r.Context()); ok {
+		return session, true
+	}
+	lookup := s.sessions
+	if lookup == nil && s.auth != nil {
+		lookup = s.auth
+	}
+	if lookup == nil {
+		httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
+		return auth.Session{}, false
+	}
+	session, err := lookup.Session(r.Context(), httpkit.BearerToken(r), time.Now())
 	if errors.Is(err, auth.ErrInvalidLogin) {
 		httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
 		return auth.Session{}, false
@@ -34,6 +46,10 @@ func (s *Server) requireCandidate(w http.ResponseWriter, r *http.Request) (auth.
 	}
 	if session.User.Role != auth.RoleCandidate {
 		httpkit.WriteError(w, http.StatusForbidden, "job hunter account required")
+		return auth.Session{}, false
+	}
+	if s.people == nil {
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "job hunter workspace is unavailable")
 		return auth.Session{}, false
 	}
 	return session, true

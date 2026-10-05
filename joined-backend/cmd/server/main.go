@@ -23,6 +23,7 @@ import (
 const (
 	defaultHTTPAddr       = "127.0.0.1:8080"
 	defaultFrontendOrigin = "http://localhost:6002"
+	companyModeEnv        = "COMPANY_MODE_ENABLED"
 )
 
 var defaultOrigins = []string{"http://127.0.0.1:6002", "http://localhost:6002"}
@@ -69,10 +70,20 @@ func main() {
 		Frontend:          frontend,
 		Google:            oauth,
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
+		CompanyMode:       companyModeEnabled(config.Env(companyModeEnv, "")),
 		EmailSender:       emailSender,
 	})
 	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
+	}
+}
+
+func companyModeEnabled(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "true", "1":
+		return true
+	default:
+		return false
 	}
 }

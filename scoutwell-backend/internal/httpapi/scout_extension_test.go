@@ -248,6 +248,18 @@ func TestExtensionSubmitAuthValidCookie(t *testing.T) {
 	}
 }
 
+func TestExtensionSubmitAuthRejectsAPIKey(t *testing.T) {
+	handler, store := testExtensionHandler(t)
+	apiKey := scout.APIKeyPrefix + "0123456789abcdef0123456789abcdef0123456789abcdef"
+	rec := doExtension(t, handler, extensionRequest(http.MethodPost, allowedOrigin, apiKey, false, testIdempotency, extensionBody(t, nil)))
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403, body = %s", rec.Code, rec.Body.String())
+	}
+	if scout.MemorySubmissionCount(store) != 0 {
+		t.Fatalf("count = %d, want 0", scout.MemorySubmissionCount(store))
+	}
+}
+
 func TestExtensionSubmitAuthRejectsNonScout(t *testing.T) {
 	handler, _ := testExtensionHandler(t)
 	rec := doExtension(t, handler, extensionRequest(http.MethodPost, allowedOrigin, testHunterSess, false, testIdempotency, extensionBody(t, nil)))

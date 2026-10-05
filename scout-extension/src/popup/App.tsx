@@ -1,6 +1,6 @@
 import "@joined/design-system/styles/joined.css";
 import { Button, Spinner } from "@joined/design-system";
-import { useAuth } from "../hooks/useAuth";
+
 import { getSignInUrl } from "../api";
 import {
   SIGN_IN_TAB_WATCH_INTERVAL_MS,
@@ -8,9 +8,13 @@ import {
   applySignInTabClose,
   scheduleAuthRefresh,
 } from "../auth/signInTab";
+import { useAuth } from "../hooks/useAuth";
+import { useDetectedJob } from "../hooks/useDetectedJob";
+import { DetectedJobPanel } from "./DetectedJobPanel";
 
 function App() {
   const { authState, checkAuth, setSignInTabId } = useAuth();
+  const detectedJob = useDetectedJob();
 
   const handleSignIn = () => {
     const signInUrl = getSignInUrl();
@@ -111,6 +115,10 @@ function App() {
           <Button onClick={() => checkAuth()} variant="secondary" label="Try Again" />
         </div>
       )}
+
+      <div style={{ marginTop: "var(--spacing-4)" }}>
+        <DetectedJobPanel state={detectedJob} />
+      </div>
     </div>
   );
 }
