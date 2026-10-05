@@ -96,6 +96,31 @@ func NormalizeInput(in SubmissionInput) (SubmissionInput, ParsedURL, error) {
 	return in, parsed, problems.orNil()
 }
 
+// NormalizeExtensionInput validates and normalizes the step-13 captured job shape from the Scout extension.
+func NormalizeExtensionInput(in ExtensionSubmissionInput) (ExtensionSubmissionInput, error) {
+	problems := &ValidationError{}
+	in.Title = clean(in.Title)
+	in.Company = clean(in.Company)
+	in.Location = clean(in.Location)
+	in.ApplyURL = strings.TrimSpace(in.ApplyURL)
+	in.Description = strings.TrimSpace(in.Description)
+	in.Board = strings.TrimSpace(in.Board)
+
+	if _, err := ParseJobURL(in.ApplyURL); err != nil {
+		problems.add("apply_url", err.Error())
+	}
+
+	lengthRule(problems, "title", in.Title, minNameChars, maxTitleChars)
+	lengthRule(problems, "company", in.Company, minNameChars, maxCompanyChars)
+	lengthRule(problems, "location", in.Location, minNameChars, maxLocationChars)
+	lengthRule(problems, "description", in.Description, MinSummaryChars, MaxSummaryChars)
+	if in.Board != "" {
+		lengthRule(problems, "board", in.Board, 0, 80)
+	}
+
+	return in, problems.orNil()
+}
+
 func clean(value string) string {
 	return strings.Join(strings.Fields(value), " ")
 }

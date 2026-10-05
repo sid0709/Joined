@@ -43,6 +43,19 @@ export type SubmissionInput = {
   external_ref?: string;
 };
 
+export type ExtensionSubmissionInput = {
+  title: string;
+  company: string;
+  location: string;
+  apply_url: string;
+  description: string;
+  board?: string;
+};
+
+export type ExtensionSubmissionResponse = {
+  submission: Submission;
+};
+
 export type Submission = {
   id: string;
   scout_user_id: string;

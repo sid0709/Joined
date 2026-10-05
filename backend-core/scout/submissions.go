@@ -166,6 +166,25 @@ func (s *Store) Submit(ctx context.Context, actor Actor, input SubmissionInput) 
 	return sub, nil
 }
 
+// SubmitFromExtension accepts a captured job from the Scout extension and converts it to a full submission.
+func (s *Store) SubmitFromExtension(ctx context.Context, actor Actor, input ExtensionSubmissionInput) (Submission, error) {
+	normalized, err := NormalizeExtensionInput(input)
+	if err != nil {
+		return Submission{}, err
+	}
+	standardInput := SubmissionInput{
+		URL:          normalized.ApplyURL,
+		CompanyName:  normalized.Company,
+		Title:        normalized.Title,
+		LocationText: normalized.Location,
+		Summary:      normalized.Description,
+		Equity:       false,
+		Pay:          Pay{Min: 1, Max: 1, Currency: "USD", Period: "year"},
+		SalaryText:   "",
+	}
+	return s.Submit(ctx, actor, standardInput)
+}
+
 func stagedListing(sub Submission) jobs.ScoutedListing {
 	return jobs.ScoutedListing{
 		SubmissionID: sub.ID,

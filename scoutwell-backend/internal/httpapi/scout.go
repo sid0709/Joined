@@ -39,6 +39,7 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/scout/stats", s.scoutStats)
 	mux.HandleFunc("POST /v1/scout/submissions", s.scoutSubmit)
 	mux.HandleFunc("POST /v1/scout/submissions/batch", s.scoutSubmitBatch)
+	mux.HandleFunc("POST /v1/scout/submissions/extension", s.scoutSubmitExtension)
 	mux.HandleFunc("POST /v1/scout/submissions/precheck", s.scoutPrecheck)
 	mux.HandleFunc("POST /v1/scout/submissions/matches", s.scoutMatches)
 	mux.HandleFunc("GET /v1/scout/submissions", s.scoutListSubmissions)
@@ -290,6 +291,44 @@ func (s *Server) scoutSubmitBatch(w http.ResponseWriter, r *http.Request) {
 			httpkit.SetQuotaHeaders(w, quota)
 		}
 		return http.StatusMultiStatus, map[string]any{"accepted": accepted, "rejected": len(results) - accepted, "results": results}
+	})
+}
+
+const maxExtensionBody = 64 << 10
+
+func (s *Server) scoutSubmitExtension(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.scoutActor(w, r, sessionOnly)
+	if !ok {
+		return
+	}
+	key := strings.TrimSpace(r.Header.Get(httpkit.IdempotencyHeader))
+	if key == "" {
+		httpkit.WriteProblem(w, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Idempotency-Key header is required."))
+		return
+	}
+	body, ok := httpkit.ReadBody(w, r, maxExtensionBody)
+	if !ok {
+		return
+	}
+	s.idempotent(w, r, actor, body, func() (int, any) {
+		var input scout.ExtensionSubmissionInput
+		if err := json.NewDecoder(bytes.NewReader(body)).Decode(&input); err != nil {
+			return http.StatusBadRequest, httpkit.NewProblem(http.StatusBadRequest, "invalid_request", "Body must be valid JSON.")
+		}
+		sub, err := s.scouts.SubmitFromExtension(r.Context(), actor, input)
+		if err != nil {
+			var quota *scout.QuotaError
+			if errors.As(err, &quota) {
+				httpkit.SetQuotaHeaders(w, quota.Quota)
+			}
+			p := httpkit.ScoutProblem(err)
+			return p.Status, p
+		}
+		if quota, err := s.scouts.Quota(r.Context(), actor.UserID); err == nil {
+			httpkit.SetQuotaHeaders(w, quota)
+		}
+		w.Header().Set("Location", "/v1/scout/submissions/"+sub.ID)
+		return http.StatusCreated, map[string]any{"submission": sub}
 	})
 }
 

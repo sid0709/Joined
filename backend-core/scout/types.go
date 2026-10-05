@@ -180,6 +180,16 @@ type SubmissionInput struct {
 	ExternalRef       string `json:"external_ref"`
 }
 
+// ExtensionSubmissionInput is what the Scout extension sends (step-13 captured job shape).
+type ExtensionSubmissionInput struct {
+	Title       string `json:"title"`
+	Company     string `json:"company"`
+	Location    string `json:"location"`
+	ApplyURL    string `json:"apply_url"`
+	Description string `json:"description"`
+	Board       string `json:"board"`
+}
+
 // Submission is a scout's job link and everything the pipeline learned about it.
 type Submission struct {
 	ObjectID        bson.ObjectID `json:"-" bson:"_id"`
