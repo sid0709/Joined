@@ -17,6 +17,9 @@ export const ROUTES = {
   resumes: "/resumes",
   profile: "/profile",
   settings: "/settings",
+  pricing: "/pricing",
+  billingSuccess: "/settings/billing/success",
+  billingCancel: "/settings/billing/cancel",
   job: (id: string) => `/jobs/${id}`,
   companyPublic: (id: string) => `/companies/${id}`,
   company: "/company",
@@ -95,8 +98,14 @@ export const PROFILE_PAGE: PageLink = {
 export const SETTINGS_PAGE: PageLink = {
   href: ROUTES.settings,
   label: "Settings",
-  description: "Notifications, connected calendar, and privacy.",
+  description: "Notifications, billing, connected calendar, and privacy.",
 };
+
+export const SETTINGS_SECTION_QUERY = "section";
+
+export function settingsSectionHref(section: string) {
+  return `${ROUTES.settings}?${SETTINGS_SECTION_QUERY}=${encodeURIComponent(section)}`;
+}
 
 export const COMPANY_HOME_PAGE: PageLink = {
   href: ROUTES.company,
