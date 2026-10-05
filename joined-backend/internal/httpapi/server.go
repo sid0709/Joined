@@ -18,6 +18,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/OpenSeat/backend-core/platform"
 	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
@@ -95,6 +96,17 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		fitProfiles: opts.FitProfiles,
 		fitReasoner: opts.FitReasoner,
 		switches:    opts.KillSwitches,
+	}
+	if accounts != nil {
+		var payments billing.Store
+		if opts.Billing != nil {
+			payments = opts.Billing.Store
+		}
+		accounts.SetAccountSource(platform.Collector{
+			People:   people,
+			Searches: opts.SavedSearches,
+			Billing:  payments,
+		})
 	}
 	identity := authapi.Handlers{
 		Accounts:       accounts,

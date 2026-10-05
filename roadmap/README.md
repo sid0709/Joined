@@ -119,7 +119,7 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | [step-40](step-40-application-tracker.md)                     | Saved stage, notes, reminders                      | Leo        | Done (#112) |
 | [step-41](step-41-job-report-buttons.md)                      | Report UI/reasons (API exists)                     | Leo        | Done        |
 | [step-42](step-42-scam-job-score.md)                          | Scam/fake score; hold risky for admin              | Ravi       | Done (#110) |
-| [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Planned     |
+| [step-43](step-43-account-data-export.md)                     | Data export endpoint (delete exists)               | Ravi       | Done        |
 | [step-44](step-44-account-data-export-ui.md)                  | Export UI + privacy settings surface               | Leo        | Planned     |
 | [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Planned     |
 | [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111) |

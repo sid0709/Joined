@@ -34,6 +34,7 @@ type AccountsStore interface {
 	Signout(ctx context.Context, token string) error
 	Session(ctx context.Context, token string, now time.Time) (auth.Session, error)
 	DeleteAccount(ctx context.Context, token string, now time.Time) error
+	ExportAccount(ctx context.Context, token string, now time.Time) (auth.AccountExport, error)
 
 	// Company methods
 	AttachCompany(ctx context.Context, token string, choice auth.CompanyChoice, now time.Time) (auth.Session, error)
@@ -80,6 +81,7 @@ func (h Handlers) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /v1/auth/password/reset", h.resetPassword)
 	mux.HandleFunc("POST /v1/auth/signout", h.signout)
 	mux.HandleFunc("DELETE /v1/auth/account", h.deleteAccount)
+	mux.HandleFunc("GET /v1/auth/account/export", h.exportAccount)
 	mux.HandleFunc("GET /v1/auth/session", h.session)
 }
 
@@ -96,6 +98,24 @@ func (h Handlers) signout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h Handlers) exportAccount(w http.ResponseWriter, r *http.Request) {
+	bundle, err := h.Accounts.ExportAccount(r.Context(), httpkit.BearerToken(r), time.Now())
+	if errors.Is(err, auth.ErrInvalidLogin) {
+		httpkit.WriteError(w, http.StatusUnauthorized, "sign in required")
+		return
+	}
+	if errors.Is(err, auth.ErrExportLimited) {
+		httpkit.WriteError(w, http.StatusTooManyRequests, "export rate limited")
+		return
+	}
+	if err != nil {
+		slog.Error("account export", "error", err)
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not export the account")
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, bundle)
 }
 
 func (h Handlers) deleteAccount(w http.ResponseWriter, r *http.Request) {

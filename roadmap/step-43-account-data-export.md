@@ -1,7 +1,7 @@
 # Step 43: Account data export
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Ravi (platform backend lane: `joined-backend/**`, `admin-backend/**`, `backend-core/**` except `scout/` and `billing/`, `packages/job-schema/**`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(auth): account data export endpoint (roadmap step-43)` (every commit must be lowercase `type(scope): subject` or commitlint fails CI)
@@ -60,17 +60,17 @@ Do not edit `joined-frontend/**`. Do not rewrite `DeleteAccount`.
 
 **User-owned collections to include when present:**
 
-| Collection | Key |
-| --- | --- |
-| `users` | id (redact password hashes / session secrets) |
-| `profiles` | userId |
-| `saved_jobs` | userId |
-| `applications` | userId |
-| `interviews` | userId |
-| `calendar_connections` | userId (tokens redacted) |
-| `threads` / `messages` | candidateUserId / authorId — **strip other parties' PII** (keep counterpart as opaque id + display name already visible to the user) |
-| `saved_searches` | userId |
-| `billing_customers`, `subscriptions` | userId (no raw Stripe secrets) |
+| Collection                           | Key                                                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `users`                              | id (redact password hashes / session secrets)                                                                                        |
+| `profiles`                           | userId                                                                                                                               |
+| `saved_jobs`                         | userId                                                                                                                               |
+| `applications`                       | userId                                                                                                                               |
+| `interviews`                         | userId                                                                                                                               |
+| `calendar_connections`               | userId (tokens redacted)                                                                                                             |
+| `threads` / `messages`               | candidateUserId / authorId — **strip other parties' PII** (keep counterpart as opaque id + display name already visible to the user) |
+| `saved_searches`                     | userId                                                                                                                               |
+| `billing_customers`, `subscriptions` | userId (no raw Stripe secrets)                                                                                                       |
 
 Resumes: there is no `resumes` collection; include the profile `resume` field and any file URLs the profile stores. Do not invent files from `joined-frontend/lib/resumes.ts` demo data.
 
