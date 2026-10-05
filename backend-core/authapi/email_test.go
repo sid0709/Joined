@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/OpenSeat/backend-core/auth/authtest"
 )
 
 type testEmailSender struct {
@@ -45,51 +46,12 @@ func (t *testEmailSender) SendDuplicateSignupNotice(ctx context.Context, to stri
 	return nil
 }
 
-// testAccountsStore wraps AuthStore with stubs for handler testing
-type testAccountsStore struct {
-	auth.AuthStore
+func newTestStore() *auth.Store {
+	return authtest.NewStore()
 }
-
-func newTestAccountsStore() *testAccountsStore {
-	return &testAccountsStore{AuthStore: auth.NewMemStore()}
-}
-
-// Stub non-AuthStore methods
-func (t *testAccountsStore) Signout(ctx context.Context, token string) error {
-	return nil
-}
-
-func (t *testAccountsStore) Session(ctx context.Context, token string, now time.Time) (auth.Session, error) {
-	return auth.Session{}, nil
-}
-
-func (t *testAccountsStore) DeleteAccount(ctx context.Context, token string, now time.Time) error {
-	return nil
-}
-
-func (t *testAccountsStore) AttachCompany(ctx context.Context, token string, choice auth.CompanyChoice, now time.Time) (auth.Session, error) {
-	return auth.Session{}, nil
-}
-
-func (t *testAccountsStore) InvitedCompanies(ctx context.Context, token string, now time.Time) ([]auth.Company, error) {
-	return nil, nil
-}
-
-func (t *testAccountsStore) SaveGoogleState(ctx context.Context, state string, saved auth.GoogleState, now time.Time) error {
-	return nil
-}
-
-func (t *testAccountsStore) TakeGoogleState(ctx context.Context, state string, now time.Time) (auth.GoogleState, error) {
-	return auth.GoogleState{}, nil
-}
-
-func (t *testAccountsStore) GoogleSignin(ctx context.Context, identity auth.GoogleIdentity, audience, newRole string, now time.Time) (string, auth.Session, error) {
-	return "", auth.Session{}, nil
-}
-
 
 func TestEmailSignup(t *testing.T) {
-	store := newTestAccountsStore()
+	store := newTestStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -159,7 +121,6 @@ func TestEmailSignup(t *testing.T) {
 		})
 	}
 
-	// Verify correct number of emails sent
 	if len(sender.verifications) != 1 {
 		t.Errorf("verifications sent = %v, want 1 (only for new signup)", len(sender.verifications))
 	}
@@ -169,7 +130,7 @@ func TestEmailSignup(t *testing.T) {
 }
 
 func TestEmailVerification(t *testing.T) {
-	store := newTestAccountsStore()
+	store := newTestStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -181,7 +142,6 @@ func TestEmailVerification(t *testing.T) {
 	mux := http.NewServeMux()
 	handlers.Register(mux)
 
-	// Create user
 	ctx := context.Background()
 	now := time.Now()
 	userID, _, err := store.EmailSignup(ctx, "verify@example.com", "password123", "Verify User", auth.RoleCandidate, now)
@@ -193,7 +153,6 @@ func TestEmailVerification(t *testing.T) {
 		t.Fatalf("Failed to create token: %v", err)
 	}
 
-	// Verify email
 	body, _ := json.Marshal(map[string]string{"token": token})
 	req := httptest.NewRequest("POST", "/v1/auth/verify", bytes.NewReader(body))
 	w := httptest.NewRecorder()
@@ -204,7 +163,6 @@ func TestEmailVerification(t *testing.T) {
 		t.Errorf("status = %v, want %v", w.Code, http.StatusOK)
 	}
 
-	// Test invalid token
 	body, _ = json.Marshal(map[string]string{"token": "invalid"})
 	req = httptest.NewRequest("POST", "/v1/auth/verify", bytes.NewReader(body))
 	w = httptest.NewRecorder()
@@ -217,7 +175,7 @@ func TestEmailVerification(t *testing.T) {
 }
 
 func TestEmailSignin(t *testing.T) {
-	store := newTestAccountsStore()
+	store := newTestStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -229,7 +187,6 @@ func TestEmailSignin(t *testing.T) {
 	mux := http.NewServeMux()
 	handlers.Register(mux)
 
-	// Create and verify user
 	ctx := context.Background()
 	now := time.Now()
 	email := "signin@example.com"
@@ -247,7 +204,6 @@ func TestEmailSignin(t *testing.T) {
 		t.Fatalf("Failed to verify: %v", err)
 	}
 
-	// Test successful sign-in
 	body, _ := json.Marshal(map[string]string{
 		"email":    email,
 		"password": password,
@@ -270,7 +226,6 @@ func TestEmailSignin(t *testing.T) {
 		t.Errorf("session email = %v, want %v", resp.Session.User.Email, email)
 	}
 
-	// Test wrong password
 	body, _ = json.Marshal(map[string]string{
 		"email":    email,
 		"password": "wrongpassword",
@@ -284,7 +239,6 @@ func TestEmailSignin(t *testing.T) {
 		t.Errorf("status = %v, want %v", w.Code, http.StatusUnauthorized)
 	}
 
-	// Test unverified user
 	_, _, err = store.EmailSignup(ctx, "unverified@example.com", password, "Unverified", auth.RoleCandidate, now)
 	if err != nil {
 		t.Fatalf("Failed to create unverified user: %v", err)
@@ -305,7 +259,7 @@ func TestEmailSignin(t *testing.T) {
 }
 
 func TestPasswordReset(t *testing.T) {
-	store := newTestAccountsStore()
+	store := newTestStore()
 	sender := &testEmailSender{}
 
 	handlers := Handlers{
@@ -317,7 +271,6 @@ func TestPasswordReset(t *testing.T) {
 	mux := http.NewServeMux()
 	handlers.Register(mux)
 
-	// Create and verify user
 	ctx := context.Background()
 	now := time.Now()
 	email := "reset@example.com"
@@ -337,7 +290,6 @@ func TestPasswordReset(t *testing.T) {
 		t.Fatalf("Failed to verify: %v", err)
 	}
 
-	// Request password reset
 	body, _ := json.Marshal(map[string]string{"email": email})
 	req := httptest.NewRequest("POST", "/v1/auth/password/reset-request", bytes.NewReader(body))
 	w := httptest.NewRecorder()
@@ -348,13 +300,11 @@ func TestPasswordReset(t *testing.T) {
 		t.Errorf("status = %v, want %v", w.Code, http.StatusOK)
 	}
 
-	// Get reset token (would normally come from email)
 	resetToken, err := store.RequestPasswordReset(ctx, email, now)
 	if err != nil {
 		t.Fatalf("Failed to get reset token: %v", err)
 	}
 
-	// Reset password
 	body, _ = json.Marshal(map[string]string{
 		"token":       resetToken,
 		"newPassword": newPassword,
@@ -368,7 +318,6 @@ func TestPasswordReset(t *testing.T) {
 		t.Errorf("status = %v, want %v", w.Code, http.StatusOK)
 	}
 
-	// Verify old password doesn't work
 	body, _ = json.Marshal(map[string]string{
 		"email":    email,
 		"password": oldPassword,
@@ -382,7 +331,6 @@ func TestPasswordReset(t *testing.T) {
 		t.Errorf("status = %v, want %v (old password should not work)", w.Code, http.StatusUnauthorized)
 	}
 
-	// Verify new password works
 	body, _ = json.Marshal(map[string]string{
 		"email":    email,
 		"password": newPassword,

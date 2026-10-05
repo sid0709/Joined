@@ -26,20 +26,20 @@ type Store struct {
 	db        string
 	companies string
 	data      UserData
+	records   AccountRecords
 	// passwordHasher allows injection for testing timing
 	passwordHasher func(password string) ([]byte, []byte, error)
 }
 
-// Ensure Store implements AuthStore
-var _ AuthStore = (*Store)(nil)
-
 func NewStore(client *mongo.Client, db, companies string) *Store {
-	return &Store{
+	s := &Store{
 		client:         client,
 		db:             db,
 		companies:      companies,
 		passwordHasher: hashPassword,
 	}
+	s.records = &mongoAccountRecords{store: s}
+	return s
 }
 
 func (s *Store) SetUserData(data UserData) {
@@ -283,7 +283,7 @@ func (s *Store) issue(ctx context.Context, userID string, now time.Time) (string
 	if err != nil {
 		return "", Session{}, err
 	}
-	_, err = s.collection(sessionsCollection).InsertOne(ctx, storedSession{
+	err = s.records.InsertSession(ctx, SessionRecord{
 		TokenHash: tokenHash,
 		UserID:    userID,
 		ExpiresAt: now.UTC().Add(sessionLifetime),
@@ -341,35 +341,29 @@ func (s *Store) attach(ctx context.Context, userID string, choice CompanyChoice,
 }
 
 func (s *Store) view(ctx context.Context, userID string) (Session, error) {
-	var user storedUser
-	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "id", Value: userID}}).Decode(&user)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return Session{}, ErrNotFound
-	}
+	account, err := s.records.UserByID(ctx, userID)
 	if err != nil {
 		return Session{}, err
+	}
+	user := storedUser{
+		ID:        account.ID,
+		Name:      account.Name,
+		Email:     account.Email,
+		Role:      account.Role,
+		CreatedAt: account.CreatedAt,
 	}
 	if err := s.ensureRole(ctx, &user); err != nil {
 		return Session{}, err
 	}
 	session := Session{User: User{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}}
-
-	var member storedMember
-	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	company, err := s.records.CompanyMembership(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
 		return session, nil
 	}
 	if err != nil {
 		return Session{}, err
 	}
-	company, createdBy, err := s.companyByID(ctx, member.CompanyID)
-	if err != nil {
-		return session, nil
-	}
-	company.Role = member.Role
-	company.HiringRole = membershipFrom(member).HiringRole
-	company.IsCreator = removesCompany(createdBy, userID)
-	session.Company = &company
+	session.Company = company
 	return session, nil
 }
 
