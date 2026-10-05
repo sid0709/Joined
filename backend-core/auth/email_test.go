@@ -499,6 +499,59 @@ func TestDevEmailSender(t *testing.T) {
 	}
 }
 
+func TestSignupHashingTimingEqualization(t *testing.T) {
+	client := testClient(t)
+	store := NewStore(client, testDB, testCompanies)
+	ctx := context.Background()
+	now := time.Now()
+
+	// Ensure indexes
+	if err := store.EnsureIndexes(ctx); err != nil {
+		t.Fatalf("Failed to ensure indexes: %v", err)
+	}
+
+	// Track hash calls
+	var hashCallCount int
+	originalHasher := store.passwordHasher
+	store.passwordHasher = func(password string) ([]byte, []byte, error) {
+		hashCallCount++
+		return originalHasher(password)
+	}
+
+	// Test 1: New signup should hash exactly once
+	hashCallCount = 0
+	email1 := "new@example.com"
+	userID, created, err := store.EmailSignup(ctx, email1, "password123", "New User", RoleCandidate, now)
+	if err != nil {
+		t.Fatalf("New signup error: %v", err)
+	}
+	if !created {
+		t.Error("New signup should be created")
+	}
+	if userID == "" {
+		t.Error("New signup should return userID")
+	}
+	if hashCallCount != 1 {
+		t.Errorf("New signup: hash called %d times, want 1", hashCallCount)
+	}
+
+	// Test 2: Duplicate signup should also hash exactly once
+	hashCallCount = 0
+	userID2, created2, err2 := store.EmailSignup(ctx, email1, "differentpass", "Duplicate User", RoleCandidate, now)
+	if err2 != nil {
+		t.Fatalf("Duplicate signup error: %v", err2)
+	}
+	if created2 {
+		t.Error("Duplicate signup should not be created")
+	}
+	if userID2 != "" {
+		t.Error("Duplicate signup should return empty userID")
+	}
+	if hashCallCount != 1 {
+		t.Errorf("Duplicate signup: hash called %d times, want 1 (timing equalization)", hashCallCount)
+	}
+}
+
 func testClient(t *testing.T) *mongo.Client {
 	t.Helper()
 	uri := "mongodb://localhost:27017"

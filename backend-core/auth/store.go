@@ -26,10 +26,17 @@ type Store struct {
 	db        string
 	companies string
 	data      UserData
+	// passwordHasher allows injection for testing timing
+	passwordHasher func(password string) ([]byte, []byte, error)
 }
 
 func NewStore(client *mongo.Client, db, companies string) *Store {
-	return &Store{client: client, db: db, companies: companies}
+	return &Store{
+		client:         client,
+		db:             db,
+		companies:      companies,
+		passwordHasher: hashPassword,
+	}
 }
 
 func (s *Store) SetUserData(data UserData) {

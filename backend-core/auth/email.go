@@ -79,6 +79,7 @@ type storedLoginAttempt struct {
 // EmailSignup creates an account with email and password that must be verified.
 // Returns the user ID if the account was created, or empty string if email is already taken.
 // Callers should treat both cases identically to prevent user enumeration.
+// Always hashes the password (even for duplicates) to prevent timing attacks.
 func (s *Store) EmailSignup(ctx context.Context, email, password, name, role string, now time.Time) (string, bool, error) {
 	email = normalizeEmail(email)
 	if email == "" || name == "" {
@@ -92,7 +93,8 @@ func (s *Store) EmailSignup(ctx context.Context, email, password, name, role str
 		return "", false, ErrWeakPassword
 	}
 
-	passwordHash, passwordSalt, err := hashPassword(password)
+	// Always hash the password, even if email is taken, to prevent timing attacks
+	passwordHash, passwordSalt, err := s.passwordHasher(password)
 	if err != nil {
 		return "", false, err
 	}
@@ -115,6 +117,7 @@ func (s *Store) EmailSignup(ctx context.Context, email, password, name, role str
 
 	_, err = s.collection(usersCollection).InsertOne(ctx, user)
 	if mongo.IsDuplicateKeyError(err) {
+		// Hash was computed above, so both paths do the same expensive work
 		return "", false, nil
 	}
 	if err != nil {
