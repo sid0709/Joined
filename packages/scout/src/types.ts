@@ -255,6 +255,11 @@ export type Balance = {
   lifetime: Money;
 };
 
+export type EarningsSummary = {
+  by_type: Record<RewardType, Money>;
+  total: Money;
+};
+
 export type PayoutReadiness = { ready: boolean; blockers: string[] };
 
 export type Quota = { limit: number; remaining: number; resets_at: string };

@@ -44,6 +44,7 @@ func (s *Server) registerScout(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/scout/submissions", s.scoutListSubmissions)
 	mux.HandleFunc("GET /v1/scout/submissions/{id}", s.scoutGetSubmission)
 	mux.HandleFunc("GET /v1/scout/earnings", s.scoutEarnings)
+	mux.HandleFunc("GET /v1/scout/earnings/summary", s.scoutEarningsSummary)
 	mux.HandleFunc("GET /v1/scout/payouts", s.scoutPayouts)
 	mux.HandleFunc("POST /v1/scout/payouts", s.scoutRequestPayout)
 	mux.HandleFunc("GET /v1/scout/notifications", s.scoutNotifications)
@@ -86,7 +87,11 @@ func (s *Server) scoutActor(w http.ResponseWriter, r *http.Request, allowKeys bo
 }
 
 func (s *Server) scoutMeta(w http.ResponseWriter, r *http.Request) {
-	httpkit.WriteJSON(w, http.StatusOK, scout.Rulebook())
+	meta := scout.Rulebook()
+	if s.scouts != nil {
+		meta = s.scouts.Rulebook()
+	}
+	httpkit.WriteJSON(w, http.StatusOK, meta)
 }
 
 func (s *Server) scoutMe(w http.ResponseWriter, r *http.Request) {
@@ -388,6 +393,19 @@ func (s *Server) scoutEarnings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusOK, list)
+}
+
+func (s *Server) scoutEarningsSummary(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.scoutActor(w, r, sessionOrKey)
+	if !ok {
+		return
+	}
+	summary, err := s.scouts.EarningsSummary(r.Context(), actor.UserID)
+	if err != nil {
+		httpkit.WriteScoutError(w, err)
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, summary)
 }
 
 func (s *Server) scoutPayouts(w http.ResponseWriter, r *http.Request) {

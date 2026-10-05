@@ -52,17 +52,22 @@ func handleCandidateApply(ctx context.Context, jobID, candidateID string) error 
 
 ### Reward Amount
 
-The apply reward is configured in `backend-core/scout/rewards.go`:
+The apply reward is configurable via environment variable:
 
-```go
-const ApplyRewardCents = 50  // $0.50 per qualifying apply
+**Environment variable:** `SCOUT_APPLY_REWARD_CENTS`  
+**Default:** `50` (50 cents per apply)
+
+**Example:**
+
+```bash
+# Set apply reward to $1.00
+export SCOUT_APPLY_REWARD_CENTS=100
+
+# Or in .env
+SCOUT_APPLY_REWARD_CENTS=100
 ```
 
-To change the rate:
-
-1. Update the constant in `rewards.go`
-2. The new rate applies to all future applies
-3. No code changes needed elsewhere
+The configuration is loaded when creating the Store and applies to all future RecordApply calls.
 
 ## Database
 
@@ -87,42 +92,62 @@ Stores the earning record. Apply earnings have:
 
 ## API
 
-Scouts can view their apply earnings via existing Scoutwell endpoints:
+Scouts can view their apply earnings via Scoutwell endpoints:
 
-### `GET /v1/scout/earnings`
+### `GET /v1/scout/earnings` - Earnings Ledger
 
-Lists all earnings (including apply rewards).
+Lists all earnings (including apply rewards) with pagination.
 
 **Query params:**
 
-- `type=apply` - filter to apply rewards only
-- `submission_id={id}` - filter to one job
 - `status=released` - filter by status
+- `submission_id={id}` - filter to one job
 - `cursor`, `limit` - pagination
+
+**Response:** Paginated list of `Earning` objects
 
 **Example:**
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://api.scoutwell.com/v1/scout/earnings?type=apply&limit=20"
+  "https://api.scoutwell.com/v1/scout/earnings?status=released&limit=20"
+```
+
+### `GET /v1/scout/earnings/summary` - Earnings Summary
+
+Returns released earnings broken down by reward type.
+
+**Response:**
+
+```json
+{
+  "by_type": {
+    "approval": { "amount_cents": 450, "currency": "USD" },
+    "apply": { "amount_cents": 350, "currency": "USD" },
+    "interview": { "amount_cents": 750, "currency": "USD" }
+  },
+  "total": { "amount_cents": 1550, "currency": "USD" }
+}
 ```
 
 ### `GET /v1/scout/stats`
 
-Returns summary including balance (which includes apply earnings).
+Returns overall dashboard including balance (which includes apply earnings).
+
+**Relevant fields:**
 
 ```json
 {
   "balance": {
-    "released": { "amount_cents": 1250, "currency": "USD" },
-    "lifetime": { "amount_cents": 1250, "currency": "USD" }
+    "released": { "amount_cents": 1550, "currency": "USD" },
+    "lifetime": { "amount_cents": 1550, "currency": "USD" }
   }
 }
 ```
 
 ### `GET /v1/scout/meta`
 
-Returns reward table including apply reward rate.
+Returns reward table including configurable apply reward rate.
 
 ```json
 {

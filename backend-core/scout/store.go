@@ -72,6 +72,7 @@ type Store struct {
 	publisher Publisher
 	usage     Usage
 	fetcher   Fetcher
+	config    Config
 
 	now  func() time.Time
 	roll func() float64
@@ -91,6 +92,7 @@ func NewStore(client *mongo.Client, db string, accounts Accounts, publisher Publ
 		publisher: publisher,
 		usage:     usage,
 		fetcher:   fetcher,
+		config:    LoadConfig(),
 		now:       time.Now,
 		roll:      rand.Float64,
 		workers:   make(chan struct{}, checkWorkers),

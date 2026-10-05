@@ -47,7 +47,7 @@ func (s *Store) RecordApply(ctx context.Context, jobID, candidateID string, appl
 	}
 
 	now := s.now().UTC()
-	reward := ApplyReward()
+	reward := cents(s.config.ApplyRewardCents)
 
 	// Record the apply.
 	apply := Apply{

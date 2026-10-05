@@ -15,8 +15,6 @@ const (
 	MinPayoutCents = 2500
 	// ConversionShare is the scout's share of a claimed company's interview fees.
 	ConversionShare = 0.1
-	// ApplyRewardCents is the fixed credit per qualifying apply (released immediately).
-	ApplyRewardCents = 50
 )
 
 // Leader and Manager used to be paid as senior, so they keep that rate.
@@ -46,12 +44,12 @@ type RewardTable struct {
 	ConversionShare      float64          `json:"conversion_share"`
 }
 
-// Rewards returns the reward table.
-func Rewards() RewardTable {
+// Rewards returns the reward table with the given config.
+func Rewards(cfg Config) RewardTable {
 	return RewardTable{
 		HoldDays:             HoldDays,
 		MinPayout:            cents(MinPayoutCents),
-		ApplyReward:          cents(ApplyRewardCents),
+		ApplyReward:          cents(cfg.ApplyRewardCents),
 		InterviewBySeniority: moneyMap(interviewRewardCents),
 		HireBySeniority:      moneyMap(hireRewardCents),
 		ConversionShare:      ConversionShare,
@@ -61,11 +59,6 @@ func Rewards() RewardTable {
 // ApprovalReward is paid when a trusted+ scout's job is published.
 func ApprovalReward(level string) Money {
 	return Rule(level).ApprovalReward
-}
-
-// ApplyReward is the fixed credit per qualifying apply (released immediately).
-func ApplyReward() Money {
-	return cents(ApplyRewardCents)
 }
 
 // InterviewReward is paid when an interview on the scout's job settles.
