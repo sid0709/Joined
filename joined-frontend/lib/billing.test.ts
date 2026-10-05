@@ -5,12 +5,14 @@ import {
   currentBillingPlan,
   formatRenewalDate,
   hasStripeCustomer,
+  isBillingPlan,
   parseBillingPlan,
   parseSubscriptionStatus,
   planAmountCents,
   planIntervalLabel,
   planLabel,
   portalRequest,
+  SUBSCRIPTION_STATUSES,
   subscriptionStatusMeta,
   yearlySavingsCents,
   type PremiumPrices,
@@ -26,6 +28,10 @@ describe("billing plans", () => {
     expect(parseBillingPlan("weekly")).toBe(null);
     expect(parseBillingPlan("")).toBe(null);
     expect(parseBillingPlan(undefined)).toBe(null);
+    expect(isBillingPlan("monthly")).toBe(true);
+    expect(isBillingPlan("yearly")).toBe(true);
+    expect(isBillingPlan("weekly")).toBe(false);
+    expect(isBillingPlan(null)).toBe(false);
   });
 
   test("labels every plan", () => {
@@ -48,10 +54,27 @@ describe("subscription status", () => {
     expect(subscriptionStatusMeta("active")).toEqual({ label: "Active", badge: "success" });
     expect(subscriptionStatusMeta("mystery")).toEqual({ label: "mystery", badge: "neutral" });
     expect(subscriptionStatusMeta(undefined)).toEqual({ label: "Unknown", badge: "neutral" });
+    expect(subscriptionStatusMeta(null)).toEqual({ label: "Unknown", badge: "neutral" });
+  });
+
+  test("labels every persisted Stripe status", () => {
+    const expected = {
+      active: { label: "Active", badge: "success" },
+      trialing: { label: "Trial", badge: "info" },
+      past_due: { label: "Past due", badge: "warning" },
+      canceled: { label: "Canceled", badge: "neutral" },
+      unpaid: { label: "Unpaid", badge: "warning" },
+      incomplete: { label: "Incomplete", badge: "warning" },
+      incomplete_expired: { label: "Expired", badge: "neutral" },
+    } as const;
+    for (const status of SUBSCRIPTION_STATUSES) {
+      expect(parseSubscriptionStatus(status)).toBe(status);
+      expect(subscriptionStatusMeta(status)).toEqual(expected[status]);
+    }
   });
 
   test("portal is available once Stripe has a customer mapping", () => {
-    expect(hasStripeCustomer(null)).toBe(false);
+    expect(hasStripeCustomer(undefined)).toBe(false);
     expect(hasStripeCustomer({ premium: false })).toBe(false);
     expect(hasStripeCustomer({ premium: true })).toBe(true);
     expect(hasStripeCustomer({ premium: false, status: "canceled" })).toBe(true);
@@ -66,6 +89,8 @@ describe("subscription status", () => {
 
   test("renewal date formats RFC3339 and falls back when missing", () => {
     expect(formatRenewalDate(undefined)).toBe("—");
+    expect(formatRenewalDate(null)).toBe("—");
+    expect(formatRenewalDate("")).toBe("—");
     expect(formatRenewalDate("not-a-date")).toBe("—");
     expect(formatRenewalDate(new Date(2026, 9, 5).toISOString())).toContain("2026");
   });
@@ -78,6 +103,7 @@ describe("checkout and portal bodies", () => {
       success_url: `https://app.test${ROUTES.billingSuccess}`,
       cancel_url: `https://app.test${ROUTES.billingCancel}`,
     });
+    expect(checkoutRequest("yearly", "https://app.test").plan).toBe("yearly");
   });
 
   test("portal returns to settings billing", () => {
