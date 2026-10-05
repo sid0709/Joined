@@ -57,6 +57,7 @@ func main() {
 			Path: config.Env("ACORN_RUNTIME_FILE_PATH", ""),
 			Key:  config.Env("ACORN_RUNTIME_FILE_KEY", defaultRuntimeKey),
 		},
+		KillSwitches: p.KillSwitches,
 	})
 	defer gateway.Close()
 

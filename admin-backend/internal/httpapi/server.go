@@ -11,6 +11,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
@@ -38,6 +39,7 @@ type Server struct {
 	researchWorkers int
 	adminToken      string
 	analyzerToken   string
+	switches        killswitch.Switches
 }
 
 // Options are the HTTP server's settings.
@@ -48,7 +50,7 @@ type Options struct {
 	AdminToken string
 	// AnalyzerToken secures /v1/public/analyzer/* for external callers such as Postman.
 	AnalyzerToken string
-	Migration  MigrationOptions
+	Migration     MigrationOptions
 	// Staff turns on Sign in with Google for the console. Once it is set up, every
 	// route but sign-in needs a staff session as well as the admin token.
 	Staff StaffSignIn
@@ -63,6 +65,9 @@ type Options struct {
 	// DeepSeekEnv is the environment's DeepSeek settings: the model used until one
 	// is saved, and whether DEEPSEEK_API_KEY already covers a missing saved key.
 	DeepSeekEnv config.DeepSeek
+	// KillSwitches are runtime feature toggles staff flip from the API. Nil leaves
+	// job imports on and the staff switch routes answering 503.
+	KillSwitches killswitch.Switches
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -82,6 +87,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		deepSeekEnv:     opts.DeepSeekEnv,
 		adminToken:      opts.AdminToken,
 		analyzerToken:   opts.AnalyzerToken,
+		switches:        opts.KillSwitches,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -105,6 +111,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerMigration(api)
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
+	server.registerKillSwitches(api)
 	server.registerAcornAI(api)
 	server.registerDeepSeek(api)
 

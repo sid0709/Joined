@@ -78,6 +78,30 @@ func (s *Store) TakeGoogleState(ctx context.Context, state string, now time.Time
 	return GoogleState{Verifier: record.Verifier, Role: record.Role}, nil
 }
 
+// GoogleUserExists reports whether this Google identity already has an account,
+// so a sign-up kill switch can still let existing people in.
+func (s *Store) GoogleUserExists(ctx context.Context, id GoogleIdentity) (bool, error) {
+	email := normalizeEmail(id.Email)
+	if id.Subject == "" || email == "" {
+		return false, nil
+	}
+	if s.client != nil {
+		_, err := s.googleUser(ctx, id.Subject, email)
+		if errors.Is(err, ErrNotFound) {
+			return false, nil
+		}
+		return err == nil, err
+	}
+	if s.records != nil {
+		_, err := s.records.UserByEmail(ctx, email)
+		if errors.Is(err, ErrNotFound) {
+			return false, nil
+		}
+		return err == nil, err
+	}
+	return false, nil
+}
+
 // GoogleSignin signs in the account behind a verified Google identity; Google is
 // the only way in. Someone new gets an account of newRole. An account that exists
 // keeps its own role, which audience (the app signing in) must accept.
