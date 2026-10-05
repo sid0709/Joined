@@ -11,14 +11,20 @@ import {
 import { isJobQueued } from "../drafts";
 import { useAuth } from "../hooks/useAuth";
 import { useDetectedJob } from "../hooks/useDetectedJob";
+import { useDesktopNotifications } from "../hooks/useDesktopNotifications";
 import { useDrafts } from "../hooks/useDrafts";
+import { RUNTIME_MESSAGE } from "../messaging/runtime";
+
 import { DetectedJobPanel } from "./DetectedJobPanel";
 import { DraftQueuePanel } from "./DraftQueuePanel";
+import { NotificationSettings } from "./NotificationSettings";
 
 function App() {
   const { authState, checkAuth, setSignInTabId } = useAuth();
   const detectedJob = useDetectedJob();
   const { drafts, saveCapturedJob, updateDraft, deleteDraft, submitDraft, submitAll } = useDrafts();
+  const { enabled: desktopNotifications, setEnabled: setDesktopNotifications } =
+    useDesktopNotifications();
   const signedIn = authState.status === "signed-in";
   const alreadyQueued = detectedJob.status === "found" && isJobQueued(drafts, detectedJob.job);
 
@@ -148,6 +154,21 @@ function App() {
           }}
           onSubmitAll={() => {
             void submitAll();
+          }}
+        />
+      </div>
+
+      <div style={{ marginTop: "var(--spacing-4)" }}>
+        <NotificationSettings
+          enabled={desktopNotifications}
+          onChange={(value) => {
+            void setDesktopNotifications(value).then(() => {
+              if (value) {
+                chrome.runtime
+                  .sendMessage({ type: RUNTIME_MESSAGE.POLL_STATUS })
+                  .catch(() => undefined);
+              }
+            });
           }}
         />
       </div>

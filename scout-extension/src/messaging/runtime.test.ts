@@ -4,6 +4,7 @@ import {
   CAPTURE_TIMEOUT_MESSAGE,
   isCaptureJobRequest,
   isCaptureTabRequest,
+  isPollStatusRequest,
   isTabNavigationMessage,
   RUNTIME_MESSAGE,
   withTimeout,
@@ -15,6 +16,7 @@ describe("runtime messages", () => {
     expect(isCaptureJobRequest({ type: RUNTIME_MESSAGE.CAPTURE_JOB })).toBe(true);
     expect(isTabNavigationMessage({ type: RUNTIME_MESSAGE.TAB_UPDATED })).toBe(true);
     expect(isTabNavigationMessage({ type: RUNTIME_MESSAGE.TAB_ACTIVATED })).toBe(true);
+    expect(isPollStatusRequest({ type: RUNTIME_MESSAGE.POLL_STATUS })).toBe(true);
     expect(isCaptureTabRequest({ type: RUNTIME_MESSAGE.TAB_CLOSED })).toBe(false);
     expect(isCaptureJobRequest(null)).toBe(false);
     expect(isTabNavigationMessage({ type: 1 })).toBe(false);

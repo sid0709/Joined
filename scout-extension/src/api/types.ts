@@ -53,3 +53,8 @@ export type AuthState =
   | { status: "signed-out" }
   | { status: "signed-in"; profile: ScoutProfile }
   | { status: "error"; error: string };
+
+export type {
+  NotificationPage,
+  ScoutStatusNotification as ScoutNotification,
+} from "../status/types";
