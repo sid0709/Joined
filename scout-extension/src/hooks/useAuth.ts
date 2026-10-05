@@ -1,13 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ScoutApiClient, type AuthState } from "../api";
 
 const client = new ScoutApiClient();
 
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({ status: "loading" });
+  const signInTabIdRef = useRef<number | null>(null);
 
-  const checkAuth = useCallback(async () => {
-    setAuthState({ status: "loading" });
+  const checkAuth = useCallback(async (showLoading = true) => {
+    if (showLoading) {
+      setAuthState({ status: "loading" });
+    }
     try {
       const profile = await client.getMe();
       if (profile) {
@@ -25,15 +28,21 @@ export function useAuth() {
     checkAuth();
 
     const handleMessage = (message: unknown) => {
-      if (
-        typeof message === "object" &&
-        message !== null &&
-        "type" in message &&
-        (message.type === "tab-closed" || message.type === "tab-updated")
-      ) {
-        setTimeout(() => {
-          checkAuth();
-        }, 1000);
+      if (typeof message === "object" && message !== null && "type" in message) {
+        if (message.type === "tab-closed" && "tabId" in message) {
+          if (signInTabIdRef.current === message.tabId) {
+            signInTabIdRef.current = null;
+            setTimeout(() => {
+              checkAuth(false);
+            }, 1000);
+          }
+        } else if (message.type === "tab-updated" && "tabId" in message) {
+          if (signInTabIdRef.current === message.tabId) {
+            setTimeout(() => {
+              checkAuth(false);
+            }, 1000);
+          }
+        }
       }
     };
 
@@ -44,5 +53,9 @@ export function useAuth() {
     };
   }, [checkAuth]);
 
-  return { authState, checkAuth };
+  const setSignInTabId = useCallback((tabId: number | null) => {
+    signInTabIdRef.current = tabId;
+  }, []);
+
+  return { authState, checkAuth, setSignInTabId };
 }

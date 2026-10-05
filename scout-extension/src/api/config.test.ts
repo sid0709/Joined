@@ -1,18 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { getApiHost, getSignInUrl } from "./config";
+import { getApiHost, getWebOrigin, getSignInUrl, getSessionCookieName } from "./config";
 
 describe("config", () => {
   test("getApiHost returns default when no env var set", () => {
     expect(getApiHost()).toBe("http://127.0.0.1:8082");
   });
 
-  test("getSignInUrl returns local URL for localhost API", () => {
-    expect(getSignInUrl()).toBe("http://localhost:3002/scout/signin");
+  test("getWebOrigin returns default scoutwell frontend origin", () => {
+    expect(getWebOrigin()).toBe("http://localhost:6003");
   });
 
-  test("getSignInUrl returns scout signin path", () => {
+  test("getSignInUrl uses web origin with correct path", () => {
     const url = getSignInUrl();
-    expect(url).toContain("/scout/signin");
-    expect(url).toMatch(/^https?:\/\//);
+    expect(url).toBe("http://localhost:6003/sign-in");
+  });
+
+  test("getSessionCookieName returns scoutwell session cookie name", () => {
+    expect(getSessionCookieName()).toBe("scoutwell_session");
   });
 });

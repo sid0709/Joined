@@ -4,17 +4,23 @@ import { useAuth } from "../hooks/useAuth";
 import { getSignInUrl } from "../api";
 
 function App() {
-  const { authState, checkAuth } = useAuth();
+  const { authState, checkAuth, setSignInTabId } = useAuth();
 
   const handleSignIn = () => {
     const signInUrl = getSignInUrl();
     const newTab = window.open(signInUrl, "_blank");
 
     if (newTab) {
+      chrome.tabs.query({ url: signInUrl }, (tabs) => {
+        if (tabs.length > 0 && tabs[0].id) {
+          setSignInTabId(tabs[0].id);
+        }
+      });
+
       const checkInterval = setInterval(() => {
         if (newTab.closed) {
           clearInterval(checkInterval);
-          checkAuth();
+          setSignInTabId(null);
         }
       }, 500);
 
@@ -92,7 +98,7 @@ function App() {
           >
             Error: {authState.error}
           </div>
-          <Button onClick={checkAuth} variant="secondary" label="Try Again" />
+          <Button onClick={() => checkAuth()} variant="secondary" label="Try Again" />
         </div>
       )}
     </div>

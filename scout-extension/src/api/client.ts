@@ -1,4 +1,4 @@
-import { getApiHost } from "./config";
+import { getApiHost, getSessionCookieName, getWebOrigin } from "./config";
 import type { ScoutProfile, ApiError } from "./types";
 
 export class ScoutApiClient {
@@ -8,12 +8,36 @@ export class ScoutApiClient {
     this.baseUrl = getApiHost();
   }
 
+  private async getSessionToken(): Promise<string | null> {
+    try {
+      const webOrigin = getWebOrigin();
+      const url = new URL(webOrigin);
+      const cookies = await chrome.cookies.getAll({
+        name: getSessionCookieName(),
+        domain: url.hostname,
+      });
+
+      if (cookies.length > 0 && cookies[0].value) {
+        return cookies[0].value;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to read session cookie:", error);
+      return null;
+    }
+  }
+
   async getMe(): Promise<ScoutProfile | null> {
     try {
+      const token = await this.getSessionToken();
+      if (!token) {
+        return null;
+      }
+
       const response = await fetch(`${this.baseUrl}/v1/scout/me`, {
         method: "GET",
-        credentials: "include",
         headers: {
+          Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
       });
@@ -26,7 +50,8 @@ export class ScoutApiClient {
         const error: ApiError = await response.json().catch(() => ({
           error: "Unknown error",
         }));
-        throw new Error(error.message || error.error);
+        const message = error.detail || error.title || error.message || error.error;
+        throw new Error(message);
       }
 
       const profile: ScoutProfile = await response.json();

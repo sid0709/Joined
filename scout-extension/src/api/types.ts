@@ -20,6 +20,8 @@ export interface ScoutProfile {
 export interface ApiError {
   error: string;
   message?: string;
+  detail?: string;
+  title?: string;
 }
 
 export type AuthState =
