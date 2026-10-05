@@ -137,7 +137,7 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 			if err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("Copied %d jobs from %s into %s.", result.Copied, result.Source, result.Destination), nil
+			return jobCopySummary(result), nil
 		}, false, true
 	case migration.CopyCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
@@ -160,6 +160,15 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 		}, true, true
 	}
 	return nil, false, false
+}
+
+// jobCopySummary says how many copied jobs wait in temp_jobs.
+func jobCopySummary(result jobs.CopyResult) string {
+	summary := fmt.Sprintf("Copied %d jobs from %s into %s.", result.Copied, result.Source, result.Destination)
+	if result.Published > 0 {
+		summary += fmt.Sprintf(" Left out %d already published.", result.Published)
+	}
+	return summary
 }
 
 // companyCopySummary says where the copied companies went.

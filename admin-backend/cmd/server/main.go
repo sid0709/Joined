@@ -119,6 +119,14 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 	} else {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
+	purgeCtx, cancelPurge := context.WithTimeout(context.Background(), backfillTimeout)
+	purged, err := store.PurgePublishedTemp(purgeCtx)
+	cancelPurge()
+	if err != nil {
+		slog.Error("purge published temp rows", "error", config.Redact(err, mongoURI))
+	} else if purged.Jobs+purged.Companies > 0 {
+		slog.Info("purge published temp rows", "jobs", purged.Jobs, "companies", purged.Companies)
+	}
 	dropCtx, cancelDrop := context.WithTimeout(context.Background(), dropTimeout)
 	dropped, err := store.DropCompanyLeadership(dropCtx)
 	cancelDrop()
