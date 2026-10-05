@@ -2,6 +2,7 @@ package scout
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/jobschema"
@@ -121,10 +122,24 @@ type PayoutReadiness struct {
 }
 
 // CheckPayout applies the payout rules: verified identity, tax info, a payout
-// method, and at least the minimum released balance.
-func CheckPayout(p Profile, released int64) PayoutReadiness {
+// method, and at least the minimum released balance. hasPaidPayout skips the
+// stricter first-payout identity fields for scouts who already received money.
+func CheckPayout(p Profile, released int64, hasPaidPayout bool) PayoutReadiness {
 	blockers := []string{}
-	if p.Verification != VerificationVerified {
+	switch p.Verification {
+	case VerificationRejected:
+		blockers = append(blockers, "Identity verification was declined")
+	case VerificationVerified:
+		if !hasPaidPayout {
+			if !IdentityFieldsPresent(p) {
+				blockers = append(blockers, "Complete identity details (legal name, country, date of birth)")
+			} else if p.PayoutMethod != nil && strings.TrimSpace(p.PayoutMethod.HolderName) != "" && !PayoutHolderMatches(p) {
+				blockers = append(blockers, "Payout account holder name must match legal name")
+			} else if p.PayoutMethod != nil && strings.TrimSpace(p.PayoutMethod.HolderName) == "" {
+				blockers = append(blockers, "Add the payout account holder name")
+			}
+		}
+	default:
 		blockers = append(blockers, "Verify your identity (tier 2)")
 	}
 	if p.TaxInfo == nil {

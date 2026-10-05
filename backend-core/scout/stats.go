@@ -88,7 +88,11 @@ func (s *Store) Stats(ctx context.Context, userID string) (Stats, error) {
 	}
 	resets, _ := time.Parse(time.RFC3339, stats.Metrics.ResetsAt)
 	stats.Quota = Quota{Limit: stats.Metrics.DailyLimit, Remaining: stats.Metrics.RemainingToday, ResetsAt: resets}
-	stats.Payout = CheckPayout(profile, stats.Balance.Released.AmountCents)
+	paid, err := s.hasPaidPayout(ctx, userID)
+	if err != nil {
+		return Stats{}, err
+	}
+	stats.Payout = CheckPayout(profile, stats.Balance.Released.AmountCents, paid)
 	if next := NextLevel(profile.Level); next != "" {
 		rule := Rule(next)
 		stats.NextLevel = &rule

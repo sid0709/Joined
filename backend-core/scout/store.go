@@ -226,14 +226,22 @@ func (s *Store) collection(name string) *mongo.Collection {
 
 // audit records a staff action (docs/40: every admin action is audited).
 func (s *Store) audit(ctx context.Context, action, subjectType, subjectID, actor, note string) {
-	_, err := s.collection(auditCollection).InsertOne(ctx, AuditEntry{
+	entry := AuditEntry{
 		Action:      action,
 		SubjectType: subjectType,
 		SubjectID:   subjectID,
 		Actor:       actor,
 		Note:        note,
 		At:          s.now().UTC(),
-	})
+	}
+	if mem, ok := s.docs.(*memDocs); ok {
+		mem.addAudit(entry)
+		return
+	}
+	if s.client == nil {
+		return
+	}
+	_, err := s.collection(auditCollection).InsertOne(ctx, entry)
 	if err != nil {
 		slog.Error("audit", "action", action, "subject", subjectID, "error", err)
 	}
