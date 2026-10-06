@@ -20,6 +20,8 @@ export const ROUTES = {
   createCase: "/trust/cases/new",
   moderationCase: (id: string) => `/trust/cases/${id}`,
   reports: "/trust/reports",
+  users: "/users",
+  user: (id: string) => `/users/${id}`,
   fileReport: "/trust/reports/new",
   report: (id: string) => `/trust/reports/${id}`,
   retentionOps: "/ops",
@@ -37,6 +39,10 @@ export type NavLink = {
 };
 
 export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
+  {
+    title: "Users",
+    links: [{ href: ROUTES.users, label: "Users", icon: "users" }],
+  },
   {
     title: "Scouting",
     links: [

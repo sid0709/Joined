@@ -20,6 +20,8 @@ test("the deepest matching link is active", () => {
   expect(activeHref("/trust/reports/new")).toBe(ROUTES.reports);
   expect(activeHref("/trust/reports/rep-1")).toBe(ROUTES.reports);
   expect(activeHref("/ops")).toBe(ROUTES.retentionOps);
+  expect(activeHref("/users")).toBe(ROUTES.users);
+  expect(activeHref("/users/user-1")).toBe(ROUTES.users);
   expect(activeHref("/settings/acorn-ai")).toBe(ROUTES.acornAI);
   expect(activeHref("/settings/deepseek")).toBe(ROUTES.deepSeek);
   expect(activeHref("/elsewhere")).toBeUndefined();
@@ -34,6 +36,7 @@ test("routes build ids into paths", () => {
   expect(ROUTES.report("rep-1")).toBe("/trust/reports/rep-1");
   expect(ROUTES.createCase).toBe("/trust/cases/new");
   expect(ROUTES.fileReport).toBe("/trust/reports/new");
+  expect(ROUTES.user("user-1")).toBe("/users/user-1");
 });
 
 test("sign-in keeps the way back", () => {
