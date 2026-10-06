@@ -35,7 +35,7 @@ chmod 600 "$keys"
 # Where the workflow puts compose.yml and the production .env.
 install -d -m 750 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$DEPLOY_DIR"
 
-# The nginx sites: joinedhq.com and the API (acorn-backend). An existing one is
+# The nginx sites: joinedhq.com and the API (joined-backend). An existing one is
 # kept: certbot has added HTTPS to it.
 install -d -m 755 /var/www/joinedhq
 install -m 644 "$HERE/nginx/starting.html" /var/www/joinedhq/starting.html
