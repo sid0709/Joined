@@ -14,27 +14,35 @@ Stripe billing for Joined Premium subscriptions. Test mode only unless explicitl
 - `STRIPE_ALLOW_LIVE` — Set to `true` to permit live keys. Default: `false`.
 - `PREMIUM_MONTHLY_PRICE_CENTS` — Monthly Premium price in cents. Default: `2900` ($29).
 - `PREMIUM_YEARLY_PRICE_CENTS` — Yearly Premium price in cents. Default: `29000` ($290).
+- `ACORN_MONTHLY_PRICE_CENTS` — Acorn Pro monthly price in cents. Default: `1900` ($19).
+- `ACORN_YEARLY_PRICE_CENTS` — Acorn Pro yearly price in cents. Default: `18000` ($180, the former website’s $15/month billed yearly).
 - `BILLING_CHECKOUT_SUCCESS_URL` — Default Checkout success redirect when the request omits `success_url`.
 - `BILLING_CHECKOUT_CANCEL_URL` — Default Checkout cancel redirect when the request omits `cancel_url`.
 - `BILLING_PORTAL_RETURN_URL` — Default customer-portal return URL when the request omits `return_url`.
+- `STRIPE_PREMIUM_MONTHLY_PRICE_ID` — Optional Stripe price id (`price_...`). When set, Premium monthly checkout uses it instead of the `joined_premium_monthly` lookup key.
+- `STRIPE_PREMIUM_YEARLY_PRICE_ID` — Optional Premium yearly price id.
+- `STRIPE_ACORN_MONTHLY_PRICE_ID` — Optional Acorn Pro monthly price id.
+- `STRIPE_ACORN_YEARLY_PRICE_ID` — Optional Acorn Pro yearly price id.
+
+Lookup keys stay the default. Leave the price-id variables empty unless a live Stripe account cannot resolve the lookup key.
 
 ## Package entry points
 
 Leo (frontend) and Ravi (joined-backend) should use these names. This package does not mount routes itself.
 
-| Function / type                    | Purpose                                                         |
-| ---------------------------------- | --------------------------------------------------------------- |
-| `LoadConfig`                       | Env + live-key guard                                            |
-| `NewHTTPClient` / `Client`         | Stripe seam (tests use `NewFakeClient`)                         |
-| `SyncProducts`                     | Idempotent Premium product/price catalog                        |
-| `NewService`                       | Checkout, portal, customer mapping, `IsPremium`                 |
-| `Service.CreateCheckoutSession`    | Start monthly or yearly Checkout (`CheckoutParams`)             |
-| `Service.CreatePortalSession`      | Start the Stripe customer portal (`PortalParams`)               |
-| `Service.EnsureCustomer`           | Map Joined `userID` ↔ Stripe customer                           |
-| `Service.IsPremium`                | `IsPremium(ctx, userID)` for other services                     |
-| `NewMemoryStore` / `NewMongoStore` | Persist customers + `subscriptions`                             |
-| `NewWebhookRouter` + `UseService`  | Signed webhook router; persists on checkout/subscription events |
-| `Handlers.Register`                | Optional HTTP: checkout, portal, subscription status            |
+| Function / type                    | Purpose                                                           |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| `LoadConfig`                       | Env + live-key guard                                              |
+| `NewHTTPClient` / `Client`         | Stripe seam (tests use `NewFakeClient`)                           |
+| `SyncProducts`                     | Idempotent Premium catalog, plus Acorn Pro when its cents are set |
+| `NewService`                       | Checkout, portal, customer mapping, `IsPremium`                   |
+| `Service.CreateCheckoutSession`    | Start monthly or yearly Checkout (`CheckoutParams`)               |
+| `Service.CreatePortalSession`      | Start the Stripe customer portal (`PortalParams`)                 |
+| `Service.EnsureCustomer`           | Map Joined `userID` ↔ Stripe customer                             |
+| `Service.IsPremium`                | `IsPremium(ctx, userID)` for other services                       |
+| `NewMemoryStore` / `NewMongoStore` | Persist customers + `subscriptions`                               |
+| `NewWebhookRouter` + `UseService`  | Signed webhook router; persists on checkout/subscription events   |
+| `Handlers.Register`                | Optional HTTP: checkout, portal, subscription status              |
 
 Suggested HTTP paths (constants in this package):
 
@@ -55,6 +63,36 @@ if err != nil {
 ```
 
 The config loader refuses to start with a live key unless `STRIPE_ALLOW_LIVE=true` is explicitly set.
+
+## Live mode runbook
+
+Default is test mode. This repository does not contain live keys, and `stage-roadmap-w34` never deploys. Do not set `STRIPE_ALLOW_LIVE=true` without written approval quoted in the pull request that turns it on. That approval is not in this change.
+
+Live secrets belong only in the GitHub Environment named `production` (see `deploy/README.md`). That environment deploys from `main` only.
+
+| Name                              | Where               | Notes                                                                                         |
+| --------------------------------- | ------------------- | --------------------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`               | production secret   | `sk_test_...` until approval. `sk_live_` or `rk_live_` will not boot unless the flag is true. |
+| `STRIPE_WEBHOOK_SECRET`           | production secret   | The webhook secret for the same mode as the API key.                                          |
+| `STRIPE_ALLOW_LIVE`               | production variable | Leave unset or `false`.                                                                       |
+| `STRIPE_PREMIUM_MONTHLY_PRICE_ID` | production variable | Optional. Empty uses lookup key `joined_premium_monthly`.                                     |
+| `STRIPE_PREMIUM_YEARLY_PRICE_ID`  | production variable | Optional. Empty uses `joined_premium_yearly`.                                                 |
+| `STRIPE_ACORN_MONTHLY_PRICE_ID`   | production variable | Optional. Empty uses `acorn_pro_monthly`.                                                     |
+| `STRIPE_ACORN_YEARLY_PRICE_ID`    | production variable | Optional. Empty uses `acorn_pro_yearly`.                                                      |
+
+Who flips the flag: the person who holds the written approval, in the GitHub `production` environment, after the lookup keys or price ids exist in the live Stripe account.
+
+Rollback: unset `STRIPE_ALLOW_LIVE` and put the `sk_test_` key back in `STRIPE_SECRET_KEY`. Restart joined-backend. Checkout returns to test mode. Do not leave a live key in the environment after the flag is unset; the process will refuse to start.
+
+`PAYOUT_ALLOW_LIVE` is a separate fail-closed switch for scout payouts. It is not turned on by `STRIPE_ALLOW_LIVE`. Sending live payout funds needs the same kind of written approval, named for payouts.
+
+### Acorn Pro
+
+Lookup keys: `acorn_pro`, `acorn_pro_monthly`, `acorn_pro_yearly`. `SyncProducts` writes them when `AcornMonthlyPriceCents` or `AcornYearlyPriceCents` is set (`LoadConfig` always sets the defaults). Free and Unlimited are not Stripe products: Free is $0, and Unlimited is still a sample tier.
+
+Checkout sets `Product` to `acorn`. Webhook metadata `product=acorn_pro` is stored on the subscription. `IsPremium` stays false for that product. Joined Premium rows keep an empty product or `joined_premium`.
+
+This repo no longer mounts Acorn HTTP (`acorn-backend` was removed). The Acorn service calls `CreateCheckoutSession` with `Product: billing.ProductAcorn`. Do not write those rows through Joined `/v1/me/billing`.
 
 ### Product sync
 

@@ -18,7 +18,16 @@ export const ROUTES = {
   notifications: "/notifications",
   account: "/account",
   developers: "/developers",
+  terms: "/terms",
+  privacy: "/privacy",
+  contractor: "/contractor",
 } as const;
+
+export const SCOUT_LEGAL_LINKS = [
+  { href: ROUTES.terms, label: "Terms" },
+  { href: ROUTES.privacy, label: "Privacy" },
+  { href: ROUTES.contractor, label: "Contractor terms" },
+] as const;
 
 export function signInHref(path: string) {
   return `${ROUTES.signIn}?next=${encodeURIComponent(path)}`;

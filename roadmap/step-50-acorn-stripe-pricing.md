@@ -1,7 +1,7 @@
 # Step 50: Acorn Stripe pricing
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Penny (billing lane: `backend-core/billing/**`; **coordinate Elon** for an `acorn-backend` mount)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(billing): acorn pricing and stripe products (roadmap step-50)`

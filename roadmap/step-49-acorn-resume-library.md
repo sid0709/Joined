@@ -1,12 +1,16 @@
 # Step 49: Acorn résumé library
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** BLOCKED
 - **Owner:** Leo (`acorn-frontend/**`; **coordinate Elon** for `acorn-backend/**`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(acorn-frontend): persist resume library (roadmap step-49)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+## BLOCKED
+
+Acorn’s website and API were removed from this repo in `1d0aae6` and now live in [sid0709/Acorn](https://github.com/sid0709/Acorn). This tree has no `acorn-frontend` résumé library and no `acorn-backend` library routes to fill. Shipping a fake-success upload in Joined would not be the extension’s library. Implement step 49 in the Acorn repo.
 
 ## Goal
 

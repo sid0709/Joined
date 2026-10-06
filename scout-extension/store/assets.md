@@ -1,6 +1,6 @@
 # Store icon and screenshot specs
 
-Placeholder specifications for an unlisted upload. Do not check generated mockups into this folder. Replace each item with a real capture before a listed launch.
+Specifications for the unlisted upload. Do not check generated mockups into this folder. A public listing has not been chosen, so these stay specs and the binaries stay out of git.
 
 ## Extension icons (already in the package)
 

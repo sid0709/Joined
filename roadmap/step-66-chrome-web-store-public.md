@@ -1,12 +1,14 @@
 # Step 66: Chrome Web Store public listing package
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Maya (scout-extension lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(scout-extension): chrome web store public listing package (roadmap step-66)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+`scout-extension/store/listing.md` records `Distribution: unlisted`. A public listing has not been chosen. Version stays `0.0.1`. Nothing is uploaded from CI. `scripting` stays justified next to the other manifest permissions.
 
 ## Goal
 

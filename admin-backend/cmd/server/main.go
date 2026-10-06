@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sid0709/OpenSeat/admin-backend/internal/httpapi"
+	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/deepseek"
 	"github.com/sid0709/OpenSeat/backend-core/google"
@@ -68,7 +69,11 @@ func main() {
 	if crawlerToken == "" {
 		slog.Warn("CRAWLER_INGEST_TOKEN is not set: the crawler extension cannot stage jobs")
 	}
-	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
+	reporting := config.LoadErrorReporting()
+	reporter := httpkit.NewReporter(reporting.SentryDSN)
+	if err := httpkit.NotifyUptime(context.Background(), reporting.UptimePingURL); err != nil {
+		slog.Warn("uptime ping", "error", err)
+	}
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	staff := httpapi.StaffSignIn{
 		Accounts:    p.Accounts,
@@ -110,6 +115,13 @@ func main() {
 	})
 	go importRunner.Start(context.Background())
 
+	var premium httpapi.PremiumAdmin
+	if cfg, err := billing.LoadConfig(); err != nil {
+		slog.Warn("billing is not configured: premium cancel and refund are unavailable", "error", err)
+	} else {
+		premium = billing.NewService(billing.NewHTTPClient(cfg.SecretKey), billing.NewMongoStore(p.Mongo(), db.DestDB), cfg)
+	}
+
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
 		Origins:       server.Origins,
 		AdminToken:    adminToken,
@@ -133,6 +145,8 @@ func main() {
 		},
 		KillSwitches: p.KillSwitches,
 		ScamHolds:    p.ScamHolds,
+		Accounts:     p.Accounts,
+		Premium:      premium,
 	})
 	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)

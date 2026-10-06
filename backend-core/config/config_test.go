@@ -166,3 +166,18 @@ func TestSearchEnsureIndexDoesNotInferFromAddress(t *testing.T) {
 		t.Error("SearchEnsureIndex() should return false when SEARCH_ENSURE_INDEX is unset, regardless of address")
 	}
 }
+
+func TestLoadErrorReportingOptional(t *testing.T) {
+	t.Setenv("SENTRY_DSN", "")
+	t.Setenv("UPTIME_PING_URL", "")
+	got := LoadErrorReporting()
+	if got.SentryDSN != "" || got.UptimePingURL != "" {
+		t.Fatalf("empty monitoring = %+v", got)
+	}
+	t.Setenv("SENTRY_DSN", "  https://dsn.example/1  ")
+	t.Setenv("UPTIME_PING_URL", "  https://uptime.example/ping  ")
+	got = LoadErrorReporting()
+	if got.SentryDSN != "https://dsn.example/1" || got.UptimePingURL != "https://uptime.example/ping" {
+		t.Fatalf("trimmed monitoring = %+v", got)
+	}
+}

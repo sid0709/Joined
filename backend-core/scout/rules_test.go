@@ -98,7 +98,9 @@ func TestComputeBalanceAndPayoutReadiness(t *testing.T) {
 	if blocked.Ready || len(blocked.Blockers) != 3 {
 		t.Fatalf("readiness = %+v", blocked)
 	}
-	ready := CheckPayout(Profile{Verification: VerificationVerified, TaxInfo: &TaxInfo{}, PayoutMethod: &PayoutMethod{}}, balance.Released.AmountCents, true)
+	certified := time.Unix(1_700_000_000, 0).UTC()
+	readyTax := &TaxInfo{Country: "US", FormType: TaxFormW9, CertifiedAt: certified, ScreeningStatus: ScreeningClear}
+	ready := CheckPayout(Profile{Verification: VerificationVerified, TaxInfo: readyTax, PayoutMethod: &PayoutMethod{}}, balance.Released.AmountCents, true)
 	if !ready.Ready {
 		t.Fatalf("readiness = %+v", ready)
 	}

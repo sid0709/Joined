@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { PageContainer } from "sid-ui";
+import { SiteFooter } from "@/components/legal/site-footer";
 import { AppFrame } from "@/components/shell/app-frame";
 import { ScoutHeader } from "@/components/shell/scout-header";
 import { ScoutMobilePillBar } from "@/components/shell/scout-pill-nav";
@@ -28,7 +29,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         />
       }
     >
-      <PageContainer>{children}</PageContainer>
+      <PageContainer>
+        {children}
+        <SiteFooter />
+      </PageContainer>
       <ScoutMobilePillBar inReview={inReview} unread={unread} />
     </AppFrame>
   );

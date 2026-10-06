@@ -14,7 +14,14 @@ import {
   useToast,
   SectionCard,
 } from "sid-ui";
-import { ApiError, VERIFICATION, type PayoutMethodType, type Profile } from "@joined/scout";
+import {
+  ApiError,
+  VERIFICATION,
+  type PayoutMethodType,
+  type Profile,
+  type ScreeningStatus,
+  type TaxFormType,
+} from "@joined/scout";
 import { formatDay } from "@/lib/dates";
 import { scoutSend } from "@/lib/scout/client";
 
@@ -22,6 +29,44 @@ const PAYOUT_TYPES: { value: PayoutMethodType; label: string }[] = [
   { value: "bank", label: "Bank account" },
   { value: "paypal", label: "PayPal" },
 ];
+
+const TAX_FORMS: { value: TaxFormType; label: string }[] = [
+  { value: "w9", label: "W-9 (US person)" },
+  { value: "w8ben", label: "W-8BEN" },
+  { value: "w8ben_e", label: "W-8BEN-E" },
+];
+
+function taxFormFromSelect(value: string): TaxFormType {
+  switch (value) {
+    case "w9":
+    case "w8ben":
+    case "w8ben_e":
+      return value;
+    default:
+      return "w9";
+  }
+}
+
+function taxFormLabel(form: TaxFormType) {
+  return TAX_FORMS.find((item) => item.value === form)?.label ?? form;
+}
+
+function screeningLabel(status: ScreeningStatus | undefined) {
+  switch (status) {
+    case "clear":
+      return "Clear";
+    case "pending":
+      return "Pending";
+    case "hit":
+      return "Blocked";
+    case undefined:
+      return "Not screened yet";
+    default: {
+      const unexpected: never = status;
+      return unexpected;
+    }
+  }
+}
 
 /** Saves one setup form, then reloads the page data. Field errors come back from the API. */
 function useSave() {
@@ -128,6 +173,7 @@ export function TaxCard({ profile }: { profile: Profile }) {
   );
   const [country, setCountry] = useState(profile.tax_info?.country ?? profile.country ?? "");
   const [last4, setLast4] = useState("");
+  const [formType, setFormType] = useState<TaxFormType>(profile.tax_info?.form_type ?? "w9");
   const info = profile.tax_info;
 
   return (
@@ -147,6 +193,10 @@ export function TaxCard({ profile }: { profile: Profile }) {
             <MetadataListItem label="Legal name">{info.legal_name}</MetadataListItem>
             <MetadataListItem label="Country">{info.country}</MetadataListItem>
             <MetadataListItem label="Tax ID">•••• {info.tax_id_last4}</MetadataListItem>
+            <MetadataListItem label="Form">{taxFormLabel(info.form_type)}</MetadataListItem>
+            <MetadataListItem label="Screening">
+              {screeningLabel(info.screening_status)}
+            </MetadataListItem>
             <MetadataListItem label="Added">{formatDay(info.completed_at)}</MetadataListItem>
           </MetadataList>
           <Button label="Update" variant="ghost" size="sm" clickAction={() => setEditing(true)} />
@@ -173,6 +223,13 @@ export function TaxCard({ profile }: { profile: Profile }) {
             description="We only keep the last four characters."
             status={status("tax_id_last4")}
           />
+          <Selector
+            label="Tax form"
+            options={TAX_FORMS}
+            value={formType}
+            onChange={(value) => setFormType(taxFormFromSelect(value))}
+            status={status("form_type")}
+          />
           <Button
             label="Save tax details"
             variant="secondary"
@@ -180,7 +237,7 @@ export function TaxCard({ profile }: { profile: Profile }) {
               const ok = await save(
                 "/me/tax",
                 "PUT",
-                { legal_name: legalName, country, tax_id_last4: last4 },
+                { legal_name: legalName, country, tax_id_last4: last4, form_type: formType },
                 "Tax details saved.",
               );
               if (ok) setEditing(false);
