@@ -1,12 +1,16 @@
 # Step 48: Acorn profile editor
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** BLOCKED
 - **Owner:** Leo (`acorn-frontend/**`; **coordinate Elon** for `acorn-backend/**`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(acorn-frontend): persist profile editor (roadmap step-48)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+## BLOCKED
+
+Acorn’s website and API were removed from this repo in `1d0aae6` (`refactor: remove Acorn references and update deployment process`). `README.md` now says they live in the sibling repository [sid0709/Acorn](https://github.com/sid0709/Acorn). This tree has no `acorn-frontend` or `acorn-backend`, so there is nowhere to persist the profile editor without undoing that split. Implement step 48 in the Acorn repo.
 
 ## Goal
 
