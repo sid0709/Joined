@@ -1,6 +1,6 @@
 # Permission justifications
 
-These match the production Manifest V3 permissions. Do not add permissions to justify a future feature.
+These match the production Manifest V3 permissions in `scout-extension/manifest.json`: `activeTab`, `scripting`, `storage`, `sidePanel`, `cookies`, `alarms`, and `notifications`. Do not add permissions to justify a future feature.
 
 ## `activeTab`
 
