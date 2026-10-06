@@ -1,6 +1,6 @@
 ---
 paths:
-  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend,acorn-frontend}/**/*.{ts,tsx,js,jsx}"
+  - "{connected-frontend,joined-frontend,admin-frontend,scoutwell-frontend}/**/*.{ts,tsx,js,jsx}"
 ---
 
 # Next.js (App Router)

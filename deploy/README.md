@@ -3,7 +3,7 @@
 A successful [CI](../.github/workflows/ci.yml) run on `main` runs [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml). A failed CI run does not deploy. The workflow builds the commit CI tested:
 
 1. **Images.** [`tools/image-plan.mjs`](../tools/image-plan.mjs) compares the commit with the previous `main` tip. A service whose image inputs changed is built and pushed to Docker Hub as `<DOCKERHUB_USERNAME>/joined:<service>-sha-<commit>` and `<service>-latest`. Each other service gets the new `sha-<commit>` tag pointed at its existing `<service>-latest` image, so Compose can pull one tag for the whole stack without a rebuild. A Go image rebuilds when that service, `backend-core`, or `docker/go-service.Dockerfile` changes. A Next.js image rebuilds when that app, a workspace package it imports, the root lockfile or catalog, or `docker/next-app.Dockerfile` changes. A manual run builds every image.
-2. **Deploy.** The workflow writes a `.env` from the GitHub `production` environment, copies it and [`compose.yml`](compose.yml) to `/srv/joined` on the VPS, pulls the new images, restarts the stack, and checks that both APIs' `/health` (joined-backend and acorn-backend) and the homepage answer.
+2. **Deploy.** The workflow writes a `.env` from the GitHub `production` environment, copies it and [`compose.yml`](compose.yml) to `/srv/joined` on the VPS, pulls the new images, restarts the stack, and checks that joined-backend's `/health`, the last published `acorn-backend` image's `/health`, and the homepage answer. Acorn's source is in the Acorn repo; this stack does not build a new Acorn image.
 
 You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 
@@ -13,7 +13,7 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 | -------------------- | -------------- | ------------------------- | ---------------------------------------------- |
 | `joined-frontend`    | 3000           | 6002                      | yes — nginx serves it on joinedhq.com          |
 | `joined-backend`     | 8080           | 11080                     | yes                                            |
-| `acorn-backend`      | 8080           | 11083                     | yes — nginx serves it on api.joinedhq.com      |
+| `acorn-backend`      | 8080           | 11083                     | yes — last image, not built from this repo     |
 | `scoutwell-frontend` | 3000           | 6003                      | with `COMPOSE_PROFILES` containing `scoutwell` |
 | `scoutwell-backend`  | 8080           | 11082                     | with `scoutwell`                               |
 | `admin-frontend`     | 3000           | 6010                      | with `admin`                                   |
@@ -23,7 +23,7 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 Host ports are the dev ports + 3000, except `connected-frontend`: browsers refuse port 6000.
 Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect
 (`/v1/me/calendar/google/callback`) to the API on 11080. `api.joinedhq.com` goes to
-acorn-backend on 11083: Acorn's extension calls `https://api.joinedhq.com/acorn/...` and
+acorn-backend on 11083 (the last image published before Acorn moved to its own repo): the extension calls `https://api.joinedhq.com/acorn/...` and
 keeps a Socket.IO connection at `/acorn/socket.io` ([`nginx/api.joinedhq.com.conf`](nginx/api.joinedhq.com.conf)).
 
 ## GitHub `production` environment

@@ -10,17 +10,11 @@ describe("image plan", () => {
     expect(services(plan)).toEqual(["admin-backend"]);
     expect(plan.retag).toContain("joined-frontend");
     expect(plan.retag).toContain("joined-backend");
-    expect(plan.retag).toContain("acorn-backend");
   });
 
   it("rebuilds every Go image when backend-core changes", () => {
     const plan = planImages(["backend-core/auth/store.go"]);
-    expect(services(plan)).toEqual([
-      "joined-backend",
-      "admin-backend",
-      "scoutwell-backend",
-      "acorn-backend",
-    ]);
+    expect(services(plan)).toEqual(["joined-backend", "admin-backend", "scoutwell-backend"]);
     expect(plan.retag).toContain("joined-frontend");
   });
 
@@ -39,24 +33,19 @@ describe("image plan", () => {
       "admin-frontend",
       "scoutwell-frontend",
       "connected-frontend",
-      "acorn-frontend",
     ]);
     expect(plan.retag).toContain("joined-backend");
   });
 
   it("retags every image when the commit stays outside the image inputs", () => {
-    const plan = planImages([
-      "docs/01-glossary.md",
-      "deploy/README.md",
-      "acorn/extension/src/background.ts",
-    ]);
+    const plan = planImages(["docs/01-glossary.md", "deploy/README.md"]);
     expect(plan.build).toEqual([]);
-    expect(plan.retag).toHaveLength(9);
+    expect(plan.retag).toHaveLength(7);
   });
 
   it("builds every image for a manual deploy", () => {
     const plan = planImages(["admin-backend/cmd/server/main.go"], { all: true });
     expect(plan.retag).toEqual([]);
-    expect(services(plan)).toHaveLength(9);
+    expect(services(plan)).toHaveLength(7);
   });
 });

@@ -19,12 +19,10 @@ Everything you need to set up, run, check, and audit this monorepo.
 | `joined-backend`     | `joined-backend/`         | Joined API (Go) for `joined-frontend`                                          | 8080     | `bun run dev:joined-api` |
 | `admin-backend`      | `admin-backend/`          | Admin API (Go) for `admin-frontend`                                            | 8081     | `bun run dev:admin-api`  |
 | `scoutwell-backend`  | `scoutwell-backend/`      | Scoutwell API (Go) for `scoutwell-frontend` and partners                       | 8082     | `bun run dev:scout-api`  |
-| `acorn-backend`      | `acorn-backend/`          | Acorn API (Go): `/acorn/*` and Socket.IO, published at api.joinedhq.com        | 8083     | `bun run dev:acorn-api`  |
 | `backend-core`       | `backend-core/`           | Shared Go library every API builds on (no server of its own)                   | —        | —                        |
-| `acorn-extension`    | `acorn/extension/`        | Acorn Chrome extension (Vite; load `acorn/extension/dist`)                     | —        | `bun run dev:acorn`      |
 | `sid-ui`             | github.com/sid0709/sid-ui | Shared UI package and the `sid-ui-theme` catalog, published with `bun publish` | —        | —                        |
 
-Apps use the design system through the catalog (`"sid-ui": "catalog:"`). The source is the sid-ui repo, not this workspace. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, `acorn-backend`, and the shared library `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `sid-ui` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
+Apps use the design system through the catalog (`"sid-ui": "catalog:"`). The source is the sid-ui repo, not this workspace. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared library `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `sid-ui` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend). Acorn lives in the sibling Acorn repo.
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 
@@ -175,9 +173,8 @@ bun run dev
 | Joined API             | http://127.0.0.1:8080 | `[joined-api]` |
 | Admin API              | http://127.0.0.1:8081 | `[admin-api]`  |
 | Scoutwell API          | http://127.0.0.1:8082 | `[scout-api]`  |
-| Acorn API              | http://127.0.0.1:8083 | `[acorn-api]`  |
 
-Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.env.example`): `joined-backend/.env`, `admin-backend/.env`, `scoutwell-backend/.env`, `acorn-backend/.env`. Each needs `MONGO_URI`; an API without it exits and everything else keeps running. `bun run dev:api` starts only the four APIs.
+Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.env.example`): `joined-backend/.env`, `admin-backend/.env`, `scoutwell-backend/.env`. Each needs `MONGO_URI`; an API without it exits and everything else keeps running. `bun run dev:api` starts only the three APIs.
 
 ### Open one app
 
@@ -190,7 +187,6 @@ Ctrl+C stops all of them. Each API reads its own `.env` (copy that folder's `.en
 | Joined API             | `bun run dev:joined-api` | http://127.0.0.1:8080 |
 | Admin API              | `bun run dev:admin-api`  | http://127.0.0.1:8081 |
 | Scoutwell API          | `bun run dev:scout-api`  | http://127.0.0.1:8082 |
-| Acorn API              | `bun run dev:acorn-api`  | http://127.0.0.1:8083 |
 
 On macOS, open a running app in the browser:
 
@@ -444,8 +440,6 @@ git push -u origin feat/<short-name>
 | Run the Joined API                    | `bun run dev:joined-api` → http://127.0.0.1:8080                                       |
 | Run the admin API                     | `bun run dev:admin-api` → http://127.0.0.1:8081                                        |
 | Run the Scoutwell API                 | `bun run dev:scout-api` → http://127.0.0.1:8082                                        |
-| Run the Acorn API (`/acorn/*`)        | `bun run dev:acorn-api` → http://127.0.0.1:8083                                        |
-| Build the Acorn extension             | `bun run build:acorn` (watch: `bun run dev:acorn`)                                     |
 | Test / vet every Go module            | `bun run test:go` · `bun run vet:go`                                                   |
 | Open a running app (macOS)            | `open http://localhost:6002`                                                           |
 | Run any script in one workspace       | `bun --filter <workspace> <script>`                                                    |

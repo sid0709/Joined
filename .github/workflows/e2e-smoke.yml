@@ -36,7 +36,6 @@ jobs:
           cache-dependency-path: |
             go.work.sum
             backend-core/go.sum
-            acorn-backend/go.sum
             joined-backend/go.sum
             admin-backend/go.sum
             scoutwell-backend/go.sum

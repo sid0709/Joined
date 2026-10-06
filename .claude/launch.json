@@ -26,22 +26,10 @@
       "port": 6003
     },
     {
-      "name": "acorn-demo",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "acorn/demo", "dev"],
-      "port": 5180
-    },
-    {
       "name": "crawler-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "plugins/crawler", "dev"],
       "port": 7173
-    },
-    {
-      "name": "acorn-dev",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "acorn-frontend", "dev"],
-      "port": 6005
     }
   ]
 }

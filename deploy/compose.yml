@@ -36,10 +36,11 @@ services:
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
-  # Acorn's own server. nginx publishes it at api.joinedhq.com; the extension calls /acorn/...
+  # Acorn's API source lives in the Acorn repo. This stack keeps the last image
+  # published from Joined so api.joinedhq.com stays up until Acorn deploys itself.
   acorn-backend:
     <<: *api
-    image: ${IMAGE_REPO}:acorn-backend-${IMAGE_TAG}
+    image: ${IMAGE_REPO}:acorn-backend-latest
     ports: ["127.0.0.1:11083:8080"]
     environment:
       MONGO_URI: ${MONGO_URI:-}
@@ -115,15 +116,6 @@ services:
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
       JOINED_WEB_URL: ${FRONTEND_ORIGIN}
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
-
-  acorn-frontend:
-    <<: *app
-    profiles: [acorn]
-    image: ${IMAGE_REPO}:acorn-frontend-${IMAGE_TAG}
-    ports: ["127.0.0.1:6005:3000"]
-    depends_on: [acorn-backend]
-    environment:
-      ACORN_API_URL: http://acorn-backend:8080
 
   connected-frontend:
     <<: *app
