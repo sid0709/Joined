@@ -37,9 +37,10 @@ journey cannot start).
 - **scoutwell-frontend**: home page
 - **joined-backend**: `/health`, `/v1/search/jobs`
 - **email journey**: sign-up, check-email, log-in rejected until verify, verify from the log sender, log-in, log-out, password reset from the log sender. Google sign-in/up buttons render; the suite does not complete Google OAuth. Login errors stay generic (no account enumeration).
+- **seeker and premium** (`specs/seeker-premium.e2e.ts`): search, a public job page when the catalog has a job, a verified seeker saving a search, the applications list, and billing settings. Premium copy must say Stripe test mode. The spec does not enter a card or follow `checkout.stripe.com`. If checkout is paused, that is recorded and the test continues. If the catalog is empty, the job page is skipped with a note.
 
 ## CI
 
-The suite runs on PRs into `stage-roadmap` via `.github/workflows/e2e-smoke.yml`.
-The job is currently **non-blocking** because starting all services in CI is resource-intensive.
+The suite runs on PRs into `stage-roadmap` and `stage-roadmap-w34` via `.github/workflows/e2e-smoke.yml`.
+The job is currently **non-blocking** (`continue-on-error: true`) because starting all services in CI is resource-intensive. A red e2e job can still leave required checks green. `ci.yml` is the required signal.
 The workflow tees joined-backend stdout to `JOINED_BACKEND_LOG` so the email journey can read DevEmailSender lines.
