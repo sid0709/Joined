@@ -124,7 +124,7 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Done        |
 | [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111) |
 | [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | Done (#113) |
-| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | Planned     |
+| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | BLOCKED     |
 | [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned     |
 | [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned     |
 | [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned     |
