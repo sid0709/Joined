@@ -14,6 +14,9 @@ import (
 const (
 	defaultPremiumMonthlyPriceCents = 2900
 	defaultPremiumYearlyPriceCents  = 29000
+	// Acorn Pro matches the former website prices: $19/month, $15/month billed yearly.
+	defaultAcornMonthlyPriceCents = 1900
+	defaultAcornYearlyPriceCents  = 18000
 )
 
 // Config holds Stripe settings: secret key, webhook secret, and Premium pricing.
@@ -29,6 +32,11 @@ type Config struct {
 	PremiumMonthlyPriceCents int
 	// PremiumYearlyPriceCents is the yearly Premium subscription price in cents.
 	PremiumYearlyPriceCents int
+
+	// AcornMonthlyPriceCents is the Acorn Pro monthly price in cents.
+	AcornMonthlyPriceCents int
+	// AcornYearlyPriceCents is the Acorn Pro yearly price in cents.
+	AcornYearlyPriceCents int
 
 	// CheckoutSuccessURL is the default Stripe Checkout success redirect.
 	CheckoutSuccessURL string
@@ -47,6 +55,8 @@ func LoadConfig() (Config, error) {
 		AllowLive:                envBool("STRIPE_ALLOW_LIVE", false),
 		PremiumMonthlyPriceCents: config.EnvInt("PREMIUM_MONTHLY_PRICE_CENTS", defaultPremiumMonthlyPriceCents),
 		PremiumYearlyPriceCents:  config.EnvInt("PREMIUM_YEARLY_PRICE_CENTS", defaultPremiumYearlyPriceCents),
+		AcornMonthlyPriceCents:   config.EnvInt("ACORN_MONTHLY_PRICE_CENTS", defaultAcornMonthlyPriceCents),
+		AcornYearlyPriceCents:    config.EnvInt("ACORN_YEARLY_PRICE_CENTS", defaultAcornYearlyPriceCents),
 		CheckoutSuccessURL:       config.Env("BILLING_CHECKOUT_SUCCESS_URL", ""),
 		CheckoutCancelURL:        config.Env("BILLING_CHECKOUT_CANCEL_URL", ""),
 		PortalReturnURL:          config.Env("BILLING_PORTAL_RETURN_URL", ""),

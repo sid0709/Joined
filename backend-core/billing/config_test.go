@@ -59,6 +59,8 @@ func TestLoadConfigDefaultPrices(t *testing.T) {
 	setenv(t, "STRIPE_SECRET_KEY", "sk_test_xyz")
 	unset(t, "PREMIUM_MONTHLY_PRICE_CENTS")
 	unset(t, "PREMIUM_YEARLY_PRICE_CENTS")
+	unset(t, "ACORN_MONTHLY_PRICE_CENTS")
+	unset(t, "ACORN_YEARLY_PRICE_CENTS")
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

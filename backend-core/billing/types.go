@@ -27,6 +27,7 @@ const (
 
 	metadataUserIDKey         = "joined_user_id"
 	metadataPlanKey           = "plan"
+	metadataProductKey        = "product"
 	checkoutModeSubscription  = "subscription"
 	checkoutLineQuantity      = 1
 	customerIdempotencyPrefix = "customer_user_"
@@ -47,8 +48,11 @@ type Subscription struct {
 	StripeSubscriptionID string
 	Status               string
 	Plan                 Plan
-	CurrentPeriodEnd     time.Time
-	UpdatedAt            time.Time
+	// Product is joined_premium or acorn_pro. Empty means a Joined Premium row
+	// written before Acorn prices existed.
+	Product          string
+	CurrentPeriodEnd time.Time
+	UpdatedAt        time.Time
 }
 
 var (
@@ -70,6 +74,28 @@ func ParsePlan(value string) (Plan, error) {
 		return PlanYearly, nil
 	default:
 		return "", ErrInvalidPlan
+	}
+}
+
+func checkoutLookupKey(product string, plan Plan) (string, string, error) {
+	switch product {
+	case "", ProductPremium:
+		key, err := planLookupKey(plan)
+		if err != nil {
+			return "", "", err
+		}
+		return premiumProductLookupKey, key, nil
+	case ProductAcorn:
+		switch plan {
+		case PlanMonthly:
+			return acornProductLookupKey, acornMonthlyPriceLookupKey, nil
+		case PlanYearly:
+			return acornProductLookupKey, acornYearlyPriceLookupKey, nil
+		default:
+			return "", "", ErrInvalidPlan
+		}
+	default:
+		return "", "", ErrInvalidPlan
 	}
 }
 
@@ -109,8 +135,12 @@ func parsePlanMetadata(value string) Plan {
 	return plan
 }
 
-// IsPremium reports whether the subscription currently grants Premium access.
+// IsPremium reports whether the subscription currently grants Joined Premium.
+// An Acorn purchase never does, even when the status is active.
 func (s Subscription) IsPremium(now time.Time) bool {
+	if s.Product != "" && s.Product != premiumProductLookupKey {
+		return false
+	}
 	switch SubscriptionStatus(s.Status) {
 	case StatusActive, StatusTrialing, StatusPastDue:
 		return true
