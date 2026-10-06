@@ -39,6 +39,17 @@ func NewService(client Client, store Store, cfg Config) *Service {
 	return &Service{Client: client, Store: store, Config: cfg, Now: time.Now}
 }
 
+func (s *Service) checkoutPrice(ctx context.Context, product string, plan Plan, lookupKey string) (*Price, error) {
+	if id := s.Config.CheckoutPriceID(product, plan); id != "" {
+		return &Price{ID: id}, nil
+	}
+	price, err := s.Client.PriceByLookupKey(ctx, lookupKey)
+	if err != nil {
+		return nil, fmt.Errorf("lookup %s price: %w", plan, err)
+	}
+	return price, nil
+}
+
 func (s *Service) now() time.Time {
 	if s.Now == nil {
 		return time.Now().UTC()
@@ -67,9 +78,9 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, params CheckoutPara
 	if err != nil {
 		return nil, err
 	}
-	price, err := s.Client.PriceByLookupKey(ctx, lookupKey)
+	price, err := s.checkoutPrice(ctx, product, plan, lookupKey)
 	if err != nil {
-		return nil, fmt.Errorf("lookup %s price: %w", plan, err)
+		return nil, err
 	}
 	customerID, err := s.EnsureCustomer(ctx, params.UserID, params.Email)
 	if err != nil {
