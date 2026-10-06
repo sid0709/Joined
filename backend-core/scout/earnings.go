@@ -182,6 +182,9 @@ func (s *Store) RequestPayout(ctx context.Context, userID string) (Payout, error
 	if err := wrapPayoutIdentity(FirstPayoutIdentityError(profile, paid)); err != nil {
 		return Payout{}, err
 	}
+	if err := s.gateTaxScreening(ctx, userID, &profile); err != nil {
+		return Payout{}, err
+	}
 	var total int64
 	ids := make([]bson.ObjectID, 0, len(released))
 	hexes := make([]string, 0, len(released))
