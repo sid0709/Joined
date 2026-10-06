@@ -11,6 +11,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/jobscam"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
@@ -45,6 +46,7 @@ type Server struct {
 	importRecentLimit int
 	importRuns        jobs.ImportRunLog
 	switches          killswitch.Switches
+	scamHolds         jobscam.API
 }
 
 // Options are the HTTP server's settings.
@@ -78,6 +80,8 @@ type Options struct {
 	// KillSwitches are runtime feature toggles staff flip from the API. Nil leaves
 	// job imports on and the staff switch routes answering 503.
 	KillSwitches killswitch.Switches
+	// ScamHolds is the held-job queue for fake/scam scores. Nil answers 503.
+	ScamHolds jobscam.API
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -103,6 +107,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		importRecentLimit: opts.Import.RecentLimit,
 		importRuns:        opts.Import.Runs,
 		switches:          opts.KillSwitches,
+		scamHolds:         opts.ScamHolds,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -130,6 +135,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerScoutAdmin(api)
 	server.registerStaffAdmin(api)
 	server.registerKillSwitches(api)
+	server.registerScamHolds(api)
 	server.registerAcornAI(api)
 	server.registerDeepSeek(api)
 

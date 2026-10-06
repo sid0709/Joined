@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  Badge,
-  Banner,
-  Button,
-  HStack,
-  Selector,
-  Stack,
-  Text,
-  useToast,
-} from "@joined/design-system";
+import { Badge, Banner, Button, HStack, Selector, Stack, Text, useToast } from "sid-ui";
 import { fetchJobAccess, fetchJobs, saveJobAccess } from "@/lib/company/api";
 import {
   ROLE_META,

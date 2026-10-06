@@ -11,7 +11,7 @@ import {
   Timeline,
   Token,
   VStack,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import { openInNewTab } from "../../api/runtimeMessage";
 import {

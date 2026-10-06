@@ -1,4 +1,4 @@
-import { BrandFooter, Button, EmptyState, Stack } from "@joined/design-system";
+import { BrandFooter, Button, EmptyState, Stack } from "sid-ui";
 import { AppFrame } from "@/components/shell/app-frame";
 import { SeekerHeader } from "@/components/shell/seeker-header";
 import { loadSession } from "@/lib/auth/session";

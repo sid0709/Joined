@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, HStack, Stack, Table, Text, type TableColumn } from "@joined/design-system";
+import { Badge, HStack, Stack, Table, Text, type TableColumn } from "sid-ui";
 import {
   PERMISSION_META,
   ROLE_META,

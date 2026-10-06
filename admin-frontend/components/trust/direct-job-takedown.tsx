@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, SectionCard, Stack, useToast } from "@joined/design-system";
+import { Button, SectionCard, Stack, useToast } from "sid-ui";
 import { ReasonActions } from "@/components/trust/reason-actions";
 import { adminSend } from "@/lib/api";
 import { ROUTES } from "@/lib/nav";

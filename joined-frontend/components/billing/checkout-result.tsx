@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Heading, Link, Stack, Text } from "@joined/design-system";
+import { Banner, Button, Card, Heading, Link, Stack, Text } from "sid-ui";
 import { BILLING_MESSAGES, PRICING_PAGE } from "@/lib/billing";
 import { settingsSectionHref } from "@/lib/routes";
 

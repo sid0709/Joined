@@ -1,9 +1,9 @@
 "use client";
 
-import { Glyph } from "@joined/design-system";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Glyph } from "sid-ui";
 
 import { HunterLine } from "@/src/candidate/components/ui/HunterLine";
 import { PIPELINE_LINKS, SectionNav } from "@/src/candidate/components/ui/SectionNav";

@@ -1,8 +1,8 @@
 "use client";
 
-import { Glyph, Table } from "@joined/design-system";
 import Link from "next/link";
 import { useState } from "react";
+import { Glyph, Table } from "sid-ui";
 
 import type { ApplicationRecord, ApplicationStatus } from "@/src/shared/types/marketplace";
 

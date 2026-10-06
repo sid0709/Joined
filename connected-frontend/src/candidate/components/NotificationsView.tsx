@@ -1,8 +1,8 @@
 "use client";
 
-import { Glyph, type GlyphName } from "@joined/design-system";
 import Link from "next/link";
 import { useState } from "react";
+import { Glyph, type GlyphName } from "sid-ui";
 
 import type { BidderNotificationKind } from "@/src/candidate/types/workspace";
 

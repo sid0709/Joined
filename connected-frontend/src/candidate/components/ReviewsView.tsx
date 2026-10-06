@@ -1,7 +1,7 @@
 "use client";
 
-import { Glyph } from "@joined/design-system";
 import { useMemo, useState } from "react";
+import { Glyph } from "sid-ui";
 
 import type { Review } from "@/src/candidate/types/workspace";
 

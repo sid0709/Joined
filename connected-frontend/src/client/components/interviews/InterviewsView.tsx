@@ -1,8 +1,8 @@
 "use client";
 
-import { Calendar } from "@joined/design-system";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
+import { Calendar } from "sid-ui";
 
 import type { Interview } from "@/src/shared/types/marketplace";
 

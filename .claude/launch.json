@@ -8,12 +8,6 @@
       "port": 6004
     },
     {
-      "name": "theme-dev",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "joined-theme", "dev"],
-      "port": 6001
-    },
-    {
       "name": "joined-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "joined-frontend", "dev"],
@@ -30,12 +24,6 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "scoutwell-frontend", "dev"],
       "port": 6003
-    },
-    {
-      "name": "acorn-demo",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "--cwd", "acorn/demo", "dev"],
-      "port": 5180
     },
     {
       "name": "crawler-dev",

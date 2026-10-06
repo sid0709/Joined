@@ -8,7 +8,7 @@ import {
   Stack,
   Switch,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   EMPLOYMENTS,
   EMPLOYMENT_LABEL,

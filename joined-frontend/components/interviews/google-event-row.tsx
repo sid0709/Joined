@@ -1,4 +1,4 @@
-import { Card, HStack, Link, Stack, Text } from "@joined/design-system";
+import { Card, HStack, Link, Stack, Text } from "sid-ui";
 import { formatTime } from "@/lib/dates";
 import type { GoogleEvent } from "@/lib/google-calendar";
 

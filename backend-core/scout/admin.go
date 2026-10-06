@@ -22,8 +22,9 @@ const (
 	OutcomeInterview = "interview"
 	OutcomeHire      = "hire"
 
-	PayoutDecisionPaid   = "paid"
-	PayoutDecisionReject = "rejected"
+	PayoutDecisionPaid    = "paid"
+	PayoutDecisionApprove = "approved"
+	PayoutDecisionReject  = "rejected"
 
 	defaultAdminPageSize = 25
 	maxAdminPageSize     = 100
@@ -316,6 +317,9 @@ func (s *Store) relatedSubmissions(ctx context.Context, sub Submission) ([]Submi
 }
 
 func (s *Store) findSubmissions(ctx context.Context, filter bson.D, limit int64) ([]Submission, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.findSubmissions(filter, limit), nil
+	}
 	cursor, err := s.collection(submissionsCollection).Find(ctx, filter,
 		options.Find().SetSort(bson.D{{Key: "_id", Value: -1}}).SetLimit(limit))
 	if err != nil {
@@ -332,6 +336,9 @@ func (s *Store) findSubmissions(ctx context.Context, filter bson.D, limit int64)
 }
 
 func (s *Store) auditTrail(ctx context.Context, subjectID string) ([]AuditEntry, error) {
+	if mem, ok := s.docs.(*memDocs); ok {
+		return mem.auditTrail(subjectID), nil
+	}
 	cursor, err := s.collection(auditCollection).Find(ctx, bson.D{{Key: "subjectId", Value: subjectID}},
 		options.Find().SetSort(bson.D{{Key: "at", Value: -1}}).SetLimit(auditTrailLimit))
 	if err != nil {
@@ -836,17 +843,49 @@ func (s *Store) UpdateScout(ctx context.Context, userID, actor string, patch Sco
 		if profile.Verification != VerificationPending {
 			return AdminScoutDetail{}, ErrAlreadyDecided
 		}
+		if decision == VerificationVerified {
+			if err := staffCanVerify(profile); err != nil {
+				return AdminScoutDetail{}, err
+			}
+		}
 		set = append(set,
 			bson.E{Key: "verification", Value: decision},
 			bson.E{Key: "verificationNote", Value: strings.TrimSpace(patch.Note)},
 			bson.E{Key: "verificationUpdatedAt", Value: now},
 		)
+		if decision == VerificationVerified {
+			set = append(set, bson.E{Key: "verifiedBy", Value: actor})
+		} else {
+			set = append(set, bson.E{Key: "verifiedBy", Value: ""})
+		}
 		actions = append(actions, "scout.verification."+decision)
 	}
 	if len(actions) == 0 {
 		return AdminScoutDetail{}, &ValidationError{Fields: []FieldError{{Field: "patch", Detail: "nothing to change"}}}
 	}
-	if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
+	if mem, ok := s.docs.(*memDocs); ok {
+		if _, err := mem.applyProfile(userID, func(p *Profile) {
+			if patch.Level != nil {
+				p.Level = *patch.Level
+				p.LevelPinned = true
+			} else if patch.LevelPinned != nil {
+				p.LevelPinned = *patch.LevelPinned
+			}
+			if patch.Verification != nil {
+				p.Verification = *patch.Verification
+				p.VerificationNote = strings.TrimSpace(patch.Note)
+				p.VerificationUpdate = &now
+				if *patch.Verification == VerificationVerified {
+					p.VerifiedBy = actor
+				} else {
+					p.VerifiedBy = ""
+				}
+			}
+			p.UpdatedAt = now
+		}); err != nil {
+			return AdminScoutDetail{}, err
+		}
+	} else if _, err := s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{{Key: "$set", Value: set}}); err != nil {
 		return AdminScoutDetail{}, err
 	}
 	for _, action := range actions {
@@ -878,7 +917,7 @@ func (s *Store) UpdateScout(ctx context.Context, userID, actor string, patch Sco
 func (s *Store) AdminListPayouts(ctx context.Context, status string, pageNumber, pageSize int64) (AdminList[Payout], error) {
 	page, size := pageBounds(pageNumber, pageSize)
 	filter := bson.D{}
-	if status == PayoutRequested || status == PayoutPaid || status == PayoutRejected {
+	if status == PayoutRequested || status == PayoutApproved || status == PayoutSent || status == PayoutPaid || status == PayoutFailed || status == PayoutRejected {
 		filter = append(filter, bson.E{Key: "status", Value: status})
 	}
 	coll := s.collection(payoutsCollection)
@@ -887,7 +926,7 @@ func (s *Store) AdminListPayouts(ctx context.Context, status string, pageNumber,
 		return AdminList[Payout]{}, err
 	}
 	sort := -1
-	if status == PayoutRequested {
+	if status == PayoutRequested || status == PayoutApproved || status == PayoutSent {
 		sort = 1
 	}
 	cursor, err := coll.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "_id", Value: sort}}).SetSkip((page-1)*size).SetLimit(size))
@@ -920,49 +959,56 @@ type PayoutDecision struct {
 	Note     string `json:"note"`
 }
 
-// DecidePayout marks a requested payout paid, or declines it and returns the
-// money to the scout's released balance.
+// DecidePayout is the staff gate: approve sends to the payout provider once,
+// or decline returns the money to the scout's released balance.
 func (s *Store) DecidePayout(ctx context.Context, id, actor string, input PayoutDecision) (Payout, error) {
+	s.payoutMu.Lock()
+	defer s.payoutMu.Unlock()
+
 	payout, err := s.payout(ctx, id)
 	if err != nil {
 		return Payout{}, err
 	}
-	if payout.Status != PayoutRequested {
-		return Payout{}, ErrAlreadyDecided
-	}
 	note := strings.TrimSpace(input.Note)
-	now := s.now().UTC()
-	earningFilter := bson.D{{Key: "payoutId", Value: payout.ID}, {Key: "status", Value: EarningProcessing}}
 	switch input.Decision {
-	case PayoutDecisionPaid:
-		if _, err := s.collection(earningsCollection).UpdateMany(ctx, earningFilter,
-			bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: EarningPaid}, {Key: "paidAt", Value: now}}}}); err != nil {
-			return Payout{}, err
+	case PayoutDecisionPaid, PayoutDecisionApprove:
+		if payout.Status == PayoutRequested {
+			profile, err := s.EnsureProfile(ctx, payout.ScoutUserID)
+			if err != nil {
+				return Payout{}, err
+			}
+			paid, err := s.hasPaidPayout(ctx, payout.ScoutUserID)
+			if err != nil {
+				return Payout{}, err
+			}
+			if err := wrapPayoutIdentity(FirstPayoutIdentityError(profile, paid)); err != nil {
+				return Payout{}, err
+			}
 		}
-		s.notify(ctx, payout.ScoutUserID, notice{kind: kindPayout, tone: toneSuccess, title: "Payout sent", body: formatMoney(payout.Amount) + " was sent to " + payout.Method.Label + ".", subjectID: payout.ID})
+		return s.approvePayout(ctx, payout, actor, note)
 	case PayoutDecisionReject:
+		if payout.Status != PayoutRequested && payout.Status != PayoutApproved {
+			return Payout{}, ErrAlreadyDecided
+		}
 		if note == "" {
 			return Payout{}, &ValidationError{Fields: []FieldError{{Field: "note", Detail: "explain why the payout is declined"}}}
 		}
-		if _, err := s.collection(earningsCollection).UpdateMany(ctx, earningFilter, bson.D{
-			{Key: "$set", Value: bson.D{{Key: "status", Value: EarningReleased}}},
-			{Key: "$unset", Value: bson.D{{Key: "payoutId", Value: ""}}},
-		}); err != nil {
+		now := s.now().UTC()
+		if err := s.settlePayoutEarnings(ctx, payout.ID, now, false); err != nil {
+			return Payout{}, err
+		}
+		payout.Status = PayoutRejected
+		payout.Note = note
+		payout.DecidedAt = &now
+		if err := s.savePayout(ctx, payout); err != nil {
 			return Payout{}, err
 		}
 		s.notify(ctx, payout.ScoutUserID, notice{kind: kindPayout, tone: toneDanger, title: "Payout declined", body: note, subjectID: payout.ID})
+		s.audit(ctx, "payout."+PayoutDecisionReject, "scout_payout", payout.ID, actor, note)
+		return s.payout(ctx, id)
 	default:
-		return Payout{}, &ValidationError{Fields: []FieldError{{Field: "decision", Detail: "use paid or rejected"}}}
+		return Payout{}, &ValidationError{Fields: []FieldError{{Field: "decision", Detail: "use paid, approved, or rejected"}}}
 	}
-	if _, err := s.collection(payoutsCollection).UpdateOne(ctx, bson.D{{Key: "_id", Value: payout.ObjectID}}, bson.D{{Key: "$set", Value: bson.D{
-		{Key: "status", Value: input.Decision},
-		{Key: "note", Value: note},
-		{Key: "decidedAt", Value: now},
-	}}}); err != nil {
-		return Payout{}, err
-	}
-	s.audit(ctx, "payout."+input.Decision, "scout_payout", payout.ID, actor, note)
-	return s.payout(ctx, id)
 }
 
 // Overview is the moderation dashboard's headline numbers.
@@ -1002,7 +1048,7 @@ func (s *Store) AdminOverview(ctx context.Context) (Overview, error) {
 		{&out.LiveJobs, subs, bson.D{{Key: "status", Value: StatusApproved}, {Key: "expired", Value: false}}},
 		{&out.Scouts, s.collection(profilesCollection), bson.D{}},
 		{&out.PendingVerifications, s.collection(profilesCollection), bson.D{{Key: "verification", Value: VerificationPending}}},
-		{&out.PendingPayouts, s.collection(payoutsCollection), bson.D{{Key: "status", Value: PayoutRequested}}},
+		{&out.PendingPayouts, s.collection(payoutsCollection), bson.D{{Key: "status", Value: bson.D{{Key: "$in", Value: pendingPayoutStatuses()}}}}},
 	}
 	for _, c := range counts {
 		if *c.target, err = count(c.coll, c.filter); err != nil {
@@ -1018,7 +1064,7 @@ func (s *Store) AdminOverview(ctx context.Context) (Overview, error) {
 		return Overview{}, err
 	}
 	requested := []Payout{}
-	cursor, err := s.collection(payoutsCollection).Find(ctx, bson.D{{Key: "status", Value: PayoutRequested}})
+	cursor, err := s.collection(payoutsCollection).Find(ctx, bson.D{{Key: "status", Value: bson.D{{Key: "$in", Value: pendingPayoutStatuses()}}}})
 	if err != nil {
 		return Overview{}, err
 	}

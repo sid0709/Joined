@@ -223,6 +223,28 @@ func (m *mongoAccountRecords) DeleteSessionsByUser(ctx context.Context, userID s
 	return err
 }
 
+func (m *mongoAccountRecords) SessionByToken(ctx context.Context, tokenHash string) (SessionRecord, error) {
+	var record storedSession
+	err := m.store.collection(sessionsCollection).FindOne(ctx, bson.D{{Key: "tokenHash", Value: tokenHash}}).Decode(&record)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return SessionRecord{}, ErrNotFound
+	}
+	if err != nil {
+		return SessionRecord{}, err
+	}
+	return SessionRecord{
+		TokenHash: record.TokenHash,
+		UserID:    record.UserID,
+		ExpiresAt: record.ExpiresAt,
+		CreatedAt: record.CreatedAt,
+	}, nil
+}
+
+func (m *mongoAccountRecords) DeleteUser(ctx context.Context, userID string) error {
+	_, err := m.store.collection(usersCollection).DeleteOne(ctx, bson.D{{Key: "id", Value: userID}})
+	return err
+}
+
 func (m *mongoAccountRecords) CompanyMembership(ctx context.Context, userID string) (*Company, error) {
 	var member storedMember
 	err := m.store.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)

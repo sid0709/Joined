@@ -11,7 +11,7 @@ import {
   TextInput,
   icons,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { StatGrid } from "@/components/stat-card";
 import { canAdvanceStage } from "@/components/company/pipeline/feedback-gate";
 import {

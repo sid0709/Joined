@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertDialog,
   Card,
@@ -12,55 +12,79 @@ import {
   TextInput,
   useToast,
   type UploadHandler,
-} from "@joined/design-system";
+} from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
 import { StatGrid } from "@/components/stat-card";
+import type { Application } from "@/lib/applications";
+import type { Profile } from "@/lib/profile";
 import {
   MAX_RESUME_BYTES,
-  PARSE_DELAY_MS,
+  PROFILE_RESUME_ID,
+  PROFILE_RESUME_LABEL,
   RESUME_ACCEPT,
   RESUME_LABEL_MAX_LENGTH,
-  RESUMES,
+  countResumeUses,
+  defaultResume,
+  isProfileResume,
   newResumeFromFile,
-  parsedResume,
+  profileResume,
+  readyResumes,
+  resumeExport,
   type Resume,
 } from "@/lib/resumes";
+import { ResumeBuilder } from "./resume-builder";
 import { ResumeCard, type ResumeAction } from "./resume-card";
 import { ResumeInsights } from "./resume-insights";
 
 const CARD_MIN_WIDTH = 220;
-const UPLOAD_STEPS = 5;
-const UPLOAD_STEP_MS = 180;
 const PERCENT = 100;
 
-/** Pretends to upload in a few steps so progress is visible. */
-const demoUpload: UploadHandler = async (_file, onProgress) => {
-  for (let step = 1; step <= UPLOAD_STEPS; step += 1) {
-    await new Promise((resolve) => setTimeout(resolve, UPLOAD_STEP_MS));
-    onProgress((step / UPLOAD_STEPS) * PERCENT);
-  }
+const keepFile: UploadHandler = async (_file, onProgress) => {
+  onProgress(PERCENT);
 };
 
-/** Resume library: versions as cards, insights for the selected one, and uploads. */
-export function ResumesWorkspace() {
+function downloadUrl(url: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+}
+
+/** Resume library plus the structured builder saved on the seeker profile. */
+export function ResumesWorkspace({
+  initialProfile,
+  applications = [],
+}: {
+  initialProfile: Profile;
+  applications?: Pick<Application, "resume">[];
+}) {
   const toast = useToast();
-  const [resumes, setResumes] = useState(RESUMES);
-  const [selectedId, setSelectedId] = useState<string | undefined>(
-    RESUMES.find((resume) => resume.isDefault)?.id ?? RESUMES[0]?.id,
-  );
+  const usedIn = countResumeUses(applications, PROFILE_RESUME_LABEL);
+  const [profile, setProfile] = useState(initialProfile);
+  const [resumes, setResumes] = useState<Resume[]>([profileResume(initialProfile, usedIn)]);
+  const [selectedId, setSelectedId] = useState<string | undefined>(PROFILE_RESUME_ID);
   const [renaming, setRenaming] = useState<Resume | null>(null);
   const [draftLabel, setDraftLabel] = useState("");
   const [deleting, setDeleting] = useState<Resume | null>(null);
-  const timers = useRef<number[]>([]);
-
-  useEffect(() => () => timers.current.forEach((timer) => window.clearTimeout(timer)), []);
 
   const selected = resumes.find((resume) => resume.id === selectedId) ?? resumes[0];
-  const parsed = resumes.filter((resume) => resume.parse === "parsed");
+  const parsed = readyResumes(resumes);
   const best = parsed.reduce<Resume | undefined>(
     (top, resume) => (!top || resume.score > top.score ? resume : top),
     undefined,
   );
+
+  const refreshProfile = (next: Profile) => {
+    setProfile(next);
+    setResumes((current) =>
+      current.map((resume) =>
+        isProfileResume(resume.id)
+          ? { ...profileResume(next, resume.usedIn), isDefault: resume.isDefault }
+          : resume,
+      ),
+    );
+  };
+
   const update = (id: string, patch: Partial<Resume>) =>
     setResumes((current) =>
       current.map((resume) => (resume.id === id ? { ...resume, ...patch } : resume)),
@@ -71,13 +95,42 @@ export function ResumesWorkspace() {
     toast({ body: `${resume.label} is now your default resume` });
   };
 
+  const download = (resume: Resume) => {
+    if (resume.file) {
+      const url = URL.createObjectURL(resume.file);
+      downloadUrl(url, resume.fileName);
+      URL.revokeObjectURL(url);
+      return;
+    }
+    if (isProfileResume(resume.id)) {
+      const exported = resumeExport(profile);
+      const url = URL.createObjectURL(new Blob([exported.text], { type: exported.type }));
+      downloadUrl(url, exported.filename);
+      URL.revokeObjectURL(url);
+      return;
+    }
+    toast({ body: `Couldn’t download ${resume.fileName}`, type: "error" });
+  };
+
   const act = (resume: Resume, action: ResumeAction) => {
-    if (action === "default") setDefault(resume);
-    if (action === "download") toast({ body: `Downloading ${resume.fileName}` });
-    if (action === "delete") setDeleting(resume);
-    if (action === "rename") {
-      setDraftLabel(resume.label);
-      setRenaming(resume);
+    switch (action) {
+      case "default":
+        setDefault(resume);
+        return;
+      case "download":
+        download(resume);
+        return;
+      case "delete":
+        setDeleting(resume);
+        return;
+      case "rename":
+        setDraftLabel(resume.label);
+        setRenaming(resume);
+        return;
+      default: {
+        const _exhaustive: never = action;
+        return _exhaustive;
+      }
     }
   };
 
@@ -88,16 +141,13 @@ export function ResumesWorkspace() {
     if (added.length === 0) return;
     setResumes((current) => [...current, ...added]);
     setSelectedId(added[0].id);
-    added.forEach((resume) => {
-      const timer = window.setTimeout(() => {
-        setResumes((current) =>
-          current.map((item) => (item.id === resume.id ? parsedResume(item) : item)),
-        );
-        toast({ body: `${resume.label} is ready` });
-      }, PARSE_DELAY_MS);
-      timers.current.push(timer);
-    });
+    toast({ body: added.length === 1 ? `${added[0].label} added` : `${added.length} files added` });
   };
+
+  const applicationsSent = useMemo(
+    () => resumes.reduce((sum, resume) => sum + resume.usedIn, 0),
+    [resumes],
+  );
 
   return (
     <Stack gap={6}>
@@ -110,17 +160,17 @@ export function ResumesWorkspace() {
           },
           {
             label: "Default",
-            value: resumes.find((resume) => resume.isDefault)?.label ?? "None",
+            value: defaultResume(resumes)?.label ?? "None",
             hint: "Sent with direct applications",
           },
           {
-            label: "Best readability",
+            label: "Completeness",
             value: best ? `${best.score}` : "—",
-            hint: best ? best.label : "Upload a resume to score it",
+            hint: best ? best.label : "Add résumé details to score it",
           },
           {
             label: "Applications sent",
-            value: String(resumes.reduce((sum, resume) => sum + resume.usedIn, 0)),
+            value: String(applicationsSent),
             hint: "Across all versions",
           },
         ]}
@@ -142,22 +192,24 @@ export function ResumesWorkspace() {
             </Grid>
             <Card padding={5}>
               <FileUploader
-                label="Upload a new version"
-                description="PDF works best. DOCX is fine too — we keep the file even if parsing fails."
+                label="Upload a file for this visit"
+                description="PDF works best. Files stay in this browser until you leave — structured résumé details save below."
                 accept={RESUME_ACCEPT}
                 maxSize={MAX_RESUME_BYTES}
-                upload={demoUpload}
+                upload={keepFile}
                 onChange={addFiles}
               />
             </Card>
+            <ResumeBuilder profile={profile} onSaved={refreshProfile} />
           </Stack>
         </GridColumn>
         <GridColumn span="full" lg={4}>
           {selected ? (
             <ResumeInsights
               resume={selected}
+              profile={isProfileResume(selected.id) ? profile : undefined}
               onSetDefault={() => setDefault(selected)}
-              onDownload={() => toast({ body: `Downloading ${selected.fileName}` })}
+              onDownload={() => download(selected)}
             />
           ) : null}
         </GridColumn>
@@ -191,10 +243,9 @@ export function ResumesWorkspace() {
         actionLabel="Delete"
         actionVariant="destructive"
         onAction={() => {
-          if (!deleting) return;
+          if (!deleting || isProfileResume(deleting.id)) return;
           setResumes((current) => current.filter((resume) => resume.id !== deleting.id));
-          if (selectedId === deleting.id)
-            setSelectedId(resumes.find((resume) => resume.isDefault)?.id);
+          if (selectedId === deleting.id) setSelectedId(PROFILE_RESUME_ID);
           toast({ body: `Deleted ${deleting.label}` });
           setDeleting(null);
         }}

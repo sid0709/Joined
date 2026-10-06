@@ -1,4 +1,4 @@
-import { Grid, Skeleton, Stack } from "@joined/design-system";
+import { Grid, Skeleton, Stack } from "sid-ui";
 
 const CARD = 96;
 const TABLE = 280;

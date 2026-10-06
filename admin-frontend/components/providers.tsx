@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { JoinedProvider } from "@joined/design-system/theme";
+import { JoinedProvider } from "sid-ui/theme";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (

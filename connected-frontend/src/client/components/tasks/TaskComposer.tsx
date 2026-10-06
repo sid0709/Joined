@@ -1,8 +1,8 @@
 "use client";
 
-import { FileUploader } from "@joined/design-system";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { FileUploader } from "sid-ui";
 
 import type { Task, TaskPackageLine, TaskType } from "@/src/shared/types/marketplace";
 

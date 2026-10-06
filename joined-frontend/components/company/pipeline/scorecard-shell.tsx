@@ -13,7 +13,7 @@ import {
   TextArea,
   TextInput,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { useMemo, useState } from "react";
 import {
   MAX_SCORECARD_CRITERIA,

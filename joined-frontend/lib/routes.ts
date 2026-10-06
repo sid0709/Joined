@@ -1,4 +1,4 @@
-import { BRAND_NAME } from "@joined/design-system/brand-name";
+import { BRAND_NAME } from "sid-ui/brand-name";
 
 export const BRAND = BRAND_NAME;
 
@@ -38,6 +38,9 @@ export const ROUTES = {
   companyMessages: "/company/messages",
   schedule: (id: string) => `/schedule/${encodeURIComponent(id)}`,
   offerSign: (applicantId: string) => `/offer/sign/${encodeURIComponent(applicantId)}`,
+  terms: "/terms",
+  privacy: "/privacy",
+  cookies: "/cookies",
 } as const;
 
 /** Sign in, then come back to `path`. */
@@ -86,7 +89,7 @@ export const MESSAGES_PAGE: PageLink = {
 export const RESUMES_PAGE: PageLink = {
   href: ROUTES.resumes,
   label: "My resumes",
-  description: "Upload a PDF or DOCX, keep labeled versions, and set a default.",
+  description: "Build a résumé, keep labeled versions, and set a default.",
 };
 
 export const PROFILE_PAGE: PageLink = {

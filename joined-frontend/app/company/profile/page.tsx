@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Button, Stack } from "@joined/design-system";
+import { Button, Stack } from "sid-ui";
 import { HiringProfileWorkspace } from "@/components/company/profile/hiring-profile-workspace";
 import { PageHeader } from "@/components/page-header";
 import { loadSession } from "@/lib/auth/session";

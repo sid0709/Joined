@@ -1,5 +1,5 @@
-import { Glyph } from "@joined/design-system";
 import Link from "next/link";
+import { Glyph } from "sid-ui";
 
 import type { Interview } from "@/src/shared/types/marketplace";
 

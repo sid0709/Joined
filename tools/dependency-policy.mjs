@@ -101,7 +101,8 @@ export async function installViolations(repoRoot, { rootManifest, workspaces }) 
       continue;
     }
     const actual = (await readJson(installed)).version;
-    if (actual !== version)
+    const exactVersion = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
+    if (exactVersion.test(version) && actual !== version)
       violations.push(`node_modules/${name} is ${actual}, catalog says ${version}`);
   }
 

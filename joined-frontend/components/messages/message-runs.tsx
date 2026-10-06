@@ -6,7 +6,7 @@ import {
   ChatSystemMessage,
   Icon,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import { bubblePosition, groupMessages, type MailThread } from "@/lib/messages";
 import { ThreadAvatar } from "./thread-avatar";
 

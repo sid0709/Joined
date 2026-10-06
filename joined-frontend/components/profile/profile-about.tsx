@@ -11,7 +11,7 @@ import {
   createStaticSource,
   useToast,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SectionCard } from "@/components/section-card";
 import { saveProfile } from "@/lib/me/pipeline";
 import {

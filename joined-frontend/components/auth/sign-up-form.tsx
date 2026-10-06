@@ -12,7 +12,7 @@ import {
   RadioListItem,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import { GOOGLE_SIGNIN_ROUTE } from "@joined/google-signin";
 import { allowEmailSignup, type AccountMode } from "@/lib/auth/email";
 import { isCompanyModeEnabled } from "@/lib/config";

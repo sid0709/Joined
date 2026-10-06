@@ -1,4 +1,5 @@
 const JOINED_API_URL_KEY = "JOINED_API_URL";
+const JOINED_WEB_URL_KEY = "JOINED_WEB_URL";
 const COMPANY_MODE_ENABLED_KEY = "NEXT_PUBLIC_COMPANY_MODE_ENABLED";
 /** Same names as backend-core/billing config (step-29). */
 const PREMIUM_MONTHLY_PRICE_CENTS_KEY = "PREMIUM_MONTHLY_PRICE_CENTS";
@@ -17,6 +18,22 @@ export function joinedApiUrl(): string {
     throw new Error("JOINED_API_URL is not set");
   }
   return url.replace(/\/$/, "");
+}
+
+/** Public origin of this app. Empty when unset so sitemap and JSON-LD can omit absolute URLs. */
+export function joinedWebUrl(): string {
+  return (process.env[JOINED_WEB_URL_KEY] ?? "").replace(/\/$/, "");
+}
+
+/** Parsed public origin, or undefined when unset or not a valid URL. */
+export function joinedWebOrigin(): URL | undefined {
+  const origin = joinedWebUrl();
+  if (!origin) return undefined;
+  try {
+    return new URL(origin);
+  } catch {
+    return undefined;
+  }
 }
 
 export function isCompanyModeEnabled(): boolean {

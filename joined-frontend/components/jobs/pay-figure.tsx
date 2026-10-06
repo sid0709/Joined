@@ -1,4 +1,4 @@
-import { Badge, HStack, Stack, Text } from "@joined/design-system";
+import { Badge, HStack, Stack, Text } from "sid-ui";
 import { PAY_ESTIMATED_LABEL } from "@joined/job-schema";
 import { formatPay, paySourceLabel, type Pay } from "@/lib/jobs";
 

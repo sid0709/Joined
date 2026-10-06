@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1
 # Every Go API builds from this one file: SERVICE is joined-backend,
-# admin-backend, scoutwell-backend, or backend-core (its own server, which
-# serves api.joinedhq.com). Build from the repo root:
+# admin-backend, or scoutwell-backend. Build from the repo root:
 #   docker build -f docker/go-service.Dockerfile --build-arg SERVICE=joined-backend .
 
 ARG GO_VERSION=1.26.4

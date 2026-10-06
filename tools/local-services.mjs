@@ -14,14 +14,6 @@ export const LOCAL_SERVICES = [
     startExtraArgs: ["--port", "6004"],
   },
   {
-    id: "joined-theme",
-    shortName: "theme",
-    port: 6001,
-    color: "\x1b[35m",
-    workspace: "joined-theme",
-    startExtraArgs: ["--port", "6001"],
-  },
-  {
     id: "joined-frontend",
     shortName: "joined",
     port: 6002,
@@ -45,14 +37,6 @@ export const LOCAL_SERVICES = [
     workspace: "admin-frontend",
     startExtraArgs: [],
   },
-  {
-    id: "acorn-website",
-    shortName: "acorn-web",
-    port: 6005,
-    color: "\x1b[95m",
-    workspace: "acorn-website",
-    startExtraArgs: ["--port", "6005"],
-  },
 ];
 
 /** A Go backend service. `go run -C <dir>` makes it read its own `<dir>/.env`. */
@@ -73,8 +57,6 @@ export const API_SERVICES = [
   goService({ id: "joined-backend", shortName: "joined-api", port: 8080, color: "\x1b[34m" }),
   goService({ id: "admin-backend", shortName: "admin-api", port: 8081, color: "\x1b[93m" }),
   goService({ id: "scoutwell-backend", shortName: "scout-api", port: 8082, color: "\x1b[96m" }),
-  // backend-core's own server (api.joinedhq.com): Acorn's routes under /acorn.
-  goService({ id: "backend-core", shortName: "core-api", port: 8083, color: "\x1b[94m" }),
 ];
 
 /** Frontends audited by `bun run audit` (excludes theme). */

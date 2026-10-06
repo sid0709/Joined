@@ -12,7 +12,7 @@ import {
   Stack,
   Text,
   type BadgeVariant,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatCount, formatDateTime } from "@/lib/format";
 import {
   isRunning,

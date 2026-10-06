@@ -16,7 +16,7 @@ import {
   Text,
   TextInput,
   useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 import {

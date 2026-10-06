@@ -70,8 +70,4 @@ export default [
     files: ["**/*.jsx"],
     languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
   },
-  {
-    files: ["packages/design-system/src/theme/joined.d.ts"],
-    rules: { "@typescript-eslint/triple-slash-reference": "off" },
-  },
 ];

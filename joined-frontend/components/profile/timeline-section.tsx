@@ -12,7 +12,7 @@ import {
   Heading,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
 import { SectionCard } from "@/components/section-card";
 import type { DateRange } from "@/lib/profile";

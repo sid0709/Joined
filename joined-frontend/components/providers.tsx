@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { JoinedProvider } from "@joined/design-system/theme";
+import { JoinedProvider } from "sid-ui/theme";
+import { CookieConsentBanner } from "@/components/legal/cookie-consent";
 import { ModePicker } from "@/components/onboarding/mode-picker";
 
 /**
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <JoinedProvider mode="light" linkComponent={Link}>
       <ModePicker />
       {children}
+      <CookieConsentBanner />
     </JoinedProvider>
   );
 }

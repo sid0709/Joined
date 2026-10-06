@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Badge,
   Banner,
@@ -21,7 +21,7 @@ import {
   Text,
   TextArea,
   TextInput,
-} from "@joined/design-system";
+} from "sid-ui";
 import { companyBySlug, jobHasLogoFile, type Job } from "@/lib/jobs";
 import {
   APPLY_CONSENT_LABEL,
@@ -31,18 +31,16 @@ import {
   hydrateScreeningQuestions,
   type ScreeningAnswer,
 } from "@/lib/intake";
-import { createApplication } from "@/lib/me/pipeline";
-import { RESUMES } from "@/lib/resumes";
+import { createApplication, fetchProfile } from "@/lib/me/pipeline";
+import { emptyProfile } from "@/lib/profile";
+import { PROFILE_RESUME_ID, profileResume, readyResumes } from "@/lib/resumes";
 import { CompanyLogo } from "./company-logo";
 
 const DIALOG_WIDTH = 560;
 const NOTE_MAX_LENGTH = 500;
 const NOTE_ROWS = 4;
 
-/** Only resumes the parser could read can go out with an application. */
-const READY_RESUMES = RESUMES.filter((resume) => resume.parse === "parsed");
-const DEFAULT_RESUME_ID =
-  (READY_RESUMES.find((resume) => resume.isDefault) ?? READY_RESUMES[0])?.id ?? "";
+const FALLBACK_RESUME = profileResume(emptyProfile());
 
 type Props = {
   job: Job | null;
@@ -52,7 +50,8 @@ type Props = {
 
 /** Apply to a direct job with resume, screening answers, consent, and referral. */
 export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
-  const [resumeId, setResumeId] = useState(DEFAULT_RESUME_ID);
+  const [resumeId, setResumeId] = useState(PROFILE_RESUME_ID);
+  const [resumes, setResumes] = useState(() => [FALLBACK_RESUME]);
   const [note, setNote] = useState("");
   const [shareProfile, setShareProfile] = useState(true);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -63,6 +62,27 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
     () => hydrateScreeningQuestions(job?.screeningQuestions),
     [job?.screeningQuestions],
   );
+  const sendable = readyResumes(resumes);
+
+  useEffect(() => {
+    if (!job) return;
+    let cancelled = false;
+    fetchProfile()
+      .then((loaded) => {
+        if (cancelled) return;
+        const resume = profileResume(loaded);
+        setResumes([resume]);
+        setResumeId(resume.id);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setResumes([FALLBACK_RESUME]);
+        setResumeId(PROFILE_RESUME_ID);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [job]);
 
   const close = () => {
     onOpenChange(false);
@@ -79,7 +99,7 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
 
   const submit = async () => {
     if (!job || !canSubmit) return;
-    const resume = READY_RESUMES.find((item) => item.id === resumeId);
+    const resume = sendable.find((item) => item.id === resumeId);
     const screeningAnswers: ScreeningAnswer[] = questions.map((question) =>
       evaluateAnswer(question, answers[question.id] ?? ""),
     );
@@ -127,12 +147,12 @@ export function ApplyDialog({ job, onOpenChange, onSubmitted }: Props) {
             <LayoutContent>
               <FormLayout>
                 <RadioList label="Resume" value={resumeId} onChange={setResumeId}>
-                  {READY_RESUMES.map((resume) => (
+                  {sendable.map((resume) => (
                     <RadioListItem
                       key={resume.id}
                       value={resume.id}
                       label={resume.label}
-                      description={`${resume.fileName} · Readability ${resume.score}/100`}
+                      description={`${resume.fileName} · Completeness ${resume.score}/100`}
                       endContent={
                         resume.isDefault ? <Badge label="Default" variant="neutral" /> : undefined
                       }

@@ -1,8 +1,8 @@
 # Joined — agent instructions
 
-This is a **bun workspaces monorepo**. Work from the repo root. Shared UI lives in `@joined/design-system`. Apps consume it; do not copy a component, token, or helper into a second workspace.
+This is a **bun workspaces monorepo**. Work from the repo root. Shared UI is the `sid-ui` package (https://github.com/sid0709/sid-ui). Apps consume it from the catalog. Do not copy a component, token, or helper into a workspace, and do not add the source back under `packages/`.
 
-Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme`, `packages/*`, `acorn/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core`.
+Workspaces: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `packages/*`, `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core`. The component catalog is `sid-ui-theme` in the sid-ui repo. Acorn (extension, website, API) lives in the sibling Acorn repo.
 
 Before pushing, run `bun run ci` — it runs exactly what GitHub CI runs (`tools/ci.mjs`).
 
@@ -27,7 +27,7 @@ If a launch/debug config still calls `npm`, switch it to `bun`.
 Never inline a value that belongs in env, a config module, a design token, or a named constant. This applies in every language. The stack rule for the files you are editing says where that value lives.
 
 - Secrets and API hosts come from the environment or that stack's config module. A literal host or key in source is a bug.
-- Colors, spacing, type, radii, and shadows in UI come from `@joined/design-system` tokens. A hex color or an inline style for those is a bug.
+- Colors, spacing, type, radii, and shadows in UI come from `sid-ui` tokens. A hex color or an inline style for those is a bug.
 - Timeouts, limits, ids, and protocol strings are named constants in the module that owns them.
 - A value used by more than one workspace lives in one shared package.
 
@@ -39,13 +39,10 @@ Follow the rule that matches the folder you are editing, and use only that folde
 
 | Folder | Rule |
 | --- | --- |
-| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend`, `joined-theme` | `.claude/rules/nextjs.md` |
-| UI on `@joined/design-system`: those apps, `packages/scout`, `acorn/extension` | `.claude/rules/design-system.md` |
+| Next.js: `connected-frontend`, `joined-frontend`, `admin-frontend`, `scoutwell-frontend` | `.claude/rules/nextjs.md` |
+| UI on `sid-ui`: those apps, `packages/scout` | `.claude/rules/design-system.md` |
 | Go: `joined-backend`, `admin-backend`, `scoutwell-backend`, `backend-core` | `.claude/rules/go.md` |
-| Vite: `acorn/extension`, `acorn/demo`, `acorn/packages` | `.claude/rules/vite.md` |
-| `packages/design-system` and the `joined-theme` catalog | `.claude/rules/theme.md` |
-
-Acorn's rules in `acorn/.claude/CLAUDE.md` and `acorn/.cursor/rules/` still apply on top of these.
+| `sid-ui-theme` catalog in the sid-ui repo | `.claude/rules/theme.md` |
 
 ## Best practice
 

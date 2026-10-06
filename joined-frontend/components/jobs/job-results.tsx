@@ -18,16 +18,9 @@ import {
   TabList,
   Text,
   icons,
-} from "@joined/design-system";
-import {
-  LISTS,
-  SORTS,
-  formatCount,
-  scoreFor,
-  type Job,
-  type ListKey,
-  type SortKey,
-} from "@/lib/jobs";
+} from "sid-ui";
+import { LISTS, SORTS, formatCount, type Job, type ListKey, type SortKey } from "@/lib/jobs";
+import type { JobFit } from "@/lib/jobs/fit";
 import { JobResultCard } from "./job-result-card";
 import { PAGE_SIZE } from "./use-job-search";
 
@@ -41,6 +34,7 @@ type Props = {
   onListChange: (list: ListKey) => void;
   total: number;
   jobs: Job[];
+  fits?: Record<string, JobFit>;
   page: number;
   pageCount: number;
   onPageChange: (page: number) => void;
@@ -49,6 +43,7 @@ type Props = {
   appliedIds: string[];
   onSelect: (job: Job) => void;
   onToggleSave: (job: Job) => void;
+  onReport?: (job: Job) => void;
   onClearFilters: () => void;
   canClear: boolean;
 };
@@ -102,6 +97,7 @@ export function JobResults({
   onListChange,
   total,
   jobs,
+  fits,
   page,
   pageCount,
   onPageChange,
@@ -110,6 +106,7 @@ export function JobResults({
   appliedIds,
   onSelect,
   onToggleSave,
+  onReport,
   onClearFilters,
   canClear,
 }: Props) {
@@ -178,12 +175,13 @@ export function JobResults({
             <div key={job.id} role="listitem">
               <JobResultCard
                 job={job}
-                score={scoreFor(job)}
+                fit={fits?.[job.id]}
                 selected={job.id === selectedId}
                 saved={savedIds.includes(job.id)}
                 applied={appliedIds.includes(job.id)}
                 onSelect={() => onSelect(job)}
                 onToggleSave={() => onToggleSave(job)}
+                onReport={onReport ? () => onReport(job) : undefined}
               />
             </div>
           ))}

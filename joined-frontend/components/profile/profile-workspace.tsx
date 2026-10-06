@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GridColumn, GridSystem, Stack } from "@joined/design-system";
+import { GridColumn, GridSystem, Stack } from "sid-ui";
 import { ProfileAbout } from "@/components/profile/profile-about";
 import { ProfileContact } from "@/components/profile/profile-contact";
 import { ProfileDisclosures } from "@/components/profile/profile-disclosures";
@@ -13,13 +13,13 @@ import { ProfilePreferences } from "@/components/profile/profile-preferences";
 import { ProfileResume } from "@/components/profile/profile-resume";
 import { ProfileStrength } from "@/components/profile/profile-strength";
 import { ProfileVisibility } from "@/components/profile/profile-visibility";
-import { RESUMES } from "@/lib/resumes";
+import { isResumeReady, profileResume } from "@/lib/resumes";
 import { VISIBILITY_SETTINGS, strengthSteps, type Profile } from "@/lib/profile";
 
 /** Signed-in profile: loads from the store and writes every section back. */
 export function ProfileWorkspace({ initial }: { initial: Profile }) {
   const [profile, setProfile] = useState(initial);
-  const hasResume = RESUMES.some((resume) => resume.isDefault && resume.parse === "parsed");
+  const hasResume = isResumeReady(profile);
 
   return (
     <Stack gap={6}>
@@ -44,7 +44,7 @@ export function ProfileWorkspace({ initial }: { initial: Profile }) {
               settings={VISIBILITY_SETTINGS}
               onSaved={setProfile}
             />
-            <ProfileResume resumes={RESUMES} />
+            <ProfileResume resumes={[profileResume(profile)]} />
           </Stack>
         </GridColumn>
       </GridSystem>

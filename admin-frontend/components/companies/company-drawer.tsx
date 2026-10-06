@@ -27,7 +27,7 @@ import {
   joinLocations,
   parseAddress,
   splitLocations,
-} from "@joined/design-system";
+} from "sid-ui";
 import { MAX_BENEFITS, companySizeLabel } from "@joined/job-schema";
 import { CompanyMark } from "@/components/jobs/company-mark";
 import { ListField } from "@/components/list-field";

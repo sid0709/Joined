@@ -1,8 +1,8 @@
 "use client";
 
-import { Glyph } from "@joined/design-system";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Glyph } from "sid-ui";
 
 import type { ChatMessage } from "@/src/candidate/types/workspace";
 

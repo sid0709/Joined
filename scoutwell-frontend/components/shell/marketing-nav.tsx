@@ -1,12 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import {
-  DropdownMenu,
-  TopNavItem,
-  useAppShellMobile,
-  type DropdownMenuOption,
-} from "@joined/design-system";
+import { DropdownMenu, TopNavItem, useAppShellMobile, type DropdownMenuOption } from "sid-ui";
 import { MARKETING_PAGES, activeHref } from "@/lib/nav";
 
 /** How it works, Earn, Install, and FAQ — pills on wide screens, a menu on small ones. */

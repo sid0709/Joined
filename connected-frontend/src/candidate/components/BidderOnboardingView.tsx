@@ -1,8 +1,8 @@
 "use client";
 
-import { Divider, GridColumn, GridSystem, Heading, Icon, Text, icons } from "@joined/design-system";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Divider, GridColumn, GridSystem, Heading, Icon, Text, icons } from "sid-ui";
 
 import type { BidderOnboardingState } from "@/src/shared/types/bidder";
 

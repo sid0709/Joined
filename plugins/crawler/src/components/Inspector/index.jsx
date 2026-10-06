@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Badge,
   Button,
@@ -14,8 +15,7 @@ import {
   Text,
   TextInput,
   VStack,
-} from "@joined/design-system";
-import { useEffect, useState } from "react";
+} from "sid-ui";
 
 import { useActiveTab } from "../../api/activeTab";
 import { execRoutineOp } from "../../api/runtimeMessage";

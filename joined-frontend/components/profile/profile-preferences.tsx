@@ -15,7 +15,7 @@ import {
   createStaticSource,
   useToast,
   type SearchableItem,
-} from "@joined/design-system";
+} from "sid-ui";
 import {
   AUTHORIZATION_OPTIONS,
   LOCATION_SUGGESTIONS,

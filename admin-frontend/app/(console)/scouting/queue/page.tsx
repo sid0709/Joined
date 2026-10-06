@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHeader, Stack } from "@joined/design-system";
+import { PageHeader, Stack } from "sid-ui";
 import type { AdminList, AdminSubmission } from "@joined/scout";
 import { QueueFilters } from "@/components/scouting/queue-filters";
 import { QueueTable } from "@/components/scouting/queue-table";

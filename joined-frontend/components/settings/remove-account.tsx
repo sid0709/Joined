@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertDialog, Banner, Button, List, ListItem, TextInput } from "@joined/design-system";
+import { AlertDialog, Banner, Button, List, ListItem, TextInput } from "sid-ui";
 import { DELETE_CONFIRMATION } from "@/lib/settings";
 import { ROUTES } from "@/lib/routes";
+import { clearApplicationExtras } from "@/lib/application-extras";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
@@ -50,6 +51,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
       setError("Could not remove the account. Try again.");
       return;
     }
+    clearApplicationExtras();
     writeStoredWorkspaceMode("hunter");
     router.push(ROUTES.search);
     router.refresh();
@@ -61,7 +63,7 @@ export function RemoveAccount({ signedIn, companyName, isCreator = false }: Prop
       description={
         creator
           ? `You created ${companyName}. Removing your profile also deletes that company, its jobs, and activity on those jobs.`
-          : "This permanently removes your account."
+          : "This permanently removes your account. Export your data from Privacy first."
       }
       footer={
         <SaveFooter

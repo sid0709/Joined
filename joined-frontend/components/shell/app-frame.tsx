@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@joined/design-system";
+import { AppShell, Stack } from "sid-ui";
+import { LegalLinks } from "@/components/legal/legal-links";
 
 /** Space around page content, as a spacing step. Sticky panels offset by the same amount. */
 export const CONTENT_PADDING = 5;
@@ -8,7 +9,10 @@ export const CONTENT_PADDING = 5;
 export function AppFrame({ header, children }: { header: ReactNode; children: ReactNode }) {
   return (
     <AppShell variant="surface" topNav={header} contentPadding={CONTENT_PADDING}>
-      {children}
+      <Stack gap={6}>
+        {children}
+        <LegalLinks />
+      </Stack>
     </AppShell>
   );
 }

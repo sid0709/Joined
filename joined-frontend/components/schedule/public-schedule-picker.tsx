@@ -1,16 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Banner,
-  Button,
-  Heading,
-  HStack,
-  Stack,
-  Text,
-  TextInput,
-  useToast,
-} from "@joined/design-system";
+import { Banner, Button, Heading, HStack, Stack, Text, TextInput, useToast } from "sid-ui";
 import { formatDay, formatTime, parseISODate } from "@/lib/dates";
 import { FORMAT_LABEL, type InterviewFormat } from "@/lib/interviews";
 import { isConflictError } from "@/lib/me/client";

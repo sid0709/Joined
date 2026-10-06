@@ -14,7 +14,7 @@ import {
   ToggleButton,
   icons,
   type DropdownMenuOption,
-} from "@joined/design-system";
+} from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";
@@ -28,6 +28,7 @@ export type JobDetailHeaderProps = {
   onSave: () => void;
   onShare: () => void;
   onHide?: () => void;
+  onReport?: () => void;
   /** Adds “Open full page” — for the split view, not the job page itself. */
   showPageLink?: boolean;
 };
@@ -41,6 +42,7 @@ export function JobDetailHeader({
   onSave,
   onShare,
   onHide,
+  onReport,
   showPageLink,
 }: JobDetailHeaderProps) {
   const router = useRouter();
@@ -69,6 +71,9 @@ export function JobDetailHeader({
           { type: "divider" as const },
           { label: "Not interested", icon: icons.close, onClick: onHide },
         ]
+      : []),
+    ...(onReport
+      ? [{ type: "divider" as const }, { label: "Report job", icon: icons.info, onClick: onReport }]
       : []),
   ];
 

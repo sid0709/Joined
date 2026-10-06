@@ -1,5 +1,5 @@
-import { Banner, Button, Glyph, Text, VStack } from "@joined/design-system";
 import { useMemo, useState } from "react";
+import { Banner, Button, Glyph, Text, VStack } from "sid-ui";
 
 import { useActiveTab } from "../../api/activeTab";
 import { hasExtensionRuntime } from "../../api/runtimeMessage";

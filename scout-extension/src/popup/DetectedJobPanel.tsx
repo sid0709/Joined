@@ -1,4 +1,4 @@
-import { Badge, Button, Heading, JobCard, Spinner, Stack, Text } from "@joined/design-system";
+import { Badge, Button, Heading, JobCard, Spinner, Stack, Text } from "sid-ui";
 
 import type { CapturedJob } from "../capture";
 import type { DetectedJobState } from "../hooks/detectedJob";

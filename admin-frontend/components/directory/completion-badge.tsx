@@ -1,4 +1,4 @@
-import { Badge } from "@joined/design-system";
+import { Badge } from "sid-ui";
 import { completionTier } from "@/lib/directory";
 
 /** How complete a company page or job is, colored by tier. */

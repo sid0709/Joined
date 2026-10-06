@@ -1,6 +1,6 @@
 "use client";
 
-import { SegmentedControl, SegmentedControlItem } from "@joined/design-system";
+import { SegmentedControl, SegmentedControlItem } from "sid-ui";
 import { useRouter } from "next/navigation";
 
 import { SUBMISSION_FILTERS } from "./filters";

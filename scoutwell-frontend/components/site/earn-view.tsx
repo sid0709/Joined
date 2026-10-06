@@ -8,7 +8,7 @@ import {
   PageHeader,
   Stack,
   Text,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { Meta } from "@joined/scout";
 import { INSTALL_PAGE, ROUTES } from "@/lib/routes";
 import { earnFigures } from "@/lib/site-copy";

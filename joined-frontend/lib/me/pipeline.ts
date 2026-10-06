@@ -1,14 +1,18 @@
-import type { Application } from "@/lib/applications";
-import { hydrateApplication } from "@/lib/applications";
+import type { ApplicationPatch } from "@/lib/application-patch";
+import { hydrateApplication, type Application } from "@/lib/applications";
 import { browserTimeZone, type GoogleCalendarFeed } from "@/lib/google-calendar";
 import type { Interview } from "@/lib/interviews";
 import { hydrateInterview } from "@/lib/interviews";
 import type { MailThread } from "@/lib/messages";
 import { companyGet, companySend, meGet, meSend } from "@/lib/me/client";
-import type { Profile } from "@/lib/profile";
+import { normalizeProfile, type Profile } from "@/lib/profile";
 
 export function saveProfile(patch: Partial<Profile>) {
   return meSend<Profile>("/profile", "PATCH", patch);
+}
+
+export async function fetchProfile() {
+  return normalizeProfile(await meGet<Profile>("/profile"));
 }
 
 export function saveJob(jobId: string) {
@@ -45,7 +49,7 @@ export function createApplication(input: {
   return meSend<Application>("/applications", "POST", input).then(hydrateApplication);
 }
 
-export function updateApplication(id: string, patch: { columnId?: string; closedReason?: string }) {
+export function updateApplication(id: string, patch: ApplicationPatch) {
   return meSend<Application>(`/applications/${encodeURIComponent(id)}`, "PATCH", patch).then(
     hydrateApplication,
   );

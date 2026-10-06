@@ -1,6 +1,6 @@
 "use client";
 
-import { Banner, EmptyState, Skeleton, Stack } from "@joined/design-system";
+import { Banner, EmptyState, Skeleton, Stack } from "sid-ui";
 
 const TABLE_HEIGHT = 280;
 

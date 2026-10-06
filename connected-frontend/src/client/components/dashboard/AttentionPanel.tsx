@@ -1,5 +1,5 @@
-import { Glyph, type GlyphName } from "@joined/design-system";
 import Link from "next/link";
+import { Glyph, type GlyphName } from "sid-ui";
 
 import { useHunter } from "@/src/client/context/HunterContext";
 import { useHunterMetrics } from "@/src/client/hooks/useHunterMetrics";

@@ -1,15 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Avatar,
-  DropdownMenu,
-  icons,
-  useAppShellMobile,
-  type DropdownMenuOption,
-} from "@joined/design-system";
+import { Avatar, DropdownMenu, icons, useAppShellMobile, type DropdownMenuOption } from "sid-ui";
 import type { AuthSession } from "@/lib/auth/types";
 import { companyRoleLabel } from "@/lib/company/access";
+import { clearApplicationExtras } from "@/lib/application-extras";
 import { writeStoredWorkspaceMode } from "@/lib/workspace-preference";
 import {
   COMPANY_ACCOUNT_PAGE,
@@ -63,6 +58,7 @@ export function AccountMenu({ mode, session }: { mode: WorkspaceMode; session: A
 
   const signOut = async () => {
     await fetch("/api/auth/signout", { method: "POST" });
+    clearApplicationExtras();
     writeStoredWorkspaceMode("hunter");
     router.push(ROUTES.search);
     router.refresh();

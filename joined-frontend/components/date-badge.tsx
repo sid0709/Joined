@@ -1,4 +1,4 @@
-import { Card, Heading, Stack, Text } from "@joined/design-system";
+import { Card, Heading, Stack, Text } from "sid-ui";
 import { formatMonthDay } from "@/lib/dates";
 
 const BADGE_WIDTH = 64;

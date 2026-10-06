@@ -18,7 +18,7 @@ export type Channel = "web" | "api";
 export type Verification = "none" | "pending" | "verified" | "rejected";
 export type EarningStatus = "held" | "released" | "processing" | "paid" | "clawed_back";
 export type RewardType = "approval" | "apply" | "interview" | "hire" | "conversion";
-export type PayoutStatus = "requested" | "paid" | "rejected";
+export type PayoutStatus = "requested" | "approved" | "sent" | "paid" | "failed" | "rejected";
 export type NotificationTone = "accent" | "success" | "warning" | "danger" | "neutral";
 export type NotificationKind = "decision" | "reward" | "level" | "payout" | "verification";
 export type SubmissionChangeEvent = "accepted" | "rejected" | "published" | "earned";
@@ -110,14 +110,47 @@ export type TaxInfo = {
   completed_at: string;
 };
 
-export type PayoutMethodType = "bank" | "paypal";
+export type PayoutMethodType = "bank" | "paypal" | "provider";
 
 export type PayoutMethod = {
   type: PayoutMethodType;
   label: string;
   last4: string;
+  holder_name?: string;
+  country?: string;
+  currency?: string;
+  email?: string;
+  account_ref?: string;
+  recipient_id?: string;
   updated_at: string;
 };
+
+export type IdentityInput = {
+  legal_name: string;
+  country: string;
+  date_of_birth: string;
+  document_ref?: string;
+};
+
+export type Identity = {
+  status: Verification;
+  legal_name?: string;
+  country?: string;
+  date_of_birth?: string;
+  document_ref?: string;
+  payout_holder_name?: string;
+  name_matches: boolean;
+  first_payout_gated: boolean;
+  note?: string;
+  verified_by?: string;
+  updated_at?: string;
+};
+
+/** Stable problem `code` values for the first-payout identity gate. */
+export const IDENTITY_UNVERIFIED = "identity_unverified";
+export const IDENTITY_REJECTED = "identity_rejected";
+export const IDENTITY_INCOMPLETE = "identity_incomplete";
+export const IDENTITY_NAME_MISMATCH = "identity_name_mismatch";
 
 export type Profile = {
   user_id: string;
@@ -130,6 +163,9 @@ export type Profile = {
   verification_note?: string;
   legal_name?: string;
   country?: string;
+  date_of_birth?: string;
+  document_ref?: string;
+  verified_by?: string;
   tax_info: TaxInfo | null;
   payout_method: PayoutMethod | null;
   notify_decisions: boolean;
@@ -173,7 +209,13 @@ export type Payout = {
   earning_ids: string[];
   status: PayoutStatus;
   note?: string;
+  provider_ref?: string;
+  provider_status?: string;
+  provider_event_id?: string;
   requested_at: string;
+  approved_at?: string;
+  sent_at?: string;
+  failed_at?: string;
   decided_at?: string;
 };
 
@@ -426,4 +468,4 @@ export type ScoutPatch = {
   note?: string;
 };
 
-export type PayoutDecision = { decision: "paid" | "rejected"; note?: string };
+export type PayoutDecision = { decision: "paid" | "approved" | "rejected"; note?: string };

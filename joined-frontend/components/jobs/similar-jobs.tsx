@@ -1,4 +1,4 @@
-import { Card, Heading, List, ListItem, Stack, Text } from "@joined/design-system";
+import { Card, Heading, List, ListItem, Stack, Text } from "sid-ui";
 import { formatPayWithSource, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
 import { CompanyLogo } from "./company-logo";
@@ -6,7 +6,7 @@ import { MatchBadge } from "./match-badge";
 
 type Props = {
   jobs: Job[];
-  scoreOf: (job: Job) => number;
+  scoreOf?: (job: Job) => number | null;
   /** Selects in place (split view); without it each row links to the job page. */
   onSelect?: (job: Job) => void;
 };
@@ -28,24 +28,27 @@ export function SimilarJobs({ jobs, scoreOf, onSelect }: Props) {
           </Stack>
         }
       >
-        {jobs.map((job) => (
-          <ListItem
-            key={job.id}
-            label={job.title}
-            description={`${job.company} · ${formatPayWithSource(job.pay)}`}
-            startContent={
-              <CompanyLogo
-                name={job.company}
-                companyId={job.companyId}
-                src={job.companyLogo}
-                hasFile={jobHasLogoFile(job)}
-                size={32}
-              />
-            }
-            endContent={<MatchBadge score={scoreOf(job)} />}
-            {...(onSelect ? { onClick: () => onSelect(job) } : { href: ROUTES.job(job.id) })}
-          />
-        ))}
+        {jobs.map((job) => {
+          const score = scoreOf?.(job);
+          return (
+            <ListItem
+              key={job.id}
+              label={job.title}
+              description={`${job.company} · ${formatPayWithSource(job.pay)}`}
+              startContent={
+                <CompanyLogo
+                  name={job.company}
+                  companyId={job.companyId}
+                  src={job.companyLogo}
+                  hasFile={jobHasLogoFile(job)}
+                  size={32}
+                />
+              }
+              endContent={score == null ? undefined : <MatchBadge score={score} />}
+              {...(onSelect ? { onClick: () => onSelect(job) } : { href: ROUTES.job(job.id) })}
+            />
+          );
+        })}
       </List>
     </Card>
   );

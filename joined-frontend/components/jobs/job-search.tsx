@@ -16,8 +16,7 @@ import {
   VIEWPORT_TIERS,
   icons,
   useMediaQuery,
-  useToast,
-} from "@joined/design-system";
+} from "sid-ui";
 import { WIDE_PAGE_MAX_WIDTH } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
 import { RECENT_SEARCHES, filterJobs, formatCount, type Job, type JobFilters } from "@/lib/jobs";
@@ -31,6 +30,8 @@ import { JobFilterToolbar } from "./job-filter-toolbar";
 import { JobFiltersPanel } from "./job-filters-panel";
 import { JobResults } from "./job-results";
 import { JobSearchBar, type SavedQuery } from "./job-search-bar";
+import { SavedSearches } from "./saved-searches";
+import { useJobFits } from "./use-job-fits";
 import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
 import { useJobSearch } from "./use-job-search";
@@ -74,11 +75,9 @@ export function JobSearch({
     hidden: jobs.filter((job) => job.source === "scouted").length,
   };
   const isWide = useMediaQuery(WIDE_QUERY, true);
-  const toast = useToast();
   const searchRef = useRef<HTMLInputElement>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [drawerJob, setDrawerJob] = useState<Job | null>(null);
-  const [alertOn, setAlertOn] = useState(false);
   const [recent, setRecent] = useState<SavedQuery[]>(RECENT_SEARCHES);
 
   const actions = useJobActions({
@@ -91,6 +90,9 @@ export function JobSearch({
   });
 
   const { filters, selected } = search;
+  const fitIds = search.pageResults.map((job) => job.id);
+  if (selected && !fitIds.includes(selected.id)) fitIds.push(selected.id);
+  const fits = useJobFits(signedIn, fitIds);
 
   useEffect(() => {
     if (selected?.id) router.prefetch(ROUTES.job(selected.id));
@@ -123,15 +125,6 @@ export function JobSearch({
     );
   };
 
-  const toggleAlert = () => {
-    setAlertOn((on) => !on);
-    toast({
-      body: alertOn
-        ? "Job alert turned off."
-        : `Job alert on. We’ll email new matches for “${filters.q || "all jobs"}” every morning.`,
-    });
-  };
-
   const detailProps = (job: Job) => ({
     job,
     saved: search.savedIds.includes(job.id),
@@ -145,6 +138,7 @@ export function JobSearch({
           setDrawerJob(null);
         }
       : undefined,
+    onReport: () => actions.report(job),
   });
 
   const filteredCount = filterJobs(search.visibleJobs, filters).length;
@@ -160,9 +154,14 @@ export function JobSearch({
           recent={recent}
           suggestions={roleSuggestions.length > 0 ? roleSuggestions : ROLE_SUGGESTIONS}
           totals={totals}
-          alertOn={alertOn}
-          onToggleAlert={toggleAlert}
           inputRef={searchRef}
+        />
+
+        <SavedSearches
+          key={signedIn ? "member" : "guest"}
+          signedIn={signedIn}
+          filters={filters}
+          onApply={(next) => search.update(next)}
         />
 
         <Stack gap={3}>
@@ -189,6 +188,7 @@ export function JobSearch({
               onListChange={(list) => search.update({ list })}
               total={search.results.length}
               jobs={search.pageResults}
+              fits={fits}
               page={search.page}
               pageCount={search.pageCount}
               onPageChange={search.setPage}
@@ -197,6 +197,7 @@ export function JobSearch({
               appliedIds={search.appliedIds}
               onSelect={select}
               onToggleSave={actions.save}
+              onReport={actions.report}
               onClearFilters={search.reset}
               canClear={search.refinementCount > 0 || Boolean(filters.q || filters.where)}
             />
@@ -216,6 +217,8 @@ export function JobSearch({
                   key={selected.id}
                   {...detailProps(selected)}
                   jobs={jobs}
+                  fit={selected ? fits[selected.id] : null}
+                  fits={fits}
                   showPageLink
                   onSelect={select}
                 />
@@ -268,7 +271,13 @@ export function JobSearch({
         {drawerJob ? (
           <Stack gap={6}>
             <JobDetailHeader {...detailProps(drawerJob)} showPageLink />
-            <JobDetailBody job={drawerJob} jobs={jobs} onSelect={select} />
+            <JobDetailBody
+              job={drawerJob}
+              jobs={jobs}
+              onSelect={select}
+              fit={fits[drawerJob.id]}
+              fits={fits}
+            />
           </Stack>
         ) : null}
       </Drawer>

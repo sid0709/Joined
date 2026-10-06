@@ -1,7 +1,7 @@
 "use client";
 
-import { Rating } from "@joined/design-system";
 import { useState } from "react";
+import { Rating } from "sid-ui";
 
 import type { Interview, InterviewOutcome } from "@/src/shared/types/marketplace";
 

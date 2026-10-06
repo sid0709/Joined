@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, RadioList, RadioListItem, Stack, Switch, useToast } from "@joined/design-system";
+import { Button, RadioList, RadioListItem, Stack, Switch, useToast } from "sid-ui";
+import { AccountExportError, downloadAccountExport } from "@/lib/account-export";
+import { signInHref } from "@/lib/routes";
 import { AUDIENCES, type ProfileAudience } from "@/lib/settings";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
@@ -11,6 +13,26 @@ export function PrivacySettings() {
   const [audience, setAudience] = useState<ProfileAudience>("recruiters");
   const [salary, setSalary] = useState(false);
   const [activity, setActivity] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  async function requestExport() {
+    setExporting(true);
+    try {
+      await downloadAccountExport();
+      toast({ body: "Your account export downloaded." });
+    } catch (error) {
+      if (error instanceof AccountExportError && error.status === 401) {
+        window.location.assign(signInHref(window.location.pathname));
+        return;
+      }
+      toast({
+        body: error instanceof Error ? error.message : "Could not export your account.",
+        type: "error",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <Stack gap={6}>
@@ -71,14 +93,15 @@ export function PrivacySettings() {
       <SettingsGroup title="Your data">
         <SettingsRow
           label="Export everything"
-          description="Profile, resumes, applications, and messages as a ZIP."
+          description="Profile, resumes, applications, and messages as a JSON file."
           layout="inline"
         >
           <Button
-            label="Request export"
+            label={exporting ? "Exporting…" : "Request export"}
             variant="secondary"
             size="sm"
-            onClick={() => toast({ body: "We’ll email you a download link within a few minutes." })}
+            isDisabled={exporting}
+            onClick={() => void requestExport()}
           />
         </SettingsRow>
       </SettingsGroup>

@@ -1,9 +1,9 @@
 "use client";
 
-import { Glyph, Table } from "@joined/design-system";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Glyph, Table } from "sid-ui";
 
 import type { PoolJob } from "@/src/shared/types/marketplace";
 

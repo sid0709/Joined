@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { FormLayout, Selector, TextInput } from "@joined/design-system";
+import { FormLayout, Selector, TextInput } from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
-import { STAGES, type ApplicationStage } from "@/lib/applications";
+import { ADD_STAGES, stageOptions, type ApplicationStage } from "@/lib/applications";
 
-const STAGE_OPTIONS = STAGES.filter((stage) => stage.id !== "closed").map((stage) => ({
-  value: stage.id,
-  label: stage.title,
-}));
+const STAGE_OPTIONS = stageOptions(ADD_STAGES);
 
 export type ApplicationDraft = {
   title: string;

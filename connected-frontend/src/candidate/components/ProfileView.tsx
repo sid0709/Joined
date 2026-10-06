@@ -1,7 +1,7 @@
 "use client";
 
-import { Glyph } from "@joined/design-system";
 import { useState } from "react";
+import { Glyph } from "sid-ui";
 
 import type { Ats, BidderProfile } from "@/src/candidate/types/workspace";
 

@@ -8,7 +8,7 @@ import {
   Stack,
   Text,
   SectionCard,
-} from "@joined/design-system";
+} from "sid-ui";
 
 import type { MatchesState } from "./use-matches";
 import type { JobMatch } from "@joined/scout";

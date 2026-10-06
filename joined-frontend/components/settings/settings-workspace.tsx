@@ -12,7 +12,7 @@ import {
   Stack,
   Text,
   icons,
-} from "@joined/design-system";
+} from "sid-ui";
 import type { AuthSession } from "@/lib/auth/types";
 import type { BillingSubscription, PremiumPrices } from "@/lib/billing";
 import { SETTINGS_NAV, SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings";
@@ -52,7 +52,7 @@ export function SettingsWorkspace({
       />
     ),
     notifications: <NotificationSettings />,
-    alerts: <AlertSettings />,
+    alerts: <AlertSettings signedIn={session !== null} />,
     connections: <ConnectionSettings googleEmail={googleEmail} calendarResult={calendarResult} />,
     privacy: <PrivacySettings />,
     danger: <DangerSettings session={session} />,

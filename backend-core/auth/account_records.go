@@ -28,6 +28,10 @@ type AccountRecords interface {
 
 	InsertSession(ctx context.Context, rec SessionRecord) error
 	DeleteSessionsByUser(ctx context.Context, userID string) error
+	// SessionByToken loads the session stored for a token hash, or ErrNotFound.
+	SessionByToken(ctx context.Context, tokenHash string) (SessionRecord, error)
+	// DeleteUser removes the account row. Sessions are removed separately.
+	DeleteUser(ctx context.Context, userID string) error
 
 	// CompanyMembership is the company on this user's session, or ErrNotFound.
 	CompanyMembership(ctx context.Context, userID string) (*Company, error)

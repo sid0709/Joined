@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CheckboxList,
   CheckboxListItem,
@@ -8,7 +9,8 @@ import {
   SegmentedControlItem,
   Slider,
   Stack,
-} from "@joined/design-system";
+} from "sid-ui";
+import { SavedSearches } from "@/components/jobs/saved-searches";
 import {
   ALERT_FREQUENCIES,
   ALERT_SOURCES,
@@ -18,12 +20,14 @@ import {
   MATCH_STEP,
   estimateWeeklyMatches,
 } from "@/lib/settings";
+import { serializeFilters } from "@/lib/jobs";
 import { SaveFooter } from "@/components/save-footer";
 import { SettingsGroup, SettingsRow } from "@/components/settings-group";
 
 const DEFAULT_SOURCES = ["direct", "scouted"];
 
-export function AlertSettings() {
+export function AlertSettings({ signedIn = false }: { signedIn?: boolean }) {
+  const router = useRouter();
   const [frequency, setFrequency] = useState("daily");
   const [minMatch, setMinMatch] = useState(DEFAULT_MIN_MATCH);
   const [sources, setSources] = useState<string[]>(DEFAULT_SOURCES);
@@ -31,6 +35,13 @@ export function AlertSettings() {
 
   return (
     <Stack gap={6}>
+      <SavedSearches
+        signedIn={signedIn}
+        onApply={(next) => {
+          const query = serializeFilters(next);
+          router.push(query ? `/?${query}` : "/");
+        }}
+      />
       <SettingsGroup
         title="Alert schedule"
         description="Alerts use the target roles and locations on your profile."

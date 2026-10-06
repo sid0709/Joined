@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@joined/design-system";
+import { Button } from "sid-ui";
 import { isPageSelected, withPageSelection } from "@/lib/page-selection";
 
 type PageSelectButtonProps = {

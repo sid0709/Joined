@@ -5,6 +5,7 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
@@ -27,6 +28,9 @@ type Store struct {
 	companies string
 	data      UserData
 	records   AccountRecords
+	export    AccountSource
+	exportMu  sync.Mutex
+	exportAt  map[string]time.Time
 	// passwordHasher allows injection for testing timing
 	passwordHasher func(password string) ([]byte, []byte, error)
 }
@@ -121,6 +125,20 @@ func (s *Store) Session(ctx context.Context, token string, now time.Time) (Sessi
 	if token == "" {
 		return Session{}, ErrInvalidLogin
 	}
+	// In-memory records (tests) have no Mongo client. Production still reads the sessions collection.
+	if s.client == nil {
+		record, err := s.records.SessionByToken(ctx, hashToken(token))
+		if errors.Is(err, ErrNotFound) {
+			return Session{}, ErrInvalidLogin
+		}
+		if err != nil {
+			return Session{}, err
+		}
+		if !record.ExpiresAt.After(now) {
+			return Session{}, ErrInvalidLogin
+		}
+		return s.view(ctx, record.UserID)
+	}
 	var record storedSession
 	err := s.collection(sessionsCollection).FindOne(ctx, bson.D{{Key: "tokenHash", Value: hashToken(token)}}).Decode(&record)
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -183,6 +201,17 @@ func (s *Store) DeleteAccount(ctx context.Context, token string, now time.Time) 
 		return err
 	}
 	userID := session.User.ID
+	if s.client == nil {
+		if s.data != nil {
+			if err := s.data.DeleteUser(ctx, userID, ""); err != nil {
+				return err
+			}
+		}
+		if err := s.records.DeleteSessionsByUser(ctx, userID); err != nil {
+			return err
+		}
+		return s.records.DeleteUser(ctx, userID)
+	}
 	var member storedMember
 	err = s.collection(membersCollection).FindOne(ctx, bson.D{{Key: "userId", Value: userID}}).Decode(&member)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {

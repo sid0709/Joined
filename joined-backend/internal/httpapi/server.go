@@ -13,10 +13,13 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/billing"
 	"github.com/sid0709/OpenSeat/backend-core/candidate"
 	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/OpenSeat/backend-core/fitscore"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/OpenSeat/backend-core/platform"
+	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
 
@@ -34,6 +37,10 @@ type Server struct {
 	reader      jobs.ModelReader
 	frontend    string
 	companyMode bool
+	fitJobs     fitscore.Catalog
+	fitProfiles fitscore.Profiles
+	fitReasoner fitscore.Reasoner
+	switches    killswitch.Switches
 }
 
 // Options are the HTTP server's settings.
@@ -58,6 +65,14 @@ type Options struct {
 	Billing *billing.Service
 	// BillingWebhook receives Stripe-signed events. Nil leaves POST /v1/webhooks/stripe unmounted.
 	BillingWebhook *billing.WebhookRouter
+	// FitJobs, when set, is the catalog the fit endpoints read. Nil uses the job store.
+	FitJobs fitscore.Catalog
+	// FitProfiles, when set, supplies hunter profiles for fit scoring. Nil uses people.
+	FitProfiles fitscore.Profiles
+	// FitReasoner may rewrite the deterministic reason when acorn_ai is on.
+	FitReasoner fitscore.Reasoner
+	// SavedSearches persists a job hunter's saved queries. Nil leaves those routes unmounted.
+	SavedSearches savedsearch.Store
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -77,6 +92,21 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		reader:      reader,
 		frontend:    opts.Frontend,
 		companyMode: opts.CompanyMode,
+		fitJobs:     opts.FitJobs,
+		fitProfiles: opts.FitProfiles,
+		fitReasoner: opts.FitReasoner,
+		switches:    opts.KillSwitches,
+	}
+	if accounts != nil {
+		var payments billing.Store
+		if opts.Billing != nil {
+			payments = opts.Billing.Store
+		}
+		accounts.SetAccountSource(platform.Collector{
+			People:   people,
+			Searches: opts.SavedSearches,
+			Billing:  payments,
+		})
 	}
 	identity := authapi.Handlers{
 		Accounts:       accounts,
@@ -111,6 +141,8 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux := http.NewServeMux()
 	candidateMux.HandleFunc("GET /v1/me/profile", server.getProfile)
 	candidateMux.HandleFunc("PATCH /v1/me/profile", server.patchProfile)
+	candidateMux.HandleFunc("GET /v1/me/fit/{jobId}", server.getJobFit)
+	candidateMux.HandleFunc("POST /v1/me/fit", server.postJobFits)
 	candidateMux.HandleFunc("GET /v1/me/saved-jobs", server.getSavedJobs)
 	candidateMux.HandleFunc("PUT /v1/me/saved-jobs/{jobId}", server.putSavedJob)
 	candidateMux.HandleFunc("DELETE /v1/me/saved-jobs/{jobId}", server.deleteSavedJob)
@@ -135,9 +167,21 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	if opts.Billing != nil {
 		billing.Handlers{Service: opts.Billing, CurrentUser: server.billingCurrentUser}.Register(candidateMux)
 	}
+	if opts.SavedSearches != nil {
+		savedsearch.Handlers{Service: savedsearch.NewService(opts.SavedSearches), CurrentUser: server.savedSearchCurrentUser}.Register(candidateMux)
+	}
 	// Google's OAuth redirect has no Authorization header; it authenticates via state.
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
 	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
+	// Seekers file job reports here. Other methods stay 404 so the staff list is not implied.
+	fileReport := authapi.RequireRole(sessions, []string{auth.RoleCandidate}, http.HandlerFunc(server.postJobReport))
+	mux.HandleFunc("/v1/reports", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		fileReport.ServeHTTP(w, r)
+	})
 	if opts.BillingWebhook != nil {
 		opts.BillingWebhook.UseService(opts.Billing)
 		mux.Handle("POST "+billing.WebhookPath, opts.BillingWebhook)

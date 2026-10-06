@@ -1,6 +1,7 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { GridColumn, GridSystem } from "@joined/design-system";
+import { GridColumn, GridSystem } from "sid-ui";
 import { CompanyNav } from "@/components/company/company-nav";
 import { PageContainer } from "@/components/page-container";
 import { AppFrame } from "@/components/shell/app-frame";
@@ -9,6 +10,8 @@ import { loadCompanyCounts } from "@/lib/company/load";
 import { loadCompanyUnread } from "@/lib/me/load";
 import { loadSession } from "@/lib/auth/session";
 import { ROUTES, signInHref } from "@/lib/routes";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /** Employer mode: a signed-in person linked to a company, with the workspace nav on the left. */
 export default async function CompanyLayout({ children }: { children: ReactNode }) {

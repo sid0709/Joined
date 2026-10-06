@@ -13,7 +13,7 @@ import {
   Text,
   useToast,
   PageHeader,
-} from "@joined/design-system";
+} from "sid-ui";
 import { TONE_BADGE, type ScoutNotification } from "@joined/scout";
 import { CursorPager } from "@/components/cursor-pager";
 import { FullText } from "@/components/full-text";
