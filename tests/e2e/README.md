@@ -38,6 +38,8 @@ journey cannot start).
 - **joined-backend**: `/health`, `/v1/search/jobs`
 - **email journey**: sign-up, check-email, log-in rejected until verify, verify from the log sender, log-in, log-out, password reset from the log sender. Google sign-in/up buttons render; the suite does not complete Google OAuth. Login errors stay generic (no account enumeration).
 - **seeker and premium** (`specs/seeker-premium.e2e.ts`): search, a public job page when the catalog has a job, a verified seeker saving a search, the applications list, and billing settings. Premium copy must say Stripe test mode. The spec does not enter a card or follow `checkout.stripe.com`. If checkout is paused, that is recorded and the test continues. If the catalog is empty, the job page is skipped with a note.
+- **scoutwell app** (`specs/scoutwell-app.e2e.ts`): home, `/sign-in`, and a signed-out visit to `/earnings` and `/payouts` (both land on sign-in). Scoutwell sign-in is Google-only, so this spec does not mint a session. It does not drive the extension.
+- **acorn** (`specs/acorn-frontend.e2e.ts`): skipped. The website is in the sibling Acorn repo, and this workflow does not start it. `ACORN_FRONTEND_ORIGIN` defaults to `http://localhost:6005` and `ACORN_API_ORIGIN` to `http://127.0.0.1:8083`.
 
 ## CI
 
