@@ -1,7 +1,7 @@
 # Step 60: Non-US payout test harness
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Penny (money and Scout backend lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `test(scout): non-us payout harness (roadmap step-60)`
