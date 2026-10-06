@@ -143,7 +143,7 @@ Target branch: **`stage-roadmap-w34`**.
 | Step                                             | Slice                                           | Owner      | Status  |
 | ------------------------------------------------ | ----------------------------------------------- | ---------- | ------- |
 | [step-55](step-55-legal-docs-package.md)         | ToS/privacy/cookie/Premium/Scout contractor     | Leo/Elon   | Done    |
-| [step-56](step-56-international-payout-tax.md)   | W-9/W-8BEN + sanction screening hooks           | Penny      | Planned |
+| [step-56](step-56-international-payout-tax.md)   | W-9/W-8BEN + sanction screening hooks           | Penny      | Done    |
 | [step-57](step-57-e2e-seeker-premium.md)         | E2E seeker + Premium journeys                   | Quinn      | Planned |
 | [step-58](step-58-e2e-scout-acorn.md)            | E2E scout + Acorn journeys                      | Quinn      | Planned |
 | [step-59](step-59-stripe-live-config.md)         | Live keys wiring (needs explicit user approval) | Penny      | Planned |

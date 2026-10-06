@@ -103,11 +103,31 @@ export type Submission = {
   updated_at: string;
 };
 
+export const TAX_FORM_W9 = "w9";
+export const TAX_FORM_W8BEN = "w8ben";
+export const TAX_FORM_W8BEN_E = "w8ben_e";
+
+export type TaxFormType = typeof TAX_FORM_W9 | typeof TAX_FORM_W8BEN | typeof TAX_FORM_W8BEN_E;
+
+export const SCREENING_CLEAR = "clear";
+export const SCREENING_PENDING = "pending";
+export const SCREENING_HIT = "hit";
+
+export type ScreeningStatus =
+  typeof SCREENING_CLEAR | typeof SCREENING_PENDING | typeof SCREENING_HIT;
+
+export const TAX_FORM_REQUIRED = "tax_form_required";
+export const SCREENING_BLOCKED = "screening_blocked";
+
 export type TaxInfo = {
   legal_name: string;
   country: string;
   tax_id_last4: string;
+  form_type: TaxFormType;
+  certified_at: string;
   completed_at: string;
+  screening_status?: ScreeningStatus;
+  screened_at?: string;
 };
 
 export type PayoutMethodType = "bank" | "paypal" | "provider";

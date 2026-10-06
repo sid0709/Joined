@@ -1,7 +1,7 @@
 # Step 56: International payout tax
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Penny (money and Scout backend lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(scout): w9 w8ben and sanction screening hooks (roadmap step-56)`
