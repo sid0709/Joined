@@ -31,6 +31,8 @@ type Store struct {
 	export    AccountSource
 	exportMu  sync.Mutex
 	exportAt  map[string]time.Time
+	suspendMu sync.Mutex
+	suspended map[string]time.Time
 	// passwordHasher allows injection for testing timing
 	passwordHasher func(password string) ([]byte, []byte, error)
 }
@@ -383,6 +385,9 @@ func (s *Store) view(ctx context.Context, userID string) (Session, error) {
 	}
 	if err := s.ensureRole(ctx, &user); err != nil {
 		return Session{}, err
+	}
+	if s.userSuspended(account) {
+		return Session{}, ErrSuspended
 	}
 	session := Session{User: User{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}}
 	company, err := s.records.CompanyMembership(ctx, userID)

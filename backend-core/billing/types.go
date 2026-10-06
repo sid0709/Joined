@@ -50,7 +50,9 @@ type Subscription struct {
 	Plan                 Plan
 	// Product is joined_premium or acorn_pro. Empty means a Joined Premium row
 	// written before Acorn prices existed.
-	Product          string
+	Product string
+	// RefundedCents is the staff-recorded refund total. It does not call Stripe.
+	RefundedCents    int64
 	CurrentPeriodEnd time.Time
 	UpdatedAt        time.Time
 }

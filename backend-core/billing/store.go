@@ -128,6 +128,9 @@ func mergeSubscription(existing, incoming Subscription) Subscription {
 	if incoming.Product == "" {
 		incoming.Product = existing.Product
 	}
+	if incoming.RefundedCents == 0 {
+		incoming.RefundedCents = existing.RefundedCents
+	}
 	if incoming.CurrentPeriodEnd.IsZero() {
 		incoming.CurrentPeriodEnd = existing.CurrentPeriodEnd
 	}

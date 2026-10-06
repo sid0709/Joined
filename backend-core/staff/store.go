@@ -74,6 +74,16 @@ type storedAudit struct {
 	At          time.Time     `bson:"at"`
 }
 
+// WriteAudit records one admin_audit row and returns its id.
+func (s *Store) WriteAudit(ctx context.Context, action, subjectType, subjectID, actor, note string, now time.Time) (string, error) {
+	return s.audit(ctx, action, subjectType, subjectID, actor, note, now)
+}
+
+// AuditsFor returns the recent audit rows for one subject, newest first.
+func (s *Store) AuditsFor(ctx context.Context, subjectID string) ([]AuditEntry, error) {
+	return s.auditTrail(ctx, subjectID)
+}
+
 func (s *Store) audit(ctx context.Context, action, subjectType, subjectID, actor, note string, now time.Time) (string, error) {
 	doc := storedAudit{
 		ID:          bson.NewObjectID(),
