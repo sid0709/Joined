@@ -69,7 +69,11 @@ func main() {
 	if crawlerToken == "" {
 		slog.Warn("CRAWLER_INGEST_TOKEN is not set: the crawler extension cannot stage jobs")
 	}
-	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
+	reporting := config.LoadErrorReporting()
+	reporter := httpkit.NewReporter(reporting.SentryDSN)
+	if err := httpkit.NotifyUptime(context.Background(), reporting.UptimePingURL); err != nil {
+		slog.Warn("uptime ping", "error", err)
+	}
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
 	staff := httpapi.StaffSignIn{
 		Accounts:    p.Accounts,

@@ -89,9 +89,10 @@ type HTTP struct {
 	Origins []string
 }
 
-// ErrorReporting is the error tracker DSN. Empty means no error tracking.
+// ErrorReporting is optional monitoring. Empty fields mean no outbound calls.
 type ErrorReporting struct {
-	SentryDSN string
+	SentryDSN     string
+	UptimePingURL string
 }
 
 // LoadEnvFile reads .env from the working directory. Variables already set in
@@ -171,10 +172,12 @@ func JobsExpiryCheckerEnabled() bool {
 	return value == "true" || value == "1"
 }
 
-// LoadErrorReporting reads SENTRY_DSN from the environment.
+// LoadErrorReporting reads SENTRY_DSN and UPTIME_PING_URL from the environment.
+// Both are optional. An empty value does not crash and does not dial out.
 func LoadErrorReporting() ErrorReporting {
 	return ErrorReporting{
-		SentryDSN: strings.TrimSpace(os.Getenv("SENTRY_DSN")),
+		SentryDSN:     strings.TrimSpace(os.Getenv("SENTRY_DSN")),
+		UptimePingURL: strings.TrimSpace(os.Getenv("UPTIME_PING_URL")),
 	}
 }
 

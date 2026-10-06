@@ -73,7 +73,11 @@ func main() {
 		slog.Info("jobs expiry checker enabled")
 	}
 
-	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
+	reporting := config.LoadErrorReporting()
+	reporter := httpkit.NewReporter(reporting.SentryDSN)
+	if err := httpkit.NotifyUptime(context.Background(), reporting.UptimePingURL); err != nil {
+		slog.Warn("uptime ping", "error", err)
+	}
 	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL).WithSearchModel(ai.SearchModel)
 	premium, webhook, err := openBilling(billing.NewMongoStore(p.Mongo(), db.DestDB))
 	if err != nil {
