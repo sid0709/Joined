@@ -78,6 +78,25 @@ are hidden in logs, variables are easier to read and edit.
 
 `PAYOUT_ALLOW_LIVE` is a different fail-closed switch for scout payouts. Stripe approval does not turn it on.
 
+## Intended hosts
+
+Names only. This branch does not edit DNS. Today's nginx routing is in [What runs where](#what-runs-where). Subdomain steps stay in [subdomains-runbook.md](subdomains-runbook.md); do not copy that runbook's server address into new notes.
+
+| App        | Intended host                                                                           | Local / compose port           |
+| ---------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| Joined web | `joinedhq.com`                                                                          | frontend, host 6002            |
+| Joined API | `api.joinedhq.com` (today that host still serves the last Acorn image)                  | joined-backend, host 11080     |
+| Scoutwell  | `scout.joinedhq.com`                                                                    | 6003                           |
+| Admin      | `admin.joinedhq.com`                                                                    | 6010                           |
+| Acorn web  | No public hostname is agreed in this repo. The site is in the sibling Acorn repository. | 6005, not built from this tree |
+| Acorn API  | `api.joinedhq.com` path `/acorn` on the last published image                            | 11083                          |
+
+## Backups and monitoring
+
+Mongo dump sketch, daily cadence, and the freshness check: [backups.md](backups.md). Env names: `MONGO_URI`, `DEST_DB`, `ACORN_DB`, `BACKUP_DIR`, `BACKUP_MAX_AGE`.
+
+`GET /health` stays 200 when `SENTRY_DSN` and `UPTIME_PING_URL` are unset. An empty DSN does not crash; the reporter stays a no-op. An empty uptime URL does not dial out. Set either name in the `production` environment when you want the hook. Do not put a DSN or ping URL in git.
+
 Inside a container, the VPS itself is `host.docker.internal`, so a MongoDB running on
 the VPS is `mongodb://<user>:<password>@host.docker.internal:27017/JoinedDB?authSource=JoinedDB`.
 

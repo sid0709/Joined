@@ -67,6 +67,10 @@ func main() {
 		GoogleRedirectURL: googleConfig.SignInRedirectURL,
 		PayoutWebhook:     scout.NewPayoutWebhook(p.Scouts, payoutCfg.WebhookSecret),
 	})
+	reporting := config.LoadErrorReporting()
+	if err := httpkit.NotifyUptime(context.Background(), reporting.UptimePingURL); err != nil {
+		slog.Warn("uptime ping", "error", err)
+	}
 	if err := httpkit.Serve("scoutwell api", server.Addr, handler); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
