@@ -56,7 +56,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	}
 
 	filter := s.buildSearchFilter(query, now)
-	
+
 	total, err := s.structured().CountDocuments(ctx, filter)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("count documents: %w", err)
@@ -65,13 +65,13 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	limit := clampSearchLimit(query.Limit)
 
 	opts := options.Find().SetLimit(int64(limit + 1))
-	
+
 	sort, err := s.buildSort(query, filter)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("build sort: %w", err)
 	}
 	opts.SetSort(sort)
-	
+
 	if query.Keyword != "" {
 		opts.SetProjection(bson.D{{Key: "score", Value: bson.D{{Key: "$meta", Value: "textScore"}}}})
 	}
@@ -104,7 +104,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	for _, doc := range docs {
 		jobs = append(jobs, CatalogJob(doc.view(now)))
 	}
-	
+
 	jobs, err = s.enrichCompanies(ctx, jobs)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("enrich companies: %w", err)
@@ -180,6 +180,9 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 
 	if query.hiddenOnly() {
 		conditions = append(conditions, hiddenSourceFilter())
+	}
+	if ids := DisabledImportSources(); len(ids) > 0 {
+		conditions = append(conditions, bson.D{{Key: "job.source", Value: bson.D{{Key: "$nin", Value: ids}}}})
 	}
 
 	if query.Keyword != "" {
@@ -305,9 +308,9 @@ func truncateString(s string, maxLen int) string {
 
 func (s *Store) EnsureSearchIndexes(ctx context.Context) error {
 	coll := s.structured()
-	
+
 	indexes := coll.Indexes()
-	
+
 	textIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "job.title", Value: "text"},

@@ -1,7 +1,7 @@
 # Step 54: Admin sources, quality, earnings report, and disputes
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Ravi + Penny (split if large; see below)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(admin): sources quality earnings disputes (roadmap step-54)`

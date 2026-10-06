@@ -102,7 +102,13 @@ func (a *AthensSource) ID() string {
 }
 
 func (a *AthensSource) Enabled() bool {
-	return a != nil && a.enabled && a.store != nil
+	if a == nil || a.store == nil {
+		return false
+	}
+	if enabled, ok := SourceEnabled(a.ID()); ok {
+		return enabled
+	}
+	return a.enabled
 }
 
 func (a *AthensSource) Fetch(ctx context.Context) ([]ImportRecord, error) {

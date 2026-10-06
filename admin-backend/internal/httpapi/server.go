@@ -49,6 +49,7 @@ type Server struct {
 	scamHolds         jobscam.API
 	accounts          AccountAdmin
 	premium           PremiumAdmin
+	quality           QualityReader
 }
 
 // Options are the HTTP server's settings.
@@ -88,6 +89,8 @@ type Options struct {
 	Accounts AccountAdmin
 	// Premium cancels and refunds Joined Premium. Nil answers 503 on those actions.
 	Premium PremiumAdmin
+	// Quality supplies job quality aggregates. Nil uses the scam-hold total for held.
+	Quality QualityReader
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -116,6 +119,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		scamHolds:         opts.ScamHolds,
 		accounts:          opts.Accounts,
 		premium:           opts.Premium,
+		quality:           opts.Quality,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -145,6 +149,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerKillSwitches(api)
 	server.registerScamHolds(api)
 	server.registerUsers(api)
+	server.registerOps(api)
 	server.registerAcornAI(api)
 	server.registerDeepSeek(api)
 
