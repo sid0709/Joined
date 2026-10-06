@@ -10,4 +10,11 @@ export const AUTH_PATHS = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   search: "/",
+  applications: "/applications",
+  pricing: "/pricing",
+  settingsBilling: "/settings?section=billing",
 } as const;
+
+export function jobPath(id: string) {
+  return `/jobs/${encodeURIComponent(id)}`;
+}
