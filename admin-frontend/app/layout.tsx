@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import { Providers } from "@/components/providers";
+import { ServiceUpdate } from "@/components/service-update";
 import { BRAND } from "@/lib/config";
 import "./globals.css";
 
@@ -9,11 +8,11 @@ export const metadata: Metadata = {
   description: "Moderation, scouts, jobs, and companies for Joined.",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout() {
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <ServiceUpdate brand={BRAND} />
       </body>
     </html>
   );
