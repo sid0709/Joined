@@ -13,7 +13,6 @@
       "scout-extension"
     ],
     "catalog": {
-      "@astryxdesign/cli": "0.6.3",
       "@astryxdesign/core": "0.6.3",
       "@astryxdesign/theme-neutral": "0.6.3",
       "@playwright/test": "1.63.0",
