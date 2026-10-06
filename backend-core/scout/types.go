@@ -110,6 +110,8 @@ var (
 	ErrKeyLimit          = errors.New("revoke an API key before creating another")
 	ErrNotDecidable      = errors.New("this submission is not waiting on a decision")
 	ErrAlreadyDecided    = errors.New("this item was already decided")
+	// ErrEarningSettled is a clawback of an earning the provider already paid.
+	ErrEarningSettled = errors.New("paid earnings cannot be clawed back")
 )
 
 // FieldError explains one invalid input field (RFC 9457 extension member).

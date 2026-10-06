@@ -401,6 +401,33 @@ func (m *memDocs) listEarnings(filter bson.D) []Earning {
 	return out
 }
 
+func (m *memDocs) setEarningStatus(id bson.ObjectID, status string) (Earning, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.earnings {
+		if m.earnings[i].ObjectID != id {
+			continue
+		}
+		m.earnings[i].Status = status
+		copied := m.earnings[i]
+		copied.fill()
+		return copied, nil
+	}
+	return Earning{}, ErrNotFound
+}
+
+func (m *memDocs) earningByID(id bson.ObjectID) (Earning, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, earning := range m.earnings {
+		if earning.ObjectID == id {
+			earning.fill()
+			return earning, nil
+		}
+	}
+	return Earning{}, ErrNotFound
+}
+
 func (m *memDocs) insertEarning(earning Earning) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
