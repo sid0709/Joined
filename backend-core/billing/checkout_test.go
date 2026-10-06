@@ -57,6 +57,24 @@ func TestCreateCheckoutSessionMonthlyAndYearly(t *testing.T) {
 	}
 }
 
+func TestCreateCheckoutSessionUsesPriceIDOverride(t *testing.T) {
+	svc, client, _ := testService(t)
+	const priceID = "price_override_monthly"
+	client.PutPrice(&Price{ID: priceID, Active: true})
+	svc.Config.PremiumMonthlyPriceID = priceID
+	session, err := svc.CreateCheckoutSession(context.Background(), CheckoutParams{
+		UserID: "user_override",
+		Email:  "user@example.test",
+		Plan:   string(PlanMonthly),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if session.URL == "" {
+		t.Fatal("expected a checkout url")
+	}
+}
+
 func TestCreateCheckoutSessionRejectsInvalidPlan(t *testing.T) {
 	svc, _, _ := testService(t)
 	_, err := svc.CreateCheckoutSession(context.Background(), CheckoutParams{

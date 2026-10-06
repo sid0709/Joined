@@ -71,6 +71,12 @@ are hidden in logs, variables are easier to read and edit.
 | `ADMIN_GOOGLE_CLIENT_SECRET`     | the admin OAuth client secret                                                                                              | with `admin`          |
 | `ADMIN_API_TOKEN`                | the admin API's bearer token                                                                                               | with `admin`          |
 | `GEOAPIFY_API_KEY`               | address autocomplete                                                                                                       | optional              |
+| `STRIPE_SECRET_KEY`              | Stripe API key. Keep `sk_test_` until written approval. `sk_live_` will not boot unless `STRIPE_ALLOW_LIVE=true`.          | for Premium billing   |
+| `STRIPE_WEBHOOK_SECRET`          | Stripe webhook secret for the same mode as the API key                                                                     | with Stripe           |
+
+`STRIPE_ALLOW_LIVE` is a production variable, not a secret. Leave it unset. This branch never deploys. Rollback is: unset the flag and restore `sk_test_` in `STRIPE_SECRET_KEY`. Optional price-id variables (`STRIPE_PREMIUM_MONTHLY_PRICE_ID`, `STRIPE_PREMIUM_YEARLY_PRICE_ID`, `STRIPE_ACORN_MONTHLY_PRICE_ID`, `STRIPE_ACORN_YEARLY_PRICE_ID`) stay empty so checkout uses lookup keys.
+
+`PAYOUT_ALLOW_LIVE` is a different fail-closed switch for scout payouts. Stripe approval does not turn it on.
 
 Inside a container, the VPS itself is `host.docker.internal`, so a MongoDB running on
 the VPS is `mongodb://<user>:<password>@host.docker.internal:27017/JoinedDB?authSource=JoinedDB`.
