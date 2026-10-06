@@ -10,6 +10,7 @@ import {
   HStack,
   Heading,
   Icon,
+  Link,
   Stack,
   Step,
   Stepper,
@@ -93,6 +94,10 @@ export function OnboardingForm({ name, meta }: { name: string; meta: Meta }) {
             </HStack>
           ))}
         </Stack>
+        <Text color="secondary" display="block">
+          Read the <Link href={ROUTES.contractor}>contractor terms</Link> before you agree. They are
+          a draft and they are not tax advice.
+        </Text>
         <CheckboxInput label="I agree to the scout terms" value={agreed} onChange={setAgreed} />
         <Button
           label="Start scouting"

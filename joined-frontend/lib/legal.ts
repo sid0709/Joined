@@ -14,6 +14,7 @@ export const LEGAL_LINKS = [
   { href: ROUTES.terms, label: "Terms" },
   { href: ROUTES.privacy, label: "Privacy" },
   { href: ROUTES.cookies, label: "Cookies" },
+  { href: ROUTES.premiumTerms, label: "Premium terms" },
 ] as const;
 
 export type CookieConsent = {
@@ -62,36 +63,3 @@ export function writeConsent(analytics: boolean) {
 export function analyticsAllowed(): boolean {
   return readConsentFromDocument()?.analytics === true;
 }
-
-export const TERMS_SECTIONS = [
-  {
-    title: "Using Joined",
-    body: "These draft terms describe a job search and hiring product. Counsel will replace this section before launch.",
-  },
-  {
-    title: "Accounts",
-    body: "You keep your sign-in accurate. You can export or delete your account from settings.",
-  },
-] as const;
-
-export const PRIVACY_SECTIONS = [
-  {
-    title: "What we store",
-    body: "A signed-in account can include a profile, applications, interviews, messages, and saved searches. This draft does not list every field.",
-  },
-  {
-    title: "Your choices",
-    body: "Export and delete live in settings. Cookie choices are separate from the consent you give when you apply.",
-  },
-] as const;
-
-export const COOKIE_SECTIONS = [
-  {
-    title: "Necessary",
-    body: "Session and workspace cookies stay on so you can stay signed in and keep the mode you picked.",
-  },
-  {
-    title: "Analytics",
-    body: "Analytics stays off unless you allow it. Joined does not load an analytics vendor in this draft.",
-  },
-] as const;

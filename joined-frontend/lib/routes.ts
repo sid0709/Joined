@@ -41,6 +41,7 @@ export const ROUTES = {
   terms: "/terms",
   privacy: "/privacy",
   cookies: "/cookies",
+  premiumTerms: "/premium-terms",
 } as const;
 
 /** Sign in, then come back to `path`. */
