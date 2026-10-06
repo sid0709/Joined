@@ -36,23 +36,6 @@ services:
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
 
-  # Acorn's API source lives in the Acorn repo. This stack keeps the last image
-  # published from Joined so api.joinedhq.com stays up until Acorn deploys itself.
-  acorn-backend:
-    <<: *api
-    image: ${IMAGE_REPO}:acorn-backend-latest
-    ports: ["127.0.0.1:11083:8080"]
-    environment:
-      MONGO_URI: ${MONGO_URI:-}
-      ACORN_DB: ${ACORN_DB:-AcornDB}
-      CORS_ORIGINS: ${FRONTEND_ORIGIN}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # Seals an OpenAI key saved in AcornDB.
-      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
-      GOOGLE_CLIENT_ID: ${ACORN_GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${ACORN_GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_SIGNIN_REDIRECT_URL: ${ACORN_GOOGLE_SIGNIN_REDIRECT_URL:-}
-
   joined-frontend:
     <<: *app
     image: ${IMAGE_REPO}:joined-frontend-${IMAGE_TAG}

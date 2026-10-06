@@ -22,7 +22,7 @@ Everything you need to set up, run, check, and audit this monorepo.
 | `backend-core`       | `backend-core/`           | Shared Go library every API builds on (no server of its own)                   | —        | —                        |
 | `sid-ui`             | github.com/sid0709/sid-ui | Shared UI package and the `sid-ui-theme` catalog, published with `bun publish` | —        | —                        |
 
-Apps use the design system through the catalog (`"sid-ui": "catalog:"`). The source is the sid-ui repo, not this workspace. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared library `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `sid-ui` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend). Acorn lives in the sibling Acorn repo.
+Apps use the design system through the catalog (`"sid-ui": "catalog:"`). The source is the sid-ui repo, not this workspace. The Go services (`joined-backend`, `admin-backend`, `scoutwell-backend`, and the shared library `backend-core`) sit beside those workspaces; `go.work` at the root ties them together. Shared TypeScript lives in `sid-ui` (UI), `packages/scout` (the scout API contract), and `packages/job-schema` (job enums shared with the Go backend).
 
 Other folders: `docs/` (product and architecture specs), `tools/` (repo checks), `.husky/` (git hooks).
 

@@ -32,7 +32,7 @@ Each app has its own Go API that runs and deploys on its own. The apps call thei
 | `admin-frontend`               | `admin-backend` (8081)     | `/v1/settings`, `/v1/jobs`, `/v1/companies`, `/v1/reports`, `/v1/admin/*`; all need `ADMIN_API_TOKEN` |
 | `scoutwell-frontend`, partners | `scoutwell-backend` (8082) | `/v1/auth` (scouts), `/v1/scout/*`                                                                    |
 
-They all share one MongoDB and build on `backend-core`: the domain stores, the HTTP helpers, and the sign-in routes. A rule that crosses domains, like deleting an account, behaves the same whichever API runs it. Each service reads its own `.env` (copy its `.env.example`). `bun run dev:api` starts all three; `bun run test:go` tests every Go module. Acorn's extension, website, and API live in the sibling Acorn repo.
+They all share one MongoDB and build on `backend-core`: the domain stores, the HTTP helpers, and the sign-in routes. A rule that crosses domains, like deleting an account, behaves the same whichever API runs it. Each service reads its own `.env` (copy its `.env.example`). `bun run dev:api` starts all three; `bun run test:go` tests every Go module.
 
 ### Production
 
