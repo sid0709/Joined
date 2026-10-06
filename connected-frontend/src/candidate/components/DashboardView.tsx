@@ -1,7 +1,7 @@
 "use client";
 
-import { Glyph, type GlyphName } from "sid-ui";
 import Link from "next/link";
+import { Glyph, type GlyphName } from "sid-ui";
 
 import { HunterLine } from "@/src/candidate/components/ui/HunterLine";
 import { useBidderWorkspace } from "@/src/candidate/context/BidderWorkspaceContext";

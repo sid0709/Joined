@@ -50,11 +50,11 @@ Do not edit `.env` or frontend files. Stay out of `backend-core/scout/**` and `b
 
 ### Providers (`auth.NewEmailSender`)
 
-| `EMAIL_PROVIDER` | Implementation |
-| --- | --- |
-| `log` or `""` | `DevEmailSender` (slog only) |
-| `smtp` | `SMTPProvider` (STARTTLS; port **465** implicit TLS) |
-| `resend` | `ResendProvider` → `https://api.resend.com/emails` |
+| `EMAIL_PROVIDER` | Implementation                                       |
+| ---------------- | ---------------------------------------------------- |
+| `log` or `""`    | `DevEmailSender` (slog only)                         |
+| `smtp`           | `SMTPProvider` (STARTTLS; port **465** implicit TLS) |
+| `resend`         | `ResendProvider` → `https://api.resend.com/emails`   |
 
 Invalid value → startup error. `ValidateProviderConfig` enforces required fields per provider.
 

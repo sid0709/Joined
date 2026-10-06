@@ -52,13 +52,13 @@ Read only: `joined-frontend/lib/jobs/search.ts`, `joined-frontend/lib/settings.t
 
 **HTTP** (candidate session):
 
-| Method | Path | Success | Body / response |
-| --- | --- | --- | --- |
-| GET | `/v1/me/saved-searches` | 200 | `{ "searches": SavedSearch[] }` |
-| POST | `/v1/me/saved-searches` | 201 | `SavedSearch` |
-| GET | `/v1/me/saved-searches/{id}` | 200 | `SavedSearch` |
-| PATCH | `/v1/me/saved-searches/{id}` | 200 | `SavedSearch` |
-| DELETE | `/v1/me/saved-searches/{id}` | 204 | — |
+| Method | Path                         | Success | Body / response                 |
+| ------ | ---------------------------- | ------- | ------------------------------- |
+| GET    | `/v1/me/saved-searches`      | 200     | `{ "searches": SavedSearch[] }` |
+| POST   | `/v1/me/saved-searches`      | 201     | `SavedSearch`                   |
+| GET    | `/v1/me/saved-searches/{id}` | 200     | `SavedSearch`                   |
+| PATCH  | `/v1/me/saved-searches/{id}` | 200     | `SavedSearch`                   |
+| DELETE | `/v1/me/saved-searches/{id}` | 204     | —                               |
 
 **`SavedSearch` JSON:** `id`, `userId`, `name`, `query`, `filters`, `alertFrequency`, `lastAlertedAt`, `createdAt`, `updatedAt`.
 

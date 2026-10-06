@@ -70,9 +70,9 @@ Item shape (`catalogJob`) embeds `SearchJob` plus `applyLink`, `companyUrl`, `co
 
 ### Env
 
-| Variable | Default | Effect |
-| --- | --- | --- |
-| `SEARCH_ENSURE_INDEX` | false | At `platform.Open`, `EnsureSearchIndexes` (and, after step-22, `EnsureDedupeIndexes`) |
+| Variable              | Default | Effect                                                                                |
+| --------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `SEARCH_ENSURE_INDEX` | false   | At `platform.Open`, `EnsureSearchIndexes` (and, after step-22, `EnsureDedupeIndexes`) |
 
 Only `joined-backend` passes this flag. admin-backend does not. Production is expected to create the text index out of band unless this is set in a controlled env.
 

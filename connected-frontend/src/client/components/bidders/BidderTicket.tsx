@@ -1,5 +1,5 @@
-import { Glyph } from "sid-ui";
 import Link from "next/link";
+import { Glyph } from "sid-ui";
 
 import type { Bidder, Inquiry, Task } from "@/src/shared/types/marketplace";
 

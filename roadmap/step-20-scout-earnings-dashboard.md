@@ -54,12 +54,12 @@ Use `sid-ui` (`PageHeader`, `PageTabs`, `KpiWidget`, `Table`, `EmptyState`). Do 
 
 ### Data
 
-| Loader | Endpoint |
-| --- | --- |
-| `loadStats()` | `GET /v1/scout/stats` |
-| `loadEarningsSummary()` | `GET /v1/scout/earnings/summary` |
-| `loadMeta()` | `GET /v1/scout/meta` |
-| page `scoutGet` | `GET /v1/scout/earnings?limit=&cursor=` |
+| Loader                  | Endpoint                                |
+| ----------------------- | --------------------------------------- |
+| `loadStats()`           | `GET /v1/scout/stats`                   |
+| `loadEarningsSummary()` | `GET /v1/scout/earnings/summary`        |
+| `loadMeta()`            | `GET /v1/scout/meta`                    |
+| page `scoutGet`         | `GET /v1/scout/earnings?limit=&cursor=` |
 
 Auth: Bearer from `scoutwell_session`. App layout redirects unsigned users to sign-in; still render `EarningsSignedOut` if the API returns null.
 

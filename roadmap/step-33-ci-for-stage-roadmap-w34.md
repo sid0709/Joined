@@ -49,16 +49,16 @@ Local mirror: `tools/ci.mjs` (`bun run ci`). Do not change product workspaces.
 
 **`ci.yml` jobs and local equivalents** (`bun run ci <job>`):
 
-| Job | Command |
-| --- | --- |
-| lint | `bun run ci lint` → workspaces lint, repo eslint, `check:boundaries` |
-| format | `bun run ci format` → `format:check` |
-| typecheck | `bun run ci typecheck` |
-| dependencies | `bun run ci dependencies` → `check:deps` |
-| test | `bun run ci test` → `bun test --coverage` + `check:test-policy` |
-| go | `bun run ci go` → `vet:go`, `test:go` (`tools/go.mjs` runs every module in `go.work`: `acorn-backend`, `admin-backend`, `backend-core`, `joined-backend`, `scoutwell-backend`) |
-| build | `bun run ci build` (CI sets placeholder `JOINED_API_URL`, `SCOUTWELL_API_URL`) |
-| commit-conventions | `commitlint --from <merge-base> --to HEAD` |
+| Job                | Command                                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| lint               | `bun run ci lint` → workspaces lint, repo eslint, `check:boundaries`                                                                                                           |
+| format             | `bun run ci format` → `format:check`                                                                                                                                           |
+| typecheck          | `bun run ci typecheck`                                                                                                                                                         |
+| dependencies       | `bun run ci dependencies` → `check:deps`                                                                                                                                       |
+| test               | `bun run ci test` → `bun test --coverage` + `check:test-policy`                                                                                                                |
+| go                 | `bun run ci go` → `vet:go`, `test:go` (`tools/go.mjs` runs every module in `go.work`: `acorn-backend`, `admin-backend`, `backend-core`, `joined-backend`, `scoutwell-backend`) |
+| build              | `bun run ci build` (CI sets placeholder `JOINED_API_URL`, `SCOUTWELL_API_URL`)                                                                                                 |
+| commit-conventions | `commitlint --from <merge-base> --to HEAD`                                                                                                                                     |
 
 **Deploy guard:** `workflow_run` `branches: [main]` plus `head_branch == 'main'` in `ci-succeeded`. Explain this in the PR. `workflow_dispatch` on deploy is a human action, not CI-on-w34.
 

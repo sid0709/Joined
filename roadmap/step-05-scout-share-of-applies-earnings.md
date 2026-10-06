@@ -67,18 +67,18 @@ func (s *Store) RecordApply(ctx context.Context, jobID, candidateID string, appl
 
 ### Config
 
-| Variable | Default | Module |
-| --- | --- | --- |
-| `SCOUT_APPLY_REWARD_CENTS` | `50` | `backend-core/scout/config.go` |
+| Variable                   | Default | Module                         |
+| -------------------------- | ------- | ------------------------------ |
+| `SCOUT_APPLY_REWARD_CENTS` | `50`    | `backend-core/scout/config.go` |
 
 `scoutMeta` must read the store rulebook so `apply_reward` matches env.
 
 ### Read API (session or API key)
 
-| Method | Path | Query | Response |
-| --- | --- | --- | --- |
-| `GET` | `/v1/scout/earnings` | `status`, `submission_id`, `cursor`, `limit` | `scout.List` `{data, next_cursor}` |
-| `GET` | `/v1/scout/earnings/summary` | — | `EarningsSummary` `{by_type, total}` (`Money`: `amount_cents`, `currency`) |
+| Method | Path                         | Query                                        | Response                                                                   |
+| ------ | ---------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- |
+| `GET`  | `/v1/scout/earnings`         | `status`, `submission_id`, `cursor`, `limit` | `scout.List` `{data, next_cursor}`                                         |
+| `GET`  | `/v1/scout/earnings/summary` | —                                            | `EarningsSummary` `{by_type, total}` (`Money`: `amount_cents`, `currency`) |
 
 Money and labels come from `@joined/scout`. Do not hard-code dollar strings in the API.
 

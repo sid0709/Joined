@@ -51,10 +51,10 @@ Read only: `scout-extension/src/api/client.ts`, `scout-extension/src/status/poll
 
 **`GET /v1/scout/notifications`** — session only (no API keys).
 
-| Mode | Query | Sort | Cursor |
-| --- | --- | --- | --- |
+| Mode        | Query                               | Sort                        | Cursor                                 |
+| ----------- | ----------------------------------- | --------------------------- | -------------------------------------- |
 | Change feed | `since` present (value may be `""`) | oldest first, `_id > since` | last seen notification `id` as `since` |
-| Inbox | `since` absent | newest first | `cursor` + optional `limit` |
+| Inbox       | `since` absent                      | newest first                | `cursor` + optional `limit`            |
 
 Constants: `scout.SinceQuery = "since"`, `NotificationsPath`, `MarkReadPath`. Invalid `since` (not an id) → 422 `validation_failed`.
 

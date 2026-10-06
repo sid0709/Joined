@@ -52,12 +52,12 @@ Stay out of `backend-core/scout/**` and `backend-core/billing/**`.
 
 ### Role names in code (not the roadmap nicknames)
 
-| Roadmap term | Constant | Value |
-| --- | --- | --- |
-| Seeker | `auth.RoleCandidate` | `"candidate"` |
-| Company / recruiter | `auth.RoleEmployee` | `"employee"` |
-| Scout | `auth.RoleScout` | `"scout"` |
-| Staff | `auth.Staff` + Google workspace | not a `RequireRole` user role |
+| Roadmap term        | Constant                        | Value                         |
+| ------------------- | ------------------------------- | ----------------------------- |
+| Seeker              | `auth.RoleCandidate`            | `"candidate"`                 |
+| Company / recruiter | `auth.RoleEmployee`             | `"employee"`                  |
+| Scout               | `auth.RoleScout`                | `"scout"`                     |
+| Staff               | `auth.Staff` + Google workspace | not a `RequireRole` user role |
 
 ### Middleware
 

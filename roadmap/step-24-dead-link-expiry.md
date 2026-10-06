@@ -67,16 +67,16 @@ if expiryCfg.Enabled {
 
 **Tuning env** (`LoadExpiryConfig` in `expiry.go`):
 
-| Variable | Default |
-| --- | --- |
-| `JOBS_EXPIRY_FAILURES` | `3` consecutive failures before expire |
-| `JOBS_EXPIRY_TIMEOUT` | `10s` |
-| `JOBS_EXPIRY_HOST_INTERVAL` | `1s` per-host polite gap |
-| `JOBS_EXPIRY_POLL_INTERVAL` | `1h` |
-| `JOBS_EXPIRY_BATCH` | `50` jobs per tick |
-| `JOBS_EXPIRY_SCOUTED_INTERVAL` | `24h` |
-| `JOBS_EXPIRY_AGGREGATED_INTERVAL` | same as scouted |
-| `JOBS_EXPIRY_DIRECT_INTERVAL` | `168h` (7d) |
+| Variable                          | Default                                |
+| --------------------------------- | -------------------------------------- |
+| `JOBS_EXPIRY_FAILURES`            | `3` consecutive failures before expire |
+| `JOBS_EXPIRY_TIMEOUT`             | `10s`                                  |
+| `JOBS_EXPIRY_HOST_INTERVAL`       | `1s` per-host polite gap               |
+| `JOBS_EXPIRY_POLL_INTERVAL`       | `1h`                                   |
+| `JOBS_EXPIRY_BATCH`               | `50` jobs per tick                     |
+| `JOBS_EXPIRY_SCOUTED_INTERVAL`    | `24h`                                  |
+| `JOBS_EXPIRY_AGGREGATED_INTERVAL` | same as scouted                        |
+| `JOBS_EXPIRY_DIRECT_INTERVAL`     | `168h` (7d)                            |
 
 **Probe:** User-Agent `JoinedBot/1.0 (+job apply-link verification)`. HEAD first, GET if needed. Max 5 redirects. GET body capped at 1 MiB.
 

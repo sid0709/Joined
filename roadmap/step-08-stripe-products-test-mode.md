@@ -51,16 +51,16 @@ Do not edit `joined-backend/**`, `scoutwell-backend/**`, or `backend-core/scout/
 
 ### Env (`backend-core/billing/config.go`)
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `STRIPE_SECRET_KEY` | Yes for `LoadConfig()` | API key; test `sk_test_…` |
-| `STRIPE_WEBHOOK_SECRET` | For webhook verify | Signature secret |
-| `STRIPE_ALLOW_LIVE` | No (default false) | Allow `sk_live_` / `rk_live_` |
-| `PREMIUM_MONTHLY_PRICE_CENTS` | No (default **2900**) | Monthly amount |
-| `PREMIUM_YEARLY_PRICE_CENTS` | No (default **29000**) | Yearly amount |
-| `BILLING_CHECKOUT_SUCCESS_URL` | No | Reserved for step-29 |
-| `BILLING_CHECKOUT_CANCEL_URL` | No | Reserved for step-29 |
-| `BILLING_PORTAL_RETURN_URL` | No | Reserved for step-29 |
+| Variable                       | Required               | Purpose                       |
+| ------------------------------ | ---------------------- | ----------------------------- |
+| `STRIPE_SECRET_KEY`            | Yes for `LoadConfig()` | API key; test `sk_test_…`     |
+| `STRIPE_WEBHOOK_SECRET`        | For webhook verify     | Signature secret              |
+| `STRIPE_ALLOW_LIVE`            | No (default false)     | Allow `sk_live_` / `rk_live_` |
+| `PREMIUM_MONTHLY_PRICE_CENTS`  | No (default **2900**)  | Monthly amount                |
+| `PREMIUM_YEARLY_PRICE_CENTS`   | No (default **29000**) | Yearly amount                 |
+| `BILLING_CHECKOUT_SUCCESS_URL` | No                     | Reserved for step-29          |
+| `BILLING_CHECKOUT_CANCEL_URL`  | No                     | Reserved for step-29          |
+| `BILLING_PORTAL_RETURN_URL`    | No                     | Reserved for step-29          |
 
 `LoadConfig()` must error if the key is live and `STRIPE_ALLOW_LIVE` is not true.
 

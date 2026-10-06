@@ -56,14 +56,14 @@ Do not touch `backend-core/scout/**`, `backend-core/billing/**`, or frontend app
 
 JSON errors: `{"error":"<message>"}` via `httpkit.WriteError`. Max body: 16 KiB.
 
-| Method | Path | Body | Success |
-| --- | --- | --- | --- |
-| `POST` | `/v1/auth/signup` | `{email, password, name, role?}` | `200` `{message}` (same text for new and duplicate email) |
-| `POST` | `/v1/auth/verify` | `{token}` | `200` `{message}` |
-| `POST` | `/v1/auth/signin` | `{email, password}` | `200` `{token, session}` |
-| `POST` | `/v1/auth/signout` | Bearer | `204` |
-| `POST` | `/v1/auth/password/reset-request` | `{email}` | `200` `{message}` (always the same) |
-| `POST` | `/v1/auth/password/reset` | `{token, newPassword}` | `200` `{message}` |
+| Method | Path                              | Body                             | Success                                                   |
+| ------ | --------------------------------- | -------------------------------- | --------------------------------------------------------- |
+| `POST` | `/v1/auth/signup`                 | `{email, password, name, role?}` | `200` `{message}` (same text for new and duplicate email) |
+| `POST` | `/v1/auth/verify`                 | `{token}`                        | `200` `{message}`                                         |
+| `POST` | `/v1/auth/signin`                 | `{email, password}`              | `200` `{token, session}`                                  |
+| `POST` | `/v1/auth/signout`                | Bearer                           | `204`                                                     |
+| `POST` | `/v1/auth/password/reset-request` | `{email}`                        | `200` `{message}` (always the same)                       |
+| `POST` | `/v1/auth/password/reset`         | `{token, newPassword}`           | `200` `{message}`                                         |
 
 Existing Google routes and `GET /v1/auth/session` stay. Paths are `signin` / `signout`, not `login` / `logout`.
 
@@ -83,13 +83,13 @@ Interface `auth.EmailSender`: `SendVerification`, `SendPasswordReset`, `SendDupl
 
 ### Mongo (`DEST_DB`)
 
-| Collection | Notes |
-| --- | --- |
-| `users` | Unique `email`; `passwordHash`, `passwordSalt`, `verified` |
-| `sessions` | Unique `tokenHash` |
-| `email_verifications` | Unique `tokenHash`, TTL `expiresAt` |
-| `password_resets` | Unique `tokenHash`, TTL `expiresAt` |
-| `login_attempts` | Unique `email` |
+| Collection            | Notes                                                      |
+| --------------------- | ---------------------------------------------------------- |
+| `users`               | Unique `email`; `passwordHash`, `passwordSalt`, `verified` |
+| `sessions`            | Unique `tokenHash`                                         |
+| `email_verifications` | Unique `tokenHash`, TTL `expiresAt`                        |
+| `password_resets`     | Unique `tokenHash`, TTL `expiresAt`                        |
+| `login_attempts`      | Unique `email`                                             |
 
 ## Acceptance criteria
 

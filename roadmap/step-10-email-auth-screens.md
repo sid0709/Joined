@@ -56,13 +56,13 @@ Do not edit `packages/google-signin/**` unless a shared helper is broken (it was
 
 ### Browser → Next → joined-backend
 
-| App route | Backend |
-| --- | --- |
-| `POST /api/auth/signup` | `POST /v1/auth/signup` |
-| `POST /api/auth/signin` | `POST /v1/auth/signin` then `writeSessionCookie` |
-| `POST /api/auth/verify` | `POST /v1/auth/verify` |
-| `POST /api/auth/password/reset-request` | `POST /v1/auth/password/reset-request` |
-| `POST /api/auth/password/reset` | `POST /v1/auth/password/reset` |
+| App route                               | Backend                                          |
+| --------------------------------------- | ------------------------------------------------ |
+| `POST /api/auth/signup`                 | `POST /v1/auth/signup`                           |
+| `POST /api/auth/signin`                 | `POST /v1/auth/signin` then `writeSessionCookie` |
+| `POST /api/auth/verify`                 | `POST /v1/auth/verify`                           |
+| `POST /api/auth/password/reset-request` | `POST /v1/auth/password/reset-request`           |
+| `POST /api/auth/password/reset`         | `POST /v1/auth/password/reset`                   |
 
 `JOINED_API_URL` is the server-side API base (`joined-frontend/.env.example`). Cookie name: `joined_session` (httpOnly, 30d), same as Google callback.
 

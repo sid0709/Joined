@@ -60,14 +60,14 @@ Do not edit `scoutwell-backend/**` or `backend-core/billing/**`. Do not recreate
 
 **Switch names** (`killswitch.Name`):
 
-| Name | Env | Default when unset | Wired in this step |
-| --- | --- | --- | --- |
-| `signup` | `KILLSWITCH_SIGNUP` | on | `authapi` email signup and new Google accounts |
-| `email` | `KILLSWITCH_EMAIL` | on | `authapi` outbound verification / reset mail |
-| `job_imports` | `KILLSWITCH_JOB_IMPORTS` | on | admin migration copy + `copyjobs` / `copycompanies` + import runner gate |
-| `acorn_ai` | `KILLSWITCH_ACORN_AI` | on | `acorn-backend/acornapi` model routes (`server.go`); env also in `acorn-backend/.env.example` |
-| `scout_submissions` | `KILLSWITCH_SCOUT_SUBMISSIONS` | on | staff flip only; Penny wires Scoutwell |
-| `checkout` | `KILLSWITCH_CHECKOUT` | on | staff flip only; Penny wires billing |
+| Name                | Env                            | Default when unset | Wired in this step                                                                            |
+| ------------------- | ------------------------------ | ------------------ | --------------------------------------------------------------------------------------------- |
+| `signup`            | `KILLSWITCH_SIGNUP`            | on                 | `authapi` email signup and new Google accounts                                                |
+| `email`             | `KILLSWITCH_EMAIL`             | on                 | `authapi` outbound verification / reset mail                                                  |
+| `job_imports`       | `KILLSWITCH_JOB_IMPORTS`       | on                 | admin migration copy + `copyjobs` / `copycompanies` + import runner gate                      |
+| `acorn_ai`          | `KILLSWITCH_ACORN_AI`          | on                 | `acorn-backend/acornapi` model routes (`server.go`); env also in `acorn-backend/.env.example` |
+| `scout_submissions` | `KILLSWITCH_SCOUT_SUBMISSIONS` | on                 | staff flip only; Penny wires Scoutwell                                                        |
+| `checkout`          | `KILLSWITCH_CHECKOUT`          | on                 | staff flip only; Penny wires billing                                                          |
 
 Off values: `off`, `false`, `0`, `no`, `disabled` (case-insensitive).
 

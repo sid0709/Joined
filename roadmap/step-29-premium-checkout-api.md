@@ -55,12 +55,12 @@ A `go.mod` / `go.sum` change only if Elon approved it. Do not edit `scoutwell-ba
 
 **Mounted only when `STRIPE_SECRET_KEY` is non-empty.** Otherwise billing routes 404.
 
-| Method | Path | Auth | Body / response |
-| --- | --- | --- | --- |
-| `POST` | `/v1/me/billing/checkout` | Candidate session | `{ "plan": "monthly"\|"yearly", "success_url", "cancel_url" }` → `{ "url" }` |
-| `POST` | `/v1/me/billing/portal` | Candidate | `{ "return_url" }` → `{ "url" }` |
-| `GET` | `/v1/me/billing/subscription` | Candidate | `{ "premium", "status?", "plan?", "current_period_end?" }` |
-| `POST` | `/v1/webhooks/stripe` | Stripe signature | webhook events |
+| Method | Path                          | Auth              | Body / response                                                              |
+| ------ | ----------------------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `POST` | `/v1/me/billing/checkout`     | Candidate session | `{ "plan": "monthly"\|"yearly", "success_url", "cancel_url" }` → `{ "url" }` |
+| `POST` | `/v1/me/billing/portal`       | Candidate         | `{ "return_url" }` → `{ "url" }`                                             |
+| `GET`  | `/v1/me/billing/subscription` | Candidate         | `{ "premium", "status?", "plan?", "current_period_end?" }`                   |
+| `POST` | `/v1/webhooks/stripe`         | Stripe signature  | webhook events                                                               |
 
 Constants: `billing.CheckoutPath`, `PortalPath`, `SubscriptionPath`, `WebhookPath = "/v1/webhooks/stripe"`. Plans: `PlanMonthly`, `PlanYearly`. Employee role → 403 on `/v1/me/billing/*`.
 
@@ -70,16 +70,16 @@ Constants: `billing.CheckoutPath`, `PortalPath`, `SubscriptionPath`, `WebhookPat
 
 **Env:**
 
-| Variable | Purpose |
-| --- | --- |
-| `STRIPE_SECRET_KEY` | Required to mount billing |
-| `STRIPE_WEBHOOK_SECRET` | Webhook verification |
-| `STRIPE_ALLOW_LIVE` | Default false; live keys blocked without `true` |
-| `PREMIUM_MONTHLY_PRICE_CENTS` | Default 2900 |
-| `PREMIUM_YEARLY_PRICE_CENTS` | Default 29000 |
-| `BILLING_CHECKOUT_SUCCESS_URL` | Default if request omits |
-| `BILLING_CHECKOUT_CANCEL_URL` | Default cancel |
-| `BILLING_PORTAL_RETURN_URL` | Default portal return |
+| Variable                       | Purpose                                         |
+| ------------------------------ | ----------------------------------------------- |
+| `STRIPE_SECRET_KEY`            | Required to mount billing                       |
+| `STRIPE_WEBHOOK_SECRET`        | Webhook verification                            |
+| `STRIPE_ALLOW_LIVE`            | Default false; live keys blocked without `true` |
+| `PREMIUM_MONTHLY_PRICE_CENTS`  | Default 2900                                    |
+| `PREMIUM_YEARLY_PRICE_CENTS`   | Default 29000                                   |
+| `BILLING_CHECKOUT_SUCCESS_URL` | Default if request omits                        |
+| `BILLING_CHECKOUT_CANCEL_URL`  | Default cancel                                  |
+| `BILLING_PORTAL_RETURN_URL`    | Default portal return                           |
 
 **`SyncProducts`** is not called at joined-backend startup — only in tests/README (ops before real Checkout).
 

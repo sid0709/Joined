@@ -54,10 +54,10 @@ Read only: `backend-core/scout/types.go` `ReasonScam`, `admin-frontend/component
 
 **Admin API** (bearer `ADMIN_API_TOKEN`; `X-Admin-Session` when staff Google is required):
 
-| Method | Path | Response |
-| --- | --- | --- |
-| GET | `/v1/admin/scam-jobs?status=&page=&pageSize=` | `{ jobs[], total, page, pageSize, next? }` |
-| POST | `/v1/admin/scam-jobs/{id}/review` | `{ "job": Hold }` |
+| Method | Path                                          | Response                                   |
+| ------ | --------------------------------------------- | ------------------------------------------ |
+| GET    | `/v1/admin/scam-jobs?status=&page=&pageSize=` | `{ jobs[], total, page, pageSize, next? }` |
+| POST   | `/v1/admin/scam-jobs/{id}/review`             | `{ "job": Hold }`                          |
 
 Review body: `{ "decision": "approve" | "reject", "reason": "required string" }`. Reject without reason → 422. Nil `ScamHolds` → 503 `"Scam review is unavailable."`
 

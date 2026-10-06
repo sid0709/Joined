@@ -73,15 +73,15 @@ Do not touch `backend-core/scout/`, `backend-core/billing/`, or frontends.
 
 **Env** (`backend-core/config/job_import.go`):
 
-| Variable | Default / behavior |
-| --- | --- |
-| `JOB_IMPORT_ENABLED` | `true`/`1` to enable the runner |
-| `JOB_IMPORT_INTERVAL` | `1h` |
-| `JOB_IMPORT_SOURCES` | comma list; empty → all sources off |
-| `JOB_IMPORT_RUNS_COLLECTION` | `job_import_runs` |
-| `JOB_IMPORT_LOCKS_COLLECTION` | `job_import_locks` |
-| `JOB_IMPORT_RECENT_LIMIT` | `20` |
-| `JOB_IMPORT_TIMEOUT` | `20m` (run + lock TTL) |
+| Variable                      | Default / behavior                  |
+| ----------------------------- | ----------------------------------- |
+| `JOB_IMPORT_ENABLED`          | `true`/`1` to enable the runner     |
+| `JOB_IMPORT_INTERVAL`         | `1h`                                |
+| `JOB_IMPORT_SOURCES`          | comma list; empty → all sources off |
+| `JOB_IMPORT_RUNS_COLLECTION`  | `job_import_runs`                   |
+| `JOB_IMPORT_LOCKS_COLLECTION` | `job_import_locks`                  |
+| `JOB_IMPORT_RECENT_LIMIT`     | `20`                                |
+| `JOB_IMPORT_TIMEOUT`          | `20m` (run + lock TTL)              |
 
 **Pipeline:** fetch → `ImportRecord.Normalize()` → `PlanDedupeWrite` → `Store.Stage()` upserts into `DEST_DB` / `DEST_COLLECTION` (`temp_jobs`) on `(source, sourceRef)`.
 

@@ -55,10 +55,10 @@ What shipped in #68: typed `ScoutApiClient.getMe()`, cookie → `Authorization: 
 
 ### Hosts and env
 
-| Variable | Purpose | Dev default | Prod default |
-| --- | --- | --- | --- |
-| `VITE_SCOUT_API_HOST` | Scout API base, no trailing slash | `http://127.0.0.1:8082` | `https://scout.joinedhq.com` |
-| `VITE_SCOUTWELL_WEB_ORIGIN` | Sign-in page + cookie origin | `http://localhost:6003` | `https://scout.joinedhq.com` |
+| Variable                    | Purpose                           | Dev default             | Prod default                 |
+| --------------------------- | --------------------------------- | ----------------------- | ---------------------------- |
+| `VITE_SCOUT_API_HOST`       | Scout API base, no trailing slash | `http://127.0.0.1:8082` | `https://scout.joinedhq.com` |
+| `VITE_SCOUTWELL_WEB_ORIGIN` | Sign-in page + cookie origin      | `http://localhost:6003` | `https://scout.joinedhq.com` |
 
 Dev unpacked `host_permissions` (source manifest): `http://127.0.0.1:8082/*`, `http://localhost:8082/*`, `http://localhost:6003/*`. Production builds replace these via `vite.config.ts` (`uniqueHostPermissions([apiHost, webOrigin])`).
 

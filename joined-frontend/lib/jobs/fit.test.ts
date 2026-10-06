@@ -11,7 +11,7 @@ import {
 
 const realFetch = globalThis.fetch;
 
-function fit(patch: Partial<JobFit> = {}): JobFit {
+function sampleFit(patch: Partial<JobFit> = {}): JobFit {
   return {
     jobId: "job-1",
     score: 82,
@@ -32,14 +32,14 @@ afterEach(() => {
 
 describe("fit score display", () => {
   test("hides the score for guests and omitted payloads", () => {
-    expect(visibleFit(false, fit())).toBeNull();
+    expect(visibleFit(false, sampleFit())).toBeNull();
     expect(visibleFit(true, null)).toBeNull();
     expect(visibleFit(true, undefined)).toBeNull();
-    expect(visibleFit(true, fit({ score: 1.5 }))).toBeNull();
+    expect(visibleFit(true, sampleFit({ score: 1.5 }))).toBeNull();
   });
 
   test("keeps a signed-in score and maps the title criterion to the role label", () => {
-    const shown = visibleFit(true, fit());
+    const shown = visibleFit(true, sampleFit());
     expect(shown?.score).toBe(82);
     expect(shown?.reason).toBe("Title matches your target role");
     expect(criterionLabel({ id: FIT_TITLE_CRITERION, label: "Title" })).toBe("Title");

@@ -19,10 +19,10 @@ Read `docs/14-job-pool-and-matching.md` (weights: role 30, skills 25, seniority 
 
 **#108 as implemented (not on `stage-roadmap-w34` until merge):** new package `backend-core/fitscore/` and dedicated endpoints — **not** fields on `/v1/search/jobs`:
 
-| Method | Path | Auth |
-| --- | --- | --- |
-| GET | `/v1/me/fit/{jobId}` | Candidate session |
-| POST | `/v1/me/fit` | Candidate; body `{ "jobIds": string[] }` max 100 |
+| Method | Path                 | Auth                                             |
+| ------ | -------------------- | ------------------------------------------------ |
+| GET    | `/v1/me/fit/{jobId}` | Candidate session                                |
+| POST   | `/v1/me/fit`         | Candidate; body `{ "jobIds": string[] }` max 100 |
 
 `fitscore.Result`: `score` (0–100), `reason`, `confidence` (`high`\|`low`), `modelVersion` (`fitscore-v1`), `criteria[]` (`id`, `label`, `detail`, `level`), `needsVisa`.
 

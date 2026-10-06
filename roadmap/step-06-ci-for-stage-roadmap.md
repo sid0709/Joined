@@ -43,17 +43,17 @@ Do not edit `tests/**`, app code, or `tools/ci.mjs` unless a trigger comment bel
 
 ### CI jobs (must all run on the staging branch)
 
-| Job id | Display name | Command |
-| --- | --- | --- |
-| `lint` | Lint and workspace boundaries | `bun run ci lint` |
-| `format` | Check formatting | `bun run ci format` |
-| `typecheck` | Typecheck all workspaces | `bun run ci typecheck` |
-| `dependencies` | One version per library | `bun run ci dependencies` |
-| `test` | Test and coverage | `bun run ci test` |
-| `go` | Vet and test Go | `bun run ci go` |
-| `build` | Build applications | `bun run ci build` |
-| `commit-conventions` | Check commit conventions and PR title | commitlint |
-| `ci-passed` | All CI passed | gates on the jobs above |
+| Job id               | Display name                          | Command                   |
+| -------------------- | ------------------------------------- | ------------------------- |
+| `lint`               | Lint and workspace boundaries         | `bun run ci lint`         |
+| `format`             | Check formatting                      | `bun run ci format`       |
+| `typecheck`          | Typecheck all workspaces              | `bun run ci typecheck`    |
+| `dependencies`       | One version per library               | `bun run ci dependencies` |
+| `test`               | Test and coverage                     | `bun run ci test`         |
+| `go`                 | Vet and test Go                       | `bun run ci go`           |
+| `build`              | Build applications                    | `bun run ci build`        |
+| `commit-conventions` | Check commit conventions and PR title | commitlint                |
+| `ci-passed`          | All CI passed                         | gates on the jobs above   |
 
 Local parity: `bun run ci` runs the same list via `tools/ci.mjs`. Commitlint is `bunx commitlint --from <merge-base> --to HEAD`; every commit message must be `type(scope): subject`.
 

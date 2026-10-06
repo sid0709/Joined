@@ -1,7 +1,7 @@
 "use client";
 
-import { Table } from "sid-ui";
 import { useState } from "react";
+import { Table } from "sid-ui";
 
 import { InvoiceDetail } from "@/src/client/components/billing/InvoiceDetail";
 import { SpendBreakdowns, TransactionsPanel } from "@/src/client/components/billing/SpendPanels";

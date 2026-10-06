@@ -1,7 +1,7 @@
 "use client";
 
-import { Rating } from "sid-ui";
 import { useState } from "react";
+import { Rating } from "sid-ui";
 
 import { useHunter } from "@/src/client/context/HunterContext";
 import { Person } from "@/src/shared/kit/Person";

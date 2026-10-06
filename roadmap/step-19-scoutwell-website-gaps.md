@@ -53,25 +53,25 @@ What shipped in #83: `/`, `/how-it-works`, `/earn`, `/install`, `/faq`, `/extens
 
 ### Routes
 
-| URL | Purpose |
-| --- | --- |
-| `/` | Landing |
-| `/how-it-works` | How Scout works |
-| `/earn` | How scouts earn |
-| `/install` | Install the extension |
-| `/faq` | FAQ |
-| `/extension` | Extension sign-in landing |
+| URL             | Purpose                   |
+| --------------- | ------------------------- |
+| `/`             | Landing                   |
+| `/how-it-works` | How Scout works           |
+| `/earn`         | How scouts earn           |
+| `/install`      | Install the extension     |
+| `/faq`          | FAQ                       |
+| `/extension`    | Extension sign-in landing |
 
 Marketing shell: `app/(marketing)/layout.tsx` with `ScoutHeader` `audience="site"` and `BrandFooter`. Nav: How it works, Earn, Install, FAQ.
 
 ### Env
 
-| Variable | Purpose |
-| --- | --- |
-| `SCOUTWELL_API_URL` | Server API |
+| Variable                    | Purpose                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| `SCOUTWELL_API_URL`         | Server API                                                |
 | `SCOUT_EXTENSION_STORE_URL` | Chrome listing; empty → install placeholder (no dead CTA) |
-| `JOINED_WEB_URL` | Link back to Joined if needed |
-| `SCOUT_PUBLIC_API_URL` | Public API if already used |
+| `JOINED_WEB_URL`            | Link back to Joined if needed                             |
+| `SCOUT_PUBLIC_API_URL`      | Public API if already used                                |
 
 `extensionStoreUrl()` in `lib/config.ts`. Do not hard-code the Chrome Web Store URL.
 
