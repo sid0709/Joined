@@ -148,7 +148,7 @@ Target branch: **`stage-roadmap-w34`**.
 | [step-58](step-58-e2e-scout-acorn.md)            | E2E scout + Acorn journeys                      | Quinn      | Done    |
 | [step-59](step-59-stripe-live-config.md)         | Live keys wiring (needs explicit user approval) | Penny      | Done    |
 | [step-60](step-60-non-us-payout-test.md)         | Test harness for one non-US payout              | Penny      | Done    |
-| [step-61](step-61-security-pass.md)              | Security pass findings + fixes PRs              | Quinn      | Planned |
+| [step-61](step-61-security-pass.md)              | Security pass findings + fixes PRs              | Quinn      | Done    |
 | [step-62](step-62-load-test-search.md)           | Load test search/job pages                      | Quinn/Ravi | Planned |
 | [step-63](step-63-prod-domains-monitoring.md)    | Domains, backups, monitoring hooks              | Ravi       | Planned |
 | [step-64](step-64-scraper-feedback-fixes.md)     | Top scraper week-1 extension fixes              | Maya       | Planned |
