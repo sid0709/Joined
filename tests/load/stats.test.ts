@@ -73,7 +73,7 @@ describe("load origins", () => {
 
 describe("load runner", () => {
   it("requires a fixture job id", async () => {
-    const report = await runFromEnv({}, async () => ({ ok: true, status: 200 }));
+    const report = await runFromEnv({}, () => Promise.resolve({ ok: true, status: 200 }));
     expect(report.exitCode).toBe(1);
     expect(report.lines[0]).toContain("LOAD_JOB_ID is required");
   });
