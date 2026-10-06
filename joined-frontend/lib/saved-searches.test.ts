@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { DEFAULT_FILTERS, type JobFilters } from "@/lib/jobs";
+
+import { DEFAULT_FILTERS, type JobFilters } from "@/lib/jobs/search";
 import { CompanyRequestError } from "@/lib/me/client";
+
 import {
   HIDDEN_JOB_SOURCE,
   MAX_SAVED_SEARCH_NAME_LENGTH,

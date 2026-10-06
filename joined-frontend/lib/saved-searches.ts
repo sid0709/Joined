@@ -1,14 +1,15 @@
 import { EMPLOYMENTS, SENIORITIES, WORKPLACES } from "@joined/job-schema";
+
+import type { JobSource } from "@/lib/jobs/types";
 import {
   DEFAULT_FILTERS,
   PAY_FLOOR_MAX,
   POSTED_WITHIN,
   SORTS,
   type JobFilters,
-  type JobSource,
   type PostedWithin,
   type SortKey,
-} from "@/lib/jobs";
+} from "@/lib/jobs/search";
 import { CompanyRequestError, meGet, meSend } from "@/lib/me/client";
 import { DEFAULT_CURRENCY } from "@/lib/profile";
 
