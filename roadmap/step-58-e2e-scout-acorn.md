@@ -1,12 +1,14 @@
 # Step 58: E2E scout and Acorn journeys
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Quinn (tests and CI lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `test(e2e): scout and acorn journeys (roadmap step-58)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+Acorn landing and sign-in are `test.skip` in `tests/e2e/specs/acorn-frontend.e2e.ts`. The website and API are in the sibling Acorn repo, so this branch does not start them and does not fail the suite. Scoutwell home, sign-in, earnings, and payouts are covered.
 
 ## Goal
 

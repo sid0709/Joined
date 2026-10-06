@@ -15,6 +15,13 @@ export const AUTH_PATHS = {
   settingsBilling: "/settings?section=billing",
 } as const;
 
+export const SCOUT_PATHS = {
+  home: "/",
+  signIn: "/sign-in",
+  earnings: "/earnings",
+  payouts: "/payouts",
+} as const;
+
 export function jobPath(id: string) {
   return `/jobs/${encodeURIComponent(id)}`;
 }
