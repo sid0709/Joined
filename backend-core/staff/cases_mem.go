@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Mem is an in-memory staff API for tests. Company and job methods are unused.
@@ -25,6 +27,41 @@ func NewMem() *Mem {
 		reports: map[string]storedReport{},
 		claims:  map[string]reportClaim{},
 	}
+}
+
+// WriteAudit records one admin_audit row and returns its id.
+func (m *Mem) WriteAudit(_ context.Context, action, subjectType, subjectID, actor, note string, now time.Time) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	doc := storedAudit{
+		ID:          bson.NewObjectID(),
+		Action:      action,
+		SubjectType: subjectType,
+		SubjectID:   subjectID,
+		Actor:       actor,
+		Note:        note,
+		At:          now.UTC(),
+	}
+	m.audits = append(m.audits, doc)
+	return doc.ID.Hex(), nil
+}
+
+// AuditsFor returns audit rows for one subject, newest first.
+func (m *Mem) AuditsFor(_ context.Context, subjectID string) ([]AuditEntry, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []AuditEntry
+	for i := len(m.audits) - 1; i >= 0; i-- {
+		doc := m.audits[i]
+		if doc.SubjectID != subjectID {
+			continue
+		}
+		out = append(out, AuditEntry{
+			Action: doc.Action, SubjectType: doc.SubjectType, SubjectID: doc.SubjectID,
+			Actor: doc.Actor, Note: doc.Note, At: doc.At,
+		})
+	}
+	return out, nil
 }
 
 // Audits returns recorded admin_audit rows in insertion order.

@@ -35,6 +35,22 @@
 - Bulk actions (e.g. expire 1,000 jobs) require confirmation with count and are reversible where possible.
 - Config changes versioned with diff and rollback.
 
+## Staff user API
+
+`admin-backend` serves these routes behind `ADMIN_API_TOKEN` and `X-Admin-Actor`. Email is masked (`h*****@example.com`) unless `POST /v1/admin/users/{id}/reveal` includes a reason. Each mutation writes `admin_audit`.
+
+| Method | Path                                  | Body                           |
+| ------ | ------------------------------------- | ------------------------------ |
+| GET    | `/v1/admin/users?email=` or `?id=`    | masked profile                 |
+| GET    | `/v1/admin/users/{id}`                | detail and timeline            |
+| POST   | `/v1/admin/users/{id}/premium/cancel` | `{ "reason" }`                 |
+| POST   | `/v1/admin/users/{id}/premium/refund` | `{ "reason", "amount_cents" }` |
+| POST   | `/v1/admin/users/{id}/suspend`        | `{ "reason" }`                 |
+| POST   | `/v1/admin/users/{id}/unsuspend`      | `{ "reason" }`                 |
+| POST   | `/v1/admin/users/{id}/reveal`         | `{ "reason" }`                 |
+
+Suspend sets `users.suspendedAt`. Later `Session` and email sign-in return `account suspended`. Cancel and refund update the stored Joined subscription and do not call Stripe.
+
 ## Acceptance criteria
 
 - Changing `hold_period_days` creates a versioned config entry and applies only to interviews confirmed afterward.

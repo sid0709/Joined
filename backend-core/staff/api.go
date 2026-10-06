@@ -22,6 +22,8 @@ type API interface {
 	FileReport(ctx context.Context, actor, idempotencyKey, bodyHash string, input ReportFiling, now time.Time) (ReportResult, bool, error)
 	ListReports(ctx context.Context, query ReportQuery) (ReportList, error)
 	AppealReport(ctx context.Context, id, actor string, input ReportAppeal, now time.Time) (ReportResult, error)
+	WriteAudit(ctx context.Context, action, subjectType, subjectID, actor, note string, now time.Time) (string, error)
+	AuditsFor(ctx context.Context, subjectID string) ([]AuditEntry, error)
 }
 
 var (
