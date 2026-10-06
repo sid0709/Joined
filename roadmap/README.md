@@ -129,7 +129,7 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Done        |
 | [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | BLOCKED     |
 | [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Done        |
-| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Planned     |
+| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Done        |
 | [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Planned     |
 
 If step-54 is too large, split into 54a sources (Ravi), 54b quality dashboard (Ravi), 54c earnings report (Penny), 54d disputes (Penny) and adjust counts with Sid.
