@@ -113,6 +113,7 @@ func (s *MongoStore) UpsertSubscription(ctx context.Context, sub Subscription) e
 			StripeSubscriptionID: sub.StripeSubscriptionID,
 			Status:               sub.Status,
 			Plan:                 string(sub.Plan),
+			Product:              sub.Product,
 			CurrentPeriodEnd:     sub.CurrentPeriodEnd,
 			UpdatedAt:            sub.UpdatedAt,
 		}}},
@@ -159,6 +160,7 @@ type storedSubscription struct {
 	StripeSubscriptionID string    `bson:"stripe_subscription_id"`
 	Status               string    `bson:"status"`
 	Plan                 string    `bson:"plan"`
+	Product              string    `bson:"product,omitempty"`
 	CurrentPeriodEnd     time.Time `bson:"current_period_end"`
 	UpdatedAt            time.Time `bson:"updated_at"`
 }
@@ -170,6 +172,7 @@ func (s storedSubscription) toSubscription() Subscription {
 		StripeSubscriptionID: s.StripeSubscriptionID,
 		Status:               s.Status,
 		Plan:                 Plan(s.Plan),
+		Product:              s.Product,
 		CurrentPeriodEnd:     s.CurrentPeriodEnd,
 		UpdatedAt:            s.UpdatedAt,
 	}

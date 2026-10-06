@@ -9,11 +9,13 @@ import (
 	"time"
 )
 
-// CheckoutParams starts a Premium Checkout session for a Joined user.
+// CheckoutParams starts a Checkout session.
+// Product is ProductPremium (or empty) or ProductAcorn. Acorn does not grant Joined Premium.
 type CheckoutParams struct {
 	UserID     string
 	Email      string
 	Plan       string
+	Product    string
 	SuccessURL string
 	CancelURL  string
 }
@@ -61,7 +63,7 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, params CheckoutPara
 	if err != nil {
 		return nil, err
 	}
-	lookupKey, err := planLookupKey(plan)
+	product, lookupKey, err := checkoutLookupKey(params.Product, plan)
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +76,9 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, params CheckoutPara
 		return nil, err
 	}
 	meta := map[string]string{
-		metadataUserIDKey: params.UserID,
-		metadataPlanKey:   string(plan),
+		metadataUserIDKey:  params.UserID,
+		metadataPlanKey:    string(plan),
+		metadataProductKey: product,
 	}
 	session, err := s.Client.CreateCheckoutSession(ctx, CreateCheckoutSessionRequest{
 		CustomerID:        customerID,
