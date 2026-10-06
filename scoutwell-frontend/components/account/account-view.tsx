@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   HStack,
+  Link,
   MetadataList,
   MetadataListItem,
   Stack,
@@ -25,6 +26,7 @@ import {
   type ProfilePatch,
 } from "@joined/scout";
 import { formatDay } from "@/lib/dates";
+import { ROUTES } from "@/lib/routes";
 import { scoutSend } from "@/lib/scout/client";
 import { RemoveAccount } from "./remove-account";
 
@@ -66,6 +68,9 @@ export function AccountView({ profile, levelLabel }: { profile: Profile; levelLa
           <MetadataListItem label="Scout since">{formatDay(profile.created_at)}</MetadataListItem>
           <MetadataListItem label="Terms accepted">
             {profile.terms_accepted_at ? formatDay(profile.terms_accepted_at) : "Not yet"}
+          </MetadataListItem>
+          <MetadataListItem label="Contractor terms">
+            <Link href={ROUTES.contractor}>Draft contractor terms</Link>
           </MetadataListItem>
         </MetadataList>
         <HStack gap={3} vAlign="end" wrap="wrap">

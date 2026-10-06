@@ -8,7 +8,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of use"
-      description="Draft terms for using Joined."
+      description="Draft terms for using Joined and Scout."
       sections={loadLegalSections("terms")}
     />
   );

@@ -1,6 +1,8 @@
 # 90 — Compliance, Privacy and Security
 
 > Not legal advice. Every item marked ⚖️ needs review by counsel before launch.
+>
+> User-facing drafts live in [legal/](legal/README.md). They stay drafts until counsel removes that title.
 
 ## Legal surfaces ⚖️
 

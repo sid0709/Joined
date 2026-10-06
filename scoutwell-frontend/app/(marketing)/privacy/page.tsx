@@ -8,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy"
-      description="Draft privacy notice for Joined accounts."
+      description="Draft privacy notice for Scout and Joined accounts."
       sections={loadLegalSections("privacy")}
     />
   );
