@@ -23,7 +23,7 @@ export type JobSearchBarProps = {
   onSubmit: () => void;
   recent: SavedQuery[];
   suggestions: string[];
-  totals: { jobs: number; companies: number; hidden: number };
+  totals: { jobs: number };
   inputRef?: Ref<HTMLInputElement>;
 };
 
@@ -54,9 +54,7 @@ export function JobSearchBar({
           <Stack gap={1}>
             <Heading level={1}>Find your next role</Heading>
             <Text color="secondary" display="block">
-              {formatCount(totals.jobs, "open role")} at{" "}
-              {formatCount(totals.companies, "company", "companies")} ·{" "}
-              {formatCount(totals.hidden, "hidden job")} you won’t find on the big boards
+              {formatCount(totals.jobs, "open role")}
             </Text>
           </Stack>
         </HStack>

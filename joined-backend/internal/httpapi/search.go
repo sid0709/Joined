@@ -44,7 +44,7 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 
 func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 	q := r.URL.Query()
-	
+
 	query := jobs.SearchQuery{
 		Keyword:    q.Get("q"),
 		Location:   q.Get("location"),
@@ -81,6 +81,16 @@ func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 		if val, err := strconv.Atoi(limit); err == nil && val > 0 {
 			query.Limit = val
 		}
+	}
+
+	if page := q.Get("page"); page != "" {
+		if val, err := strconv.Atoi(page); err == nil && val > 1 {
+			query.Page = val
+		}
+	}
+
+	if visa := q.Get("visa"); visa == "1" || visa == "true" {
+		query.Visa = true
 	}
 
 	return query

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ServiceUpdate } from "@/components/service-update";
+import type { ReactNode } from "react";
+import { Providers } from "@/components/providers";
 import { joinedWebOrigin } from "@/lib/config";
 import { BRAND } from "@/lib/routes";
 import "./globals.css";
@@ -12,11 +13,11 @@ export const metadata: Metadata = {
   description: "Search jobs and hire. Free for job hunters and companies.",
 };
 
-export default function RootLayout() {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ServiceUpdate brand={BRAND} />
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

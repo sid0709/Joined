@@ -67,6 +67,40 @@ func TestBuildSearchFilter(t *testing.T) {
 			},
 		},
 		{
+			name:  "workplace list matches any value",
+			query: SearchQuery{Workplace: "remote,hybrid"},
+			want: func(filter bson.D) bool {
+				if filter[0].Key != "$and" {
+					return false
+				}
+				conditions := filter[0].Value.([]bson.D)
+				for _, cond := range conditions {
+					if cond[0].Key != "job.workplace" {
+						continue
+					}
+					inner, ok := cond[0].Value.(bson.D)
+					return ok && len(inner) == 1 && inner[0].Key == "$in"
+				}
+				return false
+			},
+		},
+		{
+			name:  "visa keeps sponsoring jobs",
+			query: SearchQuery{Visa: true},
+			want: func(filter bson.D) bool {
+				if filter[0].Key != "$and" {
+					return false
+				}
+				conditions := filter[0].Value.([]bson.D)
+				for _, cond := range conditions {
+					if cond[0].Key == "job.visa" && cond[0].Value == true {
+						return true
+					}
+				}
+				return false
+			},
+		},
+		{
 			name:  "remote flag adds workplace filter",
 			query: SearchQuery{Remote: true},
 			want: func(filter bson.D) bool {
@@ -183,6 +217,22 @@ func TestBuildSort(t *testing.T) {
 			},
 		},
 		{
+			name:    "pay sorts by the top of the range",
+			query:   SearchQuery{SortBy: "pay"},
+			wantErr: false,
+			check: func(sort bson.D) bool {
+				return len(sort) == 2 && sort[0].Key == "job.pay.max" && sort[0].Value == -1
+			},
+		},
+		{
+			name:    "applicants sorts fewest first",
+			query:   SearchQuery{SortBy: "applicants"},
+			wantErr: false,
+			check: func(sort bson.D) bool {
+				return len(sort) == 2 && sort[0].Key == "job.applicants" && sort[0].Value == 1
+			},
+		},
+		{
 			name:    "invalid sort returns error",
 			query:   SearchQuery{SortBy: "invalid"},
 			wantErr: true,
@@ -213,7 +263,7 @@ func TestBuildSort(t *testing.T) {
 func TestEncodeCursor(t *testing.T) {
 	docID := bson.NewObjectID()
 	analyzedAt := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
-	
+
 	doc := storedSearchJob{
 		ID:         docID,
 		AnalyzedAt: analyzedAt,
@@ -243,11 +293,11 @@ func TestEncodeCursor(t *testing.T) {
 			expectedPrefix := docID.Hex() + ":"
 			expectedTimestamp := "1791201600"
 			expectedCursor := expectedPrefix + expectedTimestamp
-			
+
 			if got != expectedCursor {
 				t.Errorf("encodeCursor() = %v, want %v", got, expectedCursor)
 			}
-			
+
 			parts := strings.SplitN(got, ":", 2)
 			if len(parts) != 2 {
 				t.Errorf("cursor should have format id:timestamp, got %v", got)
@@ -375,9 +425,9 @@ func TestSearchQueryFilters(t *testing.T) {
 
 func TestEnsureSearchIndexesIdempotent(t *testing.T) {
 	ctx := context.Background()
-	
+
 	s := &Store{}
-	
+
 	if s.client == nil {
 		t.Skip("no mongo client available for integration test")
 	}
@@ -437,7 +487,7 @@ func TestRegexEscaping(t *testing.T) {
 				Company:  tt.company,
 			}
 			filter := s.buildSearchFilter(query, now)
-			
+
 			if filter == nil {
 				t.Error("filter should not be nil")
 			}
@@ -450,18 +500,18 @@ func TestRegexFilterTruncation(t *testing.T) {
 	now := time.Now()
 
 	longString := strings.Repeat("a", maxRegexFilterChars+100)
-	
+
 	query := SearchQuery{
 		Location: longString,
 		Company:  longString,
 	}
-	
+
 	filter := s.buildSearchFilter(query, now)
-	
+
 	if filter == nil {
 		t.Error("filter should not be nil with long strings")
 	}
-	
+
 	filterStr := fmt.Sprintf("%v", filter)
 	if strings.Contains(filterStr, strings.Repeat("a", maxRegexFilterChars+1)) {
 		t.Error("filter should truncate strings longer than maxRegexFilterChars")
@@ -470,7 +520,7 @@ func TestRegexFilterTruncation(t *testing.T) {
 
 func TestCursorNotSupportedForRelevanceWithKeyword(t *testing.T) {
 	s := &Store{}
-	
+
 	if s.client == nil {
 		t.Skip("no mongo client available for integration test")
 	}
@@ -493,7 +543,7 @@ func TestCursorNotSupportedForRelevanceWithKeyword(t *testing.T) {
 
 func TestCursorAllowedForRelevanceWithoutKeyword(t *testing.T) {
 	s := &Store{}
-	
+
 	if s.client == nil {
 		t.Skip("no mongo client available for integration test")
 	}

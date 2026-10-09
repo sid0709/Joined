@@ -104,7 +104,7 @@ export function JobPageView({
               {company ? (
                 <CompanyCard
                   company={presentCompany(company, jobs)}
-                  openRoles={openRolesFor(company.id, jobs)}
+                  openRoles={jobs.length > 1 ? openRolesFor(company.id, jobs) : undefined}
                 />
               ) : null}
               <SimilarJobs jobs={similar} scoreOf={(item) => similarFits[item.id]?.score ?? null} />

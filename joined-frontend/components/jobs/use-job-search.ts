@@ -1,36 +1,42 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   DEFAULT_FILTERS,
   GOOD_MATCH,
+  SEARCH_DEBOUNCE_MS,
+  SEARCH_PAGE_SIZE,
   clearRefinements,
   countRefinements,
-  filterJobs,
   scoreFor,
   serializeFilters,
   sortJobs,
   type Job,
   type JobFilters,
+  type JobSearchPage,
   type ListKey,
 } from "@/lib/jobs";
 import type { MatchProfile } from "@/lib/jobs/match";
+import { searchJobs } from "@/lib/jobs/search-action";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 
-/** Results per page — enough to scan a full screen or two before paging. */
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = SEARCH_PAGE_SIZE;
 
 function toggle(ids: string[], id: string) {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
 
+function isTypedQuery(patch: Partial<JobFilters>) {
+  return Object.keys(patch).every((key) => key === "q" || key === "where");
+}
+
 /**
- * State for the job search page: filters mirrored to the URL, the lists a
- * hunter keeps (saved, applied, hidden), the selected job, and paging.
+ * State for the job search page: filters mirrored to the URL, one server page
+ * of results, the lists a hunter keeps, the selected job, and paging.
  */
 export function useJobSearch(
   initial: JobFilters,
-  jobs: Job[],
+  initialResult: JobSearchPage,
   lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean; profile?: MatchProfile },
 ) {
   const score = useCallback((job: Job) => scoreFor(job, lists.profile), [lists.profile]);
@@ -39,62 +45,119 @@ export function useJobSearch(
   const [appliedIds, setAppliedIds] = useState<string[]>(lists.appliedIds);
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPageState] = useState(initialResult.page);
+  const [result, setResult] = useState(initialResult);
+  const [matchTotal, setMatchTotal] = useState(initial.list === "saved" ? 0 : initialResult.total);
+  const [error, setError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const request = useRef(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedIdsRef = useRef(savedIds);
+  const filtersRef = useRef(filters);
 
-  // Keep the address bar shareable without a navigation.
   useEffect(() => {
-    const query = serializeFilters(filters);
+    savedIdsRef.current = savedIds;
+    filtersRef.current = filters;
+  }, [savedIds, filters]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(serializeFilters(filters));
+    if (page > 1) params.set("page", String(page));
+    const query = params.toString();
     const { pathname, search } = window.location;
     const next = query ? `${pathname}?${query}` : pathname;
     if (next !== `${pathname}${search}`) window.history.replaceState(null, "", next);
-  }, [filters]);
+  }, [filters, page]);
 
-  const update = useCallback((patch: Partial<JobFilters>) => {
-    setFilters((current) => ({ ...current, ...patch }));
-    setPage(1);
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
   }, []);
+
+  const load = useCallback((nextFilters: JobFilters, nextPage: number) => {
+    const id = ++request.current;
+    startTransition(async () => {
+      try {
+        const data = await searchJobs(nextFilters, nextPage, savedIdsRef.current);
+        if (id !== request.current) return;
+        setResult(data);
+        if (nextFilters.list !== "saved") setMatchTotal(data.total);
+        setError(null);
+      } catch (cause) {
+        if (id !== request.current) return;
+        setError(cause instanceof Error ? cause.message : "Could not load jobs");
+      }
+    });
+  }, []);
+
+  const schedule = useCallback(
+    (nextFilters: JobFilters, nextPage: number, immediate: boolean) => {
+      if (timer.current) clearTimeout(timer.current);
+      if (immediate) {
+        load(nextFilters, nextPage);
+        return;
+      }
+      timer.current = setTimeout(() => load(nextFilters, nextPage), SEARCH_DEBOUNCE_MS);
+    },
+    [load],
+  );
+
+  const update = useCallback(
+    (patch: Partial<JobFilters>) => {
+      const next = { ...filtersRef.current, ...patch };
+      filtersRef.current = next;
+      setFilters(next);
+      setPageState(1);
+      schedule(next, 1, !isTypedQuery(patch));
+    },
+    [schedule],
+  );
 
   const reset = useCallback(() => {
-    setFilters((current) => ({ ...DEFAULT_FILTERS, sort: current.sort, list: current.list }));
-    setPage(1);
-  }, []);
+    const next = {
+      ...DEFAULT_FILTERS,
+      sort: filtersRef.current.sort,
+      list: filtersRef.current.list,
+    };
+    filtersRef.current = next;
+    setFilters(next);
+    setPageState(1);
+    schedule(next, 1, true);
+  }, [schedule]);
 
   const clearAll = useCallback(() => {
-    setFilters((current) => clearRefinements(current));
-    setPage(1);
-  }, []);
+    const next = clearRefinements(filtersRef.current);
+    filtersRef.current = next;
+    setFilters(next);
+    setPageState(1);
+    schedule(next, 1, true);
+  }, [schedule]);
 
-  const visibleJobs = useMemo(
-    () => jobs.filter((job) => !hiddenIds.includes(job.id)),
-    [jobs, hiddenIds],
+  const setPage = useCallback(
+    (nextPage: number) => {
+      setPageState(nextPage);
+      schedule(filters, nextPage, true);
+    },
+    [filters, schedule],
   );
 
-  /** Jobs that pass the search and refinements, before the list tab narrows them. */
-  const matching = useMemo(() => filterJobs(visibleJobs, filters), [visibleJobs, filters]);
+  const jobs = result.jobs.filter((job) => !hiddenIds.includes(job.id));
+  const ranked =
+    filters.sort === "relevance" && filters.q.trim() === ""
+      ? sortJobs(jobs, "relevance", score)
+      : jobs;
+  const pageJobs =
+    filters.list === "recommended" ? ranked.filter((job) => score(job) >= GOOD_MATCH) : ranked;
+  const total = filters.list === "recommended" ? pageJobs.length : result.total;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const selected = pageJobs.find((job) => job.id === selectedId) ?? pageJobs[0] ?? null;
 
-  const listCounts: Record<ListKey, number> = useMemo(
-    () => ({
-      all: matching.length,
-      recommended: matching.filter((job) => score(job) >= GOOD_MATCH).length,
-      saved: matching.filter((job) => savedIds.includes(job.id)).length,
-    }),
-    [matching, savedIds, score],
-  );
-
-  const results = useMemo(() => {
-    const listed = matching.filter((job) => {
-      if (filters.list === "recommended") return score(job) >= GOOD_MATCH;
-      if (filters.list === "saved") return savedIds.includes(job.id);
-      return true;
-    });
-    return sortJobs(listed, filters.sort, score);
-  }, [matching, filters.list, filters.sort, savedIds, score]);
-
-  const pageCount = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const pageResults = results.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  const selected = results.find((job) => job.id === selectedId) ?? pageResults[0] ?? null;
+  const listCounts: Record<ListKey, number | null> = {
+    all: filters.list === "saved" ? matchTotal : result.total,
+    recommended: filters.list === "recommended" ? pageJobs.length : null,
+    saved: savedIds.length,
+  };
 
   const toggleSave = async (id: string) => {
     if (!lists.signedIn) return false;
@@ -116,14 +179,14 @@ export function useJobSearch(
     reset,
     clearAll,
     refinementCount: countRefinements(filters),
-    /** Jobs the facets count against — hidden jobs never come back through a filter. */
-    visibleJobs,
-    results,
-    pageResults,
-    page: currentPage,
-    pageCount,
+    results: pageJobs,
+    pageResults: pageJobs,
+    total,
+    page,
+    pageCount: filters.list === "recommended" ? 1 : pageCount,
     setPage,
     listCounts,
+    error,
     selected,
     select: setSelectedId,
     savedIds,

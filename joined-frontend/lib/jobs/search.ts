@@ -4,6 +4,12 @@ import { WORKPLACE_LABEL, annualPay } from "./format";
 
 import type { Employment, Job, JobSource, Seniority, Workplace } from "./types";
 
+export type JobSearchPage = {
+  jobs: Job[];
+  total: number;
+  page: number;
+};
+
 export { EMPLOYMENTS, SENIORITIES, WORKPLACES };
 export const SOURCES: JobSource[] = ["direct", "aggregated", "scouted"];
 
@@ -34,6 +40,18 @@ export type ListKey = (typeof LISTS)[number]["value"];
 /** Minimum yearly pay steps for the pay filter. */
 export const PAY_FLOOR_MAX = 200_000;
 export const PAY_FLOOR_STEP = 10_000;
+
+/** One screen of results. The search API is asked for this many rows, not the catalog. */
+export const SEARCH_PAGE_SIZE = 25;
+
+/** How long a public search response stays fresh on the server. */
+export const SEARCH_REVALIDATE_SECONDS = 30;
+
+/** Wait for the user to pause before hitting the API while they type. */
+export const SEARCH_DEBOUNCE_MS = 200;
+
+/** Matches backend-core/jobs maxSearchPage. Past this, skip-based paging is refused. */
+export const MAX_SEARCH_PAGE = 200;
 
 export type JobFilters = {
   q: string;
@@ -158,6 +176,13 @@ export function serializeFilters(filters: JobFilters) {
   if (filters.sort !== DEFAULT_FILTERS.sort) set("sort", filters.sort);
   if (filters.list !== DEFAULT_FILTERS.list) set("list", filters.list);
   return params.toString();
+}
+
+/** 1-based page from the URL. Unknown or out-of-range values stay on the first page. */
+export function parsePage(params: RawParams) {
+  const value = Number(first(params.page));
+  if (!Number.isInteger(value) || value < 1 || value > MAX_SEARCH_PAGE) return 1;
+  return value;
 }
 
 // ── Filtering ──────────────────────────────────────────────────────────

@@ -3,11 +3,9 @@ import { notFound } from "next/navigation";
 import { JobPageView } from "@/components/jobs/job-page-view";
 import { JobPostingJsonLd } from "@/components/jobs/job-posting-json-ld";
 import { loadSession } from "@/lib/auth/session";
-import { loadCompany, loadSearchJob } from "@/lib/jobs/catalog";
+import { loadSearchJob } from "@/lib/jobs/catalog";
 import { loadAppliedJobIds, loadSavedJobIds } from "@/lib/me/load";
 import { jobPageMetadata } from "@/lib/seo/job-metadata";
-
-export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -20,20 +18,10 @@ export async function generateMetadata({
 
 export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const job = await loadSearchJob(id);
+  const [job, session] = await Promise.all([loadSearchJob(id), loadSession()]);
   if (!job) notFound();
+  const jobs = [job];
 
-  let jobs = [job];
-  if (job.companyId) {
-    try {
-      const company = await loadCompany(job.companyId);
-      if (company && company.jobs.length > 0) jobs = company.jobs;
-    } catch {
-      jobs = [job];
-    }
-  }
-
-  const session = await loadSession();
   // On public pages, treat employees as guests: no candidate APIs, signedIn=false
   const isEmployeeSession = session?.company != null;
   const [savedIds, appliedIds] = !isEmployeeSession

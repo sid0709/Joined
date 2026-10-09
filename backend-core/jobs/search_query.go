@@ -38,8 +38,11 @@ type SearchQuery struct {
 	Remote     bool
 	SortBy     string
 	Limit      int
+	Page       int
 	Cursor     string
+	Visa       bool
 	// Source is an optional listing origin filter. "hidden" keeps scouted jobs only.
+	// A comma-separated list matches any of those job.source values.
 	Source string
 }
 
@@ -56,7 +59,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	}
 
 	filter := s.buildSearchFilter(query, now)
-	
+
 	total, err := s.structured().CountDocuments(ctx, filter)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("count documents: %w", err)
@@ -65,13 +68,21 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	limit := clampSearchLimit(query.Limit)
 
 	opts := options.Find().SetLimit(int64(limit + 1))
-	
+
 	sort, err := s.buildSort(query, filter)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("build sort: %w", err)
 	}
 	opts.SetSort(sort)
-	
+
+	if query.Cursor == "" && query.Page > 1 {
+		page := query.Page
+		if page > maxSearchPage {
+			page = maxSearchPage
+		}
+		opts.SetSkip(int64(page-1) * int64(limit))
+	}
+
 	if query.Keyword != "" {
 		opts.SetProjection(bson.D{{Key: "score", Value: bson.D{{Key: "$meta", Value: "textScore"}}}})
 	}
@@ -104,7 +115,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 	for _, doc := range docs {
 		jobs = append(jobs, CatalogJob(doc.view(now)))
 	}
-	
+
 	jobs, err = s.enrichCompanies(ctx, jobs)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("enrich companies: %w", err)
@@ -130,7 +141,7 @@ func (q SearchQuery) HasCriteria() bool {
 		q.Workplace != "" || q.Employment != "" || q.Seniority != "" ||
 		q.SalaryMin != 0 || q.SalaryMax != 0 || q.PostedDays != 0 ||
 		q.Remote || q.Cursor != "" || q.Limit != 0 || q.SortBy != "" ||
-		q.hiddenOnly()
+		q.Visa || q.Page > 1 || q.hiddenOnly()
 }
 
 func (q SearchQuery) hiddenOnly() bool {
@@ -192,20 +203,26 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 		conditions = append(conditions, bson.D{{Key: "job.location", Value: bson.D{{Key: "$regex", Value: escapedLocation}, {Key: "$options", Value: "i"}}}})
 	}
 
-	if query.Workplace != "" {
-		conditions = append(conditions, bson.D{{Key: "job.workplace", Value: query.Workplace}})
+	if clause, ok := matchOneOrMany("job.workplace", query.Workplace); ok {
+		conditions = append(conditions, clause)
 	}
 
 	if query.Remote {
 		conditions = append(conditions, bson.D{{Key: "job.workplace", Value: workplaceRemote}})
 	}
 
-	if query.Employment != "" {
-		conditions = append(conditions, bson.D{{Key: "job.employment", Value: query.Employment}})
+	if clause, ok := matchOneOrMany("job.employment", query.Employment); ok {
+		conditions = append(conditions, clause)
 	}
 
-	if query.Seniority != "" {
-		conditions = append(conditions, bson.D{{Key: "job.seniority", Value: query.Seniority}})
+	if clause, ok := matchOneOrMany("job.seniority", query.Seniority); ok {
+		conditions = append(conditions, clause)
+	}
+
+	if !query.hiddenOnly() {
+		if clause, ok := matchOneOrMany("job.source", query.Source); ok {
+			conditions = append(conditions, clause)
+		}
 	}
 
 	if query.Company != "" {
@@ -230,6 +247,10 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 		}
 	}
 
+	if query.Visa {
+		conditions = append(conditions, bson.D{{Key: "job.visa", Value: true}})
+	}
+
 	if query.PostedDays > 0 {
 		cutoff := now.Add(-time.Duration(query.PostedDays) * 24 * time.Hour)
 		conditions = append(conditions, bson.D{{Key: "postedAt", Value: bson.D{{Key: "$gte", Value: cutoff}}}})
@@ -250,9 +271,38 @@ func (s *Store) buildSort(query SearchQuery, filter bson.D) (bson.D, error) {
 		return bson.D{{Key: "score", Value: bson.D{{Key: "$meta", Value: "textScore"}}}, {Key: "_id", Value: -1}}, nil
 	case "newest", "":
 		return bson.D{{Key: "analyzedAt", Value: -1}, {Key: "_id", Value: -1}}, nil
+	case "pay":
+		return bson.D{{Key: "job.pay.max", Value: -1}, {Key: "_id", Value: -1}}, nil
+	case "applicants":
+		return bson.D{{Key: "job.applicants", Value: 1}, {Key: "_id", Value: -1}}, nil
 	default:
 		return nil, fmt.Errorf("invalid sort: %s", query.SortBy)
 	}
+}
+
+const maxSearchPage = 200
+
+func splitList(raw string) []string {
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			values = append(values, part)
+		}
+	}
+	return values
+}
+
+func matchOneOrMany(field, raw string) (bson.D, bool) {
+	values := splitList(raw)
+	if len(values) == 0 {
+		return nil, false
+	}
+	if len(values) == 1 {
+		return bson.D{{Key: field, Value: values[0]}}, true
+	}
+	return bson.D{{Key: field, Value: bson.D{{Key: "$in", Value: values}}}}, true
 }
 
 func encodeCursor(doc storedSearchJob, sortBy string) string {
@@ -283,7 +333,7 @@ func decodeCursor(cursor, sortBy string) (bson.D, error) {
 	analyzedAt := time.Unix(timestamp, 0)
 
 	switch sortBy {
-	case "relevance", "newest", "":
+	case "relevance", "newest", "pay", "applicants", "":
 		return bson.D{{Key: "$or", Value: bson.A{
 			bson.D{{Key: "analyzedAt", Value: bson.D{{Key: "$lt", Value: analyzedAt}}}},
 			bson.D{{Key: "$and", Value: bson.A{
@@ -305,9 +355,9 @@ func truncateString(s string, maxLen int) string {
 
 func (s *Store) EnsureSearchIndexes(ctx context.Context) error {
 	coll := s.structured()
-	
+
 	indexes := coll.Indexes()
-	
+
 	textIndex := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "job.title", Value: "text"},

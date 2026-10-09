@@ -30,7 +30,7 @@ type Props = {
   list: ListKey;
   sort: SortKey;
   onSortChange: (sort: SortKey) => void;
-  listCounts: Record<ListKey, number>;
+  listCounts: Record<ListKey, number | null>;
   onListChange: (list: ListKey) => void;
   total: number;
   jobs: Job[];
@@ -134,10 +134,12 @@ export function JobResults({
             value={item.value}
             label={item.label}
             endContent={
-              <Badge
-                label={String(listCounts[item.value])}
-                variant={item.value === list ? "info" : "neutral"}
-              />
+              listCounts[item.value] == null ? undefined : (
+                <Badge
+                  label={String(listCounts[item.value])}
+                  variant={item.value === list ? "info" : "neutral"}
+                />
+              )
             }
           />
         ))}

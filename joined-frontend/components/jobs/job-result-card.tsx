@@ -1,5 +1,9 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { Glyph, HStack, IconButton, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
+import { ROUTES } from "@/lib/routes";
 import type { JobFit } from "@/lib/jobs/fit";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";
@@ -28,6 +32,7 @@ export function JobResultCard({
   onToggleSave,
   onReport,
 }: JobResultCardProps) {
+  const router = useRouter();
   return (
     <SelectableCard
       label={`${job.title} at ${job.company}`}
@@ -35,6 +40,7 @@ export function JobResultCard({
       onChange={onSelect}
       padding={4}
       data-job-id={job.id}
+      onMouseEnter={() => router.prefetch(ROUTES.job(job.id))}
     >
       <HStack gap={3} vAlign="start">
         <CompanyLogo

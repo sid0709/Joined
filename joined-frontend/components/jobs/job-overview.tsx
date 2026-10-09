@@ -66,25 +66,29 @@ export function JobOverview({ job }: { job: Job }) {
         <Text display="block">{job.summary}</Text>
       </Section>
 
-      <Section title="What you’ll do">
-        <List listStyle="disc">
-          {(job.responsibilities ?? []).map((item) => (
-            <ListItem key={item} label={item} />
-          ))}
-        </List>
-      </Section>
+      {(job.responsibilities ?? []).length > 0 ? (
+        <Section title="What you’ll do">
+          <List listStyle="disc">
+            {job.responsibilities.map((item) => (
+              <ListItem key={item} label={item} />
+            ))}
+          </List>
+        </Section>
+      ) : null}
 
-      <Section title="What you’ll need">
-        <List density="compact">
-          {(job.requirements ?? []).map((item) => (
-            <ListItem
-              key={item}
-              label={item}
-              startContent={<Icon icon={icons.check} color="accent" size="sm" />}
-            />
-          ))}
-        </List>
-      </Section>
+      {(job.requirements ?? []).length > 0 ? (
+        <Section title="What you’ll need">
+          <List density="compact">
+            {job.requirements.map((item) => (
+              <ListItem
+                key={item}
+                label={item}
+                startContent={<Icon icon={icons.check} color="accent" size="sm" />}
+              />
+            ))}
+          </List>
+        </Section>
+      ) : null}
 
       {(job.benefits ?? []).length ? (
         <Section title="Benefits">
