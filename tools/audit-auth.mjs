@@ -1,45 +1,58 @@
+import { spawnSync } from "node:child_process";
+
 import { AUDIT_FRONTENDS } from "./audit-frontends.mjs";
+import { repoRoot } from "./workspaces.mjs";
 
 /** `.env` switch. Bun loads the root `.env` automatically, so `process.env` sees it. */
 export const AUDIT_TEST_MODE_ENV = "AUDIT_TEST_MODE";
 /** Set by the runner so the Unlighthouse config knows which app it is scanning. */
 export const AUDIT_TARGET_ENV = "AUDIT_TARGET_ID";
+/** Session token minted for this scan; read by the Unlighthouse config hook. */
+export const AUDIT_SESSION_TOKEN_ENV = "AUDIT_SESSION_TOKEN";
 
-const AUTH_SUBMIT_SELECTOR = 'button[type="submit"]';
-const AUTH_EMAIL_SELECTOR = 'input[type="email"]';
-const AUTH_PASSWORD_SELECTOR = 'input[type="password"]';
-const AUTH_FORM_TIMEOUT_MS = 15_000;
-const AUTH_NAVIGATION_TIMEOUT_MS = 30_000;
+const AUDIT_SESSION_COMMAND = "github.com/sid0709/OpenSeat/backend-core/cmd/auditsession";
 const AUTH_COOKIE_DOMAIN = "localhost";
 const AUTH_COOKIE_PATH = "/";
+const AUTH_NAVIGATION_TIMEOUT_MS = 30_000;
+
+/** Connected signs in with a browser-only mock; these keys mirror connected-frontend MockAuthContext. */
+const MOCK_USERS_STORAGE_KEY = "os_mock_db_users";
+const MOCK_ACTIVE_USER_STORAGE_KEY = "os_mock_db_active";
+const MOCK_AUDIT_USER = {
+  email: "audit@localhost",
+  passwordText: "",
+  fullName: "Audit User",
+  role: "Candidate",
+};
 
 /**
- * How each audited app signs in during test mode.
- * - `form`: email and password typed into the app's own sign-in page.
- * - `cookie`: an existing session cookie, `name=value`, read from `.env`.
- *   Used where sign-in is Google-only, so no password exists to type.
+ * How each audited app is signed in during test mode.
+ * - `session`: a short session minted in that backend's local database. `cookie` mirrors the
+ *   frontend's session cookie constant. `sessionKind: "staff"` is the staff console.
+ * - `mock`: connected-frontend's localStorage login, seeded with a fake user.
  */
 export const AUDIT_LOGIN = {
   "joined-frontend": {
-    kind: "form",
-    signInPath: "/sign-in",
-    emailEnv: "AUDIT_JOINED_EMAIL",
-    passwordEnv: "AUDIT_JOINED_PASSWORD",
-  },
-  "connected-frontend": {
-    kind: "form",
-    signInPath: "/marketplace/login",
-    emailEnv: "AUDIT_CONNECTED_EMAIL",
-    passwordEnv: "AUDIT_CONNECTED_PASSWORD",
+    kind: "session",
+    backend: "joined-backend",
+    sessionKind: "user",
+    role: "candidate",
+    cookie: "joined_session",
   },
   "scoutwell-frontend": {
-    kind: "cookie",
-    cookieEnv: "AUDIT_SCOUTWELL_COOKIE",
+    kind: "session",
+    backend: "scoutwell-backend",
+    sessionKind: "user",
+    role: "scout",
+    cookie: "scoutwell_session",
   },
   "admin-frontend": {
-    kind: "cookie",
-    cookieEnv: "AUDIT_ADMIN_COOKIE",
+    kind: "session",
+    backend: "admin-backend",
+    sessionKind: "staff",
+    cookie: "joined_admin_session",
   },
+  "connected-frontend": { kind: "mock" },
 };
 
 /** @returns {boolean} True when `.env` sets `AUDIT_TEST_MODE=true`. */
@@ -56,74 +69,67 @@ export function auditTargetForSite(siteUrl) {
   return AUDIT_FRONTENDS.find((target) => String(target.port) === port);
 }
 
-/**
- * Fails fast, before any scan starts, when test mode is on but a target has no credentials.
- * @param {{ id: string, label: string }} target
- */
-export function assertAuditCredentials(target, env = process.env) {
-  const login = AUDIT_LOGIN[target.id];
-  if (!login) {
-    throw new Error(`No audit login configured for ${target.label} (${target.id}).`);
+function runAuditSessionCommand(login, args) {
+  const result = spawnSync(
+    "go",
+    ["run", "-C", login.backend, AUDIT_SESSION_COMMAND, "-kind", login.sessionKind, ...args],
+    { cwd: repoRoot, encoding: "utf8" },
+  );
+  if (result.status !== 0) {
+    throw new Error((result.stderr || result.error?.message || "auditsession failed").trim());
   }
-  if (login.kind === "form") {
-    const missing = [login.emailEnv, login.passwordEnv].filter((name) => !env[name]);
-    if (missing.length > 0) {
-      throw new Error(
-        `Test mode is on but ${target.label} is missing ${missing.join(", ")} in .env.`,
-      );
-    }
-    return;
-  }
-  if (!parseCookie(env[login.cookieEnv])) {
-    throw new Error(
-      `Test mode is on but ${target.label} needs ${login.cookieEnv}=name=value in .env.`,
-    );
-  }
+  return result.stdout;
 }
 
-/** @returns {{ name: string, value: string } | null} */
-export function parseCookie(raw) {
-  if (!raw) return null;
-  const separator = raw.indexOf("=");
-  if (separator <= 0) return null;
-  return { name: raw.slice(0, separator).trim(), value: raw.slice(separator + 1).trim() };
+/**
+ * Mints a session for the target before its scan. Returns null for apps that need none.
+ * @param {{ id: string }} target
+ * @returns {{ token: string, email: string } | null}
+ */
+export function issueAuditSession(target) {
+  const login = AUDIT_LOGIN[target.id];
+  if (login?.kind !== "session") return null;
+  const roleArgs = login.sessionKind === "user" ? ["-role", login.role] : [];
+  return JSON.parse(runAuditSessionCommand(login, ["-action", "issue", ...roleArgs]));
+}
+
+/** Deletes the session minted by issueAuditSession. */
+export function revokeAuditSession(target, token) {
+  const login = AUDIT_LOGIN[target.id];
+  if (login?.kind !== "session" || !token) return;
+  runAuditSessionCommand(login, ["-action", "revoke", "-token", token]);
 }
 
 /**
  * Unlighthouse `authenticate` hook. Runs once; Unlighthouse copies the resulting cookies and
  * storage onto every page it scans afterwards.
  * @param {import("puppeteer-core").Page} page
- * @param {{ id: string, label: string, site: string }} target
+ * @param {{ id: string, site: string }} target
  */
 export async function authenticateAuditPage(page, target, env = process.env) {
   const login = AUDIT_LOGIN[target.id];
-  if (login.kind === "cookie") {
-    const cookie = parseCookie(env[login.cookieEnv]);
+  if (login.kind === "session") {
     await page.setCookie({
-      ...cookie,
+      name: login.cookie,
+      value: env[AUDIT_SESSION_TOKEN_ENV],
       domain: AUTH_COOKIE_DOMAIN,
       path: AUTH_COOKIE_PATH,
+      httpOnly: true,
     });
     return;
   }
 
-  await page.goto(new URL(login.signInPath, target.site).href, {
-    waitUntil: "networkidle0",
+  await page.goto(target.site, {
+    waitUntil: "domcontentloaded",
     timeout: AUTH_NAVIGATION_TIMEOUT_MS,
   });
-  await page.waitForSelector(AUTH_EMAIL_SELECTOR, { timeout: AUTH_FORM_TIMEOUT_MS });
-  await page.type(AUTH_EMAIL_SELECTOR, env[login.emailEnv]);
-  await page.type(AUTH_PASSWORD_SELECTOR, env[login.passwordEnv]);
-  await Promise.all([
-    page
-      .waitForNavigation({ waitUntil: "networkidle0", timeout: AUTH_NAVIGATION_TIMEOUT_MS })
-      .catch(() => null),
-    page.click(AUTH_SUBMIT_SELECTOR),
-  ]);
-
-  if (page.url().includes(login.signInPath)) {
-    throw new Error(
-      `${target.label} sign-in failed for ${env[login.emailEnv]}; still on ${login.signInPath}.`,
-    );
-  }
+  await page.evaluate(
+    (usersKey, activeKey, user) => {
+      localStorage.setItem(usersKey, JSON.stringify([user]));
+      localStorage.setItem(activeKey, JSON.stringify(user));
+    },
+    MOCK_USERS_STORAGE_KEY,
+    MOCK_ACTIVE_USER_STORAGE_KEY,
+    MOCK_AUDIT_USER,
+  );
 }

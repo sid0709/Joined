@@ -2,7 +2,14 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { AUDIT_TARGET_ENV, auditTargetForSite } from "./audit-auth.mjs";
+import {
+  AUDIT_SESSION_TOKEN_ENV,
+  AUDIT_TARGET_ENV,
+  auditTargetForSite,
+  auditTestModeEnabled,
+  issueAuditSession,
+  revokeAuditSession,
+} from "./audit-auth.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -30,24 +37,59 @@ export function runUnlighthouse(args) {
 
   const site = siteFromArgs(finalArgs);
   const target = site ? auditTargetForSite(site) : undefined;
+  const testMode = auditTestModeEnabled() && target !== undefined;
+
+  let session = null;
+  if (testMode) {
+    try {
+      session = issueAuditSession(target);
+    } catch (error) {
+      console.error(`\nTest mode could not sign in to ${target.label}:\n${error.message}\n`);
+      return Promise.resolve(1);
+    }
+    if (session) console.log(`Test mode: signed in to ${target.label} as ${session.email}\n`);
+  }
+
+  // The session is short-lived anyway; revoking it on exit or Ctrl+C keeps the database clean.
+  const revoke = () => {
+    if (!session) return;
+    const token = session.token;
+    session = null;
+    try {
+      revokeAuditSession(target, token);
+    } catch (error) {
+      console.error(`Could not revoke the ${target.label} audit session: ${error.message}`);
+    }
+  };
+  const onInterrupt = () => {
+    revoke();
+    process.exit(130);
+  };
+  process.once("SIGINT", onInterrupt);
 
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [cli, ...finalArgs], {
       stdio: "inherit",
       cwd: root,
-      env: { ...process.env, [AUDIT_TARGET_ENV]: target?.id ?? "" },
+      env: {
+        ...process.env,
+        [AUDIT_TARGET_ENV]: target?.id ?? "",
+        [AUDIT_SESSION_TOKEN_ENV]: session?.token ?? "",
+      },
     });
 
+    const finish = (code) => {
+      process.off("SIGINT", onInterrupt);
+      revoke();
+      resolve(code);
+    };
+
     child.on("exit", (code, signal) => {
-      if (signal) {
-        resolve(1);
-        return;
-      }
-      resolve(code ?? 1);
+      finish(signal ? 1 : (code ?? 1));
     });
 
     child.on("error", () => {
-      resolve(1);
+      finish(1);
     });
   });
 }

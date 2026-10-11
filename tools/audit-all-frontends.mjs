@@ -1,4 +1,4 @@
-import { assertAuditCredentials, auditTestModeEnabled } from "./audit-auth.mjs";
+import { auditTestModeEnabled } from "./audit-auth.mjs";
 import { AUDIT_FRONTENDS } from "./audit-frontends.mjs";
 import { isPortListening } from "./free-ports.mjs";
 import { openAuditReports } from "./open-audit-reports.mjs";
@@ -25,15 +25,7 @@ if (missing.length > 0) {
 }
 
 if (auditTestModeEnabled()) {
-  for (const target of AUDIT_FRONTENDS) {
-    try {
-      assertAuditCredentials(target);
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : error);
-      process.exit(1);
-    }
-  }
-  console.log("Test mode: signing in to each app before auditing it.\n");
+  console.log("Test mode: each app is scanned signed in as one existing local account.\n");
 }
 
 let failed = false;
