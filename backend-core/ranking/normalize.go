@@ -117,7 +117,9 @@ func ToAnnualUSD(amount int, period, currency string) (int32, bool) {
 
 // JobFeatures is a normalized job: everything filters and the ranker read.
 type JobFeatures struct {
-	JobID        string
+	JobID string
+	// ObjectID is the job's Mongo _id (hex), for hydration through the _id index.
+	ObjectID     string
 	Title        string
 	TitlePhrase  string
 	Company      string
@@ -146,23 +148,103 @@ type JobFeatures struct {
 
 // NormalizeJob turns a stored job into ranking features.
 func NormalizeJob(doc jobs.RankingDoc, tax *Taxonomy) JobFeatures {
-	title := jobschema.CleanTitle(doc.Title)
+	return normalizeJob(doc, tax, nil)
+}
+
+// maxMemoEntries bounds each normalization memo; a full memo starts over.
+const maxMemoEntries = 500_000
+
+// normMemo remembers the derived values that repeat across jobs (titles,
+// locations, skill names), so a full reconcile of a million jobs does not redo
+// the same regex and taxonomy work. Safe for one goroutine at a time.
+type normMemo struct {
+	titles  map[string]titleInfo
+	regions map[string]Region
+	skills  map[string]string
+}
+
+type titleInfo struct {
+	clean       string
+	phrase      string
+	occupations []string
+}
+
+func newNormMemo() *normMemo {
+	return &normMemo{titles: map[string]titleInfo{}, regions: map[string]Region{}, skills: map[string]string{}}
+}
+
+func (m *normMemo) title(raw string, tax *Taxonomy) titleInfo {
+	if m != nil {
+		if info, ok := m.titles[raw]; ok {
+			return info
+		}
+	}
+	clean := jobschema.CleanTitle(raw)
+	info := titleInfo{clean: clean, phrase: Phrase(clean), occupations: tax.ClassifyTitle(clean)}
+	if m != nil {
+		if len(m.titles) >= maxMemoEntries {
+			m.titles = map[string]titleInfo{}
+		}
+		m.titles[raw] = info
+	}
+	return info
+}
+
+func (m *normMemo) region(location string) Region {
+	if m == nil {
+		return DetectRegion(location)
+	}
+	if r, ok := m.regions[location]; ok {
+		return r
+	}
+	r := DetectRegion(location)
+	if len(m.regions) >= maxMemoEntries {
+		m.regions = map[string]Region{}
+	}
+	m.regions[location] = r
+	return r
+}
+
+func (m *normMemo) skillIDs(names []string, tax *Taxonomy) []string {
+	if m == nil {
+		return tax.SkillIDs(names)
+	}
+	out := make([]string, 0, len(names))
+	for _, name := range names {
+		id, ok := m.skills[name]
+		if !ok {
+			id = tax.CanonicalSkill(name)
+			if len(m.skills) >= maxMemoEntries {
+				m.skills = map[string]string{}
+			}
+			m.skills[name] = id
+		}
+		if id != "" && !containsValue(out, id) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func normalizeJob(doc jobs.RankingDoc, tax *Taxonomy, memo *normMemo) JobFeatures {
+	title := memo.title(doc.Title, tax)
 	f := JobFeatures{
 		JobID:       doc.JobID,
-		Title:       title,
-		TitlePhrase: Phrase(title),
+		ObjectID:    doc.ObjectID,
+		Title:       title.clean,
+		TitlePhrase: title.phrase,
 		Company:     strings.TrimSpace(doc.Company),
 		CompanyID:   doc.CompanyID,
 		Location:    strings.TrimSpace(doc.Location),
 		Workplace:   parseWorkplace(doc.Workplace),
-		Region:      DetectRegion(doc.Location),
+		Region:      memo.region(doc.Location),
 		Seniority:   ParseLevel(doc.Seniority),
 		Employment:  parseEmployment(doc.Employment),
 		Applicants:  int32(max(doc.Applicants, 0)),
 		Source:      strings.ToLower(strings.TrimSpace(doc.Source)),
 		Hidden:      doc.Hidden,
-		Occupations: tax.ClassifyTitle(title),
-		Skills:      tax.SkillIDs(doc.Skills),
+		Occupations: title.occupations,
+		Skills:      memo.skillIDs(doc.Skills, tax),
 		DedupeKey:   doc.DedupeKey,
 		Summary:     doc.Summary,
 		Team:        doc.Team,

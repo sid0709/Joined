@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/fitscore"
+	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
 // Sort keys the search API accepts.
@@ -35,6 +37,18 @@ const (
 	slowSearch = 200 * time.Millisecond
 )
 
+// degradedCacheTTL is how long a degraded ranked list is cached: long enough to
+// absorb a burst, short enough that full ranking returns soon after recovery.
+const degradedCacheTTL = 30 * time.Second
+
+// listTTL is how long a ranked list stays cached.
+func (s *Service) listTTL(list RankedList) time.Duration {
+	if list.Degraded {
+		return min(degradedCacheTTL, s.cfg.CacheTTL)
+	}
+	return s.cfg.CacheTTL
+}
+
 // ErrFallback means ranking cannot serve this request (index still loading, or a
 // typed query while the vector index is down). The caller uses the Mongo search.
 var ErrFallback = errors.New("ranking unavailable for this request")
@@ -49,6 +63,8 @@ type Request struct {
 	Page     int
 	PageSize int
 	Now      time.Time
+	// NoCache ranks from scratch and leaves the cache untouched (load tests, evaluation).
+	NoCache bool
 }
 
 func (r Request) normalized() Request {
@@ -76,7 +92,9 @@ func (r Request) normalized() Request {
 
 // Result is one page of a search.
 type Result struct {
-	IDs         []string                   `json:"ids"`
+	IDs []string `json:"ids"`
+	// ObjectIDs are the Mongo _ids of IDs, in the same order, for hydration.
+	ObjectIDs   []string                   `json:"objectIds"`
 	Scores      []float32                  `json:"scores"`
 	Fits        map[string]fitscore.Result `json:"fits,omitempty"`
 	Total       int                        `json:"total"`
@@ -92,9 +110,10 @@ type Result struct {
 	Timing      map[string]float64         `json:"timing"`
 }
 
-// JobSource is the Mongo side the index syncs from.
-type JobSource interface {
-	ScanRankingDocsSince(ctx context.Context, since time.Time, fn func(JobFeatures) error) error
+// RankingSource is the Mongo side the index syncs from (implemented by *jobs.Store).
+type RankingSource interface {
+	// ScanRankingDocs streams public jobs in _id order, after afterID when it is set.
+	ScanRankingDocs(ctx context.Context, afterID string, fn func(jobs.RankingDoc) error) error
 	CompanySignals(ctx context.Context) (map[string]float32, error)
 }
 
@@ -104,6 +123,8 @@ type Options struct {
 	Profiles ProfileSource
 	Events   EventLog
 	Logger   *slog.Logger
+	// Embedder overrides the one the config names (synthetic load tests use HashEmbedder).
+	Embedder Embedder
 }
 
 // Service is personalized job search. It is safe for concurrent use.
@@ -121,7 +142,11 @@ type Service struct {
 	learned  Model
 	log      *slog.Logger
 	// vectors is true once the jobs collection is reachable and populated.
-	vectors atomic.Bool
+	vectors   atomic.Bool
+	mirroring atomic.Bool
+	facets    facetCache
+	memo      *normMemo
+	memoMu    sync.Mutex
 }
 
 // NewService builds the service. External services that are not configured are
@@ -138,11 +163,15 @@ func NewService(opts Options) (*Service, error) {
 	s := &Service{
 		cfg:      opts.Config,
 		tax:      DefaultTaxonomy(),
-		embedder: NewEmbedder(opts.Config),
+		embedder: opts.Embedder,
 		cache:    cache,
 		events:   opts.Events,
 		control:  LinearModel{},
 		log:      log,
+		memo:     newNormMemo(),
+	}
+	if s.embedder == nil {
+		s.embedder = NewEmbedder(opts.Config)
 	}
 	if opts.Config.QdrantURL != "" {
 		s.qdrant = NewQdrant(opts.Config.QdrantURL, opts.Config.QdrantAPIKey)
@@ -222,22 +251,36 @@ func (s *Service) Search(ctx context.Context, req Request) (Result, error) {
 		profileHash, cacheUser = user.Features.Hash, user.ID
 	}
 	key := RankedKey(cacheUser, mode+":"+arm+":"+req.List, parsed.Text, req.Filter.Key(), req.Sort, profileHash)
-	list, hit, err := s.cache.GetRanked(ctx, key)
-	if err != nil {
-		s.log.Warn("ranking cache read", "error", err)
+	var list RankedList
+	hit := false
+	if !req.NoCache {
+		var err error
+		list, hit, err = s.cache.GetRanked(ctx, key)
+		if err != nil {
+			s.log.Warn("ranking cache read", "error", err)
+		}
 	}
 	timer.mark("cache")
 	if !hit {
+		var err error
 		list, err = s.build(ctx, req, mode, arm, parsed, user, index, timer)
 		if err != nil {
 			return Result{}, err
 		}
-		if err := s.cache.SetRanked(ctx, cacheUser, key, list, s.cfg.CacheTTL); err != nil {
-			s.log.Warn("ranking cache write", "error", err)
+		if !req.NoCache {
+			if err := s.cache.SetRanked(ctx, cacheUser, key, list, s.listTTL(list)); err != nil {
+				s.log.Warn("ranking cache write", "error", err)
+			}
 		}
 	}
 
 	start := (req.Page - 1) * req.PageSize
+	if list.FromFeed && !req.NoCache && start+req.PageSize > len(list.IDs) && len(list.IDs) < list.Total {
+		list = s.extendFeed(ctx, req, mode, arm, parsed, user, index, list, timer)
+		if err := s.cache.SetRanked(ctx, cacheUser, key, list, s.listTTL(list)); err != nil {
+			s.log.Warn("ranking cache write", "error", err)
+		}
+	}
 	end := min(start+req.PageSize, len(list.IDs))
 	result := Result{
 		Total:       list.Total,
@@ -254,11 +297,12 @@ func (s *Service) Search(ctx context.Context, req Request) (Result, error) {
 		result.Scores = list.Scores[start:end]
 	}
 	result.HasMore = end < len(list.IDs)
+	result.ObjectIDs = index.ObjectIDs(result.IDs)
 	if user != nil && len(result.IDs) > 0 {
 		result.Fits = s.pageFits(index, user, result.IDs)
 	}
 	if parsed.Text == "" {
-		facets := index.Facets(req.Filter, req.Now)
+		facets := s.facets.get(index, req.Filter, req.Now)
 		result.Facets = &facets
 	}
 	timer.mark("page")
@@ -268,6 +312,32 @@ func (s *Service) Search(ctx context.Context, req Request) (Result, error) {
 		s.log.Warn("ranking slow search", "ms", total.Milliseconds(), "mode", mode, "timing", result.Timing, "cacheHit", hit)
 	}
 	return result, nil
+}
+
+// extendFeed appends the full ranking after a feed's own jobs, so paging past the
+// feed continues in order without repeating a job.
+func (s *Service) extendFeed(ctx context.Context, req Request, mode, arm string, parsed Parsed, user *User, index *Index, feed RankedList, timer *stageTimer) RankedList {
+	full, err := s.rankFull(ctx, req, mode, arm, parsed, user, index, index.Match(req.Filter), s.modelFor(arm), timer)
+	if err != nil {
+		s.log.Warn("ranking extend feed", "error", err)
+		return feed
+	}
+	seen := make(map[string]struct{}, len(feed.IDs))
+	for _, id := range feed.IDs {
+		seen[id] = struct{}{}
+	}
+	out := feed
+	out.IDs = append([]string{}, feed.IDs...)
+	out.Scores = append([]float32{}, feed.Scores...)
+	for i, id := range full.IDs {
+		if _, dup := seen[id]; !dup {
+			out.IDs = append(out.IDs, id)
+			out.Scores = append(out.Scores, full.Scores[i])
+		}
+	}
+	out.FromFeed = false
+	out.Degraded = full.Degraded
+	return out
 }
 
 func (s *Service) pageFits(index *Index, user *User, ids []string) map[string]fitscore.Result {
@@ -342,6 +412,38 @@ func (s *Service) ProfileChanged(userID string) {
 			s.log.Warn("ranking rebuild feed", "error", err, "user", userID)
 		}
 	}()
+}
+
+// facetCacheEntries bounds the facet cache; entries for an older index version are dropped.
+const facetCacheEntries = 4_096
+
+// facetCache keeps facet counts per filter until the index changes or the day turns.
+type facetCache struct {
+	mu      sync.Mutex
+	index   *Index
+	version uint64
+	entries map[string]Facets
+}
+
+func (c *facetCache) get(index *Index, f Filter, now time.Time) Facets {
+	version := index.Version()
+	key := f.Key() + "|" + now.UTC().Format(time.DateOnly)
+	c.mu.Lock()
+	if c.index != index || c.version != version {
+		c.index, c.version, c.entries = index, version, map[string]Facets{}
+	}
+	if facets, ok := c.entries[key]; ok {
+		c.mu.Unlock()
+		return facets
+	}
+	c.mu.Unlock()
+	facets := index.Facets(f, now)
+	c.mu.Lock()
+	if c.index == index && c.version == version && len(c.entries) < facetCacheEntries {
+		c.entries[key] = facets
+	}
+	c.mu.Unlock()
+	return facets
 }
 
 // stageTimer records how long each stage of a search took.

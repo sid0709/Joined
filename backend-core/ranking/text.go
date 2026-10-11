@@ -14,11 +14,12 @@ import (
 // minStemLength keeps short words ("bus", "gis", "aws") from losing their last letter.
 const minStemLength = 5
 
-// stopwords carry no meaning for matching a job to a query or a profile.
+// stopwords carry no meaning for matching a job to a query or a profile. "it" is
+// deliberately absent: in titles it is IT ("IT manager", "IT support").
 var stopwords = map[string]struct{}{
 	"a": {}, "an": {}, "and": {}, "the": {}, "of": {}, "for": {}, "to": {}, "in": {}, "on": {},
 	"at": {}, "with": {}, "by": {}, "or": {}, "from": {}, "as": {}, "is": {}, "are": {}, "be": {},
-	"we": {}, "you": {}, "our": {}, "your": {}, "this": {}, "that": {}, "it": {}, "its": {},
+	"we": {}, "you": {}, "our": {}, "your": {}, "this": {}, "that": {}, "its": {},
 	"job": {}, "jobs": {}, "role": {}, "position": {}, "opening": {}, "hiring": {}, "career": {},
 	"new": {}, "team": {}, "work": {}, "who": {}, "will": {}, "can": {}, "all": {}, "per": {},
 }
@@ -27,17 +28,21 @@ var stopwords = map[string]struct{}{
 var singleLetterTerms = map[string]struct{}{"c": {}, "r": {}}
 
 // abbreviations expand shorthand that job titles and queries use interchangeably.
+// Words that are also ordinary English or times ("pm" in "2 PM", "be", "cv" as a
+// résumé) are left out: expanding them invents roles that are not there.
 var abbreviations = map[string]string{
 	"sr": "senior", "snr": "senior", "jr": "junior", "jnr": "junior",
 	"eng": "engineer", "engr": "engineer", "dev": "developer", "devs": "developer",
 	"mgr": "manager", "mgmt": "management", "dir": "director", "vp": "vice president",
 	"swe": "software engineer", "sde": "software engineer", "sre": "site reliability engineer",
 	"ml": "machine learning", "ai": "artificial intelligence", "llm": "large language model",
-	"nlp": "natural language processing", "cv": "computer vision",
-	"js": "javascript", "ts": "typescript", "k8s": "kubernetes", "golang": "go",
-	"pm": "product manager", "ux": "user experience", "ui": "user interface",
-	"qa": "quality assurance", "hr": "human resources", "rn": "registered nurse",
-	"fe": "frontend", "be": "backend", "fullstack": "full stack", "devops": "devops",
+	"nlp": "natural language processing",
+	"js":  "javascript", "ts": "typescript", "k8s": "kubernetes", "golang": "go",
+	"ux": "user experience", "ui": "user interface",
+	// "rn" stays literal: React Native as often as Registered Nurse. The nurse
+	// family keeps it as a title alias, where the role context disambiguates.
+	"qa": "quality assurance", "hr": "human resources",
+	"fullstack": "full stack",
 }
 
 // Fold lowercases, strips accents, and turns separators into spaces, keeping the

@@ -9,20 +9,30 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 
 ## What runs where
 
-| Service              | Container port | VPS port (127.0.0.1 only) | Runs by default                                |
-| -------------------- | -------------- | ------------------------- | ---------------------------------------------- |
-| `joined-frontend`    | 3000           | 6002                      | yes — nginx serves it on joinedhq.com          |
-| `joined-backend`     | 8080           | 11080                     | yes                                            |
-| `scoutwell-frontend` | 3000           | 6003                      | with `COMPOSE_PROFILES` containing `scoutwell` |
-| `scoutwell-backend`  | 8080           | 11082                     | with `scoutwell`                               |
-| `admin-frontend`     | 3000           | 6010                      | with `admin`                                   |
-| `admin-backend`      | 8080           | 11081                     | with `admin`                                   |
-| `connected-frontend` | 3000           | 6004                      | with `connected`                               |
+| Service              | Container port | VPS port (127.0.0.1 only) | Runs by default                                 |
+| -------------------- | -------------- | ------------------------- | ----------------------------------------------- |
+| `joined-frontend`    | 3000           | 6002                      | yes — nginx serves it on joinedhq.com           |
+| `joined-backend`     | 8080           | 11080                     | yes                                             |
+| `scoutwell-frontend` | 3000           | 6003                      | with `COMPOSE_PROFILES` containing `scoutwell`  |
+| `scoutwell-backend`  | 8080           | 11082                     | with `scoutwell`                                |
+| `admin-frontend`     | 3000           | 6010                      | with `admin`                                    |
+| `admin-backend`      | 8080           | 11081                     | with `admin`                                    |
+| `connected-frontend` | 3000           | 6004                      | with `connected`                                |
+| `qdrant`             | 6333           | 6333                      | yes — the ranking vector index                  |
+| `redis`              | 6379           | 6379                      | yes — ranking cache and feeds (nothing on disk) |
+| `embedder`           | 80             | 8090                      | yes — the embedding model (TEI, CPU)            |
 
 Host ports are the dev ports + 3000, except `connected-frontend`: browsers refuse port 6000.
 Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect
 (`/v1/me/calendar/google/callback`) to the API on 11080. `api.joinedhq.com` goes to
 joined-backend on the same port ([`nginx/api.joinedhq.com.conf`](nginx/api.joinedhq.com.conf)).
+
+Personalized search runs on `qdrant`, `redis`, and `embedder`
+([`backend-core/ranking/README.md`](../backend-core/ranking/README.md)). On the first start the
+embedder downloads its model and joined-backend embeds every job in the background; search falls
+back to the Mongo text search until the vectors are in. Learned-ranking models go in
+`/srv/joined/models` (mounted at `/models`). Optional variables: `RANKING_MODEL_PATH`
+(e.g. `/models/model.txt`), `RANKING_LTR_PERCENT` (default 0), `RANKING_EVENTS` (default true).
 
 ## GitHub `production` environment
 

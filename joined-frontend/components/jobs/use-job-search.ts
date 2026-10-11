@@ -3,20 +3,15 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   DEFAULT_FILTERS,
-  GOOD_MATCH,
   SEARCH_DEBOUNCE_MS,
   SEARCH_PAGE_SIZE,
   clearRefinements,
   countRefinements,
-  scoreFor,
   serializeFilters,
-  sortJobs,
-  type Job,
   type JobFilters,
   type JobSearchPage,
   type ListKey,
 } from "@/lib/jobs";
-import type { MatchProfile } from "@/lib/jobs/match";
 import { searchJobs } from "@/lib/jobs/search-action";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 
@@ -30,16 +25,18 @@ function isTypedQuery(patch: Partial<JobFilters>) {
   return Object.keys(patch).every((key) => key === "q" || key === "where");
 }
 
+const NO_FITS: NonNullable<JobSearchPage["fits"]> = {};
+
 /**
  * State for the job search page: filters mirrored to the URL, one server page
- * of results, the lists a hunter keeps, the selected job, and paging.
+ * of results in the server's ranked order, the lists a hunter keeps, the
+ * selected job, and paging.
  */
 export function useJobSearch(
   initial: JobFilters,
   initialResult: JobSearchPage,
-  lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean; profile?: MatchProfile },
+  lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean },
 ) {
-  const score = useCallback((job: Job) => scoreFor(job, lists.profile), [lists.profile]);
   const [filters, setFilters] = useState<JobFilters>(initial);
   const [savedIds, setSavedIds] = useState<string[]>(lists.savedIds);
   const [appliedIds, setAppliedIds] = useState<string[]>(lists.appliedIds);
@@ -47,7 +44,7 @@ export function useJobSearch(
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPageState] = useState(initialResult.page);
   const [result, setResult] = useState(initialResult);
-  const [matchTotal, setMatchTotal] = useState(initial.list === "saved" ? 0 : initialResult.total);
+  const [matchTotal, setMatchTotal] = useState(initial.list === "all" ? initialResult.total : 0);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const request = useRef(0);
@@ -82,7 +79,7 @@ export function useJobSearch(
         const data = await searchJobs(nextFilters, nextPage, savedIdsRef.current);
         if (id !== request.current) return;
         setResult(data);
-        if (nextFilters.list !== "saved") setMatchTotal(data.total);
+        if (nextFilters.list === "all") setMatchTotal(data.total);
         setError(null);
       } catch (cause) {
         if (id !== request.current) return;
@@ -142,21 +139,21 @@ export function useJobSearch(
     [filters, schedule],
   );
 
-  const jobs = result.jobs.filter((job) => !hiddenIds.includes(job.id));
-  const ranked =
-    filters.sort === "relevance" && filters.q.trim() === ""
-      ? sortJobs(jobs, "relevance", score)
-      : jobs;
-  const pageJobs =
-    filters.list === "recommended" ? ranked.filter((job) => score(job) >= GOOD_MATCH) : ranked;
-  const total = filters.list === "recommended" ? pageJobs.length : result.total;
+  const pageJobs = result.jobs.filter((job) => !hiddenIds.includes(job.id));
+  const total = result.total;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selected = pageJobs.find((job) => job.id === selectedId) ?? pageJobs[0] ?? null;
 
   const listCounts: Record<ListKey, number | null> = {
-    all: filters.list === "saved" ? matchTotal : result.total,
-    recommended: filters.list === "recommended" ? pageJobs.length : null,
+    all: filters.list === "all" ? result.total : matchTotal || null,
+    recommended: filters.list === "recommended" ? result.total : null,
     saved: savedIds.length,
+  };
+
+  /** Where a job sits in the full ranked list, for interaction logs. */
+  const positionOf = (id: string) => {
+    const index = result.jobs.findIndex((job) => job.id === id);
+    return index < 0 ? -1 : (page - 1) * PAGE_SIZE + index;
   };
 
   const toggleSave = async (id: string) => {
@@ -183,7 +180,7 @@ export function useJobSearch(
     pageResults: pageJobs,
     total,
     page,
-    pageCount: filters.list === "recommended" ? 1 : pageCount,
+    pageCount,
     setPage,
     listCounts,
     error,
@@ -196,6 +193,12 @@ export function useJobSearch(
     hide: (id: string) => setHiddenIds((ids) => [...ids, id]),
     unhide: (id: string) => setHiddenIds((ids) => ids.filter((item) => item !== id)),
     signedIn: lists.signedIn,
+    fits: result.fits ?? NO_FITS,
+    facets: result.facets,
+    suggestions: result.suggestions ?? [],
+    rankingId: result.rankingId,
+    exact: result.exact ?? true,
+    positionOf,
   };
 }
 

@@ -25,6 +25,12 @@ services:
     <<: *api
     image: ${IMAGE_REPO}:joined-backend-${IMAGE_TAG}
     ports: ["127.0.0.1:11080:8080"]
+    # Search keeps working while these start: it falls back to the Mongo text
+    # search until the vector index and the embedder answer.
+    depends_on: [qdrant, redis, embedder]
+    volumes:
+      # Learned-ranking models (tools/ranking/train_ltr.py output) live here.
+      - ./models:/models:ro
     environment:
       MONGO_URI: ${MONGO_URI:-}
       DEST_DB: ${DEST_DB:-JoinedDB}
@@ -35,6 +41,57 @@ services:
       GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Personalized ranking (backend-core/ranking). One backend instance runs
+      # the indexer; it mirrors Mongo into Qdrant and fans new jobs out to feeds.
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      EMBEDDER_URL: http://embedder:80
+      RANKING_INDEXER: "true"
+      RANKING_EVENTS: ${RANKING_EVENTS:-true}
+      RANKING_MODEL_PATH: ${RANKING_MODEL_PATH:-}
+      RANKING_LTR_PERCENT: ${RANKING_LTR_PERCENT:-0}
+      # The in-memory index is a large, long-lived heap: collect less often.
+      GOGC: "200"
+
+  # The vector index. Original vectors stay on disk (page cache); the int8 copies
+  # searches walk stay in RAM. About 1.1 GB per million jobs.
+  qdrant:
+    <<: *app
+    image: qdrant/qdrant:v1.19.1
+    ports: ["127.0.0.1:6333:6333"]
+    volumes: ["qdrant:/qdrant/storage"]
+
+  # Ranked-result cache, "For you" feeds, and query vectors. Everything in it can
+  # be rebuilt, so it keeps nothing on disk and evicts least-recently used.
+  redis:
+    <<: *app
+    image: redis:8.10.2-alpine
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "1gb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 6
+
+  # The embedding model (bge-small-en-v1.5, 384 dimensions) on CPU. Jobs, profiles,
+  # and typed queries must all use this one model.
+  embedder:
+    <<: *app
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
+    command: ["--model-id", "BAAI/bge-small-en-v1.5", "--max-client-batch-size", "64"]
+    ports: ["127.0.0.1:8090:80"]
+    volumes: ["embedder:/data"]
 
   joined-frontend:
     <<: *app
@@ -106,3 +163,7 @@ services:
     image: ${IMAGE_REPO}:connected-frontend-${IMAGE_TAG}
     # 6000 would follow the +3000 rule, but browsers refuse to open port 6000.
     ports: ["127.0.0.1:6004:3000"]
+
+volumes:
+  qdrant:
+  embedder:

@@ -35,6 +35,10 @@ type Parsed struct {
 	Skills      []string
 	Occupations []string
 	Suggestions []Suggestion
+	// Core is the folded query without the words that only imply a filter
+	// ("remote", "senior", "contract", "full time", "$150k"): what a job's title,
+	// skills, or company must carry for a keyword-only match.
+	Core string
 }
 
 var (
@@ -113,7 +117,27 @@ func ParseQuery(query string, tax *Taxonomy) Parsed {
 		}
 	}
 	sortSuggestions(p.Suggestions)
+	p.Core = coreText(text)
 	return p
+}
+
+// coreText drops the filter words ParseQuery reads as suggestions.
+func coreText(text string) string {
+	core := " " + Fold(payPattern.ReplaceAllString(text, " ")) + " "
+	for phrase := range postedPhrase {
+		core = strings.ReplaceAll(core, " "+phrase+" ", " ")
+	}
+	for _, phrase := range []string{"part time", "full time"} {
+		core = strings.ReplaceAll(core, " "+phrase+" ", " ")
+	}
+	words := strings.Fields(core)
+	kept := words[:0]
+	for _, word := range words {
+		if _, filter := queryWords[word]; !filter {
+			kept = append(kept, word)
+		}
+	}
+	return strings.Join(kept, " ")
 }
 
 // suggestionOrder keeps chips in the order the filter bar shows them.

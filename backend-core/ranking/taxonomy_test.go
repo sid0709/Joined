@@ -78,3 +78,45 @@ func TestSkills(t *testing.T) {
 		t.Fatalf("SkillsIn = %v", got)
 	}
 }
+
+// genericTitleWords name no family on their own; an alias that folds down to one
+// of them would claim every "... Manager" or "... Engineer" title.
+var genericTitleWords = map[string]bool{
+	"manager": true, "engineer": true, "developer": true, "director": true, "analyst": true,
+	"specialist": true, "administrator": true, "technician": true, "support": true, "lead": true,
+	"associate": true, "coordinator": true, "senior": true, "head": true, "officer": true,
+}
+
+func TestNoAliasFoldsToAGenericWord(t *testing.T) {
+	for _, occupation := range DefaultTaxonomy().Occupations() {
+		for _, alias := range append([]string{occupation.Title}, occupation.Aliases...) {
+			phrase := Phrase(alias)
+			if phrase == "" || genericTitleWords[phrase] {
+				t.Errorf("%s alias %q folds to %q", occupation.ID, alias, phrase)
+			}
+		}
+	}
+	if got := DefaultTaxonomy().ClassifyTitle("Customer Success Manager"); len(got) != 1 || got[0] != "customer-success" {
+		t.Fatalf("Customer Success Manager = %v", got)
+	}
+}
+
+func TestAmbiguousShorthandIsNotExpanded(t *testing.T) {
+	tax := DefaultTaxonomy()
+	if got := tax.ClassifyTitle("DevOps Engineer (2 PM - 11 PM)"); len(got) == 0 || got[0] != "devops" || containsValue(got, "product-management") {
+		t.Fatalf("a shift time is not a product manager: %v", got)
+	}
+	for _, term := range Tokens("React Native, RN Skia") {
+		if term == "nurse" || term == "registered" {
+			t.Fatalf("RN (React Native) expanded into %q", term)
+		}
+	}
+	if got := tax.ClassifyTitle("RN - ICU Night Shift"); len(got) == 0 || got[0] != "nursing" {
+		t.Fatalf("an RN title is still a nurse: %v", got)
+	}
+	for _, term := range Tokens("You will be responsible for the CV pipeline") {
+		if term == "backend" || term == "computer" {
+			t.Fatalf("ordinary words expanded into %q", term)
+		}
+	}
+}

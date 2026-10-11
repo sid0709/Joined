@@ -57,6 +57,8 @@
     "dev:joined": "bun tools/run-service.mjs dev joined-frontend",
     "dev:admin": "bun tools/run-service.mjs dev admin-frontend",
     "dev:api": "bun tools/run-api.mjs",
+    "dev:ranking": "bun tools/ranking-services.mjs",
+    "dev:ranking:down": "bun tools/ranking-services.mjs down",
     "dev:joined-api": "bun tools/run-api.mjs joined-api",
     "dev:admin-api": "bun tools/run-api.mjs admin-api",
     "dev:scout-api": "bun tools/run-api.mjs scout-api",

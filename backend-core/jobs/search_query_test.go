@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func TestBuildSearchFilter(t *testing.T) {
@@ -600,5 +601,46 @@ func TestTruncateString(t *testing.T) {
 				t.Errorf("truncateString() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestKeywordFilterRegexFallback(t *testing.T) {
+	filter := keywordFilter("Senior  React senior a.b", keywordRegex)
+	terms, ok := filter[0].Value.(bson.A)
+	if filter[0].Key != "$and" || !ok {
+		t.Fatalf("regex keyword filter = %+v, want $and", filter)
+	}
+	// senior, react, a.b (deduplicated): each must match one of the fields.
+	if len(terms) != 3 {
+		t.Fatalf("got %d terms, want 3", len(terms))
+	}
+	last := terms[2].(bson.D)
+	fields := last[0].Value.(bson.A)
+	if last[0].Key != "$or" || len(fields) != len(keywordRegexFields) {
+		t.Fatalf("term clause = %+v, want $or over %v", last, keywordRegexFields)
+	}
+	skills := fields[len(fields)-1].(bson.D)
+	if skills[0].Key != "job.skills" || skills[0].Value.(bson.D)[0].Value != `a\.b` {
+		t.Errorf("skills clause = %+v, want job.skills matching a\\.b", skills)
+	}
+	if text := keywordFilter("react", keywordText); text[0].Key != "$text" {
+		t.Errorf("text keyword filter = %+v, want $text", text)
+	}
+}
+
+func TestSearchSortWithoutTextIndex(t *testing.T) {
+	sort, err := searchSort(SearchQuery{Keyword: "react", SortBy: "relevance"}, keywordRegex)
+	if err != nil || sort[0].Key != "analyzedAt" {
+		t.Errorf("searchSort(regex) = %+v, %v; want analyzedAt first", sort, err)
+	}
+}
+
+func TestIsTextIndexMissing(t *testing.T) {
+	missing := fmt.Errorf("count documents: %w", mongo.CommandError{Code: mongoIndexNotFound, Message: "text index required for $text query"})
+	if !isTextIndexMissing(missing) {
+		t.Error("IndexNotFound should trigger the regex fallback")
+	}
+	if isTextIndexMissing(errors.New("timeout")) || isTextIndexMissing(nil) {
+		t.Error("other errors must not trigger the fallback")
 	}
 }

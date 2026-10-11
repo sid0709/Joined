@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"math"
 	"net/http"
@@ -19,7 +20,10 @@ import (
 const queryInstruction = "Represent this sentence for searching relevant passages: "
 
 const (
-	embedTimeout = 10 * time.Second
+	// embedTimeout bounds one embedding request. Backfill batches queue behind each
+	// other on a CPU model, so it is generous; searches are bounded by their own
+	// request deadline, which is much shorter.
+	embedTimeout = 2 * time.Minute
 	// EmbedBatch is how many texts one embedding request carries.
 	EmbedBatch = 32
 	// embedMaxErrorBody caps how much of an error response is kept for the message.
@@ -206,4 +210,32 @@ func joinComma(values []string) string {
 		b.WriteString(v)
 	}
 	return b.String()
+}
+
+// HashEmbedder maps each term to fixed pseudo-random directions, so texts that
+// share words land close together. It is deterministic and needs no model:
+// synthetic load tests and tests use it; it is no substitute for a real model.
+type HashEmbedder struct{ Dims int }
+
+// Dimensions is the vector size.
+func (h HashEmbedder) Dimensions() int { return h.Dims }
+
+// Embed returns one unit vector per text.
+func (h HashEmbedder) Embed(_ context.Context, texts []string, _ bool) ([][]float32, error) {
+	const directionsPerTerm = 8
+	out := make([][]float32, len(texts))
+	for i, text := range texts {
+		v := make([]float32, h.Dims)
+		for _, term := range Tokens(text) {
+			f := fnv.New64a()
+			_, _ = f.Write([]byte(term))
+			seed := f.Sum64()
+			for j := 0; j < directionsPerTerm; j++ {
+				seed = seed*6364136223846793005 + 1442695040888963407
+				v[seed%uint64(h.Dims)]++
+			}
+		}
+		out[i] = normalized(v)
+	}
+	return out, nil
 }

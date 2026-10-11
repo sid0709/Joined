@@ -33,6 +33,10 @@ type Props = {
   listCounts: Record<ListKey, number | null>;
   onListChange: (list: ListKey) => void;
   total: number;
+  /** False when total estimates the relevant jobs for a typed query. */
+  exact?: boolean;
+  /** Visitors have no profile, so they are not offered the recommended sort. */
+  signedIn?: boolean;
   jobs: Job[];
   fits?: Record<string, JobFit>;
   page: number;
@@ -96,6 +100,8 @@ export function JobResults({
   listCounts,
   onListChange,
   total,
+  exact = true,
+  signedIn = false,
   jobs,
   fits,
   page,
@@ -147,12 +153,14 @@ export function JobResults({
 
       <HStack hAlign="between" vAlign="center" gap={2} wrap="wrap">
         <Text type="supporting" color="secondary" hasTabularNumbers>
-          {total === 0 ? "No results" : `Showing ${from}–${to} of ${formatCount(total, "job")}`}
+          {total === 0
+            ? "No results"
+            : `Showing ${from}–${to} of ${exact ? "" : "about "}${formatCount(total, exact ? "job" : "relevant job")}`}
         </Text>
         <Selector
           label="Sort by"
           isLabelHidden
-          options={[...SORTS]}
+          options={signedIn ? [...SORTS] : SORTS.filter((option) => option.value !== "recommended")}
           value={sort}
           onChange={(value) => onSortChange(value as SortKey)}
           startIcon={<Glyph name="sort" />}

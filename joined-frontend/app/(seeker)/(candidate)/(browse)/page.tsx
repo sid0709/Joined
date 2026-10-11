@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { JobSearch } from "@/components/jobs/job-search";
+import { SESSION_COOKIE } from "@/lib/auth/constants";
 import { loadSession } from "@/lib/auth/session";
 import { loadJobSearch, loadSavedJobSearch } from "@/lib/jobs/catalog";
 import {
@@ -8,6 +10,7 @@ import {
   parsePage,
   serializeFilters,
   type JobSearchPage,
+  type SortKey,
 } from "@/lib/jobs";
 import { loadAppliedJobIds, loadProfile, loadSavedJobIds } from "@/lib/me/load";
 
@@ -18,6 +21,7 @@ export const metadata: Metadata = {
 };
 
 const EMPTY_PAGE: JobSearchPage = { jobs: [], total: 0, page: 1 };
+const RECOMMENDED_SORT: SortKey = "recommended";
 
 export default async function HomePage({
   searchParams,
@@ -25,9 +29,9 @@ export default async function HomePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filters = parseFilters(params);
+  const parsed = parseFilters(params);
   const page = parsePage(params);
-  const isFirstCatalogPage = serializeFilters(filters) === "" && page === 1;
+  const isFirstCatalogPage = serializeFilters(parsed) === "" && page === 1;
 
   let catalog: JobSearchPage = EMPTY_PAGE;
   let result: JobSearchPage = EMPTY_PAGE;
@@ -41,6 +45,10 @@ export default async function HomePage({
     ),
   ]);
 
+  // Signed in, the list is ranked for the hunter unless the link asks for another sort.
+  const token = session ? (await cookies()).get(SESSION_COOKIE)?.value : undefined;
+  const filters = session && !params.sort ? { ...parsed, sort: RECOMMENDED_SORT } : parsed;
+
   if (!firstPage.ok) {
     loadError = firstPage.cause instanceof Error ? firstPage.cause.message : "Could not load jobs";
   } else {
@@ -49,10 +57,10 @@ export default async function HomePage({
       if (filters.list === "saved") {
         const savedIds = session ? await loadSavedJobIds() : [];
         result = await loadSavedJobSearch(savedIds, filters, page);
-      } else if (isFirstCatalogPage) {
+      } else if (isFirstCatalogPage && !token) {
         result = catalog;
       } else {
-        result = await loadJobSearch(filters, page);
+        result = await loadJobSearch(filters, page, token);
       }
     } catch (cause) {
       loadError = cause instanceof Error ? cause.message : "Could not load jobs";
@@ -73,7 +81,6 @@ export default async function HomePage({
       appliedIds={appliedIds}
       signedIn={Boolean(session)}
       roleSuggestions={profile?.targetRoles}
-      matchProfile={profile ?? undefined}
     />
   );
 }

@@ -60,6 +60,7 @@ func (s *Server) postProfileResume(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
+	s.noteProfileChanged(session.User.ID)
 	httpkit.WriteJSON(w, http.StatusOK, profileResumeResponse{Profile: profile, Reader: result.Reader})
 }
 

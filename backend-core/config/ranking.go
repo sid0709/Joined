@@ -22,7 +22,7 @@ const (
 	defaultRankingCandidateLimit    = 1000
 	defaultRankingChannelLimit      = 500
 	defaultRankingScanLimit         = 50_000
-	defaultRankingRequestTimeout    = 400 * time.Millisecond
+	defaultRankingRequestTimeout    = 800 * time.Millisecond
 	defaultRankingExperiment        = "ltr-v1"
 )
 
@@ -56,6 +56,8 @@ type Ranking struct {
 	CollectionVersion string
 	// EventsCollection is the Mongo collection for impressions and interactions.
 	EventsCollection string
+	// Events turns impression and interaction logging on (the learned ranker's training data).
+	Events bool
 
 	// Indexer runs the Mongo → Qdrant sync in this process. Turn it on in one instance only.
 	Indexer           bool
@@ -96,6 +98,7 @@ func LoadRanking() Ranking {
 		UsersCollection:   Env("RANKING_USERS_COLLECTION", defaultRankingUsersCollection),
 		CollectionVersion: Env("RANKING_COLLECTION_VERSION", defaultRankingCollectionVersion),
 		EventsCollection:  Env("RANKING_EVENTS_COLLECTION", defaultRankingEventsCollection),
+		Events:            !strings.EqualFold(Env("RANKING_EVENTS", "true"), "false"),
 
 		Indexer:           envFlag("RANKING_INDEXER"),
 		SyncInterval:      EnvDuration("RANKING_SYNC_INTERVAL", defaultRankingSyncInterval),

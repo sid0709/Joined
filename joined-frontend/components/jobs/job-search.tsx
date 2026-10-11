@@ -27,8 +27,8 @@ import {
   type JobFilters,
   type JobSearchPage,
 } from "@/lib/jobs";
+import { logRankingEvent } from "@/lib/jobs/ranking-events";
 import { loadJob } from "@/lib/jobs/search-action";
-import type { MatchProfile } from "@/lib/jobs/match";
 import { ROLE_SUGGESTIONS } from "@/lib/profile";
 import { ROUTES } from "@/lib/routes";
 import { JobActiveFilters } from "./job-active-filters";
@@ -37,8 +37,9 @@ import { JobDetailBody, JobDetailPane } from "./job-detail-pane";
 import { JobFilterToolbar } from "./job-filter-toolbar";
 import { JobResults } from "./job-results";
 import { JobSearchBar, type SavedQuery } from "./job-search-bar";
+import { JobSuggestions } from "./job-suggestions";
 import { SavedSearches } from "./saved-searches";
-import { useJobFits } from "./use-job-fits";
+import { useJobFit } from "./use-job-fits";
 import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
 import { useJobSearch } from "./use-job-search";
@@ -63,7 +64,6 @@ export function JobSearch({
   appliedIds = [],
   signedIn = false,
   roleSuggestions = ROLE_SUGGESTIONS,
-  matchProfile,
 }: {
   initialFilters: JobFilters;
   initialResult: JobSearchPage;
@@ -73,14 +73,12 @@ export function JobSearch({
   appliedIds?: string[];
   signedIn?: boolean;
   roleSuggestions?: string[];
-  matchProfile?: MatchProfile;
 }) {
   const router = useRouter();
   const search = useJobSearch(initialFilters, initialResult, {
     savedIds,
     appliedIds,
     signedIn,
-    profile: matchProfile,
   });
   const jobs = search.pageResults;
   const isWide = useMediaQuery(WIDE_QUERY, true);
@@ -90,19 +88,32 @@ export function JobSearch({
   const [detail, setDetail] = useState<Job | null>(null);
   const [recent, setRecent] = useState<SavedQuery[]>(RECENT_SEARCHES);
 
+  const track = (id: string, type: "click" | "save" | "apply" | "dismiss") =>
+    logRankingEvent(search.rankingId, id, type, search.positionOf(id));
+
   const actions = useJobActions({
     isSaved: (id) => search.savedIds.includes(id),
-    toggleSave: (id) => void search.toggleSave(id),
-    markApplied: search.markApplied,
+    toggleSave: (id) => {
+      if (!search.savedIds.includes(id)) track(id, "save");
+      void search.toggleSave(id);
+    },
+    markApplied: (id) => {
+      track(id, "apply");
+      search.markApplied(id);
+    },
     signedIn,
-    hide: search.hide,
+    hide: (id) => {
+      track(id, "dismiss");
+      search.hide(id);
+    },
     unhide: search.unhide,
   });
 
-  const { filters, selected } = search;
-  const fitIds = search.pageResults.map((job) => job.id);
-  if (selected && !fitIds.includes(selected.id)) fitIds.push(selected.id);
-  const fits = useJobFits(signedIn, fitIds);
+  const { filters, selected, fits: pageFits } = search;
+  // The page's fits come with the results; a job selected from elsewhere is scored alone.
+  const missingFit = selected != null && !(selected.id in pageFits);
+  const selectedFit = useJobFit(signedIn && missingFit, selected?.id ?? "");
+  const fits = selected && selectedFit ? { ...pageFits, [selected.id]: selectedFit } : pageFits;
 
   useEffect(() => {
     if (selected?.id) router.prefetch(ROUTES.job(selected.id));
@@ -123,6 +134,7 @@ export function JobSearch({
   const detailJob = detail?.id === selected?.id ? detail : selected;
 
   const select = (job: Job) => {
+    if (job.id !== selected?.id) track(job.id, "click");
     search.select(job.id);
     if (!isWide) setDrawerJob(job);
   };
@@ -191,9 +203,15 @@ export function JobSearch({
         <Stack gap={3}>
           <JobFilterToolbar
             filters={filters}
+            facets={search.facets}
             refinementCount={search.refinementCount}
             onChange={search.update}
             onOpenFilters={() => setFiltersOpen(true)}
+          />
+          <JobSuggestions
+            filters={filters}
+            suggestions={search.suggestions}
+            onChange={search.update}
           />
           <JobActiveFilters
             filters={filters}
@@ -211,6 +229,8 @@ export function JobSearch({
               listCounts={search.listCounts}
               onListChange={(list) => search.update({ list })}
               total={search.total}
+              exact={search.exact}
+              signedIn={signedIn}
               jobs={search.pageResults}
               fits={fits}
               page={search.page}

@@ -44,6 +44,10 @@ type SearchQuery struct {
 	// Source is an optional listing origin filter. "hidden" keeps scouted jobs only.
 	// A comma-separated list matches any of those job.source values.
 	Source string
+	// List is "recommended" for strong fits only (ranked search); blank is every job.
+	List string
+	// Region keeps jobs hiring in these markets ("us,ca"); ranked search only.
+	Region string
 }
 
 type SearchResults struct {
@@ -53,12 +57,44 @@ type SearchResults struct {
 	HasMore    bool         `json:"hasMore"`
 }
 
+// keywordMatch is how a typed keyword filters: Mongo's text index, or a
+// case-insensitive regex for collections without one.
+type keywordMatch int
+
+const (
+	keywordText keywordMatch = iota
+	keywordRegex
+)
+
+const (
+	// mongoIndexNotFound is the server code for a $text query without a text index.
+	mongoIndexNotFound = 27
+	maxKeywordTerms    = 8
+	minKeywordTermLen  = 2
+)
+
+// keywordRegexFields are the fields a keyword matches when there is no text index.
+var keywordRegexFields = []string{"job.title", "job.company", "job.skills"}
+
 func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time) (SearchResults, error) {
 	if query.Cursor != "" && query.SortBy == "relevance" && query.Keyword != "" {
 		return SearchResults{}, ErrCursorNotSupportedForRelevance
 	}
+	results, err := s.searchJobs(ctx, query, now, keywordText)
+	if query.Keyword != "" && isTextIndexMissing(err) {
+		// Without a text index a keyword search still answers, newest first.
+		return s.searchJobs(ctx, query, now, keywordRegex)
+	}
+	return results, err
+}
 
-	filter := s.buildSearchFilter(query, now)
+func isTextIndexMissing(err error) bool {
+	var serverErr mongo.ServerError
+	return errors.As(err, &serverErr) && serverErr.HasErrorCode(mongoIndexNotFound)
+}
+
+func (s *Store) searchJobs(ctx context.Context, query SearchQuery, now time.Time, match keywordMatch) (SearchResults, error) {
+	filter := s.searchFilter(query, now, match)
 
 	total, err := s.structured().CountDocuments(ctx, filter)
 	if err != nil {
@@ -69,7 +105,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 
 	opts := options.Find().SetLimit(int64(limit + 1))
 
-	sort, err := s.buildSort(query, filter)
+	sort, err := searchSort(query, match)
 	if err != nil {
 		return SearchResults{}, fmt.Errorf("build sort: %w", err)
 	}
@@ -83,7 +119,7 @@ func (s *Store) SearchJobs(ctx context.Context, query SearchQuery, now time.Time
 		opts.SetSkip(int64(page-1) * int64(limit))
 	}
 
-	if query.Keyword != "" {
+	if query.Keyword != "" && match == keywordText {
 		opts.SetProjection(bson.D{{Key: "score", Value: bson.D{{Key: "$meta", Value: "textScore"}}}})
 	}
 
@@ -186,6 +222,10 @@ func hiddenSourceFilter() bson.D {
 }
 
 func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
+	return s.searchFilter(query, now, keywordText)
+}
+
+func (s *Store) searchFilter(query SearchQuery, now time.Time, match keywordMatch) bson.D {
 	filter := publicListingFilter()
 	conditions := []bson.D{filter}
 
@@ -194,7 +234,7 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 	}
 
 	if query.Keyword != "" {
-		conditions = append(conditions, bson.D{{Key: "$text", Value: bson.D{{Key: "$search", Value: query.Keyword}}}})
+		conditions = append(conditions, keywordFilter(query.Keyword, match))
 	}
 
 	if query.Location != "" {
@@ -262,10 +302,53 @@ func (s *Store) buildSearchFilter(query SearchQuery, now time.Time) bson.D {
 	return bson.D{{Key: "$and", Value: conditions}}
 }
 
+// keywordFilter matches a typed keyword. Without a text score to rank by, the
+// regex form needs every term in the job's title, company, or skills, so a
+// newest-first list stays on topic.
+func keywordFilter(keyword string, match keywordMatch) bson.D {
+	if match == keywordText {
+		return bson.D{{Key: "$text", Value: bson.D{{Key: "$search", Value: keyword}}}}
+	}
+	terms := keywordTerms(keyword)
+	if len(terms) == 0 {
+		terms = []string{truncateString(strings.TrimSpace(keyword), maxRegexFilterChars)}
+	}
+	each := bson.A{}
+	for _, term := range terms {
+		pattern := bson.D{{Key: "$regex", Value: regexp.QuoteMeta(term)}, {Key: "$options", Value: "i"}}
+		anyField := bson.A{}
+		for _, field := range keywordRegexFields {
+			anyField = append(anyField, bson.D{{Key: field, Value: pattern}})
+		}
+		each = append(each, bson.D{{Key: "$or", Value: anyField}})
+	}
+	return bson.D{{Key: "$and", Value: each}}
+}
+
+func keywordTerms(keyword string) []string {
+	seen := map[string]bool{}
+	terms := make([]string, 0, maxKeywordTerms)
+	for _, term := range strings.Fields(strings.ToLower(truncateString(keyword, maxRegexFilterChars))) {
+		if len(term) < minKeywordTermLen || seen[term] {
+			continue
+		}
+		seen[term] = true
+		terms = append(terms, term)
+		if len(terms) == maxKeywordTerms {
+			break
+		}
+	}
+	return terms
+}
+
 func (s *Store) buildSort(query SearchQuery, filter bson.D) (bson.D, error) {
+	return searchSort(query, keywordText)
+}
+
+func searchSort(query SearchQuery, match keywordMatch) (bson.D, error) {
 	switch query.SortBy {
 	case "relevance":
-		if query.Keyword == "" {
+		if query.Keyword == "" || match == keywordRegex {
 			return bson.D{{Key: "analyzedAt", Value: -1}, {Key: "_id", Value: -1}}, nil
 		}
 		return bson.D{{Key: "score", Value: bson.D{{Key: "$meta", Value: "textScore"}}}, {Key: "_id", Value: -1}}, nil
@@ -378,13 +461,13 @@ func (s *Store) EnsureSearchIndexes(ctx context.Context) error {
 	}
 
 	_, err := indexes.CreateOne(ctx, textIndex)
-	if err != nil && !mongo.IsDuplicateKeyError(err) && !strings.Contains(err.Error(), "already exists") {
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) || strings.Contains(err.Error(), "already exists") {
+			return nil
+		}
 		return fmt.Errorf("create text index: %w", err)
 	}
 
-	if _, err := indexes.CreateMany(ctx, rankingIndexes()); err != nil && !strings.Contains(err.Error(), "already exists") {
-		return fmt.Errorf("create ranking indexes: %w", err)
-	}
 	return nil
 }
 

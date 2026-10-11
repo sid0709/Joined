@@ -8,7 +8,7 @@ import (
 func TestLoadRankingDefaults(t *testing.T) {
 	for _, key := range []string{
 		"QDRANT_URL", "REDIS_URL", "EMBEDDER_URL", "EMBEDDER_API", "RANKING_INDEXER",
-		"RANKING_LTR_PERCENT", "RANKING_CACHE_TTL", "RANKING_FEED_SIZE",
+		"RANKING_LTR_PERCENT", "RANKING_CACHE_TTL", "RANKING_FEED_SIZE", "RANKING_EVENTS",
 	} {
 		t.Setenv(key, "")
 	}
@@ -18,6 +18,9 @@ func TestLoadRankingDefaults(t *testing.T) {
 	}
 	if cfg.EmbedderAPI != EmbedderTEI || cfg.EmbedderDimensions != defaultEmbedderDimensions {
 		t.Fatalf("embedder defaults = %q/%d", cfg.EmbedderAPI, cfg.EmbedderDimensions)
+	}
+	if !cfg.Events {
+		t.Fatal("event logging should default on")
 	}
 	if cfg.Indexer || cfg.LTRPercent != 0 {
 		t.Fatalf("indexer and LTR should default off, got %v/%d", cfg.Indexer, cfg.LTRPercent)

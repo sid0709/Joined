@@ -35,6 +35,9 @@ type CatalogResponse = {
   total: number;
 };
 
+type SearchResponse = CatalogResponse &
+  Pick<JobSearchPage, "exact" | "hasMore" | "fits" | "facets" | "suggestions" | "rankingId">;
+
 export async function loadSearchCatalog(): Promise<Job[]> {
   const response = await fetch(catalogUrl(SEARCH_JOBS_PATH), PUBLIC_JOB_CACHE);
   if (!response.ok) {
@@ -45,20 +48,34 @@ export async function loadSearchCatalog(): Promise<Job[]> {
 }
 
 /** One page of search results. The list cards omit the long posting fields. */
-export async function loadJobSearch(filters: JobFilters, page: number): Promise<JobSearchPage> {
+export async function loadJobSearch(
+  filters: JobFilters,
+  page: number,
+  token?: string,
+): Promise<JobSearchPage> {
   const url = catalogUrl(SEARCH_JOBS_PATH);
   searchQuery(filters, page).forEach((value, key) => {
     url.searchParams.set(key, value);
   });
-  const response = await fetch(url, PUBLIC_JOB_CACHE);
+  // A signed-in search is ranked for that person, so it skips the shared cache.
+  const init: RequestInit = token
+    ? { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
+    : PUBLIC_JOB_CACHE;
+  const response = await fetch(url, init);
   if (!response.ok) {
     throw new Error("Could not load jobs");
   }
-  const body = (await response.json()) as CatalogResponse;
+  const body = (await response.json()) as SearchResponse;
   return {
     jobs: (body.jobs ?? []).map(searchCard),
     total: body.total ?? body.jobs?.length ?? 0,
     page,
+    exact: body.exact,
+    hasMore: body.hasMore,
+    fits: body.fits,
+    facets: body.facets,
+    suggestions: body.suggestions,
+    rankingId: body.rankingId,
   };
 }
 
@@ -70,7 +87,7 @@ export async function loadSavedJobSearch(
 ): Promise<JobSearchPage> {
   const loaded = await Promise.all(ids.slice(0, SAVED_LOOKUP_LIMIT).map((id) => loadSearchJob(id)));
   const jobs = loaded.filter((job): job is Job => job != null);
-  const matching = sortJobs(filterJobs(jobs, { ...filters, list: "all" }), filters.sort, () => 0);
+  const matching = sortJobs(filterJobs(jobs, { ...filters, list: "all" }), filters.sort);
   const start = (page - 1) * SEARCH_PAGE_SIZE;
   return {
     jobs: matching.slice(start, start + SEARCH_PAGE_SIZE).map(searchCard),

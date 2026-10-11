@@ -96,7 +96,7 @@ func titleDimension(job Job, profile Profile) (dimension, bool) {
 			break
 		}
 		noun := headNoun(role)
-		if noun != "" && containsWord(title, noun) {
+		if noun != "" && containsWord(title, noun) && (!genericHeads[noun] || sharesQualifier(title, folded)) {
 			near = role
 		}
 	}
@@ -366,6 +366,32 @@ func topAnnualPay(job Job) int {
 		return maxVal * hoursPerYear
 	}
 	return maxVal
+}
+
+// genericHeads are title nouns too broad to make two roles close on their own:
+// "Customer Success Manager" is not close to "Engineering Manager".
+var genericHeads = map[string]bool{
+	"manager": true, "engineer": true, "developer": true, "analyst": true, "specialist": true,
+	"director": true, "lead": true, "associate": true, "consultant": true, "coordinator": true,
+	"representative": true, "officer": true, "administrator": true,
+}
+
+// qualifierStopwords never count as the shared word that makes a generic head close.
+var qualifierStopwords = map[string]bool{
+	"senior": true, "sr": true, "junior": true, "jr": true, "staff": true, "principal": true,
+	"lead": true, "head": true, "of": true, "and": true, "the": true, "ii": true, "iii": true,
+}
+
+// sharesQualifier reports whether title has another meaningful word of role
+// besides its head noun ("Data Engineering Manager" and "Data Manager" share "data").
+func sharesQualifier(title, role string) bool {
+	words := strings.Fields(role)
+	for _, word := range words[:max(len(words)-1, 0)] {
+		if !qualifierStopwords[word] && containsWord(title, word) {
+			return true
+		}
+	}
+	return false
 }
 
 func normalize(value string) string {

@@ -232,3 +232,15 @@ func criterionLevels(result Result) map[string]string {
 	}
 	return out
 }
+
+func TestScoreGenericHeadNeedsASharedQualifier(t *testing.T) {
+	profile := Profile{TargetRoles: []string{"Customer Success Manager"}}
+	far := Score(Job{ID: "a", Title: "Engineering Manager"}, profile)
+	if criterionLevels(far)["title"] != levelNo {
+		t.Fatalf("Engineering Manager vs Customer Success Manager = %q, want no", criterionLevels(far)["title"])
+	}
+	near := Score(Job{ID: "b", Title: "Customer Experience Manager"}, profile)
+	if criterionLevels(near)["title"] != levelPartial {
+		t.Fatalf("Customer Experience Manager = %q, want partial", criterionLevels(near)["title"])
+	}
+}

@@ -3,8 +3,6 @@ package ranking
 import (
 	"fmt"
 	"hash/fnv"
-
-	"github.com/dmitryikh/leaves"
 )
 
 // Ranking modes. Each has its own weight set: a typed query is led by relevance,
@@ -66,22 +64,23 @@ func (LinearModel) Score(mode string, f *Features) float64 {
 	return total
 }
 
-// LearnedModel is a LightGBM LambdaMART model trained on impression logs.
+// LearnedModel is a LightGBM LambdaMART model trained on impression logs
+// (tools/ranking/train_ltr.py), evaluated natively from its text format.
 type LearnedModel struct {
-	name     string
-	ensemble *leaves.Ensemble
+	name  string
+	model *lgbmModel
 }
 
 // LoadLearnedModel reads a LightGBM text model. Its feature count must match FeatureCount.
 func LoadLearnedModel(path string) (*LearnedModel, error) {
-	ensemble, err := leaves.LGEnsembleFromFile(path, false)
+	model, err := parseLGBM(path)
 	if err != nil {
 		return nil, fmt.Errorf("load ranking model %s: %w", path, err)
 	}
-	if ensemble.NFeatures() != FeatureCount {
-		return nil, fmt.Errorf("ranking model %s has %d features, want %d (%s)", path, ensemble.NFeatures(), FeatureCount, FeatureVersion)
+	if model.features != FeatureCount {
+		return nil, fmt.Errorf("ranking model %s has %d features, want %d (%s)", path, model.features, FeatureCount, FeatureVersion)
 	}
-	return &LearnedModel{name: "lgbm-" + FeatureVersion, ensemble: ensemble}, nil
+	return &LearnedModel{name: "lgbm-" + FeatureVersion, model: model}, nil
 }
 
 // Name is the model id logged with impressions.
@@ -90,11 +89,11 @@ func (m *LearnedModel) Name() string { return m.name }
 // Score runs the ensemble. The mode is one of the features (has_query, has_profile),
 // so one model serves every mode.
 func (m *LearnedModel) Score(_ string, f *Features) float64 {
-	row := make([]float64, FeatureCount)
+	var row [FeatureCount]float64
 	for i, v := range f {
 		row[i] = float64(v)
 	}
-	return m.ensemble.PredictSingle(row, 0)
+	return m.model.predict(row[:])
 }
 
 // Arm picks the experiment arm for a user: a stable hash, so a user always sees

@@ -25,6 +25,21 @@ func TestCleanTitle(t *testing.T) {
 		{"Senior iOS Engineer — Swift/SwiftUI | Social, Messaging & Video ****** Senior Android Engineer — Kotlin", "Senior iOS Engineer - Swift/SwiftUI"},
 		{"Senior ServiceNow Developer - Remote (US) Remote / Typescript Python ) Python , Js) Python / Typescript AI Software & Operations)", "Senior ServiceNow Developer"},
 		{"Sr. Application Solutions Engineer / Architect (IL) (1429) Job Details | HYUNDAI Translead Inc", "Sr. Application Solutions Engineer / Architect"},
+		{"Senior Frontend Engineer Remote Software Engineer React Engineers – .NET / React Remote (US) Remote Python / Typescript Python ) Python , Js)", "Senior Frontend Engineer"},
+		{"Senior React developer Remote Remote ) AI Tools and Security AI Python ) AI Enablement Python )", "Senior React developer"},
+		{"Staff Engineer Remote", "Staff Engineer"},
+		{"Software EngineerPython/TypescriptAI Software & OperationsReact developerRemoteRemoteAI", "Software Engineer"},
+		{"Senior Software Engineer - AI (Legal), CoCounsel FDEHybridGolang/ReactAI Software", "Senior Software Engineer"},
+		{"Software Engineer (C#) - Internal Tooling AI Fintech foundation Python , API )", "Software Engineer (C#)"},
+		{"Technical Lead (m/w/x) - Testautomation / Softwareentwicklung", "Technical Lead - Testautomation / Softwareentwicklung"},
+		{"iOS Engineer", "iOS Engineer"},
+		{"Platform EngineerKubernetes", "Platform Engineer"},
+		{"DevOps Engineers", "DevOps Engineers"},
+		{"Senior Software Engineer, Growth Remote Software Engineer React Engineers – .NET / React", "Senior Software Engineer, Growth"},
+		{"Engineering Manager, Remote Teams", "Engineering Manager, Remote Teams"},
+		{"Geospatial Remote Sensing Analyst", "Geospatial Remote Sensing Analyst"},
+		{"Remote Sensing Engineer", "Remote Sensing Engineer"},
+		{"Data Engineer, Product", "Data Engineer, Product"},
 		{"  Remote  ", "Remote"},
 		{"", ""},
 	}
@@ -43,5 +58,24 @@ func TestCleanTitleCapsLength(t *testing.T) {
 	}
 	if strings.HasSuffix(got, " ") || got == "" {
 		t.Fatalf("cleaned title %q should end on a word", got)
+	}
+}
+
+func TestPlainTitleFastPathAgreesWithRules(t *testing.T) {
+	for _, title := range []string{
+		"Senior Software Engineer", "Site Reliability Engineer, Storage", "Remote",
+		"Software Engineer Remote", "Marketing Manager", "  Data Scientist  ", "C++ Engineer",
+		"Product Designer II", "Senior iOS Engineer.", "Full Time Nurse",
+	} {
+		fast, ok := plainTitle(title)
+		if !ok {
+			continue
+		}
+		if slow := cleanTitleRules(title); fast != slow {
+			t.Errorf("title %q: fast path %q, rules %q", title, fast, slow)
+		}
+	}
+	if _, ok := plainTitle("Engineer | Remote"); ok {
+		t.Fatal("a title with a separator must take the full rules")
 	}
 }

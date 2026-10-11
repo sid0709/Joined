@@ -17,6 +17,11 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	query := parseSearchQuery(r)
+	userID := s.searchUser(r)
+
+	if query.HasCriteria() && s.rankedSearch(ctx, w, query, userID) {
+		return
+	}
 
 	if !query.HasCriteria() {
 		catalog, err := s.store.ListCatalog(ctx, time.Now())
@@ -39,7 +44,14 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not search jobs")
 		return
 	}
-	httpkit.WriteJSON(w, http.StatusOK, results)
+	page := make([]jobs.SearchJob, len(results.Jobs))
+	for i := range results.Jobs {
+		page[i] = results.Jobs[i].SearchJob
+	}
+	if userID != "" {
+		w.Header().Set("Cache-Control", privateCache)
+	}
+	httpkit.WriteJSON(w, http.StatusOK, fallbackSearchResponse{SearchResults: results, Fits: s.pageFits(ctx, userID, page)})
 }
 
 func parseSearchQuery(r *http.Request) jobs.SearchQuery {
@@ -57,6 +69,8 @@ func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 		Cursor:     q.Get("cursor"),
 		Remote:     q.Get("remote") == "true",
 		Source:     q.Get("source"),
+		List:       q.Get("list"),
+		Region:     q.Get("region"),
 	}
 
 	if salaryMin := q.Get("salaryMin"); salaryMin != "" {

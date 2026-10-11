@@ -35,6 +35,8 @@ const (
 	payloadCompanyID   = "companyId"
 	payloadUserID      = "userId"
 	payloadProfileHash = "hash"
+	payloadRevision    = "rev"
+	payloadDataRev     = "dataRev"
 )
 
 // Vector names. Jobs carry title, body, and lexical; users carry profile and one per role.
@@ -55,6 +57,8 @@ const (
 	qdrantQuantile      = 0.99
 	// qdrantMaxErrorBody caps how much of an error response is kept for the message.
 	qdrantMaxErrorBody = 1 << 12
+	// qdrantScrollPage is how many points one scroll request returns.
+	qdrantScrollPage = 1000
 )
 
 // payloadSchemas are the indexed payload fields of the jobs collection.
@@ -145,10 +149,19 @@ func roleVector(i int) string {
 	return fmt.Sprintf("%s%d", vectorRole, i)
 }
 
-// EnsureCollection makes sure alias points at alias_version, creating the
-// collection and its payload indexes when it is missing. It returns the
-// versioned name.
+// EnsureCollection makes sure alias_version exists with its payload indexes and,
+// when the alias does not point anywhere yet, points it there. A reindex builds a
+// new version first and moves the alias with SwapAlias once it is full.
 func (q *Qdrant) EnsureCollection(ctx context.Context, alias, version string, spec CollectionSpec) (string, error) {
+	return q.ensureCollection(ctx, alias, version, spec, true)
+}
+
+// CreateVersion makes sure alias_version exists, without touching the alias.
+func (q *Qdrant) CreateVersion(ctx context.Context, alias, version string, spec CollectionSpec) (string, error) {
+	return q.ensureCollection(ctx, alias, version, spec, false)
+}
+
+func (q *Qdrant) ensureCollection(ctx context.Context, alias, version string, spec CollectionSpec, claimAlias bool) (string, error) {
 	name := alias + "_" + version
 	exists, err := q.collectionExists(ctx, name)
 	if err != nil {
@@ -165,11 +178,14 @@ func (q *Qdrant) EnsureCollection(ctx context.Context, alias, version string, sp
 			return "", fmt.Errorf("index %s.%s: %w", name, field, err)
 		}
 	}
+	if !claimAlias {
+		return name, nil
+	}
 	current, err := q.aliasTarget(ctx, alias)
 	if err != nil {
 		return "", err
 	}
-	if current != name {
+	if current == "" {
 		if err := q.SwapAlias(ctx, alias, name); err != nil {
 			return "", err
 		}
@@ -177,10 +193,17 @@ func (q *Qdrant) EnsureCollection(ctx context.Context, alias, version string, sp
 	return name, nil
 }
 
+// AliasTarget is the collection an alias points at, or "" when it is unset.
+func (q *Qdrant) AliasTarget(ctx context.Context, alias string) (string, error) {
+	return q.aliasTarget(ctx, alias)
+}
+
 func (q *Qdrant) createCollection(ctx context.Context, name string, spec CollectionSpec) error {
 	vectors := map[string]any{}
 	for _, v := range spec.Dense {
-		vectors[v] = map[string]any{"size": spec.Size, "distance": "Cosine"}
+		// Originals live on disk (page cache) and are read only to rescore the top
+		// hits; the int8 copies searches walk stay in RAM. A quarter of the memory.
+		vectors[v] = map[string]any{"size": spec.Size, "distance": "Cosine", "on_disk": true}
 	}
 	body := map[string]any{
 		"vectors":     vectors,
@@ -382,11 +405,18 @@ func (q *Qdrant) Count(ctx context.Context, collection string) (int, error) {
 	return out.Result.Count, nil
 }
 
-// ScrollIDs pages through every job id in a collection.
-func (q *Qdrant) ScrollIDs(ctx context.Context, collection string, fn func(jobID string)) error {
+// StoredRevisions are a point's two content revisions: rev covers the embedded
+// texts, dataRev the payload and lexical vector.
+type StoredRevisions struct {
+	Dense string
+	Data  string
+}
+
+// ScrollRevisions pages through every job point, reporting its job id and revisions.
+func (q *Qdrant) ScrollRevisions(ctx context.Context, collection string, fn func(jobID string, rev StoredRevisions)) error {
 	var offset any
 	for {
-		body := map[string]any{"limit": 1000, "with_payload": []string{payloadJobID}, "with_vector": false}
+		body := map[string]any{"limit": qdrantScrollPage, "with_payload": []string{payloadJobID, payloadRevision, payloadDataRev}, "with_vector": false}
 		if offset != nil {
 			body["offset"] = offset
 		}
@@ -394,7 +424,9 @@ func (q *Qdrant) ScrollIDs(ctx context.Context, collection string, fn func(jobID
 			Result struct {
 				Points []struct {
 					Payload struct {
-						JobID string `json:"jobId"`
+						JobID    string `json:"jobId"`
+						Revision string `json:"rev"`
+						DataRev  string `json:"dataRev"`
 					} `json:"payload"`
 				} `json:"points"`
 				Next any `json:"next_page_offset"`
@@ -404,13 +436,33 @@ func (q *Qdrant) ScrollIDs(ctx context.Context, collection string, fn func(jobID
 			return fmt.Errorf("scroll: %w", err)
 		}
 		for _, p := range out.Result.Points {
-			fn(p.Payload.JobID)
+			fn(p.Payload.JobID, StoredRevisions{Dense: p.Payload.Revision, Data: p.Payload.DataRev})
 		}
 		if out.Result.Next == nil {
 			return nil
 		}
 		offset = out.Result.Next
 	}
+}
+
+// RefreshPoints rewrites points' payloads and named vectors in place, keeping
+// every vector not listed: a lexical or payload change needs no re-embedding.
+func (q *Qdrant) RefreshPoints(ctx context.Context, collection string, points []Point) error {
+	if len(points) == 0 {
+		return nil
+	}
+	operations := make([]map[string]any, 0, 2*len(points))
+	vectors := make([]map[string]any, 0, len(points))
+	for _, p := range points {
+		operations = append(operations, map[string]any{"overwrite_payload": map[string]any{"payload": p.Payload, "points": []string{p.ID}}})
+		vectors = append(vectors, map[string]any{"id": p.ID, "vector": p.Vector})
+	}
+	operations = append(operations, map[string]any{"update_vectors": map[string]any{"points": vectors}})
+	path := "/collections/" + url.PathEscape(collection) + "/points/batch?wait=false"
+	if err := q.do(ctx, http.MethodPost, path, map[string]any{"operations": operations}, nil); err != nil {
+		return fmt.Errorf("refresh %d points: %w", len(points), err)
+	}
+	return nil
 }
 
 // Healthy reports whether Qdrant answers.
@@ -500,4 +552,27 @@ func (q *Qdrant) QueryUsers(ctx context.Context, collection string, queries []Qu
 		}
 	}
 	return hits, nil
+}
+
+// WaitOptimized blocks until a collection's optimizer has finished (status green),
+// so latency measured after a bulk load reflects the built HNSW graph.
+func (q *Qdrant) WaitOptimized(ctx context.Context, collection string, poll time.Duration) error {
+	for {
+		var out struct {
+			Result struct {
+				Status string `json:"status"`
+			} `json:"result"`
+		}
+		if err := q.do(ctx, http.MethodGet, "/collections/"+url.PathEscape(collection), nil, &out); err != nil {
+			return err
+		}
+		if out.Result.Status == "green" {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(poll):
+		}
+	}
 }

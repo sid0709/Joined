@@ -3,8 +3,7 @@ import { COMPANIES, JOBS } from "./data";
 export * from "./types";
 export * from "./company";
 export * from "./format";
-export * from "./match";
-export * from "./my-match";
+export * from "./match-levels";
 export * from "./search";
 export { COMPANIES, JOBS };
 

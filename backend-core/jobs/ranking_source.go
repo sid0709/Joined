@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
@@ -16,7 +15,10 @@ const rankingScanBatch = 2000
 // RankingDoc is the part of a public job the ranking index reads: everything a
 // filter, a feature, or an embedding needs, and nothing the job page shows only.
 type RankingDoc struct {
-	JobID      string
+	JobID string
+	// ObjectID is the Mongo _id (hex): hydration and incremental scans read through
+	// the _id index, so ranking needs no index of its own.
+	ObjectID   string
 	Title      string
 	Company    string
 	CompanyID  string
@@ -39,10 +41,11 @@ type RankingDoc struct {
 }
 
 type storedRankingDoc struct {
-	PostedAt   time.Time `bson:"postedAt"`
-	AnalyzedAt time.Time `bson:"analyzedAt"`
-	Source     string    `bson:"source"`
-	DedupeKey  string    `bson:"dedupeKey"`
+	ID         bson.ObjectID `bson:"_id"`
+	PostedAt   time.Time     `bson:"postedAt"`
+	AnalyzedAt time.Time     `bson:"analyzedAt"`
+	Source     string        `bson:"source"`
+	DedupeKey  string        `bson:"dedupeKey"`
 	Job        struct {
 		ID         string   `bson:"id"`
 		Title      string   `bson:"title"`
@@ -75,6 +78,7 @@ var rankingProjection = bson.D{
 func (doc storedRankingDoc) rankingDoc() RankingDoc {
 	return RankingDoc{
 		JobID:      doc.Job.ID,
+		ObjectID:   doc.ID.Hex(),
 		Title:      doc.Job.Title,
 		Company:    doc.Job.Company,
 		CompanyID:  doc.Job.CompanyID,
@@ -96,17 +100,23 @@ func (doc storedRankingDoc) rankingDoc() RankingDoc {
 	}
 }
 
-// ScanRankingDocs streams every public job analyzed after since (all public jobs
-// when since is zero), oldest analysis first, so a caller can keep since as a
-// watermark. It reads a narrow projection and never writes.
-func (s *Store) ScanRankingDocs(ctx context.Context, since time.Time, fn func(RankingDoc) error) error {
+// ScanRankingDocs streams public jobs in _id order: every one when afterID is
+// blank, else only those inserted after the job with that _id. Insertion order
+// makes afterID a watermark for new jobs; edits to existing jobs are picked up by
+// the next full scan. It reads a narrow projection through the _id index and
+// never writes.
+func (s *Store) ScanRankingDocs(ctx context.Context, afterID string, fn func(RankingDoc) error) error {
 	filter := publicListingFilter()
-	if !since.IsZero() {
-		filter = bson.D{{Key: "$and", Value: bson.A{filter, bson.D{{Key: "analyzedAt", Value: bson.D{{Key: "$gt", Value: since}}}}}}}
+	if afterID != "" {
+		after, err := bson.ObjectIDFromHex(afterID)
+		if err != nil {
+			return fmt.Errorf("scan ranking docs: bad watermark %q: %w", afterID, err)
+		}
+		filter = bson.D{{Key: "$and", Value: bson.A{filter, bson.D{{Key: "_id", Value: bson.D{{Key: "$gt", Value: after}}}}}}}
 	}
 	opts := options.Find().
 		SetProjection(rankingProjection).
-		SetSort(bson.D{{Key: "analyzedAt", Value: 1}, {Key: "_id", Value: 1}}).
+		SetSort(bson.D{{Key: "_id", Value: 1}}).
 		SetBatchSize(rankingScanBatch)
 	cursor, err := s.structured().Find(ctx, filter, opts)
 	if err != nil {
@@ -167,47 +177,73 @@ func (s *Store) CompanySignals(ctx context.Context) (map[string]float32, error) 
 	return out, nil
 }
 
-// CatalogJobsByIDs loads public jobs by job id, in the order given, with their
-// company briefs. Ids that are missing or no longer public are skipped, so a
-// ranked list from a slightly stale index still only shows live jobs.
-func (s *Store) CatalogJobsByIDs(ctx context.Context, ids []string, now time.Time) ([]catalogJob, error) {
-	if len(ids) == 0 {
+// CatalogJobsByObjectIDs loads public jobs by Mongo _id (hex), in the order given,
+// with their company briefs. Ids that are missing or no longer public are
+// skipped, so a ranked list from a slightly stale index still only shows live jobs.
+func (s *Store) CatalogJobsByObjectIDs(ctx context.Context, objectIDs []string, now time.Time) ([]catalogJob, error) {
+	if len(objectIDs) == 0 {
 		return []catalogJob{}, nil
+	}
+	byID, missing := s.hydrated.get(objectIDs, now)
+	if len(missing) > 0 {
+		loaded, err := s.loadCatalogJobs(ctx, missing, now)
+		if err != nil {
+			return nil, err
+		}
+		for id, entry := range loaded {
+			byID[id] = entry.job
+			s.hydrated.put(id, entry.job, entry.postedAt, now)
+		}
+	}
+	ordered := make([]catalogJob, 0, len(byID))
+	for _, hex := range objectIDs {
+		if job, ok := byID[hex]; ok {
+			ordered = append(ordered, job)
+			delete(byID, hex)
+		}
+	}
+	return ordered, nil
+}
+
+// loadCatalogJobs reads public jobs by _id and attaches their company profiles.
+func (s *Store) loadCatalogJobs(ctx context.Context, objectIDs []string, now time.Time) (map[string]hydratedJob, error) {
+	ids := make(bson.A, 0, len(objectIDs))
+	for _, hex := range objectIDs {
+		if id, err := bson.ObjectIDFromHex(hex); err == nil {
+			ids = append(ids, id)
+		}
 	}
 	filter := bson.D{{Key: "$and", Value: bson.A{
 		publicListingFilter(),
-		bson.D{{Key: "job.id", Value: bson.D{{Key: "$in", Value: ids}}}},
+		bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: ids}}}},
 	}}}
 	cursor, err := s.structured().Find(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("load jobs by id: %w", err)
 	}
 	defer cursor.Close(ctx)
-	byID := make(map[string]catalogJob, len(ids))
+	var keys []string
+	var posted []time.Time
+	var jobs []catalogJob
 	for cursor.Next(ctx) {
 		var doc storedSearchJob
 		if err := cursor.Decode(&doc); err != nil {
 			return nil, fmt.Errorf("decode job: %w", err)
 		}
-		byID[doc.Job.ID] = CatalogJob(doc.view(now))
+		keys = append(keys, doc.ID.Hex())
+		posted = append(posted, doc.PostedAt)
+		jobs = append(jobs, CatalogJob(doc.view(now)))
 	}
 	if err := cursor.Err(); err != nil {
 		return nil, fmt.Errorf("load jobs by id: %w", err)
 	}
-	ordered := make([]catalogJob, 0, len(byID))
-	for _, id := range ids {
-		if job, ok := byID[id]; ok {
-			ordered = append(ordered, job)
-			delete(byID, id)
-		}
+	jobs, err = s.enrichCompanies(ctx, jobs)
+	if err != nil {
+		return nil, fmt.Errorf("enrich companies: %w", err)
 	}
-	return s.enrichCompanies(ctx, ordered)
-}
-
-// rankingIndexes are the indexes the ranking sync and hydration read through.
-func rankingIndexes() []mongo.IndexModel {
-	return []mongo.IndexModel{
-		{Keys: bson.D{{Key: "job.id", Value: 1}}, Options: options.Index().SetName("job_id")},
-		{Keys: bson.D{{Key: "analyzedAt", Value: 1}, {Key: "_id", Value: 1}}, Options: options.Index().SetName("analyzed_at")},
+	out := make(map[string]hydratedJob, len(jobs))
+	for i, job := range jobs {
+		out[keys[i]] = hydratedJob{job: job, postedAt: posted[i]}
 	}
+	return out, nil
 }

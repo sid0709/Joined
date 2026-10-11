@@ -47,6 +47,9 @@ type RankedList struct {
 	Features [][]float32 `json:"features,omitempty"`
 	// FromFeed marks a list served from the precomputed feed.
 	FromFeed bool `json:"fromFeed,omitempty"`
+	// Degraded marks a list built without some vector channel (embedder or
+	// Qdrant unavailable); it is cached briefly and never stored as a feed.
+	Degraded bool `json:"degraded,omitempty"`
 }
 
 // Scored is one id with its score.
@@ -87,6 +90,8 @@ func VectorKey(query string) string {
 }
 
 // NewCache returns a Redis cache for url, or an in-process cache when url is blank.
+// With Redis, ranked lists and vectors also sit in a small in-process cache in
+// front of it, so paging through one search does not decode the list again.
 func NewCache(url string) (Cache, error) {
 	if url == "" {
 		return NewMemoryCache(memoryCacheEntries), nil
@@ -95,7 +100,58 @@ func NewCache(url string) (Cache, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse REDIS_URL: %w", err)
 	}
-	return &redisCache{client: redis.NewClient(opts)}, nil
+	return &layeredCache{redisCache: &redisCache{client: redis.NewClient(opts)}, local: NewMemoryCache(localCacheEntries)}, nil
+}
+
+// localCacheEntries bounds the in-process layer in front of Redis.
+const (
+	localCacheEntries = 2_000
+	// localCacheTTL keeps the local layer short-lived: other instances may drop a
+	// user's lists in Redis, and this layer must not outlive that by much.
+	localCacheTTL = 30 * time.Second
+)
+
+// layeredCache reads ranked lists and vectors from process memory first, then Redis.
+type layeredCache struct {
+	*redisCache
+	local Cache
+}
+
+func (c *layeredCache) GetRanked(ctx context.Context, key string) (RankedList, bool, error) {
+	if list, ok, _ := c.local.GetRanked(ctx, key); ok {
+		return list, true, nil
+	}
+	list, ok, err := c.redisCache.GetRanked(ctx, key)
+	if ok {
+		_ = c.local.SetRanked(ctx, "", key, list, localCacheTTL)
+	}
+	return list, ok, err
+}
+
+func (c *layeredCache) SetRanked(ctx context.Context, userID, key string, list RankedList, ttl time.Duration) error {
+	_ = c.local.SetRanked(ctx, userID, key, list, min(ttl, localCacheTTL))
+	return c.redisCache.SetRanked(ctx, userID, key, list, ttl)
+}
+
+func (c *layeredCache) DropUser(ctx context.Context, userID string) error {
+	_ = c.local.DropUser(ctx, userID)
+	return c.redisCache.DropUser(ctx, userID)
+}
+
+func (c *layeredCache) GetVector(ctx context.Context, key string) ([]float32, bool, error) {
+	if v, ok, _ := c.local.GetVector(ctx, key); ok {
+		return v, true, nil
+	}
+	v, ok, err := c.redisCache.GetVector(ctx, key)
+	if ok {
+		_ = c.local.SetVector(ctx, key, v, localCacheTTL)
+	}
+	return v, ok, err
+}
+
+func (c *layeredCache) SetVector(ctx context.Context, key string, vector []float32, ttl time.Duration) error {
+	_ = c.local.SetVector(ctx, key, vector, min(ttl, localCacheTTL))
+	return c.redisCache.SetVector(ctx, key, vector, ttl)
 }
 
 type redisCache struct {

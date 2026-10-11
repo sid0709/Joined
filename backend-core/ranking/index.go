@@ -9,21 +9,21 @@ import (
 	"time"
 
 	"github.com/RoaringBitmap/roaring/v2"
-	bsi "github.com/RoaringBitmap/roaring/v2/BitSliceIndexing"
 
 	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 )
 
-// Index storage units: pay in thousands of USD and dates in whole days keep the
-// bit-sliced indexes narrow. Filters round the same way, so they stay exact at
-// the resolution the UI offers ($10k steps, whole days).
+// Index resolution: filters compare pay in whole thousands of USD and dates in
+// whole days, the same resolution the per-job predicate and Qdrant use.
 const (
 	payUnitUSD  = 1000
 	secondsADay = 86400
+	// payBucketUSD groups jobs into pay buckets: a pay range is the union of the
+	// buckets wholly inside it plus an exact check of the one bucket it cuts.
+	payBucketUSD = 10_000
+	payBuckets   = maxPlausibleAnnualUSD/payBucketUSD + 1
 	// maxTermExpansion caps how many index terms one typed prefix can stand for.
 	maxTermExpansion = 64
-	// bsiParallelism lets a range compare use every core.
-	bsiParallelism = 0
 )
 
 // FacetPostedDays and FacetPayFloors are the quick-filter values the UI shows counts for.
@@ -53,40 +53,61 @@ type Index struct {
 	location   map[string]*roaring.Bitmap
 	company    map[string]*roaring.Bitmap
 	occupation map[string]*roaring.Bitmap
-	payMin     *bsi.BSI
-	payMax     *bsi.BSI
-	posted     *bsi.BSI
-	// postedDay is a column copy of posted, for recency ordering without the BSI.
-	postedDay []int32
+	// payMaxBucket[k] / payMinBucket[k] hold jobs whose top / bottom pay falls in bucket k.
+	payMaxBucket []*roaring.Bitmap
+	payMinBucket []*roaring.Bitmap
+	// postedOn holds jobs by posting day (days since the epoch).
+	postedOn map[int32]*roaring.Bitmap
+	// payMaxFrom[k] = jobs with top pay in bucket k or above; payMinTo[k] = bottom
+	// pay in a bucket below k. Rebuilt lazily when version moves.
+	payMaxFrom  []*roaring.Bitmap
+	payMinTo    []*roaring.Bitmap
+	rangesBuilt uint64
+	// postedUnix is the posting time per slot, for exact recency ordering.
+	postedUnix []int64
+	// version changes on every update, so derived caches (facets) know they are stale.
+	version uint64
+	// byRecency is every active slot, newest first, rebuilt lazily when version moves.
+	byRecency    []uint32
+	recencyBuilt uint64
 }
 
 // NewIndex returns an empty index.
 func NewIndex() *Index {
-	newBitmaps := func(n int) []*roaring.Bitmap {
-		out := make([]*roaring.Bitmap, n)
-		for i := range out {
-			out[i] = roaring.New()
-		}
-		return out
-	}
+	return NewIndexWithCapacity(0)
+}
+
+// NewIndexWithCapacity returns an empty index sized for about n jobs, so a full
+// reconcile does not grow (and copy) its columns a million jobs at a time.
+func NewIndexWithCapacity(n int) *Index {
 	return &Index{
-		slot:       map[string]uint32{},
-		active:     roaring.New(),
-		workplace:  newBitmaps(int(WorkplaceOnsite) + 1),
-		region:     newBitmaps(len(regionNames)),
-		seniority:  newBitmaps(len(jobschema.Seniorities()) + 1),
-		employment: newBitmaps(len(jobschema.Employments()) + 1),
-		hidden:     roaring.New(),
-		visa:       roaring.New(),
-		payKnown:   roaring.New(),
-		source:     map[string]*roaring.Bitmap{},
-		location:   map[string]*roaring.Bitmap{},
-		company:    map[string]*roaring.Bitmap{},
-		occupation: map[string]*roaring.Bitmap{},
-		payMin:     bsi.NewDefaultBSI(),
-		payMax:     bsi.NewDefaultBSI(),
-		posted:     bsi.NewDefaultBSI(),
+		jobs:         make([]JobFeatures, 0, n),
+		postedUnix:   make([]int64, 0, n),
+		slot:         make(map[string]uint32, n),
+		active:       roaring.New(),
+		workplace:    newBitmaps(int(WorkplaceOnsite) + 1),
+		region:       newBitmaps(len(regionNames)),
+		seniority:    newBitmaps(len(jobschema.Seniorities()) + 1),
+		employment:   newBitmaps(len(jobschema.Employments()) + 1),
+		hidden:       roaring.New(),
+		visa:         roaring.New(),
+		payKnown:     roaring.New(),
+		source:       map[string]*roaring.Bitmap{},
+		location:     map[string]*roaring.Bitmap{},
+		company:      map[string]*roaring.Bitmap{},
+		occupation:   map[string]*roaring.Bitmap{},
+		payMaxBucket: newBitmaps(payBuckets),
+		payMinBucket: newBitmaps(payBuckets),
+		postedOn:     map[int32]*roaring.Bitmap{},
 	}
+}
+
+func newBitmaps(n int) []*roaring.Bitmap {
+	out := make([]*roaring.Bitmap, n)
+	for i := range out {
+		out[i] = roaring.New()
+	}
+	return out
 }
 
 // Len is how many jobs the index holds.
@@ -113,8 +134,9 @@ func (x *Index) Upsert(job JobFeatures) {
 		x.slot[job.JobID] = slot
 	}
 	x.jobs[slot] = job
-	x.postedDay[slot] = dayOf(job.PostedAt)
+	x.postedUnix[slot] = unixOf(job.PostedAt)
 	x.setSlot(slot, &job)
+	x.version++
 }
 
 // Remove drops a job. It reports whether the job was there.
@@ -128,9 +150,17 @@ func (x *Index) Remove(jobID string) bool {
 	x.clearSlot(slot)
 	delete(x.slot, jobID)
 	x.jobs[slot] = JobFeatures{}
-	x.postedDay[slot] = 0
+	x.postedUnix[slot] = 0
 	x.free = append(x.free, slot)
+	x.version++
 	return true
+}
+
+// Version changes whenever the index does.
+func (x *Index) Version() uint64 {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	return x.version
 }
 
 // JobIDs lists every job in the index.
@@ -176,7 +206,7 @@ func (x *Index) allocate() uint32 {
 		return slot
 	}
 	x.jobs = append(x.jobs, JobFeatures{})
-	x.postedDay = append(x.postedDay, 0)
+	x.postedUnix = append(x.postedUnix, 0)
 	return uint32(len(x.jobs) - 1)
 }
 
@@ -210,10 +240,23 @@ func (x *Index) setSlot(slot uint32, job *JobFeatures) {
 	}
 	if job.PayKnown {
 		x.payKnown.Add(slot)
-		x.payMin.SetValue(uint64(slot), int64(job.PayMinUSD/payUnitUSD))
-		x.payMax.SetValue(uint64(slot), int64(job.PayMaxUSD/payUnitUSD))
+		x.payMaxBucket[payBucket(job.PayMaxUSD)].Add(slot)
+		x.payMinBucket[payBucket(job.PayMinUSD)].Add(slot)
 	}
-	x.posted.SetValue(uint64(slot), int64(x.postedDay[slot]))
+	bitmapForDay(x.postedOn, dayOf(job.PostedAt)).Add(slot)
+}
+
+func payBucket(usd int32) int {
+	return min(max(int(usd)/payBucketUSD, 0), payBuckets-1)
+}
+
+func bitmapForDay(m map[int32]*roaring.Bitmap, day int32) *roaring.Bitmap {
+	b, ok := m[day]
+	if !ok {
+		b = roaring.New()
+		m[day] = b
+	}
+	return b
 }
 
 func (x *Index) clearSlot(slot uint32) {
@@ -239,13 +282,18 @@ func (x *Index) clearSlot(slot uint32) {
 	for _, family := range job.Occupations {
 		removeFrom(x.occupation, family, slot)
 	}
-	one := roaring.BitmapOf(slot)
-	if x.payKnown.Contains(slot) {
+	if job.PayKnown {
 		x.payKnown.Remove(slot)
-		x.payMin.ClearValues(one)
-		x.payMax.ClearValues(one)
+		x.payMaxBucket[payBucket(job.PayMaxUSD)].Remove(slot)
+		x.payMinBucket[payBucket(job.PayMinUSD)].Remove(slot)
 	}
-	x.posted.ClearValues(one)
+	day := dayOf(job.PostedAt)
+	if b, ok := x.postedOn[day]; ok {
+		b.Remove(slot)
+		if b.IsEmpty() {
+			delete(x.postedOn, day)
+		}
+	}
 }
 
 func bitmapFor(m map[string]*roaring.Bitmap, key string) *roaring.Bitmap {
@@ -279,6 +327,13 @@ func uniqueTerms(text string) []string {
 	return out
 }
 
+func unixOf(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.Unix()
+}
+
 func dayOf(t time.Time) int32 {
 	if t.IsZero() {
 		return 0
@@ -288,6 +343,7 @@ func dayOf(t time.Time) int32 {
 
 // Match returns the slots that pass f. The caller owns the bitmap.
 func (x *Index) Match(f Filter) *roaring.Bitmap {
+	x.ensureRanges()
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 	return x.match(f, "")
@@ -339,8 +395,7 @@ func (x *Index) match(f Filter, skip string) *roaring.Bitmap {
 		and(x.payAtLeast(f.PayMinUSD))
 	}
 	if f.PayMaxUSD > 0 {
-		floor := x.payMin.CompareValue(bsiParallelism, bsi.LE, int64(f.PayMaxUSD/payUnitUSD), 0, x.payKnown)
-		and(floor)
+		and(x.payAtMost(f.PayMaxUSD))
 	}
 	if !f.PostedAfter.IsZero() && skip != facetPosted {
 		and(x.postedSince(f.PostedAfter))
@@ -359,15 +414,75 @@ func (x *Index) match(f Filter, skip string) *roaring.Bitmap {
 	return result
 }
 
-func (x *Index) payAtLeast(floor int32) *roaring.Bitmap {
-	// Pay is stored in whole thousands rounded down; a floor in thousands rounded up
-	// keeps "≥ floor" exact for floors on the $1k grid the filters use.
-	units := (int64(floor) + payUnitUSD - 1) / payUnitUSD
-	return x.payMax.CompareValue(bsiParallelism, bsi.GE, units, 0, x.payKnown)
+// ensureRanges rebuilds the cumulative pay unions if the index changed since.
+// It needs the write lock; callers hold neither lock.
+func (x *Index) ensureRanges() {
+	x.mu.RLock()
+	fresh := x.rangesBuilt == x.version && x.payMaxFrom != nil
+	x.mu.RUnlock()
+	if fresh {
+		return
+	}
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	if x.rangesBuilt == x.version && x.payMaxFrom != nil {
+		return
+	}
+	from := make([]*roaring.Bitmap, payBuckets+1)
+	from[payBuckets] = roaring.New()
+	for k := payBuckets - 1; k >= 0; k-- {
+		from[k] = roaring.Or(from[k+1], x.payMaxBucket[k])
+	}
+	to := make([]*roaring.Bitmap, payBuckets+1)
+	to[0] = roaring.New()
+	for k := 1; k <= payBuckets; k++ {
+		to[k] = roaring.Or(to[k-1], x.payMinBucket[k-1])
+	}
+	x.payMaxFrom, x.payMinTo, x.rangesBuilt = from, to, x.version
 }
 
+// payAtLeast is every job whose top pay, in whole thousands, reaches floor
+// rounded up to the thousand — the rule the predicate and Qdrant use.
+// Callers hold the read lock and have called ensureRanges.
+func (x *Index) payAtLeast(floor int32) *roaring.Bitmap {
+	units := (int64(floor) + payUnitUSD - 1) / payUnitUSD
+	cut := payBucket(int32(units * payUnitUSD))
+	result := x.payMaxFrom[cut+1].Clone()
+	it := x.payMaxBucket[cut].Iterator()
+	for it.HasNext() {
+		slot := it.Next()
+		if int64(x.jobs[slot].PayMaxUSD/payUnitUSD) >= units {
+			result.Add(slot)
+		}
+	}
+	return result
+}
+
+// payAtMost is every job whose bottom pay, in whole thousands, is at most ceiling's.
+func (x *Index) payAtMost(ceiling int32) *roaring.Bitmap {
+	units := int64(ceiling / payUnitUSD)
+	cut := payBucket(int32(units * payUnitUSD))
+	result := x.payMinTo[cut].Clone()
+	it := x.payMinBucket[cut].Iterator()
+	for it.HasNext() {
+		slot := it.Next()
+		if int64(x.jobs[slot].PayMinUSD/payUnitUSD) <= units {
+			result.Add(slot)
+		}
+	}
+	return result
+}
+
+// postedSince is every job posted on or after after's day.
 func (x *Index) postedSince(after time.Time) *roaring.Bitmap {
-	return x.posted.CompareValue(bsiParallelism, bsi.GE, int64(dayOf(after)), 0, nil)
+	cutoff := dayOf(after)
+	days := make([]*roaring.Bitmap, 0, len(x.postedOn))
+	for day, b := range x.postedOn {
+		if day >= cutoff {
+			days = append(days, b)
+		}
+	}
+	return roaring.FastOr(days...)
 }
 
 func unionOf[T ~uint8](bitmaps []*roaring.Bitmap, values []T) *roaring.Bitmap {
@@ -472,6 +587,7 @@ type Facets struct {
 
 // Facets counts every quick filter against f.
 func (x *Index) Facets(f Filter, now time.Time) Facets {
+	x.ensureRanges()
 	x.mu.RLock()
 	defer x.mu.RUnlock()
 	out := Facets{
@@ -526,31 +642,100 @@ func (x *Index) ForEach(slots *roaring.Bitmap, fn func(*JobFeatures) bool) {
 	}
 }
 
+// OccupationSlots is every job in any of the given families.
+func (x *Index) OccupationSlots(families []string) *roaring.Bitmap {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	out := roaring.New()
+	for _, family := range families {
+		if b, ok := x.occupation[family]; ok {
+			out.Or(b)
+		}
+	}
+	return out
+}
+
+// recentHeapLimit: a filtered set this small is ordered directly; a larger one
+// walks the global newest-first order and stops after n hits.
+const recentHeapLimit = 4096
+
 // Recent returns the ids of the n most recently posted jobs among slots, newest first.
 func (x *Index) Recent(slots *roaring.Bitmap, n int) []string {
 	if n <= 0 {
 		return nil
 	}
+	if slots.GetCardinality() > recentHeapLimit {
+		x.ensureRecency()
+	}
 	x.mu.RLock()
 	defer x.mu.RUnlock()
-	h := &dayHeap{}
+	if slots.GetCardinality() > recentHeapLimit && x.recencyBuilt == x.version {
+		out := make([]string, 0, n)
+		for _, slot := range x.byRecency {
+			if slots.Contains(slot) {
+				out = append(out, x.jobs[slot].JobID)
+				if len(out) == n {
+					break
+				}
+			}
+		}
+		return out
+	}
+	h := &timeHeap{}
 	it := slots.Iterator()
 	for it.HasNext() {
 		slot := it.Next()
-		if int(slot) >= len(x.postedDay) {
+		if int(slot) >= len(x.postedUnix) {
 			continue
 		}
-		entry := daySlot{day: x.postedDay[slot], slot: slot}
+		entry := timeSlot{at: x.postedUnix[slot], slot: slot}
 		if h.Len() < n {
 			heap.Push(h, entry)
-		} else if entry.day > (*h)[0].day {
+		} else if entry.at > (*h)[0].at || (entry.at == (*h)[0].at && entry.slot < (*h)[0].slot) {
 			(*h)[0] = entry
 			heap.Fix(h, 0)
 		}
 	}
 	out := make([]string, h.Len())
 	for i := len(out) - 1; i >= 0; i-- {
-		out[i] = x.jobs[heap.Pop(h).(daySlot).slot].JobID
+		out[i] = x.jobs[heap.Pop(h).(timeSlot).slot].JobID
+	}
+	return out
+}
+
+// ensureRecency rebuilds the newest-first order if the index changed since.
+func (x *Index) ensureRecency() {
+	x.mu.RLock()
+	fresh := x.recencyBuilt == x.version && x.byRecency != nil
+	x.mu.RUnlock()
+	if fresh {
+		return
+	}
+	x.mu.Lock()
+	defer x.mu.Unlock()
+	if x.recencyBuilt == x.version && x.byRecency != nil {
+		return
+	}
+	order := x.active.ToArray()
+	sort.Slice(order, func(i, j int) bool {
+		a, b := x.postedUnix[order[i]], x.postedUnix[order[j]]
+		if a != b {
+			return a > b
+		}
+		return order[i] < order[j]
+	})
+	x.byRecency, x.recencyBuilt = order, x.version
+}
+
+// ObjectIDs maps job ids to Mongo _ids, keeping order; unknown ids map to "".
+func (x *Index) ObjectIDs(ids []string) []string {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		if slot, ok := x.slot[id]; ok {
+			out[i] = x.jobs[slot].ObjectID
+		}
 	}
 	return out
 }
@@ -591,19 +776,25 @@ func (x *Index) FilterIDs(slots *roaring.Bitmap, ids []string) []string {
 	return out
 }
 
-type daySlot struct {
-	day  int32
+type timeSlot struct {
+	at   int64
 	slot uint32
 }
 
-// dayHeap is a min-heap on day, so the root is the oldest of the kept jobs.
-type dayHeap []daySlot
+// timeHeap is a min-heap on posting time (ties: higher slot first out), so the
+// root is the weakest of the kept jobs.
+type timeHeap []timeSlot
 
-func (h dayHeap) Len() int           { return len(h) }
-func (h dayHeap) Less(i, j int) bool { return h[i].day < h[j].day }
-func (h dayHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-func (h *dayHeap) Push(v any)        { *h = append(*h, v.(daySlot)) }
-func (h *dayHeap) Pop() any {
+func (h timeHeap) Len() int { return len(h) }
+func (h timeHeap) Less(i, j int) bool {
+	if h[i].at != h[j].at {
+		return h[i].at < h[j].at
+	}
+	return h[i].slot > h[j].slot
+}
+func (h timeHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h *timeHeap) Push(v any)   { *h = append(*h, v.(timeSlot)) }
+func (h *timeHeap) Pop() any {
 	old := *h
 	n := len(old)
 	v := old[n-1]

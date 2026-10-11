@@ -13,6 +13,7 @@ const API_HIDDEN = "hidden";
 
 function apiSort(sort: SortKey) {
   switch (sort) {
+    case "recommended":
     case "relevance":
     case "newest":
     case "pay":
@@ -55,5 +56,7 @@ export function searchQuery(filters: JobFilters, page: number) {
   const postedDays = POSTED_DAYS[filters.posted];
   if (postedDays > 0) params.set("postedDays", String(postedDays));
   if (filters.visa) params.set("visa", "1");
+  // "For you" is a server-side list: the strongest fits for the signed-in hunter.
+  if (filters.list === "recommended") params.set("list", "recommended");
   return params;
 }

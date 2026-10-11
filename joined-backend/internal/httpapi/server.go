@@ -19,6 +19,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
+	"github.com/sid0709/OpenSeat/backend-core/ranking"
 	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
 )
@@ -41,6 +42,7 @@ type Server struct {
 	fitProfiles fitscore.Profiles
 	fitReasoner fitscore.Reasoner
 	switches    killswitch.Switches
+	ranker      *ranking.Service
 }
 
 // Options are the HTTP server's settings.
@@ -73,6 +75,8 @@ type Options struct {
 	FitReasoner fitscore.Reasoner
 	// SavedSearches persists a job hunter's saved queries. Nil leaves those routes unmounted.
 	SavedSearches savedsearch.Store
+	// Ranking serves personalized search. Nil keeps search on the Mongo text index.
+	Ranking *ranking.Service
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -96,6 +100,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		fitProfiles: opts.FitProfiles,
 		fitReasoner: opts.FitReasoner,
 		switches:    opts.KillSwitches,
+		ranker:      opts.Ranking,
 	}
 	if accounts != nil {
 		var payments billing.Store
@@ -144,6 +149,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux.HandleFunc("POST /v1/me/profile/resume", server.postProfileResume)
 	candidateMux.HandleFunc("GET /v1/me/fit/{jobId}", server.getJobFit)
 	candidateMux.HandleFunc("POST /v1/me/fit", server.postJobFits)
+	candidateMux.HandleFunc("POST /v1/me/ranking/events", server.postRankingEvent)
 	candidateMux.HandleFunc("GET /v1/me/saved-jobs", server.getSavedJobs)
 	candidateMux.HandleFunc("PUT /v1/me/saved-jobs/{jobId}", server.putSavedJob)
 	candidateMux.HandleFunc("DELETE /v1/me/saved-jobs/{jobId}", server.deleteSavedJob)
