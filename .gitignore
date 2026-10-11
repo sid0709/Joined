@@ -12,3 +12,7 @@ client_secret*.json
 *.pem
 production.env
 
+# Go build output
+/admin-backend/server
+/joined-backend/server
+/scoutwell-backend/server
