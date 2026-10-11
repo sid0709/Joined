@@ -12,6 +12,7 @@ import {
   useToast,
   type SearchableItem,
 } from "sid-ui";
+import { SaveFooter } from "@/components/save-footer";
 import { SectionCard } from "@/components/section-card";
 import { saveProfile } from "@/lib/me/pipeline";
 import {
@@ -56,7 +57,11 @@ export function ProfileAbout({
     <SectionCard
       title="About"
       description="Your headline shows on every application."
-      action={<Button label="Save" variant="secondary" size="sm" clickAction={save} />}
+      footer={
+        <SaveFooter
+          action={<Button label="Save" variant="primary" size="sm" clickAction={save} />}
+        />
+      }
     >
       <Stack gap={5}>
         <TextInput

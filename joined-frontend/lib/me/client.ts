@@ -57,6 +57,10 @@ export function meSend<T>(path: string, method: string, body?: unknown) {
   });
 }
 
+export function meSendForm<T>(path: string, method: string, body: FormData) {
+  return request<T>(`/api/me${path}`, { method, body });
+}
+
 export function companyGet<T>(path: string) {
   return request<T>(`/api/company${path}`);
 }

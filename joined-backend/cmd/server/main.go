@@ -17,9 +17,13 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
+	"github.com/sid0709/OpenSeat/backend-core/monitoring"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
+	"github.com/sid0709/OpenSeat/backend-core/ranking"
 	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
+	"github.com/sid0709/OpenSeat/backend-core/statuspage"
 	"github.com/sid0709/OpenSeat/joined-backend/internal/httpapi"
 )
 
@@ -80,6 +84,14 @@ func main() {
 		slog.Error("billing config", "error", err)
 		os.Exit(1)
 	}
+	ranker, events, err := openRanking(context.Background(), p, db.DestDB)
+	if err != nil {
+		slog.Error("ranking config", "error", err)
+		os.Exit(1)
+	}
+	if events != nil {
+		defer events.Close()
+	}
 	searches := savedsearch.NewMongoStore(p.Mongo(), db.DestDB)
 	if err := searches.EnsureIndexes(context.Background()); err != nil {
 		slog.Error("saved search indexes", "error", err)
@@ -96,11 +108,44 @@ func main() {
 		Billing:           premium,
 		BillingWebhook:    webhook,
 		SavedSearches:     searches,
+		Ranking:           ranker,
+		Status:            openStatusPage(context.Background(), p),
 	})
+	metrics.Serve(config.MetricsAddr())
 	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
 	}
+}
+
+// openRanking builds personalized search and starts its index sync. The in-memory
+// index always loads; Qdrant, Redis, and the embedder join when configured.
+func openRanking(ctx context.Context, p *platform.Platform, destDB string) (*ranking.Service, *ranking.MongoEventLog, error) {
+	cfg := config.LoadRanking()
+	var events *ranking.MongoEventLog
+	var log ranking.EventLog
+	if cfg.Events {
+		events = ranking.NewMongoEventLog(p.Mongo(), destDB, cfg.EventsCollection, slog.Default())
+		if err := events.EnsureIndexes(ctx); err != nil {
+			slog.Warn("ranking event indexes", "error", err)
+		}
+		log = events
+	}
+	svc, err := ranking.NewService(ranking.Options{Config: cfg, Profiles: p.People, Events: log, Logger: slog.Default()})
+	if err != nil {
+		if events != nil {
+			events.Close()
+		}
+		return nil, nil, err
+	}
+	if cfg.Indexer {
+		if err := svc.EnsureCollections(ctx); err != nil {
+			slog.Warn("ranking collections", "error", err)
+		}
+	}
+	go svc.Run(ctx, p.Jobs)
+	slog.Info("ranking enabled", "qdrant", cfg.QdrantURL != "", "embedder", cfg.EmbedderURL != "", "redis", cfg.RedisURL != "", "indexer", cfg.Indexer, "ltrPercent", cfg.LTRPercent)
+	return svc, events, nil
 }
 
 func openBilling(store billing.Store) (*billing.Service, *billing.WebhookRouter, error) {
@@ -123,4 +168,15 @@ func companyModeEnabled(value string) bool {
 	default:
 		return false
 	}
+}
+
+// openStatusPage builds the public status page. With PROMETHEUS_URL set it also
+// records each day's uptime; without it the page shows incidents only.
+func openStatusPage(ctx context.Context, p *platform.Platform) *statuspage.Service {
+	var prom monitoring.Querier
+	if client := monitoring.NewPrometheus(config.PrometheusURL()); client != nil {
+		prom = client
+		go statuspage.NewRecorder(client, p.StatusPage, slog.Default()).Run(ctx)
+	}
+	return statuspage.NewService(prom, p.StatusPage, slog.Default())
 }

@@ -21,9 +21,11 @@ export type JobSearchBarProps = {
   where: string;
   onChange: (patch: Partial<SavedQuery>) => void;
   onSubmit: () => void;
+  /** A one-tap search chip: run it now. */
+  onPick: (query: SavedQuery) => void;
   recent: SavedQuery[];
   suggestions: string[];
-  totals: { jobs: number; companies: number; hidden: number };
+  totals: { jobs: number };
   inputRef?: Ref<HTMLInputElement>;
 };
 
@@ -37,6 +39,7 @@ export function JobSearchBar({
   where,
   onChange,
   onSubmit,
+  onPick,
   recent,
   suggestions,
   totals,
@@ -54,9 +57,7 @@ export function JobSearchBar({
           <Stack gap={1}>
             <Heading level={1}>Find your next role</Heading>
             <Text color="secondary" display="block">
-              {formatCount(totals.jobs, "open role")} at{" "}
-              {formatCount(totals.companies, "company", "companies")} ·{" "}
-              {formatCount(totals.hidden, "hidden job")} you won’t find on the big boards
+              {formatCount(totals.jobs, "open role")}
             </Text>
           </Stack>
         </HStack>
@@ -113,7 +114,7 @@ export function JobSearchBar({
                     label={queryLabel(item)}
                     icon={<Glyph name="clock" />}
                     size="sm"
-                    onClick={() => onChange(item)}
+                    onClick={() => onPick(item)}
                   />
                 ))}
               </HStack>
@@ -129,7 +130,7 @@ export function JobSearchBar({
               icon={<Glyph name="sparkle" />}
               size="sm"
               color="blue"
-              onClick={() => onChange({ q: role, where: "" })}
+              onClick={() => onPick({ q: role, where: "" })}
             />
           ))}
         </HStack>

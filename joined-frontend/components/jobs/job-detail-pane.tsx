@@ -1,10 +1,10 @@
-import { Card, Layout, LayoutContent, LayoutHeader, Stack, Text } from "sid-ui";
+import { Card, Layout, LayoutContent, LayoutHeader, Stack } from "sid-ui";
 import { companyFromJob, openRolesFor, presentCompany, similarJobs, type Job } from "@/lib/jobs";
-import { criterionLabel, type JobFit } from "@/lib/jobs/fit";
+import { fitScoreOf, type JobFit } from "@/lib/jobs/fit";
 import { CompanyCard } from "./company-card";
+import { FitSummary } from "./fit-summary";
 import { JobDetailHeader, type JobDetailHeaderProps } from "./job-detail-header";
 import { JobOverview } from "./job-overview";
-import { MatchBadge } from "./match-badge";
 import { SimilarJobs } from "./similar-jobs";
 
 const SIMILAR_LIMIT = 3;
@@ -17,30 +17,12 @@ type BodyProps = {
   fits?: Record<string, JobFit>;
 };
 
-function FitNote({ fit }: { fit: JobFit }) {
-  return (
-    <Stack gap={2}>
-      <MatchBadge score={fit.score} />
-      {fit.reason ? (
-        <Text color="secondary" display="block">
-          {fit.reason}
-        </Text>
-      ) : null}
-      {fit.criteria.length > 0 ? (
-        <Text type="supporting" color="secondary" display="block">
-          {fit.criteria.map((item) => criterionLabel(item)).join(" · ")}
-        </Text>
-      ) : null}
-    </Stack>
-  );
-}
-
 /** Fit, the job, the company, and where to look next — everything under the header. */
 export function JobDetailBody({ job, jobs, onSelect, fit, fits }: BodyProps) {
   const company = companyFromJob(job);
   return (
     <Stack gap={6}>
-      {fit ? <FitNote fit={fit} /> : null}
+      {fit ? <FitSummary fit={fit} /> : null}
       <JobOverview job={job} />
       {company ? (
         <CompanyCard
@@ -50,7 +32,7 @@ export function JobDetailBody({ job, jobs, onSelect, fit, fits }: BodyProps) {
       ) : null}
       <SimilarJobs
         jobs={similarJobs(job, jobs, SIMILAR_LIMIT)}
-        scoreOf={(item) => fits?.[item.id]?.score ?? null}
+        scoreOf={(item) => fitScoreOf(fits?.[item.id])}
         onSelect={onSelect}
       />
     </Stack>

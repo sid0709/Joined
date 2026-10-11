@@ -2,7 +2,42 @@ import { EMPLOYMENTS, SENIORITIES, WORKPLACES } from "@joined/job-schema";
 
 import { WORKPLACE_LABEL, annualPay } from "./format";
 
+import type { JobFit } from "./fit";
 import type { Employment, Job, JobSource, Seniority, Workplace } from "./types";
+
+/** Exact counts for each quick filter given the other active filters (blank-query searches). */
+export type SearchFacets = {
+  total: number;
+  workplace: Partial<Record<Workplace, number>>;
+  seniority: Partial<Record<Seniority, number>>;
+  employment: Partial<Record<Employment, number>>;
+  hidden: number;
+  visa: number;
+  postedDays: Record<string, number>;
+  payAtLeast: Record<string, number>;
+};
+
+/** A filter a typed query implies, offered as a chip and never applied on its own. */
+export type FilterSuggestion = {
+  kind: "workplace" | "seniority" | "employment" | "visa" | "postedDays" | "minPay";
+  value: string;
+  label: string;
+};
+
+export type JobSearchPage = {
+  jobs: Job[];
+  total: number;
+  page: number;
+  /** False when total is a relevance estimate for a typed query rather than a filter count. */
+  exact?: boolean;
+  hasMore?: boolean;
+  /** The signed-in hunter's fit for each job on the page, scored by the server. */
+  fits?: Record<string, JobFit>;
+  facets?: SearchFacets;
+  suggestions?: FilterSuggestion[];
+  /** Ties the page to later clicks, saves, and applies, for learned ranking. */
+  rankingId?: string;
+};
 
 export { EMPLOYMENTS, SENIORITIES, WORKPLACES };
 export const SOURCES: JobSource[] = ["direct", "aggregated", "scouted"];
@@ -17,6 +52,7 @@ export const POSTED_WITHIN = [
 export type PostedWithin = (typeof POSTED_WITHIN)[number]["value"];
 
 export const SORTS = [
+  { value: "recommended", label: "Recommended" },
   { value: "relevance", label: "Best match" },
   { value: "newest", label: "Newest" },
   { value: "pay", label: "Highest pay" },
@@ -34,6 +70,18 @@ export type ListKey = (typeof LISTS)[number]["value"];
 /** Minimum yearly pay steps for the pay filter. */
 export const PAY_FLOOR_MAX = 200_000;
 export const PAY_FLOOR_STEP = 10_000;
+
+/** One screen of results. The search API is asked for this many rows, not the catalog. */
+export const SEARCH_PAGE_SIZE = 25;
+
+/** How long a public search response stays fresh on the server. */
+export const SEARCH_REVALIDATE_SECONDS = 30;
+
+/** Wait for the user to pause before hitting the API while they type. */
+export const SEARCH_DEBOUNCE_MS = 200;
+
+/** Matches backend-core/jobs maxSearchPage. Past this, skip-based paging is refused. */
+export const MAX_SEARCH_PAGE = 200;
 
 export type JobFilters = {
   q: string;
@@ -160,6 +208,13 @@ export function serializeFilters(filters: JobFilters) {
   return params.toString();
 }
 
+/** 1-based page from the URL. Unknown or out-of-range values stay on the first page. */
+export function parsePage(params: RawParams) {
+  const value = Number(first(params.page));
+  if (!Number.isInteger(value) || value < 1 || value > MAX_SEARCH_PAGE) return 1;
+  return value;
+}
+
 // ── Filtering ──────────────────────────────────────────────────────────
 
 function includesText(haystack: string, needle: string) {
@@ -230,7 +285,11 @@ export function facetCounts<K extends FacetKey>(jobs: Job[], filters: JobFilters
   return counts;
 }
 
-export function sortJobs(jobs: Job[], sort: SortKey, scoreOf: (job: Job) => number) {
+/**
+ * Orders a short list the browser holds (saved jobs) by a field sort. Relevance
+ * and recommended keep the order given: ranking is the server's job.
+ */
+export function sortJobs(jobs: Job[], sort: SortKey) {
   const sorted = [...jobs];
   switch (sort) {
     case "newest":
@@ -240,7 +299,39 @@ export function sortJobs(jobs: Job[], sort: SortKey, scoreOf: (job: Job) => numb
     case "applicants":
       return sorted.sort((a, b) => a.applicants - b.applicants);
     default:
-      return sorted.sort((a, b) => scoreOf(b) - scoreOf(a) || a.postedHoursAgo - b.postedHoursAgo);
+      return sorted;
+  }
+}
+
+const SUGGESTED_POSTED: Record<string, PostedWithin> = {
+  "1": "24h",
+  "3": "3d",
+  "7": "7d",
+  "14": "14d",
+};
+
+/** The filter change a suggestion chip makes. */
+export function applySuggestion(
+  filters: JobFilters,
+  suggestion: FilterSuggestion,
+): Partial<JobFilters> {
+  const add = <T extends string>(values: T[], value: string) =>
+    values.includes(value as T) ? values : [...values, value as T];
+  switch (suggestion.kind) {
+    case "workplace":
+      return { workplace: add(filters.workplace, suggestion.value) };
+    case "seniority":
+      return { seniority: add(filters.seniority, suggestion.value) };
+    case "employment":
+      return { employment: add(filters.employment, suggestion.value) };
+    case "visa":
+      return { visa: true };
+    case "postedDays":
+      return { posted: SUGGESTED_POSTED[suggestion.value] ?? filters.posted };
+    case "minPay": {
+      const floor = Math.floor(Number(suggestion.value) / PAY_FLOOR_STEP) * PAY_FLOOR_STEP;
+      return Number.isFinite(floor) && floor > 0 ? { minPay: Math.min(floor, PAY_FLOOR_MAX) } : {};
+    }
   }
 }
 

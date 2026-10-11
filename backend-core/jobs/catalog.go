@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sid0709/OpenSeat/backend-core/jobschema"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -109,9 +110,14 @@ type SearchCatalog struct {
 	Total int64        `json:"total"`
 }
 
+// CatalogJob is the public view of a search record. Its title is cleaned of the
+// location, pay, and board boilerplate aggregated postings pack into it; the stored
+// title (what admins edit) is left as written.
 func CatalogJob(record SearchRecord) catalogJob {
+	job := record.Job
+	job.Title = jobschema.CleanTitle(job.Title)
 	return catalogJob{
-		SearchJob:     record.Job,
+		SearchJob:     job,
 		ApplyLink:     record.ApplyLink,
 		CreatedBy:     record.CreatedBy,
 		ListingSource: record.Source,

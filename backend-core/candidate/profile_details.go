@@ -15,8 +15,6 @@ const (
 	maxLink       = 200
 	maxPeriodText = 40
 
-	minAge  = 14
-	maxAge  = 100
 	minYear = 1940
 	maxYear = 2100
 
@@ -112,19 +110,11 @@ func monthYear(month, year int) string {
 	return time.Month(month).String()[:3] + " " + fmt.Sprint(year)
 }
 
-func normalizePersonal(personal Personal) (Personal, error) {
-	if personal.Age != 0 && (personal.Age < minAge || personal.Age > maxAge) {
-		return Personal{}, ErrInvalidInput
-	}
+func normalizePersonal(personal Personal) Personal {
 	return Personal{
-		FirstName:   clip(personal.FirstName, maxNamePart),
-		LastName:    clip(personal.LastName, maxNamePart),
-		Age:         personal.Age,
-		Gender:      clip(personal.Gender, maxChoice),
-		Pronouns:    clip(personal.Pronouns, maxChoice),
-		Orientation: clip(personal.Orientation, maxChoice),
-		Citizenship: clip(personal.Citizenship, maxChoice),
-	}, nil
+		FirstName: clip(personal.FirstName, maxNamePart),
+		LastName:  clip(personal.LastName, maxNamePart),
+	}
 }
 
 func normalizeLinks(links Links) (Links, error) {
@@ -160,14 +150,4 @@ func normalizeLink(value string) (string, error) {
 		return "", ErrInvalidInput
 	}
 	return value, nil
-}
-
-func normalizeDisclosures(disclosures Disclosures) Disclosures {
-	return Disclosures{
-		HispanicLatino: clip(disclosures.HispanicLatino, maxChoice),
-		Race:           clip(disclosures.Race, maxChoice),
-		Sponsorship:    clip(disclosures.Sponsorship, maxChoice),
-		Disability:     clip(disclosures.Disability, maxChoice),
-		Veteran:        clip(disclosures.Veteran, maxChoice),
-	}
 }

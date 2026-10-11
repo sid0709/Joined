@@ -14,6 +14,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/OpenSeat/backend-core/ranking"
 )
 
 const maxFitJobIDs = 100
@@ -149,44 +150,14 @@ func (s *Server) lookupFitProfile(ctx context.Context, userID string) fitscore.P
 	return candidateToFitProfile(profile)
 }
 
+// searchJobToFit and candidateToFitProfile share the ranking adapters, so the
+// job page and the ranked list score skills on the same canonical names.
 func searchJobToFit(job jobs.SearchJob) fitscore.Job {
-	return fitscore.Job{
-		ID:        job.ID,
-		Title:     job.Title,
-		Location:  job.Location,
-		Workplace: job.Workplace,
-		Seniority: job.Seniority,
-		Skills:    job.Skills,
-		PayMin:    job.Pay.Min,
-		PayMax:    job.Pay.Max,
-		PayPeriod: job.Pay.Period,
-		Currency:  job.Pay.Currency,
-		Visa:      job.Visa,
-	}
+	return ranking.FitJob(job, ranking.DefaultTaxonomy())
 }
 
 func candidateToFitProfile(profile candidate.Profile) fitscore.Profile {
-	titles := make([]string, 0, len(profile.Experience))
-	for _, item := range profile.Experience {
-		if role := strings.TrimSpace(item.Role); role != "" {
-			titles = append(titles, role)
-		}
-	}
-	locations := append([]string{}, profile.Locations...)
-	if city := strings.TrimSpace(profile.HomeAddress.City); city != "" {
-		locations = append(locations, city)
-	}
-	return fitscore.Profile{
-		Headline:         profile.Headline,
-		TargetRoles:      profile.TargetRoles,
-		Locations:        locations,
-		Location:         profile.Location,
-		Workplace:        profile.Workplace,
-		SalaryFloor:      profile.SalaryFloor,
-		Skills:           profile.Skills,
-		Authorization:    profile.Authorization,
-		ExperienceTitles: titles,
-	}
+	return ranking.FitProfile(profile, ranking.DefaultTaxonomy())
 }
 
 func uniqueJobIDs(ids []string) []string {

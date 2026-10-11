@@ -1,0 +1,44 @@
+# Local ranking services for `bun run dev:ranking`: the vector index, the cache,
+# and the embedding model. joined-backend finds them through QDRANT_URL, REDIS_URL,
+# and EMBEDDER_URL (see joined-backend/.env.example). Ports bind to 127.0.0.1 only.
+#
+# The embedder image is amd64; tools/ranking-services.mjs switches it to the
+# arm64 build on Apple Silicon. The first start downloads the model into the
+# embedder volume.
+name: joined-ranking
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    restart: unless-stopped
+    ports: ["127.0.0.1:6333:6333"]
+    volumes: ["qdrant:/qdrant/storage"]
+
+  redis:
+    image: redis:8.10.2-alpine
+    restart: unless-stopped
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "512mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    ports: ["127.0.0.1:6379:6379"]
+
+  embedder:
+    image: ${EMBEDDER_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4}
+    restart: unless-stopped
+    command:
+      ["--model-id", "${EMBEDDER_MODEL:-BAAI/bge-small-en-v1.5}", "--max-client-batch-size", "64"]
+    ports: ["127.0.0.1:8090:80"]
+    volumes: ["embedder:/data"]
+
+volumes:
+  qdrant:
+  embedder:

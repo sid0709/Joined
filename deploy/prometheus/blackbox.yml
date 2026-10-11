@@ -1,0 +1,8 @@
+# Probe modules for blackbox-exporter (see prometheus.yml, job "probe").
+modules:
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+      follow_redirects: true

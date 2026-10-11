@@ -37,6 +37,19 @@ export function visibleFit(signedIn: boolean, fit: JobFit | null | undefined): J
   return fit;
 }
 
+/**
+ * Whether the score measured anything. With no target roles, skills, or locations
+ * the API answers 0 with no criteria — that is "not scored yet", not a 0% match.
+ */
+export function hasFitScore(fit: JobFit): boolean {
+  return fit.criteria.length > 0;
+}
+
+/** The score to show beside a job, or null when there is none to show yet. */
+export function fitScoreOf(fit: JobFit | null | undefined): number | null {
+  return fit && hasFitScore(fit) ? fit.score : null;
+}
+
 /** API `title` displays as the existing role label. Other ids keep their API label. */
 export function criterionLabel(criterion: Pick<FitCriterion, "id" | "label">) {
   if (criterion.id === FIT_TITLE_CRITERION) return criterion.label || FIT_ROLE_LABEL;

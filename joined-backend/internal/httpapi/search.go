@@ -10,15 +10,37 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
 )
+
+// signInToSearchMessage answers a visitor's search beyond the newest jobs.
+const signInToSearchMessage = "sign in to search jobs"
 
 func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
 	defer cancel()
 
 	query := parseSearchQuery(r)
+	userID, signedIn := s.searchViewer(r)
+
+	// A visitor sees the newest jobs. Typing, filtering, sorting, and paging need an account.
+	if !signedIn {
+		if !query.GuestView() {
+			httpkit.WriteError(w, http.StatusUnauthorized, signInToSearchMessage)
+			return
+		}
+		if query.HasCriteria() {
+			query.SortBy = jobs.SearchSortNewest
+		}
+	}
+
+	if query.HasCriteria() && s.rankedSearch(ctx, w, query, userID) {
+		metrics.SearchServed(metrics.SearchRanked)
+		return
+	}
 
 	if !query.HasCriteria() {
+		metrics.SearchServed(metrics.SearchCatalog)
 		catalog, err := s.store.ListCatalog(ctx, time.Now())
 		if err != nil {
 			slog.Error("list search catalog", "error", err)
@@ -29,6 +51,7 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.SearchServed(metrics.SearchFallback)
 	results, err := s.store.SearchJobs(ctx, query, time.Now())
 	if err != nil {
 		if errors.Is(err, jobs.ErrCursorNotSupportedForRelevance) {
@@ -39,12 +62,19 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not search jobs")
 		return
 	}
-	httpkit.WriteJSON(w, http.StatusOK, results)
+	page := make([]jobs.SearchJob, len(results.Jobs))
+	for i := range results.Jobs {
+		page[i] = results.Jobs[i].SearchJob
+	}
+	if userID != "" {
+		w.Header().Set("Cache-Control", privateCache)
+	}
+	httpkit.WriteJSON(w, http.StatusOK, fallbackSearchResponse{SearchResults: results, Fits: s.pageFits(ctx, userID, page)})
 }
 
 func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 	q := r.URL.Query()
-	
+
 	query := jobs.SearchQuery{
 		Keyword:    q.Get("q"),
 		Location:   q.Get("location"),
@@ -57,6 +87,8 @@ func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 		Cursor:     q.Get("cursor"),
 		Remote:     q.Get("remote") == "true",
 		Source:     q.Get("source"),
+		List:       q.Get("list"),
+		Region:     q.Get("region"),
 	}
 
 	if salaryMin := q.Get("salaryMin"); salaryMin != "" {
@@ -81,6 +113,16 @@ func parseSearchQuery(r *http.Request) jobs.SearchQuery {
 		if val, err := strconv.Atoi(limit); err == nil && val > 0 {
 			query.Limit = val
 		}
+	}
+
+	if page := q.Get("page"); page != "" {
+		if val, err := strconv.Atoi(page); err == nil && val > 1 {
+			query.Page = val
+		}
+	}
+
+	if visa := q.Get("visa"); visa == "1" || visa == "true" {
+		query.Visa = true
 	}
 
 	return query

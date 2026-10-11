@@ -14,6 +14,8 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
+	"github.com/sid0709/OpenSeat/backend-core/monitoring"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 )
@@ -133,7 +135,10 @@ func main() {
 		},
 		KillSwitches: p.KillSwitches,
 		ScamHolds:    p.ScamHolds,
+		Prometheus:   prometheus(config.PrometheusURL()),
+		StatusPage:   p.StatusPage,
 	})
+	metrics.Serve(config.MetricsAddr())
 	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
 		slog.Error("server", "error", err)
 		os.Exit(1)
@@ -183,4 +188,13 @@ func jobImportsGate(switches killswitch.Switches) jobs.ImportKillSwitch {
 
 func (g jobImportsSwitch) Allow(string) bool {
 	return killswitch.On(g.switches, context.Background(), killswitch.JobImports)
+}
+
+// prometheus is the system monitoring source, or nil when PROMETHEUS_URL is unset.
+// A nil *monitoring.Prometheus must not become a non-nil interface.
+func prometheus(url string) monitoring.Querier {
+	if client := monitoring.NewPrometheus(url); client != nil {
+		return client
+	}
+	return nil
 }

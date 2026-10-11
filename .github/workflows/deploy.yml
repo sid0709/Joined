@@ -220,6 +220,7 @@ jobs:
           ADMIN_GOOGLE_SIGNIN_REDIRECT_URL: ${{ vars.ADMIN_GOOGLE_SIGNIN_REDIRECT_URL || secrets.ADMIN_GOOGLE_SIGNIN_REDIRECT_URL }}
           ADMIN_GOOGLE_DOMAIN: ${{ vars.ADMIN_GOOGLE_DOMAIN || secrets.ADMIN_GOOGLE_DOMAIN }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGODB_EXPORTER_URI: ${{ secrets.MONGODB_EXPORTER_URI }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           SCOUTWELL_GOOGLE_CLIENT_SECRET: ${{ secrets.SCOUTWELL_GOOGLE_CLIENT_SECRET }}
           ADMIN_GOOGLE_CLIENT_SECRET: ${{ secrets.ADMIN_GOOGLE_CLIENT_SECRET }}
@@ -228,6 +229,9 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
           GEOAPIFY_API_KEY: ${{ secrets.GEOAPIFY_API_KEY }}
+          RANKING_EVENTS: ${{ vars.RANKING_EVENTS || secrets.RANKING_EVENTS }}
+          RANKING_MODEL_PATH: ${{ vars.RANKING_MODEL_PATH || secrets.RANKING_MODEL_PATH }}
+          RANKING_LTR_PERCENT: ${{ vars.RANKING_LTR_PERCENT || secrets.RANKING_LTR_PERCENT }}
         run: |
           umask 077
           # Single-quoted values are taken literally by Compose; refuse anything
@@ -247,15 +251,18 @@ jobs:
               SCOUTWELL_GOOGLE_CLIENT_ID SCOUTWELL_GOOGLE_CLIENT_SECRET \
               ADMIN_ORIGIN ADMIN_GOOGLE_CLIENT_ID ADMIN_GOOGLE_CLIENT_SECRET \
               ADMIN_GOOGLE_SIGNIN_REDIRECT_URL ADMIN_GOOGLE_DOMAIN \
-              MONGO_URI GOOGLE_CLIENT_SECRET OPENAI_API_KEY SETTINGS_ENCRYPTION_KEY DEEPSEEK_API_KEY \
-              ADMIN_API_TOKEN GEOAPIFY_API_KEY; do
+              MONGO_URI MONGODB_EXPORTER_URI GOOGLE_CLIENT_SECRET OPENAI_API_KEY SETTINGS_ENCRYPTION_KEY DEEPSEEK_API_KEY \
+              ADMIN_API_TOKEN GEOAPIFY_API_KEY RANKING_EVENTS RANKING_MODEL_PATH RANKING_LTR_PERCENT; do
               put "$name"
             done
           } > production.env
 
       - name: Ship the stack
         run: |
+          # The learned-ranking model directory must exist for the bind mount.
+          ssh vps "mkdir -p '$DEPLOY_DIR/models' '$DEPLOY_DIR/prometheus'"
           scp deploy/compose.yml vps:"$DEPLOY_DIR/compose.yml"
+          scp deploy/prometheus/prometheus.yml deploy/prometheus/blackbox.yml vps:"$DEPLOY_DIR/prometheus/"
           scp production.env vps:"$DEPLOY_DIR/.env"
           rm production.env
           ssh vps "chmod 600 '$DEPLOY_DIR/.env'"
@@ -274,6 +281,8 @@ jobs:
       - name: Start the new release
         run: |
           ssh vps "cd '$DEPLOY_DIR' && docker compose up -d --remove-orphans && docker image prune -f >/dev/null"
+          # Prometheus keeps running across deploys; make it read a changed scrape list.
+          ssh vps "cd '$DEPLOY_DIR' && docker compose kill -s SIGHUP prometheus"
 
       - name: Check it is serving
         run: |

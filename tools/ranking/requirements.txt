@@ -1,0 +1,3 @@
+# Training dependencies for train_ltr.py (offline only; the server never imports Python).
+lightgbm==4.5.0
+numpy==1.26.4

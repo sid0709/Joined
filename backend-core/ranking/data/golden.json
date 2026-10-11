@@ -1,0 +1,905 @@
+[
+  {
+    "name": "profile: ml engineer",
+    "profile": {
+      "targetRoles": ["Machine Learning Engineer"],
+      "skills": ["Python", "PyTorch", "MLOps"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Senior ML Engineer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  },
+  {
+    "name": "profile: ai engineer llm",
+    "profile": {
+      "targetRoles": ["AI Engineer"],
+      "skills": ["Python", "LLM", "RAG"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Software Engineer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  },
+  {
+    "name": "profile: data scientist",
+    "profile": {
+      "targetRoles": ["Data Scientist"],
+      "skills": ["Python", "Statistics", "SQL"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Data Analyst",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "data-science": 2,
+      "machine-learning": 1,
+      "data-analytics": 1,
+      "data-engineering": 1
+    }
+  },
+  {
+    "name": "profile: backend engineer",
+    "profile": {
+      "targetRoles": ["Backend Engineer"],
+      "skills": ["Go", "PostgreSQL", "Kubernetes"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Software Engineer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "software-engineering": 2,
+      "frontend-engineering": 1,
+      "mobile-engineering": 1,
+      "devops": 1,
+      "data-engineering": 1,
+      "qa-engineering": 1,
+      "engineering-management": 1
+    }
+  },
+  {
+    "name": "profile: java developer",
+    "profile": {
+      "targetRoles": ["Java Developer"],
+      "skills": ["Java", "Spring Boot", "Kafka"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Java Developer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "software-engineering": 2,
+      "frontend-engineering": 1,
+      "mobile-engineering": 1,
+      "devops": 1,
+      "data-engineering": 1,
+      "qa-engineering": 1,
+      "engineering-management": 1
+    }
+  },
+  {
+    "name": "profile: frontend engineer",
+    "profile": {
+      "targetRoles": ["Frontend Engineer"],
+      "skills": ["React", "TypeScript", "CSS"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Frontend Developer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "frontend-engineering": 2,
+      "software-engineering": 1,
+      "mobile-engineering": 1,
+      "product-design": 1
+    }
+  },
+  {
+    "name": "profile: ios engineer",
+    "profile": {
+      "targetRoles": ["iOS Engineer"],
+      "skills": ["Swift", "iOS"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Mobile Developer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "mobile-engineering": 2,
+      "software-engineering": 1,
+      "frontend-engineering": 1
+    }
+  },
+  {
+    "name": "profile: android engineer",
+    "profile": {
+      "targetRoles": ["Android Engineer"],
+      "skills": ["Kotlin", "Android"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Android Developer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "mobile-engineering": 2,
+      "software-engineering": 1,
+      "frontend-engineering": 1
+    }
+  },
+  {
+    "name": "profile: devops sre",
+    "profile": {
+      "targetRoles": ["Site Reliability Engineer"],
+      "skills": ["Kubernetes", "Terraform", "AWS"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "DevOps Engineer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "devops": 2,
+      "software-engineering": 1,
+      "systems-administration": 1,
+      "security-engineering": 1
+    }
+  },
+  {
+    "name": "profile: data engineer",
+    "profile": {
+      "targetRoles": ["Data Engineer"],
+      "skills": ["Spark", "Airflow", "SQL"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "ETL Developer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "data-engineering": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "database-administration": 1,
+      "data-analytics": 1,
+      "machine-learning": 1
+    }
+  },
+  {
+    "name": "profile: security engineer",
+    "profile": {
+      "targetRoles": ["Security Engineer"],
+      "skills": ["Security", "AWS"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Security Analyst",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "security-engineering": 2,
+      "devops": 1,
+      "systems-administration": 1,
+      "software-engineering": 1
+    }
+  },
+  {
+    "name": "profile: qa engineer",
+    "profile": {
+      "targetRoles": ["QA Automation Engineer"],
+      "skills": ["Selenium", "Python"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "QA Engineer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "qa-engineering": 2,
+      "software-engineering": 1,
+      "devops": 1
+    }
+  },
+  {
+    "name": "profile: engineering manager",
+    "profile": {
+      "targetRoles": ["Engineering Manager"],
+      "skills": ["Leadership", "System Design"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Engineering Manager",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "engineering-management": 2,
+      "software-engineering": 1,
+      "product-management": 1,
+      "program-management": 1
+    }
+  },
+  {
+    "name": "profile: product manager",
+    "profile": {
+      "targetRoles": ["Product Manager"],
+      "skills": ["Product Strategy", "SQL"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Product Manager",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "product-management": 2,
+      "program-management": 1,
+      "product-design": 1,
+      "engineering-management": 1,
+      "product-marketing": 1
+    }
+  },
+  {
+    "name": "profile: product designer",
+    "profile": {
+      "targetRoles": ["Product Designer"],
+      "skills": ["Figma", "Prototyping"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "UX Designer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "product-design": 2,
+      "ux-research": 1,
+      "graphic-design": 1,
+      "frontend-engineering": 1,
+      "product-management": 1
+    }
+  },
+  {
+    "name": "profile: marketing manager",
+    "profile": {
+      "targetRoles": ["Marketing Manager"],
+      "skills": ["SEO", "Content Marketing"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Marketing Manager",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "marketing-management": 2,
+      "growth-marketing": 1,
+      "product-marketing": 1,
+      "brand-marketing": 1,
+      "content-marketing": 1,
+      "marketing-specialist": 1
+    }
+  },
+  {
+    "name": "profile: growth marketer",
+    "profile": {
+      "targetRoles": ["Growth Marketing Manager"],
+      "skills": ["Google Ads", "Analytics"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Performance Marketer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "growth-marketing": 2,
+      "marketing-management": 1,
+      "marketing-specialist": 1,
+      "data-analytics": 1
+    }
+  },
+  {
+    "name": "profile: product marketing",
+    "profile": {
+      "targetRoles": ["Product Marketing Manager"],
+      "skills": ["Go-to-market", "Positioning"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Product Marketer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "product-marketing": 2,
+      "marketing-management": 1,
+      "product-management": 1,
+      "growth-marketing": 1
+    }
+  },
+  {
+    "name": "profile: account executive",
+    "profile": {
+      "targetRoles": ["Account Executive"],
+      "skills": ["Sales", "CRM", "Salesforce"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Account Executive",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "sales": 2,
+      "sales-management": 1,
+      "sales-engineering": 1,
+      "customer-success": 1
+    }
+  },
+  {
+    "name": "profile: sales engineer",
+    "profile": {
+      "targetRoles": ["Solutions Engineer"],
+      "skills": ["SQL", "APIs"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Sales Engineer",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "sales-engineering": 2,
+      "sales": 1,
+      "software-engineering": 1,
+      "customer-success": 1
+    }
+  },
+  {
+    "name": "profile: customer success",
+    "profile": {
+      "targetRoles": ["Customer Success Manager"],
+      "skills": ["Customer Success", "CRM"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Account Manager",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "customer-success": 2,
+      "customer-support": 1,
+      "sales": 1,
+      "sales-engineering": 1
+    }
+  },
+  {
+    "name": "profile: recruiter",
+    "profile": {
+      "targetRoles": ["Technical Recruiter"],
+      "skills": ["Recruiting", "Sourcing"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Recruiter",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "human-resources": 2,
+      "operations-management": 1
+    }
+  },
+  {
+    "name": "profile: financial analyst",
+    "profile": {
+      "targetRoles": ["Financial Analyst"],
+      "skills": ["Financial Modeling", "Excel"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Financial Analyst",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "financial-analysis": 2,
+      "accounting": 1,
+      "finance-management": 1,
+      "data-analytics": 1
+    }
+  },
+  {
+    "name": "profile: accountant",
+    "profile": {
+      "targetRoles": ["Senior Accountant"],
+      "skills": ["GAAP", "Excel"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "Staff Accountant",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "accounting": 2,
+      "financial-analysis": 1,
+      "finance-management": 1
+    }
+  },
+  {
+    "name": "profile: nurse",
+    "profile": {
+      "targetRoles": ["Registered Nurse"],
+      "skills": ["Patient Care", "BLS"],
+      "locations": ["Remote"],
+      "experience": [
+        {
+          "role": "RN",
+          "startYear": 2019,
+          "startMonth": 1,
+          "current": true
+        }
+      ]
+    },
+    "filter": {},
+    "grades": {
+      "nursing": 2,
+      "healthcare-practitioner": 1,
+      "healthcare-administration": 1
+    }
+  },
+  {
+    "name": "profile: two roles (ML + marketing)",
+    "profile": {
+      "targetRoles": ["Machine Learning Engineer", "Marketing Manager"],
+      "skills": ["Python", "SEO"],
+      "locations": ["Remote"]
+    },
+    "filter": {},
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1,
+      "marketing-management": 2
+    }
+  },
+  {
+    "name": "query: machine learning engineer",
+    "query": "machine learning engineer",
+    "filter": {},
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  },
+  {
+    "name": "query: ai engineer",
+    "query": "ai engineer",
+    "filter": {},
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  },
+  {
+    "name": "query: llm engineer",
+    "query": "llm engineer",
+    "filter": {},
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  },
+  {
+    "name": "query: data scientist",
+    "query": "data scientist",
+    "filter": {},
+    "grades": {
+      "data-science": 2,
+      "machine-learning": 1,
+      "data-analytics": 1,
+      "data-engineering": 1
+    }
+  },
+  {
+    "name": "query: senior backend engineer golang",
+    "query": "senior backend engineer golang",
+    "filter": {},
+    "grades": {
+      "software-engineering": 2,
+      "frontend-engineering": 1,
+      "mobile-engineering": 1,
+      "devops": 1,
+      "data-engineering": 1,
+      "qa-engineering": 1,
+      "engineering-management": 1
+    }
+  },
+  {
+    "name": "query: react frontend developer",
+    "query": "react frontend developer",
+    "filter": {},
+    "grades": {
+      "frontend-engineering": 2,
+      "software-engineering": 1,
+      "mobile-engineering": 1,
+      "product-design": 1
+    }
+  },
+  {
+    "name": "query: ios swift developer",
+    "query": "ios swift developer",
+    "filter": {},
+    "grades": {
+      "mobile-engineering": 2,
+      "software-engineering": 1,
+      "frontend-engineering": 1
+    }
+  },
+  {
+    "name": "query: site reliability engineer",
+    "query": "site reliability engineer",
+    "filter": {},
+    "grades": {
+      "devops": 2,
+      "software-engineering": 1,
+      "systems-administration": 1,
+      "security-engineering": 1
+    }
+  },
+  {
+    "name": "query: kubernetes platform engineer",
+    "query": "kubernetes platform engineer",
+    "filter": {},
+    "grades": {
+      "devops": 2,
+      "software-engineering": 1,
+      "systems-administration": 1,
+      "security-engineering": 1
+    }
+  },
+  {
+    "name": "query: data engineer spark",
+    "query": "data engineer spark",
+    "filter": {},
+    "grades": {
+      "data-engineering": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "database-administration": 1,
+      "data-analytics": 1,
+      "machine-learning": 1
+    }
+  },
+  {
+    "name": "query: cybersecurity analyst",
+    "query": "cybersecurity analyst",
+    "filter": {},
+    "grades": {
+      "security-engineering": 2,
+      "devops": 1,
+      "systems-administration": 1,
+      "software-engineering": 1
+    }
+  },
+  {
+    "name": "query: product manager",
+    "query": "product manager",
+    "filter": {},
+    "grades": {
+      "product-management": 2,
+      "program-management": 1,
+      "product-design": 1,
+      "engineering-management": 1,
+      "product-marketing": 1
+    }
+  },
+  {
+    "name": "query: ux designer",
+    "query": "ux designer",
+    "filter": {},
+    "grades": {
+      "product-design": 2,
+      "ux-research": 1,
+      "graphic-design": 1,
+      "frontend-engineering": 1,
+      "product-management": 1
+    }
+  },
+  {
+    "name": "query: marketing manager",
+    "query": "marketing manager",
+    "filter": {},
+    "grades": {
+      "marketing-management": 2,
+      "growth-marketing": 1,
+      "product-marketing": 1,
+      "brand-marketing": 1,
+      "content-marketing": 1,
+      "marketing-specialist": 1
+    }
+  },
+  {
+    "name": "query: seo specialist",
+    "query": "seo specialist",
+    "filter": {},
+    "grades": {
+      "growth-marketing": 2,
+      "marketing-management": 1,
+      "marketing-specialist": 1,
+      "data-analytics": 1
+    }
+  },
+  {
+    "name": "query: account executive saas",
+    "query": "account executive saas",
+    "filter": {},
+    "grades": {
+      "sales": 2,
+      "sales-management": 1,
+      "sales-engineering": 1,
+      "customer-success": 1
+    }
+  },
+  {
+    "name": "query: customer success manager",
+    "query": "customer success manager",
+    "filter": {},
+    "grades": {
+      "customer-success": 2,
+      "customer-support": 1,
+      "sales": 1,
+      "sales-engineering": 1
+    }
+  },
+  {
+    "name": "query: technical recruiter",
+    "query": "technical recruiter",
+    "filter": {},
+    "grades": {
+      "human-resources": 2,
+      "operations-management": 1
+    }
+  },
+  {
+    "name": "query: financial analyst",
+    "query": "financial analyst",
+    "filter": {},
+    "grades": {
+      "financial-analysis": 2,
+      "accounting": 1,
+      "finance-management": 1,
+      "data-analytics": 1
+    }
+  },
+  {
+    "name": "query: registered nurse",
+    "query": "registered nurse",
+    "filter": {},
+    "grades": {
+      "nursing": 2,
+      "healthcare-practitioner": 1,
+      "healthcare-administration": 1
+    }
+  },
+  {
+    "name": "query+filter: remote machine learning",
+    "query": "remote machine learning",
+    "filter": {
+      "remote": true
+    },
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  },
+  {
+    "name": "query+filter: senior software engineer 150k",
+    "query": "senior software engineer 150k",
+    "filter": {
+      "seniority": "Senior",
+      "salaryMin": 150000
+    },
+    "grades": {
+      "software-engineering": 2,
+      "frontend-engineering": 1,
+      "mobile-engineering": 1,
+      "devops": 1,
+      "data-engineering": 1,
+      "qa-engineering": 1,
+      "engineering-management": 1
+    }
+  },
+  {
+    "name": "query+filter: data scientist new york",
+    "query": "data scientist new york",
+    "filter": {
+      "location": "New York"
+    },
+    "grades": {
+      "data-science": 2,
+      "machine-learning": 1,
+      "data-analytics": 1,
+      "data-engineering": 1
+    }
+  },
+  {
+    "name": "query+filter: frontend contract",
+    "query": "frontend contract",
+    "filter": {
+      "employment": "contract"
+    },
+    "grades": {
+      "frontend-engineering": 2,
+      "software-engineering": 1,
+      "mobile-engineering": 1,
+      "product-design": 1
+    }
+  },
+  {
+    "name": "profile+filter: ML engineer, remote, visa",
+    "profile": {
+      "targetRoles": ["Machine Learning Engineer"],
+      "skills": ["Python", "PyTorch"],
+      "authorization": "us-sponsor"
+    },
+    "filter": {
+      "remote": true,
+      "visa": true
+    },
+    "grades": {
+      "machine-learning": 2,
+      "data-science": 1,
+      "software-engineering": 1,
+      "data-engineering": 1,
+      "research-science": 1
+    }
+  }
+]

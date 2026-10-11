@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { BreadcrumbItem, Breadcrumbs, Card, GridColumn, GridSystem, Stack, Text } from "sid-ui";
+import { BreadcrumbItem, Breadcrumbs, Card, GridColumn, GridSystem, Stack } from "sid-ui";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 import { companyFromJob, openRolesFor, presentCompany, similarJobs, type Job } from "@/lib/jobs";
-import { criterionLabel } from "@/lib/jobs/fit";
+import { fitScoreOf } from "@/lib/jobs/fit";
 import { ROUTES } from "@/lib/routes";
 import { CompanyCard } from "./company-card";
+import { FitSummary } from "./fit-summary";
 import { JobDetailHeader } from "./job-detail-header";
 import { JobOverview } from "./job-overview";
-import { MatchBadge } from "./match-badge";
 import { SimilarJobs } from "./similar-jobs";
 import { useJobActions } from "./use-job-actions";
 import { useJobFit, useJobFits } from "./use-job-fits";
@@ -80,21 +80,7 @@ export function JobPageView({
           <GridColumn span="full" lg={8}>
             <Card padding={6}>
               <Stack gap={5}>
-                {fit ? (
-                  <Stack gap={2}>
-                    <MatchBadge score={fit.score} />
-                    {fit.reason ? (
-                      <Text color="secondary" display="block">
-                        {fit.reason}
-                      </Text>
-                    ) : null}
-                    {fit.criteria.length > 0 ? (
-                      <Text type="supporting" color="secondary" display="block">
-                        {fit.criteria.map((item) => criterionLabel(item)).join(" · ")}
-                      </Text>
-                    ) : null}
-                  </Stack>
-                ) : null}
+                {fit ? <FitSummary fit={fit} /> : null}
                 <JobOverview job={job} />
               </Stack>
             </Card>
@@ -104,10 +90,10 @@ export function JobPageView({
               {company ? (
                 <CompanyCard
                   company={presentCompany(company, jobs)}
-                  openRoles={openRolesFor(company.id, jobs)}
+                  openRoles={jobs.length > 1 ? openRolesFor(company.id, jobs) : undefined}
                 />
               ) : null}
-              <SimilarJobs jobs={similar} scoreOf={(item) => similarFits[item.id]?.score ?? null} />
+              <SimilarJobs jobs={similar} scoreOf={(item) => fitScoreOf(similarFits[item.id])} />
             </Stack>
           </GridColumn>
         </GridSystem>

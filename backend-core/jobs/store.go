@@ -58,6 +58,8 @@ type Store struct {
 	companyCopyMu sync.Mutex
 	analyzeMu     sync.Mutex
 	scamHolds     scamHoldAPI
+	// hydrated serves CatalogJobsByObjectIDs from memory for recently read jobs.
+	hydrated hydrationCache
 }
 
 func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies, tempCompanies string) *Store {

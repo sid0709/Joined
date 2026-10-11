@@ -1,5 +1,8 @@
 import { AUDIT_FRONTEND_IDS, LOCAL_SERVICES, serviceSite } from "./local-services.mjs";
 
+/** Static reports are served on the app port plus this offset, so they never collide with the apps. */
+export const REPORT_PORT_OFFSET = 1000;
+
 export const AUDIT_FRONTENDS = AUDIT_FRONTEND_IDS.map((id) => {
   const service = LOCAL_SERVICES.find((entry) => entry.id === id);
   if (!service) {
@@ -16,6 +19,8 @@ export const AUDIT_FRONTENDS = AUDIT_FRONTEND_IDS.map((id) => {
     label: labels[service.id] ?? service.id,
     site: serviceSite(service),
     port: service.port,
+    workspace: service.workspace,
+    reportPort: service.port + REPORT_PORT_OFFSET,
   };
 });
 

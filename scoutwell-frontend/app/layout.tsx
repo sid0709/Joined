@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
-import { ServiceUpdate } from "@/components/service-update";
+import type { ReactNode } from "react";
+import { Providers } from "@/components/providers";
 import { BRAND, THEME_COOKIE } from "@/lib/config";
 import "./globals.css";
 
@@ -10,12 +11,12 @@ export const metadata: Metadata = {
     "Submit official jobs missing from the big boards. Earn when hunters and bidders use them.",
 };
 
-export default async function RootLayout() {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const theme = (await cookies()).get(THEME_COOKIE)?.value === "dark" ? "dark" : "light";
   return (
     <html lang="en" data-theme={theme} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ServiceUpdate brand={BRAND} mode={theme} />
+        <Providers mode={theme}>{children}</Providers>
       </body>
     </html>
   );

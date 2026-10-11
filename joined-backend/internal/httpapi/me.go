@@ -34,6 +34,7 @@ func (s *Server) patchProfile(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
+	s.noteProfileChanged(session.User.ID)
 	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 

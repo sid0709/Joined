@@ -19,6 +19,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/killswitch"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/OpenSeat/backend-core/statuspage"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -40,6 +41,8 @@ type Platform struct {
 	KillSwitches *killswitch.Store
 	// ScamHolds scores jobs at publish time and queues risky ones for staff.
 	ScamHolds *jobscam.Service
+	// StatusPage holds the public status page's incidents and daily uptime.
+	StatusPage *statuspage.MongoStore
 }
 
 // Options are the parts of the platform only some services configure.
@@ -94,6 +97,7 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		DeepSeekSettings: aisettings.NewStoreFor(client, db.DestDB, box, aisettings.DocumentDeepSeek),
 		KillSwitches:     killswitch.NewStore(client, db.DestDB, killswitch.LoadDefaults()),
 		ScamHolds:        scamHolds,
+		StatusPage:       statuspage.NewMongoStore(client, db.DestDB),
 	}
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()
@@ -123,6 +127,7 @@ func (p *Platform) ensureIndexes(ctx context.Context) error {
 		{"staff", p.Staff},
 		{"scout", p.Scouts},
 		{"jobscam", p.ScamHolds},
+		{"statuspage", p.StatusPage},
 	}
 	for _, item := range indexed {
 		if err := item.store.EnsureIndexes(ctx); err != nil {

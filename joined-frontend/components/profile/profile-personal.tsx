@@ -1,23 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Grid, NumberInput, Stack, Text, TextInput } from "sid-ui";
-import { ChoiceField } from "@/components/profile/choice-field";
+import { Button, Grid, Stack, Text, TextInput } from "sid-ui";
+import { SaveFooter } from "@/components/save-footer";
 import { SectionCard } from "@/components/section-card";
 import { useProfileSave } from "@/components/profile/use-profile-save";
-import {
-  CITIZENSHIP_OPTIONS,
-  GENDER_OPTIONS,
-  MAX_AGE,
-  MIN_AGE,
-  ORIENTATION_OPTIONS,
-  PRONOUN_OPTIONS,
-} from "@/lib/profile-options";
 import type { Personal, Profile, ProfileLinks } from "@/lib/profile";
 
 const FIELD_MIN_WIDTH = 220;
 
-/** Name, identity, citizenship, and public links — what application forms ask first. */
+/** Name and public links — what application forms ask first. */
 export function ProfilePersonal({
   profile,
   onSaved,
@@ -33,21 +25,24 @@ export function ProfilePersonal({
   const set = (patch: Partial<Personal>) => setPersonal((current) => ({ ...current, ...patch }));
   const setLink = (key: keyof ProfileLinks, value: string) =>
     setLinks((current) => ({ ...current, [key]: value }));
-  const isAgeValid = !personal.age || (personal.age >= MIN_AGE && personal.age <= MAX_AGE);
 
   return (
     <SectionCard
-      title="Personal details"
-      description="Only you and Acorn see these. Acorn fills them into application forms."
-      action={
-        <Button
-          label="Save"
-          variant="secondary"
-          size="sm"
-          isDisabled={!name.trim() || !isAgeValid}
-          clickAction={async () => {
-            await save({ name, personal, links }, "Personal details saved");
-          }}
+      title="Name and links"
+      description="Acorn fills these into application forms."
+      footer={
+        <SaveFooter
+          action={
+            <Button
+              label="Save"
+              variant="primary"
+              size="sm"
+              isDisabled={!name.trim()}
+              clickAction={async () => {
+                await save({ name, personal, links }, "Name and links saved");
+              }}
+            />
+          }
         />
       }
     >
@@ -67,42 +62,7 @@ export function ProfilePersonal({
             onChange={(lastName) => set({ lastName })}
             isOptional
           />
-          <NumberInput
-            label="Age"
-            value={personal.age || null}
-            onChange={(age) => set({ age: age ?? 0 })}
-            min={MIN_AGE}
-            max={MAX_AGE}
-            isIntegerOnly
-            hasClear
-            isOptional
-          />
-          <ChoiceField
-            label="Gender"
-            options={GENDER_OPTIONS}
-            value={personal.gender}
-            onChange={(gender) => set({ gender })}
-          />
-          <ChoiceField
-            label="Pronouns"
-            options={PRONOUN_OPTIONS}
-            value={personal.pronouns}
-            onChange={(pronouns) => set({ pronouns })}
-          />
-          <ChoiceField
-            label="Sexual orientation"
-            options={ORIENTATION_OPTIONS}
-            value={personal.orientation}
-            onChange={(orientation) => set({ orientation })}
-          />
         </Grid>
-        <ChoiceField
-          label="Citizenship"
-          description="Acorn answers “Are you authorized to work…” questions from this."
-          options={CITIZENSHIP_OPTIONS}
-          value={personal.citizenship}
-          onChange={(citizenship) => set({ citizenship })}
-        />
         <Stack gap={3}>
           <Text type="label" display="block">
             Links
