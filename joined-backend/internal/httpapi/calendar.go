@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/httpkit"
 )
 
 func (s *Server) getCalendar(w http.ResponseWriter, r *http.Request) {

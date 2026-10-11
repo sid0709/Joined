@@ -1,4 +1,4 @@
-module github.com/sid0709/OpenSeat/backend-core
+module github.com/sid0709/Joined/backend-core
 
 go 1.26.4
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/killswitch"
 )
 
 func TestKillSwitchRoutesNeedAdminToken(t *testing.T) {

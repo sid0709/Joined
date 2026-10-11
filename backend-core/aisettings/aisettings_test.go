@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 func testBox(t *testing.T) *Box {

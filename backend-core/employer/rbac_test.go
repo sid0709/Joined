@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/auth"
 )
 
 func TestRolePermissionMatrix(t *testing.T) {

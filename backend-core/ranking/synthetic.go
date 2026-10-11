@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 // SyntheticSource generates n plausible jobs for load tests: titles from the

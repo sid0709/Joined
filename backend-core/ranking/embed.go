@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 // bge models want this instruction on the short side of an asymmetric search

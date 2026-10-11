@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/google"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/platform"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
-	"github.com/sid0709/OpenSeat/scoutwell-backend/internal/httpapi"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/google"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/platform"
+	"github.com/sid0709/Joined/backend-core/scout"
+	"github.com/sid0709/Joined/scoutwell-backend/internal/httpapi"
 )
 
 const defaultHTTPAddr = "127.0.0.1:8082"

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/billing"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/billing"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/savedsearch"
 )
 
 // Collector reads the rows a Joined account owns. It does not call Stripe and

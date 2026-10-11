@@ -1,8 +1,8 @@
-module github.com/sid0709/OpenSeat/joined-backend
+module github.com/sid0709/Joined/joined-backend
 
 go 1.26.4
 
-require github.com/sid0709/OpenSeat/backend-core v0.0.0
+require github.com/sid0709/Joined/backend-core v0.0.0
 
 require (
 	github.com/RoaringBitmap/roaring/v2 v2.29.0 // indirect
@@ -32,4 +32,4 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 )
 
-replace github.com/sid0709/OpenSeat/backend-core => ../backend-core
+replace github.com/sid0709/Joined/backend-core => ../backend-core

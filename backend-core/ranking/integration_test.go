@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/jobs"
 )
 
 // Integration tests run against real services when these are set, e.g.

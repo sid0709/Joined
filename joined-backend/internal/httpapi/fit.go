@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/authapi"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/fitscore"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
-	"github.com/sid0709/OpenSeat/backend-core/ranking"
+	"github.com/sid0709/Joined/backend-core/authapi"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/fitscore"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/ranking"
 )
 
 const maxFitJobIDs = 100

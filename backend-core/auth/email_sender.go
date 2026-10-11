@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 // NewEmailSender creates an EmailSender from service email configuration.

@@ -19,9 +19,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/platform"
-	"github.com/sid0709/OpenSeat/backend-core/ranking"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/platform"
+	"github.com/sid0709/Joined/backend-core/ranking"
 )
 
 type command struct {

@@ -3,10 +3,10 @@ package platform
 import (
 	"context"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/employer"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/scout"
 )
 
 // accountEraser deletes an account's hunter, recruiter, and scout records together.

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/google"
+	"github.com/sid0709/Joined/backend-core/google"
 )
 
 const (

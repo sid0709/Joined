@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/monitoring"
+	"github.com/sid0709/Joined/backend-core/monitoring"
 )
 
 const (

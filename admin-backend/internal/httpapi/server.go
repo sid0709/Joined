@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/admin-backend/internal/migration"
-	"github.com/sid0709/OpenSeat/backend-core/aisettings"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/jobscam"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
-	"github.com/sid0709/OpenSeat/backend-core/monitoring"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
-	"github.com/sid0709/OpenSeat/backend-core/statuspage"
+	"github.com/sid0709/Joined/admin-backend/internal/migration"
+	"github.com/sid0709/Joined/backend-core/aisettings"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobscam"
+	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/monitoring"
+	"github.com/sid0709/Joined/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/statuspage"
 )
 
 const (

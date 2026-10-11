@@ -10,7 +10,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring/v2"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 // Index resolution: filters compare pay in whole thousands of USD and dates in

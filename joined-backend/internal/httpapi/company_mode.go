@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/httpkit"
 )
 
 const companyModeDisabledMessage = "company mode is not enabled"

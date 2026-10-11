@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 const searchedReply = `{

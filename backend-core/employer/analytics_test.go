@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/candidate"
 )
 
 func TestAggregateAnalyticsHappyPath(t *testing.T) {

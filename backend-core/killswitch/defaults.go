@@ -3,7 +3,7 @@ package killswitch
 import (
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 // Defaults is the env snapshot a process starts with. True means the feature runs.

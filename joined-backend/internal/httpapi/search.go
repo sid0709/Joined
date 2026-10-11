@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/metrics"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 // signInToSearchMessage answers a visitor's search beyond the newest jobs.

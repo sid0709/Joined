@@ -122,12 +122,12 @@ The catalog pins every library **we** declare, but those libraries pull in hundr
   ```bash
   bun --version
   ```
-- **git**, with access to `https://github.com/sid0709/OpenSeat.git`.
+- **git**, with access to `https://github.com/sid0709/Joined.git`.
 
 ### Install
 
 ```bash
-git clone https://github.com/sid0709/OpenSeat.git
+git clone https://github.com/sid0709/Joined.git
 cd Joined
 bun install
 ```

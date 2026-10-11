@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobscam"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobscam"
+	"github.com/sid0709/Joined/backend-core/scout"
 )
 
 func (s *Server) registerScamHolds(mux *http.ServeMux) {

@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 // A search answer reads several pages, so it gets longer than a plain completion.

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 func TestNormalizeSelection(t *testing.T) {

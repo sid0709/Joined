@@ -10,7 +10,7 @@ export const AUDIT_TARGET_ENV = "AUDIT_TARGET_ID";
 /** Session token minted for this scan; read by the Unlighthouse config hook. */
 export const AUDIT_SESSION_TOKEN_ENV = "AUDIT_SESSION_TOKEN";
 
-const AUDIT_SESSION_COMMAND = "github.com/sid0709/OpenSeat/backend-core/cmd/auditsession";
+const AUDIT_SESSION_COMMAND = "github.com/sid0709/Joined/backend-core/cmd/auditsession";
 const AUTH_COOKIE_DOMAIN = "localhost";
 const AUTH_COOKIE_PATH = "/";
 const AUTH_NAVIGATION_TIMEOUT_MS = 30_000;

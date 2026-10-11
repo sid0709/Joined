@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/metrics"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const RequestIDHeader = "X-Request-ID"
