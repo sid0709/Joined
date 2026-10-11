@@ -12,12 +12,26 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
 )
 
+// signInToSearchMessage answers a visitor's search beyond the newest jobs.
+const signInToSearchMessage = "sign in to search jobs"
+
 func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
 	defer cancel()
 
 	query := parseSearchQuery(r)
-	userID := s.searchUser(r)
+	userID, signedIn := s.searchViewer(r)
+
+	// A visitor sees the newest jobs. Typing, filtering, sorting, and paging need an account.
+	if !signedIn {
+		if !query.GuestView() {
+			httpkit.WriteError(w, http.StatusUnauthorized, signInToSearchMessage)
+			return
+		}
+		if query.HasCriteria() {
+			query.SortBy = jobs.SearchSortNewest
+		}
+	}
 
 	if query.HasCriteria() && s.rankedSearch(ctx, w, query, userID) {
 		return

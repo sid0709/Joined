@@ -20,6 +20,10 @@ const (
 	maxRegexFilterChars = 200
 	// SearchSourceHidden is the /v1/search/jobs?source= query value for scouted jobs.
 	SearchSourceHidden = "hidden"
+	// SearchSortNewest orders by posting date, newest first. It is what a visitor sees.
+	SearchSortNewest = "newest"
+	// searchListAll is the every-job list; blank means the same.
+	searchListAll = "all"
 )
 
 var ErrCursorNotSupportedForRelevance = errors.New("cursor-based paging not supported with relevance sort")
@@ -178,6 +182,20 @@ func (q SearchQuery) HasCriteria() bool {
 		q.SalaryMin != 0 || q.SalaryMax != 0 || q.PostedDays != 0 ||
 		q.Remote || q.Cursor != "" || q.Limit != 0 || q.SortBy != "" ||
 		q.Visa || q.Page > 1 || q.hiddenOnly()
+}
+
+// GuestView reports whether a visitor may run this search: the first page of
+// the newest jobs, with nothing typed or filtered. Anything else needs an account.
+func (q SearchQuery) GuestView() bool {
+	if q.SortBy != "" && q.SortBy != SearchSortNewest {
+		return false
+	}
+	if q.List != "" && q.List != searchListAll {
+		return false
+	}
+	paging := q
+	paging.SortBy, paging.Limit, paging.List, paging.Currency = "", 0, "", ""
+	return paging == SearchQuery{}
 }
 
 func (q SearchQuery) hiddenOnly() bool {

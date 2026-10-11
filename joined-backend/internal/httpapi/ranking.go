@@ -40,21 +40,25 @@ type fallbackSearchResponse struct {
 	Fits map[string]fitscore.Result `json:"fits,omitempty"`
 }
 
-// searchUser is the signed-in job hunter behind a search, or "" for a visitor.
-// Search stays public: a missing or invalid token is a visitor, never an error.
-func (s *Server) searchUser(r *http.Request) string {
-	if session, ok := authapi.Session(r.Context()); ok && session.User.Role == auth.RoleCandidate {
-		return session.User.ID
+// searchViewer is who is behind a search. userID is the signed-in job hunter, or
+// "" for anyone else; signedIn is any valid session, a hiring account included.
+// A missing or invalid token is a visitor, never an error.
+func (s *Server) searchViewer(r *http.Request) (userID string, signedIn bool) {
+	session, ok := authapi.Session(r.Context())
+	if !ok {
+		token := httpkit.BearerToken(r)
+		if token == "" || s.sessions == nil {
+			return "", false
+		}
+		var err error
+		if session, err = s.sessions.Session(r.Context(), token, time.Now()); err != nil {
+			return "", false
+		}
 	}
-	token := httpkit.BearerToken(r)
-	if token == "" || s.sessions == nil {
-		return ""
+	if session.User.Role != auth.RoleCandidate {
+		return "", true
 	}
-	session, err := s.sessions.Session(r.Context(), token, time.Now())
-	if err != nil || session.User.Role != auth.RoleCandidate {
-		return ""
-	}
-	return session.User.ID
+	return session.User.ID, true
 }
 
 // searchUnavailableMessage answers a ranked search whose jobs could not be read.

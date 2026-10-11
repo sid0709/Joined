@@ -186,7 +186,11 @@ export function JobSearch({
           q={filters.q}
           where={filters.where}
           onChange={search.update}
-          onSubmit={remember}
+          onSubmit={() => {
+            remember();
+            search.submit();
+          }}
+          onPick={search.submit}
           recent={recent}
           suggestions={roleSuggestions.length > 0 ? roleSuggestions : ROLE_SUGGESTIONS}
           totals={{ jobs: catalogTotal }}

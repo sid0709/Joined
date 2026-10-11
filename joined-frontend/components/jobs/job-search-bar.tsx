@@ -21,6 +21,8 @@ export type JobSearchBarProps = {
   where: string;
   onChange: (patch: Partial<SavedQuery>) => void;
   onSubmit: () => void;
+  /** A one-tap search chip: run it now. */
+  onPick: (query: SavedQuery) => void;
   recent: SavedQuery[];
   suggestions: string[];
   totals: { jobs: number };
@@ -37,6 +39,7 @@ export function JobSearchBar({
   where,
   onChange,
   onSubmit,
+  onPick,
   recent,
   suggestions,
   totals,
@@ -111,7 +114,7 @@ export function JobSearchBar({
                     label={queryLabel(item)}
                     icon={<Glyph name="clock" />}
                     size="sm"
-                    onClick={() => onChange(item)}
+                    onClick={() => onPick(item)}
                   />
                 ))}
               </HStack>
@@ -127,7 +130,7 @@ export function JobSearchBar({
               icon={<Glyph name="sparkle" />}
               size="sm"
               color="blue"
-              onClick={() => onChange({ q: role, where: "" })}
+              onClick={() => onPick({ q: role, where: "" })}
             />
           ))}
         </HStack>

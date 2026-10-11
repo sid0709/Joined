@@ -18,16 +18,26 @@ func TestParseSearchQueryListAndRegion(t *testing.T) {
 	}
 }
 
-func TestSearchUserIsVisitorWithoutAValidCandidateToken(t *testing.T) {
+func TestSearchViewerIsVisitorWithoutAValidToken(t *testing.T) {
 	s := &Server{sessions: testSessions()}
-	cases := map[string]string{"": "", "nope": "", "employee-token": "", "candidate-token": "c1"}
+	type viewer struct {
+		userID   string
+		signedIn bool
+	}
+	cases := map[string]viewer{
+		"":                {"", false},
+		"nope":            {"", false},
+		"employee-token":  {"", true},
+		"candidate-token": {"c1", true},
+	}
 	for token, want := range cases {
 		req := httptest.NewRequest(http.MethodGet, "/v1/search/jobs", nil)
 		if token != "" {
 			req.Header.Set("Authorization", "Bearer "+token)
 		}
-		if got := s.searchUser(req); got != want {
-			t.Errorf("token %q: searchUser = %q, want %q", token, got, want)
+		userID, signedIn := s.searchViewer(req)
+		if got := (viewer{userID, signedIn}); got != want {
+			t.Errorf("token %q: searchViewer = %+v, want %+v", token, got, want)
 		}
 	}
 }

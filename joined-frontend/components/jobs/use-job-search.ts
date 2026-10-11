@@ -12,6 +12,7 @@ import {
   type JobSearchPage,
   type ListKey,
 } from "@/lib/jobs";
+import { signInToSearch } from "@/lib/jobs/guest";
 import { searchJobs } from "@/lib/jobs/search-action";
 import { saveJob, unsaveJob } from "@/lib/me/pipeline";
 
@@ -25,12 +26,18 @@ function isTypedQuery(patch: Partial<JobFilters>) {
   return Object.keys(patch).every((key) => key === "q" || key === "where");
 }
 
+/** Sends a visitor to sign in, then back to the search they asked for. */
+function needAccount(filters: JobFilters, page: number) {
+  window.location.assign(signInToSearch(filters, page));
+}
+
 const NO_FITS: NonNullable<JobSearchPage["fits"]> = {};
 
 /**
  * State for the job search page: filters mirrored to the URL, one server page
  * of results in the server's ranked order, the lists a hunter keeps, the
- * selected job, and paging.
+ * selected job, and paging. A visitor only sees the newest jobs: any other
+ * search sends them to sign in and brings them back to it.
  */
 export function useJobSearch(
   initial: JobFilters,
@@ -51,6 +58,7 @@ export function useJobSearch(
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedIdsRef = useRef(savedIds);
   const filtersRef = useRef(filters);
+  const { signedIn } = lists;
 
   useEffect(() => {
     savedIdsRef.current = savedIds;
@@ -58,13 +66,14 @@ export function useJobSearch(
   }, [savedIds, filters]);
 
   useEffect(() => {
+    if (!signedIn) return;
     const params = new URLSearchParams(serializeFilters(filters));
     if (page > 1) params.set("page", String(page));
     const query = params.toString();
     const { pathname, search } = window.location;
     const next = query ? `${pathname}?${query}` : pathname;
     if (next !== `${pathname}${search}`) window.history.replaceState(null, "", next);
-  }, [filters, page]);
+  }, [signedIn, filters, page]);
 
   useEffect(() => {
     return () => {
@@ -100,43 +109,65 @@ export function useJobSearch(
     [load],
   );
 
-  const update = useCallback(
-    (patch: Partial<JobFilters>) => {
-      const next = { ...filtersRef.current, ...patch };
+  /** Shows `next` from its first page. A visitor's edits stay on screen and are not searched. */
+  const commit = useCallback(
+    (next: JobFilters, immediate: boolean) => {
       filtersRef.current = next;
       setFilters(next);
       setPageState(1);
-      schedule(next, 1, !isTypedQuery(patch));
+      if (signedIn) schedule(next, 1, immediate);
     },
-    [schedule],
+    [signedIn, schedule],
+  );
+
+  const update = useCallback(
+    (patch: Partial<JobFilters>) => {
+      const next = { ...filtersRef.current, ...patch };
+      const typed = isTypedQuery(patch);
+      // A visitor can type; a filter, sort, or list change asks them to sign in first.
+      if (!signedIn && !typed) {
+        needAccount(next, 1);
+        return;
+      }
+      commit(next, !typed);
+    },
+    [signedIn, commit],
+  );
+
+  /** Runs the search box now, with `patch` applied. A visitor signs in first. */
+  const submit = useCallback(
+    (patch: Partial<JobFilters> = {}) => {
+      const next = { ...filtersRef.current, ...patch };
+      if (!signedIn) {
+        needAccount(next, 1);
+        return;
+      }
+      commit(next, true);
+    },
+    [signedIn, commit],
   );
 
   const reset = useCallback(() => {
-    const next = {
-      ...DEFAULT_FILTERS,
-      sort: filtersRef.current.sort,
-      list: filtersRef.current.list,
-    };
-    filtersRef.current = next;
-    setFilters(next);
-    setPageState(1);
-    schedule(next, 1, true);
-  }, [schedule]);
+    commit(
+      { ...DEFAULT_FILTERS, sort: filtersRef.current.sort, list: filtersRef.current.list },
+      true,
+    );
+  }, [commit]);
 
   const clearAll = useCallback(() => {
-    const next = clearRefinements(filtersRef.current);
-    filtersRef.current = next;
-    setFilters(next);
-    setPageState(1);
-    schedule(next, 1, true);
-  }, [schedule]);
+    commit(clearRefinements(filtersRef.current), true);
+  }, [commit]);
 
   const setPage = useCallback(
     (nextPage: number) => {
+      if (!signedIn) {
+        needAccount(filtersRef.current, nextPage);
+        return;
+      }
       setPageState(nextPage);
       schedule(filters, nextPage, true);
     },
-    [filters, schedule],
+    [signedIn, filters, schedule],
   );
 
   const pageJobs = result.jobs.filter((job) => !hiddenIds.includes(job.id));
@@ -157,7 +188,7 @@ export function useJobSearch(
   };
 
   const toggleSave = async (id: string) => {
-    if (!lists.signedIn) return false;
+    if (!signedIn) return false;
     const wasSaved = savedIds.includes(id);
     setSavedIds((ids) => toggle(ids, id));
     try {
@@ -173,6 +204,7 @@ export function useJobSearch(
   return {
     filters,
     update,
+    submit,
     reset,
     clearAll,
     refinementCount: countRefinements(filters),
@@ -192,7 +224,7 @@ export function useJobSearch(
     markApplied: (id: string) => setAppliedIds((ids) => (ids.includes(id) ? ids : [...ids, id])),
     hide: (id: string) => setHiddenIds((ids) => [...ids, id]),
     unhide: (id: string) => setHiddenIds((ids) => ids.filter((item) => item !== id)),
-    signedIn: lists.signedIn,
+    signedIn,
     fits: result.fits ?? NO_FITS,
     facets: result.facets,
     suggestions: result.suggestions ?? [],
