@@ -173,9 +173,6 @@ func candidateToFitProfile(profile candidate.Profile) fitscore.Profile {
 		}
 	}
 	locations := append([]string{}, profile.Locations...)
-	if city := strings.TrimSpace(profile.HomeAddress.City); city != "" {
-		locations = append(locations, city)
-	}
 	return fitscore.Profile{
 		Headline:         profile.Headline,
 		TargetRoles:      profile.TargetRoles,

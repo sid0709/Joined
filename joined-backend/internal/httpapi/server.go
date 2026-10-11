@@ -141,6 +141,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	candidateMux := http.NewServeMux()
 	candidateMux.HandleFunc("GET /v1/me/profile", server.getProfile)
 	candidateMux.HandleFunc("PATCH /v1/me/profile", server.patchProfile)
+	candidateMux.HandleFunc("POST /v1/me/profile/resume", server.postProfileResume)
 	candidateMux.HandleFunc("GET /v1/me/fit/{jobId}", server.getJobFit)
 	candidateMux.HandleFunc("POST /v1/me/fit", server.postJobFits)
 	candidateMux.HandleFunc("GET /v1/me/saved-jobs", server.getSavedJobs)

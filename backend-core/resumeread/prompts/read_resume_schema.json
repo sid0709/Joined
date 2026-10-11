@@ -1,0 +1,166 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "fullName": {
+      "type": "string"
+    },
+    "firstName": {
+      "type": "string"
+    },
+    "middleName": {
+      "type": "string"
+    },
+    "lastName": {
+      "type": "string"
+    },
+    "headline": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string"
+    },
+    "linkedin": {
+      "type": "string"
+    },
+    "github": {
+      "type": "string"
+    },
+    "portfolio": {
+      "type": "string"
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "startMonth": {
+            "type": "string"
+          },
+          "startYear": {
+            "type": "string"
+          },
+          "endMonth": {
+            "type": "string"
+          },
+          "endYear": {
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "highlights": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "company",
+          "location",
+          "startMonth",
+          "startYear",
+          "endMonth",
+          "endYear",
+          "current",
+          "highlights"
+        ]
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "degree": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "school": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "startMonth": {
+            "type": "string"
+          },
+          "startYear": {
+            "type": "string"
+          },
+          "endMonth": {
+            "type": "string"
+          },
+          "endYear": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "degree",
+          "field",
+          "school",
+          "location",
+          "startMonth",
+          "startYear",
+          "endMonth",
+          "endYear"
+        ]
+      }
+    }
+  },
+  "required": [
+    "fullName",
+    "firstName",
+    "middleName",
+    "lastName",
+    "headline",
+    "summary",
+    "skills",
+    "email",
+    "phone",
+    "city",
+    "state",
+    "country",
+    "linkedin",
+    "github",
+    "portfolio",
+    "experience",
+    "education"
+  ]
+}

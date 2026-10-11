@@ -12,17 +12,23 @@ import (
 )
 
 const (
-	maxHeadline    = 120
-	maxAbout       = 600
-	maxPhone       = 20
-	maxLocation    = 80
-	maxAddressLine = 120
-	maxSkill       = 40
-	maxSkills      = 24
-	maxRoles       = 8
-	maxExperience  = 20
-	maxText        = 400
+	maxHeadline   = 120
+	maxAbout      = 600
+	maxPhone      = 20
+	maxLocation   = 80
+	maxSkill      = 40
+	maxSkills     = 24
+	maxRoles      = 8
+	maxExperience = 20
+	// maxText fits a role's or school's résumé bullets.
+	maxText = 2000
+	// maxEntryName fits a job title or employer as résumés write them.
+	maxEntryName = 80
 )
+
+// retiredProfileFields are answers Joined no longer asks for (home address and
+// voluntary self-identification). A save removes any copy an older profile kept.
+var retiredProfileFields = bson.D{{Key: "homeAddress", Value: ""}, {Key: "disclosures", Value: ""}}
 
 func (s *Store) GetProfile(ctx context.Context, userID string, now time.Time) (Profile, error) {
 	user, created, err := s.accounts.Account(ctx, userID)
@@ -59,6 +65,7 @@ func (s *Store) PatchProfile(ctx context.Context, userID string, patch ProfilePa
 	stored := storedFromProfile(userID, next, now)
 	_, err = s.collection(profilesCollection).UpdateOne(ctx, bson.D{{Key: "userId", Value: userID}}, bson.D{
 		{Key: "$set", Value: stored},
+		{Key: "$unset", Value: retiredProfileFields},
 	}, options.UpdateOne().SetUpsert(true))
 	if err != nil {
 		return Profile{}, err
@@ -71,7 +78,6 @@ type ProfilePatch struct {
 	Phone         *string           `json:"phone"`
 	Headline      *string           `json:"headline"`
 	Location      *string           `json:"location"`
-	HomeAddress   *HomeAddress      `json:"homeAddress"`
 	About         *string           `json:"about"`
 	Status        *Status           `json:"status"`
 	TargetRoles   *[]string         `json:"targetRoles"`
@@ -80,13 +86,13 @@ type ProfilePatch struct {
 	SalaryFloor   *int              `json:"salaryFloor"`
 	Currency      *string           `json:"currency"`
 	Authorization *string           `json:"authorization"`
+	Clearance     *string           `json:"clearance"`
 	NoticePeriod  *string           `json:"noticePeriod"`
 	Skills        *[]string         `json:"skills"`
 	Experience    *[]ExperienceItem `json:"experience"`
 	Education     *[]EducationItem  `json:"education"`
 	Personal      *Personal         `json:"personal"`
 	Links         *Links            `json:"links"`
-	Disclosures   *Disclosures      `json:"disclosures"`
 	Visibility    *Visibility       `json:"visibility"`
 }
 
@@ -97,7 +103,6 @@ func emptyProfile(name, email string, created time.Time) Profile {
 		Phone:         "",
 		Headline:      "",
 		Location:      "",
-		HomeAddress:   HomeAddress{},
 		About:         "",
 		MemberSince:   memberSince(created),
 		Status:        Status{Label: "Open to work", Variant: "success"},
@@ -122,7 +127,6 @@ func viewProfile(stored storedProfile, name, email string, created time.Time) Pr
 		Phone:         stored.Phone,
 		Headline:      stored.Headline,
 		Location:      stored.Location,
-		HomeAddress:   stored.HomeAddress,
 		About:         stored.About,
 		MemberSince:   memberSince(created),
 		Status:        stored.Status,
@@ -132,13 +136,13 @@ func viewProfile(stored storedProfile, name, email string, created time.Time) Pr
 		SalaryFloor:   stored.SalaryFloor,
 		Currency:      stored.Currency,
 		Authorization: stored.Authorization,
+		Clearance:     stored.Clearance,
 		NoticePeriod:  stored.NoticePeriod,
 		Skills:        stored.Skills,
 		Experience:    stored.Experience,
 		Education:     stored.Education,
 		Personal:      stored.Personal,
 		Links:         stored.Links,
-		Disclosures:   stored.Disclosures,
 		Visibility:    stored.Visibility,
 	}
 	return normalizeProfile(profile)
@@ -151,7 +155,6 @@ func storedFromProfile(userID string, profile Profile, now time.Time) storedProf
 		Phone:         profile.Phone,
 		Headline:      profile.Headline,
 		Location:      profile.Location,
-		HomeAddress:   profile.HomeAddress,
 		About:         profile.About,
 		Status:        profile.Status,
 		TargetRoles:   profile.TargetRoles,
@@ -160,13 +163,13 @@ func storedFromProfile(userID string, profile Profile, now time.Time) storedProf
 		SalaryFloor:   profile.SalaryFloor,
 		Currency:      profile.Currency,
 		Authorization: profile.Authorization,
+		Clearance:     profile.Clearance,
 		NoticePeriod:  profile.NoticePeriod,
 		Skills:        profile.Skills,
 		Experience:    profile.Experience,
 		Education:     profile.Education,
 		Personal:      profile.Personal,
 		Links:         profile.Links,
-		Disclosures:   profile.Disclosures,
 		Visibility:    profile.Visibility,
 		UpdatedAt:     now.UTC(),
 	}
@@ -176,7 +179,7 @@ func applyProfilePatch(current Profile, patch ProfilePatch) (Profile, string, er
 	name := current.Name
 	if patch.Name != nil {
 		name = strings.TrimSpace(*patch.Name)
-		if name == "" || len([]rune(name)) > 80 {
+		if name == "" || len([]rune(name)) > maxName {
 			return Profile{}, "", ErrInvalidInput
 		}
 	}
@@ -192,15 +195,6 @@ func applyProfilePatch(current Profile, patch ProfilePatch) (Profile, string, er
 	}
 	if patch.Location != nil {
 		current.Location = clip(*patch.Location, maxLocation)
-	}
-	if patch.HomeAddress != nil {
-		current.HomeAddress = HomeAddress{
-			Line:       clip(patch.HomeAddress.Line, maxAddressLine),
-			City:       clip(patch.HomeAddress.City, maxLocation),
-			Region:     clip(patch.HomeAddress.Region, maxLocation),
-			PostalCode: clip(patch.HomeAddress.PostalCode, 16),
-			Country:    clip(patch.HomeAddress.Country, maxLocation),
-		}
 	}
 	if patch.About != nil {
 		current.About = clip(*patch.About, maxAbout)
@@ -244,6 +238,9 @@ func applyProfilePatch(current Profile, patch ProfilePatch) (Profile, string, er
 	if patch.Authorization != nil {
 		current.Authorization = clip(*patch.Authorization, 40)
 	}
+	if patch.Clearance != nil {
+		current.Clearance = clip(*patch.Clearance, maxChoice)
+	}
 	if patch.NoticePeriod != nil {
 		current.NoticePeriod = clip(*patch.NoticePeriod, 16)
 	}
@@ -265,11 +262,7 @@ func applyProfilePatch(current Profile, patch ProfilePatch) (Profile, string, er
 		current.Education = items
 	}
 	if patch.Personal != nil {
-		personal, err := normalizePersonal(*patch.Personal)
-		if err != nil {
-			return Profile{}, "", err
-		}
-		current.Personal = personal
+		current.Personal = normalizePersonal(*patch.Personal)
 	}
 	if patch.Links != nil {
 		links, err := normalizeLinks(*patch.Links)
@@ -277,9 +270,6 @@ func applyProfilePatch(current Profile, patch ProfilePatch) (Profile, string, er
 			return Profile{}, "", err
 		}
 		current.Links = links
-	}
-	if patch.Disclosures != nil {
-		current.Disclosures = normalizeDisclosures(*patch.Disclosures)
 	}
 	if patch.Visibility != nil {
 		current.Visibility = *patch.Visibility
@@ -293,8 +283,8 @@ func normalizeExperience(items []ExperienceItem) ([]ExperienceItem, error) {
 	}
 	out := make([]ExperienceItem, 0, len(items))
 	for _, item := range items {
-		role := clip(item.Role, maxSkill)
-		company := clip(item.Company, maxSkill)
+		role := clip(item.Role, maxEntryName)
+		company := clip(item.Company, maxEntryName)
 		if role == "" || company == "" {
 			return nil, ErrInvalidInput
 		}

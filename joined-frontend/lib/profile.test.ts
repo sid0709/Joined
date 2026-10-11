@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test";
 import {
   emptyDateRange,
   emptyProfile,
-  formatAddress,
   formatSalary,
   isValidDateRange,
   normalizeProfile,
@@ -36,7 +35,7 @@ describe("profile helpers", () => {
       headline: "Designer",
       phone: "555",
       location: "Chicago",
-      homeAddress: { line: "1 Main", city: "Chicago", region: "", postalCode: "", country: "" },
+      authorization: "us-citizen",
       targetRoles: ["Design"],
       experience: [
         { ...emptyDateRange(), id: "e", role: "IC", company: "Joined", period: "", summary: "" },
@@ -63,7 +62,6 @@ describe("profile helpers", () => {
     expect(formatSalary(120000, "USD")).toBe("$120,000");
     expect(optionLabel([{ value: "us", label: "United States" }], "us")).toBe("United States");
     expect(optionLabel([], "us")).toBe("us");
-    expect(formatAddress(profile.homeAddress)).toBe("1 Main, Chicago");
-    expect(formatAddress(emptyProfile().homeAddress)).toBe("");
+    expect(emptyProfile().clearance).toBe("");
   });
 });

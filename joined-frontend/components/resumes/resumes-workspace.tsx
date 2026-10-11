@@ -4,24 +4,20 @@ import { useMemo, useState } from "react";
 import {
   AlertDialog,
   Card,
-  FileUploader,
   Grid,
   GridColumn,
   GridSystem,
   Stack,
   TextInput,
   useToast,
-  type UploadHandler,
 } from "sid-ui";
 import { FormDialog } from "@/components/form-dialog";
 import { StatGrid } from "@/components/stat-card";
 import type { Application } from "@/lib/applications";
 import type { Profile } from "@/lib/profile";
 import {
-  MAX_RESUME_BYTES,
   PROFILE_RESUME_ID,
   PROFILE_RESUME_LABEL,
-  RESUME_ACCEPT,
   RESUME_LABEL_MAX_LENGTH,
   countResumeUses,
   defaultResume,
@@ -32,16 +28,12 @@ import {
   resumeExport,
   type Resume,
 } from "@/lib/resumes";
+import { ResumeAutofill } from "./resume-autofill";
 import { ResumeBuilder } from "./resume-builder";
 import { ResumeCard, type ResumeAction } from "./resume-card";
 import { ResumeInsights } from "./resume-insights";
 
 const CARD_MIN_WIDTH = 220;
-const PERCENT = 100;
-
-const keepFile: UploadHandler = async (_file, onProgress) => {
-  onProgress(PERCENT);
-};
 
 function downloadUrl(url: string, filename: string) {
   const link = document.createElement("a");
@@ -66,6 +58,8 @@ export function ResumesWorkspace({
   const [renaming, setRenaming] = useState<Resume | null>(null);
   const [draftLabel, setDraftLabel] = useState("");
   const [deleting, setDeleting] = useState<Resume | null>(null);
+  // Bumped after a résumé fills the profile, so the builder's forms start over from it.
+  const [fillCount, setFillCount] = useState(0);
 
   const selected = resumes.find((resume) => resume.id === selectedId) ?? resumes[0];
   const parsed = readyResumes(resumes);
@@ -141,7 +135,11 @@ export function ResumesWorkspace({
     if (added.length === 0) return;
     setResumes((current) => [...current, ...added]);
     setSelectedId(added[0].id);
-    toast({ body: added.length === 1 ? `${added[0].label} added` : `${added.length} files added` });
+  };
+
+  const fillFromResume = (next: Profile) => {
+    refreshProfile(next);
+    setFillCount((count) => count + 1);
   };
 
   const applicationsSent = useMemo(
@@ -191,16 +189,9 @@ export function ResumesWorkspace({
               ))}
             </Grid>
             <Card padding={5}>
-              <FileUploader
-                label="Upload a file for this visit"
-                description="PDF works best. Files stay in this browser until you leave — structured résumé details save below."
-                accept={RESUME_ACCEPT}
-                maxSize={MAX_RESUME_BYTES}
-                upload={keepFile}
-                onChange={addFiles}
-              />
+              <ResumeAutofill onFilled={fillFromResume} onFiles={addFiles} />
             </Card>
-            <ResumeBuilder profile={profile} onSaved={refreshProfile} />
+            <ResumeBuilder key={fillCount} profile={profile} onSaved={refreshProfile} />
           </Stack>
         </GridColumn>
         <GridColumn span="full" lg={4}>

@@ -32,30 +32,16 @@ export type EducationItem = DateRange & {
   summary: string;
 };
 
-/** Who you are, for application forms. Only you and Acorn see it. */
+/** Your name as application forms split it. Only you and Acorn see it. */
 export type Personal = {
   firstName: string;
   lastName: string;
-  age: number;
-  gender: string;
-  pronouns: string;
-  orientation: string;
-  citizenship: string;
 };
 
 export type ProfileLinks = {
   linkedin: string;
   github: string;
   portfolio: string;
-};
-
-/** Voluntary self-identification (EEO) and sponsorship answers. Companies never see them. */
-export type Disclosures = {
-  hispanicLatino: string;
-  race: string;
-  sponsorship: string;
-  disability: string;
-  veteran: string;
 };
 
 export type StrengthStep = {
@@ -72,21 +58,12 @@ export type VisibilitySetting = {
   description: string;
 };
 
-export type HomeAddress = {
-  line: string;
-  city: string;
-  region: string;
-  postalCode: string;
-  country: string;
-};
-
 export type Profile = {
   name: string;
   email: string;
   phone: string;
   headline: string;
   location: string;
-  homeAddress: HomeAddress;
   about: string;
   memberSince: string;
   status: { label: string; variant: BadgeVariant };
@@ -96,13 +73,13 @@ export type Profile = {
   salaryFloor: number;
   currency: string;
   authorization: string;
+  clearance: string;
   noticePeriod: string;
   skills: string[];
   experience: ExperienceItem[];
   education: EducationItem[];
   personal: Personal;
   links: ProfileLinks;
-  disclosures: Disclosures;
   visibility: Record<VisibilityKey, boolean>;
 };
 
@@ -116,6 +93,14 @@ export const AUTHORIZATION_OPTIONS: Option[] = [
   { value: "us-citizen", label: "US citizen or permanent resident" },
   { value: "us-visa", label: "Authorized, visa sponsorship not required" },
   { value: "us-sponsor", label: "Requires visa sponsorship" },
+];
+
+export const CLEARANCE_OPTIONS: Option[] = [
+  { value: "none", label: "None" },
+  { value: "public-trust", label: "Public Trust" },
+  { value: "secret", label: "Secret" },
+  { value: "top-secret", label: "Top Secret" },
+  { value: "ts-sci", label: "Top Secret / SCI" },
 ];
 
 export const NOTICE_OPTIONS: Option[] = [
@@ -188,27 +173,11 @@ export function isValidDateRange(range: DateRange) {
 }
 
 export function emptyPersonal(): Personal {
-  return {
-    firstName: "",
-    lastName: "",
-    age: 0,
-    gender: "",
-    pronouns: "",
-    orientation: "",
-    citizenship: "",
-  };
+  return { firstName: "", lastName: "" };
 }
 
 export function emptyLinks(): ProfileLinks {
   return { linkedin: "", github: "", portfolio: "" };
-}
-
-export function emptyDisclosures(): Disclosures {
-  return { hispanicLatino: "", race: "", sponsorship: "", disability: "", veteran: "" };
-}
-
-export function emptyAddress(): HomeAddress {
-  return { line: "", city: "", region: "", postalCode: "", country: "" };
 }
 
 export function emptyProfile(): Profile {
@@ -218,7 +187,6 @@ export function emptyProfile(): Profile {
     phone: "",
     headline: "",
     location: "",
-    homeAddress: emptyAddress(),
     about: "",
     memberSince: "",
     status: { label: "Open to work", variant: "success" },
@@ -228,13 +196,13 @@ export function emptyProfile(): Profile {
     salaryFloor: 0,
     currency: DEFAULT_CURRENCY,
     authorization: "",
+    clearance: "",
     noticePeriod: "",
     skills: [],
     experience: [],
     education: [],
     personal: emptyPersonal(),
     links: emptyLinks(),
-    disclosures: emptyDisclosures(),
     visibility: { openToWork: true, recruiterSearch: true, hideFromEmployer: false },
   };
 }
@@ -245,7 +213,6 @@ export function normalizeProfile(value: Partial<Profile> | null | undefined): Pr
   return {
     ...base,
     ...value,
-    homeAddress: { ...base.homeAddress, ...value.homeAddress },
     targetRoles: value.targetRoles ?? [],
     locations: value.locations ?? [],
     skills: value.skills ?? [],
@@ -253,7 +220,6 @@ export function normalizeProfile(value: Partial<Profile> | null | undefined): Pr
     education: (value.education ?? []).map((item) => ({ ...emptyDateRange(), ...item })),
     personal: { ...base.personal, ...value.personal },
     links: { ...base.links, ...value.links },
-    disclosures: { ...base.disclosures, ...value.disclosures },
     visibility: { ...base.visibility, ...value.visibility },
     workplace: value.workplace || "hybrid",
     currency: value.currency || DEFAULT_CURRENCY,
@@ -261,7 +227,6 @@ export function normalizeProfile(value: Partial<Profile> | null | undefined): Pr
 }
 
 export function strengthSteps(profile: Profile, hasResume: boolean): StrengthStep[] {
-  const address = profile.homeAddress;
   return [
     { id: "headline", label: "Add a headline", done: Boolean(profile.headline.trim()) },
     { id: "roles", label: "Choose target roles", done: profile.targetRoles.length > 0 },
@@ -270,9 +235,9 @@ export function strengthSteps(profile: Profile, hasResume: boolean): StrengthSte
     { id: "education", label: "Add education", done: profile.education.length > 0 },
     { id: "phone", label: "Add a phone number", done: Boolean(profile.phone.trim()) },
     {
-      id: "address",
-      label: "Add a home address",
-      done: Boolean(address.line.trim() && address.city.trim()),
+      id: "authorization",
+      label: "Set your work authorization",
+      done: Boolean(profile.authorization),
     },
     { id: "location", label: "Set your location", done: Boolean(profile.location.trim()) },
   ];
@@ -293,11 +258,4 @@ export function optionLabel(options: Option[], value: string) {
 export function strengthPercent(steps: StrengthStep[]) {
   if (steps.length === 0) return 0;
   return Math.round((steps.filter((step) => step.done).length / steps.length) * 100);
-}
-
-export function formatAddress(address: HomeAddress) {
-  return [address.line, address.city, address.region, address.postalCode, address.country]
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .join(", ");
 }

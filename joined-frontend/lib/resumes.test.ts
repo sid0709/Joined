@@ -35,7 +35,6 @@ function profile(patch: Partial<Profile> = {}): Profile {
     phone: "",
     headline: "",
     location: "",
-    homeAddress: { line: "", city: "", region: "", postalCode: "", country: "" },
     about: "",
     memberSince: "",
     status: { label: "Open to work", variant: "success" },
@@ -45,27 +44,13 @@ function profile(patch: Partial<Profile> = {}): Profile {
     salaryFloor: 0,
     currency: "USD",
     authorization: "",
+    clearance: "",
     noticePeriod: "",
     skills: [],
     experience: [],
     education: [],
-    personal: {
-      firstName: "",
-      lastName: "",
-      age: 0,
-      gender: "",
-      pronouns: "",
-      orientation: "",
-      citizenship: "",
-    },
+    personal: { firstName: "", lastName: "" },
     links: { linkedin: "", github: "", portfolio: "" },
-    disclosures: {
-      hispanicLatino: "",
-      race: "",
-      sponsorship: "",
-      disability: "",
-      veteran: "",
-    },
     visibility: { openToWork: true, recruiterSearch: true, hideFromEmployer: false },
     ...patch,
   };
@@ -292,9 +277,9 @@ describe("library helpers", () => {
     expect(resume.id).toContain("42");
   });
 
-  test("newResumeFromFile treats non-docx as PDF", () => {
-    const file = new File(["x"], "cv.pdf");
-    expect(newResumeFromFile(file).fileType).toBe("PDF");
+  test("newResumeFromFile reads the file type from the extension", () => {
+    expect(newResumeFromFile(new File(["x"], "cv.pdf")).fileType).toBe("PDF");
+    expect(newResumeFromFile(new File(["x"], "CV.TXT")).fileType).toBe("TXT");
   });
 
   test("countResumeUses matches the label sent with applications", () => {

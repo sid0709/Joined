@@ -4,11 +4,24 @@ import { browserTimeZone, type GoogleCalendarFeed } from "@/lib/google-calendar"
 import type { Interview } from "@/lib/interviews";
 import { hydrateInterview } from "@/lib/interviews";
 import type { MailThread } from "@/lib/messages";
-import { companyGet, companySend, meGet, meSend } from "@/lib/me/client";
+import { companyGet, companySend, meGet, meSend, meSendForm } from "@/lib/me/client";
 import { normalizeProfile, type Profile } from "@/lib/profile";
+import { RESUME_FORM_FIELD, type ResumeReader } from "@/lib/resumes";
 
 export function saveProfile(patch: Partial<Profile>) {
   return meSend<Profile>("/profile", "PATCH", patch);
+}
+
+/** Uploads a résumé file; the API reads it and fills the profile with what it says. */
+export async function fillProfileFromResume(file: File) {
+  const form = new FormData();
+  form.append(RESUME_FORM_FIELD, file);
+  const body = await meSendForm<{ profile: Profile; reader: ResumeReader }>(
+    "/profile/resume",
+    "POST",
+    form,
+  );
+  return { profile: normalizeProfile(body.profile), reader: body.reader };
 }
 
 export async function fetchProfile() {

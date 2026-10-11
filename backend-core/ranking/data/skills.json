@@ -1,0 +1,398 @@
+[
+  { "id": "javascript", "aliases": ["javascript", "js", "ecmascript", "es6", "vanilla js"] },
+  { "id": "typescript", "aliases": ["typescript", "ts"] },
+  { "id": "python", "aliases": ["python", "python3", "py"] },
+  { "id": "java", "aliases": ["java", "java se", "java ee", "j2ee", "jvm"] },
+  { "id": "kotlin", "aliases": ["kotlin"] },
+  { "id": "scala", "aliases": ["scala"] },
+  { "id": "go", "aliases": ["go", "golang"] },
+  { "id": "rust", "aliases": ["rust"] },
+  { "id": "c", "aliases": ["c", "ansi c"] },
+  { "id": "cpp", "aliases": ["c++", "cpp", "modern c++"] },
+  { "id": "csharp", "aliases": ["c#", "csharp", "c sharp"] },
+  { "id": "dotnet", "aliases": [".net", "dotnet", ".net core", "asp.net", "asp.net core"] },
+  { "id": "ruby", "aliases": ["ruby"] },
+  { "id": "rails", "aliases": ["rails", "ruby on rails", "ror"] },
+  { "id": "php", "aliases": ["php"] },
+  { "id": "laravel", "aliases": ["laravel"] },
+  { "id": "swift", "aliases": ["swift", "swiftui"] },
+  { "id": "objective-c", "aliases": ["objective-c", "objective c", "objc"] },
+  { "id": "r", "aliases": ["r", "r language", "rstudio"] },
+  { "id": "matlab", "aliases": ["matlab"] },
+  { "id": "sql", "aliases": ["sql", "t-sql", "tsql", "pl/sql", "plsql", "ansi sql"] },
+  { "id": "bash", "aliases": ["bash", "shell", "shell scripting", "zsh"] },
+  { "id": "perl", "aliases": ["perl"] },
+  { "id": "elixir", "aliases": ["elixir", "phoenix"] },
+  { "id": "haskell", "aliases": ["haskell"] },
+  { "id": "dart", "aliases": ["dart"] },
+  { "id": "flutter", "aliases": ["flutter"] },
+  { "id": "cobol", "aliases": ["cobol"] },
+  { "id": "react", "aliases": ["react", "react.js", "reactjs"] },
+  { "id": "react-native", "aliases": ["react native", "react-native"] },
+  { "id": "nextjs", "aliases": ["next.js", "nextjs", "next"] },
+  { "id": "vue", "aliases": ["vue", "vue.js", "vuejs", "nuxt", "nuxt.js"] },
+  { "id": "angular", "aliases": ["angular", "angularjs", "angular.js"] },
+  { "id": "svelte", "aliases": ["svelte", "sveltekit"] },
+  { "id": "redux", "aliases": ["redux"] },
+  { "id": "html", "aliases": ["html", "html5"] },
+  { "id": "css", "aliases": ["css", "css3", "sass", "scss", "less", "tailwind", "tailwindcss"] },
+  { "id": "nodejs", "aliases": ["node", "node.js", "nodejs"] },
+  { "id": "express", "aliases": ["express", "express.js", "expressjs"] },
+  { "id": "nestjs", "aliases": ["nestjs", "nest.js"] },
+  { "id": "django", "aliases": ["django"] },
+  { "id": "flask", "aliases": ["flask"] },
+  { "id": "fastapi", "aliases": ["fastapi"] },
+  { "id": "spring", "aliases": ["spring", "spring boot", "springboot", "spring framework"] },
+  { "id": "graphql", "aliases": ["graphql", "apollo"] },
+  { "id": "rest", "aliases": ["rest", "rest api", "restful", "restful api", "rest apis"] },
+  { "id": "grpc", "aliases": ["grpc", "protobuf", "protocol buffers"] },
+  {
+    "id": "microservices",
+    "aliases": ["microservices", "microservice", "service-oriented architecture", "soa"]
+  },
+  { "id": "aws", "aliases": ["aws", "amazon web services", "ec2", "s3", "lambda", "aws lambda"] },
+  { "id": "gcp", "aliases": ["gcp", "google cloud", "google cloud platform", "bigquery"] },
+  { "id": "azure", "aliases": ["azure", "microsoft azure"] },
+  { "id": "docker", "aliases": ["docker", "containers", "containerization"] },
+  { "id": "kubernetes", "aliases": ["kubernetes", "k8s", "eks", "gke", "aks", "helm"] },
+  { "id": "terraform", "aliases": ["terraform", "infrastructure as code", "iac"] },
+  { "id": "ansible", "aliases": ["ansible"] },
+  {
+    "id": "ci-cd",
+    "aliases": [
+      "ci/cd",
+      "ci cd",
+      "cicd",
+      "continuous integration",
+      "continuous delivery",
+      "jenkins",
+      "github actions",
+      "gitlab ci",
+      "circleci"
+    ]
+  },
+  { "id": "linux", "aliases": ["linux", "unix", "ubuntu", "rhel", "red hat"] },
+  { "id": "git", "aliases": ["git", "github", "gitlab", "bitbucket", "version control"] },
+  { "id": "postgresql", "aliases": ["postgresql", "postgres", "psql"] },
+  { "id": "mysql", "aliases": ["mysql", "mariadb"] },
+  { "id": "mongodb", "aliases": ["mongodb", "mongo"] },
+  { "id": "redis", "aliases": ["redis"] },
+  { "id": "elasticsearch", "aliases": ["elasticsearch", "elastic", "opensearch", "elk"] },
+  { "id": "cassandra", "aliases": ["cassandra"] },
+  { "id": "dynamodb", "aliases": ["dynamodb"] },
+  { "id": "oracle", "aliases": ["oracle", "oracle db", "oracle database"] },
+  { "id": "sql-server", "aliases": ["sql server", "mssql", "microsoft sql server"] },
+  { "id": "snowflake", "aliases": ["snowflake"] },
+  { "id": "databricks", "aliases": ["databricks"] },
+  { "id": "spark", "aliases": ["spark", "apache spark", "pyspark"] },
+  { "id": "hadoop", "aliases": ["hadoop", "hive", "hdfs"] },
+  { "id": "kafka", "aliases": ["kafka", "apache kafka", "kinesis"] },
+  { "id": "airflow", "aliases": ["airflow", "apache airflow"] },
+  { "id": "dbt", "aliases": ["dbt"] },
+  { "id": "etl", "aliases": ["etl", "elt", "data pipelines", "data pipeline"] },
+  { "id": "data-warehousing", "aliases": ["data warehouse", "data warehousing", "redshift"] },
+  { "id": "pandas", "aliases": ["pandas", "numpy"] },
+  {
+    "id": "machine-learning",
+    "aliases": ["machine learning", "ml", "scikit-learn", "sklearn", "xgboost", "lightgbm"]
+  },
+  { "id": "deep-learning", "aliases": ["deep learning", "neural networks", "neural network"] },
+  { "id": "pytorch", "aliases": ["pytorch", "torch"] },
+  { "id": "tensorflow", "aliases": ["tensorflow", "keras"] },
+  {
+    "id": "llm",
+    "aliases": [
+      "llm",
+      "llms",
+      "large language models",
+      "large language model",
+      "generative ai",
+      "genai",
+      "gen ai",
+      "gpt",
+      "openai"
+    ]
+  },
+  {
+    "id": "rag",
+    "aliases": [
+      "rag",
+      "retrieval augmented generation",
+      "retrieval-augmented generation",
+      "vector database",
+      "vector databases"
+    ]
+  },
+  { "id": "nlp", "aliases": ["nlp", "natural language processing"] },
+  { "id": "computer-vision", "aliases": ["computer vision", "image processing", "opencv"] },
+  {
+    "id": "mlops",
+    "aliases": ["mlops", "ml ops", "model deployment", "mlflow", "kubeflow", "sagemaker"]
+  },
+  {
+    "id": "statistics",
+    "aliases": [
+      "statistics",
+      "statistical analysis",
+      "statistical modeling",
+      "a/b testing",
+      "ab testing",
+      "experimentation"
+    ]
+  },
+  { "id": "data-analysis", "aliases": ["data analysis", "data analytics", "analytics"] },
+  {
+    "id": "data-visualization",
+    "aliases": ["data visualization", "tableau", "power bi", "looker", "dashboards"]
+  },
+  { "id": "excel", "aliases": ["excel", "microsoft excel", "spreadsheets", "vba"] },
+  {
+    "id": "security",
+    "aliases": [
+      "security",
+      "cybersecurity",
+      "cyber security",
+      "information security",
+      "infosec",
+      "application security",
+      "appsec"
+    ]
+  },
+  { "id": "networking", "aliases": ["networking", "tcp/ip", "dns", "sdwan", "sd-wan", "cisco"] },
+  { "id": "ios", "aliases": ["ios", "iphone"] },
+  { "id": "android", "aliases": ["android", "jetpack compose"] },
+  {
+    "id": "testing",
+    "aliases": [
+      "testing",
+      "unit testing",
+      "test automation",
+      "automated testing",
+      "selenium",
+      "cypress",
+      "playwright",
+      "jest",
+      "pytest"
+    ]
+  },
+  { "id": "agile", "aliases": ["agile", "scrum", "kanban", "jira"] },
+  {
+    "id": "system-design",
+    "aliases": ["system design", "distributed systems", "scalability", "high availability"]
+  },
+  {
+    "id": "embedded",
+    "aliases": ["embedded", "embedded systems", "firmware", "rtos", "microcontrollers"]
+  },
+  {
+    "id": "blockchain",
+    "aliases": ["blockchain", "web3", "solidity", "ethereum", "smart contracts"]
+  },
+  { "id": "salesforce", "aliases": ["salesforce", "sfdc", "apex"] },
+  { "id": "servicenow", "aliases": ["servicenow"] },
+  { "id": "sap", "aliases": ["sap", "sap erp", "s/4hana", "abap"] },
+  { "id": "figma", "aliases": ["figma", "sketch", "adobe xd"] },
+  {
+    "id": "ux-design",
+    "aliases": [
+      "ux design",
+      "user experience",
+      "interaction design",
+      "wireframing",
+      "prototyping",
+      "usability testing"
+    ]
+  },
+  { "id": "ui-design", "aliases": ["ui design", "user interface", "visual design"] },
+  { "id": "user-research", "aliases": ["user research", "ux research", "customer research"] },
+  {
+    "id": "adobe-creative",
+    "aliases": [
+      "adobe creative suite",
+      "adobe creative cloud",
+      "photoshop",
+      "illustrator",
+      "indesign",
+      "after effects"
+    ]
+  },
+  {
+    "id": "product-management",
+    "aliases": [
+      "product management",
+      "product strategy",
+      "roadmapping",
+      "roadmap",
+      "product roadmap"
+    ]
+  },
+  { "id": "project-management", "aliases": ["project management", "pmp", "program management"] },
+  { "id": "seo", "aliases": ["seo", "search engine optimization"] },
+  { "id": "sem", "aliases": ["sem", "ppc", "paid search", "google ads", "adwords"] },
+  {
+    "id": "content-marketing",
+    "aliases": ["content marketing", "content strategy", "copywriting", "content creation"]
+  },
+  {
+    "id": "social-media",
+    "aliases": ["social media", "social media marketing", "community management"]
+  },
+  {
+    "id": "email-marketing",
+    "aliases": [
+      "email marketing",
+      "marketing automation",
+      "hubspot",
+      "marketo",
+      "mailchimp",
+      "braze"
+    ]
+  },
+  {
+    "id": "growth-marketing",
+    "aliases": [
+      "growth marketing",
+      "growth",
+      "performance marketing",
+      "demand generation",
+      "lead generation"
+    ]
+  },
+  { "id": "brand-marketing", "aliases": ["brand marketing", "branding", "brand strategy"] },
+  {
+    "id": "product-marketing",
+    "aliases": ["product marketing", "go-to-market", "go to market", "gtm", "positioning"]
+  },
+  {
+    "id": "google-analytics",
+    "aliases": ["google analytics", "ga4", "web analytics", "mixpanel", "amplitude"]
+  },
+  { "id": "crm", "aliases": ["crm", "customer relationship management"] },
+  {
+    "id": "sales",
+    "aliases": [
+      "sales",
+      "b2b sales",
+      "saas sales",
+      "prospecting",
+      "closing",
+      "account management",
+      "pipeline management"
+    ]
+  },
+  { "id": "negotiation", "aliases": ["negotiation", "negotiations"] },
+  { "id": "customer-success", "aliases": ["customer success", "customer retention", "onboarding"] },
+  {
+    "id": "customer-service",
+    "aliases": ["customer service", "customer support", "support tickets", "zendesk"]
+  },
+  {
+    "id": "accounting",
+    "aliases": [
+      "accounting",
+      "gaap",
+      "bookkeeping",
+      "general ledger",
+      "reconciliation",
+      "quickbooks",
+      "accounts payable",
+      "accounts receivable"
+    ]
+  },
+  {
+    "id": "financial-modeling",
+    "aliases": [
+      "financial modeling",
+      "financial analysis",
+      "fp&a",
+      "forecasting",
+      "budgeting",
+      "valuation"
+    ]
+  },
+  { "id": "audit", "aliases": ["audit", "auditing", "internal audit", "sox"] },
+  { "id": "tax", "aliases": ["tax", "taxation", "tax compliance"] },
+  { "id": "risk-management", "aliases": ["risk management", "risk analysis", "credit risk"] },
+  { "id": "compliance", "aliases": ["compliance", "regulatory compliance", "aml", "kyc"] },
+  {
+    "id": "recruiting",
+    "aliases": [
+      "recruiting",
+      "recruitment",
+      "talent acquisition",
+      "sourcing",
+      "full cycle recruiting"
+    ]
+  },
+  {
+    "id": "hr-operations",
+    "aliases": [
+      "hr operations",
+      "hris",
+      "payroll",
+      "benefits administration",
+      "employee relations",
+      "workday"
+    ]
+  },
+  {
+    "id": "operations",
+    "aliases": ["operations", "operations management", "process improvement", "lean", "six sigma"]
+  },
+  {
+    "id": "supply-chain",
+    "aliases": [
+      "supply chain",
+      "logistics",
+      "procurement",
+      "inventory management",
+      "sourcing strategy"
+    ]
+  },
+  {
+    "id": "legal",
+    "aliases": ["legal", "contracts", "contract law", "litigation", "legal research"]
+  },
+  { "id": "nursing", "aliases": ["nursing", "patient care", "clinical care", "bls", "acls"] },
+  { "id": "healthcare", "aliases": ["healthcare", "ehr", "emr", "epic", "hipaa", "clinical"] },
+  {
+    "id": "technical-writing",
+    "aliases": ["technical writing", "documentation", "api documentation"]
+  },
+  {
+    "id": "communication",
+    "aliases": [
+      "communication",
+      "communications",
+      "written communication",
+      "public speaking",
+      "presentation"
+    ]
+  },
+  {
+    "id": "leadership",
+    "aliases": ["leadership", "people management", "team leadership", "mentoring", "coaching"]
+  },
+  { "id": "cad", "aliases": ["cad", "autocad", "solidworks", "catia", "revit"] },
+  {
+    "id": "mechanical-design",
+    "aliases": ["mechanical design", "gd&t", "fea", "finite element analysis"]
+  },
+  {
+    "id": "electrical-design",
+    "aliases": [
+      "circuit design",
+      "pcb design",
+      "pcb",
+      "analog design",
+      "digital design",
+      "fpga",
+      "verilog",
+      "vhdl"
+    ]
+  },
+  {
+    "id": "teaching",
+    "aliases": ["teaching", "curriculum development", "lesson planning", "classroom management"]
+  }
+]

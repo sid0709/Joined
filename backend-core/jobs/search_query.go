@@ -378,13 +378,13 @@ func (s *Store) EnsureSearchIndexes(ctx context.Context) error {
 	}
 
 	_, err := indexes.CreateOne(ctx, textIndex)
-	if err != nil {
-		if mongo.IsDuplicateKeyError(err) || strings.Contains(err.Error(), "already exists") {
-			return nil
-		}
+	if err != nil && !mongo.IsDuplicateKeyError(err) && !strings.Contains(err.Error(), "already exists") {
 		return fmt.Errorf("create text index: %w", err)
 	}
 
+	if _, err := indexes.CreateMany(ctx, rankingIndexes()); err != nil && !strings.Contains(err.Error(), "already exists") {
+		return fmt.Errorf("create ranking indexes: %w", err)
+	}
 	return nil
 }
 
