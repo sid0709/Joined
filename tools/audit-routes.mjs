@@ -10,6 +10,8 @@ const ROUTE_GROUP = /^\(.+\)$/;
 /** `@slot` parallel routes and `_private` folders are never URLs. */
 const NON_ROUTE_FOLDER = /^[@_]/;
 const APP_DIR = "app";
+/** JSON `{ seed, skip }` handed from the runner to the Unlighthouse config. */
+export const AUDIT_ROUTE_PLAN_ENV = "AUDIT_ROUTE_PLAN";
 const REACHABILITY_TIMEOUT_MS = 30_000;
 const HTTP_OK = 200;
 
@@ -48,23 +50,40 @@ export function isDynamicRoute(route) {
  * @param {string} cookieHeader `name=value` pairs, or "" when signed out.
  */
 export async function reachableRoutes(site, routes, cookieHeader) {
-  const results = await Promise.all(
-    routes.map(async (route) => {
-      try {
-        const response = await fetch(new URL(route, site), {
-          headers: cookieHeader ? { cookie: cookieHeader } : {},
-          redirect: "manual",
-          signal: AbortSignal.timeout(REACHABILITY_TIMEOUT_MS),
-        });
-        await response.body?.cancel();
-        return { route, status: response.status };
-      } catch {
-        return { route, status: 0 };
-      }
-    }),
-  );
+  // One at a time: a burst of signed-in requests slows the API enough that some pages briefly
+  // treat the visitor as signed out, which would misjudge them.
+  const results = [];
+  for (const route of routes) {
+    results.push({ route, status: await routeStatus(site, route, cookieHeader) });
+  }
   return {
     reachable: results.filter((result) => result.status === HTTP_OK).map((result) => result.route),
     skipped: results.filter((result) => result.status !== HTTP_OK),
   };
+}
+
+async function routeStatus(site, route, cookieHeader) {
+  try {
+    const response = await fetch(new URL(route, site), {
+      headers: cookieHeader ? { cookie: cookieHeader } : {},
+      redirect: "manual",
+      signal: AbortSignal.timeout(REACHABILITY_TIMEOUT_MS),
+    });
+    await response.body?.cancel();
+    return response.status;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Which static app pages to scan: `seed` renders for this visitor, `skip` redirects or fails and is
+ * excluded, so a crawled link to it never scores the redirect target under the wrong name.
+ * @param {{ workspace: string, site: string }} target
+ * @param {string} cookieHeader
+ */
+export async function planAuditRoutes(target, cookieHeader) {
+  const routes = (await appPageRoutes(target.workspace)).filter((route) => !isDynamicRoute(route));
+  const { reachable, skipped } = await reachableRoutes(target.site, routes, cookieHeader);
+  return { seed: reachable, skip: skipped };
 }

@@ -6,10 +6,15 @@ import {
   usesMockLogin,
 } from "./tools/audit-auth.mjs";
 import { AUDIT_FRONTENDS } from "./tools/audit-frontends.mjs";
-import { appPageRoutes, isDynamicRoute, reachableRoutes } from "./tools/audit-routes.mjs";
+import { AUDIT_ROUTE_PLAN_ENV } from "./tools/audit-routes.mjs";
 
 /** Crawls never follow links into API routes (downloads, OAuth redirects). */
 const CRAWL_EXCLUDE = [/^\/api\//];
+
+/** @param {{ name: string, value: string }[]} cookies @returns {string} A `Cookie` header value. */
+function cookieHeader(cookies) {
+  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+}
 
 /** Matches a page path with or without a query string, e.g. `/sign-in` and `/sign-in?next=%2F`. */
 function exactPathPattern(route) {
@@ -17,29 +22,22 @@ function exactPathPattern(route) {
   return new RegExp(`^${escaped}(?:\\?|$)`);
 }
 
+/** The runner's route plan: `seed` pages to scan, `skip` pages that redirect for this visitor. */
+function routePlan() {
+  const raw = process.env[AUDIT_ROUTE_PLAN_ENV];
+  return raw ? JSON.parse(raw) : { seed: [], skip: [] };
+}
+
 /**
- * Seeds the crawl with every static page in the app folder that renders for this visitor, so
+ * Adds every app page that renders for this visitor to the first batch of crawled links, so
  * pages no link points at are still scanned. Pages with an `[id]` come from crawled links.
- * Pages that redirect for this visitor are excluded, so a crawled link to them never scores
- * the redirect target a second time under the wrong name.
  */
-function seedAppRoutes(target, cookies, scanner) {
+function seedAppRoutes(seed) {
   let seeded = false;
-  return async (_path, internalLinks) => {
+  return (_path, internalLinks) => {
     if (seeded) return;
     seeded = true;
-    const routes = (await appPageRoutes(target.workspace)).filter(
-      (route) => !isDynamicRoute(route),
-    );
-    const cookieHeader = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
-    const { reachable, skipped } = await reachableRoutes(target.site, routes, cookieHeader);
-    console.log(`\nSeeding ${reachable.length} app pages for ${target.label}.`);
-    if (skipped.length > 0) {
-      const list = skipped.map(({ route, status }) => `${route} (${status || "error"})`).join(", ");
-      console.log(`Not scanned, they redirect or fail for this visitor: ${list}\n`);
-    }
-    scanner.current?.exclude.push(...skipped.map(({ route }) => exactPathPattern(route)));
-    internalLinks.push(...reachable);
+    internalLinks.push(...seed);
   };
 }
 
@@ -51,20 +49,27 @@ function auditConfig() {
   }
   const testMode = auditTestModeEnabled();
   const cookies = testMode ? auditSessionCookies(target) : [];
-  /** The live scanner settings; Unlighthouse reads `exclude` from it each time it queues a page. */
-  const scanner = { current: null };
+  const { seed, skip } = routePlan();
   return {
-    // Render pages before collecting links: several apps only draw their navigation in the browser.
-    scanner: { exclude: CRAWL_EXCLUDE, skipJavascript: false },
+    scanner: {
+      exclude: [...CRAWL_EXCLUDE, ...skip.map(exactPathPattern)],
+      // Render pages before collecting links: several apps only draw their navigation in the browser.
+      skipJavascript: false,
+    },
     ...(cookies.length > 0 ? { cookies } : {}),
-    // Lighthouse clears the site's cookies and storage before each page unless told not to,
-    // which would sign the audit out at random.
-    ...(testMode ? { lighthouseOptions: { disableStorageReset: true } } : {}),
+    // Lighthouse clears the site's cookies and storage before each page unless told not to, and its
+    // own tab can miss cookies set on the crawler's page. Sending the session as a request header
+    // too keeps every Lighthouse run signed in.
+    ...(testMode
+      ? {
+          lighthouseOptions: {
+            disableStorageReset: true,
+            ...(cookies.length > 0 ? { extraHeaders: { Cookie: cookieHeader(cookies) } } : {}),
+          },
+        }
+      : {}),
     hooks: {
-      "resolved-config": (resolved) => {
-        scanner.current = resolved.scanner;
-      },
-      "discovered-internal-links": seedAppRoutes(target, cookies, scanner),
+      "discovered-internal-links": seedAppRoutes(seed),
       ...(testMode && usesMockLogin(target)
         ? { authenticate: (page) => seedMockLogin(page, target) }
         : {}),

@@ -121,5 +121,8 @@
   "lint-staged": {
     "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": "prettier --write",
     "**/*.{json,css,scss,md,mdx,yml,yaml}": "prettier --write"
+  },
+  "dependencies": {
+    "sid-ui": "catalog:"
   }
 }

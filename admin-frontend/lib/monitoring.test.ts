@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 import {
   alignSeries,
   formatBytes,
+  formatChartTime,
   formatMs,
+  formatNumber,
+  formatPercent,
+  formatRate,
   formatShare,
   parseMonitoringRange,
   systemPath,
@@ -42,6 +46,19 @@ describe("formatters", () => {
     expect(formatShare(0.004)).toBe("0.40%");
     expect(formatMs(42.4)).toBe("42 ms");
     expect(formatMs(2300)).toBe("2.3 s");
+  });
+
+  it("formats percents, rates, counts, and chart times", () => {
+    expect(formatPercent(42.4)).toBe("42%");
+    expect(formatPercent(3.25)).toBe("3.3%");
+    expect(formatPercent(null)).toBe("—");
+    expect(formatRate(1234.5)).toBe("1,235/s");
+    expect(formatRate(0.123, " ops/s")).toBe("0.12 ops/s");
+    expect(formatNumber(1234.6)).toBe("1,235");
+    expect(formatNumber(undefined)).toBe("—");
+    const at = new Date(2026, 9, 11, 15, 30).toISOString();
+    expect(formatChartTime(at, "1h")).toBe("3:30 PM");
+    expect(formatChartTime(at, "7d")).toBe("Oct 11 at 3 PM");
   });
 });
 

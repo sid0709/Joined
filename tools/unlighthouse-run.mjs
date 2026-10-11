@@ -5,11 +5,13 @@ import { fileURLToPath } from "node:url";
 import {
   AUDIT_SESSION_TOKEN_ENV,
   AUDIT_TARGET_ENV,
+  auditSessionCookies,
   auditTargetForSite,
   auditTestModeEnabled,
   issueAuditSession,
   revokeAuditSession,
 } from "./audit-auth.mjs";
+import { AUDIT_ROUTE_PLAN_ENV, planAuditRoutes } from "./audit-routes.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -26,7 +28,7 @@ function siteFromArgs(args) {
  * @param {string[]} args Unlighthouse CLI args (without node/cli path).
  * @returns {Promise<number>} Exit code.
  */
-export function runUnlighthouse(args) {
+export async function runUnlighthouse(args) {
   const finalArgs = [...args];
   if (!finalArgs.includes("--disable-dynamic-sampling")) {
     finalArgs.push("--disable-dynamic-sampling");
@@ -46,13 +48,29 @@ export function runUnlighthouse(args) {
       result = issueAuditSession(target);
     } catch (error) {
       console.error(`\nTest mode could not sign in to ${target.label}:\n${error.message}\n`);
-      return Promise.resolve(1);
+      return 1;
     }
     if (result.status === "signed-in") {
       session = result;
       console.log(`Test mode: signed in to ${target.label} as ${session.email}\n`);
     } else if (result.status === "skipped") {
       console.warn(`Test mode: scanning ${target.label} signed out (${result.reason})\n`);
+    }
+  }
+
+  const sessionEnv = { [AUDIT_SESSION_TOKEN_ENV]: session?.token ?? "" };
+  let routePlan = null;
+  if (target) {
+    const cookieHeader = auditSessionCookies(target, sessionEnv)
+      .map((cookie) => `${cookie.name}=${cookie.value}`)
+      .join("; ");
+    routePlan = await planAuditRoutes(target, cookieHeader);
+    console.log(`Seeding ${routePlan.seed.length} app pages for ${target.label}.`);
+    if (routePlan.skip.length > 0) {
+      const list = routePlan.skip
+        .map(({ route, status }) => `${route} (${status || "error"})`)
+        .join(", ");
+      console.log(`Not scanned, they redirect or fail for this visitor: ${list}\n`);
     }
   }
 
@@ -79,8 +97,11 @@ export function runUnlighthouse(args) {
       cwd: root,
       env: {
         ...process.env,
+        ...sessionEnv,
         [AUDIT_TARGET_ENV]: target?.id ?? "",
-        [AUDIT_SESSION_TOKEN_ENV]: session?.token ?? "",
+        [AUDIT_ROUTE_PLAN_ENV]: routePlan
+          ? JSON.stringify({ seed: routePlan.seed, skip: routePlan.skip.map(({ route }) => route) })
+          : "",
       },
     });
 
