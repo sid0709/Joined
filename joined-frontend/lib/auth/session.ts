@@ -12,12 +12,18 @@ const SESSION_PATH = "/v1/auth/session";
 export const loadSession = cache(async function loadSession(): Promise<AuthSession | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const response = await fetch(new URL(SESSION_PATH, `${joinedApiUrl()}/`), {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!response.ok) return null;
-  return (await response.json()) as AuthSession;
+  try {
+    const response = await fetch(new URL(SESSION_PATH, `${joinedApiUrl()}/`), {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as AuthSession;
+  } catch {
+    // Expired tokens already come back as non-OK. A unreachable API should not
+    // take down public pages — treat the visitor as signed out.
+    return null;
+  }
 });
 
 /** Only same-site paths. Browsers read "/\" like "//", another host, so both are refused. */

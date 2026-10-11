@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Grid } from "sid-ui";
 import { ChoiceField } from "@/components/profile/choice-field";
+import { SaveFooter } from "@/components/save-footer";
 import { SectionCard } from "@/components/section-card";
 import { useProfileSave } from "@/components/profile/use-profile-save";
 import {
@@ -33,14 +34,18 @@ export function ProfileDisclosures({
     <SectionCard
       title="Voluntary disclosures"
       description="EEO and sponsorship answers. Companies never see them on your profile; Acorn uses them only to fill those questions."
-      action={
-        <Button
-          label="Save"
-          variant="secondary"
-          size="sm"
-          clickAction={async () => {
-            await save({ disclosures }, "Disclosures saved");
-          }}
+      footer={
+        <SaveFooter
+          action={
+            <Button
+              label="Save"
+              variant="primary"
+              size="sm"
+              clickAction={async () => {
+                await save({ disclosures }, "Disclosures saved");
+              }}
+            />
+          }
         />
       }
     >

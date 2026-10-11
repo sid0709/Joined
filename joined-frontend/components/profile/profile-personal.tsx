@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Grid, NumberInput, Stack, Text, TextInput } from "sid-ui";
 import { ChoiceField } from "@/components/profile/choice-field";
+import { SaveFooter } from "@/components/save-footer";
 import { SectionCard } from "@/components/section-card";
 import { useProfileSave } from "@/components/profile/use-profile-save";
 import {
@@ -39,15 +40,19 @@ export function ProfilePersonal({
     <SectionCard
       title="Personal details"
       description="Only you and Acorn see these. Acorn fills them into application forms."
-      action={
-        <Button
-          label="Save"
-          variant="secondary"
-          size="sm"
-          isDisabled={!name.trim() || !isAgeValid}
-          clickAction={async () => {
-            await save({ name, personal, links }, "Personal details saved");
-          }}
+      footer={
+        <SaveFooter
+          action={
+            <Button
+              label="Save"
+              variant="primary"
+              size="sm"
+              isDisabled={!name.trim() || !isAgeValid}
+              clickAction={async () => {
+                await save({ name, personal, links }, "Personal details saved");
+              }}
+            />
+          }
         />
       }
     >

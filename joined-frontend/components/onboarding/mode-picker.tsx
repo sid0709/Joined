@@ -118,7 +118,7 @@ export function ModePicker() {
         <Stack gap={8} hAlign="center" width="100%">
           <Stack gap={2} hAlign="center" maxWidth={HEADER_MAX_WIDTH}>
             <JoinedLogo height="2.5rem" />
-            <Heading level={1} justify="center">
+            <Heading level={2} justify="center">
               How will you use {BRAND}?
             </Heading>
             <Text color="secondary" justify="center" display="block">

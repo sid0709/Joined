@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Glyph, HStack, IconButton, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
-import type { JobFit } from "@/lib/jobs/fit";
+import { hasFitScore, type JobFit } from "@/lib/jobs/fit";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";
 import { MatchBadge } from "./match-badge";
@@ -53,7 +53,7 @@ export function JobResultCard({
         <Stack gap={2} width="100%">
           <HStack hAlign="between" vAlign="start" gap={2}>
             <Stack gap={0.5}>
-              <Text weight="semibold" size="lg" maxLines={1} hasTruncateTooltip>
+              <Text weight="semibold" size="lg" maxLines={2} hasTruncateTooltip>
                 {job.title}
               </Text>
               <Text type="supporting" color="secondary" maxLines={1}>
@@ -85,24 +85,24 @@ export function JobResultCard({
             </HStack>
           </HStack>
           <JobTags job={job} applied={applied} />
-          <HStack hAlign="between" vAlign="center" gap={2} wrap="wrap">
-            <HStack gap={3} vAlign="center" wrap="wrap">
-              <PayFigure pay={job.pay} />
-              <Text type="supporting" color="secondary">
-                {formatPosted(job.postedHoursAgo)} · {formatCount(job.applicants, "applicant")}
-              </Text>
-            </HStack>
-            {fit ? (
-              <Stack gap={1} hAlign="end">
-                <MatchBadge score={fit.score} />
-                {fit.reason ? (
-                  <Text type="supporting" color="secondary" maxLines={2}>
-                    {fit.reason}
-                  </Text>
-                ) : null}
-              </Stack>
-            ) : null}
+          <HStack gap={3} vAlign="center" wrap="wrap">
+            <PayFigure pay={job.pay} />
+            <Text type="supporting" color="secondary">
+              {formatPosted(job.postedHoursAgo)} · {formatCount(job.applicants, "applicant")}
+            </Text>
           </HStack>
+          {fit && hasFitScore(fit) ? (
+            <Stack gap={1}>
+              <HStack>
+                <MatchBadge score={fit.score} />
+              </HStack>
+              {fit.reason ? (
+                <Text type="supporting" color="secondary" maxLines={2}>
+                  {fit.reason}
+                </Text>
+              ) : null}
+            </Stack>
+          ) : null}
         </Stack>
       </HStack>
     </SelectableCard>

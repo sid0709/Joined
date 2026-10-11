@@ -31,20 +31,17 @@ export function NextInterview({
   interview,
   onPrepChange,
   onOpen,
-  onAdd,
 }: {
   interview: Interview | undefined;
   onPrepChange: (id: string, tasks: PrepTask[]) => void;
   onOpen: (id: string) => void;
-  onAdd: () => void;
 }) {
   if (!interview) {
     return (
       <Card padding={6}>
         <EmptyState
           title="No interviews coming up"
-          description="When a company schedules a round, it shows up here with a prep checklist."
-          actions={<Button label="Add an interview" variant="secondary" onClick={onAdd} />}
+          description="When a company schedules a round, or you add one, it shows up here with a prep checklist."
         />
       </Card>
     );

@@ -35,12 +35,12 @@ export function ApplicationCard({
         <HStack gap={2} vAlign="center" wrap="wrap">
           {isSavedBoardItem(application) ? (
             <Badge label="Saved" variant="neutral" />
-          ) : (
+          ) : application.match > 0 ? (
             <Badge
               label={`${application.match}% match`}
               variant={application.match >= STRONG_MATCH ? "success" : "neutral"}
             />
-          )}
+          ) : null}
           {application.closedReason ? (
             <Badge label={application.closedReason} variant="neutral" />
           ) : null}

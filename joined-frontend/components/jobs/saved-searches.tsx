@@ -10,6 +10,7 @@ import {
   EmptyState,
   Glyph,
   HStack,
+  Heading,
   SegmentedControl,
   SegmentedControlItem,
   Spinner,
@@ -164,7 +165,7 @@ export function SavedSearches({
     <Card padding={4} variant="muted">
       <Stack gap={3}>
         <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
-          <Text type="label">Saved searches</Text>
+          <Heading level={2}>Saved searches</Heading>
           {filters ? (
             <Button
               label="Create job alert"
@@ -210,7 +211,8 @@ export function SavedSearches({
 
         {phase === "ready" && items.length === 0 ? (
           <Text color="secondary" display="block">
-            No saved searches yet. Recent chips above stay on this device only.
+            No saved searches yet. Save one to get an alert when new jobs match. Recent searches
+            stay on this device only.
           </Text>
         ) : null}
 

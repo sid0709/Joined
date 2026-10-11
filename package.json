@@ -41,7 +41,7 @@
       "react": "19.3.0",
       "react-dom": "19.3.0",
       "sharp": "0.35.4",
-      "sid-ui": "0.1.0",
+      "sid-ui": "0.1.2",
       "tailwindcss": "4.3.3",
       "turbo": "2.11.4",
       "typescript": "5.9.3",

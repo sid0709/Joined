@@ -1,60 +1,50 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { Banner, Button, HStack, Stack, Text } from "sid-ui";
-import {
-  CONSENT_VERSION,
-  readConsentFromDocument,
-  writeConsent,
-  type CookieConsent,
-} from "@/lib/legal";
-import { LegalLinks } from "./legal-links";
+import { Button, ConsentBanner, Link } from "sid-ui";
+import { readConsentCookie, writeConsent } from "@/lib/legal";
+import { BRAND, ROUTES } from "@/lib/routes";
 
-const CONSENT_UNKNOWN = "unknown" as const;
-
-type StoredConsent = CookieConsent | null | typeof CONSENT_UNKNOWN;
+/** The server cannot see the cookie, so it renders nothing until the client reads it. */
+const SERVER_SNAPSHOT = null;
 
 function subscribe() {
   return () => {};
 }
 
-function readClient(): StoredConsent {
-  return readConsentFromDocument();
+// The snapshot is the raw cookie string: React compares snapshots with Object.is,
+// so a freshly parsed object each read would never settle and loops.
+function readClient(): string {
+  return document.cookie;
 }
 
-function readServer(): StoredConsent {
-  return CONSENT_UNKNOWN;
+function readServer(): string | null {
+  return SERVER_SNAPSHOT;
 }
 
 /** First visit asks. A stored choice for the current version stays hidden. */
 export function CookieConsentBanner() {
-  const stored = useSyncExternalStore(subscribe, readClient, readServer);
-  const [picked, setPicked] = useState<CookieConsent | null>(null);
-  const consent = picked ?? stored;
-  if (consent !== null) return null;
+  const cookies = useSyncExternalStore(subscribe, readClient, readServer);
+  // The cookie store has no change event, so an answer in this tab hides the banner directly.
+  const [answered, setAnswered] = useState(false);
+  if (cookies === SERVER_SNAPSHOT || answered || readConsentCookie(cookies)) return null;
 
   const choose = (analytics: boolean) => {
     writeConsent(analytics);
-    setPicked({ necessary: true, analytics, version: CONSENT_VERSION });
+    setAnswered(true);
   };
 
   return (
-    <Stack gap={3}>
-      <Banner status="info" title="Cookies" />
-      <Text color="secondary" display="block">
-        Necessary cookies stay on. Analytics stays off unless you allow it. This choice is a draft
-        preference, not a legal agreement.
-      </Text>
-      <HStack gap={2} wrap="wrap" vAlign="center">
-        <Button
-          label="Necessary only"
-          variant="secondary"
-          size="sm"
-          onClick={() => choose(false)}
-        />
-        <Button label="Allow analytics" variant="primary" size="sm" onClick={() => choose(true)} />
-        <LegalLinks />
-      </HStack>
-    </Stack>
+    <ConsentBanner
+      title={`Cookies on ${BRAND}`}
+      description="Necessary cookies keep you signed in. Analytics cookies help us improve search, and they stay off unless you allow them."
+      link={<Link href={ROUTES.cookies}>Cookie policy</Link>}
+      actions={
+        <>
+          <Button label="Necessary only" variant="secondary" onClick={() => choose(false)} />
+          <Button label="Allow analytics" variant="primary" onClick={() => choose(true)} />
+        </>
+      }
+    />
   );
 }

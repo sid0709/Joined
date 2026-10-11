@@ -7,12 +7,13 @@ import { CookieConsentBanner } from "@/components/legal/cookie-consent";
 import { ModePicker } from "@/components/onboarding/mode-picker";
 
 /**
- * Theme and link wiring for every page. Mode isn't tracked here: each route group
+ * Theme and link wiring for every page. Color follows the device's light or dark
+ * setting. Mode isn't tracked here: each route group
  * — (seeker) and company — renders its own shell, so the URL already says which mode you're in.
  */
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <JoinedProvider mode="light" linkComponent={Link}>
+    <JoinedProvider mode="system" linkComponent={Link}>
       <ModePicker />
       {children}
       <CookieConsentBanner />

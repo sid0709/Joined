@@ -144,12 +144,7 @@ export function InterviewsWorkspace({
 
       <GridSystem gap={6} align="stretch">
         <GridColumn span="full" lg={8}>
-          <NextInterview
-            interview={upcoming[0]}
-            onPrepChange={setPrep}
-            onOpen={setOpenId}
-            onAdd={() => setIsAdding(true)}
-          />
+          <NextInterview interview={upcoming[0]} onPrepChange={setPrep} onOpen={setOpenId} />
         </GridColumn>
         <GridColumn span="full" lg={4}>
           <Stack gap={4}>
@@ -235,15 +230,7 @@ export function InterviewsWorkspace({
                   <EmptyState
                     isCompact
                     title="Nothing scheduled"
-                    description="Pick a day with a chip, or add an interview here."
-                    actions={
-                      <Button
-                        label="Add on this day"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setIsAdding(true)}
-                      />
-                    }
+                    description="Pick a day with a chip. Add interview logs one for the day you pick."
                   />
                 ) : null}
               </Stack>

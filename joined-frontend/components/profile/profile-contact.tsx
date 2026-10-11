@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Grid, Stack, Text, TextInput, useToast } from "sid-ui";
+import { SaveFooter } from "@/components/save-footer";
 import { SectionCard } from "@/components/section-card";
 import { saveProfile } from "@/lib/me/pipeline";
 import { normalizeProfile, type HomeAddress, type Profile } from "@/lib/profile";
@@ -34,7 +35,11 @@ export function ProfileContact({
     <SectionCard
       title="Contact"
       description="Email is your sign-in. Phone and home address stay on your profile until you share them."
-      action={<Button label="Save" variant="secondary" size="sm" clickAction={save} />}
+      footer={
+        <SaveFooter
+          action={<Button label="Save" variant="primary" size="sm" clickAction={save} />}
+        />
+      }
     >
       <Stack gap={5}>
         <Grid columns={{ minWidth: FIELD_MIN_WIDTH, repeat: "fit" }} gap={4}>

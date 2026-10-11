@@ -32,35 +32,38 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** Where the listing came from — quieter than the facts that decide whether to apply. */
+function listingFacts(job: Job) {
+  return [
+    job.team && `Team: ${job.team}`,
+    `Source: ${job.listingSource || SOURCE_LABEL[job.source]}`,
+    job.createdBy && `Posted by ${job.createdBy}`,
+  ].filter(Boolean);
+}
+
 /** The job itself: key facts, the pitch, the work, the bar, and the benefits. */
 export function JobOverview({ job }: { job: Job }) {
   return (
     <Stack gap={6}>
-      <MetadataList columns="multi">
-        <MetadataListItem label="Pay" icon={<Glyph name="star" />}>
-          <PayFigure pay={job.pay} detailed />
-        </MetadataListItem>
-        <MetadataListItem label="Workplace" icon={<Glyph name="home" />}>
-          {WORKPLACE_LABEL[job.workplace]}
-        </MetadataListItem>
-        <MetadataListItem label="Job type" icon={<Glyph name="clock" />}>
-          {EMPLOYMENT_LABEL[job.employment]}
-        </MetadataListItem>
-        <MetadataListItem label="Level" icon={<Glyph name="arrowUp" />}>
-          {SENIORITY_LABEL[job.seniority]}
-        </MetadataListItem>
-        <MetadataListItem label="Team" icon={<Glyph name="users" />}>
-          {job.team}
-        </MetadataListItem>
-        <MetadataListItem label="Source" icon={<Glyph name="link" />}>
-          {job.listingSource || SOURCE_LABEL[job.source]}
-        </MetadataListItem>
-        {job.createdBy ? (
-          <MetadataListItem label="Created by" icon={<Glyph name="pin" />}>
-            {job.createdBy}
+      <Stack gap={4}>
+        <MetadataList columns="multi">
+          <MetadataListItem label="Pay" icon={<Glyph name="star" />}>
+            <PayFigure pay={job.pay} detailed />
           </MetadataListItem>
-        ) : null}
-      </MetadataList>
+          <MetadataListItem label="Workplace" icon={<Glyph name="home" />}>
+            {WORKPLACE_LABEL[job.workplace]}
+          </MetadataListItem>
+          <MetadataListItem label="Job type" icon={<Glyph name="clock" />}>
+            {EMPLOYMENT_LABEL[job.employment]}
+          </MetadataListItem>
+          <MetadataListItem label="Level" icon={<Glyph name="arrowUp" />}>
+            {SENIORITY_LABEL[job.seniority]}
+          </MetadataListItem>
+        </MetadataList>
+        <Text type="supporting" color="secondary" display="block">
+          {listingFacts(job).join(" · ")}
+        </Text>
+      </Stack>
 
       <Section title="About the role">
         <Text display="block">{job.summary}</Text>
