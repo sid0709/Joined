@@ -179,7 +179,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	}
 	// Google's OAuth redirect has no Authorization header; it authenticates via state.
 	mux.HandleFunc("GET /v1/me/calendar/google/callback", server.googleCalendarCallback)
-	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, candidateMux))
+	mux.Handle("/v1/me/", authapi.RequireRole(sessions, []string{auth.RoleCandidate}, httpkit.Routes(candidateMux)))
 	// Seekers file job reports here. Other methods stay 404 so the staff list is not implied.
 	fileReport := authapi.RequireRole(sessions, []string{auth.RoleCandidate}, http.HandlerFunc(server.postJobReport))
 	mux.HandleFunc("/v1/reports", func(w http.ResponseWriter, r *http.Request) {
@@ -200,9 +200,9 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	companyMux.HandleFunc("POST /v1/company/threads/{id}/messages", server.postCompanyMessage)
 	companyMux.HandleFunc("GET /v1/company/unread", server.getCompanyUnread)
 	server.registerEmployer(companyMux)
-	mux.Handle("/v1/company/", authapi.RequireRole(sessions, []string{auth.RoleEmployee}, requireCompanyMode(opts.CompanyMode, companyMux)))
+	mux.Handle("/v1/company/", authapi.RequireRole(sessions, []string{auth.RoleEmployee}, requireCompanyMode(opts.CompanyMode, httpkit.Routes(companyMux))))
 
-	return httpkit.CORS(opts.Origins, mux)
+	return httpkit.CORS(opts.Origins, httpkit.Routes(mux))
 }
 
 func emailSenderOrDev(sender auth.EmailSender) auth.EmailSender {

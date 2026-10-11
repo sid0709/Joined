@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Opens a PR when a new sid-ui is published. The pin lives in the root
+  # workspaces catalog, so one PR updates every workspace that uses it.
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    allow:
+      - dependency-name: "sid-ui"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"

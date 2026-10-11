@@ -157,6 +157,18 @@ func LoadHTTP(defaultAddr string, defaultOrigins []string) (HTTP, error) {
 	return cfg, nil
 }
 
+// MetricsAddr is where the Prometheus metrics listener binds (METRICS_ADDR).
+// Blank, the default, leaves it off. It must not be the public HTTP_ADDR.
+func MetricsAddr() string {
+	return strings.TrimSpace(Env("METRICS_ADDR", ""))
+}
+
+// PrometheusURL is the Prometheus server the admin console reads (PROMETHEUS_URL).
+// Blank leaves system monitoring unconfigured.
+func PrometheusURL() string {
+	return strings.TrimRight(strings.TrimSpace(Env("PROMETHEUS_URL", "")), "/")
+}
+
 // SearchEnsureIndex returns whether the job search text index should be created at startup.
 // Defaults to false. Set SEARCH_ENSURE_INDEX=true to enable in development.
 func SearchEnsureIndex() bool {

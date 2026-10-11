@@ -12,6 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
 )
 
 // Event types.
@@ -122,6 +124,7 @@ func (l *MongoEventLog) Log(event Event) {
 	select {
 	case l.queue <- event:
 	default:
+		metrics.RankingEventDropped()
 		l.mu.Lock()
 		l.dropped++
 		dropped := l.dropped

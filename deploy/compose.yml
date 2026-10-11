@@ -50,6 +50,8 @@ services:
       RANKING_EVENTS: ${RANKING_EVENTS:-true}
       RANKING_MODEL_PATH: ${RANKING_MODEL_PATH:-}
       RANKING_LTR_PERCENT: ${RANKING_LTR_PERCENT:-0}
+      # Prometheus scrapes this inside the compose network; no host port.
+      METRICS_ADDR: ":9464"
       # The in-memory index is a large, long-lived heap: collect less often.
       GOGC: "200"
 
@@ -144,6 +146,9 @@ services:
       GOOGLE_CLIENT_SECRET: ${ADMIN_GOOGLE_CLIENT_SECRET:-}
       GOOGLE_SIGNIN_REDIRECT_URL: ${ADMIN_GOOGLE_SIGNIN_REDIRECT_URL:-}
       ADMIN_GOOGLE_DOMAIN: ${ADMIN_GOOGLE_DOMAIN:-}
+      METRICS_ADDR: ":9464"
+      # System monitoring in the admin console reads this.
+      PROMETHEUS_URL: http://prometheus:9090
 
   admin-frontend:
     <<: *app
@@ -164,6 +169,71 @@ services:
     # 6000 would follow the +3000 rule, but browsers refuse to open port 6000.
     ports: ["127.0.0.1:6004:3000"]
 
+  # ── Monitoring ──────────────────────────────────────────────────────────
+  # Always on. The admin console's Monitoring pages read Prometheus through
+  # admin-backend; deploy/prometheus/prometheus.yml lists what is scraped.
+  prometheus:
+    <<: *app
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-5GB}
+    ports: ["127.0.0.1:9090:9090"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus:/prometheus
+
+  # The VPS itself. It reads the host's /proc, /sys, and filesystems.
+  node-exporter:
+    <<: *app
+    image: prom/node-exporter:v1.9.1
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+
+  # Per-container CPU, memory, and restarts.
+  cadvisor:
+    <<: *app
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=15s
+      - --store_container_labels=false
+      - --whitelisted_container_labels=com.docker.compose.service
+    privileged: true
+    devices: ["/dev/kmsg"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+  # Answers "is it up?" for each site and API (HTTP probes).
+  blackbox-exporter:
+    <<: *app
+    image: prom/blackbox-exporter:v0.27.0
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes: ["./prometheus/blackbox.yml:/etc/blackbox/blackbox.yml:ro"]
+
+  # MongoDB on the host. MONGODB_EXPORTER_URI should be a user with the
+  # clusterMonitor role; without it, MONGO_URI still reports up/down and basics.
+  mongodb-exporter:
+    <<: *api
+    image: percona/mongodb_exporter:0.44.0
+    command: ["--collect-all", "--compatible-mode"]
+    environment:
+      MONGODB_URI: ${MONGODB_EXPORTER_URI:-${MONGO_URI:-}}
+
+  redis-exporter:
+    <<: *app
+    image: oliver006/redis_exporter:v1.74.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+
 volumes:
   qdrant:
   embedder:
+  prometheus:

@@ -1,0 +1,55 @@
+# What Prometheus scrapes on the VPS. The deploy workflow copies this directory to
+# /srv/joined/prometheus. Services reach each other by their compose names. The
+# admin console reads the results through admin-backend (PROMETHEUS_URL); nothing
+# here is reachable from outside the VPS.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs: [{ targets: ["localhost:9090"] }]
+
+  # The VPS: CPU, memory, disk, network.
+  - job_name: node
+    static_configs: [{ targets: ["node-exporter:9100"] }]
+
+  # Every container: CPU, memory, restarts.
+  - job_name: cadvisor
+    static_configs: [{ targets: ["cadvisor:8080"] }]
+
+  # The Go APIs' own metrics (backend-core/metrics), on METRICS_ADDR.
+  - job_name: joined-backend
+    static_configs: [{ targets: ["joined-backend:9464"] }]
+  - job_name: admin-backend
+    static_configs: [{ targets: ["admin-backend:9464"] }]
+
+  - job_name: qdrant
+    static_configs: [{ targets: ["qdrant:6333"] }]
+  - job_name: redis
+    static_configs: [{ targets: ["redis-exporter:9121"] }]
+  - job_name: mongodb
+    static_configs: [{ targets: ["mongodb-exporter:9216"] }]
+
+  # Is each service answering? Inside the VPS first, then the public sites
+  # through nginx and TLS.
+  - job_name: probe
+    metrics_path: /probe
+    params: { module: [http_2xx] }
+    static_configs:
+      - targets:
+          - http://joined-frontend:3000/
+          - http://joined-backend:8080/health
+          - http://admin-frontend:3000/sign-in
+          - http://admin-backend:8080/health
+          - http://qdrant:6333/readyz
+          - http://embedder:80/health
+          - https://joinedhq.com/
+          - https://api.joinedhq.com/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

@@ -16,3 +16,6 @@ production.env
 /admin-backend/server
 /joined-backend/server
 /scoutwell-backend/server
+
+# Local secrets and audit credentials (copy from .env.example).
+.env

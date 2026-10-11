@@ -10,6 +10,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
 )
 
 const RequestIDHeader = "X-Request-ID"
@@ -20,8 +22,10 @@ const requestRecordKey contextKey = 1
 
 // requestRecord is the mutable per-request bag Logging stores on the context.
 type requestRecord struct {
-	id       string
-	userID   string
+	id     string
+	userID string
+	// route is the mux pattern that served the request, set by Routes.
+	route    string
 	panicErr string
 	stack    string
 }
@@ -53,14 +57,27 @@ func generateRequestID() string {
 	return hex.EncodeToString(bytes[:])
 }
 
+// Routes records which pattern of mux served each request, for metrics. Wrap
+// every ServeMux with it: middleware that copies the request (r.WithContext)
+// hides the pattern from the muxes above it. The innermost mux wins.
+func Routes(mux http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mux.ServeHTTP(w, r)
+		if rec := recordFrom(r.Context()); rec != nil && rec.route == "" {
+			rec.route = r.Pattern
+		}
+	})
+}
+
 // Wrap orders Recovery inside Logging so a panic still has a request id and
 // produces one structured log line. All service mains should call this.
 func Wrap(logger *slog.Logger, reporter ErrorReporter, next http.Handler) http.Handler {
 	return Logging(logger, Recovery(reporter, next))
 }
 
-// Logging assigns a request id, captures status and latency, and writes one
-// structured JSON line. Recovery must sit inside it so panics still log.
+// Logging assigns a request id, captures status and latency, writes one
+// structured JSON line, and records the request's metrics. Recovery must sit
+// inside it so panics still log.
 func Logging(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -79,12 +96,14 @@ func Logging(logger *slog.Logger, next http.Handler) http.Handler {
 		if rec.panicErr != "" {
 			status = http.StatusInternalServerError
 		}
+		took := time.Since(start)
+		metrics.ObserveRequest(rec.route, r.Method, status, took)
 		attrs := []any{
 			"request_id", requestID,
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", status,
-			"latency_ms", time.Since(start).Milliseconds(),
+			"latency_ms", took.Milliseconds(),
 		}
 		if rec.userID != "" {
 			attrs = append(attrs, "user_id", rec.userID)

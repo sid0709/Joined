@@ -9,23 +9,47 @@ You can also run it by hand: Actions → Deploy → Run workflow (from `main`).
 
 ## What runs where
 
-| Service              | Container port | VPS port (127.0.0.1 only) | Runs by default                                 |
-| -------------------- | -------------- | ------------------------- | ----------------------------------------------- |
-| `joined-frontend`    | 3000           | 6002                      | yes — nginx serves it on joinedhq.com           |
-| `joined-backend`     | 8080           | 11080                     | yes                                             |
-| `scoutwell-frontend` | 3000           | 6003                      | with `COMPOSE_PROFILES` containing `scoutwell`  |
-| `scoutwell-backend`  | 8080           | 11082                     | with `scoutwell`                                |
-| `admin-frontend`     | 3000           | 6010                      | with `admin`                                    |
-| `admin-backend`      | 8080           | 11081                     | with `admin`                                    |
-| `connected-frontend` | 3000           | 6004                      | with `connected`                                |
-| `qdrant`             | 6333           | 6333                      | yes — the ranking vector index                  |
-| `redis`              | 6379           | 6379                      | yes — ranking cache and feeds (nothing on disk) |
-| `embedder`           | 80             | 8090                      | yes — the embedding model (TEI, CPU)            |
+| Service                                                                                | Container port | VPS port (127.0.0.1 only) | Runs by default                                 |
+| -------------------------------------------------------------------------------------- | -------------- | ------------------------- | ----------------------------------------------- |
+| `joined-frontend`                                                                      | 3000           | 6002                      | yes — nginx serves it on joinedhq.com           |
+| `joined-backend`                                                                       | 8080           | 11080                     | yes                                             |
+| `scoutwell-frontend`                                                                   | 3000           | 6003                      | with `COMPOSE_PROFILES` containing `scoutwell`  |
+| `scoutwell-backend`                                                                    | 8080           | 11082                     | with `scoutwell`                                |
+| `admin-frontend`                                                                       | 3000           | 6010                      | with `admin`                                    |
+| `admin-backend`                                                                        | 8080           | 11081                     | with `admin`                                    |
+| `connected-frontend`                                                                   | 3000           | 6004                      | with `connected`                                |
+| `qdrant`                                                                               | 6333           | 6333                      | yes — the ranking vector index                  |
+| `redis`                                                                                | 6379           | 6379                      | yes — ranking cache and feeds (nothing on disk) |
+| `embedder`                                                                             | 80             | 8090                      | yes — the embedding model (TEI, CPU)            |
+| `prometheus`                                                                           | 9090           | 9090                      | yes — metrics store the admin console reads     |
+| `node-exporter`, `cadvisor`, `blackbox-exporter`, `mongodb-exporter`, `redis-exporter` | —              | none                      | yes — collectors Prometheus scrapes             |
 
 Host ports are the dev ports + 3000, except `connected-frontend`: browsers refuse port 6000.
 Nginx sends `joinedhq.com` to port 6002, and only Google's calendar redirect
 (`/v1/me/calendar/google/callback`) to the API on 11080. `api.joinedhq.com` goes to
 joined-backend on the same port ([`nginx/api.joinedhq.com.conf`](nginx/api.joinedhq.com.conf)).
+
+## Monitoring
+
+Prometheus scrapes the VPS (`node-exporter`), every container (`cadvisor`), HTTP probes of each
+site and API (`blackbox-exporter`), MongoDB, Redis, Qdrant, and the Go APIs' own `/metrics`
+(served on `METRICS_ADDR`, port 9464, inside the compose network only). The scrape list is
+[`prometheus/prometheus.yml`](prometheus/prometheus.yml). Data is kept 30 days or 5 GB
+(`PROMETHEUS_RETENTION`, `PROMETHEUS_RETENTION_SIZE`). The admin console's **Monitoring → System**
+page reads it through admin-backend, so it needs `admin` in `COMPOSE_PROFILES`. Optional secret
+`MONGODB_EXPORTER_URI`: a MongoDB user with the `clusterMonitor` role, for full database metrics.
+
+To look at Prometheus directly: `ssh -L 9090:127.0.0.1:9090 deploy@<vps>`, then open
+http://localhost:9090/targets.
+
+### External uptime check
+
+Everything above runs on the VPS, so it goes dark with the VPS. Add a free external check once
+(UptimeRobot or Better Stack, 5-minute HTTP monitors):
+
+1. `https://joinedhq.com/`: expect 200.
+2. `https://api.joinedhq.com/health`: expect 200 and the keyword `"ok":true`.
+3. Alert contact: your email (and Slack if you connect it).
 
 Personalized search runs on `qdrant`, `redis`, and `embedder`
 ([`backend-core/ranking/README.md`](../backend-core/ranking/README.md)). On the first start the

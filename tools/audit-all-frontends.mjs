@@ -1,5 +1,7 @@
+import { assertAuditCredentials, auditTestModeEnabled } from "./audit-auth.mjs";
 import { AUDIT_FRONTENDS } from "./audit-frontends.mjs";
 import { isPortListening } from "./free-ports.mjs";
+import { openAuditReports } from "./open-audit-reports.mjs";
 import { outputPathForTarget, runUnlighthouse } from "./unlighthouse-run.mjs";
 
 const userArgs = process.argv.slice(2);
@@ -20,6 +22,18 @@ if (missing.length > 0) {
     "\nBuild and start all frontends first, e.g.\n  bun run build:frontends\n  bun run start:frontends\n",
   );
   process.exit(1);
+}
+
+if (auditTestModeEnabled()) {
+  for (const target of AUDIT_FRONTENDS) {
+    try {
+      assertAuditCredentials(target);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+      process.exit(1);
+    }
+  }
+  console.log("Test mode: signing in to each app before auditing it.\n");
 }
 
 let failed = false;
@@ -46,3 +60,4 @@ if (failed) {
 }
 
 console.log("\nAll frontend audits finished. Static reports are under .unlighthouse/<app>/.\n");
+openAuditReports();

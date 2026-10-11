@@ -10,6 +10,7 @@ import (
 
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
 )
 
 // signInToSearchMessage answers a visitor's search beyond the newest jobs.
@@ -34,10 +35,12 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if query.HasCriteria() && s.rankedSearch(ctx, w, query, userID) {
+		metrics.SearchServed(metrics.SearchRanked)
 		return
 	}
 
 	if !query.HasCriteria() {
+		metrics.SearchServed(metrics.SearchCatalog)
 		catalog, err := s.store.ListCatalog(ctx, time.Now())
 		if err != nil {
 			slog.Error("list search catalog", "error", err)
@@ -48,6 +51,7 @@ func (s *Server) listSearchCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.SearchServed(metrics.SearchFallback)
 	results, err := s.store.SearchJobs(ctx, query, time.Now())
 	if err != nil {
 		if errors.Is(err, jobs.ErrCursorNotSupportedForRelevance) {
