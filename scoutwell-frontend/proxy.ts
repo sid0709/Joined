@@ -1,21 +1,29 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE } from "@/lib/auth/constants";
+import { signInHref } from "@/lib/routes";
 
-const MAINTENANCE_PATH = "/service-update";
-
+/**
+ * Scout pages need an account. With no session cookie, send the visitor to sign
+ * in and bring them back. This is optimistic; layouts still load the real session.
+ */
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (pathname === MAINTENANCE_PATH || pathname.startsWith(`${MAINTENANCE_PATH}/`)) {
-    return NextResponse.next();
-  }
-  const url = request.nextUrl.clone();
-  url.pathname = MAINTENANCE_PATH;
-  url.search = "";
-  return NextResponse.rewrite(url);
+  if (request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
+  const { pathname, search } = request.nextUrl;
+  return NextResponse.redirect(new URL(signInHref(`${pathname}${search}`), request.url));
 }
 
+// Literal paths: Next reads the matcher at build time. Keep in sync with ROUTES.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/onboarding",
+    "/dashboard/:path*",
+    "/submit/:path*",
+    "/submissions/:path*",
+    "/earnings/:path*",
+    "/level/:path*",
+    "/payouts/:path*",
+    "/notifications/:path*",
+    "/account/:path*",
+    "/developers/:path*",
   ],
 };
