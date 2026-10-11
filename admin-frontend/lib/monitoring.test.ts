@@ -58,7 +58,7 @@ describe("formatters", () => {
     expect(formatNumber(undefined)).toBe("—");
     const at = new Date(2026, 9, 11, 15, 30).toISOString();
     expect(formatChartTime(at, "1h")).toBe("3:30 PM");
-    expect(formatChartTime(at, "7d")).toBe("Oct 11 at 3 PM");
+    expect(formatChartTime(at, "7d")).toBe("Oct 11, 3 PM");
   });
 });
 

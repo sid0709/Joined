@@ -97,9 +97,14 @@ const dayFormat = new Intl.DateTimeFormat(LOCALE, {
   year: "numeric",
   timeZone: TIME_ZONE,
 });
-const timeFormat = new Intl.DateTimeFormat(LOCALE, {
+// Date and time are formatted apart and joined here: ICU builds differ on the
+// joiner ("Oct 11, 3:04 PM" on Linux, "Oct 11 at 3:04 PM" on macOS).
+const monthDayFormat = new Intl.DateTimeFormat(LOCALE, {
   month: "short",
   day: "numeric",
+  timeZone: TIME_ZONE,
+});
+const clockFormat = new Intl.DateTimeFormat(LOCALE, {
   hour: "numeric",
   minute: "2-digit",
   timeZone: TIME_ZONE,
@@ -110,9 +115,10 @@ export function formatDay(date: string) {
   return dayFormat.format(new Date(`${date}T00:00:00Z`));
 }
 
-/** An instant as "Oct 11 at 3:04 PM UTC". */
+/** An instant as "Oct 11, 3:04 PM UTC". */
 export function formatTime(at: string) {
-  return `${timeFormat.format(new Date(at))} ${TIME_ZONE}`;
+  const date = new Date(at);
+  return `${monthDayFormat.format(date)}, ${clockFormat.format(date)} ${TIME_ZONE}`;
 }
 
 /** Uptime share as "99.98%"; a perfect or empty record reads plainly. */

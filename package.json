@@ -41,7 +41,7 @@
       "react": "19.3.0",
       "react-dom": "19.3.0",
       "sharp": "0.35.4",
-      "sid-ui": "0.1.2",
+      "sid-ui": "0.1.3",
       "tailwindcss": "4.3.3",
       "turbo": "2.11.4",
       "typescript": "5.9.3",
@@ -121,8 +121,5 @@
   "lint-staged": {
     "**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}": "prettier --write",
     "**/*.{json,css,scss,md,mdx,yml,yaml}": "prettier --write"
-  },
-  "dependencies": {
-    "sid-ui": "catalog:"
   }
 }

@@ -116,6 +116,9 @@ const BYTE_STEP = 1024;
 const PERCENT = 100;
 const MS_PER_SECOND = 1000;
 const SHORT_TIME_RANGES: MonitoringRange[] = ["1h", "24h"];
+const clockFormat = new Intl.DateTimeFormat(LOCALE, { hour: "numeric", minute: "2-digit" });
+const monthDayFormat = new Intl.DateTimeFormat(LOCALE, { month: "short", day: "numeric" });
+const hourFormat = new Intl.DateTimeFormat(LOCALE, { hour: "numeric" });
 
 export function formatBytes(value: Maybe | undefined) {
   if (value == null) return "—";
@@ -160,10 +163,7 @@ export function formatNumber(value: Maybe | undefined) {
 /** Chart axis label: time of day for short ranges, the date for a week. */
 export function formatChartTime(at: string, range: MonitoringRange) {
   const date = new Date(at);
-  return new Intl.DateTimeFormat(
-    LOCALE,
-    SHORT_TIME_RANGES.includes(range)
-      ? { hour: "numeric", minute: "2-digit" }
-      : { month: "short", day: "numeric", hour: "numeric" },
-  ).format(date);
+  if (SHORT_TIME_RANGES.includes(range)) return clockFormat.format(date);
+  // Joined here, not by one formatter: ICU builds differ on the joiner (", " or " at ").
+  return `${monthDayFormat.format(date)}, ${hourFormat.format(date)}`;
 }

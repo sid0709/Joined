@@ -13,7 +13,7 @@ describe("formatUptime", () => {
 describe("dates", () => {
   it("reads days and times in UTC", () => {
     expect(formatDay("2026-10-11")).toBe("Oct 11, 2026");
-    expect(formatTime("2026-10-11T15:04:00Z")).toBe("Oct 11 at 3:04 PM UTC");
+    expect(formatTime("2026-10-11T15:04:00Z")).toBe("Oct 11, 3:04 PM UTC");
   });
 });
 
