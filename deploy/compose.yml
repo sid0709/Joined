@@ -52,6 +52,8 @@ services:
       RANKING_LTR_PERCENT: ${RANKING_LTR_PERCENT:-0}
       # Prometheus scrapes this inside the compose network; no host port.
       METRICS_ADDR: ":9464"
+      # The public status page (/v1/status) reads live status and daily uptime here.
+      PROMETHEUS_URL: http://prometheus:9090
       # The in-memory index is a large, long-lived heap: collect less often.
       GOGC: "200"
 

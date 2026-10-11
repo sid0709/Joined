@@ -26,9 +26,17 @@ const MOCK_AUDIT_USER = {
 };
 
 /**
+ * auditsession exits 3 when it refuses on purpose (a staff session on a non-local database).
+ * `go run` itself always exits 1 and reports the program's code as this line on stderr.
+ */
+const AUDIT_SESSION_REFUSED_LINE = /^exit status 3$/m;
+
+/**
  * How each audited app is signed in during test mode.
- * - `session`: a short session minted in that backend's local database. `cookie` mirrors the
- *   frontend's session cookie constant. `sessionKind: "staff"` is the staff console.
+ * - `session` + `sessionKind: "user"`: one pinned test account. The id (the `id` field, not `_id`)
+ *   and the email in `.env` must name the same account. `cookie` mirrors the frontend's session
+ *   cookie constant.
+ * - `session` + `sessionKind: "staff"`: the staff console, only against a local database.
  * - `mock`: connected-frontend's localStorage login, seeded with a fake user.
  */
 export const AUDIT_LOGIN = {
@@ -36,14 +44,16 @@ export const AUDIT_LOGIN = {
     kind: "session",
     backend: "joined-backend",
     sessionKind: "user",
-    role: "candidate",
+    userIdEnv: "AUDIT_TEST_USER_ID",
+    emailEnv: "AUDIT_TEST_EMAIL",
     cookie: "joined_session",
   },
   "scoutwell-frontend": {
     kind: "session",
     backend: "scoutwell-backend",
     sessionKind: "user",
-    role: "scout",
+    userIdEnv: "AUDIT_SCOUT_USER_ID",
+    emailEnv: "AUDIT_SCOUT_EMAIL",
     cookie: "scoutwell_session",
   },
   "admin-frontend": {
@@ -70,55 +80,84 @@ export function auditTargetForSite(siteUrl) {
 }
 
 function runAuditSessionCommand(login, args) {
-  const result = spawnSync(
+  return spawnSync(
     "go",
     ["run", "-C", login.backend, AUDIT_SESSION_COMMAND, "-kind", login.sessionKind, ...args],
     { cwd: repoRoot, encoding: "utf8" },
   );
-  if (result.status !== 0) {
-    throw new Error((result.stderr || result.error?.message || "auditsession failed").trim());
-  }
-  return result.stdout;
+}
+
+function commandError(result) {
+  return new Error((result.stderr || result.error?.message || "auditsession failed").trim());
 }
 
 /**
- * Mints a session for the target before its scan. Returns null for apps that need none.
- * @param {{ id: string }} target
- * @returns {{ token: string, email: string } | null}
+ * Mints a session for the target before its scan.
+ * @param {{ id: string, label: string }} target
+ * @returns {{ status: "none" } | { status: "skipped", reason: string } |
+ *   { status: "signed-in", token: string, email: string }}
  */
-export function issueAuditSession(target) {
+export function issueAuditSession(target, env = process.env) {
   const login = AUDIT_LOGIN[target.id];
-  if (login?.kind !== "session") return null;
-  const roleArgs = login.sessionKind === "user" ? ["-role", login.role] : [];
-  return JSON.parse(runAuditSessionCommand(login, ["-action", "issue", ...roleArgs]));
+  if (login?.kind !== "session") return { status: "none" };
+
+  let accountArgs = [];
+  if (login.sessionKind === "user") {
+    const userId = env[login.userIdEnv]?.trim();
+    const email = env[login.emailEnv]?.trim();
+    if (!userId || !email) {
+      return {
+        status: "skipped",
+        reason: `set ${login.userIdEnv} and ${login.emailEnv} in .env to sign in`,
+      };
+    }
+    accountArgs = ["-user-id", userId, "-email", email];
+  }
+
+  const result = runAuditSessionCommand(login, ["-action", "issue", ...accountArgs]);
+  if (result.status !== 0 && AUDIT_SESSION_REFUSED_LINE.test(result.stderr)) {
+    return {
+      status: "skipped",
+      reason: `staff sessions need ${login.backend}'s MONGO_URI to be a local database`,
+    };
+  }
+  if (result.status !== 0) throw commandError(result);
+  return { status: "signed-in", ...JSON.parse(result.stdout) };
 }
 
 /** Deletes the session minted by issueAuditSession. */
 export function revokeAuditSession(target, token) {
   const login = AUDIT_LOGIN[target.id];
   if (login?.kind !== "session" || !token) return;
-  runAuditSessionCommand(login, ["-action", "revoke", "-token", token]);
+  const result = runAuditSessionCommand(login, ["-action", "revoke", "-token", token]);
+  if (result.status !== 0) throw commandError(result);
 }
 
 /**
- * Unlighthouse `authenticate` hook. Runs once; Unlighthouse copies the resulting cookies and
- * storage onto every page it scans afterwards.
- * @param {import("puppeteer-core").Page} page
- * @param {{ id: string, site: string }} target
+ * The session cookie for the target, as Unlighthouse `cookies`. Unlighthouse sends these on the
+ * crawler's HTML requests and sets them in every Lighthouse page, so every scanned page is signed in.
+ * @param {{ id: string }} target
+ * @returns {{ name: string, value: string, domain: string, path: string }[]}
  */
-export async function authenticateAuditPage(page, target, env = process.env) {
+export function auditSessionCookies(target, env = process.env) {
   const login = AUDIT_LOGIN[target.id];
-  if (login.kind === "session") {
-    await page.setCookie({
-      name: login.cookie,
-      value: env[AUDIT_SESSION_TOKEN_ENV],
-      domain: AUTH_COOKIE_DOMAIN,
-      path: AUTH_COOKIE_PATH,
-      httpOnly: true,
-    });
-    return;
-  }
+  const token = env[AUDIT_SESSION_TOKEN_ENV];
+  if (login?.kind !== "session" || !token) return [];
+  return [{ name: login.cookie, value: token, domain: AUTH_COOKIE_DOMAIN, path: AUTH_COOKIE_PATH }];
+}
 
+/** @returns {boolean} True when the target signs in through the browser mock (connected-frontend). */
+export function usesMockLogin(target) {
+  return AUDIT_LOGIN[target.id]?.kind === "mock";
+}
+
+/**
+ * Unlighthouse `authenticate` hook for the browser mock login. It visits the site first, because
+ * Unlighthouse saves only the storage of the page the hook leaves open.
+ * @param {import("puppeteer-core").Page} page
+ * @param {{ site: string }} target
+ */
+export async function seedMockLogin(page, target) {
   await page.goto(target.site, {
     waitUntil: "domcontentloaded",
     timeout: AUTH_NAVIGATION_TIMEOUT_MS,

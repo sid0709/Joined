@@ -25,7 +25,7 @@ if (missing.length > 0) {
 }
 
 if (auditTestModeEnabled()) {
-  console.log("Test mode: each app is scanned signed in as one existing local account.\n");
+  console.log("Test mode: each app is scanned signed in as the test account pinned in .env.\n");
 }
 
 let failed = false;

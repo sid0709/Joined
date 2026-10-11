@@ -16,6 +16,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/monitoring"
 	"github.com/sid0709/OpenSeat/backend-core/scout"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/OpenSeat/backend-core/statuspage"
 )
 
 const (
@@ -49,6 +50,7 @@ type Server struct {
 	switches          killswitch.Switches
 	scamHolds         jobscam.API
 	prometheus        monitoring.Querier
+	statusPage        statuspage.Store
 }
 
 // Options are the HTTP server's settings.
@@ -86,6 +88,8 @@ type Options struct {
 	ScamHolds jobscam.API
 	// Prometheus feeds the system monitoring page. Nil answers 503.
 	Prometheus monitoring.Querier
+	// StatusPage holds the public status page's incidents. Nil answers 503.
+	StatusPage statuspage.Store
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -113,6 +117,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		switches:          opts.KillSwitches,
 		scamHolds:         opts.ScamHolds,
 		prometheus:        opts.Prometheus,
+		statusPage:        opts.StatusPage,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -144,6 +149,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerAcornAI(api)
 	server.registerDeepSeek(api)
 	server.registerMonitoring(api)
+	server.registerStatusIncidents(api)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", httpkit.Health(store))

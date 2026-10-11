@@ -22,6 +22,7 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/ranking"
 	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
 	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/OpenSeat/backend-core/statuspage"
 )
 
 type sessionLookup interface {
@@ -43,6 +44,7 @@ type Server struct {
 	fitReasoner fitscore.Reasoner
 	switches    killswitch.Switches
 	ranker      *ranking.Service
+	status      *statuspage.Service
 }
 
 // Options are the HTTP server's settings.
@@ -77,6 +79,8 @@ type Options struct {
 	SavedSearches savedsearch.Store
 	// Ranking serves personalized search. Nil keeps search on the Mongo text index.
 	Ranking *ranking.Service
+	// Status builds the public status page. Nil answers GET /v1/status with 503.
+	Status *statuspage.Service
 }
 
 func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hiring *employer.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -101,6 +105,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 		fitReasoner: opts.FitReasoner,
 		switches:    opts.KillSwitches,
 		ranker:      opts.Ranking,
+		status:      opts.Status,
 	}
 	if accounts != nil {
 		var payments billing.Store
@@ -136,6 +141,7 @@ func New(store *jobs.Store, accounts *auth.Store, people *candidate.Store, hirin
 	identity.Register(mux)
 	identity.RegisterCompanies(mux)
 	mux.HandleFunc("GET /health", httpkit.Health(store))
+	mux.HandleFunc("GET /v1/status", server.getStatus)
 	mux.HandleFunc("GET /v1/schedule/{key}", server.getPublicSchedule)
 	mux.HandleFunc("POST /v1/schedule/{key}/accept", server.acceptPublicSchedule)
 	mux.HandleFunc("GET /v1/search/jobs", server.listSearchCatalog)

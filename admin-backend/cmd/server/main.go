@@ -136,6 +136,7 @@ func main() {
 		KillSwitches: p.KillSwitches,
 		ScamHolds:    p.ScamHolds,
 		Prometheus:   prometheus(config.PrometheusURL()),
+		StatusPage:   p.StatusPage,
 	})
 	metrics.Serve(config.MetricsAddr())
 	if err := httpkit.Serve("admin api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {

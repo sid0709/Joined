@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestRequireLocalMongo(t *testing.T) {
 	cases := []struct {
@@ -20,6 +23,9 @@ func TestRequireLocalMongo(t *testing.T) {
 		err := requireLocalMongo(c.uri)
 		if (err == nil) != c.local {
 			t.Errorf("requireLocalMongo(%q) error = %v, want local=%v", c.uri, err, c.local)
+		}
+		if !c.local && !errors.Is(err, errRefused) {
+			t.Errorf("requireLocalMongo(%q) error = %v, want errRefused", c.uri, err)
 		}
 	}
 }

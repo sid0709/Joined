@@ -16,12 +16,14 @@ import (
 	"github.com/sid0709/OpenSeat/backend-core/config"
 	"github.com/sid0709/OpenSeat/backend-core/google"
 	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/metrics"
 	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/OpenSeat/backend-core/metrics"
+	"github.com/sid0709/OpenSeat/backend-core/monitoring"
 	"github.com/sid0709/OpenSeat/backend-core/openai"
 	"github.com/sid0709/OpenSeat/backend-core/platform"
 	"github.com/sid0709/OpenSeat/backend-core/ranking"
 	"github.com/sid0709/OpenSeat/backend-core/savedsearch"
+	"github.com/sid0709/OpenSeat/backend-core/statuspage"
 	"github.com/sid0709/OpenSeat/joined-backend/internal/httpapi"
 )
 
@@ -107,6 +109,7 @@ func main() {
 		BillingWebhook:    webhook,
 		SavedSearches:     searches,
 		Ranking:           ranker,
+		Status:            openStatusPage(context.Background(), p),
 	})
 	metrics.Serve(config.MetricsAddr())
 	if err := httpkit.Serve("joined api", server.Addr, httpkit.Wrap(slog.Default(), reporter, handler)); err != nil {
@@ -165,4 +168,15 @@ func companyModeEnabled(value string) bool {
 	default:
 		return false
 	}
+}
+
+// openStatusPage builds the public status page. With PROMETHEUS_URL set it also
+// records each day's uptime; without it the page shows incidents only.
+func openStatusPage(ctx context.Context, p *platform.Platform) *statuspage.Service {
+	var prom monitoring.Querier
+	if client := monitoring.NewPrometheus(config.PrometheusURL()); client != nil {
+		prom = client
+		go statuspage.NewRecorder(client, p.StatusPage, slog.Default()).Run(ctx)
+	}
+	return statuspage.NewService(prom, p.StatusPage, slog.Default())
 }

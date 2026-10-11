@@ -24,6 +24,7 @@ export const ROUTES = {
   report: (id: string) => `/trust/reports/${id}`,
   retentionOps: "/ops",
   systemMonitoring: "/monitoring/system",
+  statusIncidents: "/monitoring/incidents",
   jobMigration: "/migration/jobs",
   companyMigration: "/migration/companies",
   acornAI: "/settings/acorn-ai",
@@ -73,6 +74,7 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     title: "Ops",
     links: [
       { href: ROUTES.systemMonitoring, label: "System", icon: "eye" },
+      { href: ROUTES.statusIncidents, label: "Status incidents", icon: "info" },
       { href: ROUTES.retentionOps, label: "Retention", icon: "lock" },
     ],
   },

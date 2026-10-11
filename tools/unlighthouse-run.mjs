@@ -41,13 +41,19 @@ export function runUnlighthouse(args) {
 
   let session = null;
   if (testMode) {
+    let result;
     try {
-      session = issueAuditSession(target);
+      result = issueAuditSession(target);
     } catch (error) {
       console.error(`\nTest mode could not sign in to ${target.label}:\n${error.message}\n`);
       return Promise.resolve(1);
     }
-    if (session) console.log(`Test mode: signed in to ${target.label} as ${session.email}\n`);
+    if (result.status === "signed-in") {
+      session = result;
+      console.log(`Test mode: signed in to ${target.label} as ${session.email}\n`);
+    } else if (result.status === "skipped") {
+      console.warn(`Test mode: scanning ${target.label} signed out (${result.reason})\n`);
+    }
   }
 
   // The session is short-lived anyway; revoking it on exit or Ctrl+C keeps the database clean.

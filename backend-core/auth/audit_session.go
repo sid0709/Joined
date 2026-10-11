@@ -5,27 +5,34 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 // auditStaffSubject marks staff sessions minted for local audits, so they are easy to find and remove.
 const auditStaffSubject = "local-audit"
 
-// ErrNoAuditUser means no account with the requested role exists to audit as.
-var ErrNoAuditUser = errors.New("no account with that role to audit as")
+var (
+	// ErrNoAuditUser means no account has the audit user id.
+	ErrNoAuditUser = errors.New("no account has that audit user id")
+	// ErrAuditUserMismatch means the audit user id and email belong to different accounts.
+	ErrAuditUserMismatch = errors.New("audit user id and email do not match the same account")
+)
 
-// IssueAuditSession signs in as the first account with role, for a local Lighthouse audit.
+// IssueAuditSession signs in as one pinned test account for a Lighthouse audit.
+// Both userID and email must name the same account, so a typo never signs in as someone else.
 // The session lives for ttl only; callers revoke it with Signout when the audit ends.
-func (s *Store) IssueAuditSession(ctx context.Context, role string, ttl time.Duration, now time.Time) (string, User, error) {
-	var user storedUser
-	err := s.collection(usersCollection).FindOne(ctx, bson.D{{Key: "role", Value: role}}).Decode(&user)
-	if errors.Is(err, mongo.ErrNoDocuments) {
+func (s *Store) IssueAuditSession(ctx context.Context, userID, email string, ttl time.Duration, now time.Time) (string, User, error) {
+	if userID == "" || normalizeEmail(email) == "" {
+		return "", User{}, ErrInvalidInput
+	}
+	user, err := s.records.UserByID(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
 		return "", User{}, ErrNoAuditUser
 	}
 	if err != nil {
 		return "", User{}, fmt.Errorf("find audit user: %w", err)
+	}
+	if normalizeEmail(user.Email) != normalizeEmail(email) {
+		return "", User{}, ErrAuditUserMismatch
 	}
 	token, hash, err := newToken()
 	if err != nil {

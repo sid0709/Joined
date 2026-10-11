@@ -32,20 +32,24 @@ scrape_configs:
     static_configs: [{ targets: ["mongodb-exporter:9216"] }]
 
   # Is each service answering? Inside the VPS first, then the public sites
-  # through nginx and TLS.
+  # through nginx and TLS. A "component" label puts a probe on the public status
+  # page (backend-core/statuspage Components); a component is down while any of
+  # its probes fails.
   - job_name: probe
     metrics_path: /probe
     params: { module: [http_2xx] }
     static_configs:
+      - targets: [https://joinedhq.com/]
+        labels: { component: website }
+      - targets: [https://api.joinedhq.com/health]
+        labels: { component: api }
+      - targets: [http://qdrant:6333/readyz, http://embedder:80/health]
+        labels: { component: search }
       - targets:
           - http://joined-frontend:3000/
           - http://joined-backend:8080/health
           - http://admin-frontend:3000/sign-in
           - http://admin-backend:8080/health
-          - http://qdrant:6333/readyz
-          - http://embedder:80/health
-          - https://joinedhq.com/
-          - https://api.joinedhq.com/health
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

@@ -19,6 +19,7 @@ export const AUDIT_FRONTENDS = AUDIT_FRONTEND_IDS.map((id) => {
     label: labels[service.id] ?? service.id,
     site: serviceSite(service),
     port: service.port,
+    workspace: service.workspace,
     reportPort: service.port + REPORT_PORT_OFFSET,
   };
 });
