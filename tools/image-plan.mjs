@@ -1,4 +1,4 @@
-// Decides which production images to build for one commit, and which to retag.
+// Decides which production images to build for a deploy, and which to retag.
 //
 // Compose pulls every service at sha-<commit>. An unchanged service still needs
 // that tag, so the deploy points it at the previous image instead of rebuilding.
