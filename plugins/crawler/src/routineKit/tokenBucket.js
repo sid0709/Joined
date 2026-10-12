@@ -1,17 +1,19 @@
 /**
  * Token-bucket rate limiter. `rate` is tokens per second (jobs/s). Capacity
- * defaults to the rate so a burst cannot exceed one second of work.
+ * defaults to 1 so a run cannot burst ahead of the steady rate at startup.
  */
+
+export const DEFAULT_TOKEN_BUCKET_CAPACITY = 1;
 
 export function createTokenBucket({
   rate,
-  capacity,
+  capacity = DEFAULT_TOKEN_BUCKET_CAPACITY,
   now = Date.now,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   const perSecond = Number(rate);
   const infinite = !Number.isFinite(perSecond) || perSecond === Infinity || perSecond <= 0;
-  const max = Number.isFinite(capacity) && capacity > 0 ? capacity : infinite ? 1 : perSecond;
+  const max = Number.isFinite(capacity) && capacity > 0 ? capacity : DEFAULT_TOKEN_BUCKET_CAPACITY;
   let tokens = max;
   let last = now();
 
@@ -48,6 +50,9 @@ export function createTokenBucket({
     },
     get rate() {
       return infinite ? Infinity : perSecond;
+    },
+    get capacity() {
+      return max;
     },
   };
 }
