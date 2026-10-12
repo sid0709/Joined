@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
-import { clickSaveInDocument, dispatchRealClick } from "./shadowClick.js";
+import { clickSaveInDocument, clickShadowInMainWorld, dispatchRealClick } from "./shadowClick.js";
 
 class FakeEvent {
   constructor(type) {
@@ -18,6 +18,7 @@ afterEach(() => {
   delete globalThis.Event;
   delete globalThis.MouseEvent;
   delete globalThis.PointerEvent;
+  delete globalThis.chrome;
 });
 
 describe("dispatchRealClick", () => {
@@ -41,6 +42,36 @@ describe("dispatchRealClick", () => {
       "click",
       "element.click",
     ]);
+  });
+
+  test("falls back to Event when PointerEvent construction fails", () => {
+    globalThis.PointerEvent = class {
+      constructor() {
+        throw new Error("no pointer");
+      }
+    };
+    const types = [];
+    dispatchRealClick({
+      dispatchEvent(event) {
+        types.push(event.type);
+        return true;
+      },
+    });
+    expect(types).toEqual(["pointerdown", "mousedown", "pointerup", "mouseup", "click"]);
+  });
+
+  test("ignores a missing node and a click that throws", () => {
+    expect(dispatchRealClick(null)).toBeUndefined();
+    expect(() =>
+      dispatchRealClick({
+        dispatchEvent() {
+          return true;
+        },
+        click() {
+          throw new Error("no click");
+        },
+      }),
+    ).not.toThrow();
   });
 });
 
@@ -87,6 +118,43 @@ describe("clickSaveInDocument", () => {
 
   test("returns found false when the host is missing", () => {
     expect(clickSaveInDocument("my-item", "div.heart", { querySelector: () => null })).toEqual({
+      found: false,
+      clicked: false,
+    });
+  });
+});
+
+describe("clickShadowInMainWorld", () => {
+  test("runs clickSaveInDocument in the page MAIN world", async () => {
+    const calls = [];
+    globalThis.chrome = {
+      scripting: {
+        executeScript: async (options) => {
+          calls.push(options);
+          return [{ result: { found: true, clicked: true } }];
+        },
+      },
+    };
+    await expect(
+      clickShadowInMainWorld(9, { host: "my-item", inner: "div.heart" }),
+    ).resolves.toEqual({ found: true, clicked: true });
+    expect(calls).toEqual([
+      {
+        target: { tabId: 9, frameIds: [0] },
+        world: "MAIN",
+        func: clickSaveInDocument,
+        args: ["my-item", "div.heart"],
+      },
+    ]);
+  });
+
+  test("returns not found when the page returns no result", async () => {
+    globalThis.chrome = {
+      scripting: {
+        executeScript: async () => [{}],
+      },
+    };
+    await expect(clickShadowInMainWorld(3, {})).resolves.toEqual({
       found: false,
       clicked: false,
     });
