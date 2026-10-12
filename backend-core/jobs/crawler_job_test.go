@@ -82,6 +82,14 @@ func TestCrawledJobRejectsOversizedMetadata(t *testing.T) {
 	}
 }
 
+func TestCrawledJobRejectsOversizedCompanyMetadata(t *testing.T) {
+	job := crawledJob("https://acme.com/apply/1")
+	job.Company.Metadata = map[string]any{"blob": strings.Repeat("x", maxCrawlerJobMetadataBytes+1)}
+	if got := crawledJobProblem(job); got != "metadata is too large" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestParseCrawledPostedAtPrefersAbsolute(t *testing.T) {
 	now := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
 	job := CrawledJob{PostedAt: "2026-10-12 16:50:46", PostedAgo: "3 hours ago"}

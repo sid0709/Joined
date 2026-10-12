@@ -310,6 +310,76 @@ func TestCrawledCompanyDocumentPutsBoardFieldsInMetadata(t *testing.T) {
 	}
 }
 
+func TestJobExtraKeepsNestedNameLogoAndDropsDeepNesting(t *testing.T) {
+	job := crawledJob("https://acme.com/apply/1")
+	job.Metadata["boardCompany"] = map[string]any{
+		"name": "Nested Co",
+		"logo": "https://cdn.example/nested.png",
+		"rank": float64(3),
+	}
+	deep := map[string]any{"leaf": "ok"}
+	for i := 0; i < maxMetadataDepth+2; i++ {
+		deep = map[string]any{"n": deep}
+	}
+	job.Metadata["deep"] = deep
+
+	extra := mapToBSON(job.Metadata)
+	nested := bsonMap(lookupD(extra, "boardCompany"))
+	if nested["name"] != "Nested Co" || nested["logo"] != "https://cdn.example/nested.png" {
+		t.Fatalf("nested extra = %+v", nested)
+	}
+	if metadataDepth(mapToBSON(map[string]any{"deep": deep})) > maxMetadataDepth {
+		t.Fatalf("sanitized depth exceeded %d", maxMetadataDepth)
+	}
+}
+
+func lookupD(doc bson.D, key string) any {
+	for _, item := range doc {
+		if item.Key == key {
+			return item.Value
+		}
+	}
+	return nil
+}
+
+func bsonMap(value any) bson.M {
+	switch typed := value.(type) {
+	case bson.M:
+		return typed
+	case bson.D:
+		out := bson.M{}
+		for _, item := range typed {
+			out[item.Key] = item.Value
+		}
+		return out
+	default:
+		return bson.M{}
+	}
+}
+
+func metadataDepth(value any) int {
+	switch typed := value.(type) {
+	case bson.D:
+		max := 1
+		for _, item := range typed {
+			if child := metadataDepth(item.Value); child+1 > max {
+				max = child + 1
+			}
+		}
+		return max
+	case bson.A:
+		max := 1
+		for _, item := range typed {
+			if child := metadataDepth(item); child+1 > max {
+				max = child + 1
+			}
+		}
+		return max
+	default:
+		return 1
+	}
+}
+
 func TestIngestCrawledCompanySkipsExistingAndIncomplete(t *testing.T) {
 	store := crawlerTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

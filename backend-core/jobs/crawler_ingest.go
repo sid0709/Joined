@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -152,7 +151,7 @@ func crawledJobProblem(job CrawledJob) string {
 		return "description is required"
 	case !isHTTPURL(crawledApplyURL(job)):
 		return "applyLink must be an http(s) URL"
-	case crawlerMetadataBytes(job.Metadata) > maxCrawlerJobMetadataBytes:
+	case crawlerJobMetadataBytes(job) > maxCrawlerJobMetadataBytes:
 		return "metadata is too large"
 	default:
 		return ""
@@ -217,24 +216,7 @@ func cleanStrings(values []string) []string {
 }
 
 func mapToBSON(meta map[string]any) bson.D {
-	keys := make([]string, 0, len(meta))
-	for key := range meta {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	doc := bson.D{}
-	for _, key := range keys {
-		cleanedKey := strings.TrimSpace(key)
-		if cleanedKey == "" || strings.ContainsAny(cleanedKey, ".$") {
-			continue
-		}
-		cleaned := cleanMetadataValue(meta[key])
-		if cleaned == nil {
-			continue
-		}
-		doc = append(doc, bson.E{Key: cleanedKey, Value: cleaned})
-	}
-	return doc
+	return sanitizeMetadataMap(meta, 1, false)
 }
 
 func crawledDetails(details map[string]string) bson.D {

@@ -238,6 +238,17 @@ func crawlerMetadataBytes(meta map[string]any) int {
 	return len(raw)
 }
 
+func crawlerJobMetadataBytes(job CrawledJob) int {
+	combined := map[string]any{}
+	if len(job.Metadata) > 0 {
+		combined["job"] = job.Metadata
+	}
+	if len(job.Company.Metadata) > 0 {
+		combined["company"] = job.Company.Metadata
+	}
+	return crawlerMetadataBytes(combined)
+}
+
 func parseCrawledPostedAt(job CrawledJob, now time.Time) time.Time {
 	for _, raw := range []string{job.PostedAt, stringValue(job.Metadata[crawlerPostedAtKey])} {
 		if parsed, ok := parseFlexibleTime(raw); ok {
