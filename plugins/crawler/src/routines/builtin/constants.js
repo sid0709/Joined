@@ -63,6 +63,7 @@ export const PAGE_DELAY_MS = Object.freeze({ min: 4000, max: 8000 });
 export const NAVIGATE_WAIT_MS = 15_000;
 export const HEART_CONFIRM_MS = 4_000;
 export const HEART_POLL_MS = 200;
+export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
 export const RETRY_PAUSE_MS = 1_000;
 
 export const EASY_APPLY_TAG = "Easy Apply";

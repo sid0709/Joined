@@ -5,7 +5,12 @@ import { listDeclaredFields } from "../routineKit/routine.js";
 import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../routineKit/runner.js";
 
 import "./builtin/testing/domParser.js";
-import { HANDLED_STORAGE_KEY, JOB_CARD_TITLE, JOB_PAGE_SAVE } from "./builtin/constants.js";
+import {
+  HANDLED_STORAGE_KEY,
+  HEART_UNREAD_LABEL,
+  JOB_CARD_TITLE,
+  JOB_PAGE_SAVE,
+} from "./builtin/constants.js";
 import { jobSaveSelector } from "./builtin/cssEscape.js";
 import { createBuiltinStore, memoryStorage } from "./builtin/store.js";
 import { loadFixture } from "./builtin/testing/loadFixture.js";
@@ -181,6 +186,26 @@ describe("BuiltInRoutine", () => {
     ).rejects.toThrow("enqueue failed");
     expect([...(await failedStore.loadHandledIds())]).toEqual([]);
     expect(failing.shadows.some((op) => op.action === "click")).toBe(false);
+  });
+
+  test("does not click the heart when the shadow state cannot be read", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+      shadowFound: false,
+    });
+    const activities = [];
+    const records = await collectJobs(store, page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(records).toHaveLength(1);
+    expect(page.shadows.some((op) => op.action === "click")).toBe(false);
+    expect(page.clicks).toEqual([]);
+    expect(activities.some((activity) => activity.label?.startsWith(HEART_UNREAD_LABEL))).toBe(
+      true,
+    );
+    expect([...(await store.loadHandledIds())]).toContain("9256204");
   });
 
   test("skips handled IDs and already-saved hearts, then finishes when next page is gone", async () => {

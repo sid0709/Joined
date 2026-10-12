@@ -15,6 +15,7 @@ import {
   HEART_CONFIRM_MS,
   HEART_INNER,
   HEART_POLL_MS,
+  HEART_UNREAD_LABEL,
   JOB_DELAY_MS,
   jitterMs,
   MAX_PAGE,
@@ -165,26 +166,27 @@ export async function runBuiltInPass(ctx, progress) {
 
   const isCardSavedLive = async (card) => {
     const state = await queryHeart(card.id);
-    if (state?.found) return isHeartSaved(state);
-    return card.hasSavedTag === true;
+    return Boolean(state?.found) && isHeartSaved(state);
   };
 
   const clickListHeart = async (jobId) => {
     const host = jobSaveSelector(jobId);
     const before = await queryHeart(jobId);
     if (isHeartSaved(before)) return true;
+    if (!before?.found) {
+      const label = `${HEART_UNREAD_LABEL} (${jobId})`;
+      hooks.onActivity?.({ phase: "dismiss", label, kind: "waitFor" });
+      console.warn(label);
+      return false;
+    }
     hooks.onActivity?.({ phase: "dismiss", label: "Saving job on Built In", kind: "click" });
     await call("highlight", { selector: host });
-    if (before?.found) {
-      await call("shadow", { host, inner: HEART_INNER, action: "click" });
-    } else {
-      await call("click", { selector: host, wait: 0 });
-    }
+    await call("shadow", { host, inner: HEART_INNER, action: "click" });
     const deadline = Date.now() + (skipDelays ? 0 : HEART_CONFIRM_MS);
     for (;;) {
       ctx.checkStopped();
       const next = await queryHeart(jobId);
-      if (isHeartSaved(next) || (skipDelays && next?.found === false)) return isHeartSaved(next);
+      if (isHeartSaved(next)) return true;
       if (Date.now() >= deadline) return false;
       await rest(HEART_POLL_MS);
     }
