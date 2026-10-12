@@ -28,14 +28,36 @@ const formatPercent = (value) => `${Math.round(value)}%`;
 
 const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
+function cursorLabel(pace) {
+  if (!pace?.page) return "";
+  if (pace.cardIndex && pace.cardsOnPage) {
+    return `Page ${pace.page} · card ${pace.cardIndex} of ${pace.cardsOnPage}`;
+  }
+  if (pace.card) return `Page ${pace.page} · card ${pace.card}`;
+  return `Page ${pace.page}`;
+}
+
+function blockReasons(pace) {
+  const kinds = (pace?.blocks ?? []).map((entry) => entry.kind).filter(Boolean);
+  if (pace?.lastBlock && !kinds.includes(pace.lastBlock)) kinds.push(pace.lastBlock);
+  return kinds.join(", ");
+}
+
 function PaceStats({ pace, routine }) {
   if (!pace) return null;
   const showRate = hasRunStat(routine, RUN_STAT.JOBS_PER_SECOND);
   const showConcurrency = hasRunStat(routine, RUN_STAT.CONCURRENCY);
+  const showCursor = hasRunStat(routine, RUN_STAT.CURSOR);
   const showBlocks = hasRunStat(routine, RUN_STAT.BLOCKS);
-  if (!showRate && !showConcurrency && !showBlocks) return null;
+  const cursor = cursorLabel(pace);
+  const reasons = blockReasons(pace);
+  if (!showRate && !showConcurrency && !showCursor && !showBlocks) return null;
+  if (!showRate && !showConcurrency && !cursor && !pace.blockCount) return null;
   return (
     <HStack gap={2} wrap="wrap">
+      {showCursor && cursor ? (
+        <Badge variant="neutral" label={cursor} description="List cursor" />
+      ) : null}
       {showRate ? (
         <Badge
           variant="blue"
@@ -54,7 +76,7 @@ function PaceStats({ pace, routine }) {
         <Badge
           variant="orange"
           label={`${pace.blockCount} blocks`}
-          description="Blocks in window"
+          description={reasons || "Blocks in window"}
         />
       ) : null}
     </HStack>
@@ -88,7 +110,11 @@ export default function LiveRunCard({ run, routine }) {
           <Banner status="warning" title="Crawl paused" description={run.warning} />
         ) : null}
 
-        {showPace ? <PaceStats pace={run.pace} routine={routine} /> : null}
+        {showPace ||
+        hasRunStat(routine, RUN_STAT.CURSOR) ||
+        hasRunStat(routine, RUN_STAT.BLOCKS) ? (
+          <PaceStats pace={run.pace} routine={routine} />
+        ) : null}
 
         {isRunning && showStepper ? (
           <>

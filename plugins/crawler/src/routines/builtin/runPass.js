@@ -1,42 +1,31 @@
 import {
-  BACKOFF_RAMP_EVERY,
-  BLOCK_WINDOW_MS,
-  clampPaceSettings,
-  DEFAULT_PACE_SETTINGS,
-  MAX_BLOCKS_IN_WINDOW,
-  MIN_CONCURRENCY,
-  TOKEN_BUCKET_CAPACITY,
-  WORKER_JITTER_MS,
-} from "../../api/paceSettings.js";
-import {
   createAdaptiveBackoff,
   DEFAULT_BACKOFF_BASE_MS,
   DEFAULT_BACKOFF_MAX_MS,
-  detectFetchBlock,
-  MAX_RETRY_AFTER_MS,
+  detectPageBlock,
 } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
-import { newFetchId } from "../../routineKit/fetchId.js";
-import { createPaceMeter } from "../../routineKit/paceMeter.js";
 import {
-  RoutineBlockedError,
   RoutineFinishedError,
   RoutineStepError,
   RoutineStoppedError,
 } from "../../routineKit/runner.js";
-import { createTokenBucket } from "../../routineKit/tokenBucket.js";
-import { createWorkerPool } from "../../routineKit/workerPool.js";
 
-import { jitterMs, MAX_PAGE } from "./constants.js";
-import { jobSaveSelector } from "./cssEscape.js";
-import { contiguousLastJobId, isJobHandled, unhandledCards } from "./handled.js";
 import {
-  advanceCursor,
-  cardIdKey,
-  emptyCursor,
-  listUrlForPage,
-  listUrlsFromBoard,
-} from "./lists.js";
+  HEART_CONFIRM_MS,
+  HEART_INNER,
+  HEART_POLL_MS,
+  JOB_DELAY_MS,
+  jitterMs,
+  MAX_PAGE,
+  NAVIGATE_WAIT_MS,
+  PAGE_DELAY_MS,
+  RETRY_PAUSE_MS,
+} from "./constants.js";
+import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
+import { isJobHandled, nextUnhandledCard } from "./handled.js";
+import { isHeartSaved } from "./heart.js";
+import { advanceCursor, cardIdKey, crawlListUrl, emptyCursor, listUrlForPage } from "./lists.js";
 import { parseDetail } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { createBuiltinStore } from "./store.js";
@@ -54,33 +43,8 @@ function isAbortError(error) {
   );
 }
 
-async function currentPage(call) {
-  const result = await call("html");
-  if (!result?.html) throw new RoutineStepError("The page did not return HTML");
-  return {
-    html: result.html,
-    url: result.url || "",
-    status: result.status || 200,
-    retryAfter: result.retryAfter,
-  };
-}
-
-async function fetchPage(call, url) {
-  try {
-    const result = await call("fetch", { url, fetchId: newFetchId() });
-    if (!result?.html && !detectFetchBlock(result).blocked) {
-      throw new RoutineStepError(`Failed to fetch ${url}`);
-    }
-    return {
-      html: result?.html || "",
-      url: result?.url || url,
-      status: result?.status || 0,
-      retryAfter: result?.retryAfter || "",
-    };
-  } catch (error) {
-    if (isAbortError(error)) throw new RoutineStoppedError();
-    throw error;
-  }
+function isTimeoutError(error) {
+  return /timed out/i.test(String(error?.message || error || ""));
 }
 
 function stripTrailingSlash(url) {
@@ -93,202 +57,154 @@ function stripTrailingSlash(url) {
   }
 }
 
-async function loadListPage(call, tab, listUrl, takePace) {
-  if (tab?.url && stripTrailingSlash(tab.url) === stripTrailingSlash(listUrl)) return tab;
-  if (takePace) await takePace();
-  return fetchPage(call, listUrl);
+function sameUrl(left, right) {
+  return stripTrailingSlash(left) === stripTrailingSlash(right);
+}
+
+async function readVisiblePage(call) {
+  const result = await call("html");
+  if (!result?.html && !detectPageBlock(result).blocked) {
+    throw new RoutineStepError("The page did not return HTML");
+  }
+  return {
+    html: result?.html || "",
+    url: result?.url || "",
+    status: result?.status || 200,
+  };
 }
 
 async function ensureCursor(store, tab) {
   const existing = await store.loadCursor();
   if (existing?.lists?.length) return existing;
-  const list = parseList(tab.html, tab.url);
-  const cursor = emptyCursor(listUrlsFromBoard(list.board, tab.url));
+  const cursor = emptyCursor([crawlListUrl(tab.url)]);
   await store.saveCursor(cursor);
   return cursor;
 }
 
-function nextCursorAfterPage(cursor, parsed) {
-  const pageIds = cardIdKey(parsed.cards);
-  const repeated = Boolean(pageIds) && pageIds === cursor.lastPageIds;
-  const canPaginate = Boolean(parsed.nextPageUrl) && parsed.cards.length > 0 && !repeated;
-  if (canPaginate) {
-    return { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
-  }
-  return advanceCursor(cursor, { nextList: true });
-}
-
-function emitPace(hooks, meter, backoff, extra = {}) {
-  const snapshot = {
-    jobsPerSecond: Number(meter.jobsPerSecond().toFixed(2)),
-    concurrency: backoff.concurrency,
-    blockCount: backoff.blockCount,
-    ...extra,
-  };
-  console.debug("[crawler:builtin] pace", snapshot);
-  hooks.onPace?.(snapshot);
-}
-
 /**
- * One crawl: prefetch list pages, fetch details through a worker pool, and
- * enqueue asynchronously. Stop cancels in-flight fetches. A job is marked
- * handled only after enqueue succeeds.
+ * One visible job: navigate the same tab to the card href, read the job page,
+ * enqueue, then return to ?page=N and click that list-card heart. Never fetches
+ * in the background. A block backs off and resumes; a timeout is retried.
  */
 export async function runBuiltInPass(ctx, progress) {
   const { hooks, call, rest } = ctx;
   const store = hooks.store ?? createBuiltinStore();
-  const settings = clampPaceSettings(hooks.pace ?? DEFAULT_PACE_SETTINGS);
   const skipDelays = Boolean(hooks.skipDelays);
-  const bucket = createTokenBucket({
-    rate: skipDelays ? Infinity : settings.jobsPerSecond,
-    capacity: TOKEN_BUCKET_CAPACITY,
-    now: hooks.now,
-    sleep: (ms) => rest(ms),
-  });
-  const takePace = async ({ jitter = false } = {}) => {
-    await bucket.take();
-    if (!skipDelays && jitter) {
-      await rest(jitterMs(WORKER_JITTER_MS, hooks.random ?? Math.random));
-    }
-  };
   const backoff = createAdaptiveBackoff({
-    maxConcurrency: settings.concurrency,
-    minConcurrency: MIN_CONCURRENCY,
-    maxBlocks: MAX_BLOCKS_IN_WINDOW,
-    windowMs: BLOCK_WINDOW_MS,
+    maxConcurrency: 1,
+    minConcurrency: 1,
+    maxBlocks: Number.POSITIVE_INFINITY,
     pauseMs: DEFAULT_BACKOFF_BASE_MS,
     maxPauseMs: DEFAULT_BACKOFF_MAX_MS,
-    maxRetryAfterMs: MAX_RETRY_AFTER_MS,
-    rampEvery: BACKOFF_RAMP_EVERY,
     now: hooks.now,
     random: hooks.random,
     sleep: (ms) => (skipDelays ? Promise.resolve() : rest(ms)),
   });
-  const pool = createWorkerPool({
-    getConcurrency: () => backoff.concurrency,
-    signal: hooks.signal,
-  });
-  const meter = createPaceMeter({ now: hooks.now });
-  const listCache = new Map();
-  let clickQueue = Promise.resolve();
-  let writeQueue = Promise.resolve();
-  let handledIds;
+  let handledIds = await store.loadHandledIds();
   let cursor;
-  let stopReason = null;
 
-  const serializeWrite = (fn) => {
-    const next = writeQueue.then(fn, fn);
-    writeQueue = next.catch(() => {});
-    return next;
+  const emitCursor = (extra = {}) => {
+    const snapshot = {
+      page: cursor?.page,
+      card: extra.card ?? cursor?.lastJobId ?? "",
+      cardIndex: extra.cardIndex,
+      cardsOnPage: extra.cardsOnPage,
+      blockCount: backoff.blockCount,
+      blocks: backoff.blocks.map((entry) => ({ kind: entry.kind, at: entry.at })),
+      ...extra,
+    };
+    hooks.onPace?.(snapshot);
   };
 
-  const handleBlock = async (page, label) => {
-    const detected = detectFetchBlock(page);
+  const pause = async (range) => {
+    if (!skipDelays) await rest(jitterMs(range, hooks.random ?? Math.random));
+  };
+
+  const handleBlock = async (page) => {
+    const detected = detectPageBlock(page);
     if (!detected.blocked) return false;
-    hooks.onActivity?.({ phase: "settle", label: `Backing off (${detected.kind})`, kind: "pause" });
-    const result = await backoff.onBlock({ retryAfter: page.retryAfter, kind: detected.kind });
-    emitPace(hooks, meter, backoff, { event: detected.kind, url: page.url });
-    if (result.stop) {
-      stopReason = `Built In blocked the crawl (${result.blockCount} blocks). Stopped to protect the session.`;
-      throw new RoutineBlockedError(stopReason);
-    }
-    void label;
+    hooks.onActivity?.({
+      phase: "settle",
+      label: `Backing off (${detected.kind})`,
+      kind: "pause",
+    });
+    await backoff.onBlock({ kind: detected.kind });
+    emitCursor({ lastBlock: detected.kind });
     return true;
   };
 
-  async function cachedList(listUrl) {
-    if (!listCache.has(listUrl)) {
-      listCache.set(
-        listUrl,
-        (async () => {
-          const page = await loadListPage(call, tab, listUrl, takePace);
-          await handleBlock(page, listUrl);
-          return { page, parsed: parseList(page.html, page.url) };
-        })(),
-      );
-    }
-    return listCache.get(listUrl);
-  }
-
-  function prefetch(url) {
-    if (!url || listCache.has(url)) return;
-    void cachedList(url).catch((error) => {
-      if (!isAbortError(error) && !(error instanceof RoutineBlockedError)) {
-        console.debug("[crawler:builtin] prefetch failed", url, error);
-      }
-      listCache.delete(url);
-    });
-  }
-
-  async function markJob(jobId) {
-    handledIds = await serializeWrite(async () => {
-      const nextHandled = await store.markHandled(jobId, handledIds);
-      const lastJobId = contiguousLastJobId(currentCards, nextHandled, cursor.lastJobId);
-      cursor = { ...cursor, lastJobId };
-      await store.saveCursor(cursor);
-      return nextHandled;
-    });
-  }
-
-  async function maybeClickSave(detail) {
-    if (!detail.meta.isSignedIn || detail.meta.isSaved || !detail.meta.id) return;
-    clickQueue = clickQueue.then(async () => {
+  const withRetry = async (fn) => {
+    for (;;) {
       ctx.checkStopped();
-      await call("click", { selector: jobSaveSelector(detail.meta.id), wait: 0 });
-    });
-    await clickQueue;
-  }
+      try {
+        return await fn();
+      } catch (error) {
+        if (isAbortError(error) || error instanceof RoutineFinishedError) throw error;
+        if (isTimeoutError(error)) {
+          hooks.onActivity?.({ phase: "ready", label: "Retrying after timeout", kind: "waitFor" });
+          if (!skipDelays) await rest(RETRY_PAUSE_MS);
+          continue;
+        }
+        throw error;
+      }
+    }
+  };
 
-  async function processCard(card) {
-    ctx.checkStopped();
-    if (!card.url) {
-      await markJob(card.id);
-      return;
+  const openVisible = async (url, label, phase = "open") => {
+    return withRetry(async () => {
+      const current = await readVisiblePage(call);
+      if (sameUrl(current.url, url) && current.html) return current;
+      hooks.onActivity?.({ phase, label, kind: "click" });
+      await call("navigate", { url, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
+      return readVisiblePage(call);
+    });
+  };
+
+  const queryHeart = (jobId) =>
+    call("shadow", { host: jobSaveSelector(jobId), inner: HEART_INNER, action: "query" });
+
+  const isCardSavedLive = async (card) => {
+    const state = await queryHeart(card.id);
+    if (state?.found) return isHeartSaved(state);
+    return card.hasSavedTag === true;
+  };
+
+  const clickListHeart = async (jobId) => {
+    const host = jobSaveSelector(jobId);
+    const before = await queryHeart(jobId);
+    if (isHeartSaved(before)) return true;
+    hooks.onActivity?.({ phase: "dismiss", label: "Saving job on Built In", kind: "click" });
+    await call("highlight", { selector: host });
+    if (before?.found) {
+      await call("shadow", { host, inner: HEART_INNER, action: "click" });
+    } else {
+      await call("click", { selector: host, wait: 0 });
     }
-    await takePace({ jitter: true });
-    ctx.checkStopped();
-    hooks.onActivity?.({ phase: "ready", label: "Opening job", kind: "waitFor" });
-    const detailPage = await fetchPage(call, card.url);
-    if (await handleBlock(detailPage, card.url)) {
-      return processCard(card);
+    const deadline = Date.now() + (skipDelays ? 0 : HEART_CONFIRM_MS);
+    for (;;) {
+      ctx.checkStopped();
+      const next = await queryHeart(jobId);
+      if (isHeartSaved(next) || (skipDelays && next?.found === false)) return isHeartSaved(next);
+      if (Date.now() >= deadline) return false;
+      await rest(HEART_POLL_MS);
     }
-    progress.tick();
-    const detail = parseDetail(detailPage.html, detailPage.url || card.url);
-    const jobId = card.id;
-    const detailId = detail.meta.id || card.id;
-    if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
-      await markJob(jobId);
-      if (detailId !== jobId) await markJob(detailId);
-      return;
-    }
-    const record = jobRecord(detail);
-    await reportDeclaredFields(ctx, progress, record);
-    hooks.onActivity?.({ phase: "submit", label: "Saving record" });
-    await hooks.onRecord?.(record);
-    await markJob(jobId);
-    if (detailId !== jobId) await markJob(detailId);
-    hooks.onActivity?.({ phase: "dismiss", label: "Marking job handled", kind: "click" });
-    await maybeClickSave(detail);
-    meter.mark();
-    backoff.onSuccess();
-    emitPace(hooks, meter, backoff, { jobId });
-    progress.tick();
-  }
+  };
+
+  const markJob = async (jobId) => {
+    if (!jobId) return;
+    handledIds = await store.markHandled(jobId, handledIds);
+    cursor = { ...cursor, lastJobId: jobId };
+    await store.saveCursor(cursor);
+  };
 
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
-  const tab = await currentPage(call);
+  const tab = await withRetry(() => readVisiblePage(call));
   progress.tick();
-
-  handledIds = await store.loadHandledIds();
   cursor = await ensureCursor(store, tab);
-  const maxSteps = MAX_PAGE * Math.max(cursor.lists.length, 1) + 1;
-  let steps = 0;
-  let currentCards = [];
 
   for (;;) {
     ctx.checkStopped();
-    steps += 1;
-    if (steps > maxSteps) {
+    if (cursor.page > MAX_PAGE) {
       await store.clearCursor();
       throw new RoutineFinishedError("Built In crawl hit the page cap");
     }
@@ -298,46 +214,92 @@ export async function runBuiltInPass(ctx, progress) {
       throw new RoutineFinishedError("Nothing left to process on Built In");
     }
 
+    const pageUrl = listUrlForPage(listUrl, cursor.page);
     hooks.onActivity?.({
       phase: "open",
-      label: `List ${cursor.listIndex + 1}/${cursor.lists.length}, page ${cursor.page}`,
+      label: `Page ${cursor.page}`,
       kind: "waitFor",
     });
-    emitPace(hooks, meter, backoff, { listUrl, page: cursor.page });
-    const pageUrl = listUrlForPage(listUrl, cursor.page);
-    const { parsed } = await cachedList(pageUrl);
+    emitCursor();
+    const listPage = await openVisible(pageUrl, `Opening page ${cursor.page}`);
+    if (await handleBlock(listPage)) continue;
+
+    const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = cardIdKey(parsed.cards);
-    currentCards = parsed.cards;
-
+    if (!parsed.nextPageUrl && parsed.cards.length === 0) {
+      await store.clearCursor();
+      throw new RoutineFinishedError("Nothing left to process on Built In");
+    }
     if (pageIds && pageIds === cursor.lastPageIds) {
-      cursor = advanceCursor(cursor, { nextList: true });
-      await store.saveCursor(cursor);
-      continue;
-    }
-    if (parsed.nextPageUrl) prefetch(listUrlForPage(listUrl, cursor.page + 1));
-
-    const cards = unhandledCards(parsed.cards, handledIds, cursor.lastJobId);
-    if (!cards.length) {
-      cursor = nextCursorAfterPage(cursor, parsed);
-      await store.saveCursor(cursor);
-      continue;
+      await store.clearCursor();
+      throw new RoutineFinishedError("Nothing left to process on Built In");
     }
 
-    const results = await Promise.allSettled(
-      cards.map((card) => pool.run(() => processCard(card))),
-    );
-    const blocked = results.find(
-      (result) => result.status === "rejected" && result.reason instanceof RoutineBlockedError,
-    );
-    if (blocked) throw blocked.reason;
-    const stopped = results.find(
-      (result) => result.status === "rejected" && isAbortError(result.reason),
-    );
-    if (stopped) throw new RoutineStoppedError();
-    const failed = results.find((result) => result.status === "rejected");
-    if (failed) throw failed.reason;
+    let card = nextUnhandledCard(parsed.cards, handledIds, cursor.lastJobId);
+    while (card && (await isCardSavedLive(card))) {
+      await markJob(card.id);
+      card = nextUnhandledCard(parsed.cards, handledIds, card.id);
+    }
 
-    cursor = nextCursorAfterPage(cursor, parsed);
-    await store.saveCursor(cursor);
+    if (!card) {
+      if (!parsed.nextPageUrl || parsed.cards.length === 0) {
+        await store.clearCursor();
+        throw new RoutineFinishedError("Nothing left to process on Built In");
+      }
+      cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
+      await store.saveCursor(cursor);
+      await pause(PAGE_DELAY_MS);
+      continue;
+    }
+
+    const cardIndex = parsed.cards.findIndex((item) => item.id === card.id) + 1;
+    emitCursor({ card: card.id, cardIndex, cardsOnPage: parsed.cards.length });
+    hooks.onActivity?.({
+      phase: "open",
+      label: `Page ${cursor.page} · card ${cardIndex} of ${parsed.cards.length}`,
+      kind: "click",
+    });
+    await call("highlight", { selector: jobCardSelector(card.id) });
+    if (!card.url) {
+      await markJob(card.id);
+      continue;
+    }
+
+    const detailPage = await openVisible(card.url, "Opening job");
+    if (await handleBlock(detailPage)) {
+      await openVisible(pageUrl, "Returning to job list", "settle");
+      continue;
+    }
+
+    progress.tick();
+    const detail = parseDetail(detailPage.html, detailPage.url || card.url);
+    const jobId = card.id;
+    const detailId = detail.meta.id || card.id;
+    if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
+      await markJob(jobId);
+      if (detailId !== jobId) await markJob(detailId);
+      await openVisible(pageUrl, "Returning to job list", "settle");
+      continue;
+    }
+
+    const record = jobRecord(detail);
+    await reportDeclaredFields(ctx, progress, record);
+    hooks.onActivity?.({ phase: "submit", label: "Saving record" });
+    await hooks.onRecord?.(record);
+    await markJob(jobId);
+    if (detailId !== jobId) await markJob(detailId);
+
+    const listAfter = await openVisible(pageUrl, "Returning to job list", "settle");
+    if (await handleBlock(listAfter)) {
+      backoff.onSuccess();
+      progress.tick();
+      return;
+    }
+    await clickListHeart(jobId);
+    backoff.onSuccess();
+    emitCursor({ card: jobId, cardIndex, cardsOnPage: parsed.cards.length });
+    await pause(JOB_DELAY_MS);
+    progress.tick();
+    return;
   }
 }
