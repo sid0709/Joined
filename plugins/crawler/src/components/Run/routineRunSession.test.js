@@ -12,6 +12,7 @@ import {
   applyActiveQueueSnapshot,
   createRoutineRunSession,
   EMPTY_QUEUE,
+  newRunId,
   readDeclaredField,
 } from "./routineRunSession";
 import { fieldRunSummary } from "./runState";
@@ -148,5 +149,102 @@ describe("routineRunSession", () => {
     expect(result.valid).toBe(false);
     expect(result.error?.message).toBe("checker exploded");
     expect(isFound("Engineer")).toBe(true);
+  });
+
+  test("wraps a non-Error field-check throw", () => {
+    const result = readDeclaredField("title", { title: "Engineer" }, true, {
+      declaredFields: [
+        {
+          get key() {
+            throw "checker exploded";
+          },
+        },
+      ],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error.message).toBe("checker exploded");
+  });
+
+  test("scores a declared field that does not throw", () => {
+    const result = readDeclaredField(
+      "title",
+      {
+        applyUrl: "https://jobs.example/1",
+        title: "Engineer",
+        description: "Build.",
+        companyName: "Acme",
+      },
+      true,
+      BuiltInRoutine,
+    );
+    expect(result).toMatchObject({ path: "title", found: true, valid: true, error: null });
+  });
+
+  test("defaults missing queue counts and keeps a foreign summary off this run", () => {
+    expect(applyActiveQueueSnapshot("run-new", { runId: "run-new" })).toEqual({
+      counts: EMPTY_QUEUE,
+      summary: null,
+    });
+    expect(newRunId()).toBeTruthy();
+  });
+
+  test("Start resets extractError and a matching scrapeQueue ack updates counts", async () => {
+    const queue = fakeScrapeQueue();
+    const session = createRoutineRunSession({ send: queue.send });
+    const runId = await session.start(BuiltInRoutine);
+    session.recordField("title", { title: "Engineer" }, true, {
+      declaredFields: [
+        {
+          get key() {
+            throw new Error("checker exploded");
+          },
+        },
+      ],
+    });
+    expect(session.snapshot.extractError).toBe("checker exploded");
+    expect(session.recordFields({ title: "Engineer" }, { declaredFields: [] })).toEqual([]);
+
+    expect(
+      session.applyQueueState({
+        runId,
+        counts: { queued: 2, saving: 1 },
+        summary: { ...createScrapeRunStats(), registered: 3 },
+      }),
+    ).toBe(true);
+    expect(session.snapshot.queueCounts).toEqual({ queued: 2, saving: 1 });
+    expect(session.snapshot.stats.registered).toBe(3);
+
+    const again = await session.start(BuiltInRoutine);
+    expect(again).toBeTruthy();
+    expect(session.snapshot.extractError).toBeNull();
+    expect(session.snapshot.queueCounts).toEqual(EMPTY_QUEUE);
+    expect(session.snapshot.stats).toEqual(createScrapeRunStats());
+  });
+
+  test("submitJob fails when the queue does not ack an id", async () => {
+    const session = createRoutineRunSession({
+      send: async () => ({ success: true, state: { runId: "run-x", counts: EMPTY_QUEUE } }),
+    });
+    await session.start(BuiltInRoutine);
+    await expect(
+      session.submitJob(
+        {
+          applyUrl: "https://jobs.example/1",
+          title: "Engineer",
+          description: "Build.",
+          companyName: "Acme",
+        },
+        BuiltInRoutine,
+      ),
+    ).rejects.toThrow("Failed to enqueue scraped job");
+  });
+
+  test("Start without a send still opens a run", async () => {
+    const session = createRoutineRunSession();
+    const runId = await session.start(BuiltInRoutine);
+    expect(runId).toBeTruthy();
+    expect(session.snapshot.queueCounts).toEqual(EMPTY_QUEUE);
+    expect(session.applyQueueState({ runId: "other" })).toBe(false);
   });
 });

@@ -324,6 +324,66 @@ func TestCrawledTempDocumentStoresCompanyProfileAndSocials(t *testing.T) {
 	}
 }
 
+func TestCrawledTempDocumentDropsFoldedCompanyExtraKeys(t *testing.T) {
+	now := time.Date(2026, 10, 12, 18, 0, 0, 0, time.UTC)
+	body := []byte(`{"jobs":[{
+		"title":"Eng","description":"Build","applyLink":"https://north.example/apply/1",
+		"companyName":"North",
+		"metadata":{
+			"companyWebsite":"https://north.example/",
+			"companyProfileUrl":"https://builtin.com/company/north",
+			"companySocials":{"linkedin":"https://linkedin.com/company/north"},
+			"postedAtSource":"jsonld+ago"
+		}
+	}]}`)
+	batch, err := ParseCrawlerBatch(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := bson.Marshal(crawledTempDocument(bson.NewObjectID(), batch.Jobs[0], "joined-scrapper", now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		CompanyLink string `bson:"companyLink"`
+		Metadata    struct {
+			Company struct {
+				Website    string            `bson:"website"`
+				ProfileURL string            `bson:"profileUrl"`
+				Socials    map[string]string `bson:"socials"`
+			} `bson:"company"`
+			PostedAtSource string         `bson:"postedAtSource"`
+			Extra          map[string]any `bson:"extra"`
+		} `bson:"metadata"`
+	}
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.CompanyLink != "https://north.example/" ||
+		doc.Metadata.Company.Website != "https://north.example/" ||
+		doc.Metadata.Company.ProfileURL != "https://builtin.com/company/north" {
+		t.Fatalf("company = %+v link = %q", doc.Metadata.Company, doc.CompanyLink)
+	}
+	if doc.Metadata.Company.Socials["linkedin"] != "https://linkedin.com/company/north" {
+		t.Fatalf("socials = %+v", doc.Metadata.Company.Socials)
+	}
+	if _, ok := doc.Metadata.Extra[crawlerWebsiteKey]; ok {
+		t.Fatalf("companyWebsite leaked into extra: %+v", doc.Metadata.Extra)
+	}
+	if _, ok := doc.Metadata.Extra[crawlerSocialsKey]; ok {
+		t.Fatalf("companySocials leaked into extra: %+v", doc.Metadata.Extra)
+	}
+	if _, ok := doc.Metadata.Extra[crawlerProfileURLKey]; ok {
+		t.Fatalf("companyProfileUrl leaked into extra: %+v", doc.Metadata.Extra)
+	}
+	if doc.Metadata.PostedAtSource != "jsonld+ago" {
+		t.Fatalf("postedAtSource = %q extra = %+v", doc.Metadata.PostedAtSource, doc.Metadata.Extra)
+	}
+	if _, ok := doc.Metadata.Extra[crawlerPostedAtSourceKey]; ok {
+		t.Fatalf("postedAtSource leaked into extra: %+v", doc.Metadata.Extra)
+	}
+}
+
 // crawlerTestStore connects to MONGODB_TEST_URI and returns a store on throwaway
 // databases that are dropped when the test ends.
 func crawlerTestStore(t *testing.T) *Store {

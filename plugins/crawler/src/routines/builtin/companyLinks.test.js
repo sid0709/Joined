@@ -89,6 +89,31 @@ describe("companyWebsiteFrom", () => {
     );
   });
 
+  test("leaves website empty when The Company box has HQ and size only", () => {
+    const { document } = page(`
+      <div class="bg-white rounded-3 p-md">
+        <i class="fa-regular fa-map-location-dot"></i>
+        <div class="font-barlow">HQ: Englewood, CO</div>
+        <i class="fa-regular fa-user-group"></i>
+        <span>14,500 Employees</span>
+        <i class="fa-regular fa-calendar"></i>
+        <span>Year Founded: 1980</span>
+      </div>`);
+    const box = document.querySelector("div.bg-white");
+    expect(
+      companyWebsiteFrom(
+        document,
+        { sameAs: "https://builtin.com/company/echostar" },
+        PAGE,
+        "",
+        box,
+      ),
+    ).toBe("");
+    expect(
+      companySocialsFrom(document, { sameAs: "https://builtin.com/company/echostar" }, PAGE, box),
+    ).toEqual({});
+  });
+
   test("does not treat a social or Built In link as the website", () => {
     const { document } = page(`
       <div class="box">

@@ -74,6 +74,44 @@ func TestCrawledJobPersistsCompanyMetadata(t *testing.T) {
 	}
 }
 
+func TestCrawledJobDropsFoldedCompanyExtraKeys(t *testing.T) {
+	body := []byte(`{"jobs":[{
+		"title":"Eng","description":"Build","applyLink":"https://north.example/apply/1",
+		"companyName":"North",
+		"metadata":{
+			"companyWebsite":"https://north.example/",
+			"companyProfileUrl":"https://builtin.com/company/north",
+			"companySocials":{"linkedin":"https://linkedin.com/company/north"},
+			"postedAtSource":"jsonld+ago"
+		}
+	}]}`)
+	batch, err := ParseCrawlerBatch(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := batch.Jobs[0]
+	if job.Company.Metadata["website"] != "https://north.example/" ||
+		job.Company.Metadata["profileUrl"] != "https://builtin.com/company/north" {
+		t.Fatalf("company metadata = %+v", job.Company.Metadata)
+	}
+	socials, _ := job.Company.Metadata["socials"].(map[string]any)
+	if socials["linkedin"] != "https://linkedin.com/company/north" {
+		t.Fatalf("socials = %+v", job.Company.Metadata["socials"])
+	}
+	if _, ok := job.Metadata[crawlerWebsiteKey]; ok {
+		t.Fatalf("companyWebsite stayed on job metadata: %+v", job.Metadata)
+	}
+	if _, ok := job.Metadata[crawlerSocialsKey]; ok {
+		t.Fatalf("companySocials stayed on job metadata: %+v", job.Metadata)
+	}
+	if _, ok := job.Metadata[crawlerProfileURLKey]; ok {
+		t.Fatalf("companyProfileUrl stayed on job metadata: %+v", job.Metadata)
+	}
+	if job.Metadata["postedAtSource"] != "jsonld+ago" {
+		t.Fatalf("unrelated extra dropped: %+v", job.Metadata)
+	}
+}
+
 func TestCrawledJobLiftsCrawledAtAndBuiltinSocials(t *testing.T) {
 	body := []byte(`{"jobs":[{
 		"title":"Eng","description":"Build","applyLink":"https://builtin.com/job/1",
