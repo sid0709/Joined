@@ -31,7 +31,7 @@ function readKey(storage, key) {
   if (storage.get.length >= 2) {
     return new Promise((resolve, reject) => {
       storage.get(key, (items) => {
-        const error = chrome?.runtime?.lastError;
+        const error = globalThis.chrome?.runtime?.lastError;
         if (error) reject(new Error(error.message));
         else resolve(items?.[key]);
       });
@@ -48,7 +48,7 @@ function writeKey(storage, key, value) {
   if (storage.set.length >= 2) {
     return new Promise((resolve, reject) => {
       storage.set({ [key]: value }, () => {
-        const error = chrome?.runtime?.lastError;
+        const error = globalThis.chrome?.runtime?.lastError;
         if (error) reject(new Error(error.message));
         else resolve();
       });

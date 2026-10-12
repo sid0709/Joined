@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { documentFromHtml } from "./html.js";
 import { cardIdKey, listUrlForPage, listUrlsFromBoard, pageFromListUrl } from "./lists.js";
 import { parseList, parseNextPageUrl } from "./parseList.js";
-import "./testing/domParser.js";
+import { installDomParser } from "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
 
 const LIST_URL = "https://builtin.com/jobs";
@@ -63,5 +63,15 @@ describe("parseList", () => {
     expect(pageFromListUrl("https://builtin.com/jobs?page=4")).toBe(4);
     expect(pageFromListUrl("https://builtin.com/jobs")).toBe(1);
     expect(cardIdKey([{ id: "b" }, { id: "a" }, { id: "a" }])).toBe("a\nb");
+  });
+
+  test("installs DOMParser when missing", () => {
+    const previous = globalThis.DOMParser;
+    globalThis.DOMParser = undefined;
+    installDomParser();
+    const document = new globalThis.DOMParser().parseFromString("<p>ok</p>", "text/html");
+    expect(document.querySelector("p")?.textContent).toBe("ok");
+    installDomParser();
+    globalThis.DOMParser = previous;
   });
 });

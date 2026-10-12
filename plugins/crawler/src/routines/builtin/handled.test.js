@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { HANDLED_MAX_AGE_MS, HANDLED_MAX_IDS, HANDLED_STORAGE_KEY } from "./constants.js";
+import {
+  HANDLED_MAX_AGE_MS,
+  HANDLED_MAX_IDS,
+  HANDLED_STORAGE_KEY,
+  JOB_DELAY_MS,
+  jitterMs,
+} from "./constants.js";
 import { cssEscape, jobSaveSelector } from "./cssEscape.js";
 import { handledIdSet, isJobHandled, nextUnhandledCard } from "./handled.js";
 import { createBuiltinStore, memoryStorage, pruneHandledRecord } from "./store.js";
@@ -32,6 +38,7 @@ describe("handled skip", () => {
     );
     expect(jobSaveSelector(evil)).toBe(`my-item[entity-type="job"][entity-id=${cssEscape(evil)}]`);
     expect(jobSaveSelector(evil)).not.toContain(`"${evil}"`);
+    expect(cssEscape("\0")).toBe("\uFFFD");
   });
 
   test("persists handled IDs and the crawl cursor", async () => {
@@ -85,5 +92,45 @@ describe("handled skip", () => {
     expect([...(await store.loadHandledIds())].sort()).toEqual(["keep"]);
     await store.markHandled("next", new Set(["keep"]), now + 1);
     expect(storage.snapshot()[HANDLED_STORAGE_KEY]).toEqual({ keep: now, next: now + 1 });
+  });
+
+  test("jitter stays inside the named delay range", () => {
+    expect(jitterMs(JOB_DELAY_MS, () => 0)).toBe(JOB_DELAY_MS.min);
+    expect(jitterMs(JOB_DELAY_MS, () => 1)).toBe(JOB_DELAY_MS.max);
+  });
+
+  test("ignores empty ids, non-numeric timestamps, and timestamp ties", () => {
+    const now = 1_700_000_000_000;
+    expect(pruneHandledRecord(["nope"], now)).toEqual({});
+    expect(pruneHandledRecord({ "": now, bad: "x", a: now, b: now }, now)).toEqual({
+      a: now,
+      b: now,
+    });
+  });
+
+  test("reads chrome-style storage and the memory get shapes", async () => {
+    const data = {};
+    const chromeStorage = {
+      get(key, callback) {
+        callback({ [key]: data[key] });
+      },
+      set(items, callback) {
+        Object.assign(data, items);
+        callback();
+      },
+    };
+    const store = createBuiltinStore(chromeStorage);
+    expect(await store.markHandled("", new Set(["keep"]))).toEqual(new Set(["keep"]));
+    const now = Date.now();
+    await store.markHandled("9", new Set(), now);
+    expect([...(await store.loadHandledIds())]).toEqual(["9"]);
+
+    const memory = memoryStorage({ a: 1, b: 2 });
+    expect(memory.get(["a", "b"])).toEqual({ a: 1, b: 2 });
+    expect(memory.get({ a: null, b: null })).toEqual({ a: 1, b: 2 });
+
+    const empty = createBuiltinStore();
+    expect([...(await empty.loadHandledIds())]).toEqual([]);
+    await empty.saveCursor(null);
   });
 });
