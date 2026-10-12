@@ -23,15 +23,19 @@ export async function openSignIn(page: Page) {
   await expect(page.getByRole("heading", { name: EMAIL_AUTH_COPY.signInHeading })).toBeVisible();
 }
 
-export async function submitEmailSignUp(
+/** Create account via API; sign-up UI is Google-only. */
+export async function signupEmailAccountViaApi(
   page: Page,
   input: { name: string; email: string; password: string },
 ) {
-  await page.getByRole("textbox", { name: EMAIL_AUTH_COPY.nameLabel }).fill(input.name);
-  await page.getByRole("textbox", { name: EMAIL_AUTH_COPY.emailLabel }).fill(input.email);
-  await page.getByRole("textbox", { name: EMAIL_AUTH_COPY.passwordLabel }).fill(input.password);
-  await page.getByRole("button", { name: EMAIL_AUTH_COPY.createAccountEmail }).click();
-  await expect(page).toHaveURL(new RegExp(AUTH_PATHS.checkEmail), { timeout: EMAIL_PAGE_WAIT_MS });
+  const response = await page.request.post("/api/auth/signup", {
+    data: { name: input.name, email: input.email, password: input.password },
+  });
+  expect(response.ok()).toBeTruthy();
+}
+
+export async function openCheckEmailAfterSignup(page: Page, email: string) {
+  await page.goto(`${AUTH_PATHS.checkEmail}?email=${encodeURIComponent(email)}`);
   await expect(
     page.getByRole("heading", { name: EMAIL_AUTH_COPY.checkEmailHeading }),
   ).toBeVisible();

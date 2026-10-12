@@ -15,10 +15,11 @@ import {
   expectGoogleSignUpVisible,
   expectSignedIn,
   openSignIn,
+  openCheckEmailAfterSignup,
   openSignUp,
   signOut,
+  signupEmailAccountViaApi,
   submitEmailSignIn,
-  submitEmailSignUp,
   submitForgotPassword,
   submitResetPassword,
 } from "../helpers/email-auth";
@@ -41,8 +42,12 @@ test.describe("email sign-up and log-in journey", () => {
 
     await openSignUp(page);
     await expectGoogleSignUpVisible(page);
+    await expect(
+      page.getByRole("button", { name: EMAIL_AUTH_COPY.createAccountEmail }),
+    ).toHaveCount(0);
     const verifyCursor = await logByteCursor();
-    await submitEmailSignUp(page, account);
+    await signupEmailAccountViaApi(page, account);
+    await openCheckEmailAfterSignup(page, email);
 
     await openSignIn(page);
     await submitEmailSignIn(page, account);
