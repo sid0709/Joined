@@ -64,6 +64,9 @@ describe("routineProblems", () => {
       "output is required",
       "match.hosts must list at least one host",
     ]);
+    expect(routineProblems({ ...validRoutine(), runPass: 1 })).toEqual([
+      "runPass must be a function",
+    ]);
   });
 
   test("checks the strategy and its steps", () => {

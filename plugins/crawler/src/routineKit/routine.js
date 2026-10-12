@@ -92,6 +92,9 @@ export function routineProblems(routine) {
   if (!Number.isInteger(routine.version) || routine.version < 1)
     problems.push("version must be a positive whole number");
   if (!isNonEmptyString(routine.output)) problems.push("output is required");
+  if (routine.runPass != null && typeof routine.runPass !== "function") {
+    problems.push("runPass must be a function");
+  }
   const hosts = routine.match?.hosts;
   if (!Array.isArray(hosts) || !hosts.length || !hosts.every(isNonEmptyString))
     problems.push("match.hosts must list at least one host");

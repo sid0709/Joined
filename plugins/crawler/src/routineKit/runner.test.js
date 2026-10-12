@@ -230,4 +230,26 @@ describe("runRoutinePass", () => {
       "Unsupported strategy: teleport",
     );
   });
+
+  test("uses a routine's own runPass when it provides one", async () => {
+    const routine = makeRoutine();
+    let seen = null;
+    const custom = {
+      ...routine,
+      runPass: async (ctx, progress) => {
+        seen = ctx.routine.id;
+        progress.tick();
+        await ctx.hooks.onRecord?.({ title: "from-custom" });
+      },
+    };
+    let record = null;
+    await runRoutinePass(custom, {
+      exec: fakePage().exec,
+      onRecord: (value) => {
+        record = value;
+      },
+    });
+    expect(seen).toBe("test");
+    expect(record).toEqual({ title: "from-custom" });
+  });
 });

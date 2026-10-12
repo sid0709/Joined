@@ -7,7 +7,8 @@ import { STRATEGY_PHASES } from "./strategies.js";
  * Runs one pass of a routine. The runner never touches the DOM: every page action is an
  * op sent through `hooks.exec({ op, ...payload })`, which the side panel routes to the
  * content script (see contentScript/messages/routineOps.js). Ops: count, highlight,
- * clear, click, extract.
+ * clear, click, extract, html, fetch. A routine may set `runPass` to replace the
+ * built-in strategy runner.
  *
  * Hooks:
  * - `exec(op)` → Promise of the op's result. Required.
@@ -205,10 +206,14 @@ function createProgress(total, onProgress) {
 
 /** Run one pass of `routine`. Resolves when the pass is done; see the errors above. */
 export async function runRoutinePass(routine, hooks) {
-  const run = STRATEGY_RUNNERS[routine.strategy.kind];
-  if (!run) throw new Error(`Unsupported strategy: ${routine.strategy.kind}`);
   if (typeof hooks?.exec !== "function") throw new Error("runRoutinePass needs hooks.exec");
   const ctx = createContext(routine, hooks);
   ctx.checkStopped();
+  if (typeof routine.runPass === "function") {
+    await routine.runPass(ctx, createProgress(countUnits(routine), hooks.onProgress));
+    return;
+  }
+  const run = STRATEGY_RUNNERS[routine.strategy.kind];
+  if (!run) throw new Error(`Unsupported strategy: ${routine.strategy.kind}`);
   await run(ctx, createProgress(countUnits(routine), hooks.onProgress));
 }

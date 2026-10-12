@@ -4,12 +4,29 @@ import { clearHighlights, highlightElements } from "../highlighter";
 
 // The page side of the routine runner (routineKit/runner.js): each op does one thing to
 // the live page and answers with its result.
+function sameSiteUrl(url) {
+  const resolved = new URL(url, location.href);
+  const host = resolved.hostname.replace(/^www\./i, "").toLowerCase();
+  const here = location.hostname.replace(/^www\./i, "").toLowerCase();
+  if (host !== here) throw new Error("Fetch is limited to this site");
+  return resolved.href;
+}
+
 const OPS = {
   count: ({ selector }) => ({ count: queryAll(document, selector).length }),
   highlight: ({ selector }) => highlightElements(queryAll(document, selector)),
   clear: () => {
     clearHighlights();
     return {};
+  },
+  html: () => ({
+    html: document.documentElement?.outerHTML ?? "",
+    url: location.href,
+  }),
+  fetch: async ({ url }) => {
+    const resolved = sameSiteUrl(url);
+    const response = await fetch(resolved, { credentials: "include" });
+    return { html: await response.text(), url: response.url, status: response.status };
   },
   click: async ({ selector, nth = 0, wait = 0 }) => {
     const target = (await waitForMatches(document, selector, wait))[nth];
