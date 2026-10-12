@@ -12,7 +12,16 @@ import {
   pageFromListUrl,
 } from "./lists.js";
 import { parseList, requisitionIdFromHref } from "./parseList.js";
-import { cardMarkup, carouselMarkup, groupedHits, listPageHtml } from "./testing/pageHtml.js";
+import {
+  INTERIM_COLLAPSE,
+  INTERIM_JOBS,
+  cardMarkup,
+  carouselMarkup,
+  groupedHits,
+  interimHits,
+  listPageHtml,
+  viewAllDialogMarkup,
+} from "./testing/pageHtml.js";
 import "./testing/domParser.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
@@ -83,6 +92,42 @@ describe("parseList grouping", () => {
     expect(
       parsed.jobs.filter((job) => job.collapseKey === parsed.jobs[0].collapseKey),
     ).toHaveLength(3);
+  });
+
+  test("enumerates every job in a 4-job collapse_key group", () => {
+    const parsed = parseList(
+      listPageHtml({
+        hits: interimHits(),
+        cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+      }),
+      LIST_URL,
+    );
+    expect(parsed.groups).toHaveLength(1);
+    expect(parsed.groups[0].collapseKey).toBe(INTERIM_COLLAPSE);
+    expect(parsed.jobs).toHaveLength(4);
+    expect(parsed.jobs.map((job) => job.id)).toEqual(INTERIM_JOBS.map((job) => job.requisitionId));
+    expect(parsed.jobs.map((job) => job.title)).toContain("Community Support Worker III - MCHOME");
+    expect(parsed.jobs.every((job) => job.collapseKey === INTERIM_COLLAPSE)).toBe(true);
+    expect(parsed.jobs[0].groupSize).toBe(4);
+    expect(parsed.jobs[3].id).toBe("bhzhzp7x4upf48f0");
+    expect(parsed.shortfalls).toEqual([]);
+  });
+
+  test("folds a View all dialog job into a truncated collapse_key group", () => {
+    const parsed = parseList(
+      listPageHtml({
+        hits: interimHits().slice(0, 3),
+        cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+        viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+      }),
+      LIST_URL,
+    );
+    expect(parsed.jobs.map((job) => job.id)).toEqual(INTERIM_JOBS.map((job) => job.requisitionId));
+    expect(parsed.jobs[3].title).toBe("Community Support Worker III - MCHOME");
+    expect(parsed.jobs[3].url).toContain(INTERIM_JOBS[3].path);
+    expect(parsed.jobs[3].collapseKey).toBe(INTERIM_COLLAPSE);
+    expect(parsed.jobs[0].groupSize).toBe(4);
+    expect(parsed.shortfalls).toEqual([]);
   });
 
   test("warns when a card has more dots than captured jobs", () => {

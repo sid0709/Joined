@@ -46,6 +46,48 @@ export function hit({
   };
 }
 
+export const INTERIM_COLLAPSE = "collapse-interim";
+
+export const INTERIM_JOBS = Object.freeze([
+  Object.freeze({
+    requisitionId: "v1f7zi9s9sjs7nuw",
+    title: "Custodian I",
+    path: "/job/custodian-i-interim-inc-salinas-california-v1f7zi9s9sjs7nuw",
+  }),
+  Object.freeze({
+    requisitionId: "8exxx344cu65m97q",
+    title: "Administrative Assistant II/Counselor I (Sandy Shores)",
+    path: "/job/administrative-assistant-ii-counselor-i-sandy-shores-interim-inc-8exxx344cu65m97q",
+  }),
+  Object.freeze({
+    requisitionId: "sj62vr6lcpw185gn",
+    title: "Custodian I - Sun Rose Housing",
+    path: "/job/custodian-i-sun-rose-housing-sun-rose-housing-salinas-california-sj62vr6lcpw185gn",
+  }),
+  Object.freeze({
+    requisitionId: "bhzhzp7x4upf48f0",
+    title: "Community Support Worker III - MCHOME",
+    path: "/job/community-support-worker-iii-mchome-interim-inc-salinas-california-bhzhzp7x4upf48f0",
+  }),
+]);
+
+export function interimHits() {
+  return INTERIM_JOBS.map((job) =>
+    hit({
+      requisitionId: job.requisitionId,
+      title: job.title,
+      collapseKey: INTERIM_COLLAPSE,
+      companyName: "Interim, Inc.",
+      website: "interiminc.org",
+    }),
+  );
+}
+
+export function viewAllDialogMarkup(jobs = INTERIM_JOBS) {
+  const links = jobs.map((job) => `<a href="${job.path}">${job.title}</a>`).join("");
+  return `<div role="dialog" data-testid="view-all">${links}</div>`;
+}
+
 export function groupedHits() {
   return [
     hit({
@@ -113,6 +155,7 @@ export function listPageHtml({
   cards,
   toast = false,
   extraHits,
+  viewAll,
 } = {}) {
   const visibleCards = cards ?? [
     cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", {
@@ -140,6 +183,7 @@ export function listPageHtml({
   return `<!DOCTYPE html><html><body>
     <div data-testid="job-results"><div class="hc-card-grid">${visibleCards.join("")}</div></div>
     ${toast ? toastMarkup() : ""}
+    ${viewAll || ""}
     <script id="__NEXT_DATA__" type="application/json">${JSON.stringify(payload)}</script>
   </body></html>`;
 }

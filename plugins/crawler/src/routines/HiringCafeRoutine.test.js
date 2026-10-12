@@ -18,16 +18,20 @@ import {
   START_FROM_PAGE_ONE_LABEL,
   UPDATE_STAGE_OK,
   UPDATE_STAGE_PATH,
+  VIEW_ALL_TEXT,
 } from "./hiringcafe/constants.js";
 import { createHiringCafeStore, memoryStorage } from "./hiringcafe/store.js";
 import {
+  INTERIM_JOBS,
   cardMarkup,
   carouselMarkup,
   detailJob,
   detailPageHtml,
   groupedHits,
+  interimHits,
   listPageHtml,
   overlayMarkup,
+  viewAllDialogMarkup,
 } from "./hiringcafe/testing/pageHtml.js";
 import HiringCafeRoutine from "./HiringCafeRoutine.js";
 
@@ -58,6 +62,7 @@ function hiringCafeTab({
   challengeOnce = false,
   timeoutOnce = null,
   alreadyApplied = [],
+  viewAllJobs = null,
 } = {}) {
   let url = listUrl;
   let status = 200;
@@ -66,6 +71,7 @@ function hiringCafeTab({
   let overlay = "";
   let toast = false;
   let hoveredId = "";
+  let viewAllOpen = false;
   const appliedIds = new Set(alreadyApplied);
   const clicks = [];
   const navigates = [];
@@ -91,6 +97,10 @@ function hiringCafeTab({
   const pages = { ...defaultDetails, ...(details ?? {}) };
   const pageFor = (href) => {
     if (pages[href]) return { html: pages[href], url: href };
+    const id = String(href || "").match(/-([a-z0-9]+)$/i)?.[1];
+    const byId =
+      id && Object.entries(pages).find(([key]) => key.endsWith(`-${id}`) || key.includes(`-${id}`));
+    if (byId) return { html: byId[1], url: href };
     const isList = /\/classic/.test(href);
     if (isList && /[?&]page=/.test(href)) {
       return {
@@ -132,7 +142,10 @@ function hiringCafeTab({
         };
       }
       const page = htmlOverride == null ? pageFor(url) : { html: htmlOverride, url };
-      const html = /\/classic/.test(url) && overlay ? listWithOverlay() : page.html;
+      let html = /\/classic/.test(url) && overlay ? listWithOverlay() : page.html;
+      if (/\/classic/.test(url) && viewAllOpen && viewAllJobs) {
+        html += viewAllDialogMarkup(viewAllJobs);
+      }
       return { html, url, status };
     }
     if (op.op === "fetch") {
@@ -188,6 +201,7 @@ function hiringCafeTab({
         hoveredId = groupIds[(index + 1) % groupIds.length];
         overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
       }
+      if (op.contains === VIEW_ALL_TEXT) viewAllOpen = true;
       if (op.contains === MARK_APPLIED_TEXT) {
         if (hoveredId) appliedIds.add(hoveredId);
         overlay = overlayMarkup({ applied: true });
@@ -262,6 +276,77 @@ describe("HiringCafeRoutine", () => {
       { onNotice: (message) => notices.push(message) },
     );
     expect(notices.some((message) => String(message).includes("4 dots"))).toBe(true);
+  });
+
+  test("opens every job in a 4-job Interim collapse_key group", async () => {
+    const hits = interimHits();
+    const details = Object.fromEntries(
+      hits.map((hit, index) => [
+        `https://hiringcafe.com${INTERIM_JOBS[index].path}`,
+        detailPageHtml({
+          job: detailJob({
+            ...hit,
+            job_information: {
+              ...hit.job_information,
+              description: `<p>Description for ${hit.job_information.title}</p>`,
+            },
+          }),
+        }),
+      ]),
+    );
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveMarkAppliedEnabled(false);
+    const records = await collectJobs(
+      store,
+      hiringCafeTab({
+        listHtml: listPageHtml({
+          hits,
+          cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+        }),
+        details,
+      }).exec,
+    );
+    expect(records.map((record) => record.requisitionId).sort()).toEqual(
+      INTERIM_JOBS.map((job) => job.requisitionId).sort(),
+    );
+    expect(records.map((record) => record.title)).toContain(
+      "Community Support Worker III - MCHOME",
+    );
+  });
+
+  test("opens View all to recover a truncated 4-job Interim group", async () => {
+    const hits = interimHits();
+    const details = Object.fromEntries(
+      hits.map((hit, index) => [
+        `https://hiringcafe.com${INTERIM_JOBS[index].path}`,
+        detailPageHtml({
+          job: detailJob({
+            ...hit,
+            job_information: {
+              ...hit.job_information,
+              description: `<p>Description for ${hit.job_information.title}</p>`,
+            },
+          }),
+        }),
+      ]),
+    );
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveMarkAppliedEnabled(false);
+    const page = hiringCafeTab({
+      listHtml: listPageHtml({
+        hits: hits.slice(0, 3),
+        cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+      }),
+      details,
+      viewAllJobs: INTERIM_JOBS,
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records.map((record) => record.requisitionId)).toContain("bhzhzp7x4upf48f0");
+    expect(records.map((record) => record.title)).toContain(
+      "Community Support Worker III - MCHOME",
+    );
+    expect(records).toHaveLength(4);
+    expect(page.clicks.some((click) => click.contains === VIEW_ALL_TEXT)).toBe(true);
   });
 
   test("opens every grouped ssrHits posting, not just the two cards", async () => {

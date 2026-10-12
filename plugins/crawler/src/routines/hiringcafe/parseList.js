@@ -8,6 +8,7 @@ import {
   JOB_LINK,
   JOB_PATH,
   POSTED_CHIP,
+  VIEW_ALL_PANEL,
   groupShortfallLabel,
   jobPathFromHref,
   requisitionIdFromHref,
@@ -19,7 +20,7 @@ import { asText, jobPathFromHit, requisitionIdOf } from "./values.js";
 
 export { requisitionIdFromHref };
 
-function groupHits(hits) {
+export function groupHits(hits) {
   const groups = [];
   const index = new Map();
   for (const hit of hits) {
@@ -89,7 +90,7 @@ export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: ne
   };
 }
 
-function attachGroups(jobs, groups, cards) {
+export function attachGroups(jobs, groups, cards) {
   const byKey = new Map(groups.map((group) => [group.collapseKey, group]));
   const cardByGroup = new Map();
   for (const job of jobs) {
@@ -140,12 +141,15 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
     seen.add(parsed.id);
     jobs.push(parsed);
   }
-  for (const extra of hits.length ? (cards.extras ?? []) : []) {
+  for (const extra of [
+    ...(hits.length ? (cards.extras ?? []) : []),
+    ...viewAllExtras(document, pageUrl),
+  ]) {
     if (!extra.id || seen.has(extra.id)) continue;
     seen.add(extra.id);
     jobs.push({
       id: extra.id,
-      title: "",
+      title: extra.title || "",
       url: extra.url,
       path: jobPathFromHref(extra.url) || `${JOB_PATH}${extra.id}`,
       cardHref: extra.url,
@@ -162,8 +166,14 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
       hit: { requisition_id: extra.id },
     });
   }
-  const groups = groupHits(hits);
+  const groups = groupHits([
+    ...hits,
+    ...jobs
+      .filter((job) => !hits.some((hit) => requisitionIdOf(hit) === job.id))
+      .map((job) => job.hit),
+  ]);
   attachGroups(jobs, groups, cards);
+  assignShortGroupKeys(jobs, groups);
   const cardNodes = queryAll(document, JOB_CARD);
   const page =
     Number.isInteger(props.ssrPage) && props.ssrPage >= FIRST_PAGE_INDEX
@@ -185,7 +195,47 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
     isLastPage,
     nextPage: isLastPage ? null : page + 1,
     shortfalls: groupShortfalls(jobs, groups),
+    cardsMeta: cards,
   };
+}
+
+function viewAllExtras(document, pageUrl) {
+  const extras = [];
+  const seen = new Set();
+  for (const panel of queryAll(document, VIEW_ALL_PANEL)) {
+    for (const link of queryAll(panel, JOB_LINK)) {
+      const href = link.getAttribute("href") || "";
+      const id = requisitionIdFromHref(href);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      extras.push({ id, url: resolveUrl(href, pageUrl), title: textOf(link) });
+    }
+  }
+  return extras;
+}
+
+function assignShortGroupKeys(jobs, groups) {
+  const short = (groups ?? []).filter((group) => {
+    const members = jobs.filter((job) => job.collapseKey === group.collapseKey);
+    const dots = members.find((job) => job.cardDots)?.cardDots || 0;
+    return dots > members.length;
+  });
+  if (short.length !== 1) return;
+  const host = jobs.find((job) => job.collapseKey === short[0].collapseKey);
+  if (!host) return;
+  for (const job of jobs) {
+    if (job.collapseKey) continue;
+    job.collapseKey = host.collapseKey;
+    if (job.hit && typeof job.hit === "object") job.hit.collapse_key = host.collapseKey;
+    if (!job.cardJobId) job.cardJobId = host.cardJobId;
+    if (!job.cardHref) job.cardHref = host.cardHref;
+    job.cardDots = job.cardDots || host.cardDots;
+  }
+  attachGroups(jobs, groupHits(jobs.map((job) => job.hit)), {
+    hrefs: new Map(jobs.map((job) => [job.id, job.url])),
+    posted: new Map(),
+    dots: new Map(jobs.filter((job) => job.cardJobId).map((job) => [job.cardJobId, job.cardDots])),
+  });
 }
 
 export function groupShortfalls(jobs, groups) {

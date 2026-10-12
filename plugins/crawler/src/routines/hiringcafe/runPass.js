@@ -34,6 +34,7 @@ import {
   jitterMs,
   stuckPageMessage,
 } from "./constants.js";
+import { expandShortGroups } from "./expandGroups.js";
 import { isJobHandled, jobsAfterCursor } from "./handled.js";
 import { advanceCursor, crawlListUrl, emptyCursor, jobIdKey, listUrlForPage } from "./lists.js";
 import { markAppliedOnCard, markAppliedOnDetail, readAppliedOnCard } from "./markApplied.js";
@@ -63,6 +64,18 @@ function warnIfPageEmpty(hooks, page, jobCount) {
     kind: "waitFor",
   });
   console.warn(label);
+}
+
+async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage }) {
+  const url = listPage.url || pageUrl;
+  return expandShortGroups({
+    parsed: parseList(listPage.html, url),
+    call,
+    rest,
+    skipDelays,
+    readPage,
+    pageUrl: url,
+  });
 }
 
 function warnGroupShortfalls(hooks, shortfalls) {
@@ -290,7 +303,12 @@ export async function runHiringCafePass(ctx, progress) {
     if (await handleBlock(listPage, pageUrl)) continue;
     throwIfSignedOut(listPage.html, markAppliedEnabled);
 
-    const parsed = parseList(listPage.html, listPage.url || pageUrl);
+    const parsed = await listedJobs(listPage, pageUrl, {
+      call,
+      rest,
+      skipDelays,
+      readPage,
+    });
     const pageIds = jobIdKey(parsed.jobs);
     warnIfPageEmpty(hooks, cursor.page, parsed.jobs.length);
     warnGroupShortfalls(hooks, parsed.shortfalls);
