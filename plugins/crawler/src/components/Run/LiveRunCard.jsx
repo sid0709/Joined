@@ -26,6 +26,9 @@ const STATUS_META = {
 
 const formatPercent = (value) => `${Math.round(value)}%`;
 
+const STUCK_BANNER_TITLE =
+  "Crawl stopped: sign in to Built In (or the page is dead), then press Start to resume from the saved cursor";
+
 const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
 function cursorLabel(pace) {
@@ -107,7 +110,7 @@ export default function LiveRunCard({ run, routine }) {
         </HStack>
 
         {run.warning ? (
-          <Banner status="warning" title="Crawl paused" description={run.warning} />
+          <Banner status="warning" title={STUCK_BANNER_TITLE} description={run.warning} />
         ) : null}
 
         {showPace ||
