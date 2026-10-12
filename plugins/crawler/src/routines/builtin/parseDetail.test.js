@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { companyNameOf, parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseJobPostingJsonLd } from "./parseInit.js";
+import { POSTED_AT_SOURCE } from "./postedAgo.js";
 import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
 
@@ -31,7 +32,8 @@ describe("parseDetail", () => {
     expect(record.companyWebsite).toBe("");
     expect(record.companyProfileUrl).toBe("https://builtin.com/company/zscaler");
     expect(record.postedAgo).toBe("Posted 5 Minutes Ago");
-    expect(record.postedAt).toBe("2026-10-12T17:55:00.000Z");
+    expect(record.postedAt).toBe("2026-10-12T00:00:00.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD);
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(record.description).toContain("Short job description");
   });
@@ -52,7 +54,8 @@ describe("parseDetail", () => {
     expect(record.companyWebsite).toBe("");
     expect(record.companyProfileUrl).toBe("https://builtin.com/company/micron-technology");
     expect(record.postedAgo).toBe("Reposted 48 Seconds Ago");
-    expect(record.postedAt).toBe("2026-10-12T17:59:12.000Z");
+    expect(record.postedAt).toBe("2026-10-12T00:00:00.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD);
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
   });
 
@@ -131,6 +134,7 @@ describe("parseDetail", () => {
     expect(record.companyWebsite).toBe("");
     expect(record.postedAgo).toBe("");
     expect(record.postedAt).toBe("2026-10-12T00:00:00.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD);
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
   });
 
@@ -192,6 +196,7 @@ describe("parseDetail", () => {
     );
     expect(record.postedAgo).toBe("Posted 12 Days Ago");
     expect(record.postedAt).toBe("2026-10-01T14:30:00.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD);
     expect(record.companyWebsite).toBe("https://north.example/");
     expect(record.companyProfileUrl).toBe("https://builtin.com/company/north");
     expect(record.companySocials).toEqual({
@@ -199,6 +204,23 @@ describe("parseDetail", () => {
       x: "https://x.com/north",
     });
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+  });
+
+  test("resolves postedAt from relative text when JSON-LD has no datePosted", () => {
+    const page = "https://builtin.com/job/eng-quality/11621046";
+    const record = parse(
+      `<h1>Quality Engineer</h1>
+       <div class="job-post-item"><div class="match-background">
+         <i class="fa-light fa-clock"></i>
+         <div class="gap-sm"><span>Posted 12 Days Ago</span></div>
+       </div></div>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"1"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":1,"companyName":"North","title":"Quality Engineer","applyUrl":"","isEasyApply":true,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(record.postedAgo).toBe("Posted 12 Days Ago");
+    expect(record.postedAt).toBe("2026-09-30T18:00:00.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.AGO);
   });
 
   test("lists missing core fields without treating them as a page block", () => {

@@ -272,7 +272,7 @@ export function parseDetail(
     employmentType: String(posting?.employmentType || "").trim(),
     seniority,
     salary: salaryFromJsonLd(posting) || iconRowText(header, ICON_SALARY),
-    postedAt: resolvePostedAt({
+    ...resolvePostedAt({
       datePosted: String(posting?.datePosted || "").trim(),
       postedAgo,
       now: crawlTime,

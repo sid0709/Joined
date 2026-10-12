@@ -203,6 +203,7 @@ describe("BuiltInRoutine", () => {
     expect(keys).toContain("companyWebsite");
     expect(keys).toContain("companyProfileUrl");
     expect(keys).toContain("postedAgo");
+    expect(keys).toContain("postedAtSource");
     expect(BuiltInRoutine.runView.settings).toEqual([]);
     expect(BuiltInRoutine.runView.components).not.toContain("pace");
     expect(BuiltInRoutine.runView.stats).toContain("cursor");

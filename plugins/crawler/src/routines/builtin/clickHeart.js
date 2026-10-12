@@ -44,6 +44,7 @@ function noteHeart(onActivity, label, kind = "waitFor") {
 /**
  * Scroll the card into view, wait for my-item + open shadow + div.heart, click
  * once, wait up to 5s for saved, and retry one click only if still unsaved.
+ * Re-read the heart before the retry click and skip it if already saved.
  */
 export async function saveListCardHeart({
   jobId,
@@ -97,6 +98,17 @@ export async function saveListCardHeart({
   }
   if (isSignedOutSession({ html: (await readPage()).html })) {
     return { saved: false, log: heartRetryLog(jobId), signedOut: true };
+  }
+
+  const beforeRetry = await call("shadow", {
+    host,
+    inner: HEART_INNER,
+    action: "query",
+  });
+  if (isHeartSaved(beforeRetry)) {
+    const log = heartSavedLog(jobId);
+    noteHeart(onActivity, log);
+    return { saved: true, log };
   }
 
   const retryLog = heartRetryLog(jobId);

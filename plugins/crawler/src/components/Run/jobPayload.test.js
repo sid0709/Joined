@@ -64,6 +64,7 @@ describe("toJobPayload", () => {
         companySocials: { linkedin: "https://linkedin.com/company/micron" },
         postedAt: "2026-10-12T17:59:12.000Z",
         postedAgo: "Reposted 48 Seconds Ago",
+        postedAtSource: "jsonld",
         crawledAt: "2026-10-12T18:00:00.000Z",
       },
       { id: "builtin" },
@@ -77,6 +78,7 @@ describe("toJobPayload", () => {
     });
     expect(payload.postedAt).toBe("2026-10-12T17:59:12.000Z");
     expect(payload.postedAgo).toBe("Reposted 48 Seconds Ago");
+    expect(payload.metadata.postedAtSource).toBe("jsonld");
     expect(payload.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(payload.metadata.companyProfileUrl).toBe(
       "https://builtin.com/company/micron-technology",

@@ -15,6 +15,7 @@ export const BUILTIN_FIELDS = declareJobFields([
   field("salary", "Salary", FIELD_TYPES.STRING),
   field("postedAt", "Posted", FIELD_TYPES.DATE),
   field("postedAgo", "Posted ago", FIELD_TYPES.STRING),
+  field("postedAtSource", "Posted source", FIELD_TYPES.STRING),
   field("badges", "Badges", FIELD_TYPES.LIST),
   field("industryTags", "Industry", FIELD_TYPES.LIST),
   field("benefits", "Benefits", FIELD_TYPES.LIST),
@@ -40,6 +41,7 @@ export const BUILTIN_RUN_VIEW = defineRunView({
       "salary",
       "postedAt",
       "postedAgo",
+      "postedAtSource",
     ]),
     fieldGroup("company", "Company", [
       "companyName",

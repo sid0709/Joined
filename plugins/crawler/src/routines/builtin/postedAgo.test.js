@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { datePostedHasTime, postedAgoText, postedAtFromAgo, resolvePostedAt } from "./postedAgo.js";
+import {
+  POSTED_AT_SOURCE,
+  datePostedHasTime,
+  postedAgoText,
+  postedAtFromAgo,
+  resolvePostedAt,
+} from "./postedAgo.js";
 
 const NOW = new Date("2026-10-12T18:00:00.000Z");
 
@@ -92,37 +98,46 @@ describe("postedAtFromAgo", () => {
 });
 
 describe("resolvePostedAt", () => {
-  test("prefers JSON-LD datePosted when it has a time", () => {
+  test("prefers a real JSON-LD datePosted, including date-only, over inferred ago", () => {
     expect(
       resolvePostedAt({
         datePosted: "2026-10-01T14:30:00Z",
         postedAgo: "Posted 5 Minutes Ago",
         now: NOW,
       }),
-    ).toBe("2026-10-01T14:30:00.000Z");
-  });
-
-  test("uses the relative stamp against crawl time when datePosted is date-only", () => {
+    ).toEqual({
+      postedAt: "2026-10-01T14:30:00.000Z",
+      postedAtSource: POSTED_AT_SOURCE.JSONLD,
+    });
     expect(
       resolvePostedAt({
         datePosted: "2026-10-12",
         postedAgo: "Reposted 48 Seconds Ago",
         now: NOW,
       }),
-    ).toBe("2026-10-12T17:59:12.000Z");
+    ).toEqual({
+      postedAt: "2026-10-12T00:00:00.000Z",
+      postedAtSource: POSTED_AT_SOURCE.JSONLD,
+    });
   });
 
-  test("falls back to date-only datePosted as midnight UTC", () => {
+  test("uses the relative stamp when JSON-LD has no datePosted", () => {
     expect(
       resolvePostedAt({
-        datePosted: "2026-10-12",
-        postedAgo: "",
+        datePosted: "",
+        postedAgo: "Posted 5 Minutes Ago",
         now: NOW,
       }),
-    ).toBe("2026-10-12T00:00:00.000Z");
+    ).toEqual({
+      postedAt: "2026-10-12T17:55:00.000Z",
+      postedAtSource: POSTED_AT_SOURCE.AGO,
+    });
   });
 
-  test("returns empty when neither source can be parsed", () => {
-    expect(resolvePostedAt({ datePosted: "", postedAgo: "Full-time", now: NOW })).toBe("");
+  test("returns none when neither source can be parsed", () => {
+    expect(resolvePostedAt({ datePosted: "", postedAgo: "Full-time", now: NOW })).toEqual({
+      postedAt: "",
+      postedAtSource: POSTED_AT_SOURCE.NONE,
+    });
   });
 });

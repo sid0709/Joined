@@ -30,19 +30,32 @@ function heartHarness({
   found = true,
   alreadySaved = false,
   signedOutAfter = 99,
+  saveOnQueryAfterClick,
 } = {}) {
   const ops = [];
   let queries = 0;
   let clicks = 0;
+  let queriesAfterClick = 0;
   const call = async (op, payload = {}) => {
     ops.push({ op, ...payload });
     if (op === "shadow" && payload.action === "query") {
       queries += 1;
       if (alreadySaved) return heartState(true, found);
       if (clicks === 0) return heartState(false, found);
+      queriesAfterClick += 1;
+      if (
+        saveOnQueryAfterClick != null &&
+        clicks === 1 &&
+        queriesAfterClick >= saveOnQueryAfterClick
+      ) {
+        return heartState(true, found);
+      }
       return heartState(Boolean(savedAfter[clicks - 1]), found);
     }
-    if (op === "shadow" && payload.action === "click") clicks += 1;
+    if (op === "shadow" && payload.action === "click") {
+      clicks += 1;
+      queriesAfterClick = 0;
+    }
     return {};
   };
   const htmlAfter = (index) =>
@@ -91,6 +104,18 @@ describe("saveListCardHeart", () => {
       },
     ]);
     expect(activities.some((row) => row.label === HEART_SAVE_LABEL)).toBe(true);
+    expect(activities.some((row) => row.label === heartSavedLog(JOB_ID))).toBe(true);
+  });
+
+  test("skips the retry click when a re-read finds the heart already saved", async () => {
+    const activities = [];
+    const harness = heartHarness({ savedAfter: [false], saveOnQueryAfterClick: 2 });
+    await expect(harness.save({ onActivity: (row) => activities.push(row) })).resolves.toEqual({
+      saved: true,
+      log: heartSavedLog(JOB_ID),
+    });
+    expect(harness.clicks()).toBe(1);
+    expect(activities.some((row) => row.label === heartRetryLog(JOB_ID))).toBe(false);
     expect(activities.some((row) => row.label === heartSavedLog(JOB_ID))).toBe(true);
   });
 

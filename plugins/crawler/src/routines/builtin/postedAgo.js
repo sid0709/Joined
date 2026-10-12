@@ -84,16 +84,24 @@ function toIso(date) {
   return date instanceof Date && !Number.isNaN(date.getTime()) ? date.toISOString() : "";
 }
 
+export const POSTED_AT_SOURCE = Object.freeze({
+  JSONLD: "jsonld",
+  AGO: "ago",
+  NONE: "none",
+});
+
+function postedResult(date, source) {
+  return { postedAt: toIso(date), postedAtSource: source };
+}
+
 /**
- * postedAt: timed JSON-LD datePosted, else relative text vs crawl time, else
- * a date-only datePosted as midnight UTC.
+ * Prefer a parseable JSON-LD datePosted over a date inferred from relative
+ * text. postedAtSource is jsonld, ago, or none.
  */
 export function resolvePostedAt({ datePosted = "", postedAgo = "", now = new Date() } = {}) {
-  if (datePostedHasTime(datePosted)) {
-    const timed = parseDatePosted(datePosted);
-    if (timed) return toIso(timed);
-  }
+  const fromJsonLd = parseDatePosted(datePosted);
+  if (fromJsonLd) return postedResult(fromJsonLd, POSTED_AT_SOURCE.JSONLD);
   const fromAgo = postedAtFromAgo(postedAgo, now);
-  if (fromAgo) return toIso(fromAgo);
-  return toIso(parseDatePosted(datePosted));
+  if (fromAgo) return postedResult(fromAgo, POSTED_AT_SOURCE.AGO);
+  return postedResult(null, POSTED_AT_SOURCE.NONE);
 }
