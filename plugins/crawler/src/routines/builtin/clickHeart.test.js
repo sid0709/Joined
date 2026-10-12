@@ -7,11 +7,13 @@ import {
   HEART_FAIL_UNREAD,
   HEART_SAVE_LABEL,
   SIGN_UP_MODAL_TEXT,
+  heartAlreadySavedLog,
   heartFailedLog,
   heartRetryLog,
   heartSavedLog,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
+import "./testing/domParser.js";
 
 const JOB_ID = "9256204";
 
@@ -148,13 +150,76 @@ describe("saveListCardHeart", () => {
     expect(harness.clicks()).toBe(0);
   });
 
-  test("logs heart saved without clicking when the card is already saved", async () => {
+  test("logs heart already saved without clicking when the card is already saved", async () => {
     const harness = heartHarness({ alreadySaved: true });
     await expect(harness.save()).resolves.toEqual({
       saved: true,
-      log: heartSavedLog(JOB_ID),
+      log: heartAlreadySavedLog(JOB_ID),
+      alreadySaved: true,
     });
     expect(harness.clicks()).toBe(0);
+  });
+
+  test("treats a missing host plus a visible Saved badge as already saved", async () => {
+    const html = `<!DOCTYPE html><html><body>
+      <div id="job-card-${JOB_ID}" data-id="job-card">
+        <h2><a data-id="job-card-title" href="/job/role/${JOB_ID}">Role</a></h2>
+        <span x-show="showSavedTag === true" class="text-soft-pink-02">Saved</span>
+      </div>
+    </body></html>`;
+    const ops = [];
+    await expect(
+      saveListCardHeart({
+        jobId: JOB_ID,
+        call: async (op, payload = {}) => {
+          ops.push({ op, ...payload });
+          if (op === "shadow" && payload.action === "query") return { found: false };
+          return {};
+        },
+        rest: async () => {},
+        checkStopped: () => {},
+        skipDelays: true,
+        readPage: async () => ({ html, url: "https://builtin.com/jobs" }),
+      }),
+    ).resolves.toEqual({
+      saved: true,
+      log: heartAlreadySavedLog(JOB_ID),
+      alreadySaved: true,
+    });
+    expect(ops.some((row) => row.action === "click")).toBe(false);
+  });
+
+  test("after a click, a dropped host with a Saved badge is already saved, not a failure", async () => {
+    let clicks = 0;
+    const html = `<!DOCTYPE html><html><body>
+      <div id="job-card-${JOB_ID}" data-id="job-card">
+        <h2><a data-id="job-card-title" href="/job/role/${JOB_ID}">Role</a></h2>
+        <span x-show="showSavedTag === true" class="text-soft-pink-02">Saved</span>
+      </div>
+    </body></html>`;
+    const call = async (op, payload = {}) => {
+      if (op === "shadow" && payload.action === "query") {
+        if (clicks === 0) return { found: true, classes: "heart", prefix: "far" };
+        return { found: false };
+      }
+      if (op === "shadow" && payload.action === "click") clicks += 1;
+      return {};
+    };
+    await expect(
+      saveListCardHeart({
+        jobId: JOB_ID,
+        call,
+        rest: async () => {},
+        checkStopped: () => {},
+        skipDelays: true,
+        readPage: async () => ({ html, url: "https://builtin.com/jobs" }),
+      }),
+    ).resolves.toEqual({
+      saved: true,
+      log: heartAlreadySavedLog(JOB_ID),
+      alreadySaved: true,
+    });
+    expect(clicks).toBe(1);
   });
 
   test("stops with signedOut when the first click opens the save wall", async () => {

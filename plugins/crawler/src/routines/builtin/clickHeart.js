@@ -7,12 +7,14 @@ import {
   HEART_POLL_MS,
   HEART_READY_MS,
   HEART_SAVE_LABEL,
+  heartAlreadySavedLog,
   heartFailedLog,
   heartRetryLog,
   heartSavedLog,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
-import { isHeartSaved } from "./heart.js";
+import { isHeartSaved, isListCardSaved } from "./heart.js";
+import { parseList } from "./parseList.js";
 import { isSignedOutSession } from "./signedOut.js";
 
 async function pollHeart({ jobId, call, rest, checkStopped, skipDelays, limitMs, wantSaved }) {
@@ -41,10 +43,38 @@ function noteHeart(onActivity, label, kind = "waitFor") {
   onActivity?.({ phase: "dismiss", label, kind });
 }
 
+function finishHeart(
+  onActivity,
+  log,
+  { saved, alreadySaved = false, signedOut = false, warn = false },
+) {
+  noteHeart(onActivity, log);
+  if (warn) console.warn(log);
+  else if (alreadySaved) console.info(log);
+  const result = { saved, log };
+  if (alreadySaved) result.alreadySaved = true;
+  if (signedOut) result.signedOut = true;
+  return result;
+}
+
+/** After reload (or a successful save) Built In drops my-item and shows Saved. */
+async function listCardAlreadySaved(readPage, jobId) {
+  if (typeof readPage !== "function") return false;
+  const page = await readPage();
+  const parsed = parseList(page?.html || "", page?.url || "");
+  const card = parsed.cards.find((item) => String(item.id) === String(jobId));
+  if (!card) return false;
+  return isListCardSaved({
+    hasSaveHost: card.hasSaveHost,
+    hasVisibleSavedBadge: card.hasVisibleSavedBadge,
+  });
+}
+
 /**
  * Scroll the card into view, wait for my-item + open shadow + div.heart, click
  * once, wait up to 5s for saved, and retry one click only if still unsaved.
  * Re-read the heart before the retry click and skip it if already saved.
+ * A missing host with a visible Saved badge is already saved (info, not warn).
  */
 export async function saveListCardHeart({
   jobId,
@@ -66,15 +96,22 @@ export async function saveListCardHeart({
     wantSaved: false,
   });
   if (isHeartSaved(ready)) {
-    const log = heartSavedLog(jobId);
-    noteHeart(onActivity, log);
-    return { saved: true, log };
+    return finishHeart(onActivity, heartAlreadySavedLog(jobId), {
+      saved: true,
+      alreadySaved: true,
+    });
   }
   if (!ready?.found) {
-    const log = heartFailedLog(HEART_FAIL_UNREAD, jobId);
-    noteHeart(onActivity, log);
-    console.warn(log);
-    return { saved: false, log };
+    if (await listCardAlreadySaved(readPage, jobId)) {
+      return finishHeart(onActivity, heartAlreadySavedLog(jobId), {
+        saved: true,
+        alreadySaved: true,
+      });
+    }
+    return finishHeart(onActivity, heartFailedLog(HEART_FAIL_UNREAD, jobId), {
+      saved: false,
+      warn: true,
+    });
   }
 
   const host = jobSaveSelector(jobId);
@@ -82,20 +119,30 @@ export async function saveListCardHeart({
   await call("highlight", { selector: host });
   await call("shadow", { host, inner: HEART_INNER, action: "click", which: HEART_CLICK_HEART });
 
-  let after = await pollHeart({
-    jobId,
-    call,
-    rest,
-    checkStopped,
-    skipDelays,
-    limitMs: HEART_CONFIRM_MS,
-    wantSaved: true,
-  });
-  if (isHeartSaved(after)) {
-    const log = heartSavedLog(jobId);
-    noteHeart(onActivity, log);
-    return { saved: true, log };
-  }
+  const confirmSaved = async (log) => {
+    const after = await pollHeart({
+      jobId,
+      call,
+      rest,
+      checkStopped,
+      skipDelays,
+      limitMs: HEART_CONFIRM_MS,
+      wantSaved: true,
+    });
+    if (isHeartSaved(after)) {
+      return finishHeart(onActivity, log, { saved: true });
+    }
+    if (await listCardAlreadySaved(readPage, jobId)) {
+      return finishHeart(onActivity, heartAlreadySavedLog(jobId), {
+        saved: true,
+        alreadySaved: true,
+      });
+    }
+    return null;
+  };
+
+  const first = await confirmSaved(heartSavedLog(jobId));
+  if (first) return first;
   if (isSignedOutSession({ html: (await readPage()).html })) {
     return { saved: false, log: heartRetryLog(jobId), signedOut: true };
   }
@@ -105,35 +152,28 @@ export async function saveListCardHeart({
     inner: HEART_INNER,
     action: "query",
   });
-  if (isHeartSaved(beforeRetry)) {
-    const log = heartSavedLog(jobId);
-    noteHeart(onActivity, log);
-    return { saved: true, log };
+  if (isHeartSaved(beforeRetry) || (await listCardAlreadySaved(readPage, jobId))) {
+    const already = !isHeartSaved(beforeRetry);
+    return finishHeart(onActivity, already ? heartAlreadySavedLog(jobId) : heartSavedLog(jobId), {
+      saved: true,
+      alreadySaved: already,
+    });
   }
 
   const retryLog = heartRetryLog(jobId);
   noteHeart(onActivity, retryLog);
   console.info(retryLog);
   await call("shadow", { host, inner: HEART_INNER, action: "click", which: HEART_CLICK_HEART });
-  after = await pollHeart({
-    jobId,
-    call,
-    rest,
-    checkStopped,
-    skipDelays,
-    limitMs: HEART_CONFIRM_MS,
-    wantSaved: true,
-  });
-  if (isHeartSaved(after)) {
-    const log = heartSavedLog(jobId);
-    noteHeart(onActivity, log);
-    return { saved: true, log };
-  }
+  const retried = await confirmSaved(heartSavedLog(jobId));
+  if (retried) return retried;
   if (isSignedOutSession({ html: (await readPage()).html })) {
-    return { saved: false, log: heartFailedLog(HEART_FAIL_NOT_SAVED, jobId), signedOut: true };
+    return finishHeart(onActivity, heartFailedLog(HEART_FAIL_NOT_SAVED, jobId), {
+      saved: false,
+      signedOut: true,
+    });
   }
-  const log = heartFailedLog(HEART_FAIL_NOT_SAVED, jobId);
-  noteHeart(onActivity, log);
-  console.warn(log);
-  return { saved: false, log };
+  return finishHeart(onActivity, heartFailedLog(HEART_FAIL_NOT_SAVED, jobId), {
+    saved: false,
+    warn: true,
+  });
 }

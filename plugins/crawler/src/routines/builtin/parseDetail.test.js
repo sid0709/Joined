@@ -216,6 +216,39 @@ describe("parseDetail", () => {
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
   });
 
+  test("leaves website and socials empty when the live Company box omits them", () => {
+    const page = "https://builtin.com/job/talent-acquisition-specialist-corporate/11623794";
+    const record = parse(
+      `<h1>Talent Acquisition Specialist - Corporate</h1>
+       <a href="/company/echostar">EchoStar</a>
+       <div class="bg-midnight text-white">The Company</div>
+       <div class="bg-white rounded-3 mb-sm p-md">
+         <div class="d-flex align-items-start gap-sm">
+           <i class="fa-regular fa-map-location-dot"></i>
+           <div class="font-barlow text-gray-03">HQ:  Englewood, CO</div>
+         </div>
+         <div class="d-flex align-items-start gap-sm">
+           <i class="fa-regular fa-user-group"></i>
+           <span class="font-barlow text-gray-03">14,500 Employees</span>
+         </div>
+         <div class="d-flex align-items-start gap-sm">
+           <i class="fa-regular fa-calendar"></i>
+           <span class="font-barlow text-gray-03">Year Founded: 1980</span>
+         </div>
+       </div>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Talent Acquisition Specialist - Corporate","description":"Hire.","identifier":{"value":"11623794"},"datePosted":"2026-10-12","hiringOrganization":{"@type":"Organization","name":"EchoStar","sameAs":"https://builtin.com/company/echostar"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":11623794,"companyName":"EchoStar","title":"Talent Acquisition Specialist - Corporate","applyUrl":"","isEasyApply":false,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(record.companyName).toBe("EchoStar");
+    expect(record.companyProfileUrl).toBe("https://builtin.com/company/echostar");
+    expect(record.companyHq).toBe("Englewood, CO");
+    expect(record.companySize).toBe("14,500 Employees");
+    expect(record.companyFounded).toBe("1980");
+    expect(record.companyWebsite).toBe("");
+    expect(record.companySocials).toEqual({});
+  });
+
   test("resolves postedAt from relative text when JSON-LD has no datePosted", () => {
     const page = "https://builtin.com/job/eng-quality/11621046";
     const record = parse(

@@ -4,8 +4,11 @@ import { defineRunView, fieldGroup, RUN_COMPONENT, RUN_STAT } from "../../routin
 /**
  * Fields Built In actually provides. JSON-LD has no skills key, so skills stay
  * undeclared. Applicant count and original post URL are not on the job page.
- * Company website, Built In profile URL, and socials come from the job page
- * only (no extra company-page fetch). baseSalary is optional.
+ * Company website and socials are captured only when the job page shows them
+ * (The Company globe/social links or JSON-LD hiringOrganization.url/sameAs).
+ * Many live Built In pages omit those: JSON-LD sameAs is the Built In profile,
+ * and The Company box is HQ, size, and founded. Do not fetch the company page.
+ * baseSalary is optional.
  */
 export const BUILTIN_FIELDS = declareJobFields([
   field("location", "Location", FIELD_TYPES.STRING),
