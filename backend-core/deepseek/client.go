@@ -37,7 +37,7 @@ func New(cfg config.OpenRouter) *Client {
 	return &Client{
 		// OpenRouter's catalog mixes providers; json_object plus the schema in the
 		// prompt works across them. Reasoning only slows down reading a job post.
-		chat:        openai.New(cfg.APIKey, cfg.Model, cfg.BaseURL).ForProvider(ErrMissingAPIKey, true, true),
+		chat:        openai.New(cfg.APIKey, cfg.Model, cfg.BaseURL).ForProvider(ErrMissingAPIKey, true, true).OpenRouter(),
 		apiKey:      strings.TrimSpace(cfg.APIKey),
 		model:       cfg.Model,
 		baseURL:     strings.TrimRight(cfg.BaseURL, "/"),

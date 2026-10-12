@@ -24,6 +24,41 @@ const (
 
 var ErrMissingAPIKey = errors.New("OPENAI_API_KEY is not set")
 
+// batchVariant is OpenRouter's catalog suffix for a model the Batch API serves.
+const batchVariant = "batch"
+
+// IsBatchCatalog reports an OpenRouter :batch catalog id. Other suffixes, such as
+// :free or :nitro, are ordinary chat models.
+func IsBatchCatalog(id string) bool {
+	parts := strings.Split(id, ":")
+	if len(parts) == 1 {
+		return false
+	}
+	for _, part := range parts[1:] {
+		if part == batchVariant {
+			return true
+		}
+	}
+	return false
+}
+
+// batchSlug is the model the Batch API accepts. OpenRouter resolves :batch from
+// the base slug itself, and any other suffix stays so routing variants still apply.
+func batchSlug(id string) string {
+	parts := strings.Split(id, ":")
+	if len(parts) == 1 {
+		return id
+	}
+	kept := make([]string, 0, len(parts))
+	kept = append(kept, parts[0])
+	for _, part := range parts[1:] {
+		if part != batchVariant {
+			kept = append(kept, part)
+		}
+	}
+	return strings.Join(kept, ":")
+}
+
 type Client struct {
 	apiKey      string
 	model       string
@@ -32,8 +67,11 @@ type Client struct {
 	missingKey  error
 	jsonObject  bool
 	noThinking  bool
-	http        *http.Client
-	searchHTTP  *http.Client
+	// openRouter routes :batch catalog ids through the Batch API. Every other id
+	// still uses chat completions, which is what the rest of the catalog speaks.
+	openRouter bool
+	http       *http.Client
+	searchHTTP *http.Client
 }
 
 func New(apiKey, model, baseURL string) *Client {
@@ -58,6 +96,13 @@ func (c *Client) ForProvider(missingKey error, jsonObject, noThinking bool) *Cli
 	return c
 }
 
+// OpenRouter marks this client as an OpenRouter catalog. A :batch model is sent
+// to the Batch API. Every other model id is sent to chat completions as written.
+func (c *Client) OpenRouter() *Client {
+	c.openRouter = true
+	return c
+}
+
 func (c *Client) Model() string {
 	return c.model
 }
@@ -76,6 +121,18 @@ func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawM
 	if c.apiKey == "" {
 		metrics.RecordModel(ctx, c.model, metrics.OutcomeMissingKey, 0, 0, 0, 0)
 		return nil, c.missingKey
+	}
+	if c.openRouter && IsBatchCatalog(c.model) {
+		content, prompt, completion, err := c.batchChat(ctx, system, user, schema)
+		empty := err == nil && strings.TrimSpace(content) == ""
+		c.record(ctx, c.model, started, err, empty, prompt, completion, 0)
+		if err != nil {
+			return nil, err
+		}
+		if empty {
+			return nil, fmt.Errorf("model returned an empty job")
+		}
+		return []byte(content), nil
 	}
 
 	body, err := json.Marshal(c.chatRequest(system, user, schema))

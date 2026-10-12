@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/sid0709/Joined/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 const (
@@ -22,11 +23,17 @@ const (
 )
 
 // JSONWebSearch answers a question from the live web as JSON matching schema, plus the
-// pages it cited. Search runs through OpenRouter's web plugin, which works for any
-// model on the catalog.
+// pages it cited. Search runs through OpenRouter's web plugin for every catalog model
+// except a :batch id, which the Batch API serves with native search instead.
 func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, []string, error) {
 	if !c.Ready() {
 		return nil, nil, ErrMissingAPIKey
+	}
+	// A :batch model cannot take the web plugin. The Batch API runs native search
+	// on the Responses shape instead. Every other model keeps the plugin, which is
+	// what works across the catalog.
+	if openai.IsBatchCatalog(c.model) {
+		return c.chat.BatchWebSearch(ctx, system, user, schema)
 	}
 	body, err := json.Marshal(searchRequest{
 		Model: c.model,
