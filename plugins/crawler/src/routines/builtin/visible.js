@@ -3,8 +3,17 @@ import { CLOAK_ATTR, DISPLAY_NONE_RE, VISIBILITY_HIDDEN_RE } from "./constants.j
 function computedIsHidden(node) {
   const view = node.ownerDocument?.defaultView;
   const computed = view?.getComputedStyle?.(node);
-  if (!computed) return false;
-  return computed.display === "none" || computed.visibility === "hidden";
+  if (computed?.display === "none" || computed?.visibility === "hidden") return true;
+  if (computed?.position === "fixed" || computed?.position === "sticky") return false;
+  const tag = String(node.tagName || "").toUpperCase();
+  if (tag === "BODY" || tag === "HTML") return false;
+  // Live DOM: offsetParent is null when the node is not painted. Fixtures run in
+  // linkedom, which has no getComputedStyle — skip this signal there so inline
+  // style / x-cloak (ownStyleHides) stay the source of truth.
+  if (computed && typeof node.offsetParent !== "undefined" && node.offsetParent === null) {
+    return true;
+  }
+  return false;
 }
 
 function ownStyleHides(node) {

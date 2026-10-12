@@ -12,7 +12,7 @@ function smallestTextMatches(document, re) {
   return matches.filter((el) => !matches.some((other) => other !== el && el.contains(other)));
 }
 
-/** The save-wall copy is on screen, not just present in the HTML. */
+/** The save-wall copy is on screen (offsetParent / computed), not just in the HTML. */
 export function hasVisibleSignUpModal(html) {
   if (!html || !SIGN_UP_MODAL_RE.test(html)) return false;
   return smallestTextMatches(documentFromHtml(html), SIGN_UP_MODAL_RE).some((el) =>
@@ -20,16 +20,21 @@ export function hasVisibleSignUpModal(html) {
   );
 }
 
+function flaggedLoggedIn({ html = "", isLoggedIn } = {}) {
+  if (typeof isLoggedIn === "boolean") return isLoggedIn;
+  const board = parseJobBoardInit(html);
+  if (typeof board?.isLoggedIn === "boolean") return board.isLoggedIn;
+  const init = parseJobPostInit(html);
+  if (typeof init?.isLoggedIn === "boolean") return init.isLoggedIn;
+  return undefined;
+}
+
 /**
- * Signed-out Built In: jobPostInit / jobBoardInit `isLoggedIn: false`, or a
- * visible "Sign up now. Access later." modal. Unknown (no init) is not a stop.
- * Hidden modal copy in the HTML is not signed out.
+ * Prefer an explicit / jobPostInit / jobBoardInit `isLoggedIn`. `false` is
+ * signed out. A visible save-wall modal still stops a session; hidden copy does not.
  */
 export function isSignedOutSession({ html = "", isLoggedIn } = {}) {
-  if (isLoggedIn === false) return true;
-  if (hasVisibleSignUpModal(html)) return true;
-  const board = parseJobBoardInit(html);
-  if (board && board.isLoggedIn === false) return true;
-  const init = parseJobPostInit(html);
-  return Boolean(init && init.isLoggedIn === false);
+  const flagged = flaggedLoggedIn({ html, isLoggedIn });
+  if (flagged === false) return true;
+  return hasVisibleSignUpModal(html);
 }

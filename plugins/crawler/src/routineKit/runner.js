@@ -111,6 +111,9 @@ function createContext(routine, hooks) {
 }
 
 function prepareOp(routine, op, payload) {
+  if (op === "shadow") {
+    return { ...payload, hosts: [...routine.match.hosts] };
+  }
   if (op !== "fetch" && op !== "navigate") return payload;
   if (op === "fetch" && !routine.options.allowFetch) {
     throw new RoutineStepError("This routine cannot fetch pages");

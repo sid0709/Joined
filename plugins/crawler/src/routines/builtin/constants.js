@@ -70,8 +70,21 @@ export const DETAIL_READY_MS = 10_000;
 export const DETAIL_READY_POLL_MS = 200;
 export const HEART_CONFIRM_MS = 5_000;
 export const HEART_POLL_MS = 200;
+export const HEART_TARGET_WAIT_MS = 1_500;
+export const HEART_CLICK_HEART = "heart";
+export const HEART_CLICK_SVG = "svg";
+export const HEART_CLICK_HOST = "host";
+export const HEART_CLICK_TARGETS = Object.freeze([
+  HEART_CLICK_HEART,
+  HEART_CLICK_SVG,
+  HEART_CLICK_HOST,
+]);
 export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
 export const HEART_NOT_SAVED_LABEL = "heart not saved";
+export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 cards";
+export const INVALID_STREAK = 5;
+export const INVALID_STREAK_MESSAGE =
+  "Built In returned 5 incomplete jobs in a row. Crawl stopped.";
 export const CARD_DECISION_OPENED = "opened";
 export const CARD_SKIP_HANDLED = "already handled";
 export const CARD_SKIP_HEART_SAVED = "list-card heart already saved";

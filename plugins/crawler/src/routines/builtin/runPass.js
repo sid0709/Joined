@@ -23,11 +23,14 @@ import {
   CARD_SKIP_NO_URL,
   DETAIL_READY_MS,
   DETAIL_READY_POLL_MS,
-  HEART_CONFIRM_MS,
+  EMPTY_PAGE_ONE_LABEL,
+  HEART_CLICK_TARGETS,
   HEART_INNER,
   HEART_NOT_SAVED_LABEL,
-  HEART_POLL_MS,
+  HEART_TARGET_WAIT_MS,
   HEART_UNREAD_LABEL,
+  INVALID_STREAK,
+  INVALID_STREAK_MESSAGE,
   JOB_DELAY_MS,
   jitterMs,
   MAX_PAGE,
@@ -130,6 +133,7 @@ export async function runBuiltInPass(ctx, progress) {
   let handledIds = await store.loadHandledIds();
   let cursor;
   let consecutiveLogins = 0;
+  let invalidStreak = 0;
   const pageFailures = new Map();
 
   const emitCursor = (extra = {}) => {
@@ -267,10 +271,19 @@ export async function runBuiltInPass(ctx, progress) {
     }
     hooks.onActivity?.({ phase: "dismiss", label: "Saving job on Built In", kind: "click" });
     await call("highlight", { selector: host });
-    await call("shadow", { host, inner: HEART_INNER, action: "click" });
-    const deadline = Date.now() + (skipDelays ? 0 : HEART_CONFIRM_MS);
-    for (;;) {
+    for (const which of HEART_CLICK_TARGETS) {
       ctx.checkStopped();
+      const current = await queryHeart(jobId);
+      if (isHeartSaved(current)) {
+        hooks.onActivity?.({
+          phase: "dismiss",
+          label: "Saved job on Built In",
+          kind: "click",
+        });
+        return true;
+      }
+      await call("shadow", { host, inner: HEART_INNER, action: "click", which });
+      if (!skipDelays) await rest(HEART_TARGET_WAIT_MS);
       const next = await queryHeart(jobId);
       if (isHeartSaved(next)) {
         hooks.onActivity?.({
@@ -280,17 +293,18 @@ export async function runBuiltInPass(ctx, progress) {
         });
         return true;
       }
-      if (Date.now() >= deadline) {
-        hooks.onActivity?.({
-          phase: "dismiss",
-          label: HEART_NOT_SAVED_LABEL,
-          kind: "waitFor",
-        });
-        console.warn(HEART_NOT_SAVED_LABEL, jobId);
-        return false;
+      const page = await readVisiblePage(call);
+      if (isSignedOutSession({ html: page.html })) {
+        throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
       }
-      await rest(HEART_POLL_MS);
     }
+    hooks.onActivity?.({
+      phase: "dismiss",
+      label: HEART_NOT_SAVED_LABEL,
+      kind: "waitFor",
+    });
+    console.warn(HEART_NOT_SAVED_LABEL, jobId);
+    return false;
   };
 
   const markJob = async (jobId) => {
@@ -324,7 +338,7 @@ export async function runBuiltInPass(ctx, progress) {
           candidate.id,
           heart?.found && isHeartSaved(heart) ? CARD_SKIP_HEART_SAVED : CARD_SKIP_SAVED_BADGE,
         );
-        await markJob(candidate.id);
+        await advancePast(candidate.id);
         continue;
       }
       return candidate;
@@ -361,6 +375,14 @@ export async function runBuiltInPass(ctx, progress) {
 
     const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = cardIdKey(parsed.cards);
+    if (cursor.page === 1 && parsed.cards.length === 0) {
+      hooks.onActivity?.({
+        phase: "open",
+        label: EMPTY_PAGE_ONE_LABEL,
+        kind: "waitFor",
+      });
+      console.warn(EMPTY_PAGE_ONE_LABEL);
+    }
     if (!parsed.nextPageUrl && parsed.cards.length === 0) {
       await store.clearCursor();
       throw new RoutineFinishedError("Nothing left to process on Built In");
@@ -430,8 +452,12 @@ export async function runBuiltInPass(ctx, progress) {
     const record = jobRecord(detail);
     const issues = requiredRecordIssues(record);
     if (issues.length) {
+      invalidStreak += 1;
       noteCardDecision(jobId, cardInvalidDecision(issues));
       await advancePast(jobId);
+      if (invalidStreak >= INVALID_STREAK) {
+        throw new RoutineBlockedError(INVALID_STREAK_MESSAGE);
+      }
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
     }
@@ -442,14 +468,19 @@ export async function runBuiltInPass(ctx, progress) {
       await hooks.onRecord?.(record);
     } catch (error) {
       if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
+        invalidStreak += 1;
         const fields = error.issues?.length ? error.issues : issues;
         noteCardDecision(jobId, cardInvalidDecision(fields));
         await advancePast(jobId);
+        if (invalidStreak >= INVALID_STREAK) {
+          throw new RoutineBlockedError(INVALID_STREAK_MESSAGE);
+        }
         await openVisible(pageUrl, "Returning to job list", "settle");
         continue;
       }
       throw error;
     }
+    invalidStreak = 0;
     await markJob(jobId);
     if (detailId !== jobId) await markJob(detailId);
 

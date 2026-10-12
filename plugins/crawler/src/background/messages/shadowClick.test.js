@@ -1,40 +1,107 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
+import {
+  HEART_CLICK_HEART,
+  HEART_CLICK_HOST,
+  HEART_CLICK_SVG,
+} from "../../routines/builtin/constants.js";
+
 import { clickSaveInDocument, clickShadowInMainWorld } from "./shadowClick.js";
 
 afterEach(() => {
   delete globalThis.chrome;
 });
 
+function clickable(label, extra = {}) {
+  const events = [];
+  return {
+    events,
+    click() {
+      events.push("click");
+    },
+    dispatchEvent(event) {
+      events.push(event?.type || "event");
+      return true;
+    },
+    ...extra,
+    label,
+  };
+}
+
+function heartTree({ svg = true, prefix = true } = {}) {
+  const heartEvents = [];
+  const svgNode = svg
+    ? clickable("svg", {
+        getAttribute: (name) => (name === "data-prefix" && prefix ? "far" : ""),
+      })
+    : null;
+  const prefixNode = prefix
+    ? clickable("prefix", {
+        getAttribute: (name) => (name === "data-prefix" ? "far" : ""),
+      })
+    : null;
+  const heart = clickable("heart", {
+    events: heartEvents,
+    querySelector(selector) {
+      if (selector === "svg") return svgNode;
+      if (selector === "[data-prefix]") return prefixNode;
+      return null;
+    },
+  });
+  const host = clickable("host", {
+    shadowRoot: {
+      querySelector(selector) {
+        return selector === "div.heart" ? heart : null;
+      },
+    },
+  });
+  return { heart, host, svgNode, prefixNode };
+}
+
 describe("clickSaveInDocument", () => {
-  test("clicks only div.heart once", () => {
-    const clicked = [];
-    const heart = {
-      click() {
-        clicked.push("heart");
-      },
-    };
-    const host = {
-      shadowRoot: {
-        querySelector(selector) {
-          return selector === "div.heart" ? heart : null;
-        },
-      },
-      click() {
-        clicked.push("host");
-      },
-    };
+  test("dispatches pointer and mouse events and clicks div.heart once", () => {
+    const { heart, host } = heartTree();
     expect(clickSaveInDocument("my-item", "div.heart", { querySelector: () => host })).toEqual({
       found: true,
       clicked: true,
+      which: HEART_CLICK_HEART,
     });
-    expect(clicked).toEqual(["heart"]);
+    expect(heart.events).toEqual(["pointerdown", "mousedown", "pointerup", "mouseup", "click"]);
+    expect(host.events).toEqual([]);
+  });
+
+  test("clicks only the svg when which is svg", () => {
+    const { heart, host, svgNode } = heartTree();
+    expect(
+      clickSaveInDocument("my-item", "div.heart", { querySelector: () => host }, HEART_CLICK_SVG),
+    ).toEqual({ found: true, clicked: true, which: HEART_CLICK_SVG });
+    expect(svgNode.events.filter((type) => type === "click")).toEqual(["click"]);
+    expect(heart.events).toEqual([]);
+    expect(host.events).toEqual([]);
+  });
+
+  test("clicks only the host when which is host", () => {
+    const { heart, host } = heartTree();
+    expect(
+      clickSaveInDocument("my-item", "div.heart", { querySelector: () => host }, HEART_CLICK_HOST),
+    ).toEqual({ found: true, clicked: true, which: HEART_CLICK_HOST });
+    expect(host.events.filter((type) => type === "click")).toEqual(["click"]);
+    expect(heart.events).toEqual([]);
+  });
+
+  test("falls back to [data-prefix] when the heart has no svg", () => {
+    const { host, prefixNode } = heartTree({ svg: false });
+    expect(
+      clickSaveInDocument("my-item", "div.heart", { querySelector: () => host }, HEART_CLICK_SVG),
+    ).toEqual({ found: true, clicked: true, which: HEART_CLICK_SVG });
+    expect(prefixNode.events.filter((type) => type === "click")).toEqual(["click"]);
   });
 
   test("returns found false when the host is missing", () => {
     expect(clickSaveInDocument("my-item", "div.heart", { querySelector: () => null })).toEqual({
       found: false,
       clicked: false,
+      which: HEART_CLICK_HEART,
     });
   });
 
@@ -43,7 +110,53 @@ describe("clickSaveInDocument", () => {
     expect(clickSaveInDocument("my-item", "div.heart", { querySelector: () => host })).toEqual({
       found: true,
       clicked: false,
+      which: HEART_CLICK_HEART,
     });
+  });
+
+  test("does not click when the svg target is missing", () => {
+    const { host } = heartTree({ svg: false, prefix: false });
+    expect(
+      clickSaveInDocument("my-item", "div.heart", { querySelector: () => host }, HEART_CLICK_SVG),
+    ).toEqual({ found: true, clicked: false, which: HEART_CLICK_SVG });
+  });
+
+  test("returns clicked false when click throws", () => {
+    const heart = {
+      dispatchEvent() {
+        return true;
+      },
+      click() {
+        throw new Error("blocked");
+      },
+    };
+    const host = { shadowRoot: { querySelector: () => heart } };
+    expect(clickSaveInDocument("my-item", "div.heart", { querySelector: () => host })).toEqual({
+      found: true,
+      clicked: false,
+      which: HEART_CLICK_HEART,
+    });
+  });
+
+  test("falls back to Event when PointerEvent construction fails", () => {
+    const events = [];
+    const heart = {
+      dispatchEvent(event) {
+        if (event instanceof PointerEvent) throw new Error("no pointer");
+        events.push(event.type);
+        return true;
+      },
+      click() {
+        events.push("click");
+      },
+    };
+    const host = { shadowRoot: { querySelector: () => heart } };
+    expect(clickSaveInDocument("my-item", "div.heart", { querySelector: () => host })).toEqual({
+      found: true,
+      clicked: true,
+      which: HEART_CLICK_HEART,
+    });
+    expect(events).toEqual(["pointerdown", "mousedown", "pointerup", "mouseup", "click"]);
   });
 });
 
@@ -54,19 +167,19 @@ describe("clickShadowInMainWorld", () => {
       scripting: {
         executeScript: async (options) => {
           calls.push(options);
-          return [{ result: { found: true, clicked: true } }];
+          return [{ result: { found: true, clicked: true, which: HEART_CLICK_HEART } }];
         },
       },
     };
     await expect(
-      clickShadowInMainWorld(9, { host: "my-item", inner: "div.heart" }),
-    ).resolves.toEqual({ found: true, clicked: true });
+      clickShadowInMainWorld(9, { host: "my-item", inner: "div.heart", which: HEART_CLICK_HEART }),
+    ).resolves.toEqual({ found: true, clicked: true, which: HEART_CLICK_HEART });
     expect(calls).toEqual([
       {
         target: { tabId: 9, frameIds: [0] },
         world: "MAIN",
         func: clickSaveInDocument,
-        args: ["my-item", "div.heart"],
+        args: ["my-item", "div.heart", null, HEART_CLICK_HEART],
       },
     ]);
   });
@@ -77,9 +190,10 @@ describe("clickShadowInMainWorld", () => {
         executeScript: async () => [{}],
       },
     };
-    await expect(clickShadowInMainWorld(3, {})).resolves.toEqual({
+    await expect(clickShadowInMainWorld(3, { which: HEART_CLICK_HOST })).resolves.toEqual({
       found: false,
       clicked: false,
+      which: HEART_CLICK_HOST,
     });
   });
 });

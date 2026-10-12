@@ -1,5 +1,7 @@
+import { clickSaveInDocument } from "../../background/messages/shadowClick.js";
 import { extractField, queryAll, waitForMatches } from "../../routineKit/extract.js";
-import { assertFetchUrl } from "../../routineKit/match.js";
+import { assertFetchUrl, hostMatches } from "../../routineKit/match.js";
+import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { clickLikeHuman } from "../actions/dom";
 import { clearHighlights, highlightElements } from "../highlighter";
 
@@ -57,7 +59,11 @@ const OPS = {
     await waitForMatches(document, field.selector, field.wait);
     return extractField(document, field);
   },
-  shadow: ({ host, inner, action = "query" }) => {
+  shadow: ({ host, inner, action = "query", which, hosts } = {}) => {
+    const allowed = hosts?.length ? hosts : BUILTIN_HOSTS;
+    if (!hostMatches(location.hostname, allowed)) {
+      return { found: false, open: false, classes: "", prefix: "" };
+    }
     // Isolated-world content scripts can read an open shadowRoot. A closed root,
     // or a custom element that has not upgraded yet (`my-item`), looks unread.
     const hostEl = queryAll(document, host)[0];
@@ -68,8 +74,7 @@ const OPS = {
     if (inner && !target) return { found: false, open: true, classes: "", prefix: "" };
     const node = target || root;
     if (action === "click") {
-      // Isolated-world fallback. The background prefers MAIN-world heart.click().
-      target?.click?.();
+      clickSaveInDocument(host, inner, document, which);
     }
     const prefixNode = node.querySelector?.("[data-prefix]") || node;
     return {

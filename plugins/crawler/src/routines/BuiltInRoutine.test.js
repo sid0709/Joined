@@ -15,9 +15,15 @@ import {
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
   CARD_SKIP_SAVED_BADGE,
+  EMPTY_PAGE_ONE_LABEL,
   HANDLED_STORAGE_KEY,
+  HEART_CLICK_HEART,
+  HEART_CLICK_HOST,
+  HEART_CLICK_SVG,
+  HEART_CLICK_TARGETS,
   HEART_NOT_SAVED_LABEL,
   HEART_UNREAD_LABEL,
+  INVALID_STREAK_MESSAGE,
   JOB_CARD_TITLE,
   JOB_PAGE_SAVE,
   SIGN_IN_TO_SAVE_MESSAGE,
@@ -65,6 +71,7 @@ function builtinTab({
   delayedReady = {},
   heartStaysUnsaved = false,
   heartShowsModal = false,
+  saveOnWhich,
 } = {}) {
   let url = listUrl;
   let status = 200;
@@ -135,13 +142,15 @@ function builtinTab({
       return { found: true };
     }
     if (op.op === "shadow") {
-      shadows.push({ host: op.host, action: op.action });
+      shadows.push({ host: op.host, action: op.action, which: op.which });
       const id = entityIdFromSaveHost(op.host);
       const pageHtml = htmlOverride ?? pageFor(url).html;
       const hasHost =
         Boolean(id) && new RegExp(`<my-item\\b[^>]*entity-id=["']?${id}\\b`, "i").test(pageHtml);
       if (!shadowFound || !hasHost) return { found: false, open: false, classes: "", prefix: "" };
-      if (op.action === "click" && id && !heartStaysUnsaved) heartsState[id] = true;
+      if (op.action === "click" && id && !heartStaysUnsaved) {
+        if (!saveOnWhich || op.which === saveOnWhich) heartsState[id] = true;
+      }
       if (op.action === "click" && heartShowsModal) {
         htmlOverride = `${pageFor(url).html}<dialog>${SIGN_UP_MODAL_TEXT}</dialog>`;
       }
@@ -221,8 +230,10 @@ describe("BuiltInRoutine", () => {
     });
     const records = await collectJobs(store, page.exec);
     expect(records[0].applyUrl).toBe("https://careers.micron.com/apply/9256204");
-    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
-    expect(page.shadows.some((op) => op.host === jobSaveSelector("9256204"))).toBe(true);
+    const clicks = page.shadows.filter((op) => op.action === "click");
+    expect(clicks).toEqual([
+      { host: jobSaveSelector("9256204"), action: "click", which: HEART_CLICK_HEART },
+    ]);
     expect([...(await store.loadHandledIds())]).toContain("9256204");
 
     const failing = builtinTab({ listHtml: loadFixture("list-last.html") });
@@ -268,16 +279,19 @@ describe("BuiltInRoutine", () => {
 
   test("skips a list card whose live heart is already saved", async () => {
     const activities = [];
+    const store = createBuiltinStore(memoryStorage());
     const page = builtinTab({
       listHtml: loadFixture("list-last.html"),
       hearts: { 9256204: true },
     });
     expect(
-      await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+      await collectJobs(store, page.exec, {
         onActivity: (activity) => activities.push(activity),
       }),
     ).toEqual([]);
     expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
+    expect(page.shadows.some((op) => op.action === "click")).toBe(false);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
     expect(
       activities.some(
         (activity) => activity.label === cardDecisionLabel("9256204", CARD_SKIP_HEART_SAVED),
@@ -291,11 +305,13 @@ describe("BuiltInRoutine", () => {
       listHtml: loadFixture("list-saved.html"),
       details: { [JOB_SAVED]: loadFixture("detail-easyapply.html") },
     });
-    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+    const store = createBuiltinStore(memoryStorage());
+    const records = await collectJobs(store, page.exec, {
       onActivity: (activity) => activities.push(activity),
     });
     expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
     expect(records).toEqual([]);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
     expect(
       activities.some(
         (activity) => activity.label === cardDecisionLabel("22222222", CARD_SKIP_SAVED_BADGE),
@@ -379,12 +395,14 @@ describe("BuiltInRoutine", () => {
 
   test("does not stop when save-wall copy is present but hidden", async () => {
     const page = builtinTab({
-      listHtml: `${loadFixture("list-last.html")}<dialog style="display: none;">${SIGN_UP_MODAL_TEXT}</dialog>`,
+      listHtml: loadFixture("list-signed-in-hidden-modal.html"),
       details: { [JOB_A]: loadFixture("detail-signed-in.html") },
     });
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
     expect(records).toHaveLength(1);
-    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
+    expect(page.shadows.filter((op) => op.action === "click")).toEqual([
+      { host: jobSaveSelector("9256204"), action: "click", which: HEART_CLICK_HEART },
+    ]);
   });
 
   test("logs heart not saved and continues the crawl", async () => {
@@ -399,7 +417,25 @@ describe("BuiltInRoutine", () => {
     });
     expect(records).toHaveLength(1);
     expect(activities.some((activity) => activity.label === HEART_NOT_SAVED_LABEL)).toBe(true);
-    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
+    expect(page.shadows.filter((op) => op.action === "click").map((op) => op.which)).toEqual([
+      ...HEART_CLICK_TARGETS,
+    ]);
+  });
+
+  test("stops clicking once a later heart target saves", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+      saveOnWhich: HEART_CLICK_SVG,
+    });
+    await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    expect(page.shadows.filter((op) => op.action === "click").map((op) => op.which)).toEqual([
+      HEART_CLICK_HEART,
+      HEART_CLICK_SVG,
+    ]);
+    expect(page.shadows.some((op) => op.action === "click" && op.which === HEART_CLICK_HOST)).toBe(
+      false,
+    );
   });
 
   test("stops when a heart click opens the sign-up modal", async () => {
@@ -420,7 +456,9 @@ describe("BuiltInRoutine", () => {
       name: "RoutineBlockedError",
       message: SIGN_IN_TO_SAVE_MESSAGE,
     });
-    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
+    expect(page.shadows.filter((op) => op.action === "click").map((op) => op.which)).toEqual([
+      HEART_CLICK_HEART,
+    ]);
   });
 
   test("does not click the heart when the shadow state cannot be read", async () => {
@@ -573,6 +611,45 @@ describe("BuiltInRoutine", () => {
       name: "RoutineBlockedError",
       message: stuckPageMessage(STUCK_PAGE_FAILURES),
     });
+  });
+
+  test("stops after 5 invalid cards in a row", async () => {
+    const ids = ["10001", "10002", "10003", "10004", "10005"];
+    const listHtml = `<!DOCTYPE html><html><body><div id="jobs">${ids
+      .map(
+        (id) =>
+          `<div id="job-card-${id}" data-id="job-card"><my-item entity-type="job" entity-id="${id}"></my-item><a data-id="company-title" href="/company/x"><span>Co</span></a><h2><a data-id="job-card-title" href="/job/role/${id}" data-alias="/job/role/${id}">Role ${id}</a></h2></div>`,
+      )
+      .join("")}</div><script>Builtin.jobBoardInit({"isLoggedIn":true});</script></body></html>`;
+    const details = Object.fromEntries(
+      ids.map((id) => [
+        `https://builtin.com/job/role/${id}`,
+        "<html><body><p>loading</p></body></html>",
+      ]),
+    );
+    const page = builtinTab({ listHtml, details });
+    await expect(
+      runRoutinePass(routine, {
+        exec: page.exec,
+        store: createBuiltinStore(memoryStorage()),
+        skipDelays: true,
+        onRecord: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: INVALID_STREAK_MESSAGE,
+    });
+  });
+
+  test("warns when page 1 has 0 cards", async () => {
+    const activities = [];
+    const empty = builtinTab({ listHtml: loadFixture("list-empty.html") });
+    expect(
+      await collectJobs(createBuiltinStore(memoryStorage()), empty.exec, {
+        onActivity: (activity) => activities.push(activity),
+      }),
+    ).toEqual([]);
+    expect(activities.some((activity) => activity.label === EMPTY_PAGE_ONE_LABEL)).toBe(true);
   });
 
   test("does not change JobRight's visible listDetail contract", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { SIGN_UP_MODAL_TEXT } from "./constants.js";
-import { isSignedOutSession } from "./signedOut.js";
+import { hasVisibleSignUpModal, isSignedOutSession } from "./signedOut.js";
 import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
 
@@ -16,9 +16,19 @@ describe("isSignedOutSession", () => {
         html: '<script>Builtin.jobPostInit({"job":{"id":1},"isLoggedIn":false});</script>',
       }),
     ).toBe(true);
+    expect(
+      isSignedOutSession({
+        html: '<script>Builtin.jobBoardInit({"isLoggedIn":false});</script>',
+      }),
+    ).toBe(true);
   });
 
-  test("ignores hidden save-wall copy and a header login link", () => {
+  test("ignores hidden save-wall copy on a signed-in list page", () => {
+    const html = loadFixture("list-signed-in-hidden-modal.html");
+    expect(html).toContain(SIGN_UP_MODAL_TEXT);
+    expect(html).toContain('"isLoggedIn":true');
+    expect(hasVisibleSignUpModal(html)).toBe(false);
+    expect(isSignedOutSession({ html })).toBe(false);
     expect(
       isSignedOutSession({
         html: `<html><body>jobs<dialog style="display: none;">${SIGN_UP_MODAL_TEXT}</dialog></body></html>`,
