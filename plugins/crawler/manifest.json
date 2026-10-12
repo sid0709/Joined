@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Avalon Scrapper",
-  "version": "2.3.0",
-  "description": "AI based assistant to help freelancers apply and manage job postings more efficiently.",
+  "name": "Joined Scrapper",
+  "version": "2.4.0",
+  "description": "Joined staff browser tool to scrape job listings into the admin pool.",
   "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage", "alarms"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "side_panel": {
     "default_path": "index.html"
   },
   "action": {
-    "default_title": "Avalon Scrapper",
+    "default_title": "Joined Scrapper",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

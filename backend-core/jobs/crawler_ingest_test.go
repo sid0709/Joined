@@ -15,7 +15,7 @@ import (
 
 func crawledJob(applyLink string) CrawledJob {
 	job := CrawledJob{
-		CreatedBy:           "avalon-scrapper",
+		CreatedBy:           "joined-scrapper",
 		Source:              "jobright",
 		ApplyLink:           applyLink,
 		Title:               "Senior Engineer",
@@ -45,8 +45,8 @@ func TestParseCrawlerBatch(t *testing.T) {
 	if _, err := ParseCrawlerBatch([]byte(tooMany)); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("too many: %v", err)
 	}
-	batch, err := ParseCrawlerBatch([]byte(`{"createdBy":"avalon-scrapper","jobs":[{"title":"A","company":{"name":"B"}}]}`))
-	if err != nil || batch.CreatedBy != "avalon-scrapper" || batch.Jobs[0].Company.Name != "B" {
+	batch, err := ParseCrawlerBatch([]byte(`{"createdBy":"joined-scrapper","jobs":[{"title":"A","company":{"name":"B"}}]}`))
+	if err != nil || batch.CreatedBy != "joined-scrapper" || batch.Jobs[0].Company.Name != "B" {
 		t.Fatalf("batch = %+v, err = %v", batch, err)
 	}
 }
@@ -108,7 +108,7 @@ func TestCrawlerDuplicateWindow(t *testing.T) {
 func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 	id := bson.NewObjectID()
-	raw, err := bson.Marshal(crawledTempDocument(id, crawledJob("https://acme.com/apply/1?utm_source=x"), "avalon-scrapper", now))
+	raw, err := bson.Marshal(crawledTempDocument(id, crawledJob("https://acme.com/apply/1?utm_source=x"), "joined-scrapper", now))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	}
 	if listing.ID != id || listing.Title != "Senior Engineer" || listing.CompanyName != "Acme" ||
 		listing.Description != "Build things." || listing.Source != "jobright" ||
-		listing.CreatedBy != "avalon-scrapper" || listing.Metadata.Details.Location != "Remote" ||
+		listing.CreatedBy != "joined-scrapper" || listing.Metadata.Details.Location != "Remote" ||
 		!listing.PostedAt.Equal(now.Add(-3*time.Hour)) {
 		t.Fatalf("listing = %+v", listing)
 	}
@@ -180,7 +180,7 @@ func TestIngestCrawledJobsStagesAndSkipsDuplicates(t *testing.T) {
 	now := time.Now().UTC()
 
 	invalid := crawledJob("not-a-url")
-	batch := CrawlerBatch{CreatedBy: "avalon-scrapper", Jobs: []CrawledJob{
+	batch := CrawlerBatch{CreatedBy: "joined-scrapper", Jobs: []CrawledJob{
 		crawledJob("https://acme.com/apply/1"),
 		crawledJob("https://acme.com/apply/1?utm_source=board"),
 		invalid,

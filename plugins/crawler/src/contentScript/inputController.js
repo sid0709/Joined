@@ -11,7 +11,7 @@ import {
 import { randomBetween, supportsSelectionRange, wait } from "./inputTyping";
 
 const CURSOR_LOGO_SRC = chrome.runtime.getURL("icons/icon48.png");
-const CURSOR_LOGO_ALT = "Avalon Scrapper";
+const CURSOR_LOGO_ALT = "Joined Scrapper";
 
 export class AutolancerInputController {
   constructor(inputElement) {
