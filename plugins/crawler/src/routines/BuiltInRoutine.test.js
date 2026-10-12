@@ -202,6 +202,7 @@ describe("BuiltInRoutine", () => {
     expect(keys).not.toContain("skills");
     expect(keys).toContain("companyWebsite");
     expect(keys).toContain("companyProfileUrl");
+    expect(keys).toContain("companySocials");
     expect(keys).toContain("postedAgo");
     expect(keys).toContain("postedAtSource");
     expect(BuiltInRoutine.runView.settings).toEqual([]);
@@ -224,6 +225,12 @@ describe("BuiltInRoutine", () => {
     expect(easy.title).toContain("Specialist Account Executive");
     expect(easy.applyUrl).toBe(JOB_A);
     expect(easy.companyName).toBe("Zscaler");
+    expect(easy.companyWebsite).toBe("https://www.zscaler.com/");
+    expect(easy.companyProfileUrl).toBe("https://builtin.com/company/zscaler");
+    expect(easy.companySocials).toEqual({
+      linkedin: "https://www.linkedin.com/company/zscaler",
+      x: "https://x.com/zscaler",
+    });
     expect(easy.salary).toBe("113K-162K Annually");
     expect(page.navigates).toContain(JOB_A);
     expect(page.navigates).toContain(LIST_URL);

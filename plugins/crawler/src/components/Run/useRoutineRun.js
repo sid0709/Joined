@@ -26,6 +26,7 @@ import { toJobPayload } from "./jobPayload";
 import {
   addRecentJob,
   fieldStatus,
+  isActiveQueueRun,
   pendingFields,
   recordFieldHit,
   updateRecentJob,
@@ -158,14 +159,10 @@ export function useRoutineRun() {
     const listener = (message) => {
       if (message?.action === "scrapeQueue:state") {
         const state = message.payload;
-        if (!state?.runId || (runIdRef.current && state.runId !== runIdRef.current)) return;
+        if (!isActiveQueueRun(runIdRef.current, state?.runId)) return;
         setQueueCounts(state.counts || EMPTY_QUEUE);
         if (state.summary) {
-          setRunStats((current) =>
-            runIdRef.current
-              ? mergeScrapeRunStats(current, state.summary)
-              : { ...createScrapeRunStats(), ...state.summary },
-          );
+          setRunStats((current) => mergeScrapeRunStats(current, state.summary));
         }
       }
       if (
@@ -314,7 +311,10 @@ export function useRoutineRun() {
       earlyResults.current.clear();
       countedOutcomes.current.clear();
       // Drop leftover queue items from earlier failed retries (delayed nextAttemptAt).
-      await sendRuntimeMessage({ action: "scrapeQueue:clear" }).catch(() => {});
+      await sendRuntimeMessage({
+        action: "scrapeQueue:clear",
+        payload: { beginRunId: runIdRef.current },
+      }).catch(() => {});
       setRunStats(createScrapeRunStats());
       setQueueCounts(EMPTY_QUEUE);
       setRecentJobs([]);

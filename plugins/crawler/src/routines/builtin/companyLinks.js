@@ -1,7 +1,7 @@
 import { isHttpUrl } from "../../lib/httpUrl.js";
-import { queryAll } from "../../routineKit/extract.js";
+import { queryAll, queryOne } from "../../routineKit/extract.js";
 
-import { COMPANY_PROFILE_LINK } from "./constants.js";
+import { COMPANY_PROFILE_LINK, ICON_GLOBE } from "./constants.js";
 import { isBuiltinHost, resolveUrl } from "./html.js";
 
 export const SOCIAL_NETWORKS = Object.freeze([
@@ -45,53 +45,91 @@ function socialKeyFor(url) {
   return "";
 }
 
-/** First job-page `/company/` href, made absolute, then JSON-LD sameAs. */
+function orgHttpUrls(org) {
+  return [...httpUrlsOf(org?.url), ...httpUrlsOf(org?.sameAs)];
+}
+
+function isCompanyWebsiteUrl(url, profileUrl) {
+  if (!isHttpUrl(url) || url === profileUrl || isBuiltinCompanyUrl(url) || socialKeyFor(url)) {
+    return false;
+  }
+  try {
+    return !isBuiltinHost(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** First job-page `/company/` href, then a JSON-LD sameAs/url that is a Built In profile. */
 export function companyProfileUrlFrom(document, org, pageUrl) {
   for (const anchor of queryAll(document, COMPANY_PROFILE_LINK)) {
     const href = resolveUrl(anchor.getAttribute("href") || anchor.href || "", pageUrl);
     if (isHttpUrl(href)) return href;
   }
-  return httpUrlsOf(org?.sameAs)[0] || "";
+  return orgHttpUrls(org).find((url) => isBuiltinCompanyUrl(url)) || "";
 }
 
-function websiteFromOrg(org) {
-  return httpUrlsOf(org?.url).find((url) => !isBuiltinCompanyUrl(url)) || "";
+function websiteFromOrg(org, profileUrl) {
+  return orgHttpUrls(org).find((url) => isCompanyWebsiteUrl(url, profileUrl)) || "";
 }
 
-function websiteFromPage(scope, pageUrl, profileUrl) {
-  if (!scope) return "";
-  for (const anchor of queryAll(scope, "a[href]")) {
-    const href = resolveUrl(anchor.getAttribute("href") || anchor.href || "", pageUrl);
-    if (!isHttpUrl(href) || href === profileUrl) continue;
-    if (isBuiltinCompanyUrl(href) || socialKeyFor(href)) continue;
-    try {
-      const parsed = new URL(href);
-      if (isBuiltinHost(parsed.hostname)) continue;
-    } catch {
-      continue;
-    }
-    return href;
+function hrefOf(anchor, pageUrl) {
+  return resolveUrl(anchor?.getAttribute("href") || anchor?.href || "", pageUrl);
+}
+
+function websiteFromGlobe(scope, pageUrl, profileUrl) {
+  const icon = queryOne(scope, ICON_GLOBE);
+  if (!icon) return "";
+  const row = icon.closest("div.gap-sm") || icon.parentElement || icon.closest("div");
+  for (const anchor of queryAll(row || scope, "a[href]")) {
+    const href = hrefOf(anchor, pageUrl);
+    if (isCompanyWebsiteUrl(href, profileUrl)) return href;
   }
   return "";
 }
 
-/** Company site: JSON-LD hiringOrganization.url, else a link in `scope` (company box). */
-export function companyWebsiteFrom(document, org, pageUrl, profileUrl, scope) {
-  const root = scope === undefined ? document : scope;
-  return websiteFromOrg(org) || websiteFromPage(root, pageUrl, profileUrl);
+function websiteFromPage(scope, pageUrl, profileUrl) {
+  if (!scope) return "";
+  const fromGlobe = websiteFromGlobe(scope, pageUrl, profileUrl);
+  if (fromGlobe) return fromGlobe;
+  for (const anchor of queryAll(scope, "a[href]")) {
+    const href = hrefOf(anchor, pageUrl);
+    if (isCompanyWebsiteUrl(href, profileUrl)) return href;
+  }
+  return "";
 }
 
-export function companySocialsFrom(document, pageUrl) {
-  const links = {};
-  for (const anchor of queryAll(document, "a[href]")) {
-    const href = resolveUrl(anchor.getAttribute("href") || anchor.href || "", pageUrl);
-    if (!isHttpUrl(href)) continue;
-    const key = socialKeyFor(href);
-    if (key && !links[key]) links[key] = href;
+/**
+ * Company site: JSON-LD hiringOrganization.url or sameAs when it is not a Built
+ * In profile, else a website link in `scope` (The Company box).
+ */
+export function companyWebsiteFrom(document, org, pageUrl, profileUrl, scope) {
+  const root = scope === undefined ? document : scope;
+  return websiteFromOrg(org, profileUrl) || websiteFromPage(root, pageUrl, profileUrl);
+}
+
+function addSocial(links, url) {
+  const key = socialKeyFor(url);
+  if (key && !links[key]) links[key] = url;
+}
+
+function socialsFromScope(scope, pageUrl, links) {
+  if (!scope) return;
+  for (const anchor of queryAll(scope, "a[href]")) {
+    addSocial(links, hrefOf(anchor, pageUrl));
   }
+}
+
+/** Social hosts from JSON-LD sameAs/url, then The Company box, then the job page. */
+export function companySocialsFrom(document, org, pageUrl, scope) {
+  const links = {};
+  for (const url of orgHttpUrls(org)) addSocial(links, url);
+  socialsFromScope(scope, pageUrl, links);
+  socialsFromScope(document, pageUrl, links);
   return links;
 }
 
-export function companyLinkFrom(website, profileUrl) {
-  return website || profileUrl || "";
+/** companyLink is the employer's own website, never the Built In profile. */
+export function companyLinkFrom(website) {
+  return website || "";
 }

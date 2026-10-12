@@ -241,6 +241,14 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		source = crawlerFallbackSource
 	}
 	apply := crawledApplyURL(job)
+	crawledAt := firstString(job.CrawledAt, job.Metadata[crawlerCrawledAtKey])
+	extraMeta := map[string]any{}
+	for key, value := range job.Metadata {
+		if key == crawlerCrawledAtKey {
+			continue
+		}
+		extraMeta[key] = value
+	}
 	metadata := bson.D{
 		{Key: crawlerDetailsKey, Value: crawledDetails(job.Details)},
 		{Key: crawlerLogoKey, Value: strings.TrimSpace(job.Company.Logo)},
@@ -248,12 +256,13 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "tags", Value: cleanStrings(job.Tags)},
 		{Key: "skills", Value: cleanStrings(job.Skills)},
 		{Key: crawlerPostedAgoKey, Value: strings.TrimSpace(job.PostedAgo)},
+		{Key: crawlerCrawledAtKey, Value: crawledAt},
 		{Key: "applicants", Value: bson.D{
 			{Key: "count", Value: job.Applicants.Count},
 			{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
 		}},
 	}
-	if extra := mapToBSON(job.Metadata); len(extra) > 0 {
+	if extra := mapToBSON(extraMeta); len(extra) > 0 {
 		metadata = append(metadata, bson.E{Key: crawlerExtraKey, Value: extra})
 	}
 	return bson.D{

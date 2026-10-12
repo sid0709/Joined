@@ -42,6 +42,8 @@ export const JOB_POST_ITEM = ".job-post-item";
 export const ICON_HQ = ".fa-map-location-dot";
 export const ICON_EMPLOYEES = ".fa-user-group";
 export const ICON_FOUNDED = ".fa-calendar";
+export const ICON_GLOBE = ".fa-globe";
+export const THE_COMPANY_HEADING = "The Company";
 export const SIMILAR_JOBS = ".job-unbounded-responsive";
 export const APPLY_FORM = 'div[x-data="applyForm"]';
 export const APPLY_UNAUTH = 'a[data-builtin-track-click-event="job_apply_unauth"]';

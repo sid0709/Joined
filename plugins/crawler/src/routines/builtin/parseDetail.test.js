@@ -29,11 +29,16 @@ describe("parseDetail", () => {
     expect(record.salary).toBe("113K-162K Annually");
     expect(record.salary).not.toContain("50K");
     expect(record.skills).toBeUndefined();
-    expect(record.companyWebsite).toBe("");
+    expect(record.companyWebsite).toBe("https://www.zscaler.com/");
     expect(record.companyProfileUrl).toBe("https://builtin.com/company/zscaler");
+    expect(record.companySocials).toEqual({
+      linkedin: "https://www.linkedin.com/company/zscaler",
+      x: "https://x.com/zscaler",
+    });
+    expect(record.companyHq).toBe("San Jose, CA");
     expect(record.postedAgo).toBe("Posted 5 Minutes Ago");
-    expect(record.postedAt).toBe("2026-10-12T00:00:00.000Z");
-    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD);
+    expect(record.postedAt).toBe("2026-10-12T17:55:00.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD_AGO);
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(record.description).toContain("Short job description");
   });
@@ -51,11 +56,16 @@ describe("parseDetail", () => {
       "Information Technology",
       "Machine Learning",
     ]);
-    expect(record.companyWebsite).toBe("");
+    expect(record.companyWebsite).toBe("https://www.micron.com/");
     expect(record.companyProfileUrl).toBe("https://builtin.com/company/micron-technology");
+    expect(record.companySocials).toEqual({
+      linkedin: "https://www.linkedin.com/company/micron-technology",
+      x: "https://x.com/MicronTech",
+    });
+    expect(record.companyHq).toBe("Boise, ID");
     expect(record.postedAgo).toBe("Reposted 48 Seconds Ago");
-    expect(record.postedAt).toBe("2026-10-12T00:00:00.000Z");
-    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD);
+    expect(record.postedAt).toBe("2026-10-12T17:59:12.000Z");
+    expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.JSONLD_AGO);
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
   });
 

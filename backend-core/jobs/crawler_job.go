@@ -16,6 +16,7 @@ const (
 	crawlerMetadataKey    = "metadata"
 	crawlerPostedAtKey    = "postedAt"
 	crawlerPostedAgoKey   = "postedAgo"
+	crawlerCrawledAtKey   = "crawledAt"
 	crawlerWebsiteKey     = "companyWebsite"
 	crawlerLogoKey        = "companyLogo"
 	crawlerLocationKey    = "location"
@@ -34,7 +35,7 @@ var crawledJobJSONKeys = map[string]struct{}{
 	"createdBy": {}, "source": {}, crawlerApplyURLKey: {}, crawlerApplyLinkKey: {},
 	"title": {}, "description": {}, crawlerCompanyNameKey: {}, crawlerCompanyKey: {},
 	crawlerCompanyLinkKey: {}, "duplicateWindowDays": {}, crawlerPostedAtKey: {},
-	crawlerPostedAgoKey: {}, crawlerMetadataKey: {}, "id": {}, "tags": {}, "skills": {},
+	crawlerPostedAgoKey: {}, crawlerCrawledAtKey: {}, crawlerMetadataKey: {}, "id": {}, "tags": {}, "skills": {},
 	crawlerDetailsKey: {}, "applicants": {},
 }
 
@@ -53,6 +54,10 @@ var companyMetadataAliases = []struct {
 	{"about", "about"},
 	{"companySocial", "social"},
 	{"social", "social"},
+	{"companySocials", "socials"},
+	{"socials", "socials"},
+	{"companyProfileUrl", "profileUrl"},
+	{"profileUrl", "profileUrl"},
 }
 
 // CrawledJob is one job as the crawler extension reads it from a job board.
@@ -66,6 +71,7 @@ type CrawledJob struct {
 	Description         string            `json:"description"`
 	PostedAt            string            `json:"postedAt"`
 	PostedAgo           string            `json:"postedAgo"`
+	CrawledAt           string            `json:"crawledAt"`
 	DuplicateWindowDays int               `json:"duplicateWindowDays"`
 	Tags                []string          `json:"tags"`
 	Skills              []string          `json:"skills"`
@@ -141,6 +147,9 @@ func normalizeCrawledJob(job *CrawledJob, raw map[string]any) {
 	}
 	if ago := firstString(job.PostedAgo, raw[crawlerPostedAgoKey], meta[crawlerPostedAgoKey]); ago != "" {
 		job.PostedAgo = ago
+	}
+	if crawled := firstString(job.CrawledAt, raw[crawlerCrawledAtKey], meta[crawlerCrawledAtKey]); crawled != "" {
+		job.CrawledAt = crawled
 	}
 	if tags := stringSlice(raw["tags"]); len(tags) > 0 {
 		job.Tags = tags

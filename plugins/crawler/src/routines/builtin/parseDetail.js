@@ -15,6 +15,7 @@ import {
   ICON_FOUNDED,
   ICON_HQ,
   ICON_LOCATION,
+  THE_COMPANY_HEADING,
   ICON_POSTED,
   ICON_SALARY,
   ICON_SENIORITY,
@@ -248,7 +249,7 @@ export function parseDetail(
   const jobUrl = jobUrlFrom(pageUrl);
   const workplace = iconRowText(header, ICON_WORKPLACE);
   const seniority = iconRowText(header, ICON_SENIORITY);
-  const box = companyBox(document);
+  const box = companyBox(document) || headingSection(document, THE_COMPANY_HEADING);
   const title =
     textOf(queryOne(header, TITLE_HEADING) || queryOne(document, TITLE_HEADING)) ||
     job.title ||
@@ -259,7 +260,7 @@ export function parseDetail(
   const crawlTime = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
   const companyProfileUrl = companyProfileUrlFrom(document, org, jobUrl);
   const companyWebsite = companyWebsiteFrom(document, org, jobUrl, companyProfileUrl, box);
-  const companySocials = companySocialsFrom(document, jobUrl);
+  const companySocials = companySocialsFrom(document, org, jobUrl, box);
 
   return {
     applyUrl: resolveApplyLink(document, job, jobUrl),

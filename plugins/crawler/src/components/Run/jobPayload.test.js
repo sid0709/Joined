@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
+import { isJobFieldValid } from "../../api/jobValidation.js";
+import { parseDetail } from "../../routines/builtin/parseDetail.js";
+import "../../routines/builtin/testing/domParser.js";
+import { loadFixture } from "../../routines/builtin/testing/loadFixture.js";
+import BuiltInRoutine from "../../routines/BuiltInRoutine.js";
 import JobRightRoutine from "../../routines/JobRightRoutine.js";
 
 import { toJobPayload } from "./jobPayload.js";
@@ -51,7 +56,7 @@ describe("toJobPayload", () => {
     expect(payload.title).toBe("Engineer");
   });
 
-  test("falls companyLink back to the Built In profile and keeps socials plus crawl time", () => {
+  test("keeps the Built In profile off companyLink and sends socials plus crawl time", () => {
     const payload = toJobPayload(
       {
         applyUrl: "https://builtin.com/job/role/1",
@@ -64,12 +69,13 @@ describe("toJobPayload", () => {
         companySocials: { linkedin: "https://linkedin.com/company/micron" },
         postedAt: "2026-10-12T17:59:12.000Z",
         postedAgo: "Reposted 48 Seconds Ago",
-        postedAtSource: "jsonld",
+        postedAtSource: "jsonld+ago",
         crawledAt: "2026-10-12T18:00:00.000Z",
       },
       { id: "builtin" },
     );
-    expect(payload.companyLink).toBe("https://builtin.com/company/micron-technology");
+    expect(payload.companyLink).toBe("");
+    expect(payload.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(payload.company).toEqual({
       name: "Micron Technology",
       logo: "https://cdn.example/micron.png",
@@ -78,8 +84,8 @@ describe("toJobPayload", () => {
     });
     expect(payload.postedAt).toBe("2026-10-12T17:59:12.000Z");
     expect(payload.postedAgo).toBe("Reposted 48 Seconds Ago");
-    expect(payload.metadata.postedAtSource).toBe("jsonld");
-    expect(payload.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(payload.metadata.postedAtSource).toBe("jsonld+ago");
+    expect(payload.metadata.crawledAt).toBeUndefined();
     expect(payload.metadata.companyProfileUrl).toBe(
       "https://builtin.com/company/micron-technology",
     );
@@ -103,5 +109,26 @@ describe("toJobPayload", () => {
     expect(payload.companyLink).toBe("https://north.example/");
     expect(payload.company.website).toBe("https://north.example/");
     expect(payload.company.profileUrl).toBe("https://builtin.com/company/north");
+  });
+
+  test("Built In fixture website and socials match the field checker", () => {
+    const record = parseDetail(
+      loadFixture("detail-external.html"),
+      "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/9256204",
+      { now: new Date("2026-10-12T18:00:00.000Z") },
+    );
+    const payload = toJobPayload(record, BuiltInRoutine);
+    expect(payload.companyLink).toBe("https://www.micron.com/");
+    expect(payload.company.website).toBe("https://www.micron.com/");
+    expect(payload.company.profileUrl).toBe("https://builtin.com/company/micron-technology");
+    expect(payload.company.socials).toEqual({
+      linkedin: "https://www.linkedin.com/company/micron-technology",
+      x: "https://x.com/MicronTech",
+    });
+    expect(payload.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(isJobFieldValid(payload, "companyWebsite", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(payload, "companySocials", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(payload, "companyName", BuiltInRoutine)).toBe(true);
   });
 });

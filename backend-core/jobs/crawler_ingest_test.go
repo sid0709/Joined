@@ -36,6 +36,7 @@ func crawledJob(applyLink string) CrawledJob {
 				"hq":      "Austin",
 			},
 		},
+		CrawledAt: "2026-10-12T18:00:00.000Z",
 		Metadata: map[string]any{
 			"workMode":     "remote",
 			"industryTags": []string{"SaaS"},
@@ -136,8 +137,10 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 		ApplyLinkKey string `bson:"applyLinkKey"`
 		IngestedVia  string `bson:"ingestedVia"`
 		Metadata     struct {
-			Details map[string]string `bson:"details"`
-			Extra   map[string]any    `bson:"extra"`
+			Details   map[string]string `bson:"details"`
+			PostedAgo string            `bson:"postedAgo"`
+			CrawledAt string            `bson:"crawledAt"`
+			Extra     map[string]any    `bson:"extra"`
 		} `bson:"metadata"`
 	}
 	if err := bson.Unmarshal(raw, &doc); err != nil {
@@ -151,6 +154,12 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	}
 	if doc.Metadata.Extra["workMode"] != "remote" {
 		t.Fatalf("extra = %+v", doc.Metadata.Extra)
+	}
+	if doc.Metadata.PostedAgo != "3 hours ago" || doc.Metadata.CrawledAt != "2026-10-12T18:00:00.000Z" {
+		t.Fatalf("metadata stamps = %+v", doc.Metadata)
+	}
+	if _, ok := doc.Metadata.Extra["crawledAt"]; ok {
+		t.Fatalf("crawledAt leaked into extra: %+v", doc.Metadata.Extra)
 	}
 	if _, ok := doc.Metadata.Extra["bad.key"]; ok {
 		t.Fatalf("unsanitized extra key: %+v", doc.Metadata.Extra)

@@ -86,22 +86,48 @@ function toIso(date) {
 
 export const POSTED_AT_SOURCE = Object.freeze({
   JSONLD: "jsonld",
+  JSONLD_AGO: "jsonld+ago",
   AGO: "ago",
   NONE: "none",
 });
+
+const INTRA_DAY_UNITS = Object.freeze(new Set(["second", "minute", "hour"]));
 
 function postedResult(date, source) {
   return { postedAt: toIso(date), postedAtSource: source };
 }
 
+function utcDateKey(date) {
+  return toIso(date).slice(0, 10);
+}
+
+function agoUnit(text) {
+  const stamp = postedAgoText(text);
+  if (!stamp) return "";
+  if (JUST_NOW_RE.test(stamp)) return "second";
+  const match = stamp.match(RELATIVE_RE);
+  return match ? UNIT_ALIASES[match[2].toLowerCase()] || "" : "";
+}
+
 /**
  * Prefer a parseable JSON-LD datePosted over a date inferred from relative
- * text. postedAtSource is jsonld, ago, or none.
+ * text. When datePosted is date-only and an intra-day ago stamp (seconds,
+ * minutes, hours, or just now) falls on that same UTC date, use the ago clock
+ * and mark postedAtSource jsonld+ago.
  */
 export function resolvePostedAt({ datePosted = "", postedAgo = "", now = new Date() } = {}) {
   const fromJsonLd = parseDatePosted(datePosted);
-  if (fromJsonLd) return postedResult(fromJsonLd, POSTED_AT_SOURCE.JSONLD);
   const fromAgo = postedAtFromAgo(postedAgo, now);
+  if (
+    fromJsonLd &&
+    fromAgo &&
+    !datePostedHasTime(datePosted) &&
+    INTRA_DAY_UNITS.has(agoUnit(postedAgo)) &&
+    utcDateKey(fromAgo) === utcDateKey(fromJsonLd)
+  ) {
+    return postedResult(fromAgo, POSTED_AT_SOURCE.JSONLD_AGO);
+  }
+  if (fromJsonLd) return postedResult(fromJsonLd, POSTED_AT_SOURCE.JSONLD);
   if (fromAgo) return postedResult(fromAgo, POSTED_AT_SOURCE.AGO);
   return postedResult(null, POSTED_AT_SOURCE.NONE);
 }
