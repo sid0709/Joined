@@ -25,9 +25,9 @@ const crawlerCompanySourcePrefix = "crawler:"
 // other gathered field stay under metadata. A job whose board omitted the
 // website or logo is still saved; its company is left unstaged.
 func (s *Store) stageCrawledCompany(ctx context.Context, job CrawledJob, now time.Time) error {
-	name := strings.TrimSpace(job.Company.Name)
-	link := strings.TrimSpace(job.CompanyLink)
-	logo := strings.TrimSpace(job.Company.Logo)
+	name := crawledCompanyName(job)
+	link := crawledCompanyLink(job)
+	logo := crawledCompanyLogo(job)
 	key := companySlug(name)
 	if key == "" || !isHTTPURL(link) || !isHTTPURL(logo) {
 		return nil
@@ -115,8 +115,8 @@ func crawledCompanyLinks(link string) []string {
 // companyUrl repeats companyLink so research and the directory, which read
 // companyUrl, see the website.
 func crawledCompanyDocument(id, sourceID string, job CrawledJob, now time.Time) bson.D {
-	name := strings.TrimSpace(job.Company.Name)
-	link := strings.TrimSpace(job.CompanyLink)
+	name := crawledCompanyName(job)
+	link := crawledCompanyLink(job)
 	doc := bson.D{
 		{Key: "id", Value: id},
 		{Key: "sourceId", Value: sourceID},
@@ -124,7 +124,7 @@ func crawledCompanyDocument(id, sourceID string, job CrawledJob, now time.Time) 
 		{Key: "companyLink", Value: link},
 		{Key: "companyUrl", Value: link},
 		{Key: "companyKey", Value: companySlug(name)},
-		{Key: "companyLogo", Value: strings.TrimSpace(job.Company.Logo)},
+		{Key: "companyLogo", Value: crawledCompanyLogo(job)},
 		{Key: "jobCount", Value: int64(0)},
 		{Key: "jobIds", Value: bson.A{}},
 		{Key: "source", Value: CrawlerIngest},
@@ -203,6 +203,6 @@ func cleanMetadataValue(value any) any {
 		}
 		return nested
 	default:
-		return nil
+		return typed
 	}
 }

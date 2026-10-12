@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -30,26 +31,6 @@ const (
 	applyLinkKeyField     = "applyLinkKey"
 	ingestedViaField      = "ingestedVia"
 )
-
-// CrawledJob is one job as the crawler extension reads it from a job board.
-type CrawledJob struct {
-	CreatedBy           string            `json:"createdBy"`
-	Source              string            `json:"source"`
-	ApplyLink           string            `json:"applyLink"`
-	Title               string            `json:"title"`
-	Description         string            `json:"description"`
-	PostedAgo           string            `json:"postedAgo"`
-	DuplicateWindowDays int               `json:"duplicateWindowDays"`
-	Tags                []string          `json:"tags"`
-	Skills              []string          `json:"skills"`
-	Details             map[string]string `json:"details"`
-	CompanyLink         string            `json:"companyLink"`
-	Applicants          struct {
-		Count int    `json:"count"`
-		Text  string `json:"text"`
-	} `json:"applicants"`
-	Company CrawledCompany `json:"company"`
-}
 
 // CrawledCompany is the employer a board showed on a job. Name and logo are the
 // fields every board is expected to have. Anything else the board happened to
@@ -90,7 +71,7 @@ func (c *CrawledCompany) UnmarshalJSON(data []byte) error {
 	}
 	meta := make(map[string]any, len(raw))
 	for key, value := range raw {
-		if key == "name" || key == "logo" {
+		if key == "name" || key == "logo" || key == crawlerMetadataKey {
 			continue
 		}
 		var decoded any
@@ -98,6 +79,17 @@ func (c *CrawledCompany) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		meta[key] = decoded
+	}
+	if nested, ok := raw[crawlerMetadataKey]; ok {
+		var decoded any
+		if err := json.Unmarshal(nested, &decoded); err != nil {
+			return err
+		}
+		for key, value := range mapValue(decoded) {
+			if _, exists := meta[key]; !exists {
+				meta[key] = value
+			}
+		}
 	}
 	c.Metadata = meta
 	return nil
@@ -154,12 +146,14 @@ func crawledJobProblem(job CrawledJob) string {
 	switch {
 	case strings.TrimSpace(job.Title) == "":
 		return "title is required"
-	case strings.TrimSpace(job.Company.Name) == "":
+	case crawledCompanyName(job) == "":
 		return "company name is required"
 	case strings.TrimSpace(job.Description) == "":
 		return "description is required"
-	case !isHTTPURL(job.ApplyLink):
+	case !isHTTPURL(crawledApplyURL(job)):
 		return "applyLink must be an http(s) URL"
+	case crawlerMetadataBytes(job.Metadata) > maxCrawlerJobMetadataBytes:
+		return "metadata is too large"
 	default:
 		return ""
 	}
@@ -222,6 +216,27 @@ func cleanStrings(values []string) []string {
 	return out
 }
 
+func mapToBSON(meta map[string]any) bson.D {
+	keys := make([]string, 0, len(meta))
+	for key := range meta {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	doc := bson.D{}
+	for _, key := range keys {
+		cleanedKey := strings.TrimSpace(key)
+		if cleanedKey == "" || strings.ContainsAny(cleanedKey, ".$") {
+			continue
+		}
+		cleaned := cleanMetadataValue(meta[key])
+		if cleaned == nil {
+			continue
+		}
+		doc = append(doc, bson.E{Key: cleanedKey, Value: cleaned})
+	}
+	return doc
+}
+
 func crawledDetails(details map[string]string) bson.D {
 	doc := bson.D{}
 	for key, value := range details {
@@ -229,43 +244,50 @@ func crawledDetails(details map[string]string) bson.D {
 		if key == "" || strings.ContainsAny(key, ".$") {
 			continue
 		}
-		doc = append(doc, bson.E{Key: key, Value: strings.TrimSpace(value)})
+		if text := strings.TrimSpace(value); text != "" {
+			doc = append(doc, bson.E{Key: key, Value: text})
+		}
 	}
 	return doc
 }
 
 // crawledTempDocument is the temp_jobs row for a crawled job, in the fields the
-// analyzer reads (see tempListing) plus what the crawler saw on the board.
+// analyzer reads (see tempListing) plus free-form extra metadata.
 func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now time.Time) bson.D {
 	source := strings.TrimSpace(job.Source)
 	if source == "" {
 		source = crawlerFallbackSource
 	}
+	apply := crawledApplyURL(job)
+	metadata := bson.D{
+		{Key: crawlerDetailsKey, Value: crawledDetails(job.Details)},
+		{Key: crawlerLogoKey, Value: strings.TrimSpace(job.Company.Logo)},
+		{Key: "companyTags", Value: cleanStrings(job.Company.Tags)},
+		{Key: "tags", Value: cleanStrings(job.Tags)},
+		{Key: "skills", Value: cleanStrings(job.Skills)},
+		{Key: crawlerPostedAgoKey, Value: strings.TrimSpace(job.PostedAgo)},
+		{Key: "applicants", Value: bson.D{
+			{Key: "count", Value: job.Applicants.Count},
+			{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
+		}},
+	}
+	if extra := mapToBSON(job.Metadata); len(extra) > 0 {
+		metadata = append(metadata, bson.E{Key: crawlerExtraKey, Value: extra})
+	}
 	return bson.D{
 		{Key: "_id", Value: id},
 		{Key: "title", Value: strings.TrimSpace(job.Title)},
-		{Key: "companyName", Value: strings.TrimSpace(job.Company.Name)},
-		{Key: "companyLink", Value: strings.TrimSpace(job.CompanyLink)},
+		{Key: "companyName", Value: crawledCompanyName(job)},
+		{Key: "companyLink", Value: strings.TrimSpace(firstString(job.CompanyLink, job.Company.Metadata["website"], job.Metadata[crawlerWebsiteKey]))},
 		{Key: "description", Value: strings.TrimSpace(job.Description)},
-		{Key: "applyLink", Value: strings.TrimSpace(job.ApplyLink)},
-		{Key: applyLinkKeyField, Value: CanonicalApplyURL(job.ApplyLink)},
-		{Key: "postedAt", Value: PostedAtFromAgo(job.PostedAgo, now).UTC()},
+		{Key: "applyLink", Value: apply},
+		{Key: applyLinkKeyField, Value: CanonicalApplyURL(apply)},
+		{Key: "postedAt", Value: parseCrawledPostedAt(job, now)},
 		{Key: "createdAt", Value: now.UTC()},
 		{Key: "createdBy", Value: createdBy},
 		{Key: "source", Value: source},
 		{Key: ingestedViaField, Value: CrawlerIngest},
-		{Key: "metadata", Value: bson.D{
-			{Key: "details", Value: crawledDetails(job.Details)},
-			{Key: "companyLogo", Value: strings.TrimSpace(job.Company.Logo)},
-			{Key: "companyTags", Value: cleanStrings(job.Company.Tags)},
-			{Key: "tags", Value: cleanStrings(job.Tags)},
-			{Key: "skills", Value: cleanStrings(job.Skills)},
-			{Key: "postedAgo", Value: strings.TrimSpace(job.PostedAgo)},
-			{Key: "applicants", Value: bson.D{
-				{Key: "count", Value: job.Applicants.Count},
-				{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
-			}},
-		}},
+		{Key: crawlerMetadataKey, Value: metadata},
 	}
 }
 
@@ -320,7 +342,7 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 		result.StatusCode = 500
 		return result
 	}
-	key := CanonicalApplyURL(job.ApplyLink)
+	key := CanonicalApplyURL(crawledApplyURL(job))
 	existing, err := s.findRecentTempJob(ctx, key, now.Add(-crawlerDuplicateWindow(job.DuplicateWindowDays)))
 	if err != nil {
 		result.Error = "could not check for duplicates"
