@@ -157,7 +157,16 @@ func TestRecorderSavesTodayAndYesterday(t *testing.T) {
 	if _, ok := got["not-a-component"]; ok {
 		t.Fatal("unknown components are not stored")
 	}
-	if !strings.Contains(prom.asked[0], "[54000s:1m]") || !strings.Contains(prom.asked[1], "[86400s:1m])@2026-10-11T00:00:00Z") {
+	var today, yesterday bool
+	for _, asked := range prom.asked {
+		if strings.Contains(asked, "[54000s:1m]") {
+			today = true
+		}
+		if strings.Contains(asked, "[86400s:1m]") && strings.Contains(asked, "@2026-10-11T00:00:00Z") {
+			yesterday = true
+		}
+	}
+	if !today || !yesterday {
 		t.Fatalf("windows: %v", prom.asked)
 	}
 }

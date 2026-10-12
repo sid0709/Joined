@@ -33,10 +33,10 @@ function Header() {
     <header className="crawler-header">
       <HStack gap={3} align="center" justify="between">
         <HStack gap={2} align="center">
-          <img className="crawler-logo" src="/logo.png" alt="" />
+          <img className="crawler-logo" src="/logo.png" alt="Joined Scrapper" />
           <VStack gap={0}>
             <Text as="h1" weight="semibold">
-              Avalon Scrapper
+              Joined Scrapper
             </Text>
             <Text type="supporting" color="secondary" hasTabularNumbers>
               {versionLabel}

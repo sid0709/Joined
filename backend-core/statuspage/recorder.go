@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/sid0709/Joined/backend-core/metrics"
 	"github.com/sid0709/Joined/backend-core/monitoring"
 )
 
@@ -57,25 +58,59 @@ func (r *Recorder) Run(ctx context.Context) {
 
 // Record saves today so far and, again, all of yesterday: the first runs after
 // midnight close out the day before.
-func (r *Recorder) Record(ctx context.Context, now time.Time) error {
+func (r *Recorder) Record(ctx context.Context, now time.Time) (err error) {
+	started := time.Now()
+	defer func() {
+		metrics.ObserveWorker(metrics.WorkerStatus, time.Since(started), err != nil, 0)
+	}()
 	midnight := startOfDay(now)
 	today := max(now.Sub(midnight), minWindow)
-	if err := r.recordDay(ctx, dayOf(now), now, today); err != nil {
+	if err = r.recordDay(ctx, dayOf(now), now, today); err != nil {
 		return err
 	}
 	return r.recordDay(ctx, dayOf(midnight.Add(-time.Second)), midnight, 24*time.Hour)
 }
 
 func (r *Recorder) recordDay(ctx context.Context, day string, at time.Time, window time.Duration) error {
-	samples, err := r.prom.Query(ctx, fmt.Sprintf(uptimeQuery, int(window.Seconds())), at)
-	if err != nil {
-		return fmt.Errorf("query uptime for %s: %w", day, err)
-	}
-	uptime := make(map[string]float64, len(samples))
-	for _, s := range samples {
+	seconds := int(window.Seconds())
+	uptime := map[string]float64{}
+	if err := r.collect(ctx, fmt.Sprintf(uptimeQuery, seconds), at, func(s monitoring.Sample) {
 		if id := s.Labels["component"]; KnownComponent(id) {
 			uptime[id] = s.Value
 		}
+	}); err != nil {
+		return fmt.Errorf("query uptime for %s: %w", day, err)
+	}
+	if err := r.collect(ctx, monitoring.HostUptimeQuery(seconds), at, func(s monitoring.Sample) {
+		if s.Labels["component"] != "" && s.Labels["component"] != monitoring.HostID {
+			return
+		}
+		if cur, ok := uptime[monitoring.HostID]; !ok || s.Value < cur {
+			uptime[monitoring.HostID] = s.Value
+		}
+	}); err != nil {
+		return fmt.Errorf("query host uptime for %s: %w", day, err)
+	}
+	if err := r.collect(ctx, monitoring.ProbeUptimeQuery(seconds), at, func(s monitoring.Sample) {
+		if instance := s.Labels["instance"]; instance != "" {
+			uptime[instance] = s.Value
+		}
+	}); err != nil {
+		return fmt.Errorf("query probe uptime for %s: %w", day, err)
 	}
 	return r.store.RecordUptime(ctx, day, uptime, at)
+}
+
+func (r *Recorder) collect(ctx context.Context, query string, at time.Time, keep func(monitoring.Sample)) error {
+	if r.prom == nil {
+		return nil
+	}
+	samples, err := r.prom.Query(ctx, query, at)
+	if err != nil {
+		return err
+	}
+	for _, sample := range samples {
+		keep(sample)
+	}
+	return nil
 }

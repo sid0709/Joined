@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -46,7 +47,9 @@ func (s *Service) Run(ctx context.Context, source RankingSource) {
 	var watermark string
 	for {
 		var err error
+		started := time.Now()
 		watermark, err = s.reconcile(ctx, source)
+		metrics.ObserveWorker(metrics.WorkerRanking, time.Since(started), err != nil, 0)
 		if err == nil {
 			break
 		}
@@ -66,14 +69,18 @@ func (s *Service) Run(ctx context.Context, source RankingSource) {
 		case <-ctx.Done():
 			return
 		case <-poll.C:
+			started := time.Now()
 			next, err := s.poll(ctx, source, watermark)
+			metrics.ObserveWorker(metrics.WorkerRanking, time.Since(started), err != nil, 0)
 			if err != nil {
 				s.log.Warn("ranking poll", "error", err)
 				continue
 			}
 			watermark = next
 		case <-full.C:
+			started := time.Now()
 			next, err := s.reconcile(ctx, source)
+			metrics.ObserveWorker(metrics.WorkerRanking, time.Since(started), err != nil, 0)
 			if err != nil {
 				s.log.Warn("ranking reconcile", "error", err)
 				continue

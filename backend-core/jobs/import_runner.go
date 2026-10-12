@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 // Runner applies enabled sources through normalize + dedupe and writes a run log.
@@ -88,6 +90,9 @@ func (r *Runner) Run(ctx context.Context) (ImportRun, error) {
 		Status:    ImportRunOK,
 		Sources:   []SourceStats{},
 	}
+	defer func() {
+		metrics.ObserveWorker(metrics.WorkerImport, r.clock().Sub(started), run.Status == ImportRunFailed, run.Totals.Inserted+run.Totals.Replaced)
+	}()
 	if !r.enabled {
 		run.Status = ImportRunDisabled
 		run.Reason = importDisabledReason

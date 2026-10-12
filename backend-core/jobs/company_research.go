@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sid0709/Joined/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -95,6 +96,7 @@ func researchCompany(ctx context.Context, reader CompanyReader, name, website st
 	if reader == nil {
 		return CompanyResearch{}, ErrMissingResearcher
 	}
+	ctx = metrics.EnsureFeature(ctx, metrics.FeatureCompanyResearch)
 	if webSearch {
 		return researchFromWeb(ctx, reader, name, website)
 	}

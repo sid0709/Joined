@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
-import { SystemMonitor } from "@/components/monitoring/system-monitor";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/nav";
 
-export const metadata: Metadata = { title: "System" };
-
+/** The old System URL. Overview replaced it. */
 export default function SystemMonitoringPage() {
-  return <SystemMonitor />;
+  redirect(ROUTES.monitoring);
 }

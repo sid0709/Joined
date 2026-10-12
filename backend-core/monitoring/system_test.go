@@ -105,8 +105,9 @@ func TestLoadSystemSendsFilledQueries(t *testing.T) {
 		if _, err := LoadSystem(context.Background(), q, ParseRange(key), time.Unix(1_700_000_000, 0)); err != nil {
 			t.Fatal(err)
 		}
-		if len(q.queries) != len(instantQueries)+len(chartQueries) {
-			t.Fatalf("%s: sent %d queries", key, len(q.queries))
+		want := len(instantQueries) + len(detailQueries) + len(chartQueries) + len(detailCharts) + len(slotQueries)
+		if len(q.queries) != want {
+			t.Fatalf("%s: sent %d queries, want %d", key, len(q.queries), want)
 		}
 		for _, query := range q.queries {
 			if strings.Contains(query, "$") || strings.Contains(query, "%!") {
