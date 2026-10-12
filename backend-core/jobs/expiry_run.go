@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"time"
+
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 type expirySource interface {
@@ -63,7 +65,15 @@ func (r *ExpiryRunner) Run(ctx context.Context) {
 	}
 }
 
-func (r *ExpiryRunner) RunOnce(ctx context.Context) error {
+func (r *ExpiryRunner) RunOnce(ctx context.Context) (err error) {
+	started := time.Now()
+	checked := 0
+	defer func() {
+		if r == nil {
+			return
+		}
+		metrics.ObserveWorker(metrics.WorkerExpiry, time.Since(started), err != nil, checked)
+	}()
 	if r == nil || r.source == nil {
 		return nil
 	}
@@ -80,6 +90,7 @@ func (r *ExpiryRunner) RunOnce(ctx context.Context) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		checked++
 		result := r.checker.Check(ctx, job.ApplyLink)
 		updated := applyLinkCheck(job, result, now, r.cfg.FailureThreshold)
 		if err := r.source.SaveExpiryCheck(ctx, updated); err != nil {

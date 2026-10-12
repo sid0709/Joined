@@ -5,6 +5,9 @@ export type ParseStatus = "parsed" | "parsing" | "failed";
 
 export type ResumeSection = { label: string; value: string };
 
+/** Who read an uploaded résumé: the model, or the layout parser when no model answered. */
+export type ResumeReader = "ai" | "layout";
+
 export type Resume = {
   id: string;
   label: string;
@@ -25,8 +28,11 @@ export type Resume = {
   file?: File;
 };
 
-export const MAX_RESUME_BYTES = 10 * 1024 * 1024;
-export const RESUME_ACCEPT = ".pdf,.docx";
+/** Matches the API's résumé limit (`resumeread.MaxBytes`). */
+export const MAX_RESUME_BYTES = 8 * 1024 * 1024;
+export const RESUME_ACCEPT = ".pdf,.docx,.txt";
+/** The multipart field the API reads the résumé from. */
+export const RESUME_FORM_FIELD = "resume";
 export const RESUME_LABEL_MAX_LENGTH = 40;
 export const STRONG_SCORE = 80;
 export const READY_SCORE = 40;
@@ -43,7 +49,12 @@ export const SCORE_EDUCATION = 15;
 export const SCORE_SKILLS = 20;
 
 export const SESSION_FILE_TIP =
-  "This file stays in this browser until you leave. Edit the résumé below to save contact, summary, experience, education, and skills to your profile.";
+  "Your profile was filled from this file. The file itself stays in this browser until you leave — check the details below and edit anything that came through wrong.";
+
+export const RESUME_FILLED_MESSAGE: Record<ResumeReader, string> = {
+  ai: "Profile filled from your résumé — check the details",
+  layout: "Profile filled from your résumé’s layout — check the details",
+};
 
 export const PARSE_META: Record<
   ParseStatus,
@@ -173,12 +184,17 @@ export function profileResume(profile: Profile, usedIn = 0): Resume {
 }
 
 export function newResumeFromFile(file: File): Resume {
-  const isDocx = file.name.toLowerCase().endsWith(".docx");
+  const name = file.name.toLowerCase();
+  const fileType: ResumeFileType = name.endsWith(".docx")
+    ? "DOCX"
+    : name.endsWith(".txt")
+      ? "TXT"
+      : "PDF";
   return {
     id: `resume-${file.name}-${file.lastModified}`,
     label: file.name.replace(/\.[^.]+$/, "").slice(0, RESUME_LABEL_MAX_LENGTH),
     fileName: file.name,
-    fileType: isDocx ? "DOCX" : "PDF",
+    fileType,
     sizeBytes: file.size,
     updated: new Date(),
     isDefault: false,

@@ -47,18 +47,17 @@ func TestNormalizeRangeRejectsBadDates(t *testing.T) {
 
 func TestApplyProfilePatchSavesDetails(t *testing.T) {
 	current := emptyProfile("Stanley Wang", "s@example.com", testTime)
-	personal := Personal{FirstName: " Stanley ", LastName: "Wang", Age: 35, Gender: "male"}
+	personal := Personal{FirstName: " Stanley ", LastName: "Wang"}
 	links := Links{LinkedIn: "linkedin.com/in/stan", GitHub: "https://github.com/stan"}
 	education := []EducationItem{{School: "UC Berkeley", Degree: "BS", Field: "Computer Science", DateRange: DateRange{StartYear: 2009, EndYear: 2013}}}
 	roles := []ExperienceItem{{Role: "Senior Software Engineer", Company: "Uber", DateRange: DateRange{StartMonth: 1, StartYear: 2022, Current: true}}}
 	next, _, err := applyProfilePatch(current, ProfilePatch{
 		Personal: &personal, Links: &links, Education: &education, Experience: &roles,
-		Disclosures: &Disclosures{Race: "asian", Veteran: "not-protected-veteran"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if next.Personal.FirstName != "Stanley" || next.Personal.Age != 35 {
+	if next.Personal.FirstName != "Stanley" || next.Personal.LastName != "Wang" {
 		t.Errorf("personal = %+v", next.Personal)
 	}
 	if next.Links.LinkedIn != "https://linkedin.com/in/stan" {
@@ -70,15 +69,11 @@ func TestApplyProfilePatchSavesDetails(t *testing.T) {
 	if next.Experience[0].Period != "Jan 2022 – Present" || !next.Experience[0].Current {
 		t.Errorf("experience = %+v", next.Experience[0])
 	}
-	if next.Disclosures.Race != "asian" {
-		t.Errorf("disclosures = %+v", next.Disclosures)
-	}
 }
 
 func TestApplyProfilePatchRejectsBadDetails(t *testing.T) {
 	current := emptyProfile("A", "a@example.com", testTime)
 	for name, patch := range map[string]ProfilePatch{
-		"age":       {Personal: &Personal{Age: 7}},
 		"link":      {Links: &Links{Portfolio: "javascript:alert(1)"}},
 		"no school": {Education: &[]EducationItem{{Degree: "BS"}}},
 	} {

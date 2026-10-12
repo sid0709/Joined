@@ -26,6 +26,12 @@
       "port": 6003
     },
     {
+      "name": "sid-ui-theme",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "../sid-ui/theme", "dev"],
+      "port": 6001
+    },
+    {
       "name": "crawler-dev",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "plugins/crawler", "dev"],

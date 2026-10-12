@@ -6,9 +6,6 @@ import (
 )
 
 const (
-	// AthensSourceID is the existing Athens → temp_jobs feed. It stays registered
-	// and off until JOB_IMPORT_SOURCES lists it.
-	AthensSourceID = "athens"
 	// FakeSourceID is the in-memory feed used by tests. It is never registered in
 	// production.
 	FakeSourceID = "fake"
@@ -84,7 +81,7 @@ type ImportRunsResponse struct {
 	Runs    []ImportRun    `json:"runs"`
 }
 
-// ImportSource is a permitted feed. Production registers Athens; tests use FakeSource.
+// ImportSource is a permitted feed. Tests use FakeSource. No production feed is registered.
 type ImportSource interface {
 	ID() string
 	Enabled() bool

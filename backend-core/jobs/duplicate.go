@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -215,7 +217,7 @@ func (s *Store) screenScouted(ctx context.Context, reader ModelReader, listing S
 	if len(filtered) == 0 {
 		return AnalyzeScoutedResult{TopK: []TitleCandidate{}}, nil
 	}
-	payload, err := reader.JSON(ctx, titleTopKSystem, titleTopKPrompt(listing.Title, filtered), json.RawMessage(titleTopKSchema))
+	payload, err := reader.JSON(metrics.EnsureFeature(ctx, metrics.FeatureDuplicate), titleTopKSystem, titleTopKPrompt(listing.Title, filtered), json.RawMessage(titleTopKSchema))
 	if err != nil {
 		return AnalyzeScoutedResult{}, err
 	}
@@ -235,7 +237,7 @@ func (s *Store) screenScouted(ctx context.Context, reader ModelReader, listing S
 		byID = append(byID, brief)
 		topKnown[brief.ID] = brief
 	}
-	compared, err := reader.JSON(ctx, samePositionSystem, descriptionComparePrompt(listing, byID), json.RawMessage(samePositionSchema))
+	compared, err := reader.JSON(metrics.EnsureFeature(ctx, metrics.FeatureDuplicate), samePositionSystem, descriptionComparePrompt(listing, byID), json.RawMessage(samePositionSchema))
 	if err != nil {
 		return AnalyzeScoutedResult{}, err
 	}
@@ -252,7 +254,7 @@ func CompareSamePosition(ctx context.Context, reader ModelReader, newTitle, newC
 	if reader == nil {
 		return false, "", nil
 	}
-	payload, err := reader.JSON(ctx, samePositionSystem, pairComparePrompt(newTitle, newCompany, newDesc, existTitle, existCompany, existDesc), json.RawMessage(samePositionSchema))
+	payload, err := reader.JSON(metrics.EnsureFeature(ctx, metrics.FeatureDuplicate), samePositionSystem, pairComparePrompt(newTitle, newCompany, newDesc, existTitle, existCompany, existDesc), json.RawMessage(samePositionSchema))
 	if err != nil {
 		return false, "", err
 	}

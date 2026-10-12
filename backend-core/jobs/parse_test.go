@@ -41,10 +41,10 @@ func (c *countingReader) JSONWebSearch(_ context.Context, system, _ string, _ js
 
 func TestReadExtractionFollowsTheWebSearchSwitch(t *testing.T) {
 	reader := &countingReader{stubReader: stubReader{payload: []byte(`{}`)}}
-	if _, err := readExtraction(context.Background(), reader, tempListing{}, true); err != nil {
+	if _, err := readExtraction(context.Background(), reader, tempListing{}, true, ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := readExtraction(context.Background(), reader, tempListing{}, false); err != nil {
+	if _, err := readExtraction(context.Background(), reader, tempListing{}, false, ""); err != nil {
 		t.Fatal(err)
 	}
 	if reader.web != 1 || reader.plain != 1 {

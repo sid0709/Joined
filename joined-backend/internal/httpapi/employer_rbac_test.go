@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/employer"
 )
 
 func TestHiringAuthzStatusCodes(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/scout"
 )
 
 const (

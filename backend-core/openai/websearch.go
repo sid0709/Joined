@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -32,11 +33,25 @@ func (c *Client) WithSearchModel(model string) *Client {
 // JSONWebSearch answers a question from the live web and returns it as JSON matching
 // schema, plus the pages the answer cited. It uses the Responses API, since chat
 // completions cannot search.
-func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, []string, error) {
+func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema json.RawMessage) (out []byte, sources []string, err error) {
+	started := time.Now()
+	var model string
+	var retries int
+	defer func() {
+		if c == nil || c.apiKey == "" {
+			name := model
+			if c != nil && name == "" {
+				name = c.model
+			}
+			metrics.RecordModel(ctx, name, metrics.OutcomeMissingKey, 0, 0, 0, 0)
+			return
+		}
+		c.record(ctx, model, started, err, err == nil && strings.TrimSpace(string(out)) == "", 0, 0, retries)
+	}()
 	if c == nil || c.apiKey == "" {
 		return nil, nil, ErrMissingAPIKey
 	}
-	model := c.searchModel
+	model = c.searchModel
 	if model == "" {
 		model = c.model
 	}
@@ -76,6 +91,7 @@ func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema 
 		if attempt == searchAttempts-1 {
 			break
 		}
+		retries++
 		if err := llmhttp.Wait(ctx, llmhttp.RetryDelay(attempt, retryAfter)); err != nil {
 			return nil, nil, err
 		}

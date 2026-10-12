@@ -5,6 +5,7 @@ import {
   EMPLOYMENT_OPTIONS,
   PAY_ESTIMATED_LABEL,
   PAY_LISTED_LABEL,
+  PAY_UNKNOWN_LABEL,
   SENIORITY_LABEL,
   SENIORITY_OPTIONS,
   WORKPLACE_LABEL,
@@ -18,6 +19,7 @@ export {
   EMPLOYMENT_OPTIONS,
   PAY_ESTIMATED_LABEL,
   PAY_LISTED_LABEL,
+  PAY_UNKNOWN_LABEL,
   SENIORITY_LABEL,
   SENIORITY_OPTIONS,
   WORKPLACE_LABEL,
@@ -58,9 +60,20 @@ export function formatAmount(amount: number, currency: string, period: Pay["peri
   return period === "year" ? `${symbol}${Math.round(amount / THOUSAND)}k` : `${symbol}${amount}`;
 }
 
-/** "$140k–$170k" or "$80–$100/hr". */
+/** "$140k–$170k", "$80–$100/hr", "$120k+", "Up to $150k", or "Pay not listed". */
 export function formatPay(pay: Pay) {
-  const range = `${formatAmount(pay.min, pay.currency, pay.period)}–${formatAmount(pay.max, pay.currency, pay.period)}`;
+  const hasMin = pay.min > 0;
+  const hasMax = pay.max > 0;
+  if (!hasMin && !hasMax) return PAY_UNKNOWN_LABEL;
+  const min = formatAmount(pay.min, pay.currency, pay.period);
+  const max = formatAmount(pay.max, pay.currency, pay.period);
+  const range = !hasMax
+    ? `${min}+`
+    : !hasMin
+      ? `Up to ${max}`
+      : pay.min === pay.max
+        ? max
+        : `${min}–${max}`;
   return pay.period === "hour" ? `${range}/hr` : range;
 }
 
@@ -99,4 +112,14 @@ export function isNew(job: Job) {
 
 export function formatCount(count: number, singular: string, plural = `${singular}s`) {
   return `${count.toLocaleString(LOCALE)} ${count === 1 ? singular : plural}`;
+}
+
+const COMPACT_COUNT = new Intl.NumberFormat(LOCALE, {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+/** "23.8K": a count short enough to sit inside a filter chip. */
+export function formatCompactCount(count: number) {
+  return COMPACT_COUNT.format(count);
 }

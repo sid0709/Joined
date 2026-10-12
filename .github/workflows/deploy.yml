@@ -1,12 +1,12 @@
 name: Deploy
 
-# A successful CI run on main builds the images whose inputs changed, retags the
-# rest from <service>-latest onto this commit, and rolls the VPS onto the commit CI
-# tested. Compose pulls every service at sha-<commit>, so an unchanged service still
-# gets that tag. Settings come from the GitHub "production" environment;
-# deploy/README.md lists them. Each non-secret setting may be stored as either a
-# variable or a secret. workflow_dispatch builds every image, because latest may
-# already be newer than the commit being rolled out.
+# A successful CI run on main builds the images whose inputs changed since the
+# last successful deploy, retags the rest from <service>-latest onto this commit,
+# and rolls the VPS onto the commit CI tested. Compose pulls every service at
+# sha-<commit>, so an unchanged service still gets that tag. Settings come from the
+# GitHub "production" environment; deploy/README.md lists them. Each non-secret
+# setting may be stored as either a variable or a secret. workflow_dispatch builds
+# every image, because latest may already be newer than the commit being rolled out.
 #
 # IMPORTANT: Deploy is restricted to main only. The workflow_run trigger below
 # specifies branches: [main], and the ci-succeeded job validates head_branch == 'main'.
@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: read
+  # The plan reads past Deploy runs to find the last commit that reached production.
+  actions: read
 
 # One deploy at a time; a newer merge waits instead of cancelling one mid-rollout.
 concurrency:
@@ -68,18 +70,32 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          # The plan diffs this commit against its first parent. A merge commit's
-          # first parent is the previous main tip, so the diff is the whole pull request.
-          fetch-depth: 2
+          # The plan diffs against the last deployed commit, which can be any
+          # number of merges back.
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
+      # Diff against the commit the last successful deploy rolled out, not HEAD^.
+      # A failed deploy leaves <service>-latest stale for every image it did not
+      # push, so the next deploy must rebuild everything changed since then. With
+      # no usable base (first deploy, rewritten history), build every image.
       - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             bun tools/image-plan.mjs --all --github-output
+            exit 0
+          fi
+          base=$(gh api "repos/${{ github.repository }}/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty' || true)
+          if [ -n "$base" ] && git merge-base --is-ancestor "$base" HEAD; then
+            echo "Changes since the last deploy ($base)"
+            git diff --name-only "$base" HEAD | bun tools/image-plan.mjs --github-output
           else
-            git diff --name-only HEAD^ HEAD | bun tools/image-plan.mjs --github-output
+            echo "::warning::No previous deploy to diff against. Building every image."
+            bun tools/image-plan.mjs --all --github-output
           fi
 
   images:
@@ -220,14 +236,19 @@ jobs:
           ADMIN_GOOGLE_SIGNIN_REDIRECT_URL: ${{ vars.ADMIN_GOOGLE_SIGNIN_REDIRECT_URL || secrets.ADMIN_GOOGLE_SIGNIN_REDIRECT_URL }}
           ADMIN_GOOGLE_DOMAIN: ${{ vars.ADMIN_GOOGLE_DOMAIN || secrets.ADMIN_GOOGLE_DOMAIN }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGODB_EXPORTER_URI: ${{ secrets.MONGODB_EXPORTER_URI }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           SCOUTWELL_GOOGLE_CLIENT_SECRET: ${{ secrets.SCOUTWELL_GOOGLE_CLIENT_SECRET }}
           ADMIN_GOOGLE_CLIENT_SECRET: ${{ secrets.ADMIN_GOOGLE_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SETTINGS_ENCRYPTION_KEY: ${{ secrets.SETTINGS_ENCRYPTION_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
+          CRAWLER_INGEST_TOKEN: ${{ secrets.CRAWLER_INGEST_TOKEN }}
           GEOAPIFY_API_KEY: ${{ secrets.GEOAPIFY_API_KEY }}
+          RANKING_EVENTS: ${{ vars.RANKING_EVENTS || secrets.RANKING_EVENTS }}
+          RANKING_MODEL_PATH: ${{ vars.RANKING_MODEL_PATH || secrets.RANKING_MODEL_PATH }}
+          RANKING_LTR_PERCENT: ${{ vars.RANKING_LTR_PERCENT || secrets.RANKING_LTR_PERCENT }}
         run: |
           umask 077
           # Single-quoted values are taken literally by Compose; refuse anything
@@ -247,15 +268,18 @@ jobs:
               SCOUTWELL_GOOGLE_CLIENT_ID SCOUTWELL_GOOGLE_CLIENT_SECRET \
               ADMIN_ORIGIN ADMIN_GOOGLE_CLIENT_ID ADMIN_GOOGLE_CLIENT_SECRET \
               ADMIN_GOOGLE_SIGNIN_REDIRECT_URL ADMIN_GOOGLE_DOMAIN \
-              MONGO_URI GOOGLE_CLIENT_SECRET OPENAI_API_KEY SETTINGS_ENCRYPTION_KEY DEEPSEEK_API_KEY \
-              ADMIN_API_TOKEN GEOAPIFY_API_KEY; do
+              MONGO_URI MONGODB_EXPORTER_URI GOOGLE_CLIENT_SECRET OPENAI_API_KEY SETTINGS_ENCRYPTION_KEY OPENROUTER_API_KEY \
+              ADMIN_API_TOKEN CRAWLER_INGEST_TOKEN GEOAPIFY_API_KEY RANKING_EVENTS RANKING_MODEL_PATH RANKING_LTR_PERCENT; do
               put "$name"
             done
           } > production.env
 
       - name: Ship the stack
         run: |
+          # The learned-ranking model directory must exist for the bind mount.
+          ssh vps "mkdir -p '$DEPLOY_DIR/models' '$DEPLOY_DIR/prometheus'"
           scp deploy/compose.yml vps:"$DEPLOY_DIR/compose.yml"
+          scp deploy/prometheus/prometheus.yml deploy/prometheus/blackbox.yml vps:"$DEPLOY_DIR/prometheus/"
           scp production.env vps:"$DEPLOY_DIR/.env"
           rm production.env
           ssh vps "chmod 600 '$DEPLOY_DIR/.env'"
@@ -274,21 +298,22 @@ jobs:
       - name: Start the new release
         run: |
           ssh vps "cd '$DEPLOY_DIR' && docker compose up -d --remove-orphans && docker image prune -f >/dev/null"
+          # Prometheus keeps running across deploys; make it read a changed scrape list.
+          ssh vps "cd '$DEPLOY_DIR' && docker compose kill -s SIGHUP prometheus"
 
       - name: Check it is serving
         run: |
           # Inside the VPS, so this checks the containers rather than DNS or TLS.
           ssh vps 'for i in $(seq 1 20); do
               api=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:11080/health)
-              acorn=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:11083/health)
               web=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:6002/)
               # curl reports 000 when nothing answers, so require a real status below 500.
-              if [ "$api" = 200 ] && [ "$acorn" = 200 ] && [ "$web" -ge 200 ] && [ "$web" -lt 500 ]; then
-                echo "api $api, acorn $acorn, web $web"
+              if [ "$api" = 200 ] && [ "$web" -ge 200 ] && [ "$web" -lt 500 ]; then
+                echo "api $api, web $web"
                 exit 0
               fi
               sleep 5
             done
-            echo "::error::not healthy: api $api, acorn $acorn, web $web"
-            cd /srv/joined && docker compose ps && docker compose logs --tail=40 joined-backend acorn-backend joined-frontend
+            echo "::error::not healthy: api $api, web $web"
+            cd /srv/joined && docker compose ps && docker compose logs --tail=40 joined-backend joined-frontend
             exit 1'

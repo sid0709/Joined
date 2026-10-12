@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -19,19 +20,26 @@ import {
 } from "sid-ui";
 import { WIDE_PAGE_MAX_WIDTH } from "@/components/page-container";
 import { CONTENT_PADDING } from "@/components/shell/app-frame";
-import { RECENT_SEARCHES, filterJobs, formatCount, type Job, type JobFilters } from "@/lib/jobs";
-import type { MatchProfile } from "@/lib/jobs/match";
+import {
+  RECENT_SEARCHES,
+  formatCount,
+  type Job,
+  type JobFilters,
+  type JobSearchPage,
+} from "@/lib/jobs";
+import { logRankingEvent } from "@/lib/jobs/ranking-events";
+import { loadJob } from "@/lib/jobs/search-action";
 import { ROLE_SUGGESTIONS } from "@/lib/profile";
 import { ROUTES } from "@/lib/routes";
 import { JobActiveFilters } from "./job-active-filters";
 import { JobDetailHeader } from "./job-detail-header";
 import { JobDetailBody, JobDetailPane } from "./job-detail-pane";
 import { JobFilterToolbar } from "./job-filter-toolbar";
-import { JobFiltersPanel } from "./job-filters-panel";
 import { JobResults } from "./job-results";
 import { JobSearchBar, type SavedQuery } from "./job-search-bar";
+import { JobSuggestions } from "./job-suggestions";
 import { SavedSearches } from "./saved-searches";
-import { useJobFits } from "./use-job-fits";
+import { useJobFit } from "./use-job-fits";
 import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
 import { useJobSearch } from "./use-job-search";
@@ -39,66 +47,94 @@ import { useJobSearch } from "./use-job-search";
 const RECENT_LIMIT = 4;
 const WIDE_QUERY = `(min-width: ${VIEWPORT_TIERS.lg}px)`;
 
+const JobFiltersPanel = dynamic(() =>
+  import("./job-filters-panel").then((mod) => mod.JobFiltersPanel),
+);
+
 /**
  * Find jobs: search, refine, and read a job side by side. On narrow screens
  * the detail opens in a drawer instead of the right-hand pane.
  */
 export function JobSearch({
   initialFilters,
-  jobs,
+  initialResult,
+  catalogTotal,
   loadError,
   savedIds = [],
   appliedIds = [],
   signedIn = false,
   roleSuggestions = ROLE_SUGGESTIONS,
-  matchProfile,
 }: {
   initialFilters: JobFilters;
-  jobs: Job[];
+  initialResult: JobSearchPage;
+  catalogTotal: number;
   loadError?: string | null;
   savedIds?: string[];
   appliedIds?: string[];
   signedIn?: boolean;
   roleSuggestions?: string[];
-  matchProfile?: MatchProfile;
 }) {
   const router = useRouter();
-  const search = useJobSearch(initialFilters, jobs, {
+  const search = useJobSearch(initialFilters, initialResult, {
     savedIds,
     appliedIds,
     signedIn,
-    profile: matchProfile,
   });
-  const totals = {
-    jobs: jobs.length,
-    companies: new Set(jobs.map((job) => job.companyId).filter(Boolean)).size,
-    hidden: jobs.filter((job) => job.source === "scouted").length,
-  };
+  const jobs = search.pageResults;
   const isWide = useMediaQuery(WIDE_QUERY, true);
   const searchRef = useRef<HTMLInputElement>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [drawerJob, setDrawerJob] = useState<Job | null>(null);
+  const [detail, setDetail] = useState<Job | null>(null);
   const [recent, setRecent] = useState<SavedQuery[]>(RECENT_SEARCHES);
+
+  const track = (id: string, type: "click" | "save" | "apply" | "dismiss") =>
+    logRankingEvent(search.rankingId, id, type, search.positionOf(id));
 
   const actions = useJobActions({
     isSaved: (id) => search.savedIds.includes(id),
-    toggleSave: (id) => void search.toggleSave(id),
-    markApplied: search.markApplied,
+    toggleSave: (id) => {
+      if (!search.savedIds.includes(id)) track(id, "save");
+      void search.toggleSave(id);
+    },
+    markApplied: (id) => {
+      track(id, "apply");
+      search.markApplied(id);
+    },
     signedIn,
-    hide: search.hide,
+    hide: (id) => {
+      track(id, "dismiss");
+      search.hide(id);
+    },
     unhide: search.unhide,
   });
 
-  const { filters, selected } = search;
-  const fitIds = search.pageResults.map((job) => job.id);
-  if (selected && !fitIds.includes(selected.id)) fitIds.push(selected.id);
-  const fits = useJobFits(signedIn, fitIds);
+  const { filters, selected, fits: pageFits } = search;
+  // The page's fits come with the results; a job selected from elsewhere is scored alone.
+  const missingFit = selected != null && !(selected.id in pageFits);
+  const selectedFit = useJobFit(signedIn && missingFit, selected?.id ?? "");
+  const fits = selected && selectedFit ? { ...pageFits, [selected.id]: selectedFit } : pageFits;
 
   useEffect(() => {
     if (selected?.id) router.prefetch(ROUTES.job(selected.id));
   }, [router, selected?.id]);
 
+  useEffect(() => {
+    const id = selected?.id;
+    if (!id) return;
+    let active = true;
+    loadJob(id).then((job) => {
+      if (active && job) setDetail(job);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selected?.id]);
+
+  const detailJob = detail?.id === selected?.id ? detail : selected;
+
   const select = (job: Job) => {
+    if (job.id !== selected?.id) track(job.id, "click");
     search.select(job.id);
     if (!isWide) setDrawerJob(job);
   };
@@ -141,7 +177,7 @@ export function JobSearch({
     onReport: () => actions.report(job),
   });
 
-  const filteredCount = filterJobs(search.visibleJobs, filters).length;
+  const shown = search.total;
 
   return (
     <Stack hAlign="center">
@@ -150,10 +186,14 @@ export function JobSearch({
           q={filters.q}
           where={filters.where}
           onChange={search.update}
-          onSubmit={remember}
+          onSubmit={() => {
+            remember();
+            search.submit();
+          }}
+          onPick={search.submit}
           recent={recent}
           suggestions={roleSuggestions.length > 0 ? roleSuggestions : ROLE_SUGGESTIONS}
-          totals={totals}
+          totals={{ jobs: catalogTotal }}
           inputRef={searchRef}
         />
 
@@ -167,9 +207,15 @@ export function JobSearch({
         <Stack gap={3}>
           <JobFilterToolbar
             filters={filters}
+            facets={search.facets}
             refinementCount={search.refinementCount}
             onChange={search.update}
             onOpenFilters={() => setFiltersOpen(true)}
+          />
+          <JobSuggestions
+            filters={filters}
+            suggestions={search.suggestions}
+            onChange={search.update}
           />
           <JobActiveFilters
             filters={filters}
@@ -186,7 +232,9 @@ export function JobSearch({
               onSortChange={(sort) => search.update({ sort })}
               listCounts={search.listCounts}
               onListChange={(list) => search.update({ list })}
-              total={search.results.length}
+              total={search.total}
+              exact={search.exact}
+              signedIn={signedIn}
               jobs={search.pageResults}
               fits={fits}
               page={search.page}
@@ -204,20 +252,20 @@ export function JobSearch({
           </GridColumn>
           <GridColumn span="hidden" lg={7}>
             <Sticky fill offset={CONTENT_PADDING}>
-              {loadError ? (
+              {loadError || search.error ? (
                 <Card variant="muted">
                   <EmptyState
                     icon={<Icon icon={icons.list} size="lg" color="secondary" />}
                     title="Jobs are unavailable"
-                    description={loadError}
+                    description={loadError || search.error || undefined}
                   />
                 </Card>
-              ) : selected ? (
+              ) : detailJob ? (
                 <JobDetailPane
-                  key={selected.id}
-                  {...detailProps(selected)}
+                  key={detailJob.id}
+                  {...detailProps(detailJob)}
                   jobs={jobs}
-                  fit={selected ? fits[selected.id] : null}
+                  fit={fits[detailJob.id]}
                   fits={fits}
                   showPageLink
                   onSelect={select}
@@ -240,7 +288,7 @@ export function JobSearch({
         isOpen={filtersOpen}
         onOpenChange={setFiltersOpen}
         title="All filters"
-        subtitle={`${formatCount(filteredCount, "job")} match`}
+        subtitle={`${formatCount(shown, "job")} match`}
         side="start"
         size="sm"
         footer={
@@ -252,14 +300,14 @@ export function JobSearch({
               isDisabled={search.refinementCount === 0}
             />
             <Button
-              label={`Show ${formatCount(filteredCount, "job")}`}
+              label={`Show ${formatCount(shown, "job")}`}
               variant="primary"
               onClick={() => setFiltersOpen(false)}
             />
           </HStack>
         }
       >
-        <JobFiltersPanel jobs={search.visibleJobs} filters={filters} onChange={search.update} />
+        <JobFiltersPanel filters={filters} onChange={search.update} />
       </Drawer>
 
       <Drawer
@@ -270,9 +318,12 @@ export function JobSearch({
       >
         {drawerJob ? (
           <Stack gap={6}>
-            <JobDetailHeader {...detailProps(drawerJob)} showPageLink />
+            <JobDetailHeader
+              {...detailProps(detail?.id === drawerJob.id ? detail : drawerJob)}
+              showPageLink
+            />
             <JobDetailBody
-              job={drawerJob}
+              job={detail?.id === drawerJob.id ? detail : drawerJob}
               jobs={jobs}
               onSelect={select}
               fit={fits[drawerJob.id]}

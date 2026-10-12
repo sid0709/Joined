@@ -6,11 +6,10 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 func testBox(t *testing.T) *Box {
@@ -141,20 +140,18 @@ func TestOptionsDropBlanksAndRepeats(t *testing.T) {
 	}
 }
 
-func TestListModelsKeepsChatModelsNewestFirst(t *testing.T) {
+func TestListModelsKeepsTextChatModelsNewestFirst(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer sk-test" || r.URL.Path != "/v1/models" {
+		if r.Header.Get("Authorization") != "Bearer sk-test" || r.URL.Path != "/v1/models" || r.URL.Query().Get("sort") != newestSort {
 			http.Error(w, "no", http.StatusUnauthorized)
 			return
 		}
 		_, _ = w.Write([]byte(`{"data":[
-			{"id":"text-embedding-3-large","created":50},
-			{"id":"gpt-5.6-sol","created":300},
-			{"id":"gpt-4o-mini","created":100},
-			{"id":"gpt-4o-realtime-preview","created":400},
-			{"id":"o4-mini","created":200},
-			{"id":"whisper-1","created":10},
-			{"id":"gpt-image-1","created":250}]}`))
+			{"id":"openai/text-embedding-3-large","created":50,"architecture":{"input_modalities":["text"],"output_modalities":["embeddings"]}},
+			{"id":"openai/gpt-4o-mini","name":"GPT-4o Mini","description":"Small","created":100,"context_length":128000,"pricing":{"prompt":"0.00000015","completion":"0.0000006"},"architecture":{"modality":"text->text","input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"anthropic/claude-sonnet","name":"Claude Sonnet","created":300,"pricing":{"prompt":"0.000003","completion":"0.000015"},"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/whisper-1","created":10,"architecture":{"input_modalities":["audio"],"output_modalities":["text"]}},
+			{"id":"black-forest-labs/flux","created":250,"architecture":{"input_modalities":["text"],"output_modalities":["image"]}}]}`))
 	}))
 	defer server.Close()
 
@@ -162,9 +159,11 @@ func TestListModelsKeepsChatModelsNewestFirst(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"gpt-5.6-sol", "o4-mini", "gpt-4o-mini"}
-	if !slices.Equal(got, want) {
-		t.Errorf("models = %v, want %v", got, want)
+	if len(got) != 2 || got[0].ID != "anthropic/claude-sonnet" || got[1].ID != "openai/gpt-4o-mini" {
+		t.Errorf("models = %v", idsOf(got))
+	}
+	if got[1].Name != "GPT-4o Mini" || got[1].Pricing.Prompt != "0.00000015" || got[1].ContextLength != 128000 {
+		t.Errorf("details = %+v", got[1])
 	}
 	if _, err := ListModels(context.Background(), server.URL+"/v1", "wrong"); err == nil {
 		t.Error("a rejected key must be an error")
@@ -174,13 +173,61 @@ func TestListModelsKeepsChatModelsNewestFirst(t *testing.T) {
 	}
 }
 
-func TestListModelsFallsBackToEveryIDForOtherProviders(t *testing.T) {
+func TestListModelsKeepsBatchAndOtherVariants(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"data":[{"id":"deepseek-chat","created":1},{"id":"deepseek-reasoner","created":2}]}`))
+		_, _ = w.Write([]byte(`{"data":[
+			{"id":"openai/gpt-6-luna:batch","name":"GPT-6 Luna (batch)","created":5,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/gpt-6-luna","name":"GPT-6 Luna","created":4,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/gpt-6-luna:free","name":"GPT-6 Luna (free)","created":3,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/whisper-1","created":1,"architecture":{"input_modalities":["audio"],"output_modalities":["text"]}}]}`))
+	}))
+	defer server.Close()
+
+	got, err := ListModels(context.Background(), server.URL, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids := idsOf(got); len(ids) != 3 || ids[0] != "openai/gpt-6-luna:batch" || ids[1] != "openai/gpt-6-luna" || ids[2] != "openai/gpt-6-luna:free" {
+		t.Fatalf("models = %v", ids)
+	}
+}
+
+func TestListModelsLabelsTheThreeLanes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[
+			{"id":"typesafe/jev-1.13","name":"Jev","created":3,"architecture":{"output_modalities":["decisions"]}},
+			{"id":"openai/gpt-6-luna:batch","created":2,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"perplexity/sonar-pro","created":1,"architecture":{"modality":"text->text"}}]}`))
 	}))
 	defer server.Close()
 	got, err := ListModels(context.Background(), server.URL, "k")
-	if err != nil || len(got) != 2 || got[0] != "deepseek-reasoner" {
-		t.Errorf("models = %v, %v", got, err)
+	if err != nil {
+		t.Fatal(err)
 	}
+	lanes := map[string]string{}
+	for _, model := range got {
+		lanes[model.ID] = model.Lane
+	}
+	if lanes["typesafe/jev-1.13"] != LaneDecisions || lanes["openai/gpt-6-luna:batch"] != LaneBatch || lanes["perplexity/sonar-pro"] != LaneChat {
+		t.Fatalf("lanes = %v", lanes)
+	}
+}
+
+func TestListModelsKeepsRowsWithoutArchitecture(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[{"id":"deepseek/deepseek-chat","name":"DeepSeek Chat","created":2},{"id":"deepseek/deepseek-reasoner","created":1}]}`))
+	}))
+	defer server.Close()
+	got, err := ListModels(context.Background(), server.URL, "k")
+	if err != nil || len(got) != 2 || got[0].ID != "deepseek/deepseek-chat" || got[0].Name != "DeepSeek Chat" {
+		t.Errorf("models = %v, %v", idsOf(got), err)
+	}
+}
+
+func idsOf(models []CatalogModel) []string {
+	ids := make([]string, len(models))
+	for i, model := range models {
+		ids[i] = model.ID
+	}
+	return ids
 }

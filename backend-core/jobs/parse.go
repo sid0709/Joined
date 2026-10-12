@@ -6,8 +6,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/metrics"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 const minPostedDescription = 40
@@ -92,7 +93,7 @@ func ParsePostedJob(ctx context.Context, reader ModelReader, companyName, text s
 	if reader == nil {
 		return PostedJobDraft{}, openai.ErrMissingAPIKey
 	}
-	payload, err := reader.JSON(ctx, postedParsePrompt, postedParseUser(companyName, description), json.RawMessage(postedParseSchema))
+	payload, err := reader.JSON(metrics.EnsureFeature(ctx, metrics.FeatureJobParse), postedParsePrompt, postedParseUser(companyName, description), json.RawMessage(postedParseSchema))
 	if err != nil {
 		return PostedJobDraft{}, err
 	}

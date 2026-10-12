@@ -6,14 +6,14 @@ Env is the default. A document in `kill_switches` overrides it. Each process cac
 
 Switches default **on**. `off`, `false`, `0`, `no`, or `disabled` turns one off.
 
-| Name                | Env                            | Wired here                                                  | Penny                                                                |
-| ------------------- | ------------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------- |
-| `signup`            | `KILLSWITCH_SIGNUP`            | `authapi` email sign-up and new Google accounts             | Scoutwell uses the same `authapi` handlers; pass `Handlers.Switches` |
-| `email`             | `KILLSWITCH_EMAIL`             | `authapi` outbound mail                                     | same                                                                 |
-| `job_imports`       | `KILLSWITCH_JOB_IMPORTS`       | admin migration copy steps and `copyjobs` / `copycompanies` | —                                                                    |
-| `acorn_ai`          | `KILLSWITCH_ACORN_AI`          | `acornapi` model routes                                     | —                                                                    |
-| `scout_submissions` | `KILLSWITCH_SCOUT_SUBMISSIONS` | staff flip only                                             | Scoutwell `POST /v1/scout/submissions`, `/batch`, `/extension`       |
-| `checkout`          | `KILLSWITCH_CHECKOUT`          | staff flip only                                             | `billing.Handlers` checkout when mounted in joined-backend           |
+| Name                | Env                            | Wired here                                      | Penny                                                                |
+| ------------------- | ------------------------------ | ----------------------------------------------- | -------------------------------------------------------------------- |
+| `signup`            | `KILLSWITCH_SIGNUP`            | `authapi` email sign-up and new Google accounts | Scoutwell uses the same `authapi` handlers; pass `Handlers.Switches` |
+| `email`             | `KILLSWITCH_EMAIL`             | `authapi` outbound mail                         | same                                                                 |
+| `job_imports`       | `KILLSWITCH_JOB_IMPORTS`       | unused; no import feed is registered            | —                                                                    |
+| `acorn_ai`          | `KILLSWITCH_ACORN_AI`          | `acornapi` model routes                         | —                                                                    |
+| `scout_submissions` | `KILLSWITCH_SCOUT_SUBMISSIONS` | staff flip only                                 | Scoutwell `POST /v1/scout/submissions`, `/batch`, `/extension`       |
+| `checkout`          | `KILLSWITCH_CHECKOUT`          | staff flip only                                 | `billing.Handlers` checkout when mounted in joined-backend           |
 
 Staff (admin-backend, already behind the admin token and staff session):
 

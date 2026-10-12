@@ -18,6 +18,7 @@ import {
 } from "sid-ui";
 import {
   AUTHORIZATION_OPTIONS,
+  CLEARANCE_OPTIONS,
   LOCATION_SUGGESTIONS,
   NOTICE_OPTIONS,
   ROLE_SUGGESTIONS,
@@ -38,7 +39,13 @@ const toItems = (labels: string[]): SearchableItem[] =>
 
 type Preferences = Pick<
   Profile,
-  "targetRoles" | "locations" | "workplace" | "salaryFloor" | "authorization" | "noticePeriod"
+  | "targetRoles"
+  | "locations"
+  | "workplace"
+  | "salaryFloor"
+  | "authorization"
+  | "clearance"
+  | "noticePeriod"
 >;
 
 /** What you want next: roles, places, pay, and eligibility. */
@@ -59,6 +66,7 @@ export function ProfilePreferences({
   const [workplace, setWorkplace] = useState<Workplace>(initial.workplace);
   const [salary, setSalary] = useState(initial.salaryFloor);
   const [authorization, setAuthorization] = useState(initial.authorization);
+  const [clearance, setClearance] = useState(initial.clearance);
   const [notice, setNotice] = useState(initial.noticePeriod);
 
   const reset = () => {
@@ -67,6 +75,7 @@ export function ProfilePreferences({
     setWorkplace(initial.workplace);
     setSalary(initial.salaryFloor);
     setAuthorization(initial.authorization);
+    setClearance(initial.clearance);
     setNotice(initial.noticePeriod);
   };
 
@@ -92,6 +101,7 @@ export function ProfilePreferences({
                     workplace,
                     salaryFloor: salary,
                     authorization,
+                    clearance,
                     noticePeriod: notice,
                   }),
                 );
@@ -157,12 +167,22 @@ export function ProfilePreferences({
             onChange={setNotice}
           />
         </Grid>
-        <Selector
-          label="Work authorization"
-          options={AUTHORIZATION_OPTIONS}
-          value={authorization}
-          onChange={setAuthorization}
-        />
+        <Grid columns={{ minWidth: FIELD_MIN_WIDTH, repeat: "fit" }} gap={4}>
+          <Selector
+            label="Work authorization"
+            description="Answers citizenship and visa sponsorship questions."
+            options={AUTHORIZATION_OPTIONS}
+            value={authorization}
+            onChange={setAuthorization}
+          />
+          <Selector
+            label="Security clearance"
+            description="Only if a role asks for one."
+            options={CLEARANCE_OPTIONS}
+            value={clearance}
+            onChange={setClearance}
+          />
+        </Grid>
       </Stack>
     </SectionCard>
   );

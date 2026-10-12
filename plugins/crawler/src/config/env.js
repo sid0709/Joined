@@ -41,7 +41,7 @@ export const DUPLICATE_WINDOW_DAYS = parseDuplicateWindowDays(
 );
 
 /** Job Search "Job scrape source" filter key (`createdBy` on ingest). */
-export const DEFAULT_SCRAPE_SOURCE = "avalon-scrapper";
+export const DEFAULT_SCRAPE_SOURCE = "joined-scrapper";
 
 export const SCRAPE_SOURCE = trimEnv(import.meta.env.VITE_SCRAPE_SOURCE) || DEFAULT_SCRAPE_SOURCE;
 

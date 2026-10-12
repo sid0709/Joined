@@ -5,14 +5,16 @@ import {
   annualPay,
   formatCount,
   formatPay,
+  PAY_UNKNOWN_LABEL,
   formatPayWithSource,
   formatPosted,
   isNew,
   paySourceLabel,
 } from "./format";
-import { GOOD_MATCH, matchJob, type MatchProfile } from "./match";
 import {
   DEFAULT_FILTERS,
+  PAY_FLOOR_MAX,
+  applySuggestion,
   clearRefinements,
   countRefinements,
   facetCounts,
@@ -25,14 +27,6 @@ import {
 } from "./search";
 import type { Job } from "./types";
 
-const PROFILE: MatchProfile = {
-  targetRoles: ["Product designer"],
-  locations: ["Chicago", "Remote (US)"],
-  salaryFloor: 140_000,
-  skills: ["Figma", "Prototyping", "User research"],
-  authorization: "us-citizen",
-};
-
 const job = (id: string) => JOBS.find((item) => item.id === id) as Job;
 const withFilters = (patch: Partial<JobFilters>): JobFilters => ({ ...DEFAULT_FILTERS, ...patch });
 
@@ -40,6 +34,11 @@ describe("job formatting", () => {
   it("formats salaried and hourly pay", () => {
     expect(formatPay(job("product-designer-northwind").pay)).toBe("$140k–$170k");
     expect(formatPay(job("brand-designer-fieldnote").pay)).toBe("$80–$100/hr");
+    const usd = { currency: "USD", period: "year" } as const;
+    expect(formatPay({ ...usd, min: 0, max: 0 })).toBe(PAY_UNKNOWN_LABEL);
+    expect(formatPay({ ...usd, min: 120_000, max: 0 })).toBe("$120k+");
+    expect(formatPay({ ...usd, min: 0, max: 150_000 })).toBe("Up to $150k");
+    expect(formatPay({ ...usd, min: 150_000, max: 150_000 })).toBe("$150k");
   });
 
   it("says whether a range is listed or an estimate", () => {
@@ -158,19 +157,20 @@ describe("job search filters", () => {
 });
 
 describe("job sorting", () => {
-  const score = (item: Job) => matchJob(item, PROFILE).score;
-
-  it("sorts by recency, pay, and competition", () => {
-    const newest = sortJobs(JOBS, "newest", score);
+  it("sorts a held list by recency, pay, and competition", () => {
+    const newest = sortJobs(JOBS, "newest");
     expect(newest[0].postedHoursAgo).toBe(Math.min(...JOBS.map((item) => item.postedHoursAgo)));
-    const pay = sortJobs(JOBS, "pay", score);
+    const pay = sortJobs(JOBS, "pay");
     expect(annualPay(pay[0].pay)).toBe(Math.max(...JOBS.map((item) => annualPay(item.pay))));
-    const applicants = sortJobs(JOBS, "applicants", score);
+    const applicants = sortJobs(JOBS, "applicants");
     expect(applicants[0].applicants).toBe(Math.min(...JOBS.map((item) => item.applicants)));
   });
 
-  it("puts the best match first by default", () => {
-    expect(sortJobs(JOBS, "relevance", score)[0].id).toBe("product-designer-northwind");
+  it("keeps the server's order for relevance and recommended", () => {
+    expect(sortJobs(JOBS, "relevance").map((item) => item.id)).toEqual(JOBS.map((item) => item.id));
+    expect(sortJobs(JOBS, "recommended").map((item) => item.id)).toEqual(
+      JOBS.map((item) => item.id),
+    );
   });
 
   it("finds similar jobs by shared skills", () => {
@@ -180,34 +180,26 @@ describe("job sorting", () => {
   });
 });
 
-describe("job match", () => {
-  it("explains a strong match", () => {
-    const match = matchJob(job("product-designer-northwind"), PROFILE);
-    expect(match.score).toBeGreaterThanOrEqual(GOOD_MATCH);
-    expect(match.criteria.map(({ level }) => level)).toEqual(["yes", "partial", "yes", "yes"]);
-    expect(match.matchedSkills).toEqual(["Prototyping", "User research", "Figma"]);
-    expect(match.needsVisa).toBe(false);
-  });
-
-  it("gives partial credit for close roles and near pay", () => {
-    const interaction = matchJob(job("interaction-designer-northwind"), PROFILE);
-    expect(interaction.criteria[0].level).toBe("partial");
-    const nearPay = matchJob(job("content-designer-fieldnote"), {
-      ...PROFILE,
-      salaryFloor: 150_000,
+describe("filter suggestions", () => {
+  it("turns each suggestion into the filter it names", () => {
+    const base = withFilters({ workplace: ["hybrid"] });
+    expect(applySuggestion(base, { kind: "workplace", value: "remote", label: "Remote" })).toEqual({
+      workplace: ["hybrid", "remote"],
     });
-    expect(nearPay.criteria[2].level).toBe("partial");
-  });
-
-  it("flags misses and visa needs", () => {
-    const match = matchJob(job("recruiter-lumen"), { ...PROFILE, authorization: "us-sponsor" });
-    expect(match.criteria.map(({ level }) => level)).toEqual(["no", "no", "no", "no"]);
-    expect(match.score).toBe(0);
-    expect(match.needsVisa).toBe(true);
-  });
-
-  it("treats a remote job as a partial fit when remote was not chosen", () => {
-    const match = matchJob(job("support-lead-harbor"), { ...PROFILE, locations: ["Chicago"] });
-    expect(match.criteria[3].level).toBe("partial");
+    expect(applySuggestion(base, { kind: "seniority", value: "Senior", label: "Senior" })).toEqual({
+      seniority: ["Senior"],
+    });
+    expect(applySuggestion(base, { kind: "visa", value: "true", label: "Visa sponsor" })).toEqual({
+      visa: true,
+    });
+    expect(applySuggestion(base, { kind: "postedDays", value: "7", label: "Past week" })).toEqual({
+      posted: "7d",
+    });
+    expect(applySuggestion(base, { kind: "minPay", value: "155000", label: "$155k+" })).toEqual({
+      minPay: 150_000,
+    });
+    expect(applySuggestion(base, { kind: "minPay", value: "900000", label: "$900k+" })).toEqual({
+      minPay: PAY_FLOOR_MAX,
+    });
   });
 });

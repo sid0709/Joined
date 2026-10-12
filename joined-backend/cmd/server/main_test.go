@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/billing"
+	"github.com/sid0709/Joined/backend-core/billing"
 )
 
 func TestOpenBillingSkipsWhenSecretUnset(t *testing.T) {

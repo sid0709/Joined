@@ -23,6 +23,7 @@ export type Application = {
   salary: string;
   source: ApplicationSource;
   resume: string;
+  /** Fit score, 0–100. 0 means it was never scored, so the match badge stays hidden. */
   match: number;
   updated: Date;
   nextStep?: string;

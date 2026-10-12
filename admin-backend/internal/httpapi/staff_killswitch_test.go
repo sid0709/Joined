@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/killswitch"
 )
 
 func TestKillSwitchRoutesNeedAdminToken(t *testing.T) {
@@ -70,16 +70,5 @@ func TestKillSwitchUnknownNameAndMissingEnabled(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("missing enabled = %d %s", rec.Code, rec.Body.String())
-	}
-}
-
-func TestJobImportKillSwitchBlocksCopySteps(t *testing.T) {
-	mem := killswitch.NewMemory(killswitch.Defaults{killswitch.JobImports: false})
-	handler := New(nil, nil, nil, nil, Options{KillSwitches: mem})
-	for _, step := range []string{"jobs-copy", "companies-copy"} {
-		rec := postMigration(t, handler, "/v1/migration/"+step, `{}`)
-		if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "Job imports") {
-			t.Fatalf("%s: %d %s", step, rec.Code, rec.Body.String())
-		}
 	}
 }

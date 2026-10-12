@@ -11,9 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// Copied companies wait in temp_companies until research finds them on the web. Only
-// then are they published to companies, where the directory and Joined show them. A
-// company keeps its public id the whole way, so jobs link to it before it is published.
+// Staged companies wait in temp_companies until research finds them on the web. Only
+// then are they published to companies, where the directory and Joined show them.
 
 const (
 	// stageBatch is how many companies one staging read or write handles.
@@ -23,106 +22,12 @@ const (
 	researchFoundField = "research.found"
 )
 
-// CompanyRefs lists the public ids of companies other records point at, such as a
-// recruiter's membership or a scout's submission. The copy never unpublishes those.
-type CompanyRefs func(ctx context.Context) ([]string, error)
-
-// SetCompanyRefs tells the company copy which companies other records point at.
-func (s *Store) SetCompanyRefs(refs CompanyRefs) {
-	s.companyRefs = refs
-}
-
 func (s *Store) stagedCompanies() *mongo.Collection {
 	return s.client.Database(s.destDB).Collection(s.tempCompanies)
 }
 
-// unresearchedCopy matches a source company in companies that research has not
-// published: one an earlier copy wrote there directly, researched or not, before
-// staging existed. Companies a recruiter or staff have claimed, verified, or own stay.
-func unresearchedCopy() bson.D {
-	blank := func(key string) bson.E {
-		return bson.E{Key: key, Value: bson.D{{Key: "$in", Value: bson.A{nil, ""}}}}
-	}
-	return bson.D{
-		{Key: "sourceId", Value: bson.D{{Key: "$gt", Value: ""}}},
-		{Key: researchFoundField, Value: bson.D{{Key: "$ne", Value: true}}},
-		blank("verificationStatus"),
-		blank("createdBy"),
-		{Key: "claimed", Value: bson.D{{Key: "$ne", Value: true}}},
-	}
-}
-
-// unpublishUnresearched moves source companies research has not published out of
-// companies into staging, unless another record points at them, so companies holds
-// only what research published. Each keeps its public id, so jobs stay linked, and
-// waits for research again. It returns how many moved.
-func (s *Store) unpublishUnresearched(ctx context.Context) (int64, error) {
-	filter := unresearchedCopy()
-	if s.companyRefs != nil {
-		refs, err := s.companyRefs(ctx)
-		if err != nil {
-			return 0, fmt.Errorf("list companies in use: %w", err)
-		}
-		if len(refs) > 0 {
-			filter = append(filter, bson.E{Key: "id", Value: bson.D{{Key: "$nin", Value: refs}}})
-		}
-	}
-	cursor, err := s.companies().Find(ctx, filter, options.Find().SetBatchSize(stageBatch))
-	if err != nil {
-		return 0, fmt.Errorf("read companies to stage: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var moved int64
-	batch := make([]bson.D, 0, stageBatch)
-	flush := func() error {
-		if len(batch) == 0 {
-			return nil
-		}
-		models := make([]mongo.WriteModel, len(batch))
-		ids := make(bson.A, len(batch))
-		for i, doc := range batch {
-			models[i] = mongo.NewReplaceOneModel().
-				SetFilter(bson.D{{Key: "sourceId", Value: stringField(doc, "sourceId")}}).
-				SetReplacement(withoutFields(doc, "_id", "research")).
-				SetUpsert(true)
-			ids[i] = stringField(doc, "id")
-		}
-		// Staged before it leaves companies: a failure in between leaves a company in
-		// both, and the next copy finishes the move.
-		if _, err := s.stagedCompanies().BulkWrite(ctx, models, options.BulkWrite().SetOrdered(false)); err != nil {
-			return fmt.Errorf("stage companies: %w", err)
-		}
-		// The filter again, so a company claimed meanwhile stays published.
-		removed, err := s.companies().DeleteMany(ctx, append(bson.D{{Key: "id", Value: bson.D{{Key: "$in", Value: ids}}}}, filter...))
-		if err != nil {
-			return fmt.Errorf("unpublish staged companies: %w", err)
-		}
-		moved += removed.DeletedCount
-		batch = batch[:0]
-		return nil
-	}
-	for cursor.Next(ctx) {
-		var doc bson.D
-		if err := cursor.Decode(&doc); err != nil {
-			return moved, err
-		}
-		batch = append(batch, doc)
-		if len(batch) == stageBatch {
-			if err := flush(); err != nil {
-				return moved, err
-			}
-		}
-	}
-	if err := cursor.Err(); err != nil {
-		return moved, err
-	}
-	return moved, flush()
-}
-
 // dropPublishedFromStaging removes staged copies of companies that are already
-// published, left behind by an interrupted move or a copy that ran beside research.
-// It returns how many it removed.
+// published. It returns how many it removed.
 func (s *Store) dropPublishedFromStaging(ctx context.Context, published map[string]struct{}) (int64, error) {
 	sourceIDs := make([]string, 0, len(published))
 	for id := range published {

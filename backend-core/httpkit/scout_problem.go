@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/scout"
 )
 
 // ScoutProblem maps a scout domain error to its problem response.

@@ -7,7 +7,6 @@ import {
   Slider,
   Stack,
   Switch,
-  Text,
 } from "sid-ui";
 import {
   EMPLOYMENTS,
@@ -22,38 +21,22 @@ import {
   SOURCE_LABEL,
   WORKPLACES,
   WORKPLACE_LABEL,
-  facetCounts,
   formatAmount,
-  type Job,
   type JobFilters,
   type PostedWithin,
 } from "@/lib/jobs";
 import { DEFAULT_CURRENCY } from "@/lib/profile";
 
 type Props = {
-  jobs: Job[];
   filters: JobFilters;
   onChange: (patch: Partial<JobFilters>) => void;
 };
 
-function Count({ value }: { value: number | undefined }) {
-  return (
-    <Text type="supporting" color="secondary" hasTabularNumbers>
-      {value ?? 0}
-    </Text>
-  );
-}
-
 const payLabel = (value: number) =>
   value === 0 ? "Any pay" : `${formatAmount(value, DEFAULT_CURRENCY)}+ a year`;
 
-/** Every refinement, with live counts, for the All filters drawer. */
-export function JobFiltersPanel({ jobs, filters, onChange }: Props) {
-  const workplace = facetCounts(jobs, filters, "workplace");
-  const seniority = facetCounts(jobs, filters, "seniority");
-  const employment = facetCounts(jobs, filters, "employment");
-  const source = facetCounts(jobs, filters, "source");
-
+/** Every refinement for the All filters drawer. Counts stay off the client so the page does not download the catalog. */
+export function JobFiltersPanel({ filters, onChange }: Props) {
   return (
     <Stack gap={6}>
       <CheckboxList
@@ -64,12 +47,7 @@ export function JobFiltersPanel({ jobs, filters, onChange }: Props) {
         }
       >
         {WORKPLACES.map((value) => (
-          <CheckboxListItem
-            key={value}
-            value={value}
-            label={WORKPLACE_LABEL[value]}
-            endContent={<Count value={workplace.get(value)} />}
-          />
+          <CheckboxListItem key={value} value={value} label={WORKPLACE_LABEL[value]} />
         ))}
       </CheckboxList>
 
@@ -97,12 +75,7 @@ export function JobFiltersPanel({ jobs, filters, onChange }: Props) {
         }
       >
         {SENIORITIES.map((value) => (
-          <CheckboxListItem
-            key={value}
-            value={value}
-            label={SENIORITY_LABEL[value]}
-            endContent={<Count value={seniority.get(value)} />}
-          />
+          <CheckboxListItem key={value} value={value} label={SENIORITY_LABEL[value]} />
         ))}
       </CheckboxList>
 
@@ -116,12 +89,7 @@ export function JobFiltersPanel({ jobs, filters, onChange }: Props) {
         }
       >
         {EMPLOYMENTS.map((value) => (
-          <CheckboxListItem
-            key={value}
-            value={value}
-            label={EMPLOYMENT_LABEL[value]}
-            endContent={<Count value={employment.get(value)} />}
-          />
+          <CheckboxListItem key={value} value={value} label={EMPLOYMENT_LABEL[value]} />
         ))}
       </CheckboxList>
 
@@ -150,7 +118,6 @@ export function JobFiltersPanel({ jobs, filters, onChange }: Props) {
             value={value}
             label={SOURCE_LABEL[value]}
             description={SOURCE_DESCRIPTION[value]}
-            endContent={<Count value={source.get(value)} />}
           />
         ))}
       </CheckboxList>

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/openai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -17,7 +17,10 @@ type AnalyzeScope struct {
 	// Redo analyzes jobs that already have a search record again.
 	Redo bool
 	// WebSearch lets the model look past the posting. Off, it reads the posting alone.
+	// The Decisions approach ignores it.
 	WebSearch bool
+	// Approach is chat, batch, or decisions. Empty means chat.
+	Approach string
 }
 
 // notPublishableField marks a temp job whose analysis did not say enough to publish it.
@@ -60,7 +63,7 @@ func (s *Store) AnalyzeTempJobs(ctx context.Context, reader ModelReader, scope A
 		return listings, nil
 	}
 	work := func(ctx context.Context, listing tempListing) error {
-		published, err := s.publishAnalysis(ctx, reader, listing, time.Now(), scope.WebSearch)
+		published, err := s.publishAnalysis(ctx, reader, listing, time.Now(), scope.WebSearch, scope.Approach)
 		switch {
 		case err == nil && published:
 			progress.Done(1)
@@ -79,14 +82,16 @@ func (s *Store) AnalyzeTempJobs(ctx context.Context, reader ModelReader, scope A
 // publishAnalysis analyzes a temp job and publishes it when the analysis says enough,
 // then drops the temp job. One it cannot publish is marked on the temp job instead; a
 // job published before stays published.
-func (s *Store) publishAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time, webSearch bool) (bool, error) {
-	record, err := s.analysisRecord(ctx, reader, listing, now, webSearch)
+func (s *Store) publishAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time, webSearch bool, approach string) (bool, error) {
+	record, err := s.analysisRecord(ctx, reader, listing, now, webSearch, approach)
 	reason := ""
 	switch {
 	case errors.Is(err, ErrMissingDescription):
 		reason = reasonNoDescription
 	case err != nil:
 		return false, err
+	case !publishable(record.Job) && approach == approachDecisions:
+		reason = decisionReason(record.Job)
 	case !publishable(record.Job):
 		reason = reasonThinAnalysis
 	}

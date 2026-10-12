@@ -31,7 +31,7 @@ Scouts earn a share when candidates apply to jobs they submitted. The earnings l
 
 ```go
 import (
-    "github.com/sid0709/OpenSeat/backend-core/scout"
+    "github.com/sid0709/Joined/backend-core/scout"
 )
 
 // In your candidate apply handler (owned by another team):

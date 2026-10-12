@@ -7,6 +7,9 @@ export const CSRF_FORBIDDEN_STATUS = 403;
 const CONTENT_TYPE_HEADER = "Content-Type";
 const ORIGIN_HEADER = "Origin";
 const SEC_FETCH_SITE_HEADER = "Sec-Fetch-Site";
+const HOST_HEADER = "Host";
+const FORWARDED_HOST_HEADER = "X-Forwarded-Host";
+const FORWARDED_PROTO_HEADER = "X-Forwarded-Proto";
 
 export function isJsonContentType(value: string | null): boolean {
   if (!value) return false;
@@ -18,13 +21,33 @@ export function isSameOriginRequest(request: Request): boolean {
   const site = request.headers.get(SEC_FETCH_SITE_HEADER);
   if (site !== null && site.toLowerCase() !== SAME_ORIGIN_FETCH_SITE) return false;
   const origin = request.headers.get(ORIGIN_HEADER);
-  if (origin !== null && !originMatchesRequest(origin, request.url)) return false;
+  if (origin !== null && !originMatchesRequest(origin, request)) return false;
   return site !== null || origin !== null;
 }
 
-function originMatchesRequest(origin: string, requestUrl: string): boolean {
+/** The first value of a proxy header, which may list one value per hop. */
+function firstHeaderValue(request: Request, name: string): string | undefined {
+  return request.headers.get(name)?.split(",", 1)[0]?.trim() || undefined;
+}
+
+/**
+ * The origin the browser used. Behind nginx the app sees plain http on its own
+ * port, so request.url alone never matches the public https origin. nginx sets
+ * Host and X-Forwarded-Proto, and a browser cannot set either on a cross-site request.
+ */
+export function publicRequestOrigin(request: Request): string {
+  const url = new URL(request.url);
+  const proto = firstHeaderValue(request, FORWARDED_PROTO_HEADER) ?? url.protocol.replace(/:$/, "");
+  const host =
+    firstHeaderValue(request, FORWARDED_HOST_HEADER) ??
+    firstHeaderValue(request, HOST_HEADER) ??
+    url.host;
+  return `${proto}://${host}`;
+}
+
+function originMatchesRequest(origin: string, request: Request): boolean {
   try {
-    return new URL(origin).origin === new URL(requestUrl).origin;
+    return new URL(origin).origin === new URL(publicRequestOrigin(request)).origin;
   } catch {
     return false;
   }

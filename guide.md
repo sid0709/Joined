@@ -144,43 +144,24 @@ git pull
 git checkout -b feat/short-name
 ```
 
-Messages are [Conventional Commits](https://www.conventionalcommits.org/). The `commit-msg` hook (`bunx commitlint`) rejects anything else. CI checks every commit on the pull request, so skipping the hook locally still fails in CI.
+Write commit messages and pull request titles that describe the change. CI does
+not enforce a format.
 
-```text
-type(optional-scope): summary in imperative mood
-```
-
-```text
-feat(joined-frontend): split candidate and employer modes
-fix(design-system): stop nested grid columns inheriting spans
-docs: update the coding guide
-test: cover empty search results
-chore: document workspace setup
-```
-
-Use one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `chore`, `ci`, `revert`.
-
-- Subject is lowercase, no trailing period, imperative ("add", "fix", "remove").
 - One logical change per commit.
 - Do not commit secrets, `.env` files, or lockfiles from npm, yarn, or pnpm.
 - Do commit `bun.lock` when dependencies change.
 
 Hooks installed by `bun install`:
 
-| Hook         | What it runs       | What happens                                        |
-| ------------ | ------------------ | --------------------------------------------------- |
-| `pre-commit` | `bunx lint-staged` | Prettier formats the files you staged               |
-| `commit-msg` | `bunx commitlint`  | Rejects a message that is not a Conventional Commit |
+| Hook         | What it runs       | What happens                          |
+| ------------ | ------------------ | ------------------------------------- |
+| `pre-commit` | `bunx lint-staged` | Prettier formats the files you staged |
 
-Do not pass `--no-verify`. If the hook fails, fix the message or the formatting and commit again.
+If the hook fails, fix the formatting and commit again.
 
 ## Pull requests
 
-Open the pull request against `main`. The **title** must also be a Conventional Commit. CI runs commitlint on the title.
-
-```text
-fix: handle empty search results
-```
+Open the pull request against `main`. Pick any clear title; CI does not lint it.
 
 Fill in `.github/PULL_REQUEST_TEMPLATE.md`:
 

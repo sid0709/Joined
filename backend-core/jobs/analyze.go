@@ -9,7 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/metrics"
+	"github.com/sid0709/Joined/backend-core/openai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -182,7 +183,7 @@ func normalizeSelection(ids []string) ([]string, error) {
 }
 
 func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing tempListing, now time.Time) (SearchRecord, error) {
-	record, err := s.analysisRecord(ctx, reader, listing, now, true)
+	record, err := s.analysisRecord(ctx, reader, listing, now, true, "")
 	if err != nil {
 		return SearchRecord{}, err
 	}
@@ -194,11 +195,11 @@ func (s *Store) writeAnalysis(ctx context.Context, reader ModelReader, listing t
 
 // analysisRecord reads a temp job with the model and builds its public record, unsaved.
 // webSearch tells the model to look past the posting, including for a published salary.
-func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing tempListing, now time.Time, webSearch bool) (storedSearchJob, error) {
+func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing tempListing, now time.Time, webSearch bool, approach string) (storedSearchJob, error) {
 	if originalDescription(listing.Description) == "" {
 		return storedSearchJob{}, ErrMissingDescription
 	}
-	payload, err := readExtraction(ctx, reader, listing, webSearch)
+	payload, err := readExtraction(ctx, reader, listing, webSearch, approach)
 	if err != nil {
 		return storedSearchJob{}, err
 	}
@@ -248,7 +249,15 @@ func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing 
 
 // readExtraction asks the model for the structured posting. With web search it must
 // look the company up; without it, the posting is the only source.
-func readExtraction(ctx context.Context, reader ModelReader, listing tempListing, webSearch bool) ([]byte, error) {
+func readExtraction(ctx context.Context, reader ModelReader, listing tempListing, webSearch bool, approach string) ([]byte, error) {
+	ctx = metrics.EnsureFeature(ctx, metrics.FeatureJobAnalyze)
+	if approach == approachDecisions {
+		decider, ok := reader.(Decider)
+		if !ok {
+			return nil, fmt.Errorf("the Decisions approach needs a decision model")
+		}
+		return decideJob(ctx, decider, listing)
+	}
 	user := listingPrompt(listing)
 	schema := json.RawMessage(extractionSchema)
 	if !webSearch {

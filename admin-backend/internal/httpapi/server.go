@@ -6,22 +6,24 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/admin-backend/internal/migration"
-	"github.com/sid0709/OpenSeat/backend-core/aisettings"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/jobscam"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/Joined/admin-backend/internal/migration"
+	"github.com/sid0709/Joined/backend-core/aisettings"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobscam"
+	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/monitoring"
+	"github.com/sid0709/Joined/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/statuspage"
 )
 
 const (
 	analyzeTimeout = 15 * time.Minute
 	maxAnalyzeBody = 16 << 10
 	// missingAPIKey tells staff how to turn on the model-backed tools.
-	missingAPIKey = "Set OPENAI_API_KEY in the admin API environment"
+	missingAPIKey = "Save an OpenRouter API key under Settings → AI Model, or set OPENROUTER_API_KEY"
 )
 
 type Server struct {
@@ -33,9 +35,8 @@ type Server struct {
 	migration         *migration.Runner
 	staffAuth         StaffSignIn
 	acornAI           *aisettings.Store
-	acornAIEnv        config.OpenAI
 	deepSeek          *aisettings.Store
-	deepSeekEnv       config.DeepSeek
+	openRouter        config.OpenRouter
 	analyzeWorkers    int
 	researchWorkers   int
 	adminToken        string
@@ -50,6 +51,8 @@ type Server struct {
 	accounts          AccountAdmin
 	premium           PremiumAdmin
 	quality           QualityReader
+	prometheus        monitoring.Querier
+	statusPage        statuspage.Store
 }
 
 // Options are the HTTP server's settings.
@@ -67,17 +70,15 @@ type Options struct {
 	// Staff turns on Sign in with Google for the console. Once it is set up, every
 	// route but sign-in needs a staff session as well as the admin token.
 	Staff StaffSignIn
-	// AcornAI holds the API key and model Acorn's AI routes use, set from the console.
+	// AcornAI is mirrored when staff save the OpenRouter key, so Acorn keeps using
+	// the same default model.
 	AcornAI *aisettings.Store
-	// AcornAIEnv is the environment's OpenAI settings: the model Acorn uses until one
-	// is saved, and whether OPENAI_API_KEY already covers a missing saved key.
-	AcornAIEnv config.OpenAI
-	// DeepSeek holds the API key and model job analysis, company research, and
-	// company autofill use, set from the console.
+	// DeepSeek holds the OpenRouter API key and model job analysis, company research,
+	// company autofill, and Acorn's AI use, set from the console.
 	DeepSeek *aisettings.Store
-	// DeepSeekEnv is the environment's DeepSeek settings: the model used until one
-	// is saved, and whether DEEPSEEK_API_KEY already covers a missing saved key.
-	DeepSeekEnv config.DeepSeek
+	// OpenRouter is the environment fallback: the model used until one is saved, and
+	// whether OPENROUTER_API_KEY already covers a missing saved key.
+	OpenRouter config.OpenRouter
 	// Import is the read-only scheduled import status and recent-run log.
 	Import ImportOptions
 	// KillSwitches are runtime feature toggles staff flip from the API. Nil leaves
@@ -91,6 +92,10 @@ type Options struct {
 	Premium PremiumAdmin
 	// Quality supplies job quality aggregates. Nil uses the scam-hold total for held.
 	Quality QualityReader
+	// Prometheus feeds the system monitoring page. Nil answers 503.
+	Prometheus monitoring.Querier
+	// StatusPage holds the public status page's incidents. Nil answers 503.
+	StatusPage statuspage.Store
 }
 
 func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jobs.ModelReader, opts Options) http.Handler {
@@ -105,9 +110,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		researchWorkers:   opts.Migration.ResearchWorkers,
 		staffAuth:         opts.Staff,
 		acornAI:           opts.AcornAI,
-		acornAIEnv:        opts.AcornAIEnv,
 		deepSeek:          opts.DeepSeek,
-		deepSeekEnv:       opts.DeepSeekEnv,
+		openRouter:        opts.OpenRouter,
 		adminToken:        opts.AdminToken,
 		analyzerToken:     opts.AnalyzerToken,
 		crawlerToken:      opts.CrawlerToken,
@@ -120,6 +124,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		accounts:          opts.Accounts,
 		premium:           opts.Premium,
 		quality:           opts.Quality,
+		prometheus:        opts.Prometheus,
+		statusPage:        opts.StatusPage,
 	}
 	api := http.NewServeMux()
 	api.HandleFunc("GET /v1/settings", server.settings)
@@ -150,15 +156,16 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerScamHolds(api)
 	server.registerUsers(api)
 	server.registerOps(api)
-	server.registerAcornAI(api)
-	server.registerDeepSeek(api)
+	server.registerAIModel(api)
+	server.registerMonitoring(api)
+	server.registerStatusIncidents(api)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", httpkit.Health(store))
 	server.registerPublicAnalyzer(mux)
 	server.registerPublicCrawler(mux)
-	mux.Handle("/", server.admin(server.requireStaff(api)))
-	return httpkit.CORS(opts.Origins, mux)
+	mux.Handle("/", server.admin(server.requireStaff(httpkit.Routes(api))))
+	return httpkit.CORS(opts.Origins, httpkit.Routes(mux))
 }
 
 // admin guards the staff routes. When ADMIN_API_TOKEN is configured, callers

@@ -24,10 +24,8 @@ of these prefixes to make branch intent clear:
 - `fix/` for bug fixes
 - `chore/` for maintenance, documentation, and infrastructure
 
-Use Conventional Commit messages, such as `feat: add keyboard navigation`,
-`fix: preserve calendar month boundaries`, or `chore: document workspace setup`.
-The commit hook checks messages locally, and CI also checks the pull request
-title. Local hooks can be skipped, so CI is the required source of enforcement.
+Write clear commit messages and pull request titles in whatever style fits the
+change. CI does not enforce a commit or title format.
 
 ## Tests and checks
 
@@ -52,8 +50,8 @@ lint-staged; CI runs the complete checks for pull requests targeting `main`.
 
 ## Pull requests
 
-Open pull requests against `main`. Use a Conventional Commit title, link the
-related issue, explain the behavior or policy change, and list validation and
-known limitations. Keep each pull request focused and respond to review
-feedback. GitHub's configured owner review and branch protection requirements
-remain managed by the repository owner.
+Open pull requests against `main`. Link the related issue when there is one,
+explain the behavior or policy change, and list validation and known
+limitations. Keep each pull request focused and respond to review feedback.
+GitHub's configured owner review and branch protection requirements remain
+managed by the repository owner.

@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/jobscam"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobscam"
+	"github.com/sid0709/Joined/backend-core/scout"
 )
 
 const (
@@ -60,7 +60,7 @@ func (s *Server) adminSetJobSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.PathValue("id")
-	if err := jobs.SetSourceEnabled(id, body.Enabled, body.Reason); err != nil {
+	if err := jobs.SetSourceEnabled(s.importSources, id, body.Enabled, body.Reason); err != nil {
 		httpkit.WriteError(w, http.StatusNotFound, "unknown source")
 		return
 	}

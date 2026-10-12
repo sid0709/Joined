@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/aisettings"
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/aisettings"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 type fakeLoader struct {
@@ -18,12 +18,11 @@ func (f *fakeLoader) Get(context.Context) (aisettings.Settings, error) {
 	return f.settings, f.err
 }
 
-func fallback() config.DeepSeek {
-	return config.DeepSeek{
+func fallback() config.OpenRouter {
+	return config.OpenRouter{
 		APIKey:      "env-key",
-		Model:       "deepseek-flash",
-		BaseURL:     "https://api.deepseek.com",
-		SearchURL:   "https://api.deepseek.com/anthropic",
+		Model:       "deepseek/deepseek-chat",
+		BaseURL:     "https://openrouter.ai/api/v1",
 		MaxSearches: 4,
 	}
 }
@@ -32,24 +31,24 @@ func TestReloadingPrefersSavedSettingsAndFallsBack(t *testing.T) {
 	env := fallback()
 
 	empty := NewReloading(&fakeLoader{}, env).current()
-	if !empty.Ready() || empty.Model() != "deepseek-flash" || empty.apiKey != "env-key" {
+	if !empty.Ready() || empty.Model() != "deepseek/deepseek-chat" || empty.apiKey != "env-key" {
 		t.Errorf("no saved settings: ready=%v model=%q key=%q", empty.Ready(), empty.Model(), empty.apiKey)
 	}
-	if empty.searchURL != env.SearchURL || empty.maxSearches != env.MaxSearches {
-		t.Errorf("search stayed on the environment: url=%q cap=%d", empty.searchURL, empty.maxSearches)
+	if empty.baseURL != env.BaseURL || empty.maxSearches != env.MaxSearches {
+		t.Errorf("search stayed on the environment: url=%q cap=%d", empty.baseURL, empty.maxSearches)
 	}
 
-	saved := NewReloading(&fakeLoader{settings: aisettings.Settings{APIKey: "db-key", Model: "deepseek-chat"}}, env).current()
-	if saved.apiKey != "db-key" || saved.Model() != "deepseek-chat" || saved.searchURL != env.SearchURL {
-		t.Errorf("saved settings: key=%q model=%q search=%q", saved.apiKey, saved.Model(), saved.searchURL)
+	saved := NewReloading(&fakeLoader{settings: aisettings.Settings{APIKey: "db-key", Model: "openai/gpt-4o-mini"}}, env).current()
+	if saved.apiKey != "db-key" || saved.Model() != "openai/gpt-4o-mini" || saved.baseURL != env.BaseURL {
+		t.Errorf("saved settings: key=%q model=%q base=%q", saved.apiKey, saved.Model(), saved.baseURL)
 	}
 
-	none := NewReloading(&fakeLoader{}, config.DeepSeek{Model: "deepseek-flash"}).current()
+	none := NewReloading(&fakeLoader{}, config.OpenRouter{Model: "deepseek/deepseek-chat"}).current()
 	if none.Ready() {
 		t.Error("no key anywhere must not be ready")
 	}
 	keyOnly := NewReloading(&fakeLoader{settings: aisettings.Settings{APIKey: "db-key"}}, env).current()
-	if !keyOnly.Ready() || keyOnly.apiKey != "db-key" || keyOnly.Model() != "deepseek-flash" {
+	if !keyOnly.Ready() || keyOnly.apiKey != "db-key" || keyOnly.Model() != "deepseek/deepseek-chat" {
 		t.Errorf("saved key with env model: ready=%v key=%q model=%q", keyOnly.Ready(), keyOnly.apiKey, keyOnly.Model())
 	}
 }

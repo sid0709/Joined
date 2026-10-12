@@ -1,12 +1,12 @@
-# AIMS-extension
+# Joined Scrapper
 
-This is the browser extension for the AIMS (Automated intelligent-sourcing for jobs) application. It provides a sidebar interface that allows users to interact with web pages and automate tasks related to job applications.
+Chrome extension for Joined staff: run site routines from the side panel, scrape job listings, and stage them in the admin pool through the crawler ingest API.
 
 ## Features
 
-- **Routines:** each supported site is a routine module in `src/routines/`: plain data that says which pages it runs on, how to move through the site, and which fields to read. The crawler runs whichever routine matches the focused tab.
+- **Routines:** each supported site is a routine module in `src/routines/`: plain data that says which pages it runs on, how to move through the site, and which fields to read. The extension runs whichever routine matches the focused tab.
 - **Run tab:** shows the routine for the focused tab, then runs it: the current phase and step, every field's state and hit rate, the results by outcome, and the latest jobs.
-- **Routines tab:** every routine the crawler knows, with its sites, fields, and steps.
+- **Routines tab:** every routine the extension knows, with its sites, fields, and steps.
 - **Inspector tab:** try a CSS selector on the focused page (live match count, highlight, click), read a field, and copy it as routine code.
 
 ## Technologies Used
@@ -19,7 +19,7 @@ This is the browser extension for the AIMS (Automated intelligent-sourcing for j
 
 ## Getting Started
 
-The crawler is a workspace of the Joined bun monorepo (`plugins/crawler`, package `avalon-scrapper`). Use bun only; run every command from the repo root.
+The crawler is a workspace of the Joined bun monorepo (`plugins/crawler`, package `joined-scrapper`). Use bun only; run every command from the repo root.
 
 1. Install dependencies (one `bun install` for the whole repo)
    ```sh
@@ -41,11 +41,19 @@ Settings come from `VITE_*` values in `plugins/crawler/.env`; copy `.env.example
 | `VITE_API_URL`               | The Joined admin API base. Locally `http://127.0.0.1:8081` (admin-backend's `HTTP_ADDR`). |
 | `VITE_CRAWLER_INGEST_TOKEN`  | The same value as `CRAWLER_INGEST_TOKEN` in `admin-backend/.env`.                         |
 | `VITE_DUPLICATE_WINDOW_DAYS` | Days (1–365) a job with the same apply link counts as a duplicate.                        |
-| `VITE_SCRAPE_SOURCE`         | Optional. The `createdBy` value staff filter on. Default `avalon-scrapper`.               |
+| `VITE_SCRAPE_SOURCE`         | Optional. The `createdBy` value staff filter on. Default `joined-scrapper`.               |
 
 The panel's Start button stays disabled, and says which setting is missing, until these are set.
 
 The side panel follows the system light/dark setting until you pick one with the sun/moon button in the header; the choice is remembered.
+
+### Brand icons
+
+Source art lives in `assets/logo-source.jpg`. To regenerate `public/logo.png` and `public/icons/*` after editing it:
+
+```sh
+python3 plugins/crawler/scripts/export-brand-icons.py
+```
 
 ## Project Structure
 
@@ -78,10 +86,6 @@ The extension is composed of three main parts:
 
 - **Background Script (`background.js`):** The central communication hub. It relays routine ops from the side panel to the page, keeps the job save queue, and manages the side panel.
 - **Content Script (`contentScript.js`):** Runs on the page with DOM access. It answers routine ops (count, highlight, click, extract) and watches for job applications.
-- **Sidebar UI (React components):** Picks the routine for the focused tab and runs it through the routine runner, one op at a time.
-
-## Communication
-
-The different parts of the extension communicate with each other using the `chrome.runtime.onMessage` and `chrome.tabs.sendMessage` APIs. The background script acts as a message broker, relaying messages between the UI and the content script.
+- **Side Panel (`index.html` + React):** The UI staff use to pick routines, run them, and inspect selectors.
 
 The background script sends scraped jobs in batches to the Joined admin API, `POST /v1/public/crawler/jobs` with the ingest token as a bearer token. The API stages each job in `JoinedDB.temp_jobs`, skipping one whose apply link is already there inside the duplicate window, and the admin console's analyze step turns staged jobs into search records. The panel checks the API through `GET /health`.

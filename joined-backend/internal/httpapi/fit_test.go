@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/fitscore"
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/fitscore"
+	"github.com/sid0709/Joined/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/killswitch"
 )
 
 type rewriteReasoner struct {
@@ -248,12 +248,12 @@ func TestJobFitReasonerGatedByAcornAI(t *testing.T) {
 	}
 }
 
-func TestCandidateToFitProfileUsesExperienceAndHomeCity(t *testing.T) {
+func TestCandidateToFitProfileUsesExperienceAndLocation(t *testing.T) {
 	got := candidateToFitProfile(candidate.Profile{
-		Headline:    "Senior Designer",
-		Locations:   []string{"Remote (US)"},
-		HomeAddress: candidate.HomeAddress{City: "Chicago"},
-		Experience:  []candidate.ExperienceItem{{Role: "Product Designer"}},
+		Headline:   "Senior Designer",
+		Location:   "Chicago, IL",
+		Locations:  []string{"Remote (US)"},
+		Experience: []candidate.ExperienceItem{{Role: "Product Designer"}},
 	})
 	if got.Headline != "Senior Designer" {
 		t.Fatalf("headline = %q", got.Headline)
@@ -261,13 +261,7 @@ func TestCandidateToFitProfileUsesExperienceAndHomeCity(t *testing.T) {
 	if len(got.ExperienceTitles) != 1 || got.ExperienceTitles[0] != "Product Designer" {
 		t.Fatalf("experience = %+v", got.ExperienceTitles)
 	}
-	found := false
-	for _, loc := range got.Locations {
-		if loc == "Chicago" {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("locations = %+v", got.Locations)
+	if got.Location != "Chicago, IL" || len(got.Locations) != 1 {
+		t.Fatalf("location = %q %+v", got.Location, got.Locations)
 	}
 }

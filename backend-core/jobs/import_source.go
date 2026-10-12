@@ -86,38 +86,6 @@ func (f *FakeSource) FetchCount() int {
 	return f.Fetches
 }
 
-// AthensSource reads the existing source collection (the same feed Copy uses)
-// and maps each document onto an ImportRecord.
-type AthensSource struct {
-	store   *Store
-	enabled bool
-}
-
-func NewAthensSource(store *Store, enabled bool) *AthensSource {
-	return &AthensSource{store: store, enabled: enabled}
-}
-
-func (a *AthensSource) ID() string {
-	return AthensSourceID
-}
-
-func (a *AthensSource) Enabled() bool {
-	if a == nil || a.store == nil {
-		return false
-	}
-	if enabled, ok := SourceEnabled(a.ID()); ok {
-		return enabled
-	}
-	return a.enabled
-}
-
-func (a *AthensSource) Fetch(ctx context.Context) ([]ImportRecord, error) {
-	if a == nil || a.store == nil {
-		return nil, ErrInvalidInput
-	}
-	return a.store.fetchAthensRecords(ctx)
-}
-
 func (r ImportRecord) Normalize() ImportRecord {
 	r.Company = strings.TrimSpace(r.Company)
 	r.Title = strings.TrimSpace(r.Title)
@@ -148,25 +116,4 @@ func (r ImportRecord) DedupeRecord() DedupeRecord {
 	}
 	rec.DedupeKey = rec.Key()
 	return rec
-}
-
-func recordFromTemp(listing tempListing) ImportRecord {
-	source := strings.TrimSpace(listing.Source)
-	if source == "" {
-		source = AthensSourceID
-	}
-	ref := strings.TrimSpace(listing.SourceRef)
-	if ref == "" && !listing.ID.IsZero() {
-		ref = listing.ID.Hex()
-	}
-	return ImportRecord{
-		ExternalID:  ref,
-		Company:     listing.CompanyName,
-		Title:       listing.Title,
-		Location:    listing.Metadata.Details.Location,
-		ApplyURL:    listing.ApplyLink,
-		Source:      source,
-		PostedAt:    listing.PostedAt,
-		Description: listing.Description,
-	}
 }

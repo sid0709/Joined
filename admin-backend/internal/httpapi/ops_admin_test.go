@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/staff"
 )
 
 type staticQuality struct{ snapshot QualitySnapshot }
@@ -23,11 +23,14 @@ func TestJobSourceAndQuality(t *testing.T) {
 	t.Cleanup(jobs.ResetSourceOverrides)
 	handler := New(nil, scout.NewMemoryStore(nil, time.Now), staff.NewMem(), nil, Options{
 		AdminToken: "secret",
+		Import: ImportOptions{
+			Sources: []jobs.SourceStatus{{ID: jobs.FakeSourceID, Enabled: true}},
+		},
 		Quality: staticQuality{snapshot: QualitySnapshot{
 			Held: 2, DeadLink: 1, Duplicate: 3, Published: 9,
 		}},
 	})
-	rec := callAdmin(handler, http.MethodPut, "/v1/admin/job-sources/athens", `{"enabled":false,"reason":"bad feed"}`)
+	rec := callAdmin(handler, http.MethodPut, "/v1/admin/job-sources/"+jobs.FakeSourceID, `{"enabled":false,"reason":"bad feed"}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("source = %d %s", rec.Code, rec.Body.String())
 	}

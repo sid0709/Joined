@@ -13,8 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 const (
@@ -161,7 +161,7 @@ func salaryHint(listing ScoutedListing) string {
 }
 
 // PublishScouted writes an approved scout job straight into the search pool.
-// It never goes through temp_jobs: that collection is rebuilt by Copy.
+// It never goes through temp_jobs.
 func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now time.Time) (PublishedJob, error) {
 	companyID, err := s.resolveScoutCompany(ctx, listing, now)
 	if err != nil {

@@ -8,17 +8,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sid0709/OpenSeat/backend-core/aisettings"
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/database"
-	"github.com/sid0709/OpenSeat/backend-core/employer"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/jobscam"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/aisettings"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/database"
+	"github.com/sid0709/Joined/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobscam"
+	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/statuspage"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -32,14 +33,18 @@ type Platform struct {
 	Hiring   *employer.Store
 	Scouts   *scout.Store
 	Staff    *staff.Store
-	// AISettings holds the OpenAI settings staff save for Acorn.
+	// AISettings is mirrored from the OpenRouter settings staff save, so Acorn
+	// uses the same default model.
 	AISettings *aisettings.Store
-	// DeepSeekSettings holds the DeepSeek settings staff save for admin analysis.
+	// DeepSeekSettings holds the OpenRouter settings staff save for admin analysis
+	// and Acorn's AI.
 	DeepSeekSettings *aisettings.Store
 	// KillSwitches are runtime feature toggles. Env is the default; Mongo can override.
 	KillSwitches *killswitch.Store
 	// ScamHolds scores jobs at publish time and queues risky ones for staff.
 	ScamHolds *jobscam.Service
+	// StatusPage holds the public status page's incidents and daily uptime.
+	StatusPage *statuspage.MongoStore
 }
 
 // Options are the parts of the platform only some services configure.
@@ -70,7 +75,7 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		calendar = &candidate.Google{}
 	}
 
-	listings := jobs.NewStore(client, db.SourceDB, db.SourceCollection, db.DestDB, db.DestCollection, db.JobsCollection, db.SourceCompanies, db.CompaniesCollection, db.TempCompaniesCollection)
+	listings := jobs.NewStore(client, db.DestDB, db.DestCollection, db.JobsCollection, db.CompaniesCollection, db.TempCompaniesCollection)
 	scamHolds := jobscam.NewService(jobscam.NewStore(client, db.DestDB), listings, jobscam.LoadConfig())
 	listings.SetScamHolds(scamHolds)
 	accounts := auth.NewStore(client, db.DestDB, db.CompaniesCollection)
@@ -79,7 +84,6 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 	scouts := scout.NewStore(client, db.DestDB, accounts, listings, people, scout.NewHTTPFetcher())
 	moderation := staff.NewStore(client, db.DestDB, db.CompaniesCollection, listings)
 	accounts.SetUserData(newAccountEraser(people, scouts, listings, hiring))
-	listings.SetCompanyRefs(companiesInUse(accounts, scouts))
 
 	p := &Platform{
 		client:   client,
@@ -94,6 +98,7 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		DeepSeekSettings: aisettings.NewStoreFor(client, db.DestDB, box, aisettings.DocumentDeepSeek),
 		KillSwitches:     killswitch.NewStore(client, db.DestDB, killswitch.LoadDefaults()),
 		ScamHolds:        scamHolds,
+		StatusPage:       statuspage.NewMongoStore(client, db.DestDB),
 	}
 	if err := p.ensureIndexes(ctx); err != nil {
 		p.Close()
@@ -123,6 +128,7 @@ func (p *Platform) ensureIndexes(ctx context.Context) error {
 		{"staff", p.Staff},
 		{"scout", p.Scouts},
 		{"jobscam", p.ScamHolds},
+		{"statuspage", p.StatusPage},
 	}
 	for _, item := range indexed {
 		if err := item.store.EnsureIndexes(ctx); err != nil {

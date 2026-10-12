@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
-import { Card, Divider, HStack, Heading, Stack, Text } from "sid-ui";
+import { Card, HStack, Heading, Section, Stack, Text } from "sid-ui";
 
-/** A titled card: heading, quiet description, optional action, then content. */
+/**
+ * A titled card: heading, quiet description, optional action, then content.
+ * The footer is the same muted strip settings groups use, so Save sits in one
+ * place on every form.
+ */
 export function SectionCard({
   title,
   description,
@@ -16,25 +20,26 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <Card padding={6}>
-      <Stack gap={5}>
-        <HStack hAlign="between" vAlign="start" gap={3} wrap="wrap">
-          <Stack gap={1}>
-            <Heading level={2}>{title}</Heading>
-            {description ? (
-              <Text type="supporting" color="secondary" display="block">
-                {description}
-              </Text>
-            ) : null}
-          </Stack>
-          {action}
-        </HStack>
-        {children}
+    <Card padding={0}>
+      <Stack>
+        <Stack gap={5} padding={6}>
+          <HStack hAlign="between" vAlign="start" gap={3} wrap="wrap">
+            <Stack gap={1}>
+              <Heading level={2}>{title}</Heading>
+              {description ? (
+                <Text type="supporting" color="secondary" display="block">
+                  {description}
+                </Text>
+              ) : null}
+            </Stack>
+            {action}
+          </HStack>
+          {children}
+        </Stack>
         {footer ? (
-          <Stack gap={4}>
-            <Divider />
+          <Section variant="muted" dividers={["top"]} paddingInline={6} paddingBlock={4}>
             {footer}
-          </Stack>
+          </Section>
         ) : null}
       </Stack>
     </Card>

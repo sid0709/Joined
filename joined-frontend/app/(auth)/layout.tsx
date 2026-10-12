@@ -11,10 +11,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <Center axis="both" minHeight="100%" padding={6}>
       <Stack width="100%" maxWidth={FORM_WIDTH} gap={6}>
-        <BrandLockup tagline="Find a job, or the people to hire." />
-        {children}
-        <BrandFooter lead="©" />
-        <LegalLinks />
+        <Stack as="main" gap={6}>
+          <BrandLockup tagline="Find a job, or the people to hire." />
+          {children}
+        </Stack>
+        <BrandFooter lead="©">
+          <LegalLinks />
+        </BrandFooter>
       </Stack>
     </Center>
   );

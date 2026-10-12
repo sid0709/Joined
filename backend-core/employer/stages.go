@@ -3,7 +3,7 @@ package employer
 import (
 	"strings"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/candidate"
 )
 
 const (

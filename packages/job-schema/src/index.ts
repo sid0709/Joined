@@ -156,6 +156,8 @@ export type Pay = {
 export const PAY_LISTED_LABEL = "Listed";
 /** A salary taken from the company's published average, not the posting. */
 export const PAY_ESTIMATED_LABEL = "Estimated";
+/** A posting that states no pay at all. */
+export const PAY_UNKNOWN_LABEL = "Pay not listed";
 
 function options<T extends string>(values: readonly T[], labels: Record<T, string>) {
   return values.map((value) => ({ value, label: labels[value] }));

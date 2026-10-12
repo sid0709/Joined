@@ -77,7 +77,13 @@ export function CompanyCard({
   openRoles?: number;
   hasActions?: boolean;
 }) {
-  const roles = openRoles ?? jobsForCompany(company.slug).length;
+  const sampleRoles = jobsForCompany(company.slug).length;
+  const rolesLabel =
+    openRoles != null
+      ? `See ${formatCount(openRoles, "open role")}`
+      : sampleRoles > 0
+        ? `See ${formatCount(sampleRoles, "open role")}`
+        : "See open roles";
   const companyId = company.id || company.slug;
 
   return (
@@ -146,7 +152,7 @@ export function CompanyCard({
         {hasActions ? (
           <HStack gap={2} wrap="wrap">
             <Button
-              label={`See ${formatCount(roles, "open role")}`}
+              label={rolesLabel}
               variant="secondary"
               size="sm"
               href={ROUTES.companyPublic(companyId)}

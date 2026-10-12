@@ -25,10 +25,16 @@ export const ROUTES = {
   fileReport: "/trust/reports/new",
   report: (id: string) => `/trust/reports/${id}`,
   retentionOps: "/ops",
-  jobMigration: "/migration/jobs",
-  companyMigration: "/migration/companies",
-  acornAI: "/settings/acorn-ai",
-  deepSeek: "/settings/deepseek",
+  monitoring: "/monitoring",
+  monitoringHost: "/monitoring/host",
+  monitoringTraffic: "/monitoring/traffic",
+  monitoringData: "/monitoring/data",
+  monitoringProduct: "/monitoring/product",
+  systemMonitoring: "/monitoring/system",
+  statusIncidents: "/monitoring/incidents",
+  tempJobs: "/temp/jobs",
+  tempCompanies: "/temp/companies",
+  aiModel: "/settings/ai-model",
 } as const;
 
 export type NavLink = {
@@ -75,6 +81,17 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     ],
   },
   {
+    title: "Monitoring",
+    links: [
+      { href: ROUTES.monitoring, label: "Overview", icon: "eye" },
+      { href: ROUTES.monitoringHost, label: "Host", icon: "folder" },
+      { href: ROUTES.monitoringTraffic, label: "Traffic", icon: "list" },
+      { href: ROUTES.monitoringData, label: "Data", icon: "file" },
+      { href: ROUTES.monitoringProduct, label: "Product", icon: "star" },
+      { href: ROUTES.statusIncidents, label: "Incidents", icon: "info" },
+    ],
+  },
+  {
     title: "Ops",
     links: [{ href: ROUTES.retentionOps, label: "Retention", icon: "lock" }],
   },
@@ -83,18 +100,15 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     links: [{ href: ROUTES.companies, label: "Companies", icon: "seat" }],
   },
   {
-    title: "Migration",
+    title: "Temp",
     links: [
-      { href: ROUTES.jobMigration, label: "Jobs", icon: "archive" },
-      { href: ROUTES.companyMigration, label: "Companies", icon: "download" },
+      { href: ROUTES.tempJobs, label: "Jobs", icon: "archive" },
+      { href: ROUTES.tempCompanies, label: "Companies", icon: "download" },
     ],
   },
   {
     title: "Settings",
-    links: [
-      { href: ROUTES.acornAI, label: "Acorn AI", icon: "settings" },
-      { href: ROUTES.deepSeek, label: "DeepSeek", icon: "sparkle" },
-    ],
+    links: [{ href: ROUTES.aiModel, label: "AI Model", icon: "sparkle" }],
   },
 ];
 

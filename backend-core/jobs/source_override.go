@@ -17,10 +17,10 @@ var (
 )
 
 // SetSourceEnabled records a staff override for one import source.
-// id must be a known source. The first supported id is athens.
-func SetSourceEnabled(id string, enabled bool, reason string) error {
+// id must be one of the registered sources in known.
+func SetSourceEnabled(known []SourceStatus, id string, enabled bool, reason string) error {
 	id = strings.TrimSpace(id)
-	if id != AthensSourceID {
+	if !hasSource(known, id) {
 		return ErrInvalidInput
 	}
 	sourceOverrideMu.Lock()
@@ -65,19 +65,22 @@ func ResetSourceOverrides() {
 func MergeSourceStatus(rows []SourceStatus) []SourceStatus {
 	out := make([]SourceStatus, len(rows))
 	copy(out, rows)
-	seen := map[string]bool{}
 	for i := range out {
-		seen[out[i].ID] = true
 		if enabled, ok := SourceEnabled(out[i].ID); ok {
 			out[i].Enabled = enabled
 		}
 	}
-	if !seen[AthensSourceID] {
-		enabled, ok := SourceEnabled(AthensSourceID)
-		if !ok {
-			enabled = false
-		}
-		out = append(out, SourceStatus{ID: AthensSourceID, Enabled: enabled})
-	}
 	return out
+}
+
+func hasSource(known []SourceStatus, id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, row := range known {
+		if row.ID == id {
+			return true
+		}
+	}
+	return false
 }

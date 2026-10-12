@@ -9,7 +9,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -83,7 +84,7 @@ func ResearchCompany(ctx context.Context, researcher WebResearcher, name, websit
 
 // researchCompany fills a company draft. webSearch looks the company up; otherwise the
 // model answers from what it already knows and names no sources.
-func researchCompany(ctx context.Context, reader CompanyReader, name, website string, webSearch bool) (CompanyResearch, error) {
+func researchCompany(ctx context.Context, reader CompanyReader, name, website string, webSearch bool, approach string) (CompanyResearch, error) {
 	name = truncate(strings.TrimSpace(name), maxCompanyName)
 	website = strings.TrimSpace(website)
 	if website != "" && !validLink(website, maxCompanyURL) {
@@ -94,6 +95,14 @@ func researchCompany(ctx context.Context, reader CompanyReader, name, website st
 	}
 	if reader == nil {
 		return CompanyResearch{}, ErrMissingResearcher
+	}
+	ctx = metrics.EnsureFeature(ctx, metrics.FeatureCompanyResearch)
+	if approach == approachDecisions {
+		decider, ok := reader.(Decider)
+		if !ok {
+			return CompanyResearch{}, fmt.Errorf("the Decisions approach needs a decision model")
+		}
+		return decideCompany(ctx, decider, name, website)
 	}
 	if webSearch {
 		return researchFromWeb(ctx, reader, name, website)

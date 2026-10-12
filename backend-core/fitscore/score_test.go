@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 func designerProfile() Profile {
@@ -231,4 +231,16 @@ func criterionLevels(result Result) map[string]string {
 		out[item.ID] = item.Level
 	}
 	return out
+}
+
+func TestScoreGenericHeadNeedsASharedQualifier(t *testing.T) {
+	profile := Profile{TargetRoles: []string{"Customer Success Manager"}}
+	far := Score(Job{ID: "a", Title: "Engineering Manager"}, profile)
+	if criterionLevels(far)["title"] != levelNo {
+		t.Fatalf("Engineering Manager vs Customer Success Manager = %q, want no", criterionLevels(far)["title"])
+	}
+	near := Score(Job{ID: "b", Title: "Customer Experience Manager"}, profile)
+	if criterionLevels(near)["title"] != levelPartial {
+		t.Fatalf("Customer Experience Manager = %q, want partial", criterionLevels(near)["title"])
+	}
 }

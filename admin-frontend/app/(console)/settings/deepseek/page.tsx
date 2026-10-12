@@ -1,7 +1,7 @@
-import { DeepSeekSettingsForm } from "@/components/settings/deepseek-settings";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/nav";
 
-export const metadata = { title: "DeepSeek" };
-
-export default function DeepSeekPage() {
-  return <DeepSeekSettingsForm />;
+/** DeepSeek settings moved into Settings → AI Model. */
+export default function DeepSeekSettingsRedirect() {
+  redirect(ROUTES.aiModel);
 }

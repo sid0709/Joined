@@ -1,6 +1,5 @@
-// Package deepseek is the DeepSeek model the admin migration uses: JSON answers over
-// chat completions, and web research over DeepSeek's Anthropic-format endpoint, which
-// runs the web search on DeepSeek's side.
+// Package deepseek is the OpenRouter model the admin console uses: JSON answers over
+// chat completions, and web research over OpenRouter's web-search plugin.
 package deepseek
 
 import (
@@ -12,37 +11,37 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 // A search answer reads several pages, so it gets longer than a plain completion.
 const searchTimeout = 4 * time.Minute
 
-// ErrMissingAPIKey is returned without DEEPSEEK_API_KEY. It matches openai.ErrMissingAPIKey,
+// ErrMissingAPIKey is returned without OPENROUTER_API_KEY. It matches openai.ErrMissingAPIKey,
 // so callers that check for a missing key treat both the same.
-var ErrMissingAPIKey = errors.Join(errors.New("DEEPSEEK_API_KEY is not set"), openai.ErrMissingAPIKey)
+var ErrMissingAPIKey = errors.Join(errors.New("OPENROUTER_API_KEY is not set"), openai.ErrMissingAPIKey)
 
 type Client struct {
-	chat      *openai.Client
-	apiKey    string
-	model     string
-	searchURL string
+	chat    *openai.Client
+	apiKey  string
+	model   string
+	baseURL string
 	// maxSearches caps the web searches behind one answer.
 	maxSearches int
 	http        *http.Client
 }
 
-func New(cfg config.DeepSeek) *Client {
+func New(cfg config.OpenRouter) *Client {
 	return &Client{
-		// DeepSeek promises valid JSON but not a strict schema, and reasoning only slows
-		// down reading a job post.
-		chat:        openai.New(cfg.APIKey, cfg.Model, cfg.BaseURL).ForProvider(ErrMissingAPIKey, true, true),
+		// OpenRouter's catalog mixes providers; json_object plus the schema in the
+		// prompt works across them. Reasoning only slows down reading a job post.
+		chat:        openai.New(cfg.APIKey, cfg.Model, cfg.BaseURL).ForProvider(ErrMissingAPIKey, true, true).OpenRouter(),
 		apiKey:      strings.TrimSpace(cfg.APIKey),
 		model:       cfg.Model,
-		searchURL:   strings.TrimRight(cfg.SearchURL, "/"),
-		maxSearches: cmp.Or(max(cfg.MaxSearches, 0), config.DefaultDeepSeekMaxSearches),
+		baseURL:     strings.TrimRight(cfg.BaseURL, "/"),
+		maxSearches: cmp.Or(max(cfg.MaxSearches, 0), config.DefaultOpenRouterMaxSearches),
 		http:        llmhttp.NewClient(searchTimeout),
 	}
 }
@@ -51,7 +50,20 @@ func (c *Client) Model() string {
 	return c.model
 }
 
-// Ready reports whether DEEPSEEK_API_KEY is set.
+// WithModel is this client pinned to one model for a single run. An empty model
+// keeps the saved one. The key and base URL stay.
+func (c *Client) WithModel(model string) *Client {
+	model = strings.TrimSpace(model)
+	if c == nil || model == "" || model == c.model {
+		return c
+	}
+	next := *c
+	next.model = model
+	next.chat = openai.New(c.apiKey, model, c.baseURL).ForProvider(ErrMissingAPIKey, true, true).OpenRouter()
+	return &next
+}
+
+// Ready reports whether an OpenRouter API key is set.
 func (c *Client) Ready() bool {
 	return c != nil && c.apiKey != ""
 }

@@ -25,6 +25,12 @@ services:
     <<: *api
     image: ${IMAGE_REPO}:joined-backend-${IMAGE_TAG}
     ports: ["127.0.0.1:11080:8080"]
+    # Search keeps working while these start: it falls back to the Mongo text
+    # search until the vector index and the embedder answer.
+    depends_on: [qdrant, redis, embedder]
+    volumes:
+      # Learned-ranking models (tools/ranking/train_ltr.py output) live here.
+      - ./models:/models:ro
     environment:
       MONGO_URI: ${MONGO_URI:-}
       DEST_DB: ${DEST_DB:-JoinedDB}
@@ -35,23 +41,61 @@ services:
       GOOGLE_REDIRECT_URL: ${GOOGLE_REDIRECT_URL:-}
       GOOGLE_SIGNIN_REDIRECT_URL: ${GOOGLE_SIGNIN_REDIRECT_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Personalized ranking (backend-core/ranking). One backend instance runs
+      # the indexer; it mirrors Mongo into Qdrant and fans new jobs out to feeds.
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      EMBEDDER_URL: http://embedder:80
+      RANKING_INDEXER: "true"
+      RANKING_EVENTS: ${RANKING_EVENTS:-true}
+      RANKING_MODEL_PATH: ${RANKING_MODEL_PATH:-}
+      RANKING_LTR_PERCENT: ${RANKING_LTR_PERCENT:-0}
+      # Prometheus scrapes this inside the compose network; no host port.
+      METRICS_ADDR: ":9464"
+      # The public status page (/v1/status) reads live status and daily uptime here.
+      PROMETHEUS_URL: http://prometheus:9090
+      # The in-memory index is a large, long-lived heap: collect less often.
+      GOGC: "200"
 
-  # Acorn's API source lives in the Acorn repo. This stack keeps the last image
-  # published from Joined so api.joinedhq.com stays up until Acorn deploys itself.
-  acorn-backend:
-    <<: *api
-    image: ${IMAGE_REPO}:acorn-backend-latest
-    ports: ["127.0.0.1:11083:8080"]
-    environment:
-      MONGO_URI: ${MONGO_URI:-}
-      ACORN_DB: ${ACORN_DB:-AcornDB}
-      CORS_ORIGINS: ${FRONTEND_ORIGIN}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      # Seals an OpenAI key saved in AcornDB.
-      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
-      GOOGLE_CLIENT_ID: ${ACORN_GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${ACORN_GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_SIGNIN_REDIRECT_URL: ${ACORN_GOOGLE_SIGNIN_REDIRECT_URL:-}
+  # The vector index. Original vectors stay on disk (page cache); the int8 copies
+  # searches walk stay in RAM. About 1.1 GB per million jobs.
+  qdrant:
+    <<: *app
+    image: qdrant/qdrant:v1.19.1
+    ports: ["127.0.0.1:6333:6333"]
+    volumes: ["qdrant:/qdrant/storage"]
+
+  # Ranked-result cache, "For you" feeds, and query vectors. Everything in it can
+  # be rebuilt, so it keeps nothing on disk and evicts least-recently used.
+  redis:
+    <<: *app
+    image: redis:8.10.2-alpine
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "1gb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 6
+
+  # The embedding model (bge-small-en-v1.5, 384 dimensions) on CPU. Jobs, profiles,
+  # and typed queries must all use this one model.
+  embedder:
+    <<: *app
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
+    command: ["--model-id", "BAAI/bge-small-en-v1.5", "--max-client-batch-size", "64"]
+    ports: ["127.0.0.1:8090:80"]
+    volumes: ["embedder:/data"]
 
   joined-frontend:
     <<: *app
@@ -97,13 +141,17 @@ services:
       DEST_DB: ${DEST_DB:-JoinedDB}
       CORS_ORIGINS: ${ADMIN_ORIGIN:-}
       ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      CRAWLER_INGEST_TOKEN: ${CRAWLER_INGEST_TOKEN:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       GOOGLE_CLIENT_ID: ${ADMIN_GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${ADMIN_GOOGLE_CLIENT_SECRET:-}
       GOOGLE_SIGNIN_REDIRECT_URL: ${ADMIN_GOOGLE_SIGNIN_REDIRECT_URL:-}
       ADMIN_GOOGLE_DOMAIN: ${ADMIN_GOOGLE_DOMAIN:-}
+      METRICS_ADDR: ":9464"
+      # System monitoring in the admin console reads this.
+      PROMETHEUS_URL: http://prometheus:9090
 
   admin-frontend:
     <<: *app
@@ -123,3 +171,72 @@ services:
     image: ${IMAGE_REPO}:connected-frontend-${IMAGE_TAG}
     # 6000 would follow the +3000 rule, but browsers refuse to open port 6000.
     ports: ["127.0.0.1:6004:3000"]
+
+  # ── Monitoring ──────────────────────────────────────────────────────────
+  # Always on. The admin console's Monitoring pages read Prometheus through
+  # admin-backend; deploy/prometheus/prometheus.yml lists what is scraped.
+  prometheus:
+    <<: *app
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-5GB}
+    ports: ["127.0.0.1:9090:9090"]
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus:/prometheus
+
+  # The VPS itself. It reads the host's /proc, /sys, and filesystems.
+  node-exporter:
+    <<: *app
+    image: prom/node-exporter:v1.9.1
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+
+  # Per-container CPU, memory, and restarts.
+  cadvisor:
+    <<: *app
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=15s
+      - --store_container_labels=false
+      - --whitelisted_container_labels=com.docker.compose.service
+    privileged: true
+    devices: ["/dev/kmsg"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+  # Answers "is it up?" for each site and API (HTTP probes).
+  blackbox-exporter:
+    <<: *app
+    image: prom/blackbox-exporter:v0.27.0
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes: ["./prometheus/blackbox.yml:/etc/blackbox/blackbox.yml:ro"]
+
+  # MongoDB on the host. MONGODB_EXPORTER_URI should be a user with the
+  # clusterMonitor role; without it, MONGO_URI still reports up/down and basics.
+  mongodb-exporter:
+    <<: *api
+    image: percona/mongodb_exporter:0.44.0
+    command: ["--collect-all", "--compatible-mode"]
+    environment:
+      MONGODB_URI: ${MONGODB_EXPORTER_URI:-${MONGO_URI:-}}
+
+  redis-exporter:
+    <<: *app
+    image: oliver006/redis_exporter:v1.74.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+
+volumes:
+  qdrant:
+  embedder:
+  prometheus:

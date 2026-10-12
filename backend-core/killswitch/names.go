@@ -13,7 +13,7 @@ const (
 	Signup Name = "signup"
 	// Email is outbound transactional mail (verification, password reset).
 	Email Name = "email"
-	// JobImports is Athens → Joined copies (admin migration and copy CLIs).
+	// JobImports gates a scheduled job import. The admin API does not start one.
 	JobImports Name = "job_imports"
 	// AcornAI is Acorn's model-backed routes.
 	AcornAI Name = "acorn_ai"

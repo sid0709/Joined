@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/google"
+	"github.com/sid0709/Joined/backend-core/google"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 

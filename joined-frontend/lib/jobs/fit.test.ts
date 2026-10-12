@@ -4,6 +4,7 @@ import {
   FIT_TITLE_CRITERION,
   criterionLabel,
   fetchJobFits,
+  hasFitScore,
   parseJobFit,
   visibleFit,
   type JobFit,
@@ -45,6 +46,19 @@ describe("fit score display", () => {
     expect(criterionLabel({ id: FIT_TITLE_CRITERION, label: "Title" })).toBe("Title");
     expect(criterionLabel({ id: FIT_TITLE_CRITERION, label: "" })).toBe(FIT_ROLE_LABEL);
     expect(criterionLabel({ id: "skills", label: "Skills" })).toBe("Skills");
+  });
+
+  test("treats a zero with no criteria as not scored yet", () => {
+    expect(hasFitScore(sampleFit())).toBe(true);
+    expect(hasFitScore(sampleFit({ score: 0, criteria: [] }))).toBe(false);
+    expect(
+      hasFitScore(
+        sampleFit({
+          score: 0,
+          criteria: [{ id: "skills", label: "Skills", detail: "None match", level: "no" }],
+        }),
+      ),
+    ).toBe(true);
   });
 
   test("drops a payload that omits the score", () => {

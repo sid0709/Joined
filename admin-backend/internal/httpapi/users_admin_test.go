@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/auth/authtest"
-	"github.com/sid0709/OpenSeat/backend-core/billing"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/auth/authtest"
+	"github.com/sid0709/Joined/backend-core/billing"
+	"github.com/sid0709/Joined/backend-core/staff"
 )
 
 func TestAdminUsersRequireToken(t *testing.T) {

@@ -8,55 +8,50 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/aisettings"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/aisettings"
+	"github.com/sid0709/Joined/backend-core/httpkit"
 )
 
 const (
+	aiModelPath      = "/v1/admin/ai-model"
 	acornAIPath      = "/v1/admin/acorn-ai"
 	deepSeekPath     = "/v1/admin/deepseek"
 	maxModelBody     = 4 << 10
 	noEncryptionKey  = "Set SETTINGS_ENCRYPTION_KEY (base64, 32 bytes: openssl rand -base64 32) in the admin API and core API environments to save a key"
 	invalidModelKey  = "The key can't contain spaces"
 	invalidModelName = "The model can't contain spaces"
-	maxModelID       = 80
+	maxModelID       = 128
 	modelsTimeout    = 20 * time.Second
 )
 
-// modelProvider is one console form: the saved document plus the environment it falls back to.
+// modelProvider is the console form: the saved document plus the OpenRouter env it falls back to.
 type modelProvider struct {
 	store        *aisettings.Store
+	mirrors      []*aisettings.Store
 	defaultModel string
 	baseURL      string
 	envAPIKey    string
 	logName      string
 }
 
-func (s *Server) registerAcornAI(mux *http.ServeMux) {
-	s.registerModelSettings(mux, acornAIPath, s.acornProvider)
-}
-
-func (s *Server) registerDeepSeek(mux *http.ServeMux) {
-	s.registerModelSettings(mux, deepSeekPath, s.deepSeekProvider)
-}
-
-func (s *Server) acornProvider() modelProvider {
-	return modelProvider{
-		store:        s.acornAI,
-		defaultModel: s.acornAIEnv.Model,
-		baseURL:      s.acornAIEnv.BaseURL,
-		envAPIKey:    s.acornAIEnv.APIKey,
-		logName:      "acorn ai",
+func (s *Server) registerAIModel(mux *http.ServeMux) {
+	for _, path := range []string{aiModelPath, acornAIPath, deepSeekPath} {
+		s.registerModelSettings(mux, path, s.aiModelProvider)
 	}
 }
 
-func (s *Server) deepSeekProvider() modelProvider {
+func (s *Server) aiModelProvider() modelProvider {
+	mirrors := []*aisettings.Store{}
+	if s.acornAI != nil && s.acornAI != s.deepSeek {
+		mirrors = append(mirrors, s.acornAI)
+	}
 	return modelProvider{
 		store:        s.deepSeek,
-		defaultModel: s.deepSeekEnv.Model,
-		baseURL:      s.deepSeekEnv.BaseURL,
-		envAPIKey:    s.deepSeekEnv.APIKey,
-		logName:      "deepseek",
+		mirrors:      mirrors,
+		defaultModel: s.openRouter.Model,
+		baseURL:      s.openRouter.BaseURL,
+		envAPIKey:    s.openRouter.APIKey,
+		logName:      "ai model",
 	}
 }
 
@@ -78,10 +73,10 @@ func (s *Server) registerModelSettings(mux *http.ServeMux, path string, provider
 // modelSettingsView is the saved settings plus what the console needs to draw the form.
 type modelSettingsView struct {
 	aisettings.View
-	// Models are the models known without asking the provider: the default and the saved
-	// one. The console adds the provider's live list from /models.
+	// Models are the models known without asking OpenRouter: the default and the saved
+	// one. The console adds OpenRouter's live catalog from /models.
 	Models []string `json:"models"`
-	// DefaultModel is what the provider uses when no model is saved.
+	// DefaultModel is what OpenRouter uses when no model is saved.
 	DefaultModel string `json:"defaultModel"`
 	// EnvKey is true when the environment already has an API key, so the feature works
 	// without a saved one.
@@ -89,6 +84,10 @@ type modelSettingsView struct {
 }
 
 func (s *Server) getModelSettings(w http.ResponseWriter, r *http.Request, provider modelProvider) {
+	if provider.store == nil {
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "AI settings are not configured")
+		return
+	}
 	view, err := provider.store.View(r.Context())
 	if err != nil {
 		slog.Error(provider.logName+" settings", "error", err)
@@ -124,15 +123,20 @@ func (s *Server) putModelSettings(w http.ResponseWriter, r *http.Request, provid
 	s.saveModelSettings(w, r, provider, aisettings.Update{APIKey: body.APIKey, Model: body.Model})
 }
 
-// deleteModelSettings removes the saved key. The provider falls back to its environment key.
+// deleteModelSettings removes the saved key. OpenRouter falls back to its environment key.
 func (s *Server) deleteModelSettings(w http.ResponseWriter, r *http.Request, provider modelProvider) {
 	blank := ""
 	s.saveModelSettings(w, r, provider, aisettings.Update{APIKey: &blank})
 }
 
 func (s *Server) saveModelSettings(w http.ResponseWriter, r *http.Request, provider modelProvider, update aisettings.Update) {
+	if provider.store == nil {
+		httpkit.WriteError(w, http.StatusServiceUnavailable, "AI settings are not configured")
+		return
+	}
 	actor := adminActor(r)
-	err := provider.store.Save(r.Context(), update, actor, time.Now())
+	now := time.Now()
+	err := provider.store.Save(r.Context(), update, actor, now)
 	switch {
 	case errors.Is(err, aisettings.ErrNoEncryptionKey):
 		httpkit.WriteError(w, http.StatusServiceUnavailable, noEncryptionKey)
@@ -145,27 +149,34 @@ func (s *Server) saveModelSettings(w http.ResponseWriter, r *http.Request, provi
 		httpkit.WriteError(w, http.StatusInternalServerError, "could not save the AI settings")
 		return
 	}
+	for _, mirror := range provider.mirrors {
+		if err := mirror.Save(r.Context(), update, actor, now); err != nil {
+			slog.Warn("mirror "+provider.logName+" settings", "error", err)
+		}
+	}
 	slog.Info(provider.logName+" settings saved", "by", actor, "key", update.APIKey != nil, "model", update.Model != nil)
 	s.getModelSettings(w, r, provider)
 }
 
-// listProviderModels asks the provider which models the key can use, newest first.
+// listProviderModels asks OpenRouter which models the key can use, newest first.
 // It uses the saved key, else the environment's, so the dropdown shows what is available.
 func (s *Server) listProviderModels(w http.ResponseWriter, r *http.Request, provider modelProvider) {
 	ctx, cancel := context.WithTimeout(r.Context(), modelsTimeout)
 	defer cancel()
 	key := provider.envAPIKey
-	if saved, err := provider.store.Get(ctx); err == nil && saved.APIKey != "" {
-		key = saved.APIKey
+	if provider.store != nil {
+		if saved, err := provider.store.Get(ctx); err == nil && saved.APIKey != "" {
+			key = saved.APIKey
+		}
 	}
 	models, err := aisettings.ListModels(ctx, provider.baseURL, key)
 	switch {
 	case errors.Is(err, aisettings.ErrNoKey):
-		httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": []string{}, "reason": "Save an API key to load the model list."})
+		httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": []aisettings.CatalogModel{}, "reason": "Save an API key to load the model list."})
 		return
 	case err != nil:
 		slog.Warn("list "+provider.logName+" models", "error", err)
-		httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": []string{}, "reason": "Couldn't load the model list: " + err.Error() + "."})
+		httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": []aisettings.CatalogModel{}, "reason": "Couldn't load the model list: " + err.Error() + "."})
 		return
 	}
 	httpkit.WriteJSON(w, http.StatusOK, map[string]any{"models": models})

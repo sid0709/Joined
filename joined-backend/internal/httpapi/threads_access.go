@@ -1,8 +1,8 @@
 package httpapi
 
 import (
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/employer"
 )
 
 // visibleCompanyThreads keeps threads whose job the caller may view as applicants.

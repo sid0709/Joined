@@ -24,19 +24,6 @@ func TestFoundProfileNeedsMoreThanANameAndWebsite(t *testing.T) {
 	}
 }
 
-func TestUnresearchedCopyKeepsPublishedAndOwnedCompanies(t *testing.T) {
-	filter := unresearchedCopy()
-	keys := map[string]bool{}
-	for _, element := range filter {
-		keys[element.Key] = true
-	}
-	for _, key := range []string{"sourceId", researchFoundField, "verificationStatus", "createdBy", "claimed"} {
-		if !keys[key] {
-			t.Errorf("filter does not check %s: %v", key, filter)
-		}
-	}
-}
-
 func TestWithoutFieldsKeepsEveryOtherField(t *testing.T) {
 	doc := bson.D{{Key: "_id", Value: bson.NewObjectID()}, {Key: "id", Value: "c1"}, {Key: "research", Value: bson.D{}}, {Key: "sourceId", Value: "s1"}}
 	got := withoutFields(doc, "_id", "research")

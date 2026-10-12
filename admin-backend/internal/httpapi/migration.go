@@ -8,11 +8,13 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
-	"github.com/sid0709/OpenSeat/admin-backend/internal/migration"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
+	"github.com/sid0709/Joined/admin-backend/internal/migration"
+	"github.com/sid0709/Joined/backend-core/deepseek"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -20,10 +22,10 @@ const (
 	maxMigrationSelection = 1000
 	maxMigrationBody      = 64 << 10
 	// missingMigrationKey tells staff how to turn on the migration's AI steps.
-	missingMigrationKey = "Save a DeepSeek API key under Settings → DeepSeek, or set DEEPSEEK_API_KEY"
+	missingMigrationKey = "Save an OpenRouter API key under Settings → AI Model, or set OPENROUTER_API_KEY"
 )
 
-// MigrationModel reads job posts and researches companies on the web. DeepSeek is it.
+// MigrationModel reads job posts and researches companies on the web. OpenRouter is it.
 type MigrationModel interface {
 	jobs.ModelReader
 	jobs.WebResearcher
@@ -53,7 +55,12 @@ type migrationStartRequest struct {
 	// Redo works through items an earlier run already finished.
 	Redo bool `json:"redo"`
 	// WebSearch is whether the model may use web_search. Nil keeps it on.
+	// The Decisions approach ignores it.
 	WebSearch *bool `json:"webSearch"`
+	// Approach is chat, batch, or decisions. Empty follows the model id.
+	Approach string `json:"approach"`
+	// Model overrides the saved default for this run.
+	Model string `json:"model"`
 }
 
 func (r migrationStartRequest) useWebSearch() bool {
@@ -99,12 +106,6 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task := migration.Task(r.PathValue("task"))
-	if task == migration.CopyJobs || task == migration.CopyCompanies {
-		if err := killswitch.Check(r.Context(), s.switches, killswitch.JobImports); err != nil {
-			killswitch.WriteDisabled(w, killswitch.JobImports)
-			return
-		}
-	}
 	work, usesModel, ok := s.migrationWork(task, body)
 	if !ok {
 		httpkit.WriteError(w, http.StatusNotFound, "unknown migration step")
@@ -116,7 +117,25 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 			httpkit.WriteError(w, http.StatusServiceUnavailable, missingMigrationKey)
 			return
 		}
-		model = s.ai.Model()
+		model = strings.TrimSpace(body.Model)
+		if model == "" {
+			model = s.ai.Model()
+		}
+		if len(model) > maxModelID || strings.ContainsAny(model, " \t\r\n") {
+			httpkit.WriteError(w, http.StatusBadRequest, invalidModelName)
+			return
+		}
+		approach := body.Approach
+		if approach == "" {
+			approach = deepseek.ApproachFor(model)
+		}
+		if err := deepseek.CheckApproach(approach, model); err != nil {
+			httpkit.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		body.Approach = approach
+		body.Model = model
+		work, _, _ = s.migrationWork(task, body)
 	}
 	run, err := s.migration.Start(task, model, work)
 	if errors.Is(err, migration.ErrBusy) {
@@ -147,57 +166,33 @@ func (s *Server) cancelMigration(w http.ResponseWriter, r *http.Request) {
 // migrationWork is the step for task and whether it runs the model.
 func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) (migration.Work, bool, bool) {
 	switch task {
-	case migration.CopyJobs:
-		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			result, err := s.store.Copy(ctx, progress)
-			if err != nil {
-				return "", err
-			}
-			return jobCopySummary(result), nil
-		}, false, true
-	case migration.CopyCompanies:
-		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			result, err := s.store.CopyCompanies(ctx, progress)
-			if err != nil {
-				return "", err
-			}
-			return companyCopySummary(result), nil
-		}, false, true
 	case migration.AnalyzeJobs:
-		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}
+		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch(), Approach: body.Approach}
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			err := s.store.AnalyzeTempJobs(ctx, s.ai, scope, s.analyzeWorkers, progress)
+			ctx = metrics.WithFeature(ctx, metrics.FeatureMigration)
+			err := s.store.AnalyzeTempJobs(ctx, s.migrationReader(body.Model), scope, s.analyzeWorkers, progress)
 			return tally("Published", "not publishable", progress.Snapshot()), err
 		}, true, true
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}, s.researchWorkers, progress)
+			ctx = metrics.WithFeature(ctx, metrics.FeatureMigration)
+			reader := s.migrationReader(body.Model)
+			err := s.store.ResearchCompanies(ctx, reader, reader.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo, WebSearch: body.useWebSearch(), Approach: body.Approach}, s.researchWorkers, progress)
 			return tally("Published", "not found", progress.Snapshot()), err
 		}, true, true
 	}
 	return nil, false, false
 }
 
-// jobCopySummary says how many copied jobs wait in temp_jobs.
-func jobCopySummary(result jobs.CopyResult) string {
-	summary := fmt.Sprintf("Copied %d jobs from %s into %s.", result.Copied, result.Source, result.Destination)
-	if result.Published > 0 {
-		summary += fmt.Sprintf(" Left out %d already published.", result.Published)
+// migrationReader is the saved model, or that client pinned to model for this run.
+func (s *Server) migrationReader(model string) MigrationModel {
+	if model == "" || s.ai == nil {
+		return s.ai
 	}
-	return summary
-}
-
-// companyCopySummary says where the copied companies went.
-func companyCopySummary(result jobs.CompanyCopyResult) string {
-	summary := fmt.Sprintf("Copied %d companies from %s: %d wait in %s for research", result.Copied, result.Source, result.Staged, result.Staging)
-	if result.Refreshed > 0 {
-		summary += fmt.Sprintf(", %d already published were updated", result.Refreshed)
+	if live, ok := s.ai.(*deepseek.Reloading); ok {
+		return live.WithModel(model)
 	}
-	summary += "."
-	if result.Unpublished > 0 {
-		summary += fmt.Sprintf(" Moved %d unresearched companies out of %s.", result.Unpublished, result.Dest)
-	}
-	return summary + fmt.Sprintf(" Linked %d jobs.", result.Linked)
+	return s.ai
 }
 
 // tally says how a run went: "Published 90 of 100. 8 not found, 2 failed."

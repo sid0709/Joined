@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 var publishablePayload = []byte(`{
@@ -23,7 +22,7 @@ var publishablePayload = []byte(`{
 }`)
 
 func TestAnalyzeTempJobsDropsPublishedTempJob(t *testing.T) {
-	store, _, _, _ := crawlerTestStore(t)
+	store := crawlerTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
@@ -55,41 +54,8 @@ func TestAnalyzeTempJobsDropsPublishedTempJob(t *testing.T) {
 	}
 }
 
-func TestCopyLeavesOutPublishedJobs(t *testing.T) {
-	store, client, sourceDB, _ := crawlerTestStore(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	publishedID, waitingID := bson.NewObjectID(), bson.NewObjectID()
-	if _, err := client.Database(sourceDB).Collection("jobs").InsertMany(ctx, []any{
-		bson.D{{Key: "_id", Value: publishedID}, {Key: "title", Value: "Published"}},
-		bson.D{{Key: "_id", Value: waitingID}, {Key: "title", Value: "Waiting"}},
-	}); err != nil {
-		t.Fatalf("seed source: %v", err)
-	}
-	if _, err := store.structured().InsertOne(ctx, bson.D{
-		{Key: "_id", Value: publishedID}, {Key: "tempJobId", Value: publishedID.Hex()},
-	}); err != nil {
-		t.Fatalf("seed published job: %v", err)
-	}
-
-	result, err := store.Copy(ctx, nil)
-	if err != nil {
-		t.Fatalf("copy: %v", err)
-	}
-	if result.Copied != 2 || result.Published != 1 {
-		t.Fatalf("copy result = %+v", result)
-	}
-	if n, _ := store.dest().CountDocuments(ctx, bson.D{{Key: "_id", Value: publishedID}}); n != 0 {
-		t.Fatal("published job is back in temp jobs")
-	}
-	if n, _ := store.dest().CountDocuments(ctx, bson.D{{Key: "_id", Value: waitingID}}); n != 1 {
-		t.Fatal("waiting job missing from temp jobs")
-	}
-}
-
 func TestPurgePublishedTempDropsJobsAndCompanies(t *testing.T) {
-	store, _, _, _ := crawlerTestStore(t)
+	store := crawlerTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
@@ -129,23 +95,5 @@ func TestPurgePublishedTempDropsJobsAndCompanies(t *testing.T) {
 	}
 	if n, _ := store.stagedCompanies().CountDocuments(ctx, bson.D{{Key: "id", Value: "waiting-co"}}); n != 1 {
 		t.Fatal("waiting company was dropped")
-	}
-}
-
-func TestLinkModelsUsesStoredSourceCompany(t *testing.T) {
-	store, _, _, _ := crawlerTestStore(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	source := bson.NewObjectID().Hex()
-	docs := []storedSearchJob{{ID: bson.NewObjectID(), TempJobID: bson.NewObjectID().Hex(), SourceCompanyID: source}}
-	models, err := store.linkModels(ctx, docs, map[string]string{source: "public-co"})
-	if err != nil {
-		t.Fatalf("link: %v", err)
-	}
-	update := models[0].(*mongo.UpdateOneModel).Update.(bson.D)
-	set := update[0].Value.(bson.D)
-	if got := stringField(set, "job.companyId"); got != "public-co" {
-		t.Fatalf("company id = %q, want public-co", got)
 	}
 }

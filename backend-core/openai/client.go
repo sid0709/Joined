@@ -11,7 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -23,6 +24,41 @@ const (
 
 var ErrMissingAPIKey = errors.New("OPENAI_API_KEY is not set")
 
+// batchVariant is OpenRouter's catalog suffix for a model the Batch API serves.
+const batchVariant = "batch"
+
+// IsBatchCatalog reports an OpenRouter :batch catalog id. Other suffixes, such as
+// :free or :nitro, are ordinary chat models.
+func IsBatchCatalog(id string) bool {
+	parts := strings.Split(id, ":")
+	if len(parts) == 1 {
+		return false
+	}
+	for _, part := range parts[1:] {
+		if part == batchVariant {
+			return true
+		}
+	}
+	return false
+}
+
+// batchSlug is the model the Batch API accepts. OpenRouter resolves :batch from
+// the base slug itself, and any other suffix stays so routing variants still apply.
+func batchSlug(id string) string {
+	parts := strings.Split(id, ":")
+	if len(parts) == 1 {
+		return id
+	}
+	kept := make([]string, 0, len(parts))
+	kept = append(kept, parts[0])
+	for _, part := range parts[1:] {
+		if part != batchVariant {
+			kept = append(kept, part)
+		}
+	}
+	return strings.Join(kept, ":")
+}
+
 type Client struct {
 	apiKey      string
 	model       string
@@ -31,8 +67,11 @@ type Client struct {
 	missingKey  error
 	jsonObject  bool
 	noThinking  bool
-	http        *http.Client
-	searchHTTP  *http.Client
+	// openRouter routes :batch catalog ids through the Batch API. Every other id
+	// still uses chat completions, which is what the rest of the catalog speaks.
+	openRouter bool
+	http       *http.Client
+	searchHTTP *http.Client
 }
 
 func New(apiKey, model, baseURL string) *Client {
@@ -57,6 +96,13 @@ func (c *Client) ForProvider(missingKey error, jsonObject, noThinking bool) *Cli
 	return c
 }
 
+// OpenRouter marks this client as an OpenRouter catalog. A :batch model is sent
+// to the Batch API. Every other model id is sent to chat completions as written.
+func (c *Client) OpenRouter() *Client {
+	c.openRouter = true
+	return c
+}
+
 func (c *Client) Model() string {
 	return c.model
 }
@@ -67,11 +113,26 @@ func (c *Client) Ready() bool {
 }
 
 func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, error) {
+	started := time.Now()
 	if c == nil {
+		metrics.RecordModel(ctx, "", metrics.OutcomeMissingKey, 0, 0, 0, 0)
 		return nil, ErrMissingAPIKey
 	}
 	if c.apiKey == "" {
+		metrics.RecordModel(ctx, c.model, metrics.OutcomeMissingKey, 0, 0, 0, 0)
 		return nil, c.missingKey
+	}
+	if c.openRouter && IsBatchCatalog(c.model) {
+		content, prompt, completion, err := c.batchChat(ctx, system, user, schema)
+		empty := err == nil && strings.TrimSpace(content) == ""
+		c.record(ctx, c.model, started, err, empty, prompt, completion, 0)
+		if err != nil {
+			return nil, err
+		}
+		if empty {
+			return nil, fmt.Errorf("model returned an empty job")
+		}
+		return []byte(content), nil
 	}
 
 	body, err := json.Marshal(c.chatRequest(system, user, schema))
@@ -80,18 +141,25 @@ func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawM
 	}
 
 	var last error
+	var prompt, completion, retries int
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		content, status, retryAfter, err := c.complete(ctx, body)
+		content, status, retryAfter, usage, err := c.complete(ctx, body)
+		prompt, completion = usage.prompt, usage.completion
 		if err == nil && status >= 200 && status < 300 {
-			if strings.TrimSpace(content) == "" {
+			empty := strings.TrimSpace(content) == ""
+			c.record(ctx, c.model, started, nil, empty, prompt, completion, retries)
+			if empty {
 				return nil, fmt.Errorf("model returned an empty job")
 			}
 			return []byte(content), nil
 		}
 		if err == nil && !llmhttp.Retryable(status) {
-			return nil, statusError(status, content)
+			last = statusError(status, content)
+			c.record(ctx, c.model, started, last, false, prompt, completion, retries)
+			return nil, last
 		}
 		if err != nil && ctx.Err() != nil {
+			c.record(ctx, c.model, started, err, false, prompt, completion, retries)
 			return nil, err
 		}
 		if err != nil {
@@ -103,14 +171,33 @@ func (c *Client) JSON(ctx context.Context, system, user string, schema json.RawM
 		if attempt == maxAttempts-1 {
 			break
 		}
+		retries++
 		if err := llmhttp.Wait(ctx, llmhttp.RetryDelay(attempt, retryAfter)); err != nil {
+			c.record(ctx, c.model, started, err, false, prompt, completion, retries)
 			return nil, err
 		}
 	}
 	if last == nil {
 		last = fmt.Errorf("model request failed")
 	}
+	c.record(ctx, c.model, started, last, false, prompt, completion, retries)
 	return nil, last
+}
+
+func (c *Client) record(ctx context.Context, model string, started time.Time, err error, empty bool, prompt, completion, retries int) {
+	outcome := metrics.ModelOutcome(err, empty)
+	if err != nil && (errors.Is(err, ErrMissingAPIKey) || (c != nil && c.missingKey != nil && errors.Is(err, c.missingKey))) {
+		outcome = metrics.OutcomeMissingKey
+	}
+	if model == "" && c != nil {
+		model = c.model
+	}
+	metrics.RecordModel(ctx, model, outcome, time.Since(started), prompt, completion, retries)
+}
+
+type tokenUse struct {
+	prompt     int
+	completion int
 }
 
 func (c *Client) chatRequest(system, user string, schema json.RawMessage) chatRequest {
@@ -139,36 +226,41 @@ func (c *Client) chatRequest(system, user string, schema json.RawMessage) chatRe
 	return request
 }
 
-func (c *Client) complete(ctx context.Context, body []byte) (string, int, string, error) {
+func (c *Client) complete(ctx context.Context, body []byte) (string, int, string, tokenUse, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return "", 0, "", err
+		return "", 0, "", tokenUse{}, err
 	}
 	request.Header.Set("Authorization", "Bearer "+c.apiKey)
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := c.http.Do(request)
 	if err != nil {
-		return "", 0, "", err
+		return "", 0, "", tokenUse{}, err
 	}
 	defer response.Body.Close()
 
 	payload, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 	if err != nil {
-		return "", response.StatusCode, "", err
+		return "", response.StatusCode, "", tokenUse{}, err
 	}
 	var decoded chatResponse
 	if err := json.Unmarshal(payload, &decoded); err != nil {
-		return "", response.StatusCode, response.Header.Get("Retry-After"), fmt.Errorf("read model response: %w", err)
+		return "", response.StatusCode, response.Header.Get("Retry-After"), tokenUse{}, fmt.Errorf("read model response: %w", err)
+	}
+	usage := tokenUse{}
+	if decoded.Usage != nil {
+		usage.prompt = decoded.Usage.PromptTokens
+		usage.completion = decoded.Usage.CompletionTokens
 	}
 	content := ""
 	if len(decoded.Choices) > 0 {
 		content = decoded.Choices[0].Message.Content
 	}
 	if decoded.Error != nil && decoded.Error.Message != "" && (response.StatusCode < 200 || response.StatusCode >= 300) {
-		return decoded.Error.Message, response.StatusCode, response.Header.Get("Retry-After"), nil
+		return decoded.Error.Message, response.StatusCode, response.Header.Get("Retry-After"), usage, nil
 	}
-	return content, response.StatusCode, response.Header.Get("Retry-After"), nil
+	return content, response.StatusCode, response.Header.Get("Retry-After"), usage, nil
 }
 
 func statusError(status int, message string) error {
@@ -214,4 +306,8 @@ type chatResponse struct {
 	Error *struct {
 		Message string `json:"message"`
 	} `json:"error"`
+	Usage *struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+	} `json:"usage"`
 }

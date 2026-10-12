@@ -112,10 +112,12 @@ export function ApplicationDrawer({
       <Stack gap={6}>
         <HStack gap={2} wrap="wrap">
           <Badge label={application.closedReason ?? stage.title} variant={stage.badge} />
-          <Badge
-            label={`${application.match}% match`}
-            variant={application.match >= STRONG_MATCH ? "success" : "neutral"}
-          />
+          {application.match > 0 ? (
+            <Badge
+              label={`${application.match}% match`}
+              variant={application.match >= STRONG_MATCH ? "success" : "neutral"}
+            />
+          ) : null}
           <Badge label={SOURCE_LABEL[application.source]} variant="neutral" />
         </HStack>
 

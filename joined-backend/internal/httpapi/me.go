@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/employer"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/httpkit"
 )
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +34,7 @@ func (s *Server) patchProfile(w http.ResponseWriter, r *http.Request) {
 	if !writeCandidate(w, err) {
 		return
 	}
+	s.noteProfileChanged(session.User.ID)
 	httpkit.WriteJSON(w, http.StatusOK, profile)
 }
 

@@ -10,9 +10,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/database"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/database"
+	"github.com/sid0709/Joined/backend-core/jobs"
 )
 
 const reportTimeout = 5 * time.Minute
@@ -42,12 +42,9 @@ func main() {
 
 	store := jobs.NewStore(
 		client,
-		cfg.SourceDB,
-		cfg.SourceCollection,
 		cfg.DestDB,
 		cfg.DestCollection,
 		cfg.JobsCollection,
-		cfg.SourceCompanies,
 		cfg.CompaniesCollection,
 		cfg.TempCompaniesCollection,
 	)

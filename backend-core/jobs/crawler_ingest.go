@@ -16,8 +16,7 @@ import (
 )
 
 // CrawlerIngest marks temp jobs the crawler extension sent straight to temp_jobs
-// (the ingestedVia field). They have no row in the source collection, so Copy
-// carries them into the fresh temp_jobs instead of dropping them.
+// (the ingestedVia field).
 const CrawlerIngest = "crawler"
 
 const (
@@ -270,8 +269,7 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 	}
 }
 
-// ensureCrawlerIndexes indexes temp_jobs for the duplicate check. Copy replaces
-// temp_jobs with the source's indexes, so ingest re-ensures it; creating an
+// ensureCrawlerIndexes indexes temp_jobs for the duplicate check. Creating an
 // existing index is a no-op.
 func (s *Store) ensureCrawlerIndexes(ctx context.Context) error {
 	_, err := s.dest().Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -353,11 +351,8 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 // IngestCrawledJobs stages each crawled job in temp_jobs for AI analysis, skipping
 // one whose apply link is already there within the job's duplicate window. When
 // the employer is not already in companies or temp_companies, and the board gave
-// a name, website, and logo, it stages that company in temp_companies. It waits
-// while Copy swaps temp_jobs, so no job lands in a collection being replaced.
+// a name, website, and logo, it stages that company in temp_companies.
 func (s *Store) IngestCrawledJobs(ctx context.Context, batch CrawlerBatch, now time.Time) (CrawlerIngestResult, error) {
-	s.tempWriteMu.RLock()
-	defer s.tempWriteMu.RUnlock()
 	if err := s.ensureCrawlerIndexes(ctx); err != nil {
 		return CrawlerIngestResult{}, err
 	}
@@ -383,44 +378,4 @@ func (s *Store) IngestCrawledJobs(ctx context.Context, batch CrawlerBatch, now t
 		result.Results = append(result.Results, outcome)
 	}
 	return result, nil
-}
-
-// keepCrawledJobs copies crawler-ingested jobs from the current temp_jobs into the
-// staging collection Copy is about to swap in, keeping their ids so analysis
-// already done on them still points at them.
-func (s *Store) keepCrawledJobs(ctx context.Context, staging *mongo.Collection) (int64, error) {
-	cursor, err := s.dest().Find(ctx, bson.D{{Key: ingestedViaField, Value: CrawlerIngest}})
-	if err != nil {
-		if isNamespaceNotFound(err) {
-			return 0, nil
-		}
-		return 0, fmt.Errorf("read crawled jobs: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var kept int64
-	batch := make([]any, 0, copyBatchSize)
-	flush := func() error {
-		if len(batch) == 0 {
-			return nil
-		}
-		if _, err := staging.InsertMany(ctx, batch, options.InsertMany().SetOrdered(false)); err != nil {
-			return fmt.Errorf("keep crawled jobs: %w", err)
-		}
-		kept += int64(len(batch))
-		batch = batch[:0]
-		return nil
-	}
-	for cursor.Next(ctx) {
-		batch = append(batch, exactDocument(append(bson.Raw(nil), cursor.Current...)))
-		if len(batch) == int(copyBatchSize) {
-			if err := flush(); err != nil {
-				return kept, err
-			}
-		}
-	}
-	if err := cursor.Err(); err != nil {
-		return kept, fmt.Errorf("read crawled jobs: %w", err)
-	}
-	return kept, flush()
 }

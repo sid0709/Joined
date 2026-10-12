@@ -3,8 +3,8 @@ package employer
 import (
 	"strings"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/candidate"
 )
 
 // Company hiring RBAC matches joined-frontend/lib/rbac.ts.

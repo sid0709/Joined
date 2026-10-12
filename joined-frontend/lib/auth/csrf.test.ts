@@ -6,6 +6,7 @@ import {
   emailAuthCsrfReject,
   isJsonContentType,
   isSameOriginRequest,
+  publicRequestOrigin,
 } from "./csrf";
 import { EMAIL_MESSAGES } from "./email";
 
@@ -45,6 +46,44 @@ describe("isSameOriginRequest", () => {
     expect(isSameOriginRequest(post({ "Sec-Fetch-Site": "same-site" }))).toBe(false);
     expect(
       isSameOriginRequest(post({ Origin: "http://app.test", "Sec-Fetch-Site": "cross-site" })),
+    ).toBe(false);
+  });
+});
+
+describe("behind the nginx proxy", () => {
+  // The container sees plain http on its own port; nginx passes the public host and scheme.
+  const INTERNAL = "http://0.0.0.0:3000/api/auth/signin";
+  const proxied = (headers: Record<string, string>) =>
+    new Request(INTERNAL, {
+      method: "POST",
+      headers: { Host: "joinedhq.com", "X-Forwarded-Proto": "https", ...headers },
+      body: "{}",
+    });
+
+  test("reads the public origin from the proxy headers", () => {
+    expect(publicRequestOrigin(proxied({}))).toBe("https://joinedhq.com");
+    expect(publicRequestOrigin(proxied({ "X-Forwarded-Proto": "https, http" }))).toBe(
+      "https://joinedhq.com",
+    );
+    expect(publicRequestOrigin(post({}))).toBe("http://app.test");
+  });
+
+  test("accepts the browser's https origin", () => {
+    expect(
+      isSameOriginRequest(
+        proxied({ Origin: "https://joinedhq.com", "Sec-Fetch-Site": SAME_ORIGIN_FETCH_SITE }),
+      ),
+    ).toBe(true);
+    expect(isSameOriginRequest(proxied({ Origin: "https://joinedhq.com:443" }))).toBe(true);
+  });
+
+  test("still rejects other origins", () => {
+    expect(isSameOriginRequest(proxied({ Origin: "https://evil.test" }))).toBe(false);
+    expect(isSameOriginRequest(proxied({ Origin: "http://joinedhq.com" }))).toBe(false);
+    expect(
+      isSameOriginRequest(
+        proxied({ Origin: "https://joinedhq.com", "Sec-Fetch-Site": "cross-site" }),
+      ),
     ).toBe(false);
   });
 });

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/config"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -182,16 +182,4 @@ func (s *Store) Stage(ctx context.Context, rec ImportRecord) error {
 		return fmt.Errorf("stage imported job: %w", err)
 	}
 	return nil
-}
-
-func (s *Store) fetchAthensRecords(ctx context.Context) ([]ImportRecord, error) {
-	listings, err := findAll[tempListing](ctx, s.source(), bson.D{})
-	if err != nil {
-		return nil, fmt.Errorf("read athens jobs: %w", err)
-	}
-	out := make([]ImportRecord, 0, len(listings))
-	for _, listing := range listings {
-		out = append(out, recordFromTemp(listing))
-	}
-	return out, nil
 }

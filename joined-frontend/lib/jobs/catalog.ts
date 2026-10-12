@@ -1,8 +1,29 @@
+import { cache } from "react";
 import { joinedApiUrl } from "@/lib/config";
+import {
+  filterJobs,
+  SEARCH_PAGE_SIZE,
+  SEARCH_REVALIDATE_SECONDS,
+  sortJobs,
+  type JobFilters,
+  type JobSearchPage,
+} from "./search";
+import { searchQuery } from "./search-request";
 import type { Job, PublicCompany } from "./types";
+
+/** Cap on saved-job lookups. Each id is its own request, so this stays a page of work. */
+const SAVED_LOOKUP_LIMIT = 100;
 
 const SEARCH_JOBS_PATH = "/v1/search/jobs";
 const SEARCH_COMPANIES_PATH = "/v1/search/companies";
+
+/** Public job reads are shared across visitors. Authenticated routes stay uncached. */
+const PUBLIC_JOB_CACHE = {
+  cache: "force-cache" as const,
+  next: { revalidate: SEARCH_REVALIDATE_SECONDS },
+};
+
+export type { JobSearchPage };
 
 export type CompanyPage = {
   company: PublicCompany;
@@ -14,13 +35,77 @@ type CatalogResponse = {
   total: number;
 };
 
+type SearchResponse = CatalogResponse &
+  Pick<JobSearchPage, "exact" | "hasMore" | "fits" | "facets" | "suggestions" | "rankingId">;
+
 export async function loadSearchCatalog(): Promise<Job[]> {
-  const response = await fetch(catalogUrl(SEARCH_JOBS_PATH), { cache: "no-store" });
+  const response = await fetch(catalogUrl(SEARCH_JOBS_PATH), PUBLIC_JOB_CACHE);
   if (!response.ok) {
     throw new Error("Could not load jobs");
   }
   const body = (await response.json()) as CatalogResponse;
   return body.jobs ?? [];
+}
+
+/** One page of search results. The list cards omit the long posting fields. */
+export async function loadJobSearch(
+  filters: JobFilters,
+  page: number,
+  token?: string,
+): Promise<JobSearchPage> {
+  const url = catalogUrl(SEARCH_JOBS_PATH);
+  searchQuery(filters, page).forEach((value, key) => {
+    url.searchParams.set(key, value);
+  });
+  // A signed-in search is ranked for that person, so it skips the shared cache.
+  const init: RequestInit = token
+    ? { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
+    : PUBLIC_JOB_CACHE;
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    throw new Error("Could not load jobs");
+  }
+  const body = (await response.json()) as SearchResponse;
+  return {
+    jobs: (body.jobs ?? []).map(searchCard),
+    total: body.total ?? body.jobs?.length ?? 0,
+    page,
+    exact: body.exact,
+    hasMore: body.hasMore,
+    fits: body.fits,
+    facets: body.facets,
+    suggestions: body.suggestions,
+    rankingId: body.rankingId,
+  };
+}
+
+/** Saved jobs are a short id list, so each one is loaded on its own and then filtered. */
+export async function loadSavedJobSearch(
+  ids: string[],
+  filters: JobFilters,
+  page: number,
+): Promise<JobSearchPage> {
+  const loaded = await Promise.all(ids.slice(0, SAVED_LOOKUP_LIMIT).map((id) => loadSearchJob(id)));
+  const jobs = loaded.filter((job): job is Job => job != null);
+  const matching = sortJobs(filterJobs(jobs, { ...filters, list: "all" }), filters.sort);
+  const start = (page - 1) * SEARCH_PAGE_SIZE;
+  return {
+    jobs: matching.slice(start, start + SEARCH_PAGE_SIZE).map(searchCard),
+    total: matching.length,
+    page,
+  };
+}
+
+function searchCard(job: Job): Job {
+  return {
+    ...job,
+    description: undefined,
+    responsibilities: [],
+    requirements: [],
+    benefits: [],
+    screeningQuestions: undefined,
+    companyProfile: undefined,
+  };
 }
 
 export type CompanyPageFilters = {
@@ -39,7 +124,7 @@ export async function loadCompany(
   const location = filters?.location?.trim();
   if (department) url.searchParams.set("department", department);
   if (location) url.searchParams.set("location", location);
-  const response = await fetch(url, { cache: "no-store" });
+  const response = await fetch(url, PUBLIC_JOB_CACHE);
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error("Could not load company");
@@ -47,16 +132,17 @@ export async function loadCompany(
   return (await response.json()) as CompanyPage;
 }
 
-export async function loadSearchJob(id: string): Promise<Job | null> {
-  const response = await fetch(catalogUrl(`${SEARCH_JOBS_PATH}/${encodeURIComponent(id)}`), {
-    cache: "no-store",
-  });
+export const loadSearchJob = cache(async function loadSearchJob(id: string): Promise<Job | null> {
+  const response = await fetch(
+    catalogUrl(`${SEARCH_JOBS_PATH}/${encodeURIComponent(id)}`),
+    PUBLIC_JOB_CACHE,
+  );
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error("Could not load job");
   }
   return (await response.json()) as Job;
-}
+});
 
 function catalogUrl(path: string) {
   return new URL(path, `${joinedApiUrl()}/`);
