@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
 )
 
 const (

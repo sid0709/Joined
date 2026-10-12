@@ -10,9 +10,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/fitscore"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/fitscore"
+	"github.com/sid0709/Joined/backend-core/jobs"
 )
 
 // Sort keys the search API accepts.

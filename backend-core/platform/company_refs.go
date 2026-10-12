@@ -3,9 +3,9 @@ package platform
 import (
 	"context"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/scout"
 )
 
 // companiesInUse lists the companies a recruiter belongs to or a scout submitted a job

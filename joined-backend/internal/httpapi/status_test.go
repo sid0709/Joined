@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/statuspage"
+	"github.com/sid0709/Joined/backend-core/statuspage"
 )
 
 func TestGetStatus(t *testing.T) {

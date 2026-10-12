@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sid0709/OpenSeat/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/llmhttp"
 )
 
 const (

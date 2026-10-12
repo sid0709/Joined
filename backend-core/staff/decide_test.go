@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobs"
 )
 
 func TestNextVerification(t *testing.T) {

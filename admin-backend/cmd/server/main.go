@@ -7,17 +7,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/sid0709/OpenSeat/admin-backend/internal/httpapi"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/deepseek"
-	"github.com/sid0709/OpenSeat/backend-core/google"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
-	"github.com/sid0709/OpenSeat/backend-core/metrics"
-	"github.com/sid0709/OpenSeat/backend-core/monitoring"
-	"github.com/sid0709/OpenSeat/backend-core/openai"
-	"github.com/sid0709/OpenSeat/backend-core/platform"
+	"github.com/sid0709/Joined/admin-backend/internal/httpapi"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/deepseek"
+	"github.com/sid0709/Joined/backend-core/google"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/metrics"
+	"github.com/sid0709/Joined/backend-core/monitoring"
+	"github.com/sid0709/Joined/backend-core/openai"
+	"github.com/sid0709/Joined/backend-core/platform"
 )
 
 const (

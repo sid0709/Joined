@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/aisettings"
-	"github.com/sid0709/OpenSeat/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/aisettings"
+	"github.com/sid0709/Joined/backend-core/config"
 )
 
 type fakeLoader struct {

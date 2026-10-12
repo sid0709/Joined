@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/monitoring"
+	"github.com/sid0709/Joined/backend-core/monitoring"
 )
 
 // PageTTL is how long one built page is served before it is built again. The

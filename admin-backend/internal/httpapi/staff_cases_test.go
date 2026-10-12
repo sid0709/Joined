@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/staff"
 )
 
 func TestStaffCasesRejectMissingToken(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 // hiddenSource is the API's source value for scouted ("hidden") jobs.

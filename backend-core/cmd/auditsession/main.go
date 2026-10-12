@@ -2,7 +2,7 @@
 //
 // Run it from a backend folder so it reads that backend's .env:
 //
-//	go run -C joined-backend github.com/sid0709/OpenSeat/backend-core/cmd/auditsession \
+//	go run -C joined-backend github.com/sid0709/Joined/backend-core/cmd/auditsession \
 //	  -action issue -kind user -user-id <id> -email <email>
 //
 // A user session is only ever for one pinned test account: the id and email must name the same
@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/database"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/database"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 // Suggestion kinds: each names the filter a chip would turn on.

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/fitscore"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/fitscore"
 )
 
 // userCacheEntries bounds the in-process cache of user vectors.

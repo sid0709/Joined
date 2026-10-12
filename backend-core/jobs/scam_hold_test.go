@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobscam"
+	"github.com/sid0709/Joined/backend-core/jobscam"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 

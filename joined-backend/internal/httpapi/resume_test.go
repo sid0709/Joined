@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/resumeread"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/resumeread"
 )
 
 func resumeRequest(t *testing.T, field, name string, data []byte) *http.Request {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/candidate"
 )
 
 // testdata/ltr_model.txt was trained by tools/ranking/train_ltr.py on synthetic

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/monitoring"
+	"github.com/sid0709/Joined/backend-core/monitoring"
 )
 
 var now = time.Date(2026, 10, 11, 15, 0, 0, 0, time.UTC)

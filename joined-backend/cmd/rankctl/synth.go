@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/config"
-	"github.com/sid0709/OpenSeat/backend-core/ranking"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/config"
+	"github.com/sid0709/Joined/backend-core/ranking"
 )
 
 // Synthetic runs use their own collections, so they never touch the real index.

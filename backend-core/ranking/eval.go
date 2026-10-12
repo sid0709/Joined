@@ -9,8 +9,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/jobs"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/jobs"
 )
 
 // Evaluation depth: NDCG over the first page, recall over the candidate depth.

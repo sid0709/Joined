@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 // Reward amounts are assumptions from docs/50-pricing-and-revenue.md#scouts.

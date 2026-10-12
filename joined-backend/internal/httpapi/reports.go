@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/authapi"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/scout"
-	"github.com/sid0709/OpenSeat/backend-core/staff"
+	"github.com/sid0709/Joined/backend-core/authapi"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/scout"
+	"github.com/sid0709/Joined/backend-core/staff"
 )
 
 const jobReportSubject = "job"

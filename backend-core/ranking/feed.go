@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/fitscore"
-	"github.com/sid0709/OpenSeat/backend-core/jobschema"
+	"github.com/sid0709/Joined/backend-core/fitscore"
+	"github.com/sid0709/Joined/backend-core/jobschema"
 )
 
 // Fan-out limits: a new job reaches at most fanOutUsers profiles per vector, and

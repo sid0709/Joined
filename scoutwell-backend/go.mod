@@ -1,9 +1,9 @@
-module github.com/sid0709/OpenSeat/scoutwell-backend
+module github.com/sid0709/Joined/scoutwell-backend
 
 go 1.26.4
 
 require (
-	github.com/sid0709/OpenSeat/backend-core v0.0.0
+	github.com/sid0709/Joined/backend-core v0.0.0
 	go.mongodb.org/mongo-driver/v2 v2.9.1
 )
 
@@ -29,4 +29,4 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 )
 
-replace github.com/sid0709/OpenSeat/backend-core => ../backend-core
+replace github.com/sid0709/Joined/backend-core => ../backend-core

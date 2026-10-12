@@ -589,7 +589,7 @@ func TestBuildMIMEMessage(t *testing.T) {
 	if mediaType != "multipart/alternative" {
 		t.Errorf("got content type %q, want multipart/alternative", mediaType)
 	}
-	if params["boundary"] == "" || params["boundary"] == "boundary-openseat-email" {
+	if params["boundary"] == "" || params["boundary"] == "boundary-joined-email" {
 		t.Errorf("expected random MIME boundary, got %q", params["boundary"])
 	}
 	if !strings.Contains(msg, "text/plain") {

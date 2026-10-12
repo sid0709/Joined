@@ -3,7 +3,7 @@ package candidate
 import (
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/resumeread"
+	"github.com/sid0709/Joined/backend-core/resumeread"
 )
 
 func TestResumePatchFillsProfile(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/auth"
 )
 
 const longDescription = "This captured job description is long enough to pass the minimum summary length for a scout submission."

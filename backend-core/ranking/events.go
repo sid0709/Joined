@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
-	"github.com/sid0709/OpenSeat/backend-core/metrics"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 // Event types.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/employer"
 )
 
 func TestFreeBusyNotReadyIs503(t *testing.T) {

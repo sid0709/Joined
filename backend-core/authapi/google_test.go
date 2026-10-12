@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/auth"
-	"github.com/sid0709/OpenSeat/backend-core/google"
+	"github.com/sid0709/Joined/backend-core/auth"
+	"github.com/sid0709/Joined/backend-core/google"
 )
 
 func TestGoogleRoutesAnswer503UntilConfigured(t *testing.T) {

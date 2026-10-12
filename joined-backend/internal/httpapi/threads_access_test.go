@@ -3,8 +3,8 @@ package httpapi
 import (
 	"testing"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/employer"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/employer"
 )
 
 func TestVisibleCompanyThreadsHidesBlockedAndEmptyJobs(t *testing.T) {

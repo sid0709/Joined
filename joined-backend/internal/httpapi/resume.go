@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sid0709/OpenSeat/backend-core/candidate"
-	"github.com/sid0709/OpenSeat/backend-core/httpkit"
-	"github.com/sid0709/OpenSeat/backend-core/killswitch"
-	"github.com/sid0709/OpenSeat/backend-core/resumeread"
+	"github.com/sid0709/Joined/backend-core/candidate"
+	"github.com/sid0709/Joined/backend-core/httpkit"
+	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/resumeread"
 )
 
 const (

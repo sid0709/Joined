@@ -1,6 +1,6 @@
 package employer
 
-import "github.com/sid0709/OpenSeat/backend-core/candidate"
+import "github.com/sid0709/Joined/backend-core/candidate"
 
 func validatePurchase(cents int) error {
 	if cents < MinPurchaseCents || cents > MaxPurchaseCents {
