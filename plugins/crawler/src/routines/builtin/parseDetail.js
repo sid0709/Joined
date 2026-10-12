@@ -7,7 +7,7 @@ import { resolveApplyUrl } from "./applyUrl.js";
 import {
   APPLY_FORM,
   APPLY_UNAUTH,
-  COMPANY_TITLE,
+  COMPANY_PROFILE_LINK,
   EASY_APPLY_TAG,
   HEADER_SCOPE,
   ICON_EMPLOYEES,
@@ -21,6 +21,7 @@ import {
   JOB_BODY,
   JOB_BODY_ID_PREFIX,
   JOB_POST_ITEM,
+  TITLE_HEADING,
 } from "./constants.js";
 import { documentFromHtml, htmlToPlainText, resolveUrl, textOf } from "./html.js";
 import { parseJobPostingJsonLd, parseJobPostInit } from "./parseInit.js";
@@ -142,9 +143,14 @@ function hasEarlyApplicant(header) {
   return /be an early applicant/i.test(header.textContent || "");
 }
 
-function jobUrlFrom(document, pageUrl) {
-  const canonical = queryOne(document, "link[rel=canonical]")?.getAttribute("href") || "";
-  return firstHttpUrl(pageUrl, canonical) || pageUrl;
+function jobUrlFrom(pageUrl) {
+  return firstHttpUrl(pageUrl) || pageUrl;
+}
+
+function organizationName(org) {
+  if (typeof org === "string") return org.trim();
+  if (org && typeof org.name === "string") return org.name.trim();
+  return "";
 }
 
 function resolveApplyLink(document, job, jobUrl) {
@@ -155,16 +161,17 @@ function resolveApplyLink(document, job, jobUrl) {
   );
 }
 
-function companyNameFrom(header, job, org) {
+function companyNameFromDom(document) {
+  for (const anchor of queryAll(document, COMPANY_PROFILE_LINK)) {
+    const text = textOf(anchor);
+    if (text) return text;
+  }
+  return "";
+}
+
+function companyNameFrom(document, job, org) {
   return (
-    textOf(
-      queryOne(queryOne(header, COMPANY_TITLE), "h2") ||
-        queryOne(header, 'a[href^="/company/"] h2') ||
-        queryOne(header, "h2"),
-    ) ||
-    job.companyName ||
-    org.name ||
-    ""
+    String(job.companyName || "").trim() || organizationName(org) || companyNameFromDom(document)
   );
 }
 
@@ -219,12 +226,12 @@ export function parseDetail(html, pageUrl = "") {
   const header = headerRoot(document);
   const org = posting?.hiringOrganization ?? {};
   const isEasyApply = job.isEasyApply === true;
-  const jobUrl = jobUrlFrom(document, pageUrl);
+  const jobUrl = jobUrlFrom(pageUrl);
   const workplace = iconRowText(header, ICON_WORKPLACE);
   const seniority = iconRowText(header, ICON_SENIORITY);
   const box = companyBox(document);
   const title =
-    textOf(queryOne(header, "h1 span") || queryOne(header, "h1")) ||
+    textOf(queryOne(header, TITLE_HEADING) || queryOne(document, TITLE_HEADING)) ||
     job.title ||
     posting?.title ||
     "";
@@ -235,7 +242,7 @@ export function parseDetail(html, pageUrl = "") {
     title,
     description:
       descriptionFromDocument(document, jobId) || htmlToPlainText(posting?.description || ""),
-    companyName: companyNameFrom(header, job, org),
+    companyName: companyNameFrom(document, job, org),
     location: locationFromJsonLd(posting) || locationFromHeader(header),
     workMode: workModeFrom(workplace),
     employmentType: String(posting?.employmentType || "").trim(),

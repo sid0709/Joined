@@ -50,10 +50,16 @@ export function pageFromListUrl(url) {
   }
 }
 
+/** The jobs list this tab is on, stripped of `?page=`. Falls back to `/jobs`. */
+export function crawlListUrl(currentUrl) {
+  if (isJobsListUrl(currentUrl)) return stripPageParam(currentUrl);
+  return `${originOf(currentUrl) || BUILTIN_ORIGIN}${JOBS_PATH}`;
+}
+
 /**
  * Lists to crawl: the current jobs URL (if any), `/jobs`, and each category
  * from `Builtin.jobBoardInit`. Industry / company-size URL forms are unverified
- * and are left out on purpose.
+ * and are left out on purpose. The visible crawl uses `crawlListUrl` only.
  */
 export function listUrlsFromBoard(board, currentUrl) {
   const origin = originOf(currentUrl) || BUILTIN_ORIGIN;
