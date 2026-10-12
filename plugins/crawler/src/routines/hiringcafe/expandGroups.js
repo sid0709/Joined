@@ -2,7 +2,6 @@ import { queryAll } from "../../routineKit/extract.js";
 
 import {
   JOB_LINK,
-  JOB_PATH,
   MARK_HOVER_MS,
   NAVIGATE_WAIT_MS,
   VIEW_ALL_CONTROL,
@@ -55,25 +54,6 @@ function jobFromLink(extra, host, pageUrl) {
     hrefs: new Map([[extra.id, extra.url]]),
     posted: new Map(),
   });
-  if (!parsed) {
-    return {
-      id: extra.id,
-      title: extra.title,
-      url: extra.url,
-      path: jobPathFromHref(extra.url) || `${JOB_PATH}${extra.id}`,
-      cardHref: host.cardHref || extra.url,
-      collapseKey: host.collapseKey,
-      companyName: host.companyName,
-      applyUrl: "",
-      postedRaw: host.postedRaw || "",
-      cardJobId: host.cardJobId,
-      cardDots: host.cardDots,
-      groupIds: [],
-      groupIndex: 1,
-      groupSize: 1,
-      hit,
-    };
-  }
   parsed.cardHref = parsed.cardHref || host.cardHref;
   parsed.cardJobId = parsed.cardJobId || host.cardJobId;
   parsed.cardDots = host.cardDots || parsed.cardDots;
@@ -85,13 +65,26 @@ function jobFromLink(extra, host, pageUrl) {
 function mergeLinksIntoGroup(parsed, extras, collapseKey, pageUrl) {
   if (!extras.length) return parsed;
   const jobs = [...parsed.jobs];
-  const seen = new Set(jobs.map((job) => job.id));
-  const host = jobs.find((job) => job.collapseKey === collapseKey) || jobs[0];
+  const seen = new Set();
+  for (const job of jobs) seen.add(job.id);
+  let host = jobs[0];
+  for (const job of jobs) {
+    if (job.collapseKey === collapseKey) {
+      host = job;
+      break;
+    }
+  }
   if (!host) return parsed;
-  const groups = parsed.groups.map((group) =>
-    group.collapseKey === collapseKey ? { ...group, hits: [...group.hits] } : group,
-  );
-  const group = groups.find((item) => item.collapseKey === collapseKey);
+  const groups = [];
+  let group;
+  for (const item of parsed.groups) {
+    if (item.collapseKey === collapseKey) {
+      group = { ...item, hits: [...item.hits] };
+      groups.push(group);
+    } else {
+      groups.push(item);
+    }
+  }
   let added = false;
   for (const extra of extras) {
     if (!extra?.id || seen.has(extra.id)) continue;
@@ -103,7 +96,9 @@ function mergeLinksIntoGroup(parsed, extras, collapseKey, pageUrl) {
   }
   if (!added) return parsed;
   const cards = parsed.cardsMeta ?? { hrefs: new Map(), posted: new Map(), dots: new Map() };
-  attachGroups(jobs, groups.length ? groups : groupHits(jobs.map((job) => job.hit)), cards);
+  const hits = [];
+  for (const job of jobs) hits.push(job.hit);
+  attachGroups(jobs, groups.length ? groups : groupHits(hits), cards);
   return { ...parsed, jobs, groups, shortfalls: groupShortfalls(jobs, groups) };
 }
 
@@ -128,29 +123,45 @@ export async function expandShortGroups({
   }
   let next = parsed;
   for (const shortfall of parsed.shortfalls) {
-    const host = next.jobs.find((job) => job.collapseKey === shortfall.collapseKey);
+    let host;
+    for (const job of next.jobs) {
+      if (job.collapseKey === shortfall.collapseKey) {
+        host = job;
+        break;
+      }
+    }
     const selector = host ? jobCardSelector(host) : "";
     if (!selector) continue;
     const extras = [];
     for (let index = 1; index <= shortfall.dots; index += 1) {
-      await call("click", {
-        selector: `${selector} ${carouselShowSelector(index)}`,
-      }).catch(() => {});
+      try {
+        await call("click", {
+          selector: `${selector} ${carouselShowSelector(index)}`,
+        });
+      } catch {
+        /* carousel control may be absent */
+      }
       await pause(rest, skipDelays, MARK_HOVER_MS);
       extras.push(...jobLinksFrom((await readPage()).html, pageUrl, selector));
     }
     const before = await readPage();
-    await call("click", {
-      selector: `${selector} ${VIEW_ALL_CONTROL}`,
-      contains: VIEW_ALL_TEXT,
-      exact: true,
-    }).catch(() => {});
+    try {
+      await call("click", {
+        selector: `${selector} ${VIEW_ALL_CONTROL}`,
+        contains: VIEW_ALL_TEXT,
+        exact: true,
+      });
+    } catch {
+      /* View all may already be open */
+    }
     await pause(rest, skipDelays, MARK_HOVER_MS);
     let after = await readPage();
     if (after.url && pageUrl && !sameUrl(after.url, pageUrl)) {
-      await call("navigate", { url: pageUrl, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS).catch(
-        () => {},
-      );
+      try {
+        await call("navigate", { url: pageUrl, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
+      } catch {
+        /* tab may already be on the list */
+      }
       after = await readPage();
     }
     extras.push(...viewAllJobLinks(after.html, pageUrl));

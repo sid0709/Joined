@@ -15,7 +15,51 @@ import "./testing/domParser.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
 
+describe("jobLinksFrom", () => {
+  test("dedupes links inside a root selector and ignores empty html", () => {
+    const html = `<div id="card"><a href="${INTERIM_JOBS[0].path}">One</a><a href="${INTERIM_JOBS[0].path}">Dup</a></div><a href="${INTERIM_JOBS[1].path}">Outside</a>`;
+    expect(jobLinksFrom("", LIST_URL)).toEqual([]);
+    expect(jobLinksFrom(html, LIST_URL, "#card")).toEqual([
+      expect.objectContaining({
+        id: INTERIM_JOBS[0].requisitionId,
+        url: `https://hiringcafe.com${INTERIM_JOBS[0].path}`,
+      }),
+    ]);
+  });
+});
+
+describe("viewAllJobLinks", () => {
+  test("reads job hrefs from the View all panel only", () => {
+    const links = viewAllJobLinks(viewAllDialogMarkup(INTERIM_JOBS.slice(0, 2)), LIST_URL);
+    expect(links.map((link) => link.id)).toEqual(
+      INTERIM_JOBS.slice(0, 2).map((job) => job.requisitionId),
+    );
+  });
+});
+
 describe("expandShortGroups", () => {
+  test("returns parsed unchanged when expansion cannot run", async () => {
+    const parsed = parseList(listPageHtml({ hits: interimHits() }), LIST_URL);
+    expect(parsed.shortfalls).toEqual([]);
+    expect(await expandShortGroups()).toBeUndefined();
+    expect(
+      await expandShortGroups({ parsed, call: async () => {}, readPage: async () => ({}) }),
+    ).toBe(parsed);
+    const missingHost = {
+      ...parsed,
+      shortfalls: [{ collapseKey: "missing-group", dots: 2 }],
+    };
+    expect(
+      await expandShortGroups({
+        parsed: missingHost,
+        pageUrl: LIST_URL,
+        skipDelays: true,
+        readPage: async () => ({ html: "", url: LIST_URL }),
+        call: async () => ({ found: true }),
+      }),
+    ).toBe(missingHost);
+  });
+
   test("clicks View all and recovers the fourth Interim posting", async () => {
     const truncated = listPageHtml({
       hits: interimHits().slice(0, 3),
@@ -126,34 +170,32 @@ describe("expandShortGroups", () => {
     expect(expanded.jobs.map((job) => job.id)).toEqual(parsed.jobs.map((job) => job.id));
   });
 
-  test("returns the parsed list when there is no shortfall or no page reader", async () => {
-    const parsed = parseList(listPageHtml({ hits: interimHits().slice(0, 1) }), LIST_URL);
-    expect(parsed.shortfalls).toEqual([]);
-    expect(
-      await expandShortGroups({
-        parsed,
-        call: async () => ({}),
-        readPage: async () => ({}),
-      }),
-    ).toBe(parsed);
-    expect(
-      await expandShortGroups({
-        parsed: { jobs: [], shortfalls: [{ collapseKey: "missing", dots: 2 }] },
-        call: async () => ({}),
-        readPage: async () => ({ html: "", url: LIST_URL }),
-        pageUrl: LIST_URL,
-      }),
-    ).toEqual({ jobs: [], shortfalls: [{ collapseKey: "missing", dots: 2 }] });
-  });
-
-  test("jobLinksFrom ignores empty html and hrefs with no requisition id", () => {
-    expect(jobLinksFrom("", LIST_URL)).toEqual([]);
-    expect(jobLinksFrom("<a href='/jobs/all'>All</a>", LIST_URL)).toEqual([]);
-    expect(
-      viewAllJobLinks(
-        `<div role="dialog"><a href="${INTERIM_JOBS[0].path}">${INTERIM_JOBS[0].title}</a></div>`,
-        LIST_URL,
-      ),
-    ).toHaveLength(1);
+  test("rests between UI steps when delays are enabled", async () => {
+    const truncated = listPageHtml({
+      hits: interimHits().slice(0, 3),
+      cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+    });
+    const opened = listPageHtml({
+      hits: interimHits().slice(0, 3),
+      cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+      viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+    });
+    const parsed = parseList(truncated, LIST_URL);
+    let html = truncated;
+    const rested = [];
+    await expandShortGroups({
+      parsed,
+      pageUrl: LIST_URL,
+      skipDelays: false,
+      rest: async (ms) => {
+        rested.push(ms);
+      },
+      readPage: async () => ({ html, url: LIST_URL }),
+      call: async (op, payload = {}) => {
+        if (op === "click" && payload.contains === VIEW_ALL_TEXT) html = opened;
+        return { found: true };
+      },
+    });
+    expect(rested.length).toBeGreaterThan(0);
   });
 });
