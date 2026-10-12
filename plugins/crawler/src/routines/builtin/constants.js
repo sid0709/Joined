@@ -41,7 +41,6 @@ export const APPLY_FORM = 'div[x-data="applyForm"]';
 export const APPLY_UNAUTH = 'a[data-builtin-track-click-event="job_apply_unauth"]';
 export const APPLY_REDIRECT_PARAM = "handler";
 export const APPLY_REDIRECT_VALUE = "ApplyRedirect";
-export const SAVED_TAG = 'span[x-show="showSavedTag === true"]';
 export const JOB_BODY_ID_PREFIX = "job-post-body-";
 export const JOB_BODY = '[id^="job-post-body-"]';
 
@@ -64,6 +63,11 @@ export const NAVIGATE_WAIT_MS = 15_000;
 export const HEART_CONFIRM_MS = 4_000;
 export const HEART_POLL_MS = 200;
 export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
+export const CARD_DECISION_OPENED = "opened";
+export const CARD_SKIP_HANDLED = "already handled";
+export const CARD_SKIP_HEART_SAVED = "list-card heart already saved";
+export const CARD_SKIP_NO_URL = "no job URL";
+export const CARD_SKIP_DETAIL_SAVED = "job page already saved";
 export const RETRY_PAUSE_MS = 1_000;
 export const STUCK_LOGIN_STREAK = 3;
 export const STUCK_PAGE_FAILURES = 3;
@@ -74,8 +78,13 @@ export function stuckPageMessage(count = STUCK_PAGE_FAILURES) {
 }
 
 export const EASY_APPLY_TAG = "Easy Apply";
-export const SAVED_TAG_TEXT = "Saved";
 export const LOGIN_PATH_PREFIX = "/auth/login";
+
+/** Debug activity line for every list-card decision. */
+export function cardDecisionLabel(cardId, decision) {
+  if (decision === CARD_DECISION_OPENED) return `Card ${cardId} opened`;
+  return `Card ${cardId} skipped: ${decision}`;
+}
 
 export function jitterMs(range, random = Math.random) {
   const span = range.max - range.min;

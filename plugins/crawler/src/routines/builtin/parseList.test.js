@@ -41,12 +41,17 @@ describe("parseList", () => {
     expect(parsed.isLastPage).toBe(true);
   });
 
-  test("sees a Saved tag only after Alpine has shown it", () => {
-    const hidden = parseList(loadFixture("list.html"), LIST_URL);
-    expect(hidden.cards.every((card) => card.hasSavedTag === false)).toBe(true);
-    const saved = parseList(loadFixture("list-saved.html"), LIST_URL);
-    expect(saved.cards[0].id).toBe("22222222");
-    expect(saved.cards[0].hasSavedTag).toBe(true);
+  test("does not treat a hidden or visible Saved span as saved", () => {
+    const live = parseList(loadFixture("list.html"), LIST_URL);
+    expect(live.cards.map((card) => card.id)).toEqual(["9256204", "11111111"]);
+    expect(live.cards.every((card) => card.hasSavedTag === undefined)).toBe(true);
+    expect(loadFixture("list.html")).toContain('style="display: none;"');
+    expect(loadFixture("list.html")).not.toMatch(/x-show="showSavedTag === true"[^>]*x-cloak/);
+
+    const visible = parseList(loadFixture("list-saved.html"), LIST_URL);
+    expect(visible.cards[0].id).toBe("22222222");
+    expect(visible.cards[0].hasSavedTag).toBeUndefined();
+    expect(visible.cards[0].url).toContain("/22222222");
   });
 
   test("builds the current-tab list URL and page cursor", () => {

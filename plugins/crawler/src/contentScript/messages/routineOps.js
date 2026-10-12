@@ -58,6 +58,8 @@ const OPS = {
     return extractField(document, field);
   },
   shadow: ({ host, inner, action = "query" }) => {
+    // Isolated-world content scripts can read an open shadowRoot. A closed root,
+    // or a custom element that has not upgraded yet (`my-item`), looks unread.
     const hostEl = queryAll(document, host)[0];
     if (!hostEl) return { found: false, open: false, classes: "", prefix: "" };
     const root = hostEl.shadowRoot;

@@ -8,8 +8,6 @@ import {
   JOB_CARD_TITLE,
   JOBS_PATH,
   NEXT_PAGE,
-  SAVED_TAG,
-  SAVED_TAG_TEXT,
 } from "./constants.js";
 import { documentFromHtml, resolveUrl, textOf } from "./html.js";
 import { parseJobBoardInit } from "./parseInit.js";
@@ -27,14 +25,6 @@ export function jobIdFromCard(card, alias = "") {
   return String(alias).match(JOB_ID_FROM_ALIAS)?.[1] || "";
 }
 
-/** True when Alpine has revealed the Saved tag (SSR HTML keeps both spans x-cloak). */
-export function cardHasSavedTag(card) {
-  const saved = queryOne(card, SAVED_TAG);
-  if (!saved) return false;
-  if (saved.hasAttribute("x-cloak")) return false;
-  return saved.textContent?.toLowerCase().includes(SAVED_TAG_TEXT.toLowerCase()) ?? false;
-}
-
 export function parseJobCard(card, pageUrl) {
   const titleLink = queryOne(card, JOB_CARD_TITLE);
   const alias = titleLink?.getAttribute("data-alias") || titleLink?.getAttribute("href") || "";
@@ -47,7 +37,6 @@ export function parseJobCard(card, pageUrl) {
     url: alias ? resolveUrl(alias, pageUrl) : "",
     companyName: textOf(queryOne(company, "span") || company),
     logo: queryOne(card, COMPANY_LOGO)?.getAttribute("src") || "",
-    hasSavedTag: cardHasSavedTag(card),
   };
 }
 

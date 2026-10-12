@@ -6,12 +6,16 @@ import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../ro
 
 import "./builtin/testing/domParser.js";
 import {
+  CARD_DECISION_OPENED,
+  CARD_SKIP_HANDLED,
+  CARD_SKIP_HEART_SAVED,
   HANDLED_STORAGE_KEY,
   HEART_UNREAD_LABEL,
   JOB_CARD_TITLE,
   JOB_PAGE_SAVE,
   STUCK_LOGIN_MESSAGE,
   STUCK_PAGE_FAILURES,
+  cardDecisionLabel,
   stuckPageMessage,
 } from "./builtin/constants.js";
 import { jobSaveSelector } from "./builtin/cssEscape.js";
@@ -27,6 +31,8 @@ const JOB_A =
   "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/9256204";
 const JOB_B =
   "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/11111111";
+const JOB_SAVED =
+  "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/22222222";
 
 const routine = { ...BuiltInRoutine, options: { ...BuiltInRoutine.options, fieldPauseMs: 0 } };
 
@@ -207,6 +213,44 @@ describe("BuiltInRoutine", () => {
     expect(failing.shadows.some((op) => op.action === "click")).toBe(false);
   });
 
+  test("opens jobs when live Alpine hides Saved spans with display:none", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list.html"),
+      details: {
+        [JOB_A]: loadFixture("detail-external.html"),
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    const activities = [];
+    const records = await collectJobs(store, page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(page.navigates).toContain(JOB_A);
+    expect(page.navigates).toContain(JOB_B);
+    expect(records.length).toBeGreaterThan(0);
+    expect(
+      activities.some(
+        (activity) => activity.label === cardDecisionLabel("9256204", CARD_DECISION_OPENED),
+      ),
+    ).toBe(true);
+    expect(
+      activities.some(
+        (activity) => activity.label === cardDecisionLabel("11111111", CARD_DECISION_OPENED),
+      ),
+    ).toBe(true);
+  });
+
+  test("does not skip a card because a Saved span is in the HTML", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list-saved.html"),
+      details: { [JOB_SAVED]: loadFixture("detail-easyapply.html") },
+    });
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    expect(page.navigates).toContain(JOB_SAVED);
+    expect(records).toHaveLength(1);
+  });
+
   test("does not click the heart when the shadow state cannot be read", async () => {
     const store = createBuiltinStore(memoryStorage());
     const page = builtinTab({
@@ -239,17 +283,35 @@ describe("BuiltInRoutine", () => {
         [JOB_B]: loadFixture("detail-easyapply.html"),
       },
     });
-    const records = await collectJobs(store, page.exec);
+    const activities = [];
+    const records = await collectJobs(store, page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
     expect(page.navigates).toContain(JOB_B);
     expect(page.navigates).not.toContain(JOB_A);
     expect(records.some((record) => record.badges?.includes("Easy Apply"))).toBe(true);
 
+    const savedActivities = [];
     const savedPage = builtinTab({
       listHtml: loadFixture("list-saved.html"),
       hearts: { 22222222: true },
     });
-    expect(await collectJobs(createBuiltinStore(memoryStorage()), savedPage.exec)).toEqual([]);
+    expect(
+      await collectJobs(createBuiltinStore(memoryStorage()), savedPage.exec, {
+        onActivity: (activity) => savedActivities.push(activity),
+      }),
+    ).toEqual([]);
     expect(savedPage.navigates.some((url) => /\/job\//.test(url))).toBe(false);
+    expect(
+      savedActivities.some(
+        (activity) => activity.label === cardDecisionLabel("22222222", CARD_SKIP_HEART_SAVED),
+      ),
+    ).toBe(true);
+    expect(
+      activities.some(
+        (activity) => activity.label === cardDecisionLabel("9256204", CARD_SKIP_HANDLED),
+      ),
+    ).toBe(true);
 
     const empty = builtinTab({ listHtml: loadFixture("list-empty.html") });
     expect(await collectJobs(createBuiltinStore(memoryStorage()), empty.exec)).toEqual([]);
