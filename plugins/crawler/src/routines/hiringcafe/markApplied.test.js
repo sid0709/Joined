@@ -70,6 +70,7 @@ function listWith(overlay, extras = {}) {
 function markHarness({
   htmlAfterHover,
   htmlAfterClick,
+  hoverClickThrows = false,
   fetchHits = [
     { url: `https://hiringcafe.com${UPDATE_STAGE_PATH}`, status: 200, body: UPDATE_STAGE_OK },
   ],
@@ -89,6 +90,9 @@ function markHarness({
       if (!canClick) return { found: false, hovered: op === "hoverClick" };
       marked = true;
       html = htmlAfterClick ?? listWith(overlayMarkup({ applied: true }), { toast: true });
+      if (op === "hoverClick" && hoverClickThrows) {
+        throw new Error("hoverClick message failed after click");
+      }
       return { found: true, hovered: true };
     }
     if (op === "click") return { found: true };
@@ -184,6 +188,21 @@ describe("markAppliedOnCard", () => {
     ).toBe(true);
     expect(harness.ops.some((op) => op.op === "watchFetch")).toBe(true);
     expect(result.log).toContain("marked applied");
+  });
+
+  test("does not click again when hoverClick throws after the overlay click", async () => {
+    const harness = markHarness({ hoverClickThrows: true });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result.marked).toBe(true);
+    expect(harness.ops.filter((op) => op.op === "hoverClick")).toHaveLength(1);
+    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
+      false,
+    );
   });
 
   test("does not click when the overlay already shows Applied ✓", async () => {

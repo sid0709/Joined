@@ -161,15 +161,20 @@ async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
 async function clickMarkOnCard({ job, call, skipDelays }) {
   const selector = exactCardSelector(job);
   const wait = skipDelays ? 0 : MARK_APPLIED_WAIT_MS;
-  const hovered = await call("hoverClick", {
-    selector,
-    clickSelector: MARK_APPLIED,
-    contains: MARK_APPLIED_TEXT,
-    exact: true,
-    offsets: MARK_HOVER_OFFSETS,
-    wait,
-  }).catch(() => ({ found: false }));
-  if (hovered?.found) return hovered;
+  try {
+    const hovered = await call("hoverClick", {
+      selector,
+      clickSelector: MARK_APPLIED,
+      contains: MARK_APPLIED_TEXT,
+      exact: true,
+      offsets: MARK_HOVER_OFFSETS,
+      wait,
+    });
+    if (hovered?.found) return hovered;
+  } catch {
+    // The overlay click may have already POSTed; do not click again.
+    return { found: true, hovered: true };
+  }
   await hoverCard(call, selector);
   return call("click", {
     selector: `${selector} ${MARK_APPLIED}`,

@@ -144,7 +144,10 @@ function hiringCafeTab({
       const page = htmlOverride == null ? pageFor(url) : { html: htmlOverride, url };
       let html = /\/classic/.test(url) && overlay ? listWithOverlay() : page.html;
       if (/\/classic/.test(url) && viewAllOpen && viewAllJobs) {
-        html += viewAllDialogMarkup(viewAllJobs);
+        const dialog = viewAllDialogMarkup(viewAllJobs);
+        html = html.includes('class="hc-card-grid"><div>')
+          ? html.replace('class="hc-card-grid"><div>', `class="hc-card-grid"><div>${dialog}`)
+          : `${html}${dialog}`;
       }
       return { html, url, status };
     }
@@ -235,7 +238,12 @@ async function collectJobs(store, exec, extra = {}) {
         exec,
         store,
         skipDelays: true,
-        onRecord: onRecord ?? ((record) => records.push(record)),
+        onRecord:
+          onRecord ??
+          ((record) => {
+            records.push(record);
+            return true;
+          }),
         ...hooks,
       });
     }
@@ -516,10 +524,43 @@ describe("HiringCafeRoutine", () => {
   test("does not mark handled or Applied when ingest rejects", async () => {
     const store = createHiringCafeStore(memoryStorage());
     const page = hiringCafeTab();
-    const records = await collectJobs(store, page.exec, { onRecord: () => false });
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      onRecord: () => false,
+      onNotice: (message) => notices.push(message),
+    });
     expect(records).toEqual([]);
     expect([...(await store.loadHandledIds())]).toEqual([]);
     expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+    expect(notices.some((message) => /ingest rejected/i.test(message))).toBe(true);
+  });
+
+  test("does not Mark Applied when ingest accept times out", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    const page = hiringCafeTab();
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      onRecord: () => null,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(records).toEqual([]);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
+    expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+    expect(notices.some((message) => /ingest timed out/i.test(message))).toBe(true);
+  });
+
+  test("does not Mark Applied when ingest is not accepted", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    const page = hiringCafeTab();
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      onRecord: () => undefined,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(records).toEqual([]);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
+    expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+    expect(notices.some((message) => /ingest not accepted/i.test(message))).toBe(true);
   });
 
   test("skips enqueue when metadata is over the client size cap", async () => {
