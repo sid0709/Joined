@@ -34,6 +34,9 @@ const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
 function cursorLabel(pace) {
   if (!pace?.page) return "";
+  if (pace.jobIndex && pace.jobsOnPage) {
+    return `Page ${pace.page} · job ${pace.jobIndex} of ${pace.jobsOnPage}`;
+  }
   if (pace.cardIndex && pace.cardsOnPage) {
     return `Page ${pace.page} · card ${pace.cardIndex} of ${pace.cardsOnPage}`;
   }

@@ -44,6 +44,9 @@ export default function TargetCard({
   onChooseRoutine,
   isRunning,
   onBrowseRoutines,
+  resumeLabel,
+  resetLabel,
+  onResetCursor,
 }) {
   if (!tab) {
     return (
@@ -108,6 +111,17 @@ export default function TargetCard({
             <Button variant="ghost" size="sm" label="See routines" onClick={onBrowseRoutines} />
           </HStack>
         )}
+
+        {!isRunning && resumeLabel ? (
+          <HStack align="center" justify="between" gap={2} wrap="wrap">
+            <Text type="supporting" color="secondary">
+              {resumeLabel}
+            </Text>
+            {onResetCursor ? (
+              <Button variant="ghost" size="sm" label={resetLabel} onClick={onResetCursor} />
+            ) : null}
+          </HStack>
+        ) : null}
 
         {!isRunning && matches.length > 1 ? (
           <Selector
