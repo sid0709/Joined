@@ -21,6 +21,16 @@ export function incrementScrapeRunStats(stats, outcome) {
   return { ...stats, [outcome]: stats[outcome] + 1 };
 }
 
+/** Keep the higher count so a stale scrapeQueue summary cannot rewind this run. */
+export function mergeScrapeRunStats(current, incoming) {
+  const base = createScrapeRunStats();
+  const next = { ...base, ...current };
+  for (const key of Object.keys(base)) {
+    next[key] = Math.max(Number(current?.[key]) || 0, Number(incoming?.[key]) || 0);
+  }
+  return next;
+}
+
 export function getSkippedScrapeCount(stats) {
   return stats.duplicate + stats.validation + stats.blocked;
 }

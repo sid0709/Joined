@@ -13,7 +13,7 @@ import {
 
 import { formatElapsedTime } from "../../api/scrapeRunStats";
 import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
-import { SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
+import { heartedCountLabel, SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
 
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";
@@ -53,14 +53,22 @@ function PaceStats({ pace, routine }) {
   const showConcurrency = hasRunStat(routine, RUN_STAT.CONCURRENCY);
   const showCursor = hasRunStat(routine, RUN_STAT.CURSOR);
   const showBlocks = hasRunStat(routine, RUN_STAT.BLOCKS);
+  const showHearts = hasRunStat(routine, RUN_STAT.HEARTS);
   const cursor = cursorLabel(pace);
   const reasons = blockReasons(pace);
-  if (!showRate && !showConcurrency && !showCursor && !showBlocks) return null;
-  if (!showRate && !showConcurrency && !cursor && !pace.blockCount) return null;
+  if (!showRate && !showConcurrency && !showCursor && !showBlocks && !showHearts) return null;
+  if (!showRate && !showConcurrency && !cursor && !pace.blockCount && !showHearts) return null;
   return (
     <HStack gap={2} wrap="wrap">
       {showCursor && cursor ? (
         <Badge variant="neutral" label={cursor} description="List cursor" />
+      ) : null}
+      {showHearts ? (
+        <Badge
+          variant="neutral"
+          label={heartedCountLabel(pace.hearted ?? 0, pace.notHearted ?? 0)}
+          description="List-card hearts this run"
+        />
       ) : null}
       {showRate ? (
         <Badge
@@ -126,7 +134,8 @@ export default function LiveRunCard({ run, routine }) {
 
         {showPace ||
         hasRunStat(routine, RUN_STAT.CURSOR) ||
-        hasRunStat(routine, RUN_STAT.BLOCKS) ? (
+        hasRunStat(routine, RUN_STAT.BLOCKS) ||
+        hasRunStat(routine, RUN_STAT.HEARTS) ? (
           <PaceStats pace={run.pace} routine={routine} />
         ) : null}
 

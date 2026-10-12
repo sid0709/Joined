@@ -1,8 +1,18 @@
 import { CLOAK_ATTR, DISPLAY_NONE_RE, VISIBILITY_HIDDEN_RE } from "./constants.js";
 
-function computedIsHidden(node) {
+function computedStyleOf(node) {
   const view = node.ownerDocument?.defaultView;
-  const computed = view?.getComputedStyle?.(node);
+  const getStyle = view?.getComputedStyle ?? globalThis.getComputedStyle;
+  if (typeof getStyle !== "function") return null;
+  try {
+    return getStyle.call(view ?? globalThis, node);
+  } catch {
+    return null;
+  }
+}
+
+function computedIsHidden(node) {
+  const computed = computedStyleOf(node);
   if (computed?.display === "none" || computed?.visibility === "hidden") return true;
   if (computed?.position === "fixed" || computed?.position === "sticky") return false;
   const tag = String(node.tagName || "").toUpperCase();

@@ -3,6 +3,7 @@ import { extractField, queryAll, waitForMatches } from "../../routineKit/extract
 import { assertFetchUrl, hostMatches } from "../../routineKit/match.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { clickLikeHuman } from "../actions/dom";
+import { scrollElementIntoView } from "../actions/scroll";
 import { clearHighlights, highlightElements } from "../highlighter";
 
 // The page side of the routine runner (routineKit/runner.js): each op does one thing to
@@ -12,6 +13,7 @@ const inFlightFetches = new Map();
 
 const OPS = {
   count: ({ selector }) => ({ count: queryAll(document, selector).length }),
+  scroll: (payload) => scrollElementIntoView(document, payload),
   highlight: ({ selector }) => highlightElements(queryAll(document, selector)),
   clear: () => {
     clearHighlights();

@@ -72,6 +72,24 @@ export function recordFieldHit(hits, path, found) {
 /** Percent of reads that found the field, or null before its first read. */
 export const hitRate = (hit) => (hit?.reads ? Math.round((hit.found / hit.reads) * 100) : null);
 
+/** Run-wide field header: prefer accumulated hits over the last card's states. */
+export function fieldRunSummary(fields, fieldHits, fieldStates) {
+  const keys = (fields ?? []).map((field) => field.key);
+  const withHits = keys.filter((key) => fieldHits?.[key]?.reads);
+  if (withHits.length) {
+    return {
+      found: withHits.filter((key) => fieldHits[key].found > 0).length,
+      invalid: withHits.filter((key) => fieldHits[key].found === 0).length,
+      total: keys.length,
+    };
+  }
+  return {
+    found: keys.filter((key) => fieldStates?.[key] === "ok").length,
+    invalid: keys.filter((key) => fieldStates?.[key] === "invalid").length,
+    total: keys.length,
+  };
+}
+
 export const addRecentJob = (jobs, job, limit = RECENT_JOBS_LIMIT) =>
   [job, ...jobs.filter((existing) => existing.key !== job.key)].slice(0, limit);
 

@@ -46,7 +46,7 @@ export function crawlListUrl(currentUrl) {
 }
 
 export function emptyCursor(lists = []) {
-  return { listIndex: 0, page: 1, lastJobId: "", lastPageIds: "", lists };
+  return { listIndex: 0, page: 1, lastJobId: "", lastPageIds: "", pageProcessed: 0, lists };
 }
 
 export function cardIdKey(cards) {
@@ -57,10 +57,23 @@ export function cardIdKey(cards) {
 
 export function advanceCursor(cursor, { nextPage, nextList } = {}) {
   if (nextPage) {
-    return { ...cursor, page: cursor.page + 1, lastJobId: "" };
+    return { ...cursor, page: cursor.page + 1, lastJobId: "", pageProcessed: 0 };
   }
   if (nextList) {
-    return { ...cursor, listIndex: cursor.listIndex + 1, page: 1, lastJobId: "", lastPageIds: "" };
+    return {
+      ...cursor,
+      listIndex: cursor.listIndex + 1,
+      page: 1,
+      lastJobId: "",
+      lastPageIds: "",
+      pageProcessed: 0,
+    };
   }
   return cursor;
+}
+
+/** Advance only after a card was enqueued or verified saved, or the page is already handled. */
+export function canAdvanceBuiltinPage({ cardCount = 0, pageProcessed = 0, allHandled = false }) {
+  if (cardCount === 0) return false;
+  return pageProcessed > 0 || allHandled === true;
 }

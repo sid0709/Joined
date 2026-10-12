@@ -57,7 +57,11 @@ export const ICON_SALARY = ".fa-sack-dollar";
 export const ICON_POSTED = ".fa-clock";
 
 export const HANDLED_STORAGE_KEY = "builtinHandledJobIdsV1";
-export const CURSOR_STORAGE_KEY = "builtinCrawlCursorV1";
+/** #169 wrote page cursors here while only paginating. V2 discards that key. */
+export const CURSOR_STORAGE_KEY_V1 = "builtinCrawlCursorV1";
+export const CURSOR_STORAGE_KEY = "builtinCrawlCursorV2";
+/** Cursors written by 2.4.0 or older are ignored. */
+export const CURSOR_MIN_WRITTEN_BY = "2.4.1";
 export const HANDLED_MAX_IDS = 50_000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const HANDLED_MAX_AGE_DAYS = 90;
@@ -69,6 +73,7 @@ export const NAVIGATE_WAIT_MS = 15_000;
 export const DETAIL_READY_MS = 10_000;
 export const DETAIL_READY_POLL_MS = 200;
 export const HEART_CONFIRM_MS = 5_000;
+export const HEART_READY_MS = 5_000;
 export const HEART_POLL_MS = 200;
 export const HEART_TARGET_WAIT_MS = 1_500;
 export const HEART_CLICK_HEART = "heart";
@@ -79,9 +84,51 @@ export const HEART_CLICK_TARGETS = Object.freeze([
   HEART_CLICK_SVG,
   HEART_CLICK_HOST,
 ]);
+export const HEART_SAVED_LOG = "heart saved";
+export const HEART_RETRY_LOG = "heart retry";
+export const HEART_FAIL_UNREAD = "unread";
+export const HEART_FAIL_NOT_SAVED = "not saved";
+export const HEART_SAVE_LABEL = "Saving job on Built In";
 export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
 export const HEART_NOT_SAVED_LABEL = "heart not saved";
+export const SCROLL_BLOCK = "center";
+export const SCROLL_INLINE = "nearest";
 export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 cards";
+export const PAGE_UNPROCESSED_MESSAGE =
+  "This Built In page had no processed cards. Cursor stayed put.";
+export const START_FROM_PAGE_1_LABEL = "Start from page 1";
+export const CLEAR_HANDLED_LABEL = "Clear saved job IDs";
+export const CLEAR_HANDLED_CONFIRM =
+  "Clear locally remembered Built In job IDs? The next run will reopen jobs already scraped.";
+export const RESUME_PAGE_1_LABEL = "Start at page 1";
+
+export function emptyPageLabel(page) {
+  return `Page ${page} has 0 cards`;
+}
+
+export function heartSavedLog(jobId) {
+  return `${HEART_SAVED_LOG} ${jobId}`;
+}
+
+export function heartRetryLog(jobId) {
+  return `${HEART_RETRY_LOG} ${jobId}`;
+}
+
+export function heartFailedLog(reason, jobId) {
+  const suffix = jobId ? ` ${jobId}` : "";
+  return `heart failed ${reason}${suffix}`;
+}
+
+export function resumeCursorLabel(cursor) {
+  if (!cursor?.page) return RESUME_PAGE_1_LABEL;
+  if (cursor.lastJobId) return `Resume at page ${cursor.page} · card ${cursor.lastJobId}`;
+  if (cursor.page <= 1) return RESUME_PAGE_1_LABEL;
+  return `Resume at page ${cursor.page}`;
+}
+
+export function heartedCountLabel(hearted = 0, notHearted = 0) {
+  return `${hearted} hearted · ${notHearted} not hearted`;
+}
 export const INVALID_STREAK = 5;
 export const INVALID_STREAK_MESSAGE =
   "Built In returned 5 incomplete jobs in a row. Crawl stopped.";

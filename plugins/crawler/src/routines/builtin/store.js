@@ -1,10 +1,14 @@
 /* global chrome */
+import packageJson from "../../../package.json";
+
 import {
   CURSOR_STORAGE_KEY,
+  CURSOR_STORAGE_KEY_V1,
   HANDLED_MAX_AGE_MS,
   HANDLED_MAX_IDS,
   HANDLED_STORAGE_KEY,
 } from "./constants.js";
+import { isUsableCursorVersion } from "./cursorVersion.js";
 
 /** Drop handled IDs older than 90 days, then keep the newest HANDLED_MAX_IDS. */
 export function pruneHandledRecord(raw, now = Date.now()) {
@@ -76,6 +80,24 @@ export function memoryStorage(initial = {}) {
   };
 }
 
+function normalizeCursor(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  if (!isUsableCursorVersion(raw.writtenBy)) return null;
+  const lists = Array.isArray(raw.lists) ? raw.lists.filter(Boolean) : [];
+  const listIndex = Number.isInteger(raw.listIndex) && raw.listIndex >= 0 ? raw.listIndex : 0;
+  const page = Number.isInteger(raw.page) && raw.page >= 1 ? raw.page : 1;
+  const pageProcessed =
+    Number.isInteger(raw.pageProcessed) && raw.pageProcessed >= 0 ? raw.pageProcessed : 0;
+  return {
+    listIndex,
+    page,
+    lastJobId: raw.lastJobId ? String(raw.lastJobId) : "",
+    lastPageIds: raw.lastPageIds ? String(raw.lastPageIds) : "",
+    pageProcessed,
+    lists,
+  };
+}
+
 export function createBuiltinStore(storage = chromeLocal()) {
   return {
     async loadHandledIds() {
@@ -98,18 +120,11 @@ export function createBuiltinStore(storage = chromeLocal()) {
       return new Set(Object.keys(pruned));
     },
     async loadCursor() {
-      const raw = await readKey(storage, CURSOR_STORAGE_KEY);
-      if (!raw || typeof raw !== "object") return null;
-      const lists = Array.isArray(raw.lists) ? raw.lists.filter(Boolean) : [];
-      const listIndex = Number.isInteger(raw.listIndex) && raw.listIndex >= 0 ? raw.listIndex : 0;
-      const page = Number.isInteger(raw.page) && raw.page >= 1 ? raw.page : 1;
-      return {
-        listIndex,
-        page,
-        lastJobId: raw.lastJobId ? String(raw.lastJobId) : "",
-        lastPageIds: raw.lastPageIds ? String(raw.lastPageIds) : "",
-        lists,
-      };
+      const current = normalizeCursor(await readKey(storage, CURSOR_STORAGE_KEY));
+      if (current) return current;
+      const legacy = await readKey(storage, CURSOR_STORAGE_KEY_V1);
+      if (legacy != null) await writeKey(storage, CURSOR_STORAGE_KEY_V1, null);
+      return null;
     },
     async saveCursor(cursor) {
       if (!cursor) return writeKey(storage, CURSOR_STORAGE_KEY, null);
@@ -118,11 +133,17 @@ export function createBuiltinStore(storage = chromeLocal()) {
         page: cursor.page,
         lastJobId: cursor.lastJobId || "",
         lastPageIds: cursor.lastPageIds || "",
+        pageProcessed: cursor.pageProcessed ?? 0,
         lists: cursor.lists ?? [],
+        writtenBy: packageJson.version,
       });
     },
     async clearCursor() {
+      await writeKey(storage, CURSOR_STORAGE_KEY_V1, null);
       return writeKey(storage, CURSOR_STORAGE_KEY, null);
+    },
+    async clearHandled() {
+      return writeKey(storage, HANDLED_STORAGE_KEY, {});
     },
   };
 }

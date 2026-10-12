@@ -48,6 +48,7 @@ export const BUILTIN_RUN_VIEW = defineRunView({
   stats: [
     RUN_STAT.CURSOR,
     RUN_STAT.BLOCKS,
+    RUN_STAT.HEARTS,
     RUN_STAT.OUTCOMES,
     RUN_STAT.QUEUE,
     RUN_STAT.RECENT_JOBS,

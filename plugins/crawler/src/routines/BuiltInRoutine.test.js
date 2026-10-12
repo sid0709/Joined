@@ -15,26 +15,26 @@ import {
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
   CARD_SKIP_SAVED_BADGE,
+  CURSOR_STORAGE_KEY_V1,
   EMPTY_PAGE_ONE_LABEL,
   HANDLED_STORAGE_KEY,
   HEART_CLICK_HEART,
-  HEART_CLICK_HOST,
-  HEART_CLICK_SVG,
-  HEART_CLICK_TARGETS,
-  HEART_NOT_SAVED_LABEL,
-  HEART_UNREAD_LABEL,
+  HEART_FAIL_NOT_SAVED,
+  HEART_FAIL_UNREAD,
   INVALID_STREAK_MESSAGE,
   JOB_CARD_TITLE,
   JOB_PAGE_SAVE,
+  PAGE_UNPROCESSED_MESSAGE,
   SIGN_IN_TO_SAVE_MESSAGE,
   SIGN_UP_MODAL_TEXT,
   STUCK_LOGIN_MESSAGE,
   STUCK_PAGE_FAILURES,
   cardDecisionLabel,
   cardInvalidDecision,
+  heartFailedLog,
   stuckPageMessage,
 } from "./builtin/constants.js";
-import { entityIdFromSaveHost, jobSaveSelector } from "./builtin/cssEscape.js";
+import { entityIdFromSaveHost, jobCardSelector, jobSaveSelector } from "./builtin/cssEscape.js";
 import { createBuiltinStore, memoryStorage } from "./builtin/store.js";
 import { loadFixture } from "./builtin/testing/loadFixture.js";
 import BuiltInRoutine from "./BuiltInRoutine.js";
@@ -71,7 +71,7 @@ function builtinTab({
   delayedReady = {},
   heartStaysUnsaved = false,
   heartShowsModal = false,
-  saveOnWhich,
+  saveOnClick = 1,
 } = {}) {
   let url = listUrl;
   let status = 200;
@@ -80,7 +80,9 @@ function builtinTab({
   const navigates = [];
   const fetches = [];
   const shadows = [];
+  const scrolls = [];
   const heartsState = { ...hearts };
+  const clickCounts = {};
   const pageFor = (href) => {
     if (details[href]) return { html: details[href], url: href };
     const isList = /\/jobs/.test(href) && !/\/job\//.test(href);
@@ -141,6 +143,10 @@ function builtinTab({
       clicks.push(op.selector);
       return { found: true };
     }
+    if (op.op === "scroll") {
+      scrolls.push(op.selector);
+      return { found: true };
+    }
     if (op.op === "shadow") {
       shadows.push({ host: op.host, action: op.action, which: op.which });
       const id = entityIdFromSaveHost(op.host);
@@ -149,7 +155,8 @@ function builtinTab({
         Boolean(id) && new RegExp(`<my-item\\b[^>]*entity-id=["']?${id}\\b`, "i").test(pageHtml);
       if (!shadowFound || !hasHost) return { found: false, open: false, classes: "", prefix: "" };
       if (op.action === "click" && id && !heartStaysUnsaved) {
-        if (!saveOnWhich || op.which === saveOnWhich) heartsState[id] = true;
+        clickCounts[id] = (clickCounts[id] || 0) + 1;
+        if (clickCounts[id] >= saveOnClick) heartsState[id] = true;
       }
       if (op.action === "click" && heartShowsModal) {
         htmlOverride = `${pageFor(url).html}<dialog>${SIGN_UP_MODAL_TEXT}</dialog>`;
@@ -164,7 +171,7 @@ function builtinTab({
     }
     return {};
   };
-  return { exec, clicks, navigates, fetches, shadows };
+  return { exec, clicks, navigates, fetches, shadows, scrolls };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -198,6 +205,7 @@ describe("BuiltInRoutine", () => {
     expect(BuiltInRoutine.runView.components).not.toContain("pace");
     expect(BuiltInRoutine.runView.stats).toContain("cursor");
     expect(BuiltInRoutine.runView.stats).toContain("blocks");
+    expect(BuiltInRoutine.runView.stats).toContain("hearts");
     expect(BuiltInRoutine.options.allowFetch).toBe(false);
     expect(BuiltInRoutine.version).toBe(3);
   });
@@ -234,6 +242,7 @@ describe("BuiltInRoutine", () => {
     expect(clicks).toEqual([
       { host: jobSaveSelector("9256204"), action: "click", which: HEART_CLICK_HEART },
     ]);
+    expect(page.scrolls).toContain(jobCardSelector("9256204"));
     expect([...(await store.loadHandledIds())]).toContain("9256204");
 
     const failing = builtinTab({ listHtml: loadFixture("list-last.html") });
@@ -405,7 +414,7 @@ describe("BuiltInRoutine", () => {
     ]);
   });
 
-  test("logs heart not saved and continues the crawl", async () => {
+  test("logs heart not saved and retries one click", async () => {
     const activities = [];
     const page = builtinTab({
       listHtml: loadFixture("list-last.html"),
@@ -416,26 +425,33 @@ describe("BuiltInRoutine", () => {
       onActivity: (activity) => activities.push(activity),
     });
     expect(records).toHaveLength(1);
-    expect(activities.some((activity) => activity.label === HEART_NOT_SAVED_LABEL)).toBe(true);
+    expect(
+      activities.some(
+        (activity) => activity.label === heartFailedLog(HEART_FAIL_NOT_SAVED, "9256204"),
+      ),
+    ).toBe(true);
     expect(page.shadows.filter((op) => op.action === "click").map((op) => op.which)).toEqual([
-      ...HEART_CLICK_TARGETS,
+      HEART_CLICK_HEART,
+      HEART_CLICK_HEART,
     ]);
   });
 
-  test("stops clicking once a later heart target saves", async () => {
+  test("retries once when the first heart click misses", async () => {
+    const activities = [];
     const page = builtinTab({
       listHtml: loadFixture("list-last.html"),
       details: { [JOB_A]: loadFixture("detail-signed-in.html") },
-      saveOnWhich: HEART_CLICK_SVG,
+      saveOnClick: 2,
     });
-    await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
     expect(page.shadows.filter((op) => op.action === "click").map((op) => op.which)).toEqual([
       HEART_CLICK_HEART,
-      HEART_CLICK_SVG,
+      HEART_CLICK_HEART,
     ]);
-    expect(page.shadows.some((op) => op.action === "click" && op.which === HEART_CLICK_HOST)).toBe(
-      false,
-    );
+    expect(activities.some((activity) => activity.label === "heart retry 9256204")).toBe(true);
+    expect(activities.some((activity) => activity.label === "heart saved 9256204")).toBe(true);
   });
 
   test("stops when a heart click opens the sign-up modal", async () => {
@@ -475,9 +491,11 @@ describe("BuiltInRoutine", () => {
     expect(records).toHaveLength(1);
     expect(page.shadows.some((op) => op.action === "click")).toBe(false);
     expect(page.clicks).toEqual([]);
-    expect(activities.some((activity) => activity.label?.startsWith(HEART_UNREAD_LABEL))).toBe(
-      true,
-    );
+    expect(
+      activities.some(
+        (activity) => activity.label === heartFailedLog(HEART_FAIL_UNREAD, "9256204"),
+      ),
+    ).toBe(true);
     expect([...(await store.loadHandledIds())]).toContain("9256204");
   });
 
@@ -639,6 +657,77 @@ describe("BuiltInRoutine", () => {
       name: "RoutineBlockedError",
       message: INVALID_STREAK_MESSAGE,
     });
+  });
+
+  test("discards a V1 page-35 cursor left by the pagination-only #169 run", async () => {
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY_V1]: {
+        listIndex: 0,
+        page: 35,
+        lastJobId: "",
+        lists: [LIST_URL],
+      },
+    });
+    const store = createBuiltinStore(storage);
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.navigates.some((href) => /[?&]page=35\b/.test(href))).toBe(false);
+    expect(page.navigates).toContain(LIST_URL);
+    expect(storage.snapshot()[CURSOR_STORAGE_KEY_V1]).toBeNull();
+  });
+
+  test("does not advance when every card on the page fails", async () => {
+    const ids = ["10001", "10002"];
+    const listHtml = `<!DOCTYPE html><html><body><div id="jobs">${ids
+      .map(
+        (id) =>
+          `<div id="job-card-${id}" data-id="job-card"><my-item entity-type="job" entity-id="${id}"></my-item><a data-id="company-title" href="/company/x"><span>Co</span></a><h2><a data-id="job-card-title" href="/job/role/${id}" data-alias="/job/role/${id}">Role ${id}</a></h2></div>`,
+      )
+      .join(
+        "",
+      )}</div><nav id="pagination"><a aria-label="Go to Next Page" href="/jobs?page=2">Next</a></nav><script>Builtin.jobBoardInit({"isLoggedIn":true});</script></body></html>`;
+    const details = Object.fromEntries(
+      ids.map((id) => [
+        `https://builtin.com/job/role/${id}`,
+        "<html><body><p>loading</p></body></html>",
+      ]),
+    );
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({ listHtml, details });
+    await expect(
+      runRoutinePass(routine, {
+        exec: page.exec,
+        store,
+        skipDelays: true,
+        onRecord: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_UNPROCESSED_MESSAGE,
+    });
+    expect(await store.loadCursor()).toMatchObject({ page: 1 });
+    expect(page.navigates.some((href) => /[?&]page=2\b/.test(href))).toBe(false);
+  });
+
+  test("does not advance a parsed-empty page that still has a next link", async () => {
+    const listHtml = `<!DOCTYPE html><html><body><div id="jobs"></div><nav id="pagination"><a aria-label="Go to Next Page" href="/jobs?page=2">Next</a></nav><script>Builtin.jobBoardInit({"isLoggedIn":true});</script></body></html>`;
+    const store = createBuiltinStore(memoryStorage());
+    await expect(
+      runRoutinePass(routine, {
+        exec: builtinTab({ listHtml }).exec,
+        store,
+        skipDelays: true,
+        onRecord: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: EMPTY_PAGE_ONE_LABEL,
+    });
+    expect(await store.loadCursor()).toMatchObject({ page: 1 });
   });
 
   test("warns when page 1 has 0 cards", async () => {

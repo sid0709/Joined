@@ -9,6 +9,7 @@ import { findRoutinesForUrl } from "../../routineKit/match";
 import { ROUTINES } from "../../routines";
 import { ROUTINE_OUTPUTS } from "../../routines/outputs";
 
+import BuiltinResume from "./BuiltinResume";
 import LiveRunCard from "./LiveRunCard";
 import ResultsCard from "./ResultsCard";
 import { startBlocker } from "./runState";
@@ -55,6 +56,7 @@ function RunActionBar({ run, routine, blocker, onStart }) {
             width="100%"
           />
         )}
+        {!isRunning && routine?.id === "builtin" ? <BuiltinResume /> : null}
         {!isRunning && blocker ? (
           <Text type="supporting" color="secondary" justify="center">
             {blocker}
