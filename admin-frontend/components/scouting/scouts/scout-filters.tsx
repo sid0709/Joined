@@ -1,10 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { HStack, Selector, Tab, TabList } from "sid-ui";
 import { SearchBox } from "@/components/search-box";
-import { ROUTES } from "@/lib/nav";
 
 const VERIFICATION_TABS = [
   { value: "", label: "All scouts" },
@@ -22,23 +19,14 @@ const LEVELS = [
 
 export type ScoutFilterState = { verification: string; level: string; q: string };
 
-export function scoutsQuery(next: ScoutFilterState & { page?: number }) {
-  const params = new URLSearchParams();
-  if (next.verification) params.set("verification", next.verification);
-  if (next.level) params.set("level", next.level);
-  if (next.q) params.set("q", next.q);
-  if (next.page && next.page > 1) params.set("page", String(next.page));
-  const query = params.toString();
-  return query ? `?${query}` : "";
-}
-
-export function ScoutFilters(current: ScoutFilterState) {
-  const router = useRouter();
-  const go = useCallback(
-    (next: Partial<ScoutFilterState>) =>
-      router.push(`${ROUTES.scouts}${scoutsQuery({ ...current, ...next })}`),
-    [current, router],
-  );
+export function ScoutFilters({
+  current,
+  onChange,
+}: {
+  current: ScoutFilterState;
+  onChange: (next: Partial<ScoutFilterState>) => void;
+}) {
+  const go = (next: Partial<ScoutFilterState>) => onChange(next);
   return (
     <>
       <TabList

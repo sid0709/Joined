@@ -1,7 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@joined/scout";
+import {
+  forgetAdminQuery,
+  pendingAdminQuery,
+  prefetchAdminPath,
+  readAdminQuery,
+  seedAdminQuery,
+  trackAdminQuery,
+  warmAdminQuery,
+} from "@/lib/admin-query-cache";
 import { adminFetch } from "@/lib/api";
 
 type Snapshot<T> = {
@@ -11,43 +20,92 @@ type Snapshot<T> = {
   errorStatus: number | null;
 };
 
+export type AdminQueryOptions<T> = {
+  /** Server-rendered value for `initialPath`, shown on the first paint. */
+  initial?: T;
+  initialPath?: string;
+};
+
+function cacheKey(path: string, epoch: number) {
+  return `${path}\n${epoch}`;
+}
+
 /**
  * Loads an admin API path in the browser and keeps the last result on screen
- * while the next one loads. reload() fetches the same path again.
+ * while the next one loads. A fresh cached page is shown immediately.
+ * reload() fetches the same path again.
  */
-export function useAdminQuery<T>(path: string) {
-  const [reloadToken, setReloadToken] = useState(0);
-  const key = `${path}\n${reloadToken}`;
-  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(null);
+export function useAdminQuery<T>(path: string, options?: AdminQueryOptions<T>) {
+  const initialPath = options?.initialPath;
+  const initialValue = options?.initial;
+  const initial = initialValue !== undefined && initialPath === path ? initialValue : undefined;
+  const [epoch, setEpoch] = useState(0);
+  const key = cacheKey(path, epoch);
+  const [snapshot, setSnapshot] = useState<Snapshot<T> | null>(() =>
+    initial !== undefined ? { key, result: initial, error: null, errorStatus: null } : null,
+  );
+  const seeded = useRef(false);
+  const cached = path ? readAdminQuery<T>(path) : null;
+  const settled = path && snapshot?.key === key ? snapshot : null;
 
   useEffect(() => {
     if (!path) return;
-    const controller = new AbortController();
-    adminFetch<T>(path, { signal: controller.signal })
-      .then((result) => {
-        if (!controller.signal.aborted)
-          setSnapshot({ key, result, error: null, errorStatus: null });
-      })
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted) return;
+    if (!seeded.current && initialPath && initialValue !== undefined) {
+      seeded.current = true;
+      seedAdminQuery(initialPath, initialValue);
+    }
+    if (readAdminQuery<T>(path)?.fresh) return;
+    let cancelled = false;
+    const task = pendingAdminQuery<T>(path) ?? trackAdminQuery(path, adminFetch<T>(path));
+    task.then(
+      (result) => {
+        if (!cancelled) setSnapshot({ key, result, error: null, errorStatus: null });
+      },
+      (cause: unknown) => {
+        if (cancelled) return;
         setSnapshot({
           key,
           result: null,
           error: cause instanceof Error ? cause.message : "Could not load",
           errorStatus: cause instanceof ApiError ? cause.status : null,
         });
-      });
-    return () => controller.abort();
-  }, [key, path]);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [initialPath, initialValue, key, path]);
 
   const idle = !path;
-  const loading = !idle && snapshot?.key !== key;
-  const reload = useCallback(() => setReloadToken((token) => token + 1), []);
+  const loading = !idle && !settled && !cached && initial === undefined;
+  const reload = useCallback(() => {
+    if (path) forgetAdminQuery(path);
+    setEpoch((value) => value + 1);
+  }, [path]);
+
+  const result = idle
+    ? null
+    : settled
+      ? settled.result
+      : cached
+        ? cached.result
+        : initial !== undefined
+          ? initial
+          : (snapshot?.result ?? null);
+
   return {
-    result: idle ? null : (snapshot?.result ?? null),
+    result,
     loading,
-    error: idle || loading ? null : (snapshot?.error ?? null),
-    errorStatus: idle || loading ? null : (snapshot?.errorStatus ?? null),
+    error: idle || !settled ? null : settled.error,
+    errorStatus: idle || !settled ? null : settled.errorStatus,
     reload,
   };
+}
+
+/** Fetches the next page into the cache so the pager click does not wait. */
+export function useWarmNextPage(path: string, page: number, pageSize: number, total?: number) {
+  const next = path ? prefetchAdminPath(path, page, pageSize, total) : null;
+  useEffect(() => {
+    warmAdminQuery(next, (target) => adminFetch(target));
+  }, [next]);
 }

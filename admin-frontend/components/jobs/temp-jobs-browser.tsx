@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   Badge,
   Banner,
@@ -34,10 +33,10 @@ import {
   type TempJob,
   type TempJobList,
 } from "@/lib/jobs";
-import { listingHref } from "@/lib/listing";
 import { ROUTES } from "@/lib/nav";
 import type { AnalyzeBatch } from "@/lib/search-job";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 type Row = TempJob & { id: string };
 
@@ -92,8 +91,7 @@ export function TempJobsBrowser({
   emptyTitle = "No temp jobs yet",
   emptyDescription = "Jobs the crawler or plugin sends land here.",
 }: TempJobsBrowserProps = {}) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, replace } = useListingSearch(route);
   const page = positiveInt(searchParams.get("page"), 1);
   const defaultPageSize = pageSizes[0] ?? TEMP_JOBS_PAGE_SIZE;
   const pageSize = pageSizeOption(searchParams.get("size"), pageSizes, defaultPageSize);
@@ -107,7 +105,9 @@ export function TempJobsBrowser({
 
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), q: query });
   if (hideAnalyzed) params.set("hide", "analyzed");
-  const { result, loading, error, reload } = useAdminQuery<TempJobList>(`${listPath}?${params}`);
+  const path = `${listPath}?${params}`;
+  const { result, loading, error, reload } = useAdminQuery<TempJobList>(path);
+  useWarmNextPage(path, page, pageSize, result?.total);
 
   const [model, setModel] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -128,9 +128,8 @@ export function TempJobsBrowser({
   }, []);
 
   const go = useCallback(
-    (values: Record<string, string | number | null>) =>
-      router.replace(listingHref(route, new URLSearchParams(window.location.search), values)),
-    [router, route],
+    (values: Record<string, string | number | null>) => replace(values),
+    [replace],
   );
 
   const analyzed = new Set(result?.analyzedIds ?? []);

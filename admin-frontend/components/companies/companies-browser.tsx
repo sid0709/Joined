@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   Badge,
   Banner,
@@ -38,10 +37,10 @@ import {
   type DirectoryFilter,
 } from "@/lib/directory";
 import { formatCount, formatDate, positiveInt } from "@/lib/format";
-import { listingHref } from "@/lib/listing";
 import { ROUTES } from "@/lib/nav";
 import { VERIFICATION_APPROVED } from "@/lib/trust";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 const FILTERS: DirectoryFilter[] = [
   { param: "industry", label: "Industry", options: choiceOptions("Any industry", INDUSTRIES) },
@@ -63,21 +62,17 @@ function muted(value: string | number | undefined) {
 
 /** Published companies: search, filter, and sort them; a row opens the editor. */
 export function CompaniesBrowser() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, replace } = useListingSearch(ROUTES.companies);
   const page = positiveInt(searchParams.get("page"), 1);
   const companyId = searchParams.get("company");
   const params = directoryParams(searchParams, FILTERS, page, COMPANIES_PAGE_SIZE);
-  const { result, loading, error, reload } = useAdminQuery<CompanyDirectory>(
-    `${COMPANIES_PATH}?${params}`,
-  );
+  const path = `${COMPANIES_PATH}?${params}`;
+  const { result, loading, error, reload } = useAdminQuery<CompanyDirectory>(path);
+  useWarmNextPage(path, page, COMPANIES_PAGE_SIZE, result?.total);
 
   const go = useCallback(
-    (values: Record<string, string | number | null>) =>
-      router.replace(
-        listingHref(ROUTES.companies, new URLSearchParams(window.location.search), values),
-      ),
-    [router],
+    (values: Record<string, string | number | null>) => replace(values),
+    [replace],
   );
 
   const columns: TableColumn<CompanyRow>[] = [

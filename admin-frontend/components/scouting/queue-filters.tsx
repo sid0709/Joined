@@ -1,11 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { HStack, Selector, Tab, TabList } from "sid-ui";
 import { SearchBox } from "@/components/search-box";
-import { ROUTES } from "@/lib/nav";
-import { QUEUE_FILTERS, queueQuery, type QueueFilter } from "@/lib/scouting";
+import { QUEUE_FILTERS, type QueueFilter } from "@/lib/scouting";
 
 const CHANNELS = [
   { value: "", label: "Web and API" },
@@ -17,17 +14,14 @@ export function QueueFilters({
   status,
   q,
   channel,
+  onChange,
 }: {
   status: QueueFilter;
   q: string;
   channel: string;
+  onChange: (next: Partial<{ status: QueueFilter; q: string; channel: string }>) => void;
 }) {
-  const router = useRouter();
-  const go = useCallback(
-    (next: Partial<{ status: QueueFilter; q: string; channel: string }>) =>
-      router.push(`${ROUTES.queue}${queueQuery({ status, q, channel, ...next, page: 1 })}`),
-    [channel, q, router, status],
-  );
+  const go = (next: Partial<{ status: QueueFilter; q: string; channel: string }>) => onChange(next);
   return (
     <>
       <TabList

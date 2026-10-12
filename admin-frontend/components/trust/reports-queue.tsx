@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -30,16 +30,19 @@ import {
 import { ageLabel, positiveInt } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import { TRUST_PAGE_SIZE, trustLoadError } from "@/lib/trust";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 /** Staff GET /v1/reports — filed reports with status filter and linked-case jump. */
 export function ReportsQueue() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, commit } = useListingSearch();
   const status = reportListStatus(searchParams.get("status"));
   const page = positiveInt(searchParams.get("page"), 1);
-  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(reportsPath(status, page));
+  const path = reportsPath(status, page);
+  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(path);
   const list = result ? readReportList(result) : null;
+  useWarmNextPage(path, page, TRUST_PAGE_SIZE, list?.total);
   const message =
     list && !list.recognized
       ? "The API responded, but not with a report list."
@@ -48,8 +51,8 @@ export function ReportsQueue() {
         : null;
 
   const go = useCallback(
-    (next: string) => router.push(`${ROUTES.reports}${reportsListQuery(next, 1)}`),
-    [router],
+    (next: string) => commit(`${ROUTES.reports}${reportsListQuery(next, 1)}`),
+    [commit],
   );
 
   const columns: TableColumn<StaffReport>[] = [
@@ -137,7 +140,12 @@ export function ReportsQueue() {
         />
       )}
       {list?.recognized && list.total > 0 ? (
-        <UrlPager page={page} pageSize={TRUST_PAGE_SIZE} total={list.total} />
+        <UrlPager
+          page={page}
+          pageSize={TRUST_PAGE_SIZE}
+          total={list.total}
+          onPageChange={(next) => commit(`${ROUTES.reports}${reportsListQuery(status, next)}`)}
+        />
       ) : null}
     </Stack>
   );

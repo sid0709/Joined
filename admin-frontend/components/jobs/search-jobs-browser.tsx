@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   Badge,
   Banner,
@@ -36,7 +35,6 @@ import {
   type FilterOption,
 } from "@/lib/directory";
 import { formatCount, formatDate, positiveInt } from "@/lib/format";
-import { listingHref } from "@/lib/listing";
 import { ROUTES } from "@/lib/nav";
 import {
   JOB_SORTS,
@@ -47,7 +45,8 @@ import {
   type SearchJobList,
   type SearchRecord,
 } from "@/lib/search-job";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 /** Scouted jobs have no temp job; their public id opens them instead. */
 export function recordKey(record: SearchRecord) {
@@ -90,19 +89,17 @@ const FILTERS: DirectoryFilter[] = [
 const DEFAULT_SORT = { key: JOB_SORTS.analyzed, direction: "desc" } as const;
 
 export function SearchJobsBrowser() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, replace } = useListingSearch(ROUTES.jobs);
   const page = positiveInt(searchParams.get("page"), 1);
   const jobId = searchParams.get("job");
   const params = directoryParams(searchParams, FILTERS, page, SEARCH_JOBS_PAGE_SIZE);
-  const { result, loading, error, reload } = useAdminQuery<SearchJobList>(
-    `${SEARCH_JOBS_PATH}?${params}`,
-  );
+  const path = `${SEARCH_JOBS_PATH}?${params}`;
+  const { result, loading, error, reload } = useAdminQuery<SearchJobList>(path);
+  useWarmNextPage(path, page, SEARCH_JOBS_PAGE_SIZE, result?.total);
 
   const go = useCallback(
-    (values: Record<string, string | number | null>) =>
-      router.replace(listingHref(ROUTES.jobs, new URLSearchParams(window.location.search), values)),
-    [router],
+    (values: Record<string, string | number | null>) => replace(values),
+    [replace],
   );
 
   const columns: TableColumn<JobRow>[] = [

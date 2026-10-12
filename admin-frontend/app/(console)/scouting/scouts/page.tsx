@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import { PageHeader, Stack } from "sid-ui";
 import type { AdminList, ScoutSummary } from "@joined/scout";
-import { ScoutFilters } from "@/components/scouting/scouts/scout-filters";
-import { ScoutTable } from "@/components/scouting/scouts/scout-table";
-import { UrlPager } from "@/components/scouting/url-pager";
+import { ScoutsBrowser } from "@/components/scouting/scouts/scouts-browser";
 import { positiveInt } from "@/lib/format";
 import { param, type SearchParams } from "@/lib/page";
-import { SCOUTS_PAGE_SIZE } from "@/lib/scouting";
+import { scoutsPath } from "@/lib/scouting";
 import { adminGet } from "@/lib/server/api";
 
 export const metadata: Metadata = { title: "Scouts" };
@@ -17,25 +14,9 @@ export default async function ScoutsPage({ searchParams }: { searchParams: Searc
     verification: param(query.verification),
     level: param(query.level),
     q: param(query.q),
+    page: positiveInt(param(query.page), 1),
   };
-  const page = positiveInt(param(query.page), 1);
-  const search = new URLSearchParams({ page: String(page), page_size: String(SCOUTS_PAGE_SIZE) });
-  for (const [key, value] of Object.entries(filters)) {
-    if (value) search.set(key, value);
-  }
-  const list = await adminGet<AdminList<ScoutSummary>>(
-    `/v1/admin/scout/scouts?${search.toString()}`,
-  );
-
-  return (
-    <Stack gap={5}>
-      <PageHeader
-        title="Scouts"
-        description="Everyone who submits jobs, on the web or over the API. Open one to set a level or decide on identity."
-      />
-      <ScoutFilters {...filters} />
-      <ScoutTable rows={list.data} />
-      <UrlPager page={list.page} pageSize={list.page_size} total={list.total} />
-    </Stack>
-  );
+  const path = scoutsPath(filters);
+  const list = await adminGet<AdminList<ScoutSummary>>(path);
+  return <ScoutsBrowser initialPath={path} initialList={list} />;
 }
