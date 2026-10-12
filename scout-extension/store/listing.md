@@ -1,4 +1,8 @@
-# Chrome Web Store listing (unlisted)
+# Chrome Web Store listing
+
+Distribution: unlisted
+
+Decision: keep unlisted. A public listing has not been chosen, so this package stays unlisted. Do not upload it from CI, and do not mark it public in the dashboard. Version stays `0.0.1` in `scout-extension/package.json`.
 
 Materials only. Do not upload this folder. Paste the fields below into the developer dashboard when uploading `release/scout-<version>.zip` as an unlisted item.
 
@@ -33,6 +37,6 @@ Use Scout to:
 - See a toolbar badge for waiting drafts
 - Get Chrome notifications when a submission is accepted, rejected, or earns a reward
 
-Scout talks only to Scoutwell: the Scout website for sign-in and the Scout API for your profile, drafts, and status. It does not inject a content script on every site, run remote code, or sell data.
+Scout talks only to Scoutwell: the Scout website for sign-in and the Scout API for your profile, drafts, and status. It does not inject a content script on every site, run remote code, or sell data. It does not apply to jobs through Acorn, and it does not send live payouts.
 
 Install is unlisted. Share the store link with scouts who should load this build. For local development, load `scout-extension/dist` unpacked instead of this zip.

@@ -1,7 +1,7 @@
 # Step 57: E2E seeker and Premium journeys
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Quinn (lane: `tests/**`, `.github/workflows/**`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `test(e2e): seeker and premium journeys (roadmap step-57)`

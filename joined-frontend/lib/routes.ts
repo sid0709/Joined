@@ -41,6 +41,7 @@ export const ROUTES = {
   terms: "/terms",
   privacy: "/privacy",
   cookies: "/cookies",
+  premiumTerms: "/premium-terms",
   status: "/status",
 } as const;
 

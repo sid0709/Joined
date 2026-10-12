@@ -246,6 +246,13 @@ func (f *FakeClient) CreateCustomer(ctx context.Context, req CreateCustomerReque
 	return customer, nil
 }
 
+// PutPrice stores a price id that checkout overrides can charge.
+func (f *FakeClient) PutPrice(price *Price) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.prices[price.ID] = price
+}
+
 func (f *FakeClient) CreateCheckoutSession(ctx context.Context, req CreateCheckoutSessionRequest) (*CheckoutSession, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

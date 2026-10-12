@@ -36,6 +36,10 @@ func ScoutProblem(err error) Problem {
 		return NewProblem(http.StatusConflict, "idempotency_key_reused", err.Error())
 	case errors.Is(err, scout.ErrIdempotencyInFlight):
 		return NewProblem(http.StatusConflict, "idempotency_in_progress", err.Error())
+	case errors.Is(err, scout.ErrTaxFormRequired):
+		return NewProblem(http.StatusUnprocessableEntity, scout.CodeTaxFormRequired, scout.ErrTaxFormRequired.Error())
+	case errors.Is(err, scout.ErrScreeningBlocked):
+		return NewProblem(http.StatusUnprocessableEntity, scout.CodeScreeningBlocked, scout.ErrScreeningBlocked.Error())
 	case errors.Is(err, scout.ErrPayoutBlocked):
 		return NewProblem(http.StatusUnprocessableEntity, "payout_blocked", err.Error())
 	case errors.Is(err, scout.ErrKeyLimit):

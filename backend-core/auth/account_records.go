@@ -59,6 +59,7 @@ type AccountUser struct {
 	PasswordSalt []byte
 	Verified     bool
 	CreatedAt    time.Time
+	SuspendedAt  time.Time
 }
 
 // VerificationRecord is a single-use email verification token at rest.

@@ -250,6 +250,9 @@ func (s *Store) searchFilter(query SearchQuery, now time.Time, match keywordMatc
 	if query.hiddenOnly() {
 		conditions = append(conditions, hiddenSourceFilter())
 	}
+	if ids := DisabledImportSources(); len(ids) > 0 {
+		conditions = append(conditions, bson.D{{Key: "job.source", Value: bson.D{{Key: "$nin", Value: ids}}}})
+	}
 
 	if query.Keyword != "" {
 		conditions = append(conditions, keywordFilter(query.Keyword, match))

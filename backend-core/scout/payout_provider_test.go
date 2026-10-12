@@ -223,7 +223,7 @@ func payoutReadyStore(t *testing.T) (*Store, *FakeProvider) {
 		profile.LegalName = "Ada Scout"
 		profile.Country = "US"
 		profile.DateOfBirth = "1991-04-15"
-		profile.TaxInfo = &TaxInfo{LegalName: "Ada Scout", Country: "US", TaxIDLast4: "1234", CompletedAt: now}
+		profile.TaxInfo = &TaxInfo{LegalName: "Ada Scout", Country: "US", TaxIDLast4: "1234", FormType: TaxFormW9, CertifiedAt: now, CompletedAt: now, ScreeningStatus: ScreeningClear}
 	})
 	_, err := store.SavePayoutMethod(contextBG(), "scout-1", PayoutMethodInput{
 		Type:       payoutPayPal,

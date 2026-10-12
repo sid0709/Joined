@@ -1,12 +1,16 @@
 # Step 65: Scraper web feedback fixes
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** BLOCKED
 - **Owner:** Leo (web frontends lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `fix(scoutwell-frontend): top scraper week-1 web feedback (roadmap step-65)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+## BLOCKED
+
+The week-1 Scoutwell website bug list is not in this repo. The risk note that step-46 setup-card gaps (DOB, `document_ref`, `holder_name`, `GET /v1/scout/me/identity`) may be the whole list is a hint, not a collected scraper report, so those fields were not implemented here as week-1 fixes. Send the week-1 web list (earnings, payouts, submit, copy, nav) and this step can be implemented in `scoutwell-frontend/**`.
 
 ## Goal
 

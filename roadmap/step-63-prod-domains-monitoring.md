@@ -1,12 +1,14 @@
 # Step 63: Production domains, backups, and monitoring
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Ravi (platform backend; Elon coordinates `deploy/**` if hooks live there)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(ops): domains backups monitoring hooks (roadmap step-63)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+Hosts, the Mongo dump sketch, and the backup freshness check are in `deploy/README.md` and `deploy/backups.md`. No public Acorn website hostname is recorded, because this repo does not have an agreed one. `SENTRY_DSN` and `UPTIME_PING_URL` stay empty by default. This PR does not change DNS and does not call production `/health`.
 
 ## Goal
 

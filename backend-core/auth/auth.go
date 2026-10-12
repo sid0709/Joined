@@ -40,6 +40,8 @@ var (
 	ErrWrongRole      = errors.New("this email is registered as a different kind of account")
 	ErrInviteRequired = errors.New("an owner must invite you before you can join this company")
 	ErrExportLimited  = errors.New("export rate limited")
+	// ErrSuspended is a sign-in or session for an account staff has suspended.
+	ErrSuspended = errors.New("account suspended")
 )
 
 // RoleError is a sign-in or action from the wrong app for this account.

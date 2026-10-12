@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/legal-page";
-import { PRIVACY_SECTIONS } from "@/lib/legal";
+import { loadLegalSections } from "@/lib/legal-docs";
 
 export const metadata: Metadata = { title: "Privacy" };
 
@@ -9,7 +9,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy"
       description="Draft privacy notice for Joined accounts."
-      sections={PRIVACY_SECTIONS}
+      sections={loadLegalSections("privacy")}
     />
   );
 }

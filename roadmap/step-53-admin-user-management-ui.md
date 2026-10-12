@@ -1,7 +1,7 @@
 # Step 53: Admin user management UI
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Leo (web frontends lane: `admin-frontend/**`; UI from `sid-ui`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(admin-frontend): user management (roadmap step-53)`

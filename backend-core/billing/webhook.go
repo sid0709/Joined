@@ -210,6 +210,7 @@ func (s *Service) ApplyCheckoutCompleted(ctx context.Context, event Event) error
 		StripeSubscriptionID: subscriptionID,
 		Status:               string(StatusActive),
 		Plan:                 plan,
+		Product:              session.Metadata[metadataProductKey],
 		UpdatedAt:            s.now(),
 	})
 }
@@ -262,6 +263,7 @@ func (s *Service) ApplySubscriptionEvent(ctx context.Context, event Event) error
 		StripeSubscriptionID: stripeSub.ID,
 		Status:               status,
 		Plan:                 plan,
+		Product:              stripeSub.Metadata[metadataProductKey],
 		CurrentPeriodEnd:     periodEnd,
 		UpdatedAt:            s.now(),
 	})

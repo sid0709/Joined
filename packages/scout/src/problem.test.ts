@@ -6,6 +6,8 @@ import {
   IDENTITY_NAME_MISMATCH,
   IDENTITY_REJECTED,
   IDENTITY_UNVERIFIED,
+  SCREENING_BLOCKED,
+  TAX_FORM_REQUIRED,
 } from "./types";
 
 describe("problemMessage", () => {
@@ -57,4 +59,6 @@ test("first-payout identity problem codes are stable", () => {
   expect(IDENTITY_REJECTED).toBe("identity_rejected");
   expect(IDENTITY_INCOMPLETE).toBe("identity_incomplete");
   expect(IDENTITY_NAME_MISMATCH).toBe("identity_name_mismatch");
+  expect(TAX_FORM_REQUIRED).toBe("tax_form_required");
+  expect(SCREENING_BLOCKED).toBe("screening_blocked");
 });

@@ -110,6 +110,8 @@ var (
 	ErrKeyLimit          = errors.New("revoke an API key before creating another")
 	ErrNotDecidable      = errors.New("this submission is not waiting on a decision")
 	ErrAlreadyDecided    = errors.New("this item was already decided")
+	// ErrEarningSettled is a clawback of an earning the provider already paid.
+	ErrEarningSettled = errors.New("paid earnings cannot be clawed back")
 )
 
 // FieldError explains one invalid input field (RFC 9457 extension member).
@@ -276,12 +278,30 @@ type Profile struct {
 	VerificationUpdate *time.Time    `json:"verification_updated_at,omitempty" bson:"verificationUpdatedAt,omitempty"`
 }
 
+// Tax form types a scout can certify. Full tax IDs are never stored.
+const (
+	TaxFormW9     = "w9"
+	TaxFormW8BEN  = "w8ben"
+	TaxFormW8BENE = "w8ben_e"
+)
+
+// Sanction-screening statuses. A stored clear is reused until staff revoke it.
+const (
+	ScreeningClear   = "clear"
+	ScreeningPending = "pending"
+	ScreeningHit     = "hit"
+)
+
 // TaxInfo keeps only what payouts need to show; full tax IDs are never stored.
 type TaxInfo struct {
-	LegalName   string    `json:"legal_name" bson:"legalName"`
-	Country     string    `json:"country" bson:"country"`
-	TaxIDLast4  string    `json:"tax_id_last4" bson:"taxIdLast4"`
-	CompletedAt time.Time `json:"completed_at" bson:"completedAt"`
+	LegalName       string     `json:"legal_name" bson:"legalName"`
+	Country         string     `json:"country" bson:"country"`
+	TaxIDLast4      string     `json:"tax_id_last4" bson:"taxIdLast4"`
+	FormType        string     `json:"form_type" bson:"formType"`
+	CertifiedAt     time.Time  `json:"certified_at" bson:"certifiedAt"`
+	CompletedAt     time.Time  `json:"completed_at" bson:"completedAt"`
+	ScreeningStatus string     `json:"screening_status,omitempty" bson:"screeningStatus,omitempty"`
+	ScreenedAt      *time.Time `json:"screened_at,omitempty" bson:"screenedAt,omitempty"`
 }
 
 // PayoutMethod is a masked destination. Raw bank numbers are never stored;

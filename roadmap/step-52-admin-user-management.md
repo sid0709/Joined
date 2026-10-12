@@ -1,7 +1,7 @@
 # Step 52: Admin user management APIs
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Ravi (platform backend lane: `admin-backend/**`, `backend-core/**` except `scout/` and `billing/`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(admin): user lookup cancel refund suspend apis (roadmap step-52)`

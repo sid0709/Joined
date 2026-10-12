@@ -87,21 +87,46 @@ are hidden in logs, variables are easier to read and edit.
 
 **Secrets** (encrypted, never shown again):
 
-| Name                             | Value                                                                                                          | Needed                |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `VPS_SSH_KEY`                    | the private deploy key (`~/.ssh/joinedhq_deploy_ed25519`)                                                      | yes                   |
-| `VPS_KNOWN_HOSTS`                | the VPS host key line, so the deploy refuses an impostor server                                                | yes                   |
-| `DOCKERHUB_TOKEN`                | a Docker Hub personal access token with Read & Write                                                           | yes                   |
-| `MONGO_URI`                      | the API's MongoDB connection string                                                                            | for the API to start  |
-| `GOOGLE_CLIENT_SECRET`           | the OAuth client secret                                                                                        | for Google features   |
-| `OPENAI_API_KEY`                 | reads job descriptions                                                                                         | optional              |
-| `SETTINGS_ENCRYPTION_KEY`        | seals API keys staff save in the admin console (`openssl rand -base64 32`)                                     | for saved AI keys     |
-| `OPENROUTER_API_KEY`             | fallback for job analysis and company research when Settings → AI Model has no saved key                       | optional with `admin` |
-| `SCOUTWELL_GOOGLE_CLIENT_SECRET` | Scoutwell's OAuth client secret                                                                                | with `scoutwell`      |
-| `ADMIN_GOOGLE_CLIENT_SECRET`     | the admin OAuth client secret                                                                                  | with `admin`          |
-| `ADMIN_API_TOKEN`                | the admin API's bearer token                                                                                   | with `admin`          |
-| `CRAWLER_INGEST_TOKEN`           | bearer token for `POST /v1/public/crawler/jobs` (same as `VITE_CRAWLER_INGEST_TOKEN` in the crawler extension) | with `admin`          |
-| `GEOAPIFY_API_KEY`               | address autocomplete                                                                                           | optional              |
+| Name                             | Value                                                                                                             | Needed                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `VPS_SSH_KEY`                    | the private deploy key (`~/.ssh/joinedhq_deploy_ed25519`)                                                         | yes                   |
+| `VPS_KNOWN_HOSTS`                | the VPS host key line, so the deploy refuses an impostor server                                                   | yes                   |
+| `DOCKERHUB_TOKEN`                | a Docker Hub personal access token with Read & Write                                                              | yes                   |
+| `MONGO_URI`                      | the API's MongoDB connection string                                                                               | for the API to start  |
+| `GOOGLE_CLIENT_SECRET`           | the OAuth client secret                                                                                           | for Google features   |
+| `OPENAI_API_KEY`                 | reads job descriptions                                                                                            | optional              |
+| `SETTINGS_ENCRYPTION_KEY`        | seals API keys staff save in the admin console (`openssl rand -base64 32`)                                        | for saved AI keys     |
+| `OPENROUTER_API_KEY`             | fallback for job analysis and company research when Settings → AI Model has no saved key                          | optional with `admin` |
+| `SCOUTWELL_GOOGLE_CLIENT_SECRET` | Scoutwell's OAuth client secret                                                                                   | with `scoutwell`      |
+| `ADMIN_GOOGLE_CLIENT_SECRET`     | the admin OAuth client secret                                                                                     | with `admin`          |
+| `ADMIN_API_TOKEN`                | the admin API's bearer token                                                                                      | with `admin`          |
+| `CRAWLER_INGEST_TOKEN`           | bearer token for `POST /v1/public/crawler/jobs` (same as `VITE_CRAWLER_INGEST_TOKEN` in the crawler extension)    | with `admin`          |
+| `GEOAPIFY_API_KEY`               | address autocomplete                                                                                              | optional              |
+| `STRIPE_SECRET_KEY`              | Stripe API key. Keep `sk_test_` until written approval. `sk_live_` will not boot unless `STRIPE_ALLOW_LIVE=true`. | for Premium billing   |
+| `STRIPE_WEBHOOK_SECRET`          | Stripe webhook secret for the same mode as the API key                                                            | with Stripe           |
+
+`STRIPE_ALLOW_LIVE` is a production variable, not a secret. Leave it unset. This branch never deploys. Rollback is: unset the flag and restore `sk_test_` in `STRIPE_SECRET_KEY`. Optional price-id variables (`STRIPE_PREMIUM_MONTHLY_PRICE_ID`, `STRIPE_PREMIUM_YEARLY_PRICE_ID`, `STRIPE_ACORN_MONTHLY_PRICE_ID`, `STRIPE_ACORN_YEARLY_PRICE_ID`) stay empty so checkout uses lookup keys.
+
+`PAYOUT_ALLOW_LIVE` is a different fail-closed switch for scout payouts. Stripe approval does not turn it on.
+
+## Intended hosts
+
+Names only. This branch does not edit DNS. Today's nginx routing is in [What runs where](#what-runs-where). Subdomain steps stay in [subdomains-runbook.md](subdomains-runbook.md); do not copy that runbook's server address into new notes.
+
+| App        | Intended host                                                                           | Local / compose port           |
+| ---------- | --------------------------------------------------------------------------------------- | ------------------------------ |
+| Joined web | `joinedhq.com`                                                                          | frontend, host 6002            |
+| Joined API | `api.joinedhq.com` (today that host still serves the last Acorn image)                  | joined-backend, host 11080     |
+| Scoutwell  | `scout.joinedhq.com`                                                                    | 6003                           |
+| Admin      | `admin.joinedhq.com`                                                                    | 6010                           |
+| Acorn web  | No public hostname is agreed in this repo. The site is in the sibling Acorn repository. | 6005, not built from this tree |
+| Acorn API  | `api.joinedhq.com` path `/acorn` on the last published image                            | 11083                          |
+
+## Backups and monitoring
+
+Mongo dump sketch, daily cadence, and the freshness check: [backups.md](backups.md). Env names: `MONGO_URI`, `DEST_DB`, `ACORN_DB`, `BACKUP_DIR`, `BACKUP_MAX_AGE`.
+
+`GET /health` stays 200 when `SENTRY_DSN` and `UPTIME_PING_URL` are unset. An empty DSN does not crash; the reporter stays a no-op. An empty uptime URL does not dial out. Set either name in the `production` environment when you want the hook. Do not put a DSN or ping URL in git.
 
 Inside a container, the VPS itself is `host.docker.internal`, so a MongoDB running on
 the VPS is `mongodb://<user>:<password>@host.docker.internal:27017/JoinedDB?authSource=JoinedDB`.

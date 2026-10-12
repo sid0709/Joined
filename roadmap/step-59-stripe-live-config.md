@@ -1,12 +1,14 @@
 # Step 59: Stripe live config
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Penny (billing lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(billing): stripe live keys wiring (roadmap step-59)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+Live mode stays off. There is no written approval to set `STRIPE_ALLOW_LIVE=true`, and this change does not put live keys in the repo.
 
 ## Goal
 

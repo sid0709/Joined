@@ -90,6 +90,7 @@ type Store struct {
 	payoutMu  sync.Mutex
 
 	payoutProvider Provider
+	screener       Screener
 }
 
 // NewStore wires the scout store. fetcher follows submitted links.
@@ -113,6 +114,7 @@ func NewStore(client *mongo.Client, db string, accounts Accounts, publisher Publ
 	s.notifyReward = func(ctx context.Context, userID string, earning Earning) {
 		s.notifyRewardImpl(ctx, userID, earning)
 	}
+	s.screener = screenerFromEnv()
 	return s
 }
 

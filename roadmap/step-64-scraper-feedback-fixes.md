@@ -1,12 +1,16 @@
 # Step 64: Scraper week-1 extension fixes
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** BLOCKED
 - **Owner:** Maya (lane: `scout-extension/**`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `fix(scout-extension): top scraper week-1 feedback (roadmap step-64)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+## BLOCKED
+
+The week-1 Scout extension bug list is not in this repo. There is no feedback channel export, issue list, or capture/ATS miss log to triage. Inventing extractor fixtures or sign-in fixes would guess at bugs that were not reported. Send the week-1 list (issue titles or short bullets: capture misses, sign-in, draft queue, ATS detect, badge, notifications) and this step can be implemented in `scout-extension/**` only.
 
 ## Goal
 

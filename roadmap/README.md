@@ -124,13 +124,13 @@ Kickoff in parallel after step-33 CI is green (or concurrent if workflows alread
 | [step-45](step-45-legal-drafts-pages.md)                      | Terms/privacy/cookie consent draft pages           | Leo        | Done        |
 | [step-46](step-46-scout-payout-identity.md)                   | Stricter identity check before first payout        | Penny      | Done (#111) |
 | [step-47](step-47-global-payout-provider.md)                  | Wise/Payoneer/PayPal-style provider                | Penny      | Done (#113) |
-| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | Planned     |
-| [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | Planned     |
-| [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Planned     |
-| [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | Planned     |
-| [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Planned     |
-| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Planned     |
-| [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Planned     |
+| [step-48](step-48-acorn-profile-editor.md)                    | Acorn profile editor (`acorn-frontend` + API)      | Leo        | BLOCKED     |
+| [step-49](step-49-acorn-resume-library.md)                    | Résumé upload/library shared with extension        | Leo        | BLOCKED     |
+| [step-50](step-50-acorn-stripe-pricing.md)                    | Acorn pricing + Stripe                             | Penny      | Done        |
+| [step-51](step-51-acorn-billing-legal-delete.md)              | Billing page, legal pages, delete-my-data          | Leo        | BLOCKED     |
+| [step-52](step-52-admin-user-management.md)                   | Lookup, Premium cancel, refund, suspend APIs       | Ravi       | Done        |
+| [step-53](step-53-admin-user-management-ui.md)                | Admin UI for user management                       | Leo        | Done        |
+| [step-54](step-54-admin-sources-quality-earnings-disputes.md) | Sources, quality, earnings report, disputes        | Ravi+Penny | Done        |
 
 If step-54 is too large, split into 54a sources (Ravi), 54b quality dashboard (Ravi), 54c earnings report (Penny), 54d disputes (Penny) and adjust counts with Sid.
 
@@ -142,18 +142,18 @@ Target branch: **`stage-roadmap-w34`**.
 
 | Step                                             | Slice                                           | Owner      | Status  |
 | ------------------------------------------------ | ----------------------------------------------- | ---------- | ------- |
-| [step-55](step-55-legal-docs-package.md)         | ToS/privacy/cookie/Premium/Scout contractor     | Leo/Elon   | Planned |
-| [step-56](step-56-international-payout-tax.md)   | W-9/W-8BEN + sanction screening hooks           | Penny      | Planned |
-| [step-57](step-57-e2e-seeker-premium.md)         | E2E seeker + Premium journeys                   | Quinn      | Planned |
-| [step-58](step-58-e2e-scout-acorn.md)            | E2E scout + Acorn journeys                      | Quinn      | Planned |
-| [step-59](step-59-stripe-live-config.md)         | Live keys wiring (needs explicit user approval) | Penny      | Planned |
-| [step-60](step-60-non-us-payout-test.md)         | Test harness for one non-US payout              | Penny      | Planned |
-| [step-61](step-61-security-pass.md)              | Security pass findings + fixes PRs              | Quinn      | Planned |
-| [step-62](step-62-load-test-search.md)           | Load test search/job pages                      | Quinn/Ravi | Planned |
-| [step-63](step-63-prod-domains-monitoring.md)    | Domains, backups, monitoring hooks              | Ravi       | Planned |
-| [step-64](step-64-scraper-feedback-fixes.md)     | Top scraper week-1 extension fixes              | Maya       | Planned |
-| [step-65](step-65-scraper-web-feedback-fixes.md) | Top scoutwell website feedback fixes            | Leo        | Planned |
-| [step-66](step-66-chrome-web-store-public.md)    | Public (or keep unlisted) listing package       | Maya       | Planned |
+| [step-55](step-55-legal-docs-package.md)         | ToS/privacy/cookie/Premium/Scout contractor     | Leo/Elon   | Done    |
+| [step-56](step-56-international-payout-tax.md)   | W-9/W-8BEN + sanction screening hooks           | Penny      | Done    |
+| [step-57](step-57-e2e-seeker-premium.md)         | E2E seeker + Premium journeys                   | Quinn      | Done    |
+| [step-58](step-58-e2e-scout-acorn.md)            | E2E scout + Acorn journeys                      | Quinn      | Done    |
+| [step-59](step-59-stripe-live-config.md)         | Live keys wiring (needs explicit user approval) | Penny      | Done    |
+| [step-60](step-60-non-us-payout-test.md)         | Test harness for one non-US payout              | Penny      | Done    |
+| [step-61](step-61-security-pass.md)              | Security pass findings + fixes PRs              | Quinn      | Done    |
+| [step-62](step-62-load-test-search.md)           | Load test search/job pages                      | Quinn/Ravi | Done    |
+| [step-63](step-63-prod-domains-monitoring.md)    | Domains, backups, monitoring hooks              | Ravi       | Done    |
+| [step-64](step-64-scraper-feedback-fixes.md)     | Top scraper week-1 extension fixes              | Maya       | BLOCKED |
+| [step-65](step-65-scraper-web-feedback-fixes.md) | Top scoutwell website feedback fixes            | Leo        | BLOCKED |
+| [step-66](step-66-chrome-web-store-public.md)    | Public (or keep unlisted) listing package       | Maya       | Done    |
 
 ### November: launch
 

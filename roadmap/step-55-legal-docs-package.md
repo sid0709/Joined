@@ -1,7 +1,7 @@
 # Step 55: Legal docs package
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Leo / Elon (Leo drafts pages; Elon owns `docs/**` and root legal files)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `docs(legal): terms privacy cookie premium scout drafts (roadmap step-55)`

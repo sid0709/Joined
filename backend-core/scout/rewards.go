@@ -142,8 +142,13 @@ func CheckPayout(p Profile, released int64, hasPaidPayout bool) PayoutReadiness 
 	default:
 		blockers = append(blockers, "Verify your identity (tier 2)")
 	}
-	if p.TaxInfo == nil {
+	switch {
+	case p.TaxInfo == nil:
 		blockers = append(blockers, "Add tax information")
+	case !TaxFormReady(p.TaxInfo):
+		blockers = append(blockers, "Add a W-9 or W-8BEN")
+	case p.TaxInfo.ScreeningStatus != ScreeningClear:
+		blockers = append(blockers, "Sanction screening must be clear")
 	}
 	if p.PayoutMethod == nil {
 		blockers = append(blockers, "Add a payout method")

@@ -59,6 +59,8 @@ func TestLoadConfigDefaultPrices(t *testing.T) {
 	setenv(t, "STRIPE_SECRET_KEY", "sk_test_xyz")
 	unset(t, "PREMIUM_MONTHLY_PRICE_CENTS")
 	unset(t, "PREMIUM_YEARLY_PRICE_CENTS")
+	unset(t, "ACORN_MONTHLY_PRICE_CENTS")
+	unset(t, "ACORN_YEARLY_PRICE_CENTS")
 	cfg, err := LoadConfig()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -68,6 +70,36 @@ func TestLoadConfigDefaultPrices(t *testing.T) {
 	}
 	if cfg.PremiumYearlyPriceCents != defaultPremiumYearlyPriceCents {
 		t.Fatalf("expected default yearly %d, got %d", defaultPremiumYearlyPriceCents, cfg.PremiumYearlyPriceCents)
+	}
+}
+
+func TestLoadConfigPriceIDOverrides(t *testing.T) {
+	setenv(t, "STRIPE_SECRET_KEY", "sk_test_xyz")
+	unset(t, "STRIPE_ALLOW_LIVE")
+	setenv(t, "STRIPE_PREMIUM_MONTHLY_PRICE_ID", "price_premium_month")
+	setenv(t, "STRIPE_PREMIUM_YEARLY_PRICE_ID", "price_premium_year")
+	setenv(t, "STRIPE_ACORN_MONTHLY_PRICE_ID", "price_acorn_month")
+	setenv(t, "STRIPE_ACORN_YEARLY_PRICE_ID", "price_acorn_year")
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AllowLive {
+		t.Fatal("live mode must stay off")
+	}
+	if cfg.PremiumMonthlyPriceID != "price_premium_month" || cfg.AcornYearlyPriceID != "price_acorn_year" {
+		t.Fatalf("price ids = %+v", cfg)
+	}
+	if cfg.CheckoutPriceID(ProductPremium, PlanMonthly) != "price_premium_month" {
+		t.Fatal("premium monthly override")
+	}
+	if cfg.CheckoutPriceID(ProductAcorn, PlanYearly) != "price_acorn_year" {
+		t.Fatal("acorn yearly override")
+	}
+
+	setenv(t, "STRIPE_PREMIUM_MONTHLY_PRICE_ID", "not-a-price")
+	if _, err := LoadConfig(); err == nil {
+		t.Fatal("expected a price id error")
 	}
 }
 

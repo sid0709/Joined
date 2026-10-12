@@ -8,17 +8,17 @@ Yes. Only what the side panel needs to know whether the scout is signed in and t
 
 ## Data types
 
-| Type                                | Used? | Why                                                       |
-| ----------------------------------- | ----- | --------------------------------------------------------- |
-| Personally identifiable information | Yes   | Display name and email from `GET /v1/scout/me`            |
-| Health information                  | No    |                                                           |
-| Financial and payment information   | No    | Earnings and payouts stay on the Scoutwell website        |
-| Authentication information          | Yes   | Scoutwell session cookie, used only to call the Scout API |
-| Personal communications             | No    |                                                           |
-| Location                            | No    |                                                           |
-| Web history                         | No    |                                                           |
-| User activity                       | No    | The panel does not log browsing                           |
-| Website content                     | No    | This build does not scrape page HTML                      |
+| Type                                | Used? | Why                                                                                                                                                      |
+| ----------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Personally identifiable information | Yes   | Display name and email from `GET /v1/scout/me`                                                                                                           |
+| Health information                  | No    |                                                                                                                                                          |
+| Financial and payment information   | No    | Earnings and payouts stay on the Scoutwell website                                                                                                       |
+| Authentication information          | Yes   | Scoutwell session cookie, used only to call the Scout API                                                                                                |
+| Personal communications             | No    |                                                                                                                                                          |
+| Location                            | No    |                                                                                                                                                          |
+| Web history                         | No    |                                                                                                                                                          |
+| User activity                       | No    | The panel does not log browsing                                                                                                                          |
+| Website content                     | Yes   | Job fields from the tab where the scout opens the side panel, and only when they capture that posting. Not browsing history, and not a background crawl. |
 
 ## Certification
 

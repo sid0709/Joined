@@ -11,30 +11,30 @@ This folder is the source of truth for **what the product must do** and **how it
 
 ## How to read these docs
 
-| If you are building…                 | Start with                                                                               |
-| ------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Anything                             | [00-product-overview.md](00-product-overview.md), [01-glossary.md](01-glossary.md)       |
-| Repo, infra, service boundaries      | [02-architecture.md](02-architecture.md), [60-api-conventions.md](60-api-conventions.md) |
-| Database schema                      | [03-data-model.md](03-data-model.md)                                                     |
-| Login, accounts, verification        | [10-identity-and-accounts.md](10-identity-and-accounts.md)                               |
-| Job hunter pages                     | [11-platform-job-hunter.md](11-platform-job-hunter.md)                                   |
-| Company pages                        | [12-platform-company.md](12-platform-company.md)                                         |
-| Scout submissions                    | [13-platform-scout.md](13-platform-scout.md)                                             |
-| Scout API for partners               | [61-scout-api.md](61-scout-api.md)                                                       |
-| Job ingestion, search, matching      | [14-job-pool-and-matching.md](14-job-pool-and-matching.md)                               |
-| Client (hire a bidder) flows         | [20-connect-client.md](20-connect-client.md)                                             |
-| Human bidder workspace               | [21-connect-bidder.md](21-connect-bidder.md)                                             |
-| AI auto-bid agent                    | [22-ai-agent.md](22-ai-agent.md)                                                         |
-| Interview detection and confirmation | [30-interview-tracking.md](30-interview-tracking.md)                                     |
-| Wallet, escrow, billing, payouts     | [31-payments-wallet-escrow.md](31-payments-wallet-escrow.md)                             |
-| Reports, fraud, moderation           | [32-trust-and-safety.md](32-trust-and-safety.md)                                         |
-| Messages and notifications           | [33-messaging-and-notifications.md](33-messaging-and-notifications.md)                   |
-| Internal admin tools                 | [40-admin-console.md](40-admin-console.md)                                               |
-| Prices, fees, revenue logic          | [50-pricing-and-revenue.md](50-pricing-and-revenue.md)                                   |
-| What to build next                   | [70-roadmap.md](70-roadmap.md)                                                           |
-| Analytics and KPIs                   | [80-metrics-and-analytics.md](80-metrics-and-analytics.md)                               |
-| Privacy, legal, security             | [90-compliance-privacy-security.md](90-compliance-privacy-security.md)                   |
-| Undecided items                      | [99-open-questions.md](99-open-questions.md)                                             |
+| If you are building…                 | Start with                                                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Anything                             | [00-product-overview.md](00-product-overview.md), [01-glossary.md](01-glossary.md)                                 |
+| Repo, infra, service boundaries      | [02-architecture.md](02-architecture.md), [60-api-conventions.md](60-api-conventions.md)                           |
+| Database schema                      | [03-data-model.md](03-data-model.md)                                                                               |
+| Login, accounts, verification        | [10-identity-and-accounts.md](10-identity-and-accounts.md)                                                         |
+| Job hunter pages                     | [11-platform-job-hunter.md](11-platform-job-hunter.md)                                                             |
+| Company pages                        | [12-platform-company.md](12-platform-company.md)                                                                   |
+| Scout submissions                    | [13-platform-scout.md](13-platform-scout.md)                                                                       |
+| Scout API for partners               | [61-scout-api.md](61-scout-api.md)                                                                                 |
+| Job ingestion, search, matching      | [14-job-pool-and-matching.md](14-job-pool-and-matching.md)                                                         |
+| Client (hire a bidder) flows         | [20-connect-client.md](20-connect-client.md)                                                                       |
+| Human bidder workspace               | [21-connect-bidder.md](21-connect-bidder.md)                                                                       |
+| AI auto-bid agent                    | [22-ai-agent.md](22-ai-agent.md)                                                                                   |
+| Interview detection and confirmation | [30-interview-tracking.md](30-interview-tracking.md)                                                               |
+| Wallet, escrow, billing, payouts     | [31-payments-wallet-escrow.md](31-payments-wallet-escrow.md)                                                       |
+| Reports, fraud, moderation           | [32-trust-and-safety.md](32-trust-and-safety.md)                                                                   |
+| Messages and notifications           | [33-messaging-and-notifications.md](33-messaging-and-notifications.md)                                             |
+| Internal admin tools                 | [40-admin-console.md](40-admin-console.md)                                                                         |
+| Prices, fees, revenue logic          | [50-pricing-and-revenue.md](50-pricing-and-revenue.md)                                                             |
+| What to build next                   | [70-roadmap.md](70-roadmap.md)                                                                                     |
+| Analytics and KPIs                   | [80-metrics-and-analytics.md](80-metrics-and-analytics.md)                                                         |
+| Privacy, legal, security             | [90-compliance-privacy-security.md](90-compliance-privacy-security.md), [91-security-pass.md](91-security-pass.md) |
+| Undecided items                      | [99-open-questions.md](99-open-questions.md)                                                                       |
 
 ## Document conventions
 

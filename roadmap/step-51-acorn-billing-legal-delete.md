@@ -1,12 +1,16 @@
 # Step 51: Acorn billing, legal, and delete-my-data
 
 - **Week:** W3
-- **Status:** Planned
+- **Status:** BLOCKED
 - **Owner:** Leo (`acorn-frontend/**`; **coordinate Elon** for `acorn-backend/**` delete/checkout mount)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `feat(acorn-frontend): billing legal delete-my-data (roadmap step-51)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+## BLOCKED
+
+Acorn’s website and API were removed from this repo in `1d0aae6` and now live in [sid0709/Acorn](https://github.com/sid0709/Acorn). Step 50 landed the Acorn Pro catalog in `backend-core/billing`, but there is no `acorn-frontend` billing page, terms route, or `acorn-backend` account-delete route here. Wiring checkout or delete inside Joined would target the wrong app. Implement step 51 in the Acorn repo against `billing.ProductAcorn`.
 
 ## Goal
 

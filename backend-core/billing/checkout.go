@@ -9,11 +9,13 @@ import (
 	"time"
 )
 
-// CheckoutParams starts a Premium Checkout session for a Joined user.
+// CheckoutParams starts a Checkout session.
+// Product is ProductPremium (or empty) or ProductAcorn. Acorn does not grant Joined Premium.
 type CheckoutParams struct {
 	UserID     string
 	Email      string
 	Plan       string
+	Product    string
 	SuccessURL string
 	CancelURL  string
 }
@@ -35,6 +37,17 @@ type Service struct {
 // NewService constructs the billing service. Tests inject FakeClient and MemoryStore.
 func NewService(client Client, store Store, cfg Config) *Service {
 	return &Service{Client: client, Store: store, Config: cfg, Now: time.Now}
+}
+
+func (s *Service) checkoutPrice(ctx context.Context, product string, plan Plan, lookupKey string) (*Price, error) {
+	if id := s.Config.CheckoutPriceID(product, plan); id != "" {
+		return &Price{ID: id}, nil
+	}
+	price, err := s.Client.PriceByLookupKey(ctx, lookupKey)
+	if err != nil {
+		return nil, fmt.Errorf("lookup %s price: %w", plan, err)
+	}
+	return price, nil
 }
 
 func (s *Service) now() time.Time {
@@ -61,21 +74,22 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, params CheckoutPara
 	if err != nil {
 		return nil, err
 	}
-	lookupKey, err := planLookupKey(plan)
+	product, lookupKey, err := checkoutLookupKey(params.Product, plan)
 	if err != nil {
 		return nil, err
 	}
-	price, err := s.Client.PriceByLookupKey(ctx, lookupKey)
+	price, err := s.checkoutPrice(ctx, product, plan, lookupKey)
 	if err != nil {
-		return nil, fmt.Errorf("lookup %s price: %w", plan, err)
+		return nil, err
 	}
 	customerID, err := s.EnsureCustomer(ctx, params.UserID, params.Email)
 	if err != nil {
 		return nil, err
 	}
 	meta := map[string]string{
-		metadataUserIDKey: params.UserID,
-		metadataPlanKey:   string(plan),
+		metadataUserIDKey:  params.UserID,
+		metadataPlanKey:    string(plan),
+		metadataProductKey: product,
 	}
 	session, err := s.Client.CreateCheckoutSession(ctx, CreateCheckoutSessionRequest{
 		CustomerID:        customerID,

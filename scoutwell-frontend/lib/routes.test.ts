@@ -27,6 +27,9 @@ describe("routes", () => {
     expect(ROUTES.earn).toBe("/earn");
     expect(ROUTES.install).toBe("/install");
     expect(ROUTES.faq).toBe("/faq");
+    expect(ROUTES.terms).toBe("/terms");
+    expect(ROUTES.privacy).toBe("/privacy");
+    expect(ROUTES.contractor).toBe("/contractor");
     expect(ROUTES.extension).toBe("/extension");
     expect(safeNextPath("/extension")).toBe("/extension");
   });

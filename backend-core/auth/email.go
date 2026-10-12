@@ -200,6 +200,9 @@ func (s *Store) EmailSignin(ctx context.Context, email, password, audience strin
 	if !user.Verified {
 		return "", Session{}, ErrEmailNotVerified
 	}
+	if s.userSuspended(user) {
+		return "", Session{}, ErrSuspended
+	}
 
 	stored := storedUser{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role, CreatedAt: user.CreatedAt}
 	if err := s.ensureRole(ctx, &stored); err != nil {

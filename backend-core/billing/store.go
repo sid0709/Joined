@@ -17,13 +17,13 @@ type Store interface {
 
 // MemoryStore is an in-memory Store for tests and local seams.
 type MemoryStore struct {
-	mu         sync.Mutex
-	customers  map[string]string
-	users      map[string]string
-	byUser     map[string]Subscription
-	bySub      map[string]Subscription
-	upserts    int
-	now        func() time.Time
+	mu        sync.Mutex
+	customers map[string]string
+	users     map[string]string
+	byUser    map[string]Subscription
+	bySub     map[string]Subscription
+	upserts   int
+	now       func() time.Time
 }
 
 // NewMemoryStore creates an empty in-memory billing store.
@@ -124,6 +124,12 @@ func mergeSubscription(existing, incoming Subscription) Subscription {
 	}
 	if incoming.Plan == "" {
 		incoming.Plan = existing.Plan
+	}
+	if incoming.Product == "" {
+		incoming.Product = existing.Product
+	}
+	if incoming.RefundedCents == 0 {
+		incoming.RefundedCents = existing.RefundedCents
 	}
 	if incoming.CurrentPeriodEnd.IsZero() {
 		incoming.CurrentPeriodEnd = existing.CurrentPeriodEnd

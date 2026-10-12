@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/legal-page";
-import { TERMS_SECTIONS } from "@/lib/legal";
+import { loadLegalSections } from "@/lib/legal-docs";
 
 export const metadata: Metadata = { title: "Terms" };
 
@@ -9,7 +9,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of use"
       description="Draft terms for using Joined."
-      sections={TERMS_SECTIONS}
+      sections={loadLegalSections("terms")}
     />
   );
 }

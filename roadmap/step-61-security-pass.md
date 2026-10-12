@@ -1,7 +1,7 @@
 # Step 61: Security pass
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Quinn (tests and CI lane; Elon coordinates `docs/**`)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `docs(security): pass findings and follow-up prs (roadmap step-61)`

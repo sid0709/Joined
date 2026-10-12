@@ -16,15 +16,16 @@ import (
 )
 
 const (
-	maxLegalName     = 120
-	maxPayoutLabel   = 80
-	maxPayoutEmail   = 254
-	maxAccountRef    = 80
-	payoutBank       = "bank"
-	payoutPayPal     = "paypal"
-	payoutProvider   = "provider"
-	countryCodeSize  = 2
-	currencyCodeSize = 3
+	maxLegalName        = 120
+	maxPayoutLabel      = 80
+	maxPayoutEmail      = 254
+	maxAccountRef       = 80
+	payoutBank          = "bank"
+	payoutPayPal        = "paypal"
+	payoutProvider      = "provider"
+	countryCodeSize     = 2
+	countryUnitedStates = "US"
+	currencyCodeSize    = 3
 )
 
 var (
@@ -251,11 +252,12 @@ func (s *Store) Identity(ctx context.Context, userID string) (Identity, error) {
 }
 
 // TaxInput is a scout's tax details. Only the last four characters of the
-// tax id are sent and stored.
+// tax id are sent and stored. form_type is w9, w8ben, or w8ben_e.
 type TaxInput struct {
 	LegalName  string `json:"legal_name"`
 	Country    string `json:"country"`
 	TaxIDLast4 string `json:"tax_id_last4"`
+	FormType   string `json:"form_type"`
 }
 
 // SaveTaxInfo stores tax details needed before payouts.
@@ -273,11 +275,19 @@ func (s *Store) SaveTaxInfo(ctx context.Context, userID string, input TaxInput) 
 	if !last4Pattern.MatchString(last4) {
 		problems.add("tax_id_last4", "enter only the last 4 characters of your tax id")
 	}
+	form := validateTaxForm(input.FormType, country, problems)
 	if err := problems.orNil(); err != nil {
 		return Profile{}, err
 	}
 	now := s.now().UTC()
-	info := TaxInfo{LegalName: legal, Country: country, TaxIDLast4: last4, CompletedAt: now}
+	info := TaxInfo{
+		LegalName:   legal,
+		Country:     country,
+		TaxIDLast4:  last4,
+		FormType:    form,
+		CertifiedAt: now,
+		CompletedAt: now,
+	}
 	if err := s.updateProfile(ctx, userID, func(p *Profile) {
 		p.TaxInfo = &info
 		p.UpdatedAt = now
@@ -408,6 +418,23 @@ func deriveLast4(email, accountRef string) string {
 		return ""
 	}
 	return string(alnum[len(alnum)-4:])
+}
+
+func validateTaxForm(form, country string, problems *ValidationError) string {
+	form = strings.TrimSpace(form)
+	switch form {
+	case TaxFormW9:
+		if country != countryUnitedStates {
+			problems.add("form_type", "a W-9 is only for a US person")
+		}
+	case TaxFormW8BEN, TaxFormW8BENE:
+		if country == countryUnitedStates {
+			problems.add("form_type", "a US person certifies with a W-9")
+		}
+	default:
+		problems.add("form_type", "choose w9, w8ben, or w8ben_e")
+	}
+	return form
 }
 
 func legalIdentity(name, country string) (string, string, error) {

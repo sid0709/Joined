@@ -26,6 +26,7 @@ describe("routes", () => {
     expect(ROUTES.pricing).toBe("/pricing");
     expect(ROUTES.billingSuccess).toBe("/settings/billing/success");
     expect(ROUTES.billingCancel).toBe("/settings/billing/cancel");
+    expect(ROUTES.premiumTerms).toBe("/premium-terms");
     expect(settingsSectionHref("billing")).toBe(
       `${ROUTES.settings}?${SETTINGS_SECTION_QUERY}=billing`,
     );

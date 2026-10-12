@@ -6,6 +6,7 @@ import {
   Banner,
   Button,
   HStack,
+  Link,
   MetadataList,
   MetadataListItem,
   Stack,
@@ -136,6 +137,9 @@ export function BillingSettings({
           {checkoutEnabled
             ? "Choose monthly or yearly on the pricing page, then finish in Stripe Checkout."
             : BILLING_MESSAGES.checkoutDisabledDescription}
+        </MetadataListItem>
+        <MetadataListItem label="Premium terms">
+          <Link href={ROUTES.premiumTerms}>Draft Premium terms</Link>
         </MetadataListItem>
       </MetadataList>
     </Stack>

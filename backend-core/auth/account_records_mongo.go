@@ -25,6 +25,7 @@ type storedAccountDoc struct {
 	PasswordSalt []byte    `bson:"passwordSalt,omitempty"`
 	Verified     bool      `bson:"verified,omitempty"`
 	CreatedAt    time.Time `bson:"createdAt"`
+	SuspendedAt  time.Time `bson:"suspendedAt,omitempty"`
 }
 
 func (m *mongoAccountRecords) InsertUser(ctx context.Context, user AccountUser) error {
@@ -70,6 +71,7 @@ func (m *mongoAccountRecords) findUser(ctx context.Context, filter bson.D) (Acco
 		PasswordSalt: doc.PasswordSalt,
 		Verified:     doc.Verified,
 		CreatedAt:    doc.CreatedAt,
+		SuspendedAt:  doc.SuspendedAt,
 	}, nil
 }
 

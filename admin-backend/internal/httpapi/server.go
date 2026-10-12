@@ -48,6 +48,9 @@ type Server struct {
 	importRuns        jobs.ImportRunLog
 	switches          killswitch.Switches
 	scamHolds         jobscam.API
+	accounts          AccountAdmin
+	premium           PremiumAdmin
+	quality           QualityReader
 	prometheus        monitoring.Querier
 	statusPage        statuspage.Store
 }
@@ -83,6 +86,12 @@ type Options struct {
 	KillSwitches killswitch.Switches
 	// ScamHolds is the held-job queue for fake/scam scores. Nil answers 503.
 	ScamHolds jobscam.API
+	// Accounts looks up Joined users and suspends login. Nil answers 503.
+	Accounts AccountAdmin
+	// Premium cancels and refunds Joined Premium. Nil answers 503 on those actions.
+	Premium PremiumAdmin
+	// Quality supplies job quality aggregates. Nil uses the scam-hold total for held.
+	Quality QualityReader
 	// Prometheus feeds the system monitoring page. Nil answers 503.
 	Prometheus monitoring.Querier
 	// StatusPage holds the public status page's incidents. Nil answers 503.
@@ -112,6 +121,9 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		importRuns:        opts.Import.Runs,
 		switches:          opts.KillSwitches,
 		scamHolds:         opts.ScamHolds,
+		accounts:          opts.Accounts,
+		premium:           opts.Premium,
+		quality:           opts.Quality,
 		prometheus:        opts.Prometheus,
 		statusPage:        opts.StatusPage,
 	}
@@ -142,6 +154,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerStaffAdmin(api)
 	server.registerKillSwitches(api)
 	server.registerScamHolds(api)
+	server.registerUsers(api)
+	server.registerOps(api)
 	server.registerAIModel(api)
 	server.registerMonitoring(api)
 	server.registerStatusIncidents(api)

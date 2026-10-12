@@ -984,6 +984,9 @@ func (s *Store) DecidePayout(ctx context.Context, id, actor string, input Payout
 			if err := wrapPayoutIdentity(FirstPayoutIdentityError(profile, paid)); err != nil {
 				return Payout{}, err
 			}
+			if err := s.gateTaxScreening(ctx, payout.ScoutUserID, &profile); err != nil {
+				return Payout{}, err
+			}
 		}
 		return s.approvePayout(ctx, payout, actor, note)
 	case PayoutDecisionReject:

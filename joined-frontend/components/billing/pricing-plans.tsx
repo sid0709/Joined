@@ -9,6 +9,7 @@ import {
   Grid,
   Heading,
   HStack,
+  Link,
   List,
   ListItem,
   Stack,
@@ -131,6 +132,10 @@ export function PricingPlans({
           );
         })}
       </Grid>
+      <Text color="secondary" display="block">
+        Premium checkout stays in Stripe test mode. Read the{" "}
+        <Link href={ROUTES.premiumTerms}>Premium terms</Link>.
+      </Text>
     </Stack>
   );
 }

@@ -122,7 +122,7 @@ func TestPaidPayoutGrandfathersVerifiedScout(t *testing.T) {
 	if _, err := store.EnsureProfile(ctx, "scout-1"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.SaveTaxInfo(ctx, "scout-1", TaxInput{LegalName: "Ada Lovelace", Country: "GB", TaxIDLast4: "1234"}); err != nil {
+	if _, err := store.SaveTaxInfo(ctx, "scout-1", TaxInput{LegalName: "Ada Lovelace", Country: "GB", TaxIDLast4: "1234", FormType: TaxFormW8BEN}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.SavePayoutMethod(ctx, "scout-1", PayoutMethodInput{Type: payoutBank, Label: "Barclays", Last4: "9999"}); err != nil {
@@ -180,7 +180,7 @@ func seedPayoutSetup(t *testing.T, store *Store, userID, holder string) {
 	if _, err := store.EnsureProfile(ctx, userID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.SaveTaxInfo(ctx, userID, TaxInput{LegalName: "Ada Lovelace", Country: "GB", TaxIDLast4: "1234"}); err != nil {
+	if _, err := store.SaveTaxInfo(ctx, userID, TaxInput{LegalName: "Ada Lovelace", Country: "GB", TaxIDLast4: "1234", FormType: TaxFormW8BEN}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.SavePayoutMethod(ctx, userID, PayoutMethodInput{Type: payoutBank, Label: "Barclays", Last4: "9999", HolderName: holder}); err != nil {

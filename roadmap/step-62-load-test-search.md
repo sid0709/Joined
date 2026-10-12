@@ -1,12 +1,14 @@
 # Step 62: Load test search and job pages
 
 - **Week:** W4
-- **Status:** Planned
+- **Status:** Done
 - **Owner:** Quinn / Ravi (Quinn owns the harness in `tests/**`; Ravi owns API fixes in his lane)
 - **Target branch:** `stage-roadmap-w34`
 - **PR title:** `test(load): search and job pages (roadmap step-62)`
 
 Every commit must be a lowercase conventional commit (`type(scope): subject`) or commitlint fails CI.
+
+Local-only harness in `tests/load/`. CI does not run it. Thresholds are named constants. The command refuses `joinedhq.com`. A live baseline is produced on a machine where joined-backend and joined-frontend are already running.
 
 ## Goal
 
