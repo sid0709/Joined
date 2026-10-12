@@ -102,7 +102,10 @@ function hiringCafeTab({
     return { html: "", url: href };
   };
   const idFromSelector = (selector) => {
-    const path = String(selector || "").match(/href\$="([^"]+)"/)?.[1] || "";
+    const hrefs = [...String(selector || "").matchAll(/href\$="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    const path = hrefs.at(-1) || "";
     return path.match(/-([a-z0-9]+)$/i)?.[1] || hoveredId;
   };
   const listWithOverlay = () =>
@@ -171,6 +174,18 @@ function hiringCafeTab({
     if (op.op === "unwatchFetch") return { watching: false };
     if (op.op === "click") {
       clicks.push(op);
+      const selector = String(op.selector || "");
+      const show = selector.match(/Show job (\d+)/i);
+      const groupIds = ["reqaaa1111111111", "reqbbb2222222222", "reqccc3333333333"];
+      if (show) {
+        hoveredId = groupIds[Number(show[1]) - 1] || hoveredId;
+        overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
+      }
+      if (/Next job at this company/.test(selector)) {
+        const index = Math.max(0, groupIds.indexOf(hoveredId));
+        hoveredId = groupIds[(index + 1) % groupIds.length];
+        overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
+      }
       if (op.contains === MARK_APPLIED_TEXT) {
         if (hoveredId) appliedIds.add(hoveredId);
         overlay = overlayMarkup({ applied: true });

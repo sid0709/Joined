@@ -5,23 +5,16 @@ import {
   HIRINGCAFE_ORIGIN,
   JOB_CARD,
   JOB_LINK,
-  JOB_PATH,
   POSTED_CHIP,
+  jobPathFromHref,
+  requisitionIdFromHref,
 } from "./constants.js";
 import { documentFromHtml, resolveUrl, textOf } from "./html.js";
 import { pageFromListUrl } from "./lists.js";
 import { readPageProps, readSsrHits } from "./parseNextData.js";
 import { asText, jobPathFromHit, requisitionIdOf } from "./values.js";
 
-const JOB_ID_FROM_HREF = /\/job\/(?:[^/]*-)?([a-z0-9]+)$/i;
-
-export function requisitionIdFromHref(href) {
-  const path = String(href || "")
-    .split("?")[0]
-    .replace(/\/$/, "");
-  if (!path.includes(JOB_PATH)) return "";
-  return path.match(JOB_ID_FROM_HREF)?.[1] || "";
-}
+export { requisitionIdFromHref };
 
 function groupHits(hits) {
   const groups = [];
@@ -56,12 +49,15 @@ function hrefsByRequisition(document, pageUrl) {
 export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: new Map() }) {
   const id = requisitionIdOf(hit);
   if (!id) return null;
-  const path = jobPathFromHit(hit);
+  const liveHref = cards.hrefs.get(id) || "";
+  const livePath = jobPathFromHref(liveHref);
+  const path = livePath || jobPathFromHit(hit);
   return {
     id,
     title: asText(hit?.job_information?.title),
-    url: cards.hrefs.get(id) || resolveUrl(path, pageUrl),
+    url: liveHref || resolveUrl(path, pageUrl),
     path,
+    cardHref: liveHref,
     collapseKey: asText(hit?.collapse_key),
     companyName: asText(
       hit?.enriched_company_data?.name ||
@@ -70,7 +66,7 @@ export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: ne
     ),
     applyUrl: asText(hit?.apply_url),
     postedRaw: cards.posted.get(id) || "",
-    cardJobId: cards.hrefs.has(id) ? id : "",
+    cardJobId: liveHref ? id : "",
     groupIds: [],
     groupIndex: 1,
     groupSize: 1,
@@ -95,10 +91,18 @@ function attachGroups(jobs, groups, cards) {
     if (!job.cardJobId) {
       job.cardJobId = job.collapseKey ? cardByGroup.get(job.collapseKey) || "" : "";
     }
+    if (!job.cardHref && job.cardJobId) {
+      job.cardHref = cards.hrefs.get(job.cardJobId) || "";
+    }
     if (!job.postedRaw && job.cardJobId) {
       job.postedRaw = cards.posted.get(job.cardJobId) || "";
     }
-    job.groupPaths = (group?.hits ?? []).map((hit) => jobPathFromHit(hit)).filter(Boolean);
+    job.groupPaths = (group?.hits ?? [])
+      .map((item) => {
+        const itemId = requisitionIdOf(item);
+        return jobPathFromHref(cards.hrefs.get(itemId)) || jobPathFromHit(item);
+      })
+      .filter(Boolean);
   }
   return jobs;
 }

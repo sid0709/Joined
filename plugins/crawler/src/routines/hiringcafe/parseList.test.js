@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { displayPage, resumeLabelFromCursor } from "./constants.js";
+import { displayPage, jobCardSelector, resumeLabelFromCursor } from "./constants.js";
 import { isHiringCafeHost, isHiringCafeUrl } from "./html.js";
 import {
   crawlListUrl,
@@ -12,7 +12,7 @@ import {
   pageFromListUrl,
 } from "./lists.js";
 import { parseList, requisitionIdFromHref } from "./parseList.js";
-import { groupedHits, listPageHtml } from "./testing/pageHtml.js";
+import { cardMarkup, carouselMarkup, groupedHits, listPageHtml } from "./testing/pageHtml.js";
 import "./testing/domParser.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
@@ -32,7 +32,12 @@ describe("parseList grouping", () => {
     expect(parsed.groups).toHaveLength(2);
     expect(parsed.groups[0].hits).toHaveLength(3);
     expect(parsed.jobs[0].url).toContain("/job/help-desk-coordinator-reqaaa1111111111");
+    expect(parsed.jobs[0].cardHref).toContain("/job/help-desk-coordinator-reqaaa1111111111");
     expect(parsed.jobs[1].url).toContain("/job/associate-category-manager-reqbbb2222222222");
+    expect(parsed.jobs[1].cardHref).toContain("/job/help-desk-coordinator-reqaaa1111111111");
+    expect(jobCardSelector(parsed.jobs[1])).toContain(
+      'href$="/job/help-desk-coordinator-reqaaa1111111111"',
+    );
     expect(parsed.jobs[0].groupIndex).toBe(1);
     expect(parsed.jobs[1].groupIndex).toBe(2);
     expect(parsed.jobs[0].groupSize).toBe(3);
@@ -45,6 +50,30 @@ describe("parseList grouping", () => {
     expect(parsed.page).toBe(0);
     expect(parsed.isLastPage).toBe(false);
     expect(parsed.nextPage).toBe(1);
+  });
+
+  test("builds the card selector from the live href, not a title slug", () => {
+    const parsed = parseList(
+      listPageHtml({
+        hits: groupedHits(),
+        cards: [
+          cardMarkup("/job/help-desk-coord-i-reqaaa1111111111", "3h", {
+            carousel: carouselMarkup(3, 1),
+          }),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h"),
+        ],
+      }),
+      LIST_URL,
+    );
+    expect(parsed.jobs[0].path).toBe("/job/help-desk-coord-i-reqaaa1111111111");
+    expect(parsed.jobs[0].cardHref).toContain("/job/help-desk-coord-i-reqaaa1111111111");
+    expect(jobCardSelector(parsed.jobs[0])).toContain(
+      'href$="/job/help-desk-coord-i-reqaaa1111111111"',
+    );
+    expect(jobCardSelector(parsed.jobs[0])).not.toContain("help-desk-coordinator-reqaaa");
+    expect(jobCardSelector(parsed.jobs[1])).toContain(
+      'href$="/job/help-desk-coord-i-reqaaa1111111111"',
+    );
   });
 
   test("uses requisition_id as the job id and keeps later grouped hits", () => {

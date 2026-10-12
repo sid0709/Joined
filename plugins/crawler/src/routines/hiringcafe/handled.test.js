@@ -60,7 +60,10 @@ describe("handled skip", () => {
     expect(jobLinkPath({ url: "not a url" })).toBe("");
     expect(
       jobCardSelectorForJobs([
-        { id: "reqaaa1111111111", path: "/job/help-desk-coordinator-reqaaa1111111111" },
+        {
+          id: "reqaaa1111111111",
+          url: "https://hiringcafe.com/job/help-desk-coordinator-reqaaa1111111111",
+        },
         { id: "" },
       ]),
     ).toContain("help-desk-coordinator-reqaaa1111111111");
@@ -106,13 +109,13 @@ describe("handled skip", () => {
     expect(
       jobCardSelector({
         id: "reqaaa1111111111",
-        path: "/job/help-desk-coordinator-reqaaa1111111111",
+        url: "https://hiringcafe.com/job/help-desk-coordinator-reqaaa1111111111",
       }),
     ).toContain('href$="/job/help-desk-coordinator-reqaaa1111111111"');
     expect(
       jobCardSelector({
         id: "reqaaa1111111111",
-        path: "/job/help-desk-coordinator-reqaaa1111111111",
+        url: "https://hiringcafe.com/job/help-desk-coordinator-reqaaa1111111111",
       }),
     ).not.toContain('href*="');
     const store = createHiringCafeStore(memoryStorage());

@@ -7,15 +7,14 @@ import {
   CARD_OVERLAY,
   jobCardSelector,
   jobCardSelectorForJobs,
-  jobLinkPath,
   MARK_APPLIED,
   MARK_APPLIED_TEXT,
+  MARK_TOAST,
   MARK_TOAST_TEXT,
   SIGN_IN_DIALOG,
   SIGN_IN_DIALOG_RE,
 } from "./constants.js";
 import { documentFromHtml, textOf } from "./html.js";
-import { requisitionIdFromHref } from "./parseList.js";
 import { readSignedIn } from "./parseNextData.js";
 
 function normalizeText(value) {
@@ -33,19 +32,8 @@ function hasExactText(root, needle) {
   return false;
 }
 
-function jobsForCard(job) {
-  if (job?.groupPaths?.length) {
-    return job.groupPaths.map((path, index) => ({
-      path,
-      id: job.groupIds?.[index] || requisitionIdFromHref(path),
-    }));
-  }
-  if (jobLinkPath(job) && job?.id) return [job];
-  return [];
-}
-
 export function cardSelectorForJob(job) {
-  return jobCardSelectorForJobs(jobsForCard(job)) || jobCardSelector(job);
+  return jobCardSelector(job) || jobCardSelectorForJobs([job]);
 }
 
 export function cardForJob(document, job) {
@@ -78,7 +66,11 @@ export function hasMarkAppliedControl(root) {
 }
 
 export function hasMarkToast(html) {
-  return normalizeText(html).includes(MARK_TOAST_TEXT);
+  if (!html) return false;
+  const document = documentFromHtml(html);
+  return queryAll(document, MARK_TOAST).some((node) =>
+    normalizeText(textOf(node)).includes(MARK_TOAST_TEXT),
+  );
 }
 
 export function hasVisibleSignInModal(html) {

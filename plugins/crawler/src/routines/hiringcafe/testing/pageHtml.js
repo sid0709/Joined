@@ -90,7 +90,7 @@ export function carouselMarkup(size = 3, current = 1) {
 }
 
 export function toastMarkup() {
-  return `<div>Job marked successfully</div>`;
+  return `<div role="status" class="toast">Job marked successfully</div>`;
 }
 
 export function signInDialogMarkup() {

@@ -29,6 +29,7 @@ export const MARK_APPLIED_TEXT = "Mark Applied";
 export const APPLIED_CHECK_TEXT = "Applied ✓";
 export const APPLIED_CHECK_RE = /applied\s*✓/i;
 export const MARK_TOAST_TEXT = "Job marked successfully";
+export const MARK_TOAST = '[role="status"], [role="alert"], [class*="toast"]';
 export const APP_TRACKER_TEXT = "App Tracker";
 export const UPDATE_STAGE_PATH = "/api/updateMarketplaceJobStageForUser";
 export const UPDATE_STAGE_OK = "Update successful";
@@ -170,33 +171,48 @@ export function cardInvalidDecision(fields) {
   return `invalid ${names.join(", ") || "job data"}`;
 }
 
-/** Path ending `/job/<slug>-<id>` from a list hit or the live card href. */
-export function jobLinkPath(job) {
-  if (!job || typeof job !== "object") return "";
-  const fromPath = String(job.path || "")
-    .split("?")[0]
-    .replace(/\/$/, "");
-  if (fromPath.startsWith(JOB_PATH)) return fromPath;
-  const href = String(job.url || job.href || "");
-  if (!href) return "";
+const JOB_ID_FROM_HREF = /\/job\/(?:[^/]*-)?([a-z0-9]+)$/i;
+
+/** Path ending `/job/<slug>-<id>` from a live href. Title slugs are ignored. */
+export function jobPathFromHref(href) {
+  const raw = String(href || "").trim();
+  if (!raw) return "";
+  const stripped = raw.split("?")[0].replace(/\/$/, "");
+  if (stripped.startsWith(JOB_PATH)) return stripped;
   try {
-    const path = new URL(href, HIRINGCAFE_ORIGIN).pathname.replace(/\/$/, "");
+    const path = new URL(raw, HIRINGCAFE_ORIGIN).pathname.replace(/\/$/, "");
     return path.startsWith(JOB_PATH) ? path : "";
   } catch {
     return "";
   }
 }
 
+export function requisitionIdFromHref(href) {
+  const path = jobPathFromHref(href);
+  if (!path) return "";
+  return path.match(JOB_ID_FROM_HREF)?.[1] || "";
+}
+
+/** Path ending `/job/<slug>-<id>` from the live card/detail href, then `path`. */
+export function jobLinkPath(job) {
+  if (!job || typeof job !== "object") return "";
+  return jobPathFromHref(job.url || job.href || job.path);
+}
+
 /**
- * Card that owns this posting: the job link's path must end with
- * `/job/<slug>-<id>`, and the id is passed through CSS.escape.
+ * Card that owns this posting. Built from the card's real href (`cardHref`,
+ * then `url`/`href`), not a title-slug `path`. After a grouped carousel the
+ * live href changes, so a sibling also matches `href$="-<id>"`.
  */
 export function jobCardSelector(job) {
-  const path = jobLinkPath(job);
+  const path = jobPathFromHref(job?.cardHref || job?.url || job?.href);
+  const hrefId = requisitionIdFromHref(path);
+  if (!path || !hrefId || !path.endsWith(`-${hrefId}`)) return "";
+  const prefix = path.slice(0, path.length - hrefId.length);
+  const exact = `${JOB_CARD}:has(a[href$="${prefix}${cssEscape(hrefId)}"])`;
   const id = String(job?.id || "").trim();
-  if (!path || !id || !path.endsWith(`-${id}`)) return "";
-  const prefix = path.slice(0, path.length - id.length);
-  return `${JOB_CARD}:has(a[href$="${prefix}${cssEscape(id)}"])`;
+  if (!id || id === hrefId) return exact;
+  return `${exact}, ${JOB_CARD}:has(a[href$="-${cssEscape(id)}"])`;
 }
 
 export function jobCardSelectorForJobs(jobs) {

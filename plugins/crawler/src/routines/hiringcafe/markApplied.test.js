@@ -40,6 +40,8 @@ import "./testing/domParser.js";
 const JOB = {
   id: "reqaaa1111111111",
   path: "/job/help-desk-coordinator-reqaaa1111111111",
+  url: "https://hiringcafe.com/job/help-desk-coordinator-reqaaa1111111111",
+  cardHref: "https://hiringcafe.com/job/help-desk-coordinator-reqaaa1111111111",
   groupIds: ["reqaaa1111111111", "reqbbb2222222222", "reqccc3333333333"],
   groupPaths: [
     "/job/help-desk-coordinator-reqaaa1111111111",
@@ -106,6 +108,8 @@ describe("HiringCafe applied-state readers", () => {
     expect(hasAppliedCheck(unmarked)).toBe(false);
     expect(appliedStateFromHtml(marked, JOB)).toMatchObject({ marked: true, canMark: false });
     expect(hasMarkToast(`${unmarked}${toastMarkup()}`)).toBe(true);
+    expect(hasMarkToast(`${unmarked}<p>${MARK_TOAST_TEXT}</p>`)).toBe(false);
+    expect(hasMarkToast("")).toBe(false);
     expect(isSignedOutWall(signInDialogMarkup())).toBe(true);
     expect(
       stageUpdateSucceeded([
@@ -136,7 +140,8 @@ describe("HiringCafe applied-state readers", () => {
     expect(
       appliedStateFromHtml(html, {
         id: "reqddd4444444444",
-        path: "/job/labor-production-reqddd4444444444",
+        url: "https://hiringcafe.com/job/labor-production-reqddd4444444444",
+        cardHref: "https://hiringcafe.com/job/labor-production-reqddd4444444444",
       }).marked,
     ).toBe(true);
     expect(hasAppliedCheck(html)).toBe(true);
