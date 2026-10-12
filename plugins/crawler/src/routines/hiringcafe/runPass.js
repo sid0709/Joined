@@ -16,9 +16,12 @@ import {
   CARD_SKIP_ALREADY_APPLIED,
   CARD_SKIP_DETAIL_HANDLED,
   CARD_SKIP_HANDLED,
+  CARD_SKIP_INGEST_NOT_ACCEPTED,
   CARD_SKIP_INGEST_REJECTED,
+  CARD_SKIP_INGEST_TIMEOUT,
   CARD_SKIP_METADATA_SIZE,
   CARD_SKIP_NO_URL,
+  NOT_MARKED_REASON,
   INVALID_STREAK,
   INVALID_STREAK_MESSAGE,
   JOB_DELAY_MS,
@@ -33,6 +36,7 @@ import {
   emptyPageLabel,
   jobCardSelector,
   jitterMs,
+  notMarkedLog,
   stuckPageMessage,
 } from "./constants.js";
 import { expandShortGroups } from "./expandGroups.js";
@@ -173,6 +177,25 @@ function markDeltaOf(result) {
     notMarked: result?.marked ? 0 : 1,
     reason: result?.marked ? "" : String(result?.reason || result?.log || "").trim(),
     log: result?.log || "",
+  };
+}
+
+function ingestSkipOf(accepted) {
+  if (accepted === false) {
+    return {
+      decision: CARD_SKIP_INGEST_REJECTED,
+      reason: NOT_MARKED_REASON.INGEST_REJECTED,
+    };
+  }
+  if (accepted === null) {
+    return {
+      decision: CARD_SKIP_INGEST_TIMEOUT,
+      reason: NOT_MARKED_REASON.INGEST_TIMEOUT,
+    };
+  }
+  return {
+    decision: CARD_SKIP_INGEST_NOT_ACCEPTED,
+    reason: NOT_MARKED_REASON.NOT_ACCEPTED,
   };
 }
 
@@ -510,9 +533,20 @@ export async function runHiringCafePass(ctx, progress) {
       }
       throw error;
     }
-    if (accepted === false) {
-      noteJobDecision(jobId, CARD_SKIP_INGEST_REJECTED);
+    if (accepted !== true) {
+      const { decision, reason } = ingestSkipOf(accepted);
+      const log = notMarkedLog(jobId, reason);
+      noteJobDecision(jobId, decision);
+      hooks.onNotice?.(log, false);
       hooks.recordOutcome?.(SCRAPE_OUTCOMES.FAILED);
+      emitCursor({
+        card: jobId,
+        cardIndex: jobIndex,
+        cardsOnPage: parsed.jobs.length,
+        jobIndex,
+        jobsOnPage: parsed.jobs.length,
+        markDelta: { marked: 0, notMarked: 1, reason, log },
+      });
       await advancePast(jobId);
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;

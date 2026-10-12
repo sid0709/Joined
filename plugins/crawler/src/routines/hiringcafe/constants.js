@@ -107,6 +107,8 @@ export const CARD_SKIP_DETAIL_HANDLED = "job page already handled";
 export const CARD_SKIP_ALREADY_APPLIED = "already marked applied";
 export const CARD_SKIP_METADATA_SIZE = "metadata too large";
 export const CARD_SKIP_INGEST_REJECTED = "ingest rejected";
+export const CARD_SKIP_INGEST_TIMEOUT = "ingest timed out";
+export const CARD_SKIP_INGEST_NOT_ACCEPTED = "ingest not accepted";
 
 export const POSTED_AT_SOURCE = Object.freeze({
   ESTIMATED_PUBLISH_DATE: "estimated_publish_date",
@@ -121,6 +123,8 @@ export const NOT_MARKED_REASON = Object.freeze({
   CLICK_MISSED: "Mark Applied click missed",
   NOT_CONFIRMED: "no Applied ✓, toast, or stage 200",
   INGEST_REJECTED: "ingest rejected",
+  INGEST_TIMEOUT: "ingest timed out",
+  NOT_ACCEPTED: "ingest not accepted",
 });
 
 export const COMPENSATION_PERIODS = Object.freeze([

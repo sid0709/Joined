@@ -59,6 +59,9 @@ describe("handled skip", () => {
     expect(markedReasonsLabel(["hover missed overlay", "hover missed overlay"])).toBe(
       "hover missed overlay",
     );
+    expect(markedReasonsLabel(["ingest timed out", "ingest not accepted"])).toBe(
+      "ingest timed out · ingest not accepted",
+    );
     expect(jobLinkPath("reqaaa1111111111")).toBe("");
     expect(jobLinkPath({ url: "https://hiringcafe.com/classic" })).toBe("");
     expect(jobLinkPath({ url: "not a url" })).toBe("");

@@ -142,7 +142,8 @@ export function signInDialogMarkup() {
 export function cardMarkup(href, postedRaw = "", extras = {}) {
   const overlay = extras.overlay || "";
   const carousel = extras.carousel || "";
-  return `<div><a href="${href}">Job Posting</a>${overlay}${carousel}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
+  const viewAll = extras.viewAll || "";
+  return `<div><a href="${href}">Job Posting</a>${overlay}${carousel}${viewAll}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
 }
 
 export function listPageHtml({

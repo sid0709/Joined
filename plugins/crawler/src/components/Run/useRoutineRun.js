@@ -18,6 +18,7 @@ import {
   runRoutinePass,
 } from "../../routineKit/runner";
 
+import { ingestAcceptFromOutcome } from "./ingestAccept";
 import { toJobPayload } from "./jobPayload";
 import {
   applyActiveQueueSnapshot,
@@ -43,14 +44,6 @@ export const RUN_STATUS = Object.freeze({
 
 const INGEST_ACCEPT_TIMEOUT_MS = 20_000;
 const INGEST_ACCEPT_RETRIES = 1;
-
-function isIngestAccepted(outcome) {
-  return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
-}
-
-function isIngestRejected(outcome) {
-  return outcome === SCRAPE_OUTCOMES.FAILED || outcome === SCRAPE_OUTCOMES.VALIDATION;
-}
 
 /**
  * A routine run: start/stop, the pass loop, and everything the Run tab shows about it.
@@ -136,11 +129,7 @@ export function useRoutineRun() {
       if (already) {
         ingestOutcomes.current.delete(id);
         earlyResults.current.delete(id);
-        if (isIngestRejected(already)) {
-          resolve(false);
-          return;
-        }
-        resolve(isIngestAccepted(already) ? true : null);
+        resolve(ingestAcceptFromOutcome(already));
         return;
       }
       let attempts = 0;
@@ -151,11 +140,7 @@ export function useRoutineRun() {
           if (late) {
             ingestOutcomes.current.delete(id);
             earlyResults.current.delete(id);
-            if (isIngestRejected(late)) {
-              resolve(false);
-              return;
-            }
-            resolve(isIngestAccepted(late) ? true : null);
+            resolve(ingestAcceptFromOutcome(late));
             return;
           }
           if (attempts < INGEST_ACCEPT_RETRIES) {
@@ -167,11 +152,7 @@ export function useRoutineRun() {
         }, INGEST_ACCEPT_TIMEOUT_MS);
         ingestWaiters.current.set(id, (outcome) => {
           clearTimeout(timer);
-          if (isIngestRejected(outcome)) {
-            resolve(false);
-            return;
-          }
-          resolve(isIngestAccepted(outcome) ? true : null);
+          resolve(ingestAcceptFromOutcome(outcome));
         });
       };
       arm();
@@ -210,9 +191,11 @@ export function useRoutineRun() {
             earlyResults.current.delete(response.id);
             applyItemResult(entry.key, early);
           }
-          if (!targetRef.current?.routine?.options?.waitForIngestAccept) return;
-          const accepted = early ? isIngestAccepted(early) : await waitForIngestAccept(response.id);
-          if (accepted === false) return false;
+          if (!targetRef.current?.routine?.options?.waitForIngestAccept) return true;
+          const accepted = early
+            ? ingestAcceptFromOutcome(early)
+            : await waitForIngestAccept(response.id);
+          return accepted;
         })
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
