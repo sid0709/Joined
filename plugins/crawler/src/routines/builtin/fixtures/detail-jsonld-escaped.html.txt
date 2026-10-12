@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+  <head>
+    <script type="application/ld&#x2B;json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@context": "https://schema.org",
+            "@type": "JobPosting",
+            "title": "Staff/ Principal Engineer, OCT MTE Material Engineering",
+            "description": "<b>Our vision is to transform how the world uses information to enrich life for all . </b><br>Micron Technology is a world leader in innovating memory and storage solutions that accelerate the transformation of information into intelligence, inspiring the world to learn, communicate and advance faster than ever.<br><b>Summary</b><br><b>Department Introduction</b><br>The OCT Material &amp; Filtration Engineering team supports Micron's global manufacturing network. The team focuses on material quality, risk reduction, and continuous improvement to enable successful technology ramps and sustainable manufacturing performance. We collaborate closely with engineering, quality, procurement, and operations partners around the world.<br><b>Position Overview</b><br>As an OCT MTE Material Engineering Staff/Principal Engineer, you will contribute to material quality, filtration strategy, and value-engineering efforts across multiple sites. In this role, you will help shape global material strategies, strengthen risk controls, and share guidelines that improve safety, quality, speed, and cost. This position offers opportunities to grow technical influence while making a meaningful impact on technology development and high-volume manufacturing.<br><b>Responsibilities</b><br><ul><li>Support and lead material quality, filtration, risk mitigation, and value-engineering initiatives across the global network.</li><li>Partner with global and site teams to define and align material technical requirements and qualifications.</li><li>Develop, share, and sustain Best Known Methods (BKMs) across manufacturing sites.</li><li>Collaborate with fabs to build and complete material roadmaps that support technology ramps.</li><li>Facilitate global peer teams to align priorities, strategies, and execution to manufacturing goals.</li><li>Plan and manage projects aligned to fab, central, and corporate objectives, balancing impact and resources.</li><li>Use data and benchmarks to identify improvement opportunities and help deploy scalable solutions.</li></ul><br><b>Minimum Qualifications</b><br><ul><li>Bachelor's or Master's degree in Science or Engineering, or equivalent practical experience.</li><li>5+ years of experience in semiconductor manufacturing, materials engineering, or a related technical field.</li><li>Experience working in global, multi-functional environments with varied partners.</li><li>Clear written and verbal communication skills, with a structured approach to problem solving.</li><li>Willingness to travel as needed to support global teams and initiatives.</li></ul><br><b>Preferred Qualifications</b><br><ul><li>Master's degree or PhD in Materials Science, Engineering, or a related discipline. 8 Plus Years Experience .</li><li>Exposure to NAND and/or DRAM manufacturing environments.</li><li>Experience in process or equipment engineering within semiconductor fabs.</li><li>Involvement in technology node ramps or high-volume manufacturing operations.</li><li>Interest or experience in deploying global standards, shared best practices, or continuous improvement efforts.</li><li><b>Experience and/or interest in developing Agentic AI workflows into current or future processes</b>. </li><li></li></ul><br>As a world leader in the semiconductor industry, Micron is dedicated to your personal wellbeing and professional growth. Micron benefits are designed to help you stay well, provide peace of mind and help you prepare for the future.  We offer a choice of medical, dental and vision plans in all locations enabling team members to select the plans that best meet their family healthcare needs and budget.  Micron also provides benefit programs that help protect your income if you are unable to work due to illness or injury, and paid family leave.  Additionally, Micron benefits include a robust paid time-off program and paid holidays.   For additional information regarding the Benefit programs available, please see the Benefits Guide posted on micron.com/careers/benefits . <br>Micron is proud to be an equal opportunity workplace and is an affirmative action employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, age, national origin, citizenship status, disability, protected veteran status, gender identity or any other factor protected by applicable federal, state, or local laws.<br>To learn about your <b> right to work click here. </b> <br>To learn more about Micron, please visit<b> micron.com/careers </b><br>For US Sites Only: To request assistance with the application process and/or for reasonable accommodations, please contact Micron's People Organization at  hrsupport_na@micron.com or 1-800-336-8918 (select option #3)<br>Micron Prohibits the use of child labor and complies with all applicable laws, rules, regulations, and other international and industry labor standards.<br>Micron does not charge candidates any recruitment fees or unlawfully collect any other payment from candidates as consideration for their employment with Micron.<br>AI alert<b>:</b> Candidates are encouraged to use AI tools to enhance their resume and/or application materials. However, all information provided must be accurate and reflect the candidate's true skills and experiences. Misuse of AI to fabricate or misrepresent qualifications will result in immediate disqualification.  <br>Fraud alert: Micron advises job seekers to be cautious of unsolicited job offers and to verify the authenticity of any communication claiming to be from Micron by checking the official Micron careers website in the About Micron Technology, Inc.",
+            "directApply": false,
+            "identifier": {
+              "@type": "PropertyValue",
+              "name": "Micron Technology",
+              "value": "9256204"
+            },
+            "datePosted": "2026-10-12",
+            "employmentType": "FULL_TIME",
+            "applicantLocationRequirements": { "@type": "Country", "name": "USA" },
+            "hiringOrganization": {
+              "@type": "Organization",
+              "name": "Micron Technology",
+              "sameAs": "https://builtin.com/company/micron-technology",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://builtin.com/sites/www.builtin.com/files/2026-01/micron-symbol-blk-rgb (jpeg).jpeg",
+                "representativeOfPage": true
+              }
+            },
+            "industry": [
+              "Artificial Intelligence",
+              "Hardware",
+              "Information Technology",
+              "Machine Learning"
+            ],
+            "jobBenefits": [
+              "Offers 401(K)",
+              "Provides 401(K) matching",
+              "Offers disability insurance",
+              "Offers life insurance",
+              "Offers charitable contribution matching",
+              "Provides a pension",
+              "Provides free access to retirement planning tools",
+              "Offers supplemental life insurance",
+              "Offers occupational accident insurance",
+              "Offers accidental death & dismemberment insurance",
+              "Offers retiree health & medical",
+              "Offers company equity",
+              "Offers employee stock purchase plan",
+              "Offers performance bonuses",
+              "Offers competitive compensation and rewards package",
+              "Offers employee discounts",
+              "Offers dental insurance",
+              "Offers Flexible Spending Account (FSA)",
+              "Offers health insurance",
+              "Offers vision insurance",
+              "Offers mental health benefits",
+              "Offers Health Savings Account (HSA)",
+              "Offers dependent care",
+              "Offers healthcare on-site",
+              "Provides family medical leave",
+              "Offers generous parental leave",
+              "Provides fertility benefits",
+              "Offers company-sponsored outings",
+              "Flexibility provided during personal challenges",
+              "Offers an Employee Assistance Program (EAP)",
+              "Offers gym membership",
+              "Offers generous PTO",
+              "Offers paid volunteer time",
+              "Provides paid holidays",
+              "Provides paid sick days",
+              "Provides bereavement leave",
+              "Provides military leave",
+              "Offers unpaid extended leave",
+              "Provides customized development tracks",
+              "Posts new positions internally and encourages employees to apply",
+              "Job training & conferences",
+              "Offers mentorship program",
+              "Provides tuition reimbursement",
+              "Offers apprenticeship programs",
+              "Provides structured onboarding for new employees",
+              "Provides structured early-career growth opportunities",
+              "Provides opportunities to take on expanding responsibilities",
+              "Encourages knowledge sharing and cross-functional collaboration",
+              "Provides training support and resources for AI adoption",
+              "Managers hold regular development check-ins",
+              "Provides tuition assistance",
+              "Utilizes a flexible work schedule",
+              "Offers a remote work program",
+              "Provides work from home flexibility",
+              "Open office floor plan to encourage communication and collaboration",
+              "Implements team-based strategic planning",
+              "Defined values and mission statements",
+              "Defined policies promoting a professional, respectful workplace",
+              "Prioritizes mission-driven work in decision-making processes",
+              "Prioritizes real-world impact of work in decision-making processes",
+              "Leadership is transparent and communicative",
+              "Documented policies and procedures to protect employee privacy and data",
+              "Provides onsite office parking",
+              "Office has designated quiet areas and collaboration zones",
+              "Provides a mobile phone discount",
+              "Offers travel concierge services",
+              "Offers legal assistance",
+              "Offers diversity-based Employee Resource Groups",
+              "Quarterly engagement surveys to gauge employee satisfaction",
+              "Provides modern technology across teams",
+              "Encourages autonomy and ownership from employees",
+              "Employee feedback used to shape policies and strategy"
+            ],
+            "jobLocation": [
+              {
+                "@type": "Place",
+                "address": {
+                  "@type": "PostalAddress",
+                  "addressCountry": "USA",
+                  "addressLocality": "Boise",
+                  "addressRegion": "Idaho",
+                  "postalCode": "83716",
+                  "streetAddress": "8000 South Federal Way"
+                },
+                "geo": {
+                  "@type": "GeoCoordinates",
+                  "latitude": 43.615791,
+                  "longitude": -116.201579
+                }
+              },
+              {
+                "@type": "Place",
+                "address": {
+                  "@type": "PostalAddress",
+                  "addressCountry": "USA",
+                  "addressLocality": "Manassas",
+                  "addressRegion": "Virginia",
+                  "postalCode": "20110",
+                  "streetAddress": "9600 Godwin Dr"
+                },
+                "geo": { "@type": "GeoCoordinates", "latitude": 38.750771, "longitude": -77.475089 }
+              }
+            ],
+            "validThrough": "2026-11-11T15:38:54+00:00"
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="job-post-item bg-gray-01" id="9256204">
+      <div class="match-background">
+        <h1><span>From JSON-LD</span></h1>
+        <div class="d-flex align-items-start gap-sm">
+          <i class="fa-regular fa-sack-dollar"></i>
+          <span>90K-100K Annually</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="job-unbounded-responsive">
+      <div class="d-flex align-items-start gap-sm">
+        <i class="fa-regular fa-sack-dollar"></i>
+        <span class="font-barlow text-gray-03">50K-60K Annually</span>
+      </div>
+    </div>
+
+    <script>
+      Builtin.jobPostInit({
+        job: {
+          id: 9256204,
+          isSaved: false,
+          applyUrl: "",
+          applyText: "",
+          companyName: "Micron Technology",
+          title: "Staff/ Principal Engineer, OCT MTE Material Engineering",
+          isEasyApply: false,
+        },
+        isLoggedIn: false,
+      });
+    </script>
+  </body>
+</html>

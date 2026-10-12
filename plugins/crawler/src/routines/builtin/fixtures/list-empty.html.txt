@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Jobs | Built In</title>
+<link rel="canonical" href="https://builtin.com/jobs"/>
+</head><body>
+<div id="jobs"></div>
+<div id="pagination" class="mt-lg z-1">
+                <div class="mb-2xl mt-lg">
+                    <nav aria-label="Articles For the Topic"><ul class="pagination d-flex justify-content-center my-0"><li class="page-item mx-md"><span class="page-link rounded text-dark disabled fw-bold"><i class="fa-solid fa-chevron-left"></i></span></li>
+
+        <li class="mx-xs page-item"><a href="/jobs" aria-label="Go to page 1" class="page-link fw-bold rounded border disabled bg-pretty-blue text-white">1</a></li><li class="mx-xs page-item d-none d-md-block"><a href="/jobs?page=2" aria-label="Go to Page 2" class="page-link border rounded fw-bold text-blue border-0">2</a></li><li class="mx-xs page-item d-none d-md-block"><a href="/jobs?page=3" aria-label="Go to Page 3" class="page-link border rounded fw-bold text-blue border-0">3</a></li><li class="mx-xs page-item d-none d-md-block"><a href="/jobs?page=4" aria-label="Go to Page 4" class="page-link border rounded fw-bold text-blue border-0">4</a></li><li class="mx-xs page-item d-none d-md-block"><a href="/jobs?page=5" aria-label="Go to Page 5" class="page-link border rounded fw-bold text-blue border-0">5</a></li><li class="mx-xs page-item d-none d-md-block"><span class="page-link border-0">...</span></li><li class="mx-xs page-item d-md-none"><span class="page-link border-0">...</span></li><li class="mx-xs page-item"><a href="/jobs?page=1000" aria-label="Go to page 1000" class="page-link border rounded fw-bold border-0">1000</a></li><li class="page-item mx-md"><span class="page-link rounded text-dark disabled fw-bold"><i class="fa-solid fa-chevron-right"></i></span></li></ul></nav>
+<script>Builtin.jobBoardInit({"criteria":{"pageNumber":1,"pageSize":10,"search":""},"isLoggedIn":false,"baseUrl":"jobs","categoriesFilterOptions":[{"id":5,"name":"AI & Machine Learning","seo_name":"AI & Machine Learning","seoName":"AI & Machine Learning","urlName":"ai-machine-learning","alias":"ai-machine-learning"},{"id":1,"name":"Consulting","seo_name":"Consulting","seoName":"Consulting","urlName":"consultant","alias":"consultant"},{"id":2,"name":"Customer Success & Experience","seo_name":"Customer Success & Experience","seoName":"Customer Success & Experience","urlName":"customer-success-experience","alias":"customer-success-experience"}],"remotePreferenceFilterOptions":[{"id":2,"name":"Fully Remote","alias":"remote"},{"id":3,"name":"Hybrid","alias":"hybrid"},{"id":1,"name":"On Site","alias":"office"}]});</script>
+
+</body></html>
