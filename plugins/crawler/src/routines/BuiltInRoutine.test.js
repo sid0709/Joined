@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { SCRAPE_OUTCOMES } from "../api/scrapeRunStats.js";
 import { findRoutineForUrl } from "../routineKit/match.js";
 import { listDeclaredFields } from "../routineKit/routine.js";
 import {
@@ -35,6 +36,7 @@ import {
   stuckPageMessage,
 } from "./builtin/constants.js";
 import { entityIdFromSaveHost, jobCardSelector, jobSaveSelector } from "./builtin/cssEscape.js";
+import { parseDetail } from "./builtin/parseDetail.js";
 import { createBuiltinStore, memoryStorage } from "./builtin/store.js";
 import { loadFixture } from "./builtin/testing/loadFixture.js";
 import BuiltInRoutine from "./BuiltInRoutine.js";
@@ -376,8 +378,14 @@ describe("BuiltInRoutine", () => {
       },
     });
     const activities = [];
+    const fields = [];
+    const notices = [];
+    const outcomes = [];
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
       onActivity: (activity) => activities.push(activity),
+      onField: (path, _value, _record, found) => fields.push({ path, found }),
+      onNotice: (message, ok) => notices.push({ message, ok }),
+      recordOutcome: (outcome) => outcomes.push(outcome),
     });
     expect(records).toHaveLength(1);
     expect(page.navigates).toContain(JOB_A);
@@ -388,6 +396,11 @@ describe("BuiltInRoutine", () => {
           activity.label ===
           cardDecisionLabel("9256204", cardInvalidDecision(["title", "description"])),
       ),
+    ).toBe(true);
+    expect(fields.some((field) => field.path === "title")).toBe(true);
+    expect(outcomes).toContain(SCRAPE_OUTCOMES.VALIDATION);
+    expect(
+      notices.some((notice) => !notice.ok && /invalid title, description/.test(notice.message)),
     ).toBe(true);
     expect(records[0].title).toContain("Specialist Account Executive");
   });
@@ -639,6 +652,36 @@ describe("BuiltInRoutine", () => {
       name: "RoutineBlockedError",
       message: stuckPageMessage(STUCK_PAGE_FAILURES),
     });
+  });
+
+  test("surfaces a thrown parseDetail on the panel and walks to the next card", async () => {
+    const activities = [];
+    const notices = [];
+    const outcomes = [];
+    const page = builtinTab({
+      listHtml: loadFixture("list.html"),
+      details: {
+        [JOB_A]: loadFixture("detail-external.html"),
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+      parseDetail: (html, url, extras) => {
+        if (url === JOB_A) throw new Error("detail DOM collapsed");
+        return parseDetail(html, url, extras);
+      },
+      onActivity: (activity) => activities.push(activity),
+      onNotice: (message, ok) => notices.push({ message, ok }),
+      recordOutcome: (outcome) => outcomes.push(outcome),
+    });
+    expect(records.length).toBeGreaterThan(0);
+    expect(outcomes).toContain(SCRAPE_OUTCOMES.FAILED);
+    expect(
+      notices.some(
+        (notice) => !notice.ok && /extract failed \(detail DOM collapsed\)/.test(notice.message),
+      ),
+    ).toBe(true);
+    expect(page.navigates).toContain(JOB_B);
   });
 
   test("stops after 5 invalid cards in a row", async () => {

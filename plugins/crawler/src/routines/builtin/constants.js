@@ -99,6 +99,8 @@ export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 cards";
 export const PAGE_UNPROCESSED_MESSAGE =
   "This Built In page had no processed cards. Cursor stayed put.";
 export const START_FROM_PAGE_1_LABEL = "Start from page 1";
+export const START_FROM_PAGE_1_HINT =
+  "Clears builtinCrawlCursorV2 so the next run starts at page 1, card 1.";
 export const CLEAR_HANDLED_LABEL = "Clear saved job IDs";
 export const CLEAR_HANDLED_CONFIRM =
   "Clear locally remembered Built In job IDs? The next run will reopen jobs already scraped.";
@@ -140,6 +142,7 @@ export const CARD_SKIP_HEART_SAVED = "list-card heart already saved";
 export const CARD_SKIP_SAVED_BADGE = "visible Saved badge";
 export const CARD_SKIP_NO_URL = "no job URL";
 export const CARD_SKIP_DETAIL_SAVED = "job page already saved";
+export const CARD_SKIP_EXTRACT_FAILED = "extract failed";
 export const SIGN_IN_TO_SAVE_MESSAGE = "Sign in to Built In to save jobs";
 export const SIGN_UP_MODAL_TEXT = "Sign up now. Access later.";
 export const RETRY_PAUSE_MS = 1_000;
@@ -163,6 +166,11 @@ export function cardDecisionLabel(cardId, decision) {
 export function cardInvalidDecision(fields) {
   const names = (fields ?? []).map((field) => String(field).trim()).filter(Boolean);
   return `invalid ${names.join(", ") || "job data"}`;
+}
+
+export function cardExtractFailedDecision(error) {
+  const message = String(error?.message || error || "").trim();
+  return message ? `${CARD_SKIP_EXTRACT_FAILED} (${message})` : CARD_SKIP_EXTRACT_FAILED;
 }
 
 export function jitterMs(range, random = Math.random) {

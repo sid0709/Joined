@@ -9,6 +9,7 @@ import {
   HANDLED_STORAGE_KEY,
 } from "./constants.js";
 import { isUsableCursorVersion } from "./cursorVersion.js";
+import { emptyCursor } from "./lists.js";
 
 /** Drop handled IDs older than 90 days, then keep the newest HANDLED_MAX_IDS. */
 export function pruneHandledRecord(raw, now = Date.now()) {
@@ -141,6 +142,11 @@ export function createBuiltinStore(storage = chromeLocal()) {
     async clearCursor() {
       await writeKey(storage, CURSOR_STORAGE_KEY_V1, null);
       return writeKey(storage, CURSOR_STORAGE_KEY, null);
+    },
+    /** Start from page 1: drop V1 and write a page-1 V2 cursor. */
+    async resetToPage1() {
+      await writeKey(storage, CURSOR_STORAGE_KEY_V1, null);
+      return this.saveCursor(emptyCursor());
     },
     async clearHandled() {
       return writeKey(storage, HANDLED_STORAGE_KEY, {});
