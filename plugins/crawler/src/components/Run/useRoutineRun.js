@@ -109,13 +109,12 @@ export function useRoutineRun() {
         throw error;
       }
       setRecentJobs((jobs) => addRecentJob(jobs, entry));
-      // Fire-and-forget: the pass must not wait on storage or the backend.
-      sendRuntimeMessage({
+      return sendRuntimeMessage({
         action: "scrapeQueue:enqueue",
         payload: { runId: runIdRef.current, job },
       })
         .then((response) => {
-          if (!response?.id) return;
+          if (!response?.id) throw new Error("Failed to enqueue scraped job");
           queueKeys.current.set(response.id, entry.key);
           const early = earlyResults.current.get(response.id);
           if (early) {
@@ -126,6 +125,7 @@ export function useRoutineRun() {
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
           console.error("Failed to enqueue scraped job", error);
+          throw error;
         });
     },
     [applyItemResult],

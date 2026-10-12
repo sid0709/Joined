@@ -5,6 +5,7 @@ import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../ro
 
 import "./builtin/testing/domParser.js";
 import { HANDLED_STORAGE_KEY } from "./builtin/constants.js";
+import { jobSaveSelector } from "./builtin/cssEscape.js";
 import { createBuiltinStore, memoryStorage } from "./builtin/store.js";
 import { loadFixture } from "./builtin/testing/loadFixture.js";
 import BuiltInRoutine from "./BuiltInRoutine.js";
@@ -26,6 +27,7 @@ function builtinExec({
     [JOB_A]: loadFixture("detail-external.html"),
     [JOB_B]: loadFixture("detail-signed-in.html"),
   },
+  paginatedListHtml,
 } = {}) {
   const clicks = [];
   const fetches = [];
@@ -36,7 +38,11 @@ function builtinExec({
       const html = details[op.url];
       if (html == null) {
         const isList = /\/jobs/.test(op.url) && !/\/job\//.test(op.url);
-        return { html: isList ? loadFixture("list-empty.html") : "", url: op.url, status: 200 };
+        return {
+          html: isList ? (paginatedListHtml ?? loadFixture("list-empty.html")) : "",
+          url: op.url,
+          status: 200,
+        };
       }
       return { html, url: op.url, status: 200 };
     }
@@ -88,12 +94,27 @@ describe("BuiltInRoutine", () => {
     const [external] = await collectPass(store2, signed.exec);
     expect(external.applyLink).toBe("https://careers.micron.com/apply/9256204");
     expect(external.tags).not.toContain("Easy Apply");
-    expect(signed.clicks.some((selector) => selector.includes("9256204"))).toBe(true);
+    expect(signed.clicks).toContain(jobSaveSelector("9256204"));
+    expect([...(await store2.loadHandledIds())]).toContain("9256204");
+  });
+
+  test("does not mark handled or Save when enqueue fails", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinExec();
+    await expect(
+      collectPass(store, page.exec, {
+        onRecord: () => {
+          throw new Error("enqueue failed");
+        },
+      }),
+    ).rejects.toThrow("enqueue failed");
+    expect([...(await store.loadHandledIds())]).toEqual([]);
+    expect(page.clicks).toEqual([]);
   });
 
   test("skips handled IDs and Saved cards, then finishes when the lists are empty", async () => {
     const storage = memoryStorage({
-      [HANDLED_STORAGE_KEY]: { 9256204: 1 },
+      [HANDLED_STORAGE_KEY]: { 9256204: Date.now() },
     });
     const store = createBuiltinStore(storage);
     const page = builtinExec({
@@ -144,5 +165,42 @@ describe("BuiltInRoutine", () => {
         signal: stopper.signal,
       }),
     ).rejects.toBeInstanceOf(RoutineStoppedError);
+  });
+
+  test("processes the page when lastJobId is no longer on it", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 1,
+      lastJobId: "gone",
+      lastPageIds: "",
+      lists: [LIST_URL],
+    });
+    const page = builtinExec();
+    const [record] = await collectPass(store, page.exec);
+    expect(page.fetches).toContain(JOB_A);
+    expect(page.fetches).not.toContain(JOB_B);
+    expect(record.title).toContain("Staff/ Principal Engineer");
+  });
+
+  test("stops a list when the next page repeats the same card IDs", async () => {
+    const now = Date.now();
+    const store = createBuiltinStore(
+      memoryStorage({
+        [HANDLED_STORAGE_KEY]: { 9256204: now, 11111111: now },
+      }),
+    );
+    await store.saveCursor({
+      listIndex: 0,
+      page: 1,
+      lastJobId: "",
+      lastPageIds: "",
+      lists: [LIST_URL],
+    });
+    const listHtml = loadFixture("list.html");
+    const page = builtinExec({ listHtml, paginatedListHtml: listHtml });
+    await expect(collectPass(store, page.exec)).rejects.toBeInstanceOf(RoutineFinishedError);
+    expect(page.fetches.some((url) => String(url).includes("page=2"))).toBe(true);
+    expect(page.fetches.some((url) => String(url).includes("page=3"))).toBe(false);
   });
 });

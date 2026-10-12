@@ -9,6 +9,8 @@ export const DEFAULT_ROUTINE_OPTIONS = Object.freeze({
   highlightFields: true,
   /** Pause after each field, in ms. */
   fieldPauseMs: 0,
+  /** Allow the same-host `fetch` op. Off unless a routine opts in. */
+  allowFetch: false,
 });
 
 const ON_MISSING_VALUES = Object.values(ON_MISSING);

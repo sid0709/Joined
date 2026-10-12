@@ -75,7 +75,13 @@ export function listUrlsFromBoard(board, currentUrl) {
 }
 
 export function emptyCursor(lists = []) {
-  return { listIndex: 0, page: 1, lastJobId: "", lists };
+  return { listIndex: 0, page: 1, lastJobId: "", lastPageIds: "", lists };
+}
+
+export function cardIdKey(cards) {
+  return [...new Set((cards ?? []).map((card) => String(card.id)).filter(Boolean))]
+    .sort()
+    .join("\n");
 }
 
 export function advanceCursor(cursor, { nextPage, nextList } = {}) {
@@ -83,7 +89,7 @@ export function advanceCursor(cursor, { nextPage, nextList } = {}) {
     return { ...cursor, page: cursor.page + 1, lastJobId: "" };
   }
   if (nextList) {
-    return { ...cursor, listIndex: cursor.listIndex + 1, page: 1, lastJobId: "" };
+    return { ...cursor, listIndex: cursor.listIndex + 1, page: 1, lastJobId: "", lastPageIds: "" };
   }
   return cursor;
 }

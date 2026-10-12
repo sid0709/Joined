@@ -2,8 +2,15 @@ import { listFields } from "../../routineKit/routine.js";
 import { RoutineFinishedError, RoutineStepError } from "../../routineKit/runner.js";
 
 import { JOB_DELAY_MS, MAX_PAGE, PAGE_DELAY_MS, jitterMs } from "./constants.js";
+import { jobSaveSelector } from "./cssEscape.js";
 import { isJobHandled, nextUnhandledCard } from "./handled.js";
-import { advanceCursor, emptyCursor, listUrlForPage, listUrlsFromBoard } from "./lists.js";
+import {
+  advanceCursor,
+  cardIdKey,
+  emptyCursor,
+  listUrlForPage,
+  listUrlsFromBoard,
+} from "./lists.js";
 import { parseDetail } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { createBuiltinStore } from "./store.js";
@@ -70,7 +77,7 @@ async function markJob(store, handledIds, cursor, jobId) {
 async function maybeClickSave(call, detail) {
   if (!detail.meta.isLoggedIn || detail.meta.isSaved || !detail.meta.id) return;
   await call("click", {
-    selector: `my-item[entity-type="job"][entity-id="${detail.meta.id}"]`,
+    selector: jobSaveSelector(detail.meta.id),
     wait: 0,
   });
 }
@@ -90,8 +97,13 @@ async function readFields(ctx, progress, record) {
 }
 
 function nextCursorAfterPage(cursor, parsed) {
-  const canPaginate = Boolean(parsed.nextPageUrl) && parsed.cards.length > 0;
-  return advanceCursor(cursor, canPaginate ? { nextPage: true } : { nextList: true });
+  const pageIds = cardIdKey(parsed.cards);
+  const repeated = Boolean(pageIds) && pageIds === cursor.lastPageIds;
+  const canPaginate = Boolean(parsed.nextPageUrl) && parsed.cards.length > 0 && !repeated;
+  if (canPaginate) {
+    return { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
+  }
+  return advanceCursor(cursor, { nextList: true });
 }
 
 /**
@@ -135,6 +147,13 @@ export async function runBuiltInPass(ctx, progress) {
     });
     const listPage = await loadListPage(call, tab, listUrlForPage(listUrl, cursor.page));
     const parsed = parseList(listPage.html, listPage.url);
+    const pageIds = cardIdKey(parsed.cards);
+    if (pageIds && pageIds === cursor.lastPageIds) {
+      cursor = advanceCursor(cursor, { nextList: true });
+      await store.saveCursor(cursor);
+      await pause(PAGE_DELAY_MS);
+      continue;
+    }
     const card = nextUnhandledCard(parsed.cards, handledIds, cursor.lastJobId);
 
     if (!card) {
@@ -167,13 +186,15 @@ export async function runBuiltInPass(ctx, progress) {
     hooks.onActivity?.({ phase: "submit", label: "Saving record" });
     try {
       await hooks.onRecord?.(record);
-    } finally {
-      handledIds = await markJob(store, handledIds, cursor, jobId);
-      if (detailId !== jobId) handledIds = await markJob(store, handledIds, cursor, detailId);
-      hooks.onActivity?.({ phase: "dismiss", label: "Marking job handled", kind: "click" });
-      await maybeClickSave(call, detail);
-      progress.tick();
+    } catch (error) {
+      await store.saveCursor({ ...cursor, lastJobId: String(jobId) });
+      throw error;
     }
+    handledIds = await markJob(store, handledIds, cursor, jobId);
+    if (detailId !== jobId) handledIds = await markJob(store, handledIds, cursor, detailId);
+    hooks.onActivity?.({ phase: "dismiss", label: "Marking job handled", kind: "click" });
+    await maybeClickSave(call, detail);
+    progress.tick();
     hooks.onActivity?.({ phase: "settle", label: "Waiting before the next job", kind: "pause" });
     progress.tick();
     return;

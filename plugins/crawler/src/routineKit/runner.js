@@ -1,4 +1,5 @@
 import { describeSelector, describeStep, fieldLabel } from "./describe.js";
+import { assertFetchUrl } from "./match.js";
 import { listFields } from "./routine.js";
 import { ON_MISSING } from "./steps.js";
 import { STRATEGY_PHASES } from "./strategies.js";
@@ -7,7 +8,8 @@ import { STRATEGY_PHASES } from "./strategies.js";
  * Runs one pass of a routine. The runner never touches the DOM: every page action is an
  * op sent through `hooks.exec({ op, ...payload })`, which the side panel routes to the
  * content script (see contentScript/messages/routineOps.js). Ops: count, highlight,
- * clear, click, extract, html, fetch. A routine may set `runPass` to replace the
+ * clear, click, extract, html, fetch. `fetch` requires `options.allowFetch` and is
+ * limited to `match.hosts`. A routine may set `runPass` to replace the
  * built-in strategy runner.
  *
  * Hooks:
@@ -65,7 +67,7 @@ function createContext(routine, hooks) {
   const call = async (op, payload = {}, waitMs = 0) => {
     checkStopped();
     const result = await withTimeout(
-      Promise.resolve(hooks.exec({ op, ...payload })),
+      Promise.resolve(hooks.exec({ op, ...prepareOp(routine, op, payload) })),
       waitMs + opTimeoutMs,
       `Page op "${op}"`,
     );
@@ -77,6 +79,27 @@ function createContext(routine, hooks) {
     checkStopped();
   };
   return { routine, hooks, call, rest, checkStopped };
+}
+
+function prepareOp(routine, op, payload) {
+  if (op !== "fetch") return payload;
+  if (!routine.options.allowFetch) {
+    throw new RoutineStepError("This routine cannot fetch pages");
+  }
+  const hosts = [...routine.match.hosts];
+  const next = { ...payload, hosts };
+  if (!payload?.url) return next;
+  try {
+    next.url = new URL(payload.url).href;
+  } catch {
+    return next;
+  }
+  try {
+    next.url = assertFetchUrl(next.url, hosts);
+  } catch (error) {
+    throw new RoutineStepError(error.message);
+  }
+  return next;
 }
 
 function handleMissing(step) {

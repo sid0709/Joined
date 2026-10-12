@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { documentFromHtml } from "./html.js";
-import { listUrlForPage, listUrlsFromBoard, pageFromListUrl } from "./lists.js";
+import { cardIdKey, listUrlForPage, listUrlsFromBoard, pageFromListUrl } from "./lists.js";
 import { parseList, parseNextPageUrl } from "./parseList.js";
 import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -62,5 +62,6 @@ describe("parseList", () => {
     expect(listUrlForPage("https://builtin.com/jobs", 3)).toBe("https://builtin.com/jobs?page=3");
     expect(pageFromListUrl("https://builtin.com/jobs?page=4")).toBe(4);
     expect(pageFromListUrl("https://builtin.com/jobs")).toBe(1);
+    expect(cardIdKey([{ id: "b" }, { id: "a" }, { id: "a" }])).toBe("a\nb");
   });
 });

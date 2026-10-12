@@ -32,6 +32,10 @@ export const ICON_POSTED = ".fa-clock";
 
 export const HANDLED_STORAGE_KEY = "builtinHandledJobIdsV1";
 export const CURSOR_STORAGE_KEY = "builtinCrawlCursorV1";
+export const HANDLED_MAX_IDS = 50_000;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const HANDLED_MAX_AGE_DAYS = 90;
+export const HANDLED_MAX_AGE_MS = HANDLED_MAX_AGE_DAYS * MS_PER_DAY;
 
 /** Jittered pause between opening jobs. */
 export const JOB_DELAY_MS = Object.freeze({ min: 1500, max: 4000 });

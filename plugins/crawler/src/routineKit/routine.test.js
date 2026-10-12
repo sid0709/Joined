@@ -32,6 +32,7 @@ describe("defineRoutine", () => {
     expect(defineRoutine({ ...validRoutine(), options: { fieldPauseMs: 50 } }).options).toEqual({
       highlightFields: true,
       fieldPauseMs: 50,
+      allowFetch: false,
     });
   });
 

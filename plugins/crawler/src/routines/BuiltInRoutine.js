@@ -43,7 +43,7 @@ export default defineRoutine({
   version: 1,
   match: { hosts: BUILTIN_HOSTS },
   output: ROUTINE_OUTPUTS.JOB,
-  options: { highlightFields: false, fieldPauseMs: 0 },
+  options: { highlightFields: false, fieldPauseMs: 0, allowFetch: true },
   runPass: runBuiltInPass,
 
   strategy: listDetail({

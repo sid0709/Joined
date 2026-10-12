@@ -11,10 +11,12 @@ export function isJobHandled({ id, isSaved = false, hasSavedTag = false }, handl
 }
 
 export function nextUnhandledCard(cards, handledIds, lastJobId = "") {
-  let pastCursor = !lastJobId;
+  const resumeId = lastJobId ? String(lastJobId) : "";
+  const resumeOnPage = Boolean(resumeId && cards.some((card) => String(card.id) === resumeId));
+  let pastCursor = !resumeOnPage;
   for (const card of cards) {
     if (!pastCursor) {
-      if (String(card.id) === String(lastJobId)) pastCursor = true;
+      if (String(card.id) === resumeId) pastCursor = true;
       continue;
     }
     if (!isJobHandled(card, handledIds)) return card;

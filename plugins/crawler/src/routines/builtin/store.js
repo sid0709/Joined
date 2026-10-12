@@ -1,5 +1,25 @@
 /* global chrome */
-import { CURSOR_STORAGE_KEY, HANDLED_STORAGE_KEY } from "./constants.js";
+import {
+  CURSOR_STORAGE_KEY,
+  HANDLED_MAX_AGE_MS,
+  HANDLED_MAX_IDS,
+  HANDLED_STORAGE_KEY,
+} from "./constants.js";
+
+/** Drop handled IDs older than 90 days, then keep the newest HANDLED_MAX_IDS. */
+export function pruneHandledRecord(raw, now = Date.now()) {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const entries = [];
+  for (const [id, at] of Object.entries(source)) {
+    if (!id) continue;
+    const ts = Number(at);
+    if (!Number.isFinite(ts)) continue;
+    if (now - ts > HANDLED_MAX_AGE_MS) continue;
+    entries.push([String(id), ts]);
+  }
+  entries.sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]));
+  return Object.fromEntries(entries.slice(0, HANDLED_MAX_IDS));
+}
 
 function chromeLocal() {
   return globalThis.chrome?.storage?.local ?? null;
@@ -60,16 +80,22 @@ export function createBuiltinStore(storage = chromeLocal()) {
   return {
     async loadHandledIds() {
       const raw = await readKey(storage, HANDLED_STORAGE_KEY);
-      const ids = raw && typeof raw === "object" ? Object.keys(raw) : [];
-      return new Set(ids.map(String));
+      const pruned = pruneHandledRecord(raw);
+      const rawCount =
+        raw && typeof raw === "object" && !Array.isArray(raw) ? Object.keys(raw).length : 0;
+      if (rawCount !== Object.keys(pruned).length) {
+        await writeKey(storage, HANDLED_STORAGE_KEY, pruned);
+      }
+      return new Set(Object.keys(pruned));
     },
     async markHandled(id, handledIds, at = Date.now()) {
-      if (!id) return handledIds;
-      const next = new Set(handledIds);
-      next.add(String(id));
-      const record = Object.fromEntries([...next].map((key) => [key, at]));
-      await writeKey(storage, HANDLED_STORAGE_KEY, record);
-      return next;
+      if (!id) return handledIds ?? new Set();
+      const raw = await readKey(storage, HANDLED_STORAGE_KEY);
+      const record = raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw } : {};
+      record[String(id)] = at;
+      const pruned = pruneHandledRecord(record, at);
+      await writeKey(storage, HANDLED_STORAGE_KEY, pruned);
+      return new Set(Object.keys(pruned));
     },
     async loadCursor() {
       const raw = await readKey(storage, CURSOR_STORAGE_KEY);
@@ -81,6 +107,7 @@ export function createBuiltinStore(storage = chromeLocal()) {
         listIndex,
         page,
         lastJobId: raw.lastJobId ? String(raw.lastJobId) : "",
+        lastPageIds: raw.lastPageIds ? String(raw.lastPageIds) : "",
         lists,
       };
     },
@@ -90,6 +117,7 @@ export function createBuiltinStore(storage = chromeLocal()) {
         listIndex: cursor.listIndex,
         page: cursor.page,
         lastJobId: cursor.lastJobId || "",
+        lastPageIds: cursor.lastPageIds || "",
         lists: cursor.lists ?? [],
       });
     },

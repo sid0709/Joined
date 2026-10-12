@@ -252,4 +252,35 @@ describe("runRoutinePass", () => {
     expect(seen).toBe("test");
     expect(record).toEqual({ title: "from-custom" });
   });
+
+  test("rejects fetch unless the routine opts in, and then only on match hosts", async () => {
+    const fetchPass = async (ctx) => {
+      await ctx.call("fetch", { url: "https://jobs.example/jobs" });
+    };
+    await expect(
+      runRoutinePass({ ...makeRoutine(), runPass: fetchPass }, { exec: fakePage().exec }),
+    ).rejects.toThrow("This routine cannot fetch pages");
+
+    const page = fakePage();
+    await runRoutinePass(
+      { ...makeRoutine({ options: { allowFetch: true } }), runPass: fetchPass },
+      { exec: page.exec },
+    );
+    expect(page.ops.find((op) => op.op === "fetch")).toMatchObject({
+      url: "https://jobs.example/jobs",
+      hosts: ["jobs.example"],
+    });
+
+    await expect(
+      runRoutinePass(
+        {
+          ...makeRoutine({ options: { allowFetch: true } }),
+          runPass: async (ctx) => {
+            await ctx.call("fetch", { url: "https://evil.test/jobs" });
+          },
+        },
+        { exec: fakePage().exec },
+      ),
+    ).rejects.toThrow("Fetch is limited to this routine's hosts");
+  });
 });
