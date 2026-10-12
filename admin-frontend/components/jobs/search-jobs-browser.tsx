@@ -184,7 +184,7 @@ export function SearchJobsBrowser() {
       <PageHeader
         title="Jobs"
         description="The live job pool: jobs analysis published, scouted jobs, and direct posts. Open a job to fix anything analysis or a scout got wrong; saves show on Joined right away."
-        action={<Button label="Analyze temp jobs" variant="secondary" href={ROUTES.jobMigration} />}
+        action={<Button label="Analyze temp jobs" variant="secondary" href={ROUTES.tempJobs} />}
       />
       <DirectoryFilters
         current={searchParams}

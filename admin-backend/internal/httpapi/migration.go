@@ -12,7 +12,6 @@ import (
 	"github.com/sid0709/Joined/admin-backend/internal/migration"
 	"github.com/sid0709/Joined/backend-core/httpkit"
 	"github.com/sid0709/Joined/backend-core/jobs"
-	"github.com/sid0709/Joined/backend-core/killswitch"
 	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
@@ -21,10 +20,10 @@ const (
 	maxMigrationSelection = 1000
 	maxMigrationBody      = 64 << 10
 	// missingMigrationKey tells staff how to turn on the migration's AI steps.
-	missingMigrationKey = "Save a DeepSeek API key under Settings → DeepSeek, or set DEEPSEEK_API_KEY"
+	missingMigrationKey = "Save an OpenRouter API key under Settings → AI Model, or set OPENROUTER_API_KEY"
 )
 
-// MigrationModel reads job posts and researches companies on the web. DeepSeek is it.
+// MigrationModel reads job posts and researches companies on the web. OpenRouter is it.
 type MigrationModel interface {
 	jobs.ModelReader
 	jobs.WebResearcher
@@ -100,12 +99,6 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task := migration.Task(r.PathValue("task"))
-	if task == migration.CopyJobs || task == migration.CopyCompanies {
-		if err := killswitch.Check(r.Context(), s.switches, killswitch.JobImports); err != nil {
-			killswitch.WriteDisabled(w, killswitch.JobImports)
-			return
-		}
-	}
 	work, usesModel, ok := s.migrationWork(task, body)
 	if !ok {
 		httpkit.WriteError(w, http.StatusNotFound, "unknown migration step")
@@ -148,22 +141,6 @@ func (s *Server) cancelMigration(w http.ResponseWriter, r *http.Request) {
 // migrationWork is the step for task and whether it runs the model.
 func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) (migration.Work, bool, bool) {
 	switch task {
-	case migration.CopyJobs:
-		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			result, err := s.store.Copy(ctx, progress)
-			if err != nil {
-				return "", err
-			}
-			return jobCopySummary(result), nil
-		}, false, true
-	case migration.CopyCompanies:
-		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
-			result, err := s.store.CopyCompanies(ctx, progress)
-			if err != nil {
-				return "", err
-			}
-			return companyCopySummary(result), nil
-		}, false, true
 	case migration.AnalyzeJobs:
 		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
@@ -179,28 +156,6 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 		}, true, true
 	}
 	return nil, false, false
-}
-
-// jobCopySummary says how many copied jobs wait in temp_jobs.
-func jobCopySummary(result jobs.CopyResult) string {
-	summary := fmt.Sprintf("Copied %d jobs from %s into %s.", result.Copied, result.Source, result.Destination)
-	if result.Published > 0 {
-		summary += fmt.Sprintf(" Left out %d already published.", result.Published)
-	}
-	return summary
-}
-
-// companyCopySummary says where the copied companies went.
-func companyCopySummary(result jobs.CompanyCopyResult) string {
-	summary := fmt.Sprintf("Copied %d companies from %s: %d wait in %s for research", result.Copied, result.Source, result.Staged, result.Staging)
-	if result.Refreshed > 0 {
-		summary += fmt.Sprintf(", %d already published were updated", result.Refreshed)
-	}
-	summary += "."
-	if result.Unpublished > 0 {
-		summary += fmt.Sprintf(" Moved %d unresearched companies out of %s.", result.Unpublished, result.Dest)
-	}
-	return summary + fmt.Sprintf(" Linked %d jobs.", result.Linked)
 }
 
 // tally says how a run went: "Published 90 of 100. 8 not found, 2 failed."

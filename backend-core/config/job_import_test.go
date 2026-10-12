@@ -21,8 +21,8 @@ func TestLoadJobImportDisabledByDefault(t *testing.T) {
 	if len(cfg.EnabledSources) != 0 {
 		t.Fatalf("enabled sources = %v, want none", cfg.EnabledSources)
 	}
-	if cfg.SourceEnabled("athens") {
-		t.Fatal("athens must stay off until listed in JOB_IMPORT_SOURCES")
+	if cfg.SourceEnabled("board") {
+		t.Fatal("a source must stay off until listed in JOB_IMPORT_SOURCES")
 	}
 	if cfg.Interval != time.Hour {
 		t.Fatalf("interval = %s, want 1h", cfg.Interval)
@@ -40,7 +40,7 @@ func TestLoadJobImportDisabledByDefault(t *testing.T) {
 
 func TestLoadJobImportEnabledSources(t *testing.T) {
 	t.Setenv("JOB_IMPORT_ENABLED", "true")
-	t.Setenv("JOB_IMPORT_SOURCES", "athens, fake")
+	t.Setenv("JOB_IMPORT_SOURCES", "board, fake")
 	t.Setenv("JOB_IMPORT_INTERVAL", "15m")
 	t.Setenv("JOB_IMPORT_TIMEOUT", "5m")
 	t.Setenv("JOB_IMPORT_RECENT_LIMIT", "5")
@@ -49,7 +49,7 @@ func TestLoadJobImportEnabledSources(t *testing.T) {
 	if !cfg.Enabled {
 		t.Fatal("JOB_IMPORT_ENABLED=true should enable the runner")
 	}
-	if !cfg.SourceEnabled("athens") || !cfg.SourceEnabled("fake") {
+	if !cfg.SourceEnabled("board") || !cfg.SourceEnabled("fake") {
 		t.Fatalf("sources = %v", cfg.EnabledSources)
 	}
 	if cfg.Interval != 15*time.Minute {

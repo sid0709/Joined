@@ -62,7 +62,7 @@ func TestParseCompanyTransfersRejectsABadFile(t *testing.T) {
 }
 
 func TestImportStagedCompanyPublishesAndLeavesStaging(t *testing.T) {
-	store, _, _, _ := crawlerTestStore(t)
+	store := crawlerTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 

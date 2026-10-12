@@ -59,14 +59,14 @@ func TestRunnerKeepsOneRunPerStepButRunsStepsTogether(t *testing.T) {
 			t.Fatalf("%s alongside the others: %v", task, err)
 		}
 	}
-	if _, err := r.Start(CopyJobs, "", block); !errors.Is(err, ErrBusy) {
-		t.Fatalf("second job copy: %v", err)
+	if _, err := r.Start(AnalyzeJobs, "", block); !errors.Is(err, ErrBusy) {
+		t.Fatalf("second analysis: %v", err)
 	}
 	close(release)
 	for _, task := range Tasks {
 		waitFor(t, r, task)
 	}
-	if _, err := r.Start(CopyJobs, "", func(context.Context, *Tracker) (string, error) { return "", nil }); err != nil {
+	if _, err := r.Start(AnalyzeJobs, "", func(context.Context, *Tracker) (string, error) { return "", nil }); err != nil {
 		t.Fatalf("after it finished: %v", err)
 	}
 }
@@ -87,10 +87,10 @@ func TestRunnerCancelAndFailure(t *testing.T) {
 		t.Fatalf("status = %s", run.Status)
 	}
 
-	_, _ = r.Start(CopyJobs, "", func(context.Context, *Tracker) (string, error) {
+	_, _ = r.Start(AnalyzeJobs, "", func(context.Context, *Tracker) (string, error) {
 		return "", errors.New("count mismatch")
 	})
-	if run := waitFor(t, r, CopyJobs); run.Status != Failed || run.Error != "count mismatch" {
+	if run := waitFor(t, r, AnalyzeJobs); run.Status != Failed || run.Error != "count mismatch" {
 		t.Fatalf("run = %+v", run)
 	}
 }

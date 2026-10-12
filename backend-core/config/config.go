@@ -11,43 +11,32 @@ import (
 	"time"
 )
 
-// DefaultDeepSeekMaxSearches caps the web searches behind one research answer: enough
+// DefaultOpenRouterMaxSearches caps the web searches behind one research answer: enough
 // to find a company's own site and a profile or two, few enough to stay fast.
-const DefaultDeepSeekMaxSearches = 4
+const DefaultOpenRouterMaxSearches = 4
 
 const (
-	defaultSourceDB            = "AthensDB"
-	defaultSourceCollection    = "jobs"
 	defaultDestDB              = "JoinedDB"
 	defaultDestCollection      = "temp_jobs"
 	defaultJobsCollection      = "jobs"
-	defaultSourceCompanies     = "companies"
 	defaultCompaniesCollection = "companies"
 	defaultTempCompanies       = "temp_companies"
 	defaultOpenAIModel         = "gpt-4o-mini"
 	defaultOpenAIBaseURL       = "https://api.openai.com/v1"
-	defaultDeepSeekModel       = "deepseek-flash"
-	defaultDeepSeekBaseURL     = "https://api.deepseek.com"
-	defaultDeepSeekSearchURL   = "https://api.deepseek.com/anthropic"
+	defaultOpenRouterModel     = "deepseek/deepseek-chat"
+	defaultOpenRouterBaseURL   = "https://openrouter.ai/api/v1"
 	envFileName                = ".env"
 )
 
 // Database is the MongoDB every service shares: one set of accounts, jobs, and companies.
 type Database struct {
 	MongoURI            string
-	SourceDB            string
-	SourceCollection    string
 	DestDB              string
 	DestCollection      string
 	JobsCollection      string
-	SourceCompanies     string
 	CompaniesCollection string
-	// TempCompaniesCollection holds copied companies until research publishes them.
+	// TempCompaniesCollection holds companies that are not in the directory yet.
 	TempCompaniesCollection string
-}
-
-func (d Database) SourceName() string {
-	return d.SourceDB + "." + d.SourceCollection
 }
 
 func (d Database) DestName() string {
@@ -63,14 +52,13 @@ type OpenAI struct {
 	BaseURL     string
 }
 
-// DeepSeek is the model the admin migration uses to read job posts and to research
-// companies on the web. BaseURL serves chat completions; SearchURL is DeepSeek's
-// Anthropic-format endpoint, the one that runs web search on DeepSeek's side.
-type DeepSeek struct {
-	APIKey    string
-	Model     string
-	BaseURL   string
-	SearchURL string
+// OpenRouter is the model Joined admin uses for job analysis, company research,
+// company autofill, and Acorn's AI. Chat completions and web search both go through
+// OpenRouter's OpenAI-compatible API.
+type OpenRouter struct {
+	APIKey  string
+	Model   string
+	BaseURL string
 	// MaxSearches caps the web searches behind one research answer.
 	MaxSearches int
 }
@@ -103,12 +91,9 @@ func LoadEnvFile() {
 func LoadDatabase() (Database, error) {
 	db := Database{
 		MongoURI:                strings.TrimSpace(os.Getenv("MONGO_URI")),
-		SourceDB:                Env("SOURCE_DB", defaultSourceDB),
-		SourceCollection:        Env("SOURCE_COLLECTION", defaultSourceCollection),
 		DestDB:                  Env("DEST_DB", defaultDestDB),
 		DestCollection:          Env("DEST_COLLECTION", defaultDestCollection),
 		JobsCollection:          Env("JOBS_COLLECTION", defaultJobsCollection),
-		SourceCompanies:         Env("SOURCE_COMPANIES", defaultSourceCompanies),
 		CompaniesCollection:     Env("COMPANIES_COLLECTION", defaultCompaniesCollection),
 		TempCompaniesCollection: Env("TEMP_COMPANIES_COLLECTION", defaultTempCompanies),
 	}
@@ -127,13 +112,12 @@ func LoadOpenAI() OpenAI {
 	}
 }
 
-func LoadDeepSeek() DeepSeek {
-	return DeepSeek{
-		APIKey:      strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
-		Model:       Env("DEEPSEEK_MODEL", defaultDeepSeekModel),
-		BaseURL:     Env("DEEPSEEK_BASE_URL", defaultDeepSeekBaseURL),
-		SearchURL:   Env("DEEPSEEK_SEARCH_URL", defaultDeepSeekSearchURL),
-		MaxSearches: EnvInt("DEEPSEEK_MAX_SEARCHES", DefaultDeepSeekMaxSearches),
+func LoadOpenRouter() OpenRouter {
+	return OpenRouter{
+		APIKey:      strings.TrimSpace(os.Getenv("OPENROUTER_API_KEY")),
+		Model:       Env("OPENROUTER_MODEL", defaultOpenRouterModel),
+		BaseURL:     Env("OPENROUTER_BASE_URL", defaultOpenRouterBaseURL),
+		MaxSearches: EnvInt("OPENROUTER_MAX_SEARCHES", DefaultOpenRouterMaxSearches),
 	}
 }
 

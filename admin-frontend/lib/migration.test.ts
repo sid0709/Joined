@@ -27,7 +27,7 @@ function run(overrides: Partial<MigrationRun>): MigrationRun {
 }
 
 test("paths name the step", () => {
-  expect(migrationTaskPath(MIGRATION_TASKS.copyJobs)).toBe("/v1/migration/jobs-copy");
+  expect(migrationTaskPath(MIGRATION_TASKS.analyzeJobs)).toBe("/v1/migration/jobs-analyze");
   expect(migrationCancelPath(MIGRATION_TASKS.researchCompanies)).toBe(
     "/v1/migration/companies-research/cancel",
   );

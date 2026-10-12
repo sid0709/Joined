@@ -74,12 +74,12 @@ type TempJobsBrowserProps = {
   emptyDescription?: string;
 };
 
-/** Scraped listings copied from Athens; pick some and analyze them into public jobs. */
+/** Scraped listings waiting in temp_jobs; pick some and analyze them into public jobs. */
 export function TempJobsBrowser({
   title = "Temp jobs",
   description,
   listPath = TEMP_JOBS_PATH,
-  route = ROUTES.jobMigration,
+  route = ROUTES.tempJobs,
   analyzePath,
   onAnalyze,
   maxSelection = MAX_ANALYZE_SELECTION,
@@ -90,7 +90,7 @@ export function TempJobsBrowser({
   searchLabel = "Search temp jobs",
   caption = "Temp jobs",
   emptyTitle = "No temp jobs yet",
-  emptyDescription = "Copy them from Athens to fill this list.",
+  emptyDescription = "Jobs the crawler or plugin sends land here.",
 }: TempJobsBrowserProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();

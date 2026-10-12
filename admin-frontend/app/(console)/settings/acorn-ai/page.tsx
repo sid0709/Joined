@@ -1,7 +1,7 @@
-import { AcornAISettingsForm } from "@/components/settings/acorn-ai-settings";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/nav";
 
-export const metadata = { title: "Acorn AI" };
-
-export default function AcornAIPage() {
-  return <AcornAISettingsForm />;
+/** Acorn AI settings moved into Settings → AI Model. */
+export default function AcornAISettingsRedirect() {
+  redirect(ROUTES.aiModel);
 }

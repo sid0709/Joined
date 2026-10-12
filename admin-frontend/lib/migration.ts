@@ -5,13 +5,11 @@ export const MIGRATION_PATH = "/v1/migration";
 export const MIGRATION_POLL_MS = 2_000;
 /** Most temp jobs one hand-picked analysis takes; matches the admin API. */
 export const MAX_MIGRATION_SELECTION = 1_000;
-/** Page sizes on the job and company migration lists. The largest matches one selection. */
+/** Page sizes on the temp job and company lists. The largest matches one selection. */
 export const MIGRATION_PAGE_SIZES = [25, 50, 100, 250, 500, 1_000] as const;
 export const MIGRATION_PAGE_SIZE = MIGRATION_PAGE_SIZES[0];
 export const MIGRATION_TASKS = {
-  copyJobs: "jobs-copy",
   analyzeJobs: "jobs-analyze",
-  copyCompanies: "companies-copy",
   researchCompanies: "companies-research",
 } as const;
 
@@ -38,18 +36,14 @@ export type MigrationRun = {
 };
 
 export type MigrationCounts = {
-  jobSource: string;
   jobDestination: string;
-  sourceJobs: number;
   tempJobs: number;
   analyzedJobs: number;
   /** Temp jobs whose analysis did not say enough to publish. */
   notPublishableJobs: number;
-  companySource: string;
-  /** Where copied companies wait until research publishes them. */
+  /** Where unmatched companies wait until research publishes them. */
   companyStaging: string;
   companyDestination: string;
-  sourceCompanies: number;
   /** Staged, not researched yet. */
   waitingCompanies: number;
   /** Staged because research could not find them on the web. */

@@ -99,7 +99,7 @@ describe("adminFetch", () => {
   test("throws the problem from a failed response, including a non-JSON body", async () => {
     answer(409, { detail: "already running", code: "migration_busy" });
     try {
-      await adminFetch("/v1/migration/jobs-copy");
+      await adminFetch("/v1/migration/jobs-analyze");
       throw new Error("expected ApiError");
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError);
@@ -144,7 +144,7 @@ describe("adminSend", () => {
 
   test("omits the JSON header and body when there is nothing to send", async () => {
     const fetchMock = answer(200, { cancelled: true });
-    await adminSend<{ cancelled: boolean }>("/v1/migration/jobs-copy/cancel", "POST");
+    await adminSend<{ cancelled: boolean }>("/v1/migration/jobs-analyze/cancel", "POST");
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(init.method).toBe("POST");
     expect(init.headers).toEqual({ Accept: "application/json" });

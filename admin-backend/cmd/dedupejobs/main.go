@@ -42,12 +42,9 @@ func main() {
 
 	store := jobs.NewStore(
 		client,
-		cfg.SourceDB,
-		cfg.SourceCollection,
 		cfg.DestDB,
 		cfg.DestCollection,
 		cfg.JobsCollection,
-		cfg.SourceCompanies,
 		cfg.CompaniesCollection,
 		cfg.TempCompaniesCollection,
 	)
