@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 
 import { API_PROXY } from "@/lib/config";
 
@@ -9,10 +9,21 @@ import {
   companyLogoSrc,
   companyWriteFrom,
   companyWriteJSON,
+  downloadStagedCompanies,
+  importStagedCompanies,
   parseCompanyWriteJSON,
+  STAGED_COMPANIES_FILE,
   STAGED_COMPANY_STATUS,
   stagedCompanyStatusLabel,
+  TEMP_COMPANIES_EXPORT_PATH,
+  TEMP_COMPANIES_IMPORT_PATH,
 } from "./company";
+
+const realFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
 
 const base: AdminCompany = {
   id: "c1",
@@ -146,5 +157,162 @@ describe("parseCompanyWriteJSON", () => {
       throw new Error(parsed.error);
     }
     expect(parsed.size).toBe("11–50");
+  });
+
+  it("rejects invalid JSON and non-objects", () => {
+    expect(parseCompanyWriteJSON("{")).toEqual({ error: "JSON is not valid" });
+    expect(parseCompanyWriteJSON("[]")).toEqual({ error: "Expected a JSON object" });
+    expect(parseCompanyWriteJSON("null")).toEqual({ error: "Expected a JSON object" });
+  });
+
+  it("rejects wrong field types", () => {
+    expect(parseCompanyWriteJSON('{"name":1}')).toEqual({ error: "name must be a string" });
+    expect(parseCompanyWriteJSON('{"name":"Acme","founded":2016.5}')).toEqual({
+      error: "founded must be a integer",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","specialties":"x"}')).toEqual({
+      error: "specialties must be a string array",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","specialties":[1]}')).toEqual({
+      error: "specialties[0] must be a string",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","values":{}}')).toEqual({
+      error: "values must be a array",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","values":[1]}')).toEqual({
+      error: "values[0] must be a object",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","values":[{"icon":1}]}')).toEqual({
+      error: "values[0].icon must be a string",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","benefitCategories":"x"}')).toEqual({
+      error: "benefitCategories must be a array",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","benefitCategories":[1]}')).toEqual({
+      error: "benefitCategories[0] must be a object",
+    });
+    expect(
+      parseCompanyWriteJSON('{"name":"Acme","benefitCategories":[{"label":"P","items":1}]}'),
+    ).toEqual({ error: "benefitCategories[0].items must be a string array" });
+    expect(
+      parseCompanyWriteJSON('{"name":"Acme","benefitCategories":[{"label":"P","items":[1]}]}'),
+    ).toEqual({ error: "benefitCategories[0].items[0] must be a string" });
+  });
+
+  it("validates required and range fields", () => {
+    expect(parseCompanyWriteJSON('{"name":""}')).toEqual({ error: "name is required" });
+    expect(parseCompanyWriteJSON(`{"name":"${"a".repeat(81)}"}`)).toEqual({
+      error: "name is too long",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","url":"notaurl"}')).toEqual({
+      error: "url is not a link",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","url":"https://bad example.com"}')).toEqual({
+      error: "url is not a link",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","logo":"javascript:alert(1)"}')).toEqual({
+      error: "logo is not a link",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","founded":1700}')).toEqual({
+      error: "founded is out of range",
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","replyDays":400}')).toEqual({
+      error: "replyDays is out of range",
+    });
+    expect(
+      parseCompanyWriteJSON(
+        JSON.stringify({
+          name: "Acme",
+          benefitCategories: Array.from({ length: 13 }, (_, i) => ({
+            label: `B${i}`,
+            items: [],
+          })),
+        }),
+      ),
+    ).toEqual({ error: "benefitCategories cannot exceed 12" });
+    expect(
+      parseCompanyWriteJSON(
+        '{"name":"Acme","values":[{"icon":"not-an-icon","title":"T","description":""}]}',
+      ),
+    ).toEqual({ error: 'values icon "not-an-icon" is not listed' });
+  });
+
+  it("accepts nullish nested collections and trims strings", () => {
+    const parsed = parseCompanyWriteJSON(
+      JSON.stringify({
+        name: "  Acme  ",
+        specialties: null,
+        values: null,
+        benefitCategories: [{ label: " Health ", items: null }],
+      }),
+    );
+    if ("error" in parsed) {
+      throw new Error(parsed.error);
+    }
+    expect(parsed.name).toBe("Acme");
+    expect(parsed.specialties).toEqual([]);
+    expect(parsed.values).toEqual([]);
+    expect(parsed.benefitCategories).toEqual([{ label: "Health", items: [] }]);
+  });
+});
+
+describe("staged company import and export", () => {
+  const realDocument = globalThis.document;
+
+  afterEach(() => {
+    globalThis.document = realDocument;
+  });
+
+  it("downloads the staged export file", async () => {
+    const fetchMock = mock(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ companies: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const links: { href: string; download: string }[] = [];
+    globalThis.document = {
+      createElement: () => {
+        const link = {
+          href: "",
+          download: "",
+          click() {
+            links.push({ href: link.href, download: link.download });
+          },
+        };
+        return link;
+      },
+    } as unknown as Document;
+
+    await downloadStagedCompanies();
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${API_PROXY}${TEMP_COMPANIES_EXPORT_PATH}`);
+    expect(links).toEqual([
+      { href: expect.stringMatching(/^blob:/), download: STAGED_COMPANIES_FILE },
+    ]);
+  });
+
+  it("posts the import body", async () => {
+    const fetchMock = mock(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ published: 2, unmatched: ["x"] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const body = '{"companies":[]}';
+    await expect(importStagedCompanies(body)).resolves.toEqual({
+      published: 2,
+      unmatched: ["x"],
+    });
+    const [path, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(path).toBe(`${API_PROXY}${TEMP_COMPANIES_IMPORT_PATH}`);
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(body);
   });
 });
