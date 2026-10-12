@@ -9,6 +9,7 @@ import {
   VIEW_ALL_PANEL,
   VIEW_ALL_TEXT,
   carouselShowSelector,
+  jitterMs,
   jobCardSelector,
   jobPathFromHref,
   requisitionIdFromHref,
@@ -143,6 +144,7 @@ export async function expandShortGroups({
   skipDelays = false,
   readPage,
   pageUrl,
+  random = Math.random,
 } = {}) {
   if (!parsed?.shortfalls?.length || typeof call !== "function" || typeof readPage !== "function") {
     return parsed;
@@ -188,7 +190,7 @@ export async function expandShortGroups({
       } catch {
         /* tab may already be on the list */
       }
-      await pause(rest, skipDelays, PAGE_DELAY_MS.min);
+      await pause(rest, skipDelays, jitterMs(PAGE_DELAY_MS, random));
       after = await readPage();
     }
     extras.push(...viewAllJobLinks(after.html, pageUrl, host));

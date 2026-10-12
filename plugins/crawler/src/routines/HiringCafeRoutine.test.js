@@ -76,6 +76,7 @@ function hiringCafeTab({
   const clicks = [];
   const navigates = [];
   const fetches = [];
+  const attaches = [];
   const defaultDetails = Object.fromEntries(
     groupedHits().map((hit) => {
       const href = jobUrl(hit.requisition_id, hit.job_information.title);
@@ -111,6 +112,21 @@ function hiringCafeTab({
     if (isList) return { html: listHtml, url: href };
     return { html: "", url: href };
   };
+  const idleOpResult = (op) => {
+    if (op.op === "attachDebugger") {
+      attaches.push(op);
+      return { attached: true };
+    }
+    if (op.op === "highlight" || op.op === "clear" || op.op === "scroll") return {};
+    if (op.op === "overlayTarget") {
+      return {
+        found: Boolean(
+          overlay && overlay.includes(MARK_APPLIED_TEXT) && !overlay.includes("Applied ✓"),
+        ),
+      };
+    }
+    return null;
+  };
   const idFromSelector = (selector) => {
     const hrefs = [...String(selector || "").matchAll(/href\$="([^"]+)"/g)].map(
       (match) => match[1],
@@ -132,6 +148,8 @@ function hiringCafeTab({
       ],
     });
   const exec = async (op) => {
+    const idle = idleOpResult(op);
+    if (idle) return idle;
     if (op.op === "html") {
       if (remainingChallenge > 0) {
         remainingChallenge -= 1;
@@ -175,7 +193,6 @@ function hiringCafeTab({
       }
       return { url, status };
     }
-    if (op.op === "highlight" || op.op === "clear" || op.op === "scroll") return {};
     if (op.op === "hover") {
       hoveredId = idFromSelector(op.selector);
       overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
@@ -226,7 +243,7 @@ function hiringCafeTab({
     }
     return {};
   };
-  return { exec, navigates, fetches, clicks };
+  return { exec, navigates, fetches, clicks, attaches };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -480,6 +497,7 @@ describe("HiringCafeRoutine", () => {
         (click) => click.op === "hoverClick" && click.contains === MARK_APPLIED_TEXT,
       ),
     ).toBe(true);
+    expect(page.attaches.length).toBeGreaterThan(0);
     expect(notices.some((message) => /not marked applied/i.test(message))).toBe(false);
   });
 

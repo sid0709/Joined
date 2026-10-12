@@ -1,13 +1,22 @@
+import { formatHoverDiagnostics } from "../../contentScript/actions/hoverTarget.js";
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
 import { MARK_OVERLAY_WAIT_MS } from "../../routines/hiringcafe/constants.js";
 
 const DEBUGGER_PROTOCOL_VERSION = "1.3";
 const ALREADY_ATTACHED_RE = /already attached/i;
 
+const attachedTabs = new Set();
+
 const defaultChromeDebugger = {
-  attach: (target, version) => chrome.debugger.attach(target, version),
-  detach: (target) => chrome.debugger.detach(target),
-  sendCommand: (target, method, params) => chrome.debugger.sendCommand(target, method, params),
+  attach: (target, version) => chrome.debugger?.attach?.(target, version),
+  detach: (target) => chrome.debugger?.detach?.(target),
+  sendCommand: (target, method, params) => chrome.debugger?.sendCommand?.(target, method, params),
+};
+
+const defaultTabs = {
+  get: (tabId) => chrome.tabs?.get?.(tabId),
+  update: (tabId, props) => chrome.tabs?.update?.(tabId, props),
+  updateWindow: (windowId, props) => chrome.windows?.update?.(windowId, props),
 };
 
 export function mouseEvent(type, point, extras = {}) {
@@ -35,23 +44,56 @@ function opResult(response) {
   return response?.result ?? response ?? {};
 }
 
+export function resetDebuggerSession() {
+  attachedTabs.clear();
+}
+
+/** Debugger stays a required permission for live Mark Applied; this skip is for tests and missing APIs. */
+export function hasDebuggerApi(chromeDebugger = defaultChromeDebugger) {
+  return (
+    typeof chromeDebugger?.attach === "function" &&
+    typeof chromeDebugger?.sendCommand === "function"
+  );
+}
+
 export async function attachDebugger(tabId, chromeDebugger = defaultChromeDebugger) {
+  if (!hasDebuggerApi(chromeDebugger)) {
+    throw new Error("chrome.debugger is not available");
+  }
   const target = { tabId };
   try {
     await chromeDebugger.attach(target, DEBUGGER_PROTOCOL_VERSION);
   } catch (error) {
     if (!ALREADY_ATTACHED_RE.test(String(error?.message || error))) throw error;
   }
+  attachedTabs.add(tabId);
   return target;
 }
 
-export async function withDebugger(tabId, run, chromeDebugger = defaultChromeDebugger) {
-  const target = await attachDebugger(tabId, chromeDebugger);
-  try {
-    return await run((method, params) => chromeDebugger.sendCommand(target, method, params));
-  } finally {
-    await chromeDebugger.detach(target).catch(() => {});
+export async function ensureDebugger(tabId, chromeDebugger = defaultChromeDebugger) {
+  if (attachedTabs.has(tabId)) return { attached: true, reused: true };
+  await attachDebugger(tabId, chromeDebugger);
+  return { attached: true, reused: false };
+}
+
+export async function releaseDebugger(tabId, chromeDebugger = defaultChromeDebugger) {
+  if (!attachedTabs.has(tabId)) return { detached: false };
+  attachedTabs.delete(tabId);
+  if (typeof chromeDebugger?.detach === "function") {
+    await chromeDebugger.detach({ tabId }).catch(() => {});
   }
+  return { detached: true };
+}
+
+export async function focusCrawlTab(tabId, tabsIo = defaultTabs) {
+  try {
+    const tab = await tabsIo.get?.(tabId);
+    if (tab && tab.active !== true) await tabsIo.update?.(tabId, { active: true });
+    if (tab?.windowId != null) await tabsIo.updateWindow?.(tab.windowId, { focused: true });
+  } catch {
+    /* chrome.tabs may be missing in tests; background tabs skip hover */
+  }
+  return { focused: true, active: true };
 }
 
 async function hoverTargetOf(tabId, payload, sendToContentScript) {
@@ -90,34 +132,57 @@ function hoverOffsets(payload) {
   return [{ x: payload.x ?? 100, y: payload.y ?? 100 }];
 }
 
+async function moveAlong(send, points) {
+  for (const point of points) {
+    await send("Input.dispatchMouseEvent", mouseMoved(point));
+  }
+}
+
 /**
  * Real pointer input: CDP `Input.dispatchMouseEvent` is trusted. Synthetic
- * mouseover/mouseenter is not, and HiringCafe's Mark Applied overlay needs
- * a trusted hover (React pointer events or CSS :hover).
+ * mouseover/mouseenter is not. Attach once per run; move from outside the
+ * card into it so pointerenter fires.
  */
 export async function dispatchTrustedMouse(tabId, payload, io = {}) {
   const sendToContentScript = io.sendToContentScript;
   const chromeDebugger = io.chromeDebugger ?? defaultChromeDebugger;
+  const tabsIo = io.tabs ?? defaultTabs;
+  await focusCrawlTab(tabId, tabsIo);
+  await ensureDebugger(tabId, chromeDebugger);
+  const target = { tabId };
+  const send = (method, params) => chromeDebugger.sendCommand(target, method, params);
   const offsets = hoverOffsets(payload);
-  return withDebugger(
-    tabId,
-    async (send) => {
-      let hovered = false;
-      for (const offset of offsets) {
-        const target = await hoverTargetOf(tabId, { ...payload, ...offset }, sendToContentScript);
-        if (!target?.found) continue;
-        hovered = true;
-        await send("Input.dispatchMouseEvent", mouseMoved(target));
-        if (payload.op !== "hoverClick") return { found: true, hovered: true };
-        const overlay = await overlayTargetOf(tabId, payload, sendToContentScript);
-        if (!overlay?.found) continue;
-        await send("Input.dispatchMouseEvent", mouseMoved(overlay));
-        await send("Input.dispatchMouseEvent", mousePressed(overlay));
-        await send("Input.dispatchMouseEvent", mouseReleased(overlay));
-        return { found: true, hovered: true };
-      }
-      return { found: false, hovered };
-    },
-    chromeDebugger,
-  );
+  let hovered = false;
+  let pressed = false;
+  let diagnosticsText = "";
+  let diagnostics = null;
+  for (const offset of offsets) {
+    const hover = await hoverTargetOf(tabId, { ...payload, ...offset }, sendToContentScript);
+    diagnosticsText = hover?.diagnosticsText || diagnosticsText;
+    diagnostics = hover?.diagnostics || diagnostics;
+    if (!hover?.found) continue;
+    hovered = true;
+    const path = Array.isArray(hover.approach) && hover.approach.length ? hover.approach : [hover];
+    await moveAlong(send, path);
+    if (payload.op !== "hoverClick") {
+      return { found: true, hovered: true, pressed: false, diagnostics, diagnosticsText };
+    }
+    const overlay = await overlayTargetOf(tabId, payload, sendToContentScript);
+    diagnostics = { ...(hover.diagnostics || diagnostics || {}), overlay: Boolean(overlay?.found) };
+    diagnosticsText = formatHoverDiagnostics(diagnostics);
+    if (!overlay?.found) continue;
+    await send("Input.dispatchMouseEvent", mouseMoved(overlay));
+    await send("Input.dispatchMouseEvent", mousePressed(overlay));
+    pressed = true;
+    await send("Input.dispatchMouseEvent", mouseReleased(overlay));
+    return {
+      found: true,
+      hovered: true,
+      pressed: true,
+      diagnostics: { ...hover.diagnostics, overlay: true },
+      diagnosticsText,
+    };
+  }
+  if (pressed) return { found: true, hovered: true, pressed: true, diagnostics, diagnosticsText };
+  return { found: false, hovered, pressed: false, diagnostics, diagnosticsText };
 }

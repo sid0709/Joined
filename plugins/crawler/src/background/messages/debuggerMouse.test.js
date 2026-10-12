@@ -1,20 +1,27 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
 
 import {
   attachDebugger,
   dispatchTrustedMouse,
+  ensureDebugger,
+  focusCrawlTab,
+  hasDebuggerApi,
   mouseMoved,
   mousePressed,
   mouseReleased,
+  releaseDebugger,
+  resetDebuggerSession,
 } from "./debuggerMouse.js";
 
 function chromeDebugger() {
   const commands = [];
   return {
     commands,
-    attach: async () => {},
+    attach: async () => {
+      commands.push("attach");
+    },
     detach: async () => {
       commands.push("detach");
     },
@@ -23,6 +30,44 @@ function chromeDebugger() {
     },
   };
 }
+
+function tabsIo({ active = false } = {}) {
+  const calls = [];
+  return {
+    calls,
+    get: async (tabId) => {
+      calls.push({ op: "get", tabId });
+      return { id: tabId, active, windowId: 9 };
+    },
+    update: async (tabId, props) => {
+      calls.push({ op: "update", tabId, props });
+    },
+    updateWindow: async (windowId, props) => {
+      calls.push({ op: "updateWindow", windowId, props });
+    },
+  };
+}
+
+const APPROACH = [
+  { x: 120, y: 32 },
+  { x: 120, y: 59 },
+  { x: 120, y: 86 },
+  { x: 120, y: 113 },
+  { x: 140, y: 160 },
+];
+
+const DIAG = {
+  rect: { left: 20, top: 40, width: 320, height: 220 },
+  viewport: { width: 800, height: 600 },
+  scroll: { x: 0, y: 0 },
+  dpr: 1,
+  hit: { tag: "DIV", classes: "job-card" },
+  overlay: false,
+};
+
+beforeEach(() => {
+  resetDebuggerSession();
+});
 
 describe("debugger mouse events", () => {
   test("builds trusted CDP mouse payloads", () => {
@@ -55,6 +100,7 @@ describe("debugger mouse events", () => {
         calls.push("attach");
         throw new Error("Another debugger is already attached to the tab");
       },
+      sendCommand: async () => {},
     });
     expect(calls).toEqual(["attach"]);
     await expect(
@@ -62,12 +108,49 @@ describe("debugger mouse events", () => {
         attach: async () => {
           throw new Error("denied");
         },
+        sendCommand: async () => {},
       }),
     ).rejects.toThrow("denied");
   });
 
-  test("hovers with mouseMoved then clicks the overlay", async () => {
+  test("treats a missing debugger API as optional", async () => {
+    expect(hasDebuggerApi({})).toBe(false);
+    expect(hasDebuggerApi({ attach: async () => {}, sendCommand: async () => {} })).toBe(true);
+    await expect(attachDebugger(1, {})).rejects.toThrow("chrome.debugger is not available");
+    expect(await releaseDebugger(99, chromeDebugger())).toEqual({ detached: false });
+  });
+
+  test("skips an offset whose hover target is not inside the card", async () => {
     const debug = chromeDebugger();
+    const result = await dispatchTrustedMouse(
+      4,
+      { op: "hover", selector: ".card", offsets: [{ x: 100, y: 100 }] },
+      {
+        chromeDebugger: debug,
+        tabs: tabsIo({ active: true }),
+        sendToContentScript: async () => ({
+          result: { found: false, diagnosticsText: "hit=BODY overlay=no" },
+        }),
+      },
+    );
+    expect(result).toMatchObject({ found: false, hovered: false, pressed: false });
+    expect(result.diagnosticsText).toContain("hit=BODY");
+    expect(debug.commands.filter((item) => item?.method)).toEqual([]);
+  });
+
+  test("focuses the crawl tab before moving", async () => {
+    const tabs = tabsIo({ active: false });
+    await focusCrawlTab(7, tabs);
+    expect(tabs.calls).toEqual([
+      { op: "get", tabId: 7 },
+      { op: "update", tabId: 7, props: { active: true } },
+      { op: "updateWindow", windowId: 9, props: { focused: true } },
+    ]);
+  });
+
+  test("moves along the approach path then clicks the overlay without detaching", async () => {
+    const debug = chromeDebugger();
+    const tabs = tabsIo({ active: false });
     const ops = [];
     const result = await dispatchTrustedMouse(
       7,
@@ -78,32 +161,71 @@ describe("debugger mouse events", () => {
         contains: "Mark Applied",
         exact: true,
         offsets: [{ x: 100, y: 100 }],
-        overlayWait: 2000,
+        overlayWait: 400,
       },
       {
         chromeDebugger: debug,
+        tabs,
         sendToContentScript: async (_tabId, message) => {
           ops.push(message.payload.op);
           if (message.action !== ROUTINE_OP_ACTION) return {};
-          if (message.payload.op === "hoverTarget")
-            return { success: true, result: { found: true, x: 140, y: 160 } };
+          if (message.payload.op === "hoverTarget") {
+            return {
+              success: true,
+              result: {
+                found: true,
+                x: 140,
+                y: 160,
+                approach: APPROACH,
+                diagnostics: DIAG,
+                diagnosticsText: "rect=20,40 320x220 overlay=no",
+              },
+            };
+          }
           return { success: true, result: { found: true, x: 200, y: 80 } };
         },
       },
     );
-    expect(result).toEqual({ found: true, hovered: true });
+    expect(result.found).toBe(true);
+    expect(result.pressed).toBe(true);
     expect(ops).toEqual(["hoverTarget", "overlayTarget"]);
-    expect(debug.commands[0]).toEqual({
-      method: "Input.dispatchMouseEvent",
-      params: mouseMoved({ x: 140, y: 160 }),
-    });
-    expect(debug.commands[1]).toEqual({
-      method: "Input.dispatchMouseEvent",
-      params: mouseMoved({ x: 200, y: 80 }),
-    });
-    expect(debug.commands[2].params.type).toBe("mousePressed");
-    expect(debug.commands[3].params.type).toBe("mouseReleased");
-    expect(debug.commands.at(-1)).toBe("detach");
+    expect(tabs.calls.some((call) => call.op === "update")).toBe(true);
+    const moves = debug.commands.filter(
+      (item) => item?.method === "Input.dispatchMouseEvent" && item.params.type === "mouseMoved",
+    );
+    expect(moves.map((item) => item.params).slice(0, APPROACH.length)).toEqual(
+      APPROACH.map((point) => mouseMoved(point)),
+    );
+    expect(debug.commands.some((item) => item === "detach")).toBe(false);
+    expect(debug.commands.filter((item) => item === "attach")).toHaveLength(1);
+  });
+
+  test("returns found once a press has been sent", async () => {
+    const result = await dispatchTrustedMouse(
+      7,
+      { op: "hoverClick", selector: ".card", offsets: [{ x: 100, y: 100 }] },
+      {
+        chromeDebugger: chromeDebugger(),
+        tabs: tabsIo({ active: true }),
+        sendToContentScript: async (_tabId, message) => {
+          if (message.payload.op === "hoverTarget") {
+            return {
+              result: {
+                found: true,
+                x: 12,
+                y: 18,
+                approach: [
+                  { x: 1, y: 1 },
+                  { x: 12, y: 18 },
+                ],
+              },
+            };
+          }
+          return { result: { found: true, x: 20, y: 30 } };
+        },
+      },
+    );
+    expect(result).toMatchObject({ found: true, hovered: true, pressed: true });
   });
 
   test("returns hovered without a click when the overlay never appears", async () => {
@@ -112,29 +234,119 @@ describe("debugger mouse events", () => {
       { op: "hoverClick", selector: ".card", offsets: [{ x: 100, y: 100 }] },
       {
         chromeDebugger: chromeDebugger(),
+        tabs: tabsIo({ active: true }),
         sendToContentScript: async (_tabId, message) => {
           if (message.payload.op === "hoverTarget")
-            return { result: { found: true, x: 12, y: 18 } };
+            return {
+              result: {
+                found: true,
+                x: 12,
+                y: 18,
+                diagnostics: DIAG,
+                diagnosticsText: "overlay=no",
+              },
+            };
           return { result: { found: false } };
         },
       },
     );
-    expect(result).toEqual({ found: false, hovered: true });
+    expect(result.found).toBe(false);
+    expect(result.hovered).toBe(true);
+    expect(result.pressed).toBe(false);
+    expect(result.diagnosticsText).toContain("overlay=no");
   });
 
-  test("hover-only sends mouseMoved and no click", async () => {
+  test("hover-only sends the approach mouseMoved sequence and keeps the session", async () => {
     const debug = chromeDebugger();
     const result = await dispatchTrustedMouse(
       2,
       { op: "hover", selector: ".card", x: 100, y: 100 },
       {
         chromeDebugger: debug,
-        sendToContentScript: async () => ({ result: { found: true, x: 50, y: 60 } }),
+        tabs: tabsIo({ active: true }),
+        sendToContentScript: async () => ({
+          result: {
+            found: true,
+            x: 50,
+            y: 60,
+            approach: [
+              { x: 10, y: 10 },
+              { x: 50, y: 60 },
+            ],
+          },
+        }),
       },
     );
-    expect(result).toEqual({ found: true, hovered: true });
-    expect(debug.commands.filter((item) => item !== "detach")).toEqual([
+    expect(result).toMatchObject({ found: true, hovered: true, pressed: false });
+    expect(debug.commands.filter((item) => item === "detach")).toEqual([]);
+    expect(debug.commands.filter((item) => item?.method === "Input.dispatchMouseEvent")).toEqual([
+      { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 10, y: 10 }) },
       { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 50, y: 60 }) },
     ]);
+  });
+
+  test("uses the default chrome wrappers when io omits them", async () => {
+    const calls = [];
+    globalThis.chrome = {
+      debugger: {
+        attach: async (...args) => {
+          calls.push(["attach", args[0]]);
+        },
+        detach: async (...args) => {
+          calls.push(["detach", args[0]]);
+        },
+        sendCommand: async (...args) => {
+          calls.push(["send", args[1]]);
+        },
+      },
+      tabs: {
+        get: async (tabId) => {
+          calls.push(["get", tabId]);
+          return { id: tabId, active: false, windowId: 2 };
+        },
+        update: async (tabId, props) => {
+          calls.push(["update", tabId, props]);
+        },
+      },
+      windows: {
+        update: async (windowId, props) => {
+          calls.push(["window", windowId, props]);
+        },
+      },
+    };
+    try {
+      await focusCrawlTab(8);
+      await attachDebugger(8);
+      await dispatchTrustedMouse(
+        8,
+        { op: "hover", selector: ".card" },
+        {
+          sendToContentScript: async () => ({ result: { found: true, x: 1, y: 2 } }),
+        },
+      );
+      await releaseDebugger(8);
+    } finally {
+      delete globalThis.chrome;
+    }
+    expect(calls.map((call) => call[0])).toEqual(
+      expect.arrayContaining(["attach", "detach", "send", "get", "update", "window"]),
+    );
+  });
+
+  test("attaches once and reuses the session on the next job", async () => {
+    const debug = chromeDebugger();
+    const io = {
+      chromeDebugger: debug,
+      tabs: tabsIo({ active: true }),
+      sendToContentScript: async () => ({ result: { found: true, x: 50, y: 60 } }),
+    };
+    await dispatchTrustedMouse(2, { op: "hover", selector: ".card" }, io);
+    await dispatchTrustedMouse(2, { op: "hover", selector: ".card" }, io);
+    expect(debug.commands.filter((item) => item === "attach")).toHaveLength(1);
+    expect(debug.commands.filter((item) => item === "detach")).toHaveLength(0);
+    const reused = await ensureDebugger(2, debug);
+    expect(reused).toEqual({ attached: true, reused: true });
+    expect(await releaseDebugger(2, debug)).toEqual({ detached: true });
+    expect(debug.commands.filter((item) => item === "detach")).toHaveLength(1);
   });
 });

@@ -65,6 +65,11 @@ function jobRecord(detail) {
   return record;
 }
 
+async function ensureMarkDebugger(call, enabled) {
+  if (!enabled) return;
+  await call("attachDebugger").catch(() => {});
+}
+
 function warnIfPageEmpty(hooks, page, jobCount) {
   if (jobCount !== 0) return;
   const label = emptyPageLabel(page);
@@ -76,7 +81,7 @@ function warnIfPageEmpty(hooks, page, jobCount) {
   console.warn(label);
 }
 
-async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage }) {
+async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage, random }) {
   const url = listPage.url || pageUrl;
   return expandShortGroups({
     parsed: parseList(listPage.html, url),
@@ -85,6 +90,7 @@ async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage 
     skipDelays,
     readPage,
     pageUrl: url,
+    random,
   });
 }
 
@@ -358,6 +364,7 @@ export async function runHiringCafePass(ctx, progress) {
   };
 
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
+  await ensureMarkDebugger(call, markAppliedEnabled);
   const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
   progress.tick();
   cursor = await ensureCursor(store, tab);
@@ -390,6 +397,7 @@ export async function runHiringCafePass(ctx, progress) {
       rest,
       skipDelays,
       readPage,
+      random: hooks.random ?? Math.random,
     });
     const pageIds = jobIdKey(parsed.jobs);
     warnIfPageEmpty(hooks, cursor.page, parsed.jobs.length);

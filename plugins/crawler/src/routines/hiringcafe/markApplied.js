@@ -66,17 +66,24 @@ async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, select
   let last = { found: false };
   for (const offset of MARK_HOVER_OFFSETS) {
     last = await hoverCard(call, selector, offset).catch(() => ({ found: false }));
-    let page = await readPage();
-    let state = appliedStateFromHtml(page.html, job);
-    if (state.canMark || state.marked) return { hovered: last, state, page };
+    const overlay = await call("overlayTarget", {
+      selector,
+      clickSelector: MARK_APPLIED,
+      contains: MARK_APPLIED_TEXT,
+      exact: true,
+      wait: skipDelays ? 0 : MARK_OVERLAY_WAIT_MS,
+    }).catch(() => ({ found: false }));
+    const page = await readPage();
+    const state = appliedStateFromHtml(page.html, job);
+    const overlaySeen = Boolean(overlay?.found || state.canMark);
+    last = {
+      ...last,
+      diagnostics: { ...(last.diagnostics || {}), overlay: overlaySeen },
+      diagnosticsText: last.diagnosticsText,
+    };
+    if (overlay?.found || state.canMark || state.marked) return { hovered: last, state, page };
     if (skipDelays) continue;
-    const deadline = Date.now() + MARK_OVERLAY_WAIT_MS;
-    while (Date.now() < deadline) {
-      await pause(rest, skipDelays, MARK_OVERLAY_POLL_MS);
-      page = await readPage();
-      state = appliedStateFromHtml(page.html, job);
-      if (state.canMark || state.marked) return { hovered: last, state, page };
-    }
+    await pause(rest, skipDelays, MARK_OVERLAY_POLL_MS);
   }
   const page = await readPage();
   return { hovered: last, state: appliedStateFromHtml(page.html, job), page };
@@ -139,9 +146,9 @@ export async function readAppliedOnCard({
     selector,
   });
   if (isHiringCafeSignedOut(page.html)) {
-    return { found: Boolean(hovered?.found), marked: false, signedOut: true, page };
+    return { found: Boolean(hovered?.found), marked: false, signedOut: true, page, hovered };
   }
-  return { ...state, signedOut: state.signedOut, page };
+  return { ...state, signedOut: state.signedOut, page, hovered };
 }
 
 async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
@@ -171,8 +178,9 @@ async function clickMarkOnCard({ job, call, skipDelays }) {
   const selector = exactCardSelector(job);
   const wait = skipDelays ? 0 : MARK_APPLIED_WAIT_MS;
   await call("scroll", { selector }).catch(() => {});
+  let hovered;
   try {
-    const hovered = await call("hoverClick", {
+    hovered = await call("hoverClick", {
       selector,
       clickSelector: MARK_APPLIED,
       contains: MARK_APPLIED_TEXT,
@@ -181,11 +189,11 @@ async function clickMarkOnCard({ job, call, skipDelays }) {
       wait,
       overlayWait: skipDelays ? 0 : MARK_OVERLAY_WAIT_MS,
     });
-    if (hovered?.found) return hovered;
   } catch {
-    // The overlay click may have already POSTed; do not click again.
-    return { found: true, hovered: true };
+    // A press may have already POSTed; do not click again.
+    return { found: true, hovered: true, pressed: true };
   }
+  if (hovered?.found || hovered?.pressed) return { ...hovered, found: true };
   await hoverCard(call, selector);
   return call("click", {
     selector: `${selector} ${MARK_APPLIED}`,
@@ -236,9 +244,11 @@ export async function markAppliedOnCard({
   const clicked = await clickMarkOnCard({ job, call, skipDelays });
   if (!clicked?.found) {
     const reason = ready.canMark ? NOT_MARKED_REASON.CLICK_MISSED : NOT_MARKED_REASON.HOVER_MISSED;
-    const log = notMarkedLog(jobId, reason);
+    const diagnostics =
+      clicked?.diagnosticsText || ready.hovered?.diagnosticsText || ready.diagnosticsText || "";
+    const log = notMarkedLog(jobId, reason, diagnostics);
     noteMark(onActivity, log, "waitFor", onNotice, false);
-    return { marked: false, log, reason };
+    return { marked: false, log, reason, diagnostics };
   }
   const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
   if (confirmed.signedOut) {

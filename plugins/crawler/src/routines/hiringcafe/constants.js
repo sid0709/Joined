@@ -46,8 +46,10 @@ export const MARK_HOVER_OFFSETS = Object.freeze([
 export const MARK_APPLIED_DEFAULT = true;
 export const MARK_APPLIED_STORAGE_KEY = "hiringcafeMarkAppliedEnabledV1";
 export const MARK_HOVER_MS = 250;
-export const MARK_OVERLAY_WAIT_MS = 2_000;
-export const MARK_OVERLAY_POLL_MS = 200;
+export const MARK_HOVER_STEPS = 4;
+export const SCROLL_SETTLE_MS = 50;
+export const MARK_OVERLAY_WAIT_MS = 400;
+export const MARK_OVERLAY_POLL_MS = 50;
 export const MARK_CONFIRM_MS = 1_000;
 export const MARK_APPLIED_WAIT_MS = 1_000;
 export const MARK_APPLIED_LABEL = "Mark Applied";
@@ -264,9 +266,13 @@ export function alreadyMarkedLog(jobId) {
   return `Job ${jobId} already marked applied`;
 }
 
-export function notMarkedLog(jobId, reason = "") {
+export function notMarkedLog(jobId, reason = "", diagnostics = "") {
   const detail = String(reason || "").trim();
-  return detail ? `Job ${jobId} not marked applied: ${detail}` : `Job ${jobId} not marked applied`;
+  const extra = String(diagnostics || "").trim();
+  const base = detail
+    ? `Job ${jobId} not marked applied: ${detail}`
+    : `Job ${jobId} not marked applied`;
+  return extra ? `${base} · ${extra}` : base;
 }
 
 export function groupShortfallLabel(collapseKey, captured, dots) {

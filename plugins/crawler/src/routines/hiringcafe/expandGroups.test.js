@@ -226,6 +226,7 @@ describe("expandShortGroups", () => {
       parsed,
       pageUrl: LIST_URL,
       skipDelays: false,
+      random: () => 0.5,
       rest: async (ms) => {
         rested.push(ms);
       },
@@ -243,6 +244,7 @@ describe("expandShortGroups", () => {
       },
     });
     expect(rested.length).toBeGreaterThan(0);
-    expect(rested).toContain(PAGE_DELAY_MS.min);
+    expect(rested).toContain(6000);
+    expect(rested.some((ms) => ms >= PAGE_DELAY_MS.min && ms <= PAGE_DELAY_MS.max)).toBe(true);
   });
 });

@@ -4,7 +4,7 @@ import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { HIRINGCAFE_HOSTS } from "../../routines/hiringcafe/constants.js";
 import { resolveTargetTab, sendToContentScript } from "../tabs.js";
 
-import { dispatchTrustedMouse } from "./debuggerMouse.js";
+import { dispatchTrustedMouse, ensureDebugger, releaseDebugger } from "./debuggerMouse.js";
 import {
   clearFetchWatchInMainWorld,
   installFetchWatchInMainWorld,
@@ -23,6 +23,8 @@ const defaultIo = {
   abortInFlightNavigate,
   clickShadowInMainWorld,
   dispatchTrustedMouse,
+  ensureDebugger,
+  releaseDebugger,
   installFetchWatchInMainWorld,
   readFetchWatchInMainWorld,
   clearFetchWatchInMainWorld,
@@ -65,6 +67,21 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
     const op = message.payload?.op;
     if (op === "abortFetches") {
       io.abortInFlightNavigate();
+      await (io.releaseDebugger ?? releaseDebugger)(tab.id, io.chromeDebugger).catch(() => {});
+    }
+    if (op === "attachDebugger") {
+      if (!isHiringCafeTab(tab.url)) {
+        sendResponse({ success: false, error: "Debugger attach is limited to HiringCafe" });
+        return;
+      }
+      const result = await (io.ensureDebugger ?? ensureDebugger)(tab.id, io.chromeDebugger);
+      sendResponse({ success: true, result });
+      return;
+    }
+    if (op === "detachDebugger") {
+      const result = await (io.releaseDebugger ?? releaseDebugger)(tab.id, io.chromeDebugger);
+      sendResponse({ success: true, result });
+      return;
     }
     if (op === "navigate") {
       const result = await io.navigateTab(tab.id, message.payload.url, message.payload.timeout);

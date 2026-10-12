@@ -25,6 +25,8 @@ function io(overrides = {}) {
     readFetchWatchInMainWorld: async () => ({ hits: [] }),
     clearFetchWatchInMainWorld: async () => ({ watching: false, hits: [] }),
     dispatchTrustedMouse: async () => ({ found: true, hovered: true }),
+    ensureDebugger: async () => ({ attached: true, reused: false }),
+    releaseDebugger: async () => ({ detached: true }),
     ...overrides,
   };
 }
@@ -154,15 +156,52 @@ describe("handleRoutineExec", () => {
 
   test("aborts in-flight navigates then runs the page op", async () => {
     const aborted = [];
+    const released = [];
     const result = await exec(
       { payload: { op: "abortFetches" } },
       io({
         abortInFlightNavigate: () => aborted.push(true),
+        releaseDebugger: async (tabId) => {
+          released.push(tabId);
+          return { detached: true };
+        },
         sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
       }),
     );
     expect(aborted).toEqual([true]);
+    expect(released).toEqual([4]);
     expect(result).toEqual({ success: true, result: { aborted: true } });
+  });
+
+  test("attaches the debugger on HiringCafe only", async () => {
+    const attached = [];
+    const result = await exec(
+      { payload: { op: "attachDebugger" } },
+      io({
+        resolveTargetTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        ensureDebugger: async (tabId) => {
+          attached.push(tabId);
+          return { attached: true, reused: false };
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { attached: true, reused: false } });
+    expect(attached).toEqual([3]);
+    await expect(exec({ payload: { op: "attachDebugger" } }, io())).resolves.toEqual({
+      success: false,
+      error: "Debugger attach is limited to HiringCafe",
+    });
+  });
+
+  test("detaches the debugger session", async () => {
+    const result = await exec(
+      { payload: { op: "detachDebugger" } },
+      io({
+        resolveTargetTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        releaseDebugger: async (tabId) => ({ detached: true, tabId }),
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { detached: true, tabId: 3 } });
   });
 
   test("answers with a page-timeout when the content script is silent", async () => {

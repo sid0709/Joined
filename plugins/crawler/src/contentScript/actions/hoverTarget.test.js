@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { parseHTML } from "linkedom";
 
-import { MARK_HOVER_OFFSET } from "../../routines/hiringcafe/constants.js";
+import { MARK_HOVER_OFFSET, MARK_HOVER_STEPS } from "../../routines/hiringcafe/constants.js";
 
 import {
+  approachPoints,
   clamp,
+  formatHoverDiagnostics,
+  hitInsideCard,
   hoverTargetInDocument,
   overlayTargetInDocument,
   viewportHoverPoint,
@@ -20,7 +23,7 @@ function cardDocument({ overlay = true, width = 320, height = 220, left = 20, to
     : "";
   const { document } = parseHTML(`<!DOCTYPE html><html><body>
     <div data-testid="job-results"><div class="hc-card-grid">
-      <div>
+      <div class="job-card">
         <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
         ${overlayHtml}
       </div>
@@ -49,7 +52,7 @@ function cardDocument({ overlay = true, width = 320, height = 220, left = 20, to
       bottom: top + 32,
     });
   }
-  return document;
+  return { document, card };
 }
 
 describe("viewportHoverPoint", () => {
@@ -59,39 +62,119 @@ describe("viewportHoverPoint", () => {
         width: 800,
         height: 600,
       }),
-    ).toEqual({ x: 110, y: 120 });
+    ).toEqual({ x: 110, y: 120, clamped: false });
   });
 
-  test("falls back to the clamped center when the side panel hides offset 100,100", () => {
+  test("uses the visible-card center when the side panel hides offset 100,100", () => {
     expect(
       viewportHoverPoint({ left: 0, top: 0, width: 400, height: 200 }, MARK_HOVER_OFFSET, {
         width: 90,
         height: 500,
       }),
-    ).toEqual({ x: 89, y: 100 });
+    ).toEqual({ x: 45, y: 100, clamped: true });
     expect(clamp(12, 1, 8)).toBe(8);
   });
 });
 
+describe("approachPoints", () => {
+  test("starts outside the card then steps into the destination", () => {
+    const rect = { left: 20, top: 40, width: 320, height: 220, right: 340, bottom: 260 };
+    const dest = { x: 120, y: 140 };
+    const points = approachPoints(rect, dest, { width: 800, height: 600 }, MARK_HOVER_STEPS);
+    expect(points[0]).toEqual({ x: 120, y: 32 });
+    expect(points.at(-1)).toEqual(dest);
+    expect(points).toHaveLength(MARK_HOVER_STEPS + 1);
+    expect(points[1].y).toBeGreaterThan(points[0].y);
+  });
+});
+
+describe("hitInsideCard", () => {
+  test("requires elementFromPoint to land on the card or a descendant", () => {
+    const { document, card } = cardDocument();
+    const child = card.querySelector("a");
+    expect(hitInsideCard(card, 120, 140, () => child)).toMatchObject({ ok: true, tag: "A" });
+    expect(hitInsideCard(card, 120, 140, () => document.body)).toMatchObject({
+      ok: false,
+      tag: "BODY",
+    });
+  });
+});
+
+describe("formatHoverDiagnostics", () => {
+  test("prints rect, viewport, scroll, dpr, hit, and overlay", () => {
+    expect(
+      formatHoverDiagnostics({
+        rect: { left: 10, top: 20, width: 320, height: 220 },
+        viewport: { width: 800, height: 600 },
+        scroll: { x: 0, y: 400 },
+        dpr: 2,
+        hit: { tag: "DIV", classes: "job-card hc-card" },
+        overlay: false,
+      }),
+    ).toBe(
+      "rect=10,20 320x220 viewport=800x600 scroll=0,400 dpr=2 hit=DIV.job-card.hc-card overlay=no",
+    );
+  });
+});
+
 describe("hoverTargetInDocument", () => {
-  test("scrolls the card into view and returns the trusted hover point", () => {
-    const document = cardDocument();
-    const result = hoverTargetInDocument(
+  test("scrolls the card into view and returns a CSS-pixel approach path", async () => {
+    const { document, card } = cardDocument();
+    const result = await hoverTargetInDocument(
       document,
       { selector: CARD, x: 100, y: 100 },
       { width: 800, height: 600 },
+      () => card,
     );
-    expect(document.querySelector(CARD).scrolled).toBe(true);
-    expect(result).toEqual({ found: true, x: 120, y: 140 });
-    expect(hoverTargetInDocument(document, { selector: "[data-missing]" })).toEqual({
-      found: false,
+    expect(card.scrolled).toBe(true);
+    expect(result).toMatchObject({
+      found: true,
+      x: 120,
+      y: 140,
+      clamped: false,
     });
+    expect(result.approach[0]).toEqual({ x: 120, y: 32 });
+    expect(result.approach.at(-1)).toEqual({ x: 120, y: 140 });
+    expect(result.diagnosticsText).toContain("viewport=800x600");
+    expect(result.diagnostics.dpr).toBe(1);
+    const missing = await hoverTargetInDocument(document, { selector: "[data-missing]" });
+    expect(missing.found).toBe(false);
+    expect(missing.diagnosticsText).toContain("hit=none");
+  });
+
+  test("re-checks elementFromPoint after clamping to the visible card", async () => {
+    const { document, card } = cardDocument({ left: 0, top: 0, width: 400, height: 200 });
+    const hits = [];
+    const result = await hoverTargetInDocument(
+      document,
+      { selector: CARD, x: 100, y: 100 },
+      { width: 90, height: 500 },
+      (x, y) => {
+        hits.push({ x, y });
+        return x === 45 && y === 100 ? card : document.body;
+      },
+    );
+    expect(result).toMatchObject({ found: true, x: 45, y: 100, clamped: true });
+    expect(hits[0]).toEqual({ x: 45, y: 100 });
+  });
+
+  test("rejects a hover whose elementFromPoint is outside the card", async () => {
+    const { document } = cardDocument();
+    const result = await hoverTargetInDocument(
+      document,
+      { selector: CARD, x: 100, y: 100 },
+      { width: 800, height: 600 },
+      () => document.body,
+    );
+    expect(result.found).toBe(false);
+    expect(result.diagnostics.hit.tag).toBe("BODY");
+    expect(result.diagnosticsText).toContain("overlay=no");
   });
 });
 
 describe("overlayTargetInDocument", () => {
   test("returns the Mark Applied center when the overlay is in the DOM", () => {
-    const document = cardDocument();
+    const { document } = cardDocument();
     expect(
       overlayTargetInDocument(
         document,
@@ -110,7 +193,7 @@ describe("overlayTargetInDocument", () => {
   });
 
   test("waitForOverlayTarget returns as soon as the overlay is present", async () => {
-    const document = cardDocument({ overlay: true });
+    const { document } = cardDocument({ overlay: true });
     await expect(
       waitForOverlayTarget(
         document,
@@ -118,7 +201,7 @@ describe("overlayTargetInDocument", () => {
         () => 0,
       ),
     ).resolves.toMatchObject({ found: true });
-    const missing = cardDocument({ overlay: false });
+    const missing = cardDocument({ overlay: false }).document;
     await expect(
       waitForOverlayTarget(missing, { selector: CARD, clickSelector: MARK, wait: 0 }, () => 0),
     ).resolves.toEqual({ found: false });
