@@ -12,8 +12,8 @@ import {
 } from "sid-ui";
 
 import { formatElapsedTime } from "../../api/scrapeRunStats";
-import { SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
 import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
+import { SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
 
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";

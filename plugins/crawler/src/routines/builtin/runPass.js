@@ -1,3 +1,4 @@
+import { IncompleteJobDataError } from "../../api/jobValidation.js";
 import {
   createAdaptiveBackoff,
   DEFAULT_BACKOFF_BASE_MS,
@@ -12,8 +13,6 @@ import {
   RoutineStepError,
   RoutineStoppedError,
 } from "../../routineKit/runner.js";
-
-import { IncompleteJobDataError } from "../../api/jobValidation.js";
 
 import {
   CARD_DECISION_OPENED,
@@ -225,16 +224,19 @@ export async function runBuiltInPass(ctx, progress) {
   const waitForDetailReady = async () => {
     let page = await readVisiblePage(call);
     if (isJobDetailReady(page.html)) return page;
-    const budget = skipDelays ? DETAIL_READY_POLL_MS : DETAIL_READY_MS;
-    const deadline = Date.now() + budget;
     hooks.onActivity?.({
       phase: "ready",
       label: "Waiting for job page data",
       kind: "waitFor",
     });
+    if (skipDelays) {
+      page = await readVisiblePage(call);
+      return page;
+    }
+    const deadline = Date.now() + DETAIL_READY_MS;
     while (Date.now() < deadline) {
       ctx.checkStopped();
-      await rest(skipDelays ? 0 : DETAIL_READY_POLL_MS);
+      await rest(DETAIL_READY_POLL_MS);
       page = await readVisiblePage(call);
       if (isJobDetailReady(page.html)) return page;
     }

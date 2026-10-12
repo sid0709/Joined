@@ -309,10 +309,7 @@ describe("BuiltInRoutine", () => {
       activities.some(
         (activity) =>
           activity.label ===
-          cardDecisionLabel(
-            "9256204",
-            cardInvalidDecision(["companyName", "title", "description"]),
-          ),
+          cardDecisionLabel("9256204", cardInvalidDecision(["title", "description"])),
       ),
     ).toBe(true);
     expect(records[0].title).toContain("Specialist Account Executive");
