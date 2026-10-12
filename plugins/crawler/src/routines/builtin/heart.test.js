@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { HEART_INNER, HEART_PREFIX_SAVED, HEART_PREFIX_UNSAVED } from "./constants.js";
 import { cssEscape, jobCardSelector, jobSaveSelector } from "./cssEscape.js";
-import { heartStateFromRoot, isHeartSaved } from "./heart.js";
+import { heartStateFromRoot, isHeartSaved, isListCardSaved } from "./heart.js";
 import "./testing/domParser.js";
 
 function heartRoot({ saved = false } = {}) {
@@ -40,5 +40,22 @@ describe("list-card heart", () => {
       prefix: HEART_PREFIX_SAVED,
     });
     expect(heartStateFromRoot(null).found).toBe(false);
+  });
+
+  test("treats a visible Saved badge without my-item as saved, not a hidden badge", () => {
+    expect(
+      isListCardSaved({
+        heart: { found: true, classes: "heart saved", prefix: HEART_PREFIX_SAVED },
+      }),
+    ).toBe(true);
+    expect(isListCardSaved({ hasSaveHost: false, hasVisibleSavedBadge: true })).toBe(true);
+    expect(isListCardSaved({ hasSaveHost: false, hasVisibleSavedBadge: false })).toBe(false);
+    expect(
+      isListCardSaved({
+        heart: { found: true, classes: "heart", prefix: HEART_PREFIX_UNSAVED },
+        hasSaveHost: true,
+        hasVisibleSavedBadge: false,
+      }),
+    ).toBe(false);
   });
 });

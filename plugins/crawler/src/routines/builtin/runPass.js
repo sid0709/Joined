@@ -19,6 +19,7 @@ import {
   CARD_SKIP_DETAIL_SAVED,
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
+  CARD_SKIP_SAVED_BADGE,
   CARD_SKIP_NO_URL,
   DETAIL_READY_MS,
   DETAIL_READY_POLL_MS,
@@ -44,7 +45,7 @@ import {
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
 import { isJobDetailReady } from "./detailReady.js";
 import { cardsAfterCursor, isJobHandled } from "./handled.js";
-import { isHeartSaved } from "./heart.js";
+import { isHeartSaved, isListCardSaved } from "./heart.js";
 import { advanceCursor, cardIdKey, crawlListUrl, emptyCursor, listUrlForPage } from "./lists.js";
 import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
@@ -254,12 +255,6 @@ export async function runBuiltInPass(ctx, progress) {
     });
   };
 
-  /** Sole list-card saved signal: open-shadow `div.heart.saved` / `fas`. Unknown is unsaved. */
-  const isCardSavedLive = async (card) => {
-    const state = await queryHeart(card.id);
-    return Boolean(state?.found) && isHeartSaved(state);
-  };
-
   const clickListHeart = async (jobId) => {
     const host = jobSaveSelector(jobId);
     const before = await queryHeart(jobId);
@@ -317,8 +312,18 @@ export async function runBuiltInPass(ctx, progress) {
         noteCardDecision(candidate.id, CARD_SKIP_HANDLED);
         continue;
       }
-      if (await isCardSavedLive(candidate)) {
-        noteCardDecision(candidate.id, CARD_SKIP_HEART_SAVED);
+      const heart = await queryHeart(candidate.id);
+      if (
+        isListCardSaved({
+          heart,
+          hasSaveHost: candidate.hasSaveHost,
+          hasVisibleSavedBadge: candidate.hasVisibleSavedBadge,
+        })
+      ) {
+        noteCardDecision(
+          candidate.id,
+          heart?.found && isHeartSaved(heart) ? CARD_SKIP_HEART_SAVED : CARD_SKIP_SAVED_BADGE,
+        );
         await markJob(candidate.id);
         continue;
       }

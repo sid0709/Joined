@@ -14,6 +14,7 @@ import {
   CARD_DECISION_OPENED,
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
+  CARD_SKIP_SAVED_BADGE,
   HANDLED_STORAGE_KEY,
   HEART_NOT_SAVED_LABEL,
   HEART_UNREAD_LABEL,
@@ -136,7 +137,10 @@ function builtinTab({
     if (op.op === "shadow") {
       shadows.push({ host: op.host, action: op.action });
       const id = entityIdFromSaveHost(op.host);
-      if (!shadowFound) return { found: false, open: false, classes: "", prefix: "" };
+      const pageHtml = htmlOverride ?? pageFor(url).html;
+      const hasHost =
+        Boolean(id) && new RegExp(`<my-item\\b[^>]*entity-id=["']?${id}\\b`, "i").test(pageHtml);
+      if (!shadowFound || !hasHost) return { found: false, open: false, classes: "", prefix: "" };
       if (op.action === "click" && id && !heartStaysUnsaved) heartsState[id] = true;
       if (op.action === "click" && heartShowsModal) {
         htmlOverride = `${pageFor(url).html}<dialog>${SIGN_UP_MODAL_TEXT}</dialog>`;
@@ -262,14 +266,52 @@ describe("BuiltInRoutine", () => {
     ).toBe(true);
   });
 
-  test("does not skip a card because a Saved span is in the HTML", async () => {
+  test("skips a list card whose live heart is already saved", async () => {
+    const activities = [];
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      hearts: { 9256204: true },
+    });
+    expect(
+      await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+        onActivity: (activity) => activities.push(activity),
+      }),
+    ).toEqual([]);
+    expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
+    expect(
+      activities.some(
+        (activity) => activity.label === cardDecisionLabel("9256204", CARD_SKIP_HEART_SAVED),
+      ),
+    ).toBe(true);
+  });
+
+  test("skips a reloaded saved card that has no my-item and a visible Saved badge", async () => {
+    const activities = [];
     const page = builtinTab({
       listHtml: loadFixture("list-saved.html"),
       details: { [JOB_SAVED]: loadFixture("detail-easyapply.html") },
     });
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
+    expect(records).toEqual([]);
+    expect(
+      activities.some(
+        (activity) => activity.label === cardDecisionLabel("22222222", CARD_SKIP_SAVED_BADGE),
+      ),
+    ).toBe(true);
+  });
+
+  test("opens a card with no my-item and a hidden Saved badge, then skips the heart", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list-unknown.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
-    expect(page.navigates).toContain(JOB_SAVED);
+    expect(page.navigates).toContain(JOB_A);
     expect(records).toHaveLength(1);
+    expect(page.shadows.some((op) => op.action === "click")).toBe(false);
   });
 
   test("waits for jobPostInit on an HPE job and stores an absolute applyUrl", async () => {
@@ -335,23 +377,14 @@ describe("BuiltInRoutine", () => {
     expect(page.shadows.some((op) => op.action === "click")).toBe(false);
   });
 
-  test("stops on a header login link before opening jobs", async () => {
+  test("does not stop when save-wall copy is present but hidden", async () => {
     const page = builtinTab({
-      listHtml: `${loadFixture("list-last.html")}<header><a href="/auth/login">Sign In</a></header>`,
+      listHtml: `${loadFixture("list-last.html")}<dialog style="display: none;">${SIGN_UP_MODAL_TEXT}</dialog>`,
       details: { [JOB_A]: loadFixture("detail-signed-in.html") },
     });
-    await expect(
-      runRoutinePass(routine, {
-        exec: page.exec,
-        store: createBuiltinStore(memoryStorage()),
-        skipDelays: true,
-        onRecord: () => {},
-      }),
-    ).rejects.toMatchObject({
-      name: "RoutineBlockedError",
-      message: SIGN_IN_TO_SAVE_MESSAGE,
-    });
-    expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
   });
 
   test("logs heart not saved and continues the crawl", async () => {
@@ -433,7 +466,6 @@ describe("BuiltInRoutine", () => {
     const savedActivities = [];
     const savedPage = builtinTab({
       listHtml: loadFixture("list-saved.html"),
-      hearts: { 22222222: true },
     });
     expect(
       await collectJobs(createBuiltinStore(memoryStorage()), savedPage.exec, {
@@ -443,7 +475,7 @@ describe("BuiltInRoutine", () => {
     expect(savedPage.navigates.some((url) => /\/job\//.test(url))).toBe(false);
     expect(
       savedActivities.some(
-        (activity) => activity.label === cardDecisionLabel("22222222", CARD_SKIP_HEART_SAVED),
+        (activity) => activity.label === cardDecisionLabel("22222222", CARD_SKIP_SAVED_BADGE),
       ),
     ).toBe(true);
     expect(

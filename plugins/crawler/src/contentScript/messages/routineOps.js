@@ -68,13 +68,8 @@ const OPS = {
     if (inner && !target) return { found: false, open: true, classes: "", prefix: "" };
     const node = target || root;
     if (action === "click") {
-      // Isolated-world fallback. The background prefers a MAIN-world sequence.
-      clickLikeHuman(target || hostEl);
-      if (target?.querySelector) {
-        const svg = target.querySelector("svg") || target.querySelector("[data-prefix]");
-        if (svg) clickLikeHuman(svg);
-      }
-      clickLikeHuman(hostEl);
+      // Isolated-world fallback. The background prefers MAIN-world heart.click().
+      target?.click?.();
     }
     const prefixNode = node.querySelector?.("[data-prefix]") || node;
     return {

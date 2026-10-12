@@ -24,6 +24,12 @@ export const HEART_INNER = "div.heart";
 export const HEART_SAVED_CLASS = "saved";
 export const HEART_PREFIX_SAVED = "fas";
 export const HEART_PREFIX_UNSAVED = "far";
+/** After reload, a saved card drops `my-item` and shows this pink badge. */
+export const SAVED_BADGE = 'span[x-show="showSavedTag === true"]';
+export const SAVED_BADGE_TEXT = "Saved";
+export const CLOAK_ATTR = "x-cloak";
+export const DISPLAY_NONE_RE = /display\s*:\s*none/i;
+export const VISIBILITY_HIDDEN_RE = /visibility\s*:\s*hidden/i;
 export const JOB_PAGE_SAVE = 'button:has([data-id="heart-button"])';
 export const APPLY_BUTTON = 'a[aria-label="Apply to job"]';
 
@@ -69,12 +75,11 @@ export const HEART_NOT_SAVED_LABEL = "heart not saved";
 export const CARD_DECISION_OPENED = "opened";
 export const CARD_SKIP_HANDLED = "already handled";
 export const CARD_SKIP_HEART_SAVED = "list-card heart already saved";
+export const CARD_SKIP_SAVED_BADGE = "visible Saved badge";
 export const CARD_SKIP_NO_URL = "no job URL";
 export const CARD_SKIP_DETAIL_SAVED = "job page already saved";
 export const SIGN_IN_TO_SAVE_MESSAGE = "Sign in to Built In to save jobs";
 export const SIGN_UP_MODAL_TEXT = "Sign up now. Access later.";
-/** Header Sign In / Log In. Not "Log In to apply" on the job form. */
-export const HEADER_LOGIN_TEXT_RE = /^(sign in|log in)$/i;
 export const RETRY_PAUSE_MS = 1_000;
 export const STUCK_LOGIN_STREAK = 3;
 export const STUCK_PAGE_FAILURES = 3;

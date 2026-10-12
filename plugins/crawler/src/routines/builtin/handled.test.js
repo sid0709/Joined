@@ -4,6 +4,7 @@ import {
   CARD_DECISION_OPENED,
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
+  CARD_SKIP_SAVED_BADGE,
   CARD_SKIP_NO_URL,
   HANDLED_MAX_AGE_MS,
   HANDLED_MAX_IDS,
@@ -61,6 +62,9 @@ describe("handled skip", () => {
     );
     expect(cardDecisionLabel("9256204", CARD_SKIP_HEART_SAVED)).toBe(
       "Card 9256204 skipped: list-card heart already saved",
+    );
+    expect(cardDecisionLabel("22222222", CARD_SKIP_SAVED_BADGE)).toBe(
+      "Card 22222222 skipped: visible Saved badge",
     );
     expect(cardDecisionLabel("9256204", CARD_SKIP_NO_URL)).toBe("Card 9256204 skipped: no job URL");
     expect(cardDecisionLabel("11623103", cardInvalidDecision(["applyUrl", "companyName"]))).toBe(

@@ -8,9 +8,13 @@ import {
   JOB_CARD_TITLE,
   JOBS_PATH,
   NEXT_PAGE,
+  SAVE_HOST,
+  SAVED_BADGE,
+  SAVED_BADGE_TEXT,
 } from "./constants.js";
 import { documentFromHtml, resolveUrl, textOf } from "./html.js";
 import { parseJobBoardInit } from "./parseInit.js";
+import { isVisibleElement } from "./visible.js";
 
 const JOB_ID_FROM_CARD = /^job-card-(\d+)$/;
 const JOB_ID_FROM_ALIAS = /\/(\d+)\/?$/;
@@ -31,12 +35,19 @@ export function parseJobCard(card, pageUrl) {
   const id = jobIdFromCard(card, alias);
   if (!id) return null;
   const company = queryOne(card, COMPANY_TITLE);
+  const badge = queryOne(card, SAVED_BADGE);
+  const badgeText = textOf(badge);
   return {
     id: String(id),
     title: textOf(titleLink),
     url: alias ? resolveUrl(alias, pageUrl) : "",
     companyName: textOf(queryOne(company, "span") || company),
     logo: queryOne(card, COMPANY_LOGO)?.getAttribute("src") || "",
+    hasSaveHost: Boolean(queryOne(card, SAVE_HOST)),
+    hasVisibleSavedBadge:
+      Boolean(badge) &&
+      new RegExp(SAVED_BADGE_TEXT, "i").test(badgeText) &&
+      isVisibleElement(badge),
   };
 }
 

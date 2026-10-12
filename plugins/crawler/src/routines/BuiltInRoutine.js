@@ -17,10 +17,13 @@ import { ROUTINE_OUTPUTS } from "./outputs";
  * unhandled card's job page in the same tab (the title link is target=_blank, so
  * we never click it), reads JSON-LD + Builtin.jobPostInit({...}) from the visible
  * page, enqueues the job, then returns to ?page=N and clicks that card's list
- * heart (open shadowRoot div.heart). Already-saved hearts are skipped; a Saved
- * span is never a skip signal. An unread heart still opens and enqueues. A
- * signed-out session stops before hearting. A 403, 429, challenge, or login wall
- * backs off and resumes; a timeout is retried.
+ * heart (one MAIN-world div.heart.click()). Already-saved hearts, or a card
+ * with no my-item and a visible Saved badge, are skipped. A hidden Saved span
+ * is not a skip. Missing my-item without a visible badge still opens and
+ * enqueues; only the heart click is skipped. A signed-out session
+ * (isLoggedIn false or a visible save-wall modal) stops before hearting. A
+ * 403, 429, challenge, or login wall backs off and resumes; a timeout is
+ * retried.
  */
 
 export default defineRoutine({

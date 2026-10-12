@@ -1,45 +1,21 @@
 /* global chrome */
 
 /**
- * A real pointer/mouse sequence that crosses an open shadow root (`composed`)
- * and runs in the page's main world, where Built In's save listener lives.
+ * Live signed-in save: one `div.heart.click()` in the page MAIN world.
+ * Built In then POSTs userinteraction/set and the heart becomes `saved` / `fas`.
  */
-export function dispatchRealClick(node) {
-  if (!node) return;
-  const types = ["pointerdown", "mousedown", "pointerup", "mouseup", "click"];
-  for (const type of types) {
-    const usePointer = type.startsWith("pointer") && typeof PointerEvent === "function";
-    const EventCtor = usePointer ? PointerEvent : MouseEvent;
-    try {
-      node.dispatchEvent(
-        new EventCtor(type, {
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-          view: typeof window !== "undefined" ? window : undefined,
-        }),
-      );
-    } catch {
-      node.dispatchEvent(new Event(type, { bubbles: true, cancelable: true }));
-    }
-  }
-  try {
-    node.click?.();
-  } catch {
-    // Best-effort only; the dispatched sequence is the click Built In hears.
-  }
-}
-
-/** Click `div.heart`, its svg, then the `my-item` host. */
 export function clickSaveInDocument(host, inner, root = document) {
   const hostEl = root?.querySelector?.(host);
   if (!hostEl) return { found: false, clicked: false };
-  const shadow = hostEl.shadowRoot;
-  const heart = inner && shadow?.querySelector ? shadow.querySelector(inner) : null;
-  const svg = heart?.querySelector?.("svg") || heart?.querySelector?.("[data-prefix]") || null;
-  const targets = [heart, svg, hostEl].filter(Boolean);
-  for (const node of targets) dispatchRealClick(node);
-  return { found: Boolean(heart || hostEl), clicked: targets.length > 0 };
+  const heart = inner && hostEl.shadowRoot?.querySelector?.(inner);
+  if (!heart) return { found: true, clicked: false };
+  if (typeof heart.click !== "function") return { found: true, clicked: false };
+  try {
+    heart.click();
+  } catch {
+    return { found: true, clicked: false };
+  }
+  return { found: true, clicked: true };
 }
 
 /** Run the save click in the tab's MAIN world so the page hears it. */

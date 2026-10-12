@@ -18,6 +18,15 @@ export function isHeartSaved({ classes = "", prefix = "" } = {}) {
   return prefix === HEART_PREFIX_SAVED;
 }
 
+/**
+ * After reload, saved cards drop `my-item` and show a visible Saved badge.
+ * A missing host without that badge is unknown (not saved).
+ */
+export function isListCardSaved({ heart, hasSaveHost = false, hasVisibleSavedBadge = false } = {}) {
+  if (heart?.found && isHeartSaved(heart)) return true;
+  return !hasSaveHost && hasVisibleSavedBadge === true;
+}
+
 /** Read an open shadow root (or a stand-in root in tests) for the list-card heart. */
 export function heartStateFromRoot(root) {
   if (!root?.querySelector) return { found: false, saved: false, classes: "", prefix: "" };

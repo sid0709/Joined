@@ -41,17 +41,27 @@ describe("parseList", () => {
     expect(parsed.isLastPage).toBe(true);
   });
 
-  test("does not treat a hidden or visible Saved span as saved", () => {
-    const live = parseList(loadFixture("list.html"), LIST_URL);
-    expect(live.cards.map((card) => card.id)).toEqual(["9256204", "11111111"]);
-    expect(live.cards.every((card) => card.hasSavedTag === undefined)).toBe(true);
-    expect(loadFixture("list.html")).toContain('style="display: none;"');
-    expect(loadFixture("list.html")).not.toMatch(/x-show="showSavedTag === true"[^>]*x-cloak/);
+  test("reads save-host and visible Saved-badge flags from the live card shapes", () => {
+    const unsaved = parseList(loadFixture("list.html"), LIST_URL);
+    expect(unsaved.cards).toHaveLength(2);
+    expect(unsaved.cards.every((card) => card.hasSaveHost)).toBe(true);
+    expect(unsaved.cards.every((card) => card.hasVisibleSavedBadge)).toBe(false);
 
-    const visible = parseList(loadFixture("list-saved.html"), LIST_URL);
-    expect(visible.cards[0].id).toBe("22222222");
-    expect(visible.cards[0].hasSavedTag).toBeUndefined();
-    expect(visible.cards[0].url).toContain("/22222222");
+    const saved = parseList(loadFixture("list-saved.html"), LIST_URL);
+    expect(saved.cards[0]).toMatchObject({
+      id: "22222222",
+      hasSaveHost: false,
+      hasVisibleSavedBadge: true,
+    });
+    expect(loadFixture("list-saved.html")).not.toContain("<my-item");
+
+    const unknown = parseList(loadFixture("list-unknown.html"), LIST_URL);
+    expect(unknown.cards[0]).toMatchObject({
+      id: "9256204",
+      hasSaveHost: false,
+      hasVisibleSavedBadge: false,
+    });
+    expect(loadFixture("list-unknown.html")).toContain('style="display: none;"');
   });
 
   test("builds the current-tab list URL and page cursor", () => {

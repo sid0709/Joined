@@ -6,7 +6,7 @@ import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
 
 describe("isSignedOutSession", () => {
-  test("treats explicit isLoggedIn false and the save-wall modal as signed out", () => {
+  test("treats explicit isLoggedIn false and a visible save-wall modal as signed out", () => {
     expect(isSignedOutSession({ isLoggedIn: false })).toBe(true);
     expect(isSignedOutSession({ isLoggedIn: true })).toBe(false);
     expect(isSignedOutSession({ html: `<dialog>${SIGN_UP_MODAL_TEXT}</dialog>` })).toBe(true);
@@ -18,19 +18,18 @@ describe("isSignedOutSession", () => {
     ).toBe(true);
   });
 
-  test("treats a header login link as signed out, not Log In to apply", () => {
+  test("ignores hidden save-wall copy and a header login link", () => {
+    expect(
+      isSignedOutSession({
+        html: `<html><body>jobs<dialog style="display: none;">${SIGN_UP_MODAL_TEXT}</dialog></body></html>`,
+      }),
+    ).toBe(false);
     expect(
       isSignedOutSession({
         html: '<header><a href="/auth/login">Sign In</a></header>',
       }),
-    ).toBe(true);
-    expect(
-      isSignedOutSession({
-        html: '<nav><a href="https://www.builtin.com/auth/login">Log In</a></nav>',
-      }),
-    ).toBe(true);
+    ).toBe(false);
     expect(isSignedOutSession({ html: loadFixture("detail-signed-in.html") })).toBe(false);
-    expect(isSignedOutSession({ html: loadFixture("detail-easyapply.html") })).toBe(false);
   });
 
   test("does not stop when init is missing", () => {
