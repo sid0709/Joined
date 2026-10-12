@@ -4,9 +4,9 @@ import { isJobFieldValid } from "../../api/jobValidation.js";
 import { parseDetail } from "../../routines/builtin/parseDetail.js";
 import "../../routines/builtin/testing/domParser.js";
 import { loadFixture } from "../../routines/builtin/testing/loadFixture.js";
+import BuiltInRoutine from "../../routines/BuiltInRoutine.js";
 import { parseDetail as parseHiringCafeDetail } from "../../routines/hiringcafe/parseDetail.js";
 import { detailPageHtml } from "../../routines/hiringcafe/testing/pageHtml.js";
-import BuiltInRoutine from "../../routines/BuiltInRoutine.js";
 import JobRightRoutine from "../../routines/JobRightRoutine.js";
 
 import { toJobPayload } from "./jobPayload.js";
