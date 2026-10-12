@@ -65,6 +65,13 @@ export const HEART_CONFIRM_MS = 4_000;
 export const HEART_POLL_MS = 200;
 export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
 export const RETRY_PAUSE_MS = 1_000;
+export const STUCK_LOGIN_STREAK = 3;
+export const STUCK_PAGE_FAILURES = 3;
+export const STUCK_LOGIN_MESSAGE = "Built In redirected to sign-in repeatedly. Crawl paused.";
+
+export function stuckPageMessage(count = STUCK_PAGE_FAILURES) {
+  return `The same Built In page failed ${count} times. Crawl paused.`;
+}
 
 export const EASY_APPLY_TAG = "Easy Apply";
 export const SAVED_TAG_TEXT = "Saved";

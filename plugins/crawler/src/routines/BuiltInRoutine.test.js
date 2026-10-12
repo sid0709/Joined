@@ -10,6 +10,9 @@ import {
   HEART_UNREAD_LABEL,
   JOB_CARD_TITLE,
   JOB_PAGE_SAVE,
+  STUCK_LOGIN_MESSAGE,
+  STUCK_PAGE_FAILURES,
+  stuckPageMessage,
 } from "./builtin/constants.js";
 import { jobSaveSelector } from "./builtin/cssEscape.js";
 import { createBuiltinStore, memoryStorage } from "./builtin/store.js";
@@ -39,6 +42,8 @@ function builtinTab({
   shadowFound = true,
   blockOnce = null,
   timeoutOnce = null,
+  timeoutWhen = null,
+  loginWall = false,
 } = {}) {
   let url = listUrl;
   let status = 200;
@@ -59,6 +64,13 @@ function builtinTab({
   };
   const exec = async (op) => {
     if (op.op === "html") {
+      if (loginWall) {
+        return {
+          html: "<html><body>Sign in</body></html>",
+          url: "https://builtin.com/auth/login",
+          status: 200,
+        };
+      }
       return {
         html: htmlOverride ?? pageFor(url).html,
         url,
@@ -71,11 +83,14 @@ function builtinTab({
     }
     if (op.op === "navigate") {
       navigates.push(op.url);
+      if (timeoutWhen?.(op.url)) {
+        throw new Error('Page op "navigate" timed out after 15 ms');
+      }
       if (timeoutOnce && timeoutOnce(op.url)) {
         timeoutOnce = null;
         throw new Error('Page op "navigate" timed out after 15 ms');
       }
-      url = op.url;
+      url = loginWall ? "https://builtin.com/auth/login" : op.url;
       if (blockOnce && blockOnce(op.url)) {
         status = 403;
         htmlOverride = "access denied";
@@ -274,6 +289,36 @@ describe("BuiltInRoutine", () => {
     expect(records).toHaveLength(1);
     expect(page.navigates.filter((url) => url === JOB_A).length).toBeGreaterThan(1);
     expect(page.fetches).toEqual([]);
+  });
+
+  test("pauses the run after repeated sign-in redirects", async () => {
+    await expect(
+      runRoutinePass(routine, {
+        exec: builtinTab({ loginWall: true }).exec,
+        store: createBuiltinStore(memoryStorage()),
+        skipDelays: true,
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: STUCK_LOGIN_MESSAGE,
+    });
+  });
+
+  test("pauses the run after N consecutive failures on the same page", async () => {
+    await expect(
+      runRoutinePass(routine, {
+        exec: builtinTab({
+          listHtml: loadFixture("list-last.html"),
+          details: { [JOB_A]: loadFixture("detail-easyapply.html") },
+          timeoutWhen: (href) => href === JOB_A,
+        }).exec,
+        store: createBuiltinStore(memoryStorage()),
+        skipDelays: true,
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: stuckPageMessage(STUCK_PAGE_FAILURES),
+    });
   });
 
   test("does not change JobRight's visible listDetail contract", () => {

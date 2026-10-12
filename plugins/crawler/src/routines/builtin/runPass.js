@@ -6,6 +6,7 @@ import {
 } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import {
+  RoutineBlockedError,
   RoutineFinishedError,
   RoutineStepError,
   RoutineStoppedError,
@@ -22,6 +23,10 @@ import {
   NAVIGATE_WAIT_MS,
   PAGE_DELAY_MS,
   RETRY_PAUSE_MS,
+  STUCK_LOGIN_MESSAGE,
+  STUCK_LOGIN_STREAK,
+  STUCK_PAGE_FAILURES,
+  stuckPageMessage,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
 import { isJobHandled, nextUnhandledCard } from "./handled.js";
@@ -30,6 +35,8 @@ import { advanceCursor, cardIdKey, crawlListUrl, emptyCursor, listUrlForPage } f
 import { parseDetail } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { createBuiltinStore } from "./store.js";
+
+const START_PAGE_KEY = "builtin:start";
 
 function jobRecord(detail) {
   const { meta: _meta, ...record } = detail;
@@ -86,6 +93,7 @@ async function ensureCursor(store, tab) {
  * One visible job: navigate the same tab to the card href, read the job page,
  * enqueue, then return to ?page=N and click that list-card heart. Never fetches
  * in the background. A block backs off and resumes; a timeout is retried.
+ * Repeated sign-in redirects or N failures on the same page pause the run.
  */
 export async function runBuiltInPass(ctx, progress) {
   const { hooks, call, rest } = ctx;
@@ -103,6 +111,8 @@ export async function runBuiltInPass(ctx, progress) {
   });
   let handledIds = await store.loadHandledIds();
   let cursor;
+  let consecutiveLogins = 0;
+  const pageFailures = new Map();
 
   const emitCursor = (extra = {}) => {
     const snapshot = {
@@ -121,32 +131,61 @@ export async function runBuiltInPass(ctx, progress) {
     if (!skipDelays) await rest(jitterMs(range, hooks.random ?? Math.random));
   };
 
-  const handleBlock = async (page) => {
+  const notePageFailure = (url) => {
+    const key = stripTrailingSlash(url || "");
+    if (!key) return;
+    const count = (pageFailures.get(key) || 0) + 1;
+    pageFailures.set(key, count);
+    if (count >= STUCK_PAGE_FAILURES) {
+      throw new RoutineBlockedError(stuckPageMessage(count));
+    }
+  };
+
+  const handleBlock = async (page, intendedUrl) => {
     const detected = detectPageBlock(page);
-    if (!detected.blocked) return false;
+    if (!detected.blocked) {
+      consecutiveLogins = 0;
+      return false;
+    }
     hooks.onActivity?.({
       phase: "settle",
       label: `Backing off (${detected.kind})`,
       kind: "pause",
     });
+    if (detected.kind === "login") {
+      consecutiveLogins += 1;
+      if (consecutiveLogins >= STUCK_LOGIN_STREAK) {
+        throw new RoutineBlockedError(STUCK_LOGIN_MESSAGE);
+      }
+    } else {
+      consecutiveLogins = 0;
+      notePageFailure(intendedUrl || page.url);
+    }
     await backoff.onBlock({ kind: detected.kind });
     emitCursor({ lastBlock: detected.kind });
     return true;
   };
 
-  const withRetry = async (fn) => {
+  const withRetry = async (fn, pageUrl) => {
     for (;;) {
       ctx.checkStopped();
       try {
         return await fn();
       } catch (error) {
-        if (isAbortError(error) || error instanceof RoutineFinishedError) throw error;
-        if (isTimeoutError(error)) {
-          hooks.onActivity?.({ phase: "ready", label: "Retrying after timeout", kind: "waitFor" });
-          if (!skipDelays) await rest(RETRY_PAUSE_MS);
-          continue;
+        if (
+          isAbortError(error) ||
+          error instanceof RoutineFinishedError ||
+          error instanceof RoutineBlockedError
+        ) {
+          throw error;
         }
-        throw error;
+        notePageFailure(pageUrl);
+        hooks.onActivity?.({
+          phase: "ready",
+          label: isTimeoutError(error) ? "Retrying after timeout" : "Retrying after a page error",
+          kind: "waitFor",
+        });
+        if (!skipDelays) await rest(RETRY_PAUSE_MS);
       }
     }
   };
@@ -158,7 +197,7 @@ export async function runBuiltInPass(ctx, progress) {
       hooks.onActivity?.({ phase, label, kind: "click" });
       await call("navigate", { url, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
       return readVisiblePage(call);
-    });
+    }, url);
   };
 
   const queryHeart = (jobId) =>
@@ -200,7 +239,7 @@ export async function runBuiltInPass(ctx, progress) {
   };
 
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
-  const tab = await withRetry(() => readVisiblePage(call));
+  const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
   progress.tick();
   cursor = await ensureCursor(store, tab);
 
@@ -224,7 +263,7 @@ export async function runBuiltInPass(ctx, progress) {
     });
     emitCursor();
     const listPage = await openVisible(pageUrl, `Opening page ${cursor.page}`);
-    if (await handleBlock(listPage)) continue;
+    if (await handleBlock(listPage, pageUrl)) continue;
 
     const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = cardIdKey(parsed.cards);
@@ -268,7 +307,7 @@ export async function runBuiltInPass(ctx, progress) {
     }
 
     const detailPage = await openVisible(card.url, "Opening job");
-    if (await handleBlock(detailPage)) {
+    if (await handleBlock(detailPage, card.url)) {
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
     }
@@ -292,7 +331,7 @@ export async function runBuiltInPass(ctx, progress) {
     if (detailId !== jobId) await markJob(detailId);
 
     const listAfter = await openVisible(pageUrl, "Returning to job list", "settle");
-    if (await handleBlock(listAfter)) {
+    if (await handleBlock(listAfter, pageUrl)) {
       backoff.onSuccess();
       progress.tick();
       return;
