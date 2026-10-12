@@ -42,8 +42,6 @@ export const APPLY_UNAUTH = 'a[data-builtin-track-click-event="job_apply_unauth"
 export const APPLY_REDIRECT_PARAM = "handler";
 export const APPLY_REDIRECT_VALUE = "ApplyRedirect";
 export const SAVED_TAG = 'span[x-show="showSavedTag === true"]';
-export const SKILLS_HEADING = "h2";
-export const SKILLS_HEADING_TEXT = "Skills Required";
 export const JOB_BODY_ID_PREFIX = "job-post-body-";
 export const JOB_BODY = '[id^="job-post-body-"]';
 
