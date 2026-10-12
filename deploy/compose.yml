@@ -104,6 +104,8 @@ services:
     depends_on: [joined-backend]
     environment:
       JOINED_API_URL: http://joined-backend:8080
+      # Public origin for sitemap, robots Sitemap:, canonicals, and JobPosting JSON-LD.
+      JOINED_WEB_URL: ${FRONTEND_ORIGIN}
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
 
   scoutwell-backend:

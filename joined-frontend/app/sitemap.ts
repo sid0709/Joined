@@ -11,13 +11,18 @@ export const dynamic = "force-dynamic";
  * caps at 2000 jobs; this sitemap slices to the same limit.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const origin = joinedWebUrl();
-  if (!origin) return [];
-  let jobs: { id: string; postedHoursAgo: number }[] = [];
   try {
-    jobs = (await loadSearchCatalog()).slice(0, SITEMAP_JOB_LIMIT);
+    const origin = joinedWebUrl();
+    if (!origin) return [];
+    let jobs: { id: string; postedHoursAgo: number }[] = [];
+    try {
+      jobs = (await loadSearchCatalog()).slice(0, SITEMAP_JOB_LIMIT);
+    } catch {
+      jobs = [];
+    }
+    return publicSitemapEntries(jobs, origin);
   } catch {
-    jobs = [];
+    // Never 500 for crawlers: an empty sitemap is better than a hard failure.
+    return [];
   }
-  return publicSitemapEntries(jobs, origin);
 }

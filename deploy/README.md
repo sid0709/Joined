@@ -85,6 +85,10 @@ are hidden in logs, variables are easier to read and edit.
 | `ADMIN_GOOGLE_SIGNIN_REDIRECT_URL`                                                 | `<ADMIN_ORIGIN>/auth/google/callback`                 | with `admin`            |
 | `ADMIN_GOOGLE_DOMAIN`                                                              | the staff Google Workspace domain                     | with `admin`            |
 
+`FRONTEND_ORIGIN` is also passed to the joined, scoutwell, and admin frontends as
+`JOINED_WEB_URL` so `/sitemap.xml`, robots `Sitemap:`, canonicals, and JobPosting
+JSON-LD get absolute public URLs.
+
 **Secrets** (encrypted, never shown again):
 
 | Name                             | Value                                                                                                             | Needed                |

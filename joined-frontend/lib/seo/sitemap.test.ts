@@ -46,4 +46,23 @@ describe("public sitemap entries", () => {
     expect(entries).toHaveLength(SITEMAP_JOB_LIMIT + 1);
     expect(entries.at(-1)?.url).toBe(`${ORIGIN}/jobs/job-${SITEMAP_JOB_LIMIT - 1}`);
   });
+
+  test("skips blank job ids and treats non-finite posted ages as now", () => {
+    const entries = publicSitemapEntries(
+      [
+        { id: "  ", postedHoursAgo: 2 },
+        { id: "ok-job", postedHoursAgo: Number.NaN },
+        { id: "old-job", postedHoursAgo: Number.POSITIVE_INFINITY },
+      ],
+      ORIGIN,
+      NOW,
+    );
+    expect(entries.map((entry) => entry.url)).toEqual([
+      `${ORIGIN}/`,
+      `${ORIGIN}/jobs/ok-job`,
+      `${ORIGIN}/jobs/old-job`,
+    ]);
+    expect(entries[1]?.lastModified).toEqual(NOW);
+    expect(entries[2]?.lastModified).toEqual(NOW);
+  });
 });
