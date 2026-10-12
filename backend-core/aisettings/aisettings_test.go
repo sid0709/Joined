@@ -192,6 +192,27 @@ func TestListModelsKeepsBatchAndOtherVariants(t *testing.T) {
 	}
 }
 
+func TestListModelsLabelsTheThreeLanes(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[
+			{"id":"typesafe/jev-1.13","name":"Jev","created":3,"architecture":{"output_modalities":["decisions"]}},
+			{"id":"openai/gpt-6-luna:batch","created":2,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"perplexity/sonar-pro","created":1,"architecture":{"modality":"text->text"}}]}`))
+	}))
+	defer server.Close()
+	got, err := ListModels(context.Background(), server.URL, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lanes := map[string]string{}
+	for _, model := range got {
+		lanes[model.ID] = model.Lane
+	}
+	if lanes["typesafe/jev-1.13"] != LaneDecisions || lanes["openai/gpt-6-luna:batch"] != LaneBatch || lanes["perplexity/sonar-pro"] != LaneChat {
+		t.Fatalf("lanes = %v", lanes)
+	}
+}
+
 func TestListModelsKeepsRowsWithoutArchitecture(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"data":[{"id":"deepseek/deepseek-chat","name":"DeepSeek Chat","created":2},{"id":"deepseek/deepseek-reasoner","created":1}]}`))

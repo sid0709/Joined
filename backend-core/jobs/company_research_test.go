@@ -153,7 +153,7 @@ func TestCompanyResearchSchemaOnlyOffersTheFormsChoices(t *testing.T) {
 
 func TestResearchCompanyWithoutWebSearchDoesNotSearch(t *testing.T) {
 	fake := &fakeResearcher{answer: `{"name":"Acme","website":"","taglinePhrases":[],"about":"Acme builds tools.","industry":"","companyType":"","size":"","founded":0,"headquarters":{"line1":"","city":"","state":"","postalCode":"","country":""},"offices":[],"specialties":[],"mission":"","values":[],"benefits":[]}`}
-	got, err := researchCompany(context.Background(), fake, "Acme", "https://acme.example", false)
+	got, err := researchCompany(context.Background(), fake, "Acme", "https://acme.example", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}

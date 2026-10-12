@@ -65,8 +65,12 @@ export type MigrationStart = {
   tempJobIds?: string[];
   companyIds?: string[];
   redo?: boolean;
-  /** When false, the model answers without the web_search tool. Omitted means on. */
+  /** When false, the model answers without the web_search tool. Omitted means on. Decisions ignores it. */
   webSearch?: boolean;
+  /** chat, batch, or decisions. Omitted follows the model id. */
+  approach?: "chat" | "batch" | "decisions";
+  /** Overrides the saved default for this run. */
+  model?: string;
 };
 
 export function migrationTaskPath(task: MigrationTask) {

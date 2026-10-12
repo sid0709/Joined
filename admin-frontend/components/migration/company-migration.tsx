@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDialog, Banner, Button, Link, PageHeader, Stack, StatGrid, Switch } from "sid-ui";
+import { AlertDialog, Banner, Button, Link, PageHeader, Stack, StatGrid } from "sid-ui";
 import { TempCompaniesBrowser } from "@/components/companies/temp-companies-browser";
+import { AnalyzeApproachFields, useAnalyzeApproach } from "@/components/migration/analyze-approach";
 import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";
+import { companyRetryDescription } from "@/lib/analyze-approach";
 import { formatCount } from "@/lib/format";
 import {
   isRunning,
@@ -26,12 +28,12 @@ export function CompanyMigration() {
   const { status, error, finished, start, cancel } = useMigration();
   const [confirmRedo, setConfirmRedo] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [webSearch, setWebSearch] = useState(true);
+  const analyze = useAnalyzeApproach("company", status?.model ?? "");
 
   const counts = status?.counts;
   const runs = status?.runs ?? {};
   const researching = isRunning(runs[researchCompanies]);
-  const model = status?.model || "the default model";
+  const model = analyze.model || status?.model || "the default model";
   const staging = counts?.companyStaging ?? "JoinedDB.temp_companies";
   const directory = counts?.companyDestination ?? "JoinedDB.companies";
   const waiting = counts?.waitingCompanies ?? 0;
@@ -88,11 +90,7 @@ export function CompanyMigration() {
       ) : null}
       <MigrationStep
         title="Research with AI"
-        description={
-          webSearch
-            ? `${model} searches the web for each staged company, busiest first and many at once, and fills in its about, industry, size, founding year, headquarters, offices, values, and benefits. Each company it finds is published to the directory right away; ones it cannot find stay staged as not found. It only fills blank fields, so admin edits stay, and answers that did not come from a web search are thrown away.`
-            : `${model} fills each staged company from what it already knows, without web search, busiest first and many at once. Each company it can describe is published to the directory right away; ones it leaves blank stay staged as not found. It only fills blank fields, so admin edits stay.`
-        }
+        description={analyze.description}
         run={runs[researchCompanies]}
         onCancel={() => stop(researchCompanies)}
         actions={
@@ -100,24 +98,32 @@ export function CompanyMigration() {
             <Button
               label={notFound ? `Retry ${formatCount(notFound)} not found` : "Retry not found"}
               variant="secondary"
-              isDisabled={researching || !status?.modelReady || waiting + notFound === 0}
+              isDisabled={
+                researching || !status?.modelReady || !analyze.canRun || waiting + notFound === 0
+              }
               clickAction={() => setConfirmRedo(true)}
             />
             <Button
               label={waiting ? `Research ${formatCount(waiting)} waiting` : "Research waiting"}
               variant="primary"
-              isDisabled={researching || !status?.modelReady || waiting === 0}
-              clickAction={() => run(researchCompanies, { webSearch })}
+              isDisabled={researching || !status?.modelReady || !analyze.canRun || waiting === 0}
+              clickAction={() => run(researchCompanies, analyze.startBody)}
             />
           </>
         }
       >
-        <Switch
-          label="Web search"
-          description="The model searches the live web before it answers. Off, it uses what it already knows and leaves a field empty when it is not sure."
-          value={webSearch}
-          onChange={setWebSearch}
-          isDisabled={researching}
+        {analyze.catalogError ? <Banner status="error" title={analyze.catalogError} /> : null}
+        <AnalyzeApproachFields
+          kind="company"
+          approach={analyze.approach}
+          onApproach={analyze.setApproach}
+          model={analyze.model}
+          onModel={analyze.setChosen}
+          laneModels={analyze.laneModels}
+          webSearch={analyze.webSearch}
+          onWebSearch={analyze.setWebSearch}
+          disabled={researching}
+          catalogError={analyze.catalogError}
         />
         {runs[researchCompanies]?.status === "succeeded" ? (
           <Link href={ROUTES.companies}>Review published companies</Link>
@@ -129,7 +135,8 @@ export function CompanyMigration() {
         description={`Or pick companies and research just those with ${model}. Export the list, fill empty fields locally, and import the file to publish matches. Ones research or import lands show in the directory.`}
         busy={researching}
         onResearch={async (ids) => {
-          await start(researchCompanies, { companyIds: ids, webSearch });
+          if (!analyze.canRun) throw new Error("Pick a model for this approach.");
+          await start(researchCompanies, { companyIds: ids, ...analyze.startBody });
           return {
             status: "success",
             title: `Researching ${formatCount(ids.length)} companies. Progress shows under Research with AI.`,
@@ -140,13 +147,15 @@ export function CompanyMigration() {
         isOpen={confirmRedo}
         onOpenChange={setConfirmRedo}
         title="Retry companies research could not find?"
-        description={
-          webSearch
-            ? `This searches the web again for the ${formatCount(notFound)} not found, along with the ${formatCount(waiting)} still waiting. It still only fills blank fields.`
-            : `This asks ${model} again, without web search, for the ${formatCount(notFound)} not found, along with the ${formatCount(waiting)} still waiting. It still only fills blank fields.`
-        }
+        description={companyRetryDescription(
+          analyze.approach,
+          model,
+          analyze.webSearch,
+          formatCount(notFound),
+          formatCount(waiting),
+        )}
         actionLabel="Retry"
-        onAction={() => run(researchCompanies, { redo: true, webSearch })}
+        onAction={() => run(researchCompanies, { redo: true, ...analyze.startBody })}
       />
     </Stack>
   );

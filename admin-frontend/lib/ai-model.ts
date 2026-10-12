@@ -34,7 +34,7 @@ export type CatalogArch = {
   outputModalities: string[];
 };
 
-/** One OpenRouter chat model from GET /v1/admin/ai-model/models. */
+/** One OpenRouter model from GET /v1/admin/ai-model/models. */
 export type CatalogModel = {
   id: string;
   name: string;
@@ -44,6 +44,8 @@ export type CatalogModel = {
   pricing: CatalogPricing;
   architecture: CatalogArch;
   supportedParameters: string[];
+  /** chat, batch, or decisions. Missing on a stub, which is labeled from its id. */
+  lane?: "chat" | "batch" | "decisions";
 };
 
 /** GET /v1/admin/ai-model/models: the chat models the key can use, newest first. */

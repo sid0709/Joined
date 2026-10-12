@@ -50,6 +50,19 @@ func (c *Client) Model() string {
 	return c.model
 }
 
+// WithModel is this client pinned to one model for a single run. An empty model
+// keeps the saved one. The key and base URL stay.
+func (c *Client) WithModel(model string) *Client {
+	model = strings.TrimSpace(model)
+	if c == nil || model == "" || model == c.model {
+		return c
+	}
+	next := *c
+	next.model = model
+	next.chat = openai.New(c.apiKey, model, c.baseURL).ForProvider(ErrMissingAPIKey, true, true).OpenRouter()
+	return &next
+}
+
 // Ready reports whether an OpenRouter API key is set.
 func (c *Client) Ready() bool {
 	return c != nil && c.apiKey != ""

@@ -111,6 +111,30 @@ func TestJSONWebSearchSendsABatchModelToTheBatchAPI(t *testing.T) {
 	}
 }
 
+func TestJSONWebSearchLeavesThePluginOffForSonar(t *testing.T) {
+	var got map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != completionsPath {
+			t.Errorf("path = %q", r.URL.Path)
+		}
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		_, _ = w.Write([]byte(`{"citations":["https://acme.example/about?utm_source=x"],"choices":[{"message":{"content":"{\"name\":\"Acme\"}"}}]}`))
+	}))
+	defer server.Close()
+
+	client := New(config.OpenRouter{APIKey: "key", Model: "perplexity/sonar-pro", BaseURL: server.URL})
+	answer, sources, err := client.JSONWebSearch(context.Background(), "search", "Acme", json.RawMessage(`{"type":"object"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(answer) != `{"name":"Acme"}` || len(sources) != 1 || sources[0] != "https://acme.example/about" {
+		t.Fatalf("answer = %s sources = %v", answer, sources)
+	}
+	if got["model"] != "perplexity/sonar-pro" || got["plugins"] != nil {
+		t.Fatalf("request = %v", got)
+	}
+}
+
 func TestJSONWebSearchCapsSearchesAsConfigured(t *testing.T) {
 	var got struct {
 		Plugins []struct {
