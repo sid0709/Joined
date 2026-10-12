@@ -10,16 +10,16 @@ import {
   asFiniteNumber,
   asStringList,
   asText,
+  assignProvided,
   benefitsFrom,
   companyLogoFrom,
   companyNameOf,
-  companyProfileUrl,
-  faviconUrlFor,
   firstHttpOrWebsite,
+  objectBag,
   postedFrom,
+  providedJobSource,
   requisitionIdOf,
   salaryFrom,
-  socialLinks,
   websiteUrl,
   workModeFrom,
 } from "./values.js";
@@ -32,30 +32,22 @@ function postedRawFrom(document) {
   return "";
 }
 
-function companyLogoFromDom(document, website) {
+function companyLogoFromDom(document) {
   const img =
     queryOne(document, "img[alt]") ||
     queryOne(document, "picture img") ||
     queryOne(document, "img");
   const src = img?.getAttribute("src") || img?.src || "";
-  return companyLogoFrom(src, faviconUrlFor(website));
+  return websiteUrl(src);
 }
 
 function recordFromJob(job, pageUrl, extras = {}) {
   const document = extras.document;
   const posting = extras.posting ?? {};
-  const info =
-    job.job_information && typeof job.job_information === "object" ? job.job_information : {};
-  const v5 =
-    job.v5_processed_job_data && typeof job.v5_processed_job_data === "object"
-      ? job.v5_processed_job_data
-      : {};
-  const enriched =
-    job.enriched_company_data && typeof job.enriched_company_data === "object"
-      ? job.enriched_company_data
-      : {};
-  const attributed =
-    job.attributed_org && typeof job.attributed_org === "object" ? job.attributed_org : {};
+  const info = objectBag(job.job_information);
+  const v5 = objectBag(job.v5_processed_job_data);
+  const enriched = objectBag(job.enriched_company_data);
+  const attributed = objectBag(job.attributed_org);
   const org = posting.hiringOrganization ?? {};
   const website = firstHttpOrWebsite(
     enriched.homepage_uri,
@@ -66,15 +58,9 @@ function recordFromJob(job, pageUrl, extras = {}) {
   const posted = postedFrom(v5, posting.datePosted, extras.postedRaw);
   const applicantCount = asFiniteNumber(info.num_applies);
   const description = htmlToPlainText(info.description || posting.description || "");
-  const logo = companyLogoFrom(
-    extras.logo,
-    org.logo?.url,
-    org.logo,
-    extras.domLogo,
-    faviconUrlFor(website),
-  );
+  const logo = companyLogoFrom(extras.logo, org.logo?.url, org.logo, extras.domLogo);
 
-  return {
+  const record = {
     applyUrl: firstHttpOrWebsite(job.apply_url, extras.applyUrl),
     title:
       asText(info.title) ||
@@ -88,73 +74,88 @@ function recordFromJob(job, pageUrl, extras = {}) {
       companyNameOf(v5.company_name) ||
       companyNameOf(org) ||
       companyNameOf(extras.companyName),
-    location: asText(v5.formatted_workplace_location) || asText(extras.location),
-    workMode: workModeFrom(v5.workplace_type),
-    employmentType: asStringList(v5.commitment).join(", ") || asText(posting.employmentType),
-    seniority: asText(v5.seniority_level),
-    salary: salaryFrom(v5),
-    postedAt: posted.postedAt,
-    postedAgo: posted.postedAgo,
-    postedAtSource: posted.postedAtSource,
-    applicantCount: applicantCount == null ? "" : applicantCount,
-    badges: [v5.workplace_type, ...asStringList(v5.commitment), asText(v5.seniority_level)].filter(
-      Boolean,
-    ),
-    industryTags: asStringList(enriched.industries || attributed.industries),
-    benefits: benefitsFrom(v5),
-    skills: asStringList(v5.technical_tools),
-    originalPostUrl: websiteUrl(pageUrl) || asText(pageUrl),
-    companyLogo: logo,
-    companyWebsite: website,
-    companyProfileUrl: companyProfileUrl(job, extras.origin),
-    companySize: enriched.nb_employees != null ? String(enriched.nb_employees) : "",
-    companyHq: asText(enriched.hq_country),
-    companyFounded: enriched.year_founded != null ? String(enriched.year_founded) : "",
-    companyAbout: asText(enriched.tagline || v5.company_tagline),
-    companySocial: socialLinks(job),
-    requisitionId: requisitionIdOf(job),
-    meta: {
-      id: requisitionIdOf(job),
-      sourceId: asText(job.id),
-      collapseKey: asText(job.collapse_key),
-    },
   };
+
+  assignProvided(
+    record,
+    "location",
+    asText(v5.formatted_workplace_location) || asText(extras.location),
+  );
+  assignProvided(record, "workMode", workModeFrom(v5.workplace_type));
+  assignProvided(
+    record,
+    "employmentType",
+    asStringList(v5.commitment).join(", ") || asText(posting.employmentType),
+  );
+  assignProvided(record, "seniority", asText(v5.seniority_level));
+  assignProvided(record, "salary", salaryFrom(v5));
+  assignProvided(record, "postedAt", posted.postedAt);
+  assignProvided(record, "postedAgo", posted.postedAgo);
+  assignProvided(record, "postedAtSource", posted.postedAtSource);
+  assignProvided(record, "applicantCount", applicantCount);
+  assignProvided(
+    record,
+    "badges",
+    [v5.workplace_type, ...asStringList(v5.commitment), asText(v5.seniority_level)].filter(Boolean),
+  );
+  assignProvided(
+    record,
+    "industryTags",
+    asStringList(enriched.industries || attributed.industries),
+  );
+  assignProvided(record, "benefits", benefitsFrom(v5));
+  assignProvided(record, "skills", asStringList(v5.technical_tools));
+  assignProvided(record, "originalPostUrl", websiteUrl(pageUrl) || asText(pageUrl));
+  assignProvided(record, "companyLogo", logo);
+  assignProvided(record, "companyWebsite", website);
+  assignProvided(
+    record,
+    "companySize",
+    enriched.nb_employees != null ? String(enriched.nb_employees) : "",
+  );
+  assignProvided(record, "companyHq", asText(enriched.hq_country));
+  assignProvided(
+    record,
+    "companyFounded",
+    enriched.year_founded != null ? String(enriched.year_founded) : "",
+  );
+  assignProvided(record, "companyAbout", asText(enriched.tagline || v5.company_tagline));
+  assignProvided(record, "requisitionId", requisitionIdOf(job));
+
+  const metadata = providedJobSource(job);
+  if (isFound(posting)) metadata.jsonLd = posting;
+  if (isFound(extras.postedRaw)) metadata.postedRaw = extras.postedRaw;
+  if (isFound(extras.domLogo)) metadata.logoSrc = extras.domLogo;
+  if (isFound(extras.cardHref)) metadata.cardHref = extras.cardHref;
+  record.metadata = metadata;
+  record.meta = {
+    id: requisitionIdOf(job),
+    sourceId: asText(job.id),
+    collapseKey: asText(job.collapse_key),
+  };
+  return record;
 }
 
 /**
  * HiringCafe job record from `__NEXT_DATA__.props.pageProps.job`, with JSON-LD
- * and DOM fallbacks for logo, posted text, and title.
+ * and DOM fallbacks only for values HiringCafe itself rendered.
  */
 export function parseDetail(html, pageUrl = "", extras = {}) {
   const document = documentFromHtml(html);
   const job = readDetailJob(html);
   const posting = parseJobPostingJsonLd(html) ?? {};
   const postedRaw = extras.postedRaw || postedRawFrom(document);
-  const websiteHint = firstHttpOrWebsite(
-    job?.enriched_company_data?.homepage_uri,
-    job?.attributed_org?.website,
-    job?.v5_processed_job_data?.company_website,
-    posting?.hiringOrganization?.sameAs,
-  );
-  const parsed = job
-    ? recordFromJob(job, pageUrl, {
-        document,
-        posting,
-        postedRaw,
-        companyName: extras.companyName,
-        applyUrl: extras.applyUrl,
-        origin: extras.origin,
-        domLogo: companyLogoFromDom(document, websiteHint),
-      })
-    : recordFromJob({}, pageUrl, {
-        document,
-        posting,
-        postedRaw,
-        companyName: extras.companyName,
-        applyUrl: extras.applyUrl,
-        origin: extras.origin,
-        domLogo: companyLogoFromDom(document, websiteHint),
-      });
+  const parsed = recordFromJob(job ?? {}, pageUrl, {
+    document,
+    posting,
+    postedRaw,
+    companyName: extras.companyName,
+    applyUrl: extras.applyUrl,
+    cardHref: extras.cardHref,
+    logo: extras.logo,
+    location: extras.location,
+    domLogo: companyLogoFromDom(document),
+  });
   if (!parsed.applyUrl && extras.applyUrl) parsed.applyUrl = firstHttpOrWebsite(extras.applyUrl);
   if (!parsed.originalPostUrl && pageUrl) parsed.originalPostUrl = resolveUrl(pageUrl, pageUrl);
   return parsed;

@@ -42,23 +42,25 @@ function groupHits(hits) {
 
 function hrefsByRequisition(document, pageUrl) {
   const found = new Map();
-  for (const anchor of queryAll(document, JOB_LINK)) {
-    const href = anchor.getAttribute("href") || anchor.href || "";
+  const posted = new Map();
+  for (const card of queryAll(document, JOB_CARD)) {
+    const href = queryOne(card, JOB_LINK)?.getAttribute("href") || "";
     const id = requisitionIdFromHref(href);
     if (!id || found.has(id)) continue;
     found.set(id, resolveUrl(href, pageUrl));
+    posted.set(id, textOf(queryOne(card, POSTED_CHIP)));
   }
-  return found;
+  return { hrefs: found, posted };
 }
 
-export function parseJobHit(hit, pageUrl, hrefs = new Map()) {
+export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: new Map() }) {
   const id = requisitionIdOf(hit);
   if (!id) return null;
   const path = jobPathFromHit(hit);
   return {
     id,
     title: asText(hit?.job_information?.title),
-    url: hrefs.get(id) || resolveUrl(path, pageUrl),
+    url: cards.hrefs.get(id) || resolveUrl(path, pageUrl),
     path,
     collapseKey: asText(hit?.collapse_key),
     companyName: asText(
@@ -67,28 +69,59 @@ export function parseJobHit(hit, pageUrl, hrefs = new Map()) {
         hit?.v5_processed_job_data?.company_name,
     ),
     applyUrl: asText(hit?.apply_url),
+    postedRaw: cards.posted.get(id) || "",
+    cardJobId: cards.hrefs.has(id) ? id : "",
+    groupIds: [],
+    groupIndex: 1,
+    groupSize: 1,
+    hit,
   };
+}
+
+function attachGroups(jobs, groups, cards) {
+  const byKey = new Map(groups.map((group) => [group.collapseKey, group]));
+  const cardByGroup = new Map();
+  for (const job of jobs) {
+    if (job.cardJobId && job.collapseKey && !cardByGroup.has(job.collapseKey)) {
+      cardByGroup.set(job.collapseKey, job.cardJobId);
+    }
+  }
+  for (const job of jobs) {
+    const group = byKey.get(job.collapseKey);
+    const ids = (group?.hits ?? []).map((hit) => requisitionIdOf(hit)).filter(Boolean);
+    job.groupIds = ids;
+    job.groupIndex = Math.max(1, ids.indexOf(job.id) + 1);
+    job.groupSize = ids.length || 1;
+    if (!job.cardJobId) {
+      job.cardJobId = job.collapseKey ? cardByGroup.get(job.collapseKey) || "" : "";
+    }
+    if (!job.postedRaw && job.cardJobId) {
+      job.postedRaw = cards.posted.get(job.cardJobId) || "";
+    }
+  }
+  return jobs;
 }
 
 /**
  * Every ssrHits posting on a classic list page, including grouped jobs that
- * share one card. Cards are only used to recover a live href when present.
+ * share one card. Cards recover a live href and the group's carousel order.
  */
 export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
   const document = documentFromHtml(html);
   const props = readPageProps(html) ?? {};
   const hits = readSsrHits(html);
-  const hrefs = hrefsByRequisition(document, pageUrl);
+  const cards = hrefsByRequisition(document, pageUrl);
   const seen = new Set();
   const jobs = [];
   for (const hit of hits) {
-    const parsed = parseJobHit(hit, pageUrl, hrefs);
+    const parsed = parseJobHit(hit, pageUrl, cards);
     if (!parsed || seen.has(parsed.id)) continue;
     seen.add(parsed.id);
     jobs.push(parsed);
   }
   const groups = groupHits(hits);
-  const cards = queryAll(document, JOB_CARD);
+  attachGroups(jobs, groups, cards);
+  const cardNodes = queryAll(document, JOB_CARD);
   const page =
     Number.isInteger(props.ssrPage) && props.ssrPage >= FIRST_PAGE_INDEX
       ? props.ssrPage
@@ -97,14 +130,15 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
   return {
     jobs,
     groups,
-    cards: cards.map((card) => ({
+    cards: cardNodes.map((card) => ({
       href: queryOne(card, JOB_LINK)?.getAttribute("href") || "",
       postedRaw: textOf(queryOne(card, POSTED_CHIP)),
     })),
-    cardCount: cards.length,
+    cardCount: cardNodes.length,
     page,
     pageSize: Number.isInteger(props.ssrPageSize) ? props.ssrPageSize : jobs.length,
     totalCount: Number.isInteger(props.ssrTotalCount) ? props.ssrTotalCount : jobs.length,
+    signedIn: props.ssrSignedIn === true,
     isLastPage,
     nextPage: isLastPage ? null : page + 1,
   };

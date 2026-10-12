@@ -2,8 +2,8 @@ import { declareJobFields, field, FIELD_TYPES } from "../../routineKit/declaredF
 import { defineRunView, fieldGroup, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView.js";
 
 /**
- * Fields HiringCafe actually provides. Socials are rare; company profile is
- * metadata built from the org external id when present.
+ * Fields HiringCafe itself provides on cards, the detail page, or the job JSON.
+ * Socials, outside lookups, and a derived /company/{id} profile are not declared.
  */
 export const HIRINGCAFE_FIELDS = declareJobFields([
   field("location", "Location", FIELD_TYPES.STRING),
@@ -22,12 +22,10 @@ export const HIRINGCAFE_FIELDS = declareJobFields([
   field("originalPostUrl", "Original post", FIELD_TYPES.URL),
   field("companyLogo", "Logo", FIELD_TYPES.URL),
   field("companyWebsite", "Website", FIELD_TYPES.URL),
-  field("companyProfileUrl", "Company profile", FIELD_TYPES.URL),
   field("companySize", "Company size", FIELD_TYPES.STRING),
   field("companyHq", "Headquarters", FIELD_TYPES.STRING),
   field("companyFounded", "Founded", FIELD_TYPES.STRING),
   field("companyAbout", "About", FIELD_TYPES.STRING),
-  field("companySocial", "Social", FIELD_TYPES.OBJECT),
   field("requisitionId", "Requisition", FIELD_TYPES.STRING),
 ]);
 
@@ -50,12 +48,10 @@ export const HIRINGCAFE_RUN_VIEW = defineRunView({
       "companyName",
       "companyLogo",
       "companyWebsite",
-      "companyProfileUrl",
       "companySize",
       "companyHq",
       "companyFounded",
       "companyAbout",
-      "companySocial",
     ]),
     fieldGroup("skills", "Skills", ["skills"]),
     fieldGroup("tags", "Tags", ["badges", "industryTags", "benefits"]),
@@ -64,6 +60,7 @@ export const HIRINGCAFE_RUN_VIEW = defineRunView({
   stats: [
     RUN_STAT.CURSOR,
     RUN_STAT.BLOCKS,
+    RUN_STAT.MARKED,
     RUN_STAT.OUTCOMES,
     RUN_STAT.QUEUE,
     RUN_STAT.RECENT_JOBS,

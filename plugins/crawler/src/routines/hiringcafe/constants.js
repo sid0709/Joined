@@ -21,14 +21,35 @@ export const POSTED_CHIP = "div.absolute.top-2.right-2 span";
 export const POSTED_TEXT_RE = /posted\s+.+/i;
 
 export const NEXT_PAGE = 'button[aria-label="Next page"], a[aria-label="Next page"]';
-export const MARK_APPLIED = "div.absolute.top-0.right-0 div";
+export const CARD_OVERLAY = "div.absolute.top-0.right-0";
+export const MARK_APPLIED = `${CARD_OVERLAY} div.bg-white`;
 export const MARK_APPLIED_TEXT = "Mark Applied";
+export const APPLIED_CHECK_TEXT = "Applied ✓";
+export const APPLIED_CHECK_RE = /applied\s*✓/i;
+export const MARK_TOAST_TEXT = "Job marked successfully";
+export const APP_TRACKER_TEXT = "App Tracker";
+export const UPDATE_STAGE_PATH = "/api/updateMarketplaceJobStageForUser";
+export const UPDATE_STAGE_OK = "Update successful";
+export const CAROUSEL_NEXT = 'button[aria-label="Next job at this company"]';
+export const CAROUSEL_PREV = 'button[aria-label="Previous job at this company"]';
+export const MARK_HOVER_OFFSET = Object.freeze({ x: 100, y: 100 });
 
-/**
- * TODO: Mark Applied is a hover-only overlay that needs sign-in. Persistence,
- * undo, and the signed-in DOM are unverified. Keep this off until confirmed.
- */
-export const MARK_APPLIED_ENABLED = false;
+/** Mark Applied is on by default for a signed-in session. */
+export const MARK_APPLIED_ENABLED = true;
+export const MARK_HOVER_MS = 250;
+export const MARK_CONFIRM_MS = 1_000;
+export const MARK_APPLIED_WAIT_MS = 1_000;
+export const MARK_APPLIED_LABEL = "Mark Applied";
+export const SIGN_IN_TO_MARK_MESSAGE =
+  "Sign in to HiringCafe to Mark Applied. The crawl pauses until you do.";
+export const SIGN_IN_TRACKER_TEXT = "Sign in so we can update your job tracker";
+export const SIGN_IN_WALL_RE =
+  /sign in so we can update your job tracker|sign in to (continue|mark|save)|log in to (continue|mark)|you need to (sign|log) in/i;
+export const SIGN_IN_DIALOG_RE = /sign in|log in|continue with/i;
+
+export function carouselShowSelector(index) {
+  return `button[aria-label="Show job ${index}"]`;
+}
 
 export const HANDLED_STORAGE_KEY = "hiringcafeHandledJobIdsV1";
 export const CURSOR_STORAGE_KEY = "hiringcafeCrawlCursorV1";
@@ -63,13 +84,7 @@ export const CARD_DECISION_OPENED = "opened";
 export const CARD_SKIP_HANDLED = "already handled";
 export const CARD_SKIP_NO_URL = "no job URL";
 export const CARD_SKIP_DETAIL_HANDLED = "job page already handled";
-
-export const FAVICON_ORIGIN = "https://s2.googleusercontent.com";
-export const FAVICON_PATH = "/s2/favicons";
-export const FAVICON_DOMAIN_PARAM = "domain";
-export const FAVICON_SIZE_PARAM = "sz";
-export const FAVICON_SIZE = 128;
-export const COMPANY_PATH = "/company/";
+export const CARD_SKIP_ALREADY_APPLIED = "already marked applied";
 
 export const POSTED_AT_SOURCE = Object.freeze({
   ESTIMATED_PUBLISH_DATE: "estimated_publish_date",
@@ -139,6 +154,32 @@ export function cardDecisionLabel(jobId, decision) {
 export function cardInvalidDecision(fields) {
   const names = (fields ?? []).map((field) => String(field).trim()).filter(Boolean);
   return `invalid ${names.join(", ") || "job data"}`;
+}
+
+export function jobCardSelector(jobId) {
+  return `${JOB_CARD}:has(a[href*="${jobId}"])`;
+}
+
+export function jobCardSelectorForIds(ids) {
+  return [...new Set((ids ?? []).map((id) => String(id).trim()).filter(Boolean))]
+    .map((id) => jobCardSelector(id))
+    .join(", ");
+}
+
+export function markedCountLabel(marked = 0, notMarked = 0) {
+  return `${marked} marked · ${notMarked} not marked`;
+}
+
+export function markedAppliedLog(jobId) {
+  return `Job ${jobId} marked applied`;
+}
+
+export function alreadyMarkedLog(jobId) {
+  return `Job ${jobId} already marked applied`;
+}
+
+export function notMarkedLog(jobId) {
+  return `Job ${jobId} not marked applied`;
 }
 
 export function jitterMs(range, random = Math.random) {

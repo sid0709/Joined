@@ -1,21 +1,16 @@
 import { describe, expect, test } from "bun:test";
 
 import { POSTED_AT_SOURCE } from "./constants.js";
-import {
-  hasDeclaredValue,
-  parseDetail,
-  parseDetailNeedsJob,
-  requiredRecordIssues,
-} from "./parseDetail.js";
+import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { detailJob, detailPageHtml } from "./testing/pageHtml.js";
 import "./testing/domParser.js";
-import { faviconUrlFor, salaryFrom, websiteUrl } from "./values.js";
+import { salaryFrom, websiteUrl } from "./values.js";
 
 const DETAIL_URL =
   "https://hiringcafe.com/job/help-desk-coordinator-shell-mobility-and-convenience-usa-houston-texas-uplqcnmhu405bzud";
 
 describe("parseDetail fields", () => {
-  test("reads required ingest fields and posted date from the job JSON", () => {
+  test("reads required ingest fields and dumps the job JSON into metadata", () => {
     const record = parseDetail(detailPageHtml(), DETAIL_URL);
     expect(record.applyUrl).toBe(
       "https://myjobs.adp.com/shellmobilityandconvenience/cx/job-details?reqId=5001231308500",
@@ -24,7 +19,8 @@ describe("parseDetail fields", () => {
     expect(record.description).toContain("Coordinate help desk tickets");
     expect(record.companyName).toBe("Shell Mobility and Convenience USA");
     expect(record.companyWebsite).toBe("https://texaspetroleumgroup.com");
-    expect(record.companyProfileUrl).toBe("https://hiringcafe.com/company/org123");
+    expect(record.companyProfileUrl).toBeUndefined();
+    expect(record.companySocial).toBeUndefined();
     expect(record.postedAt).toBe("2026-10-12T18:03:03.455Z");
     expect(record.postedAgo).toBe("Posted 3h ago");
     expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.ESTIMATED_PUBLISH_DATE);
@@ -37,10 +33,11 @@ describe("parseDetail fields", () => {
     expect(record.salary).toBe("$19.50-$22/hr");
     expect(record.requisitionId).toBe("uplqcnmhu405bzud");
     expect(record.meta.id).toBe("uplqcnmhu405bzud");
+    expect(record.metadata.v5_processed_job_data.hourly_min_compensation).toBe(19.5);
+    expect(record.metadata.enriched_company_data.external_id).toBe("org123");
+    expect(record.metadata.job_information.title).toBe("Help Desk Coordinator");
+    expect(record.metadata.jsonLd["@type"]).toBe("JobPosting");
     expect(requiredRecordIssues(record)).toEqual([]);
-    expect(hasDeclaredValue(record, "title")).toBe(true);
-    expect(parseDetailNeedsJob(detailPageHtml())).toBe(false);
-    expect(parseDetailNeedsJob("<html></html>")).toBe(true);
   });
 
   test("prefers a non-favicon logo when JSON-LD has one", () => {
@@ -61,9 +58,8 @@ describe("parseDetail fields", () => {
     expect(record.companyLogo).toBe("https://cdn.example/logo.png");
   });
 
-  test("stores a Google favicon derived from the company website", () => {
+  test("keeps a logo HiringCafe rendered and does not invent a favicon", () => {
     expect(websiteUrl("texaspetroleumgroup.com")).toBe("https://texaspetroleumgroup.com");
-    expect(faviconUrlFor("texaspetroleumgroup.com")).toContain("domain=texaspetroleumgroup.com");
     const record = parseDetail(
       detailPageHtml({
         logoSrc: "",
@@ -75,7 +71,7 @@ describe("parseDetail fields", () => {
       }),
       DETAIL_URL,
     );
-    expect(record.companyLogo).toBe(faviconUrlFor("texaspetroleumgroup.com"));
+    expect(record.companyLogo).toBeUndefined();
   });
 
   test("formats salary from the listed compensation period", () => {

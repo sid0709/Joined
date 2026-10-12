@@ -41,3 +41,14 @@ export function hasNextDataJob(html) {
 export function readJobPostingJsonLd(html) {
   return parseJobPostingJsonLd(html);
 }
+
+/**
+ * HiringCafe sets `ssrSignedIn` on classic/detail pageProps. `true` / `false`
+ * are explicit; missing is unknown (list pages treat that as signed out).
+ */
+export function readSignedIn(html) {
+  const value = readPageProps(html)?.ssrSignedIn;
+  if (value === true) return true;
+  if (value === false) return false;
+  return undefined;
+}

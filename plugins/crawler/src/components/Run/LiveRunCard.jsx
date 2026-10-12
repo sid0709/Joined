@@ -14,6 +14,7 @@ import {
 import { formatElapsedTime } from "../../api/scrapeRunStats";
 import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
 import { heartedCountLabel, SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
+import { markedCountLabel, SIGN_IN_TO_MARK_MESSAGE } from "../../routines/hiringcafe/constants";
 
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";
@@ -57,10 +58,15 @@ function PaceStats({ pace, routine }) {
   const showCursor = hasRunStat(routine, RUN_STAT.CURSOR);
   const showBlocks = hasRunStat(routine, RUN_STAT.BLOCKS);
   const showHearts = hasRunStat(routine, RUN_STAT.HEARTS);
+  const showMarked = hasRunStat(routine, RUN_STAT.MARKED);
   const cursor = cursorLabel(pace);
   const reasons = blockReasons(pace);
-  if (!showRate && !showConcurrency && !showCursor && !showBlocks && !showHearts) return null;
-  if (!showRate && !showConcurrency && !cursor && !pace.blockCount && !showHearts) return null;
+  if (!showRate && !showConcurrency && !showCursor && !showBlocks && !showHearts && !showMarked) {
+    return null;
+  }
+  if (!showRate && !showConcurrency && !cursor && !pace.blockCount && !showHearts && !showMarked) {
+    return null;
+  }
   return (
     <HStack gap={2} wrap="wrap">
       {showCursor && cursor ? (
@@ -71,6 +77,13 @@ function PaceStats({ pace, routine }) {
           variant="neutral"
           label={heartedCountLabel(pace.hearted ?? 0, pace.notHearted ?? 0)}
           description="List-card hearts this run"
+        />
+      ) : null}
+      {showMarked ? (
+        <Badge
+          variant="neutral"
+          label={markedCountLabel(pace.marked ?? 0, pace.notMarked ?? 0)}
+          description="Mark Applied this run"
         />
       ) : null}
       {showRate ? (
@@ -125,10 +138,12 @@ export default function LiveRunCard({ run, routine }) {
           <Banner
             status="warning"
             title={
-              run.warning === SIGN_IN_TO_SAVE_MESSAGE ? SIGN_IN_TO_SAVE_MESSAGE : STUCK_BANNER_TITLE
+              run.warning === SIGN_IN_TO_SAVE_MESSAGE || run.warning === SIGN_IN_TO_MARK_MESSAGE
+                ? run.warning
+                : STUCK_BANNER_TITLE
             }
             description={
-              run.warning === SIGN_IN_TO_SAVE_MESSAGE
+              run.warning === SIGN_IN_TO_SAVE_MESSAGE || run.warning === SIGN_IN_TO_MARK_MESSAGE
                 ? "Press Start to resume from the saved cursor after you sign in."
                 : run.warning
             }
@@ -138,7 +153,8 @@ export default function LiveRunCard({ run, routine }) {
         {showPace ||
         hasRunStat(routine, RUN_STAT.CURSOR) ||
         hasRunStat(routine, RUN_STAT.BLOCKS) ||
-        hasRunStat(routine, RUN_STAT.HEARTS) ? (
+        hasRunStat(routine, RUN_STAT.HEARTS) ||
+        hasRunStat(routine, RUN_STAT.MARKED) ? (
           <PaceStats pace={run.pace} routine={routine} />
         ) : null}
 

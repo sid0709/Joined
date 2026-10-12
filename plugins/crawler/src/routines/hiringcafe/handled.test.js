@@ -16,7 +16,7 @@ import {
   stuckPageMessage,
 } from "./constants.js";
 import { handledIdSet, isJobHandled, jobsAfterCursor, nextUnhandledJob } from "./handled.js";
-import { isMarkAppliedEnabled, markAppliedIfEnabled } from "./markApplied.js";
+import { isMarkAppliedEnabled } from "./markApplied.js";
 import { createHiringCafeStore, memoryStorage, pruneHandledRecord } from "./store.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
@@ -79,12 +79,9 @@ describe("handled skip", () => {
     expect(START_FROM_PAGE_ONE_LABEL).toBe("Start from page 1");
   });
 
-  test("leaves Mark Applied behind the off-by-default flag", async () => {
-    const clicks = [];
-    expect(MARK_APPLIED_ENABLED).toBe(false);
-    expect(isMarkAppliedEnabled()).toBe(false);
-    expect(await markAppliedIfEnabled((op) => clicks.push(op))).toBe(false);
-    expect(clicks).toEqual([]);
+  test("keeps Mark Applied on by default for a signed-in session", () => {
+    expect(MARK_APPLIED_ENABLED).toBe(true);
+    expect(isMarkAppliedEnabled()).toBe(true);
   });
 
   test("drops handled IDs older than 90 days and keeps the newest 50k", () => {

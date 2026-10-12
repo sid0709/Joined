@@ -33,6 +33,15 @@ describe("parseList grouping", () => {
     expect(parsed.groups[0].hits).toHaveLength(3);
     expect(parsed.jobs[0].url).toContain("/job/help-desk-coordinator-reqaaa1111111111");
     expect(parsed.jobs[1].url).toContain("/job/associate-category-manager-reqbbb2222222222");
+    expect(parsed.jobs[0].groupIndex).toBe(1);
+    expect(parsed.jobs[1].groupIndex).toBe(2);
+    expect(parsed.jobs[0].groupSize).toBe(3);
+    expect(parsed.jobs[0].groupIds).toEqual([
+      "reqaaa1111111111",
+      "reqbbb2222222222",
+      "reqccc3333333333",
+    ]);
+    expect(parsed.signedIn).toBe(true);
     expect(parsed.page).toBe(0);
     expect(parsed.isLastPage).toBe(false);
     expect(parsed.nextPage).toBe(1);

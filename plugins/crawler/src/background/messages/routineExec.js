@@ -1,10 +1,18 @@
 import { hostMatches } from "../../routineKit/match.js";
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
+import { HIRINGCAFE_HOSTS } from "../../routines/hiringcafe/constants.js";
 import { resolveTargetTab, sendToContentScript } from "../tabs.js";
 
+import {
+  clearFetchWatchInMainWorld,
+  installFetchWatchInMainWorld,
+  readFetchWatchInMainWorld,
+} from "./fetchWatch.js";
 import { abortInFlightNavigate, navigateTab } from "./navigateTab.js";
 import { clickShadowInMainWorld } from "./shadowClick.js";
+
+const FETCH_WATCH_OPS = new Set(["watchFetch", "watchedFetches", "unwatchFetch"]);
 
 const defaultIo = {
   resolveTargetTab,
@@ -12,6 +20,9 @@ const defaultIo = {
   navigateTab,
   abortInFlightNavigate,
   clickShadowInMainWorld,
+  installFetchWatchInMainWorld,
+  readFetchWatchInMainWorld,
+  clearFetchWatchInMainWorld,
 };
 
 function shadowHosts(payload) {
@@ -24,6 +35,20 @@ function isShadowHostAllowed(tabUrl, payload) {
   } catch {
     return false;
   }
+}
+
+function isHiringCafeTab(tabUrl) {
+  try {
+    return hostMatches(new URL(tabUrl).hostname, HIRINGCAFE_HOSTS);
+  } catch {
+    return false;
+  }
+}
+
+async function runFetchWatch(op, tab, payload, io) {
+  if (op === "watchFetch") return io.installFetchWatchInMainWorld(tab.id, payload);
+  if (op === "watchedFetches") return io.readFetchWatchInMainWorld(tab.id);
+  return io.clearFetchWatchInMainWorld(tab.id);
 }
 
 // Side panel → background: run one routine op in the target tab and relay its response.
@@ -40,6 +65,15 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
     }
     if (op === "navigate") {
       const result = await io.navigateTab(tab.id, message.payload.url, message.payload.timeout);
+      sendResponse({ success: true, result });
+      return;
+    }
+    if (FETCH_WATCH_OPS.has(op)) {
+      if (!isHiringCafeTab(tab.url)) {
+        sendResponse({ success: false, error: "Fetch watch is limited to HiringCafe" });
+        return;
+      }
+      const result = await runFetchWatch(op, tab, message.payload, io);
       sendResponse({ success: true, result });
       return;
     }

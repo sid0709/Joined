@@ -21,6 +21,9 @@ function io(overrides = {}) {
     navigateTab: async () => ({ url: "https://www.builtin.com/jobs?page=2" }),
     abortInFlightNavigate: () => {},
     clickShadowInMainWorld: async () => ({ found: true, clicked: true, which: "heart" }),
+    installFetchWatchInMainWorld: async () => ({ watching: true, hits: [] }),
+    readFetchWatchInMainWorld: async () => ({ hits: [] }),
+    clearFetchWatchInMainWorld: async () => ({ watching: false, hits: [] }),
     ...overrides,
   };
 }
@@ -167,6 +170,34 @@ describe("handleRoutineExec", () => {
     ).resolves.toEqual({
       success: false,
       error: "The page did not answer the routine op",
+    });
+  });
+
+  test("installs a MAIN-world fetch watch on HiringCafe", async () => {
+    const calls = [];
+    const result = await exec(
+      { payload: { op: "watchFetch", urlIncludes: "/api/updateMarketplaceJobStageForUser" } },
+      io({
+        resolveTargetTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        installFetchWatchInMainWorld: async (tabId, payload) => {
+          calls.push({ tabId, payload });
+          return { watching: true, hits: [] };
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { watching: true, hits: [] } });
+    expect(calls).toEqual([
+      {
+        tabId: 3,
+        payload: { op: "watchFetch", urlIncludes: "/api/updateMarketplaceJobStageForUser" },
+      },
+    ]);
+  });
+
+  test("rejects fetch watch off HiringCafe", async () => {
+    await expect(exec({ payload: { op: "watchFetch" } }, io())).resolves.toEqual({
+      success: false,
+      error: "Fetch watch is limited to HiringCafe",
     });
   });
 

@@ -2,33 +2,29 @@ import { describe, expect, test } from "bun:test";
 
 import { POSTED_AT_SOURCE } from "./constants.js";
 import {
+  assignProvided,
   companyLogoFrom,
   companyNameOf,
-  companyProfileUrl,
   firstHttpOrWebsite,
   isoDate,
   postedFrom,
-  socialLinks,
+  providedJobSource,
   websiteUrl,
 } from "./values.js";
 
 describe("HiringCafe value helpers", () => {
-  test("turns a bare domain into an https website and a profile URL", () => {
+  test("turns a bare domain into an https website", () => {
     expect(websiteUrl("texaspetroleumgroup.com")).toBe("https://texaspetroleumgroup.com");
     expect(websiteUrl("https://acme.example/about")).toBe("https://acme.example/about");
     expect(websiteUrl("not a host")).toBe("");
     expect(firstHttpOrWebsite("acme.example", "https://other.example")).toBe(
       "https://acme.example",
     );
-    expect(companyProfileUrl({ enriched_company_data: { external_id: "v08why2" } })).toBe(
-      "https://hiringcafe.com/company/v08why2",
-    );
-    expect(companyProfileUrl({})).toBe("");
     expect(companyNameOf({ name: "Acme" })).toBe("Acme");
     expect(companyNameOf("[object Object]")).toBe("");
   });
 
-  test("prefers a real logo over a Google favicon", () => {
+  test("prefers a real logo over a Google favicon HiringCafe rendered", () => {
     expect(
       companyLogoFrom(
         "https://s2.googleusercontent.com/s2/favicons?domain=acme.example&sz=128",
@@ -55,16 +51,13 @@ describe("HiringCafe value helpers", () => {
     });
   });
 
-  test("collects socials when a company object has them", () => {
-    expect(
-      socialLinks({
-        enriched_company_data: { linkedin: "https://linkedin.com/company/acme" },
-        attributed_org: { twitter: "https://x.com/acme" },
-      }),
-    ).toEqual({
-      linkedin: "https://linkedin.com/company/acme",
-      x: "https://x.com/acme",
+  test("copies only keys HiringCafe put on the job object", () => {
+    expect(providedJobSource({ apply_url: "https://a.example", empty: "", skip: null })).toEqual({
+      apply_url: "https://a.example",
     });
-    expect(socialLinks({})).toEqual({});
+    const record = { title: "Kept" };
+    assignProvided(record, "salary", "");
+    assignProvided(record, "location", "Austin");
+    expect(record).toEqual({ title: "Kept", location: "Austin" });
   });
 });

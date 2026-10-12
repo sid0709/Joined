@@ -73,8 +73,34 @@ export function groupedHits() {
   ];
 }
 
-function cardMarkup(href, postedRaw = "") {
-  return `<div><a href="${href}">Job Posting</a><div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
+export function overlayMarkup({ applied = false } = {}) {
+  if (applied) {
+    return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><span>Applied ✓</span><button class="bg-pink-600">App Tracker</button></div></div>`;
+  }
+  return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><div class="flex-none cursor-pointer">Save</div><div class="bg-white">Mark Applied</div></div></div>`;
+}
+
+export function carouselMarkup(size = 3, current = 1) {
+  const dots = Array.from({ length: size }, (_, index) => {
+    const n = index + 1;
+    const currentAttr = n === current ? ' aria-current="true"' : "";
+    return `<button aria-label="Show job ${n}"${currentAttr}></button>`;
+  });
+  return `<button aria-label="Previous job at this company"></button>${dots.join("")}<button aria-label="Next job at this company"></button><button>View all</button>`;
+}
+
+export function toastMarkup() {
+  return `<div>Job marked successfully</div>`;
+}
+
+export function signInDialogMarkup() {
+  return `<div role="dialog">Sign in so we can update your job tracker</div>`;
+}
+
+export function cardMarkup(href, postedRaw = "", extras = {}) {
+  const overlay = extras.overlay || "";
+  const carousel = extras.carousel || "";
+  return `<div><a href="${href}">Job Posting</a>${overlay}${carousel}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
 }
 
 export function listPageHtml({
@@ -83,10 +109,14 @@ export function listPageHtml({
   ssrIsLastPage = false,
   ssrPageSize = 40,
   ssrTotalCount = 147,
+  ssrSignedIn = true,
   cards,
+  toast = false,
 } = {}) {
   const visibleCards = cards ?? [
-    cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h"),
+    cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", {
+      carousel: carouselMarkup(3, 1),
+    }),
     cardMarkup(`/job/labor-production-reqddd4444444444`, "5h"),
   ];
   const payload = {
@@ -98,6 +128,7 @@ export function listPageHtml({
         ssrIsLastPage,
         ssrTotalCount,
         ssrUnpackJobCards: false,
+        ssrSignedIn,
       },
     },
     page: "/classic",
@@ -106,6 +137,7 @@ export function listPageHtml({
   };
   return `<!DOCTYPE html><html><body>
     <div data-testid="job-results"><div class="hc-card-grid">${visibleCards.join("")}</div></div>
+    ${toast ? toastMarkup() : ""}
     <script id="__NEXT_DATA__" type="application/json">${JSON.stringify(payload)}</script>
   </body></html>`;
 }

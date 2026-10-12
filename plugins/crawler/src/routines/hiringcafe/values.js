@@ -2,19 +2,7 @@ import { isHttpUrl } from "../../lib/httpUrl.js";
 import { isFound } from "../../routineKit/html.js";
 import { workModeFrom } from "../../routineKit/workMode.js";
 
-import {
-  BENEFIT_FLAGS,
-  COMPENSATION_PERIODS,
-  COMPANY_PATH,
-  FAVICON_DOMAIN_PARAM,
-  FAVICON_ORIGIN,
-  FAVICON_PATH,
-  FAVICON_SIZE,
-  FAVICON_SIZE_PARAM,
-  HIRINGCAFE_ORIGIN,
-  JOB_PATH,
-  POSTED_AT_SOURCE,
-} from "./constants.js";
+import { BENEFIT_FLAGS, COMPENSATION_PERIODS, JOB_PATH, POSTED_AT_SOURCE } from "./constants.js";
 
 export { workModeFrom };
 
@@ -82,47 +70,19 @@ export function firstHttpOrWebsite(...values) {
   return "";
 }
 
-export function hostnameOf(url) {
-  try {
-    return new URL(websiteUrl(url) || url).hostname;
-  } catch {
-    return "";
-  }
-}
-
-export function faviconUrlFor(website) {
-  const host = hostnameOf(website);
-  if (!host) return "";
-  const url = new URL(FAVICON_PATH, FAVICON_ORIGIN);
-  url.searchParams.set(FAVICON_DOMAIN_PARAM, host);
-  url.searchParams.set(FAVICON_SIZE_PARAM, String(FAVICON_SIZE));
-  return url.href;
-}
-
 export function isFaviconUrl(url) {
   const href = asText(url);
   if (!href) return false;
   return /s2\.googleusercontent\.com\/s2\/favicons/i.test(href) || /favicon/i.test(href);
 }
 
+/** First HTTP URL HiringCafe itself provided. Prefer a real logo over a favicon they rendered. */
 export function companyLogoFrom(...candidates) {
   const urls = candidates
     .map((value) => websiteUrl(value) || (isHttpUrl(value) ? value.trim() : ""))
     .filter(Boolean);
   const preferred = urls.find((url) => !isFaviconUrl(url));
   return preferred || urls[0] || "";
-}
-
-export function companyProfileUrl(job, origin = HIRINGCAFE_ORIGIN) {
-  const externalId = asText(
-    job?.enriched_company_data?.external_id || job?.attributed_org?.external_id,
-  );
-  if (!externalId) return "";
-  try {
-    return new URL(`${COMPANY_PATH}${externalId}`, origin || HIRINGCAFE_ORIGIN).href;
-  } catch {
-    return "";
-  }
 }
 
 export function jobPathFromHit(job) {
@@ -196,24 +156,6 @@ export function benefitsFrom(v5) {
   return BENEFIT_FLAGS.filter(([key]) => v5?.[key] === true).map(([, label]) => label);
 }
 
-export function socialLinks(job) {
-  const bags = [job?.enriched_company_data, job?.attributed_org, job?.attributed_org_card];
-  const links = {};
-  for (const bag of bags) {
-    if (!bag || typeof bag !== "object") continue;
-    const found = {
-      linkedin: firstHttpOrWebsite(bag.linkedin, bag.linkedin_url, bag.companyLinkedinURL),
-      x: firstHttpOrWebsite(bag.twitter, bag.twitter_url, bag.x, bag.x_url),
-      facebook: firstHttpOrWebsite(bag.facebook, bag.facebook_url),
-      github: firstHttpOrWebsite(bag.github, bag.github_url),
-    };
-    for (const [key, value] of Object.entries(found)) {
-      if (value && !links[key]) links[key] = value;
-    }
-  }
-  return links;
-}
-
 export function companyNameOf(value) {
   if (typeof value === "string") {
     const text = value.trim();
@@ -224,4 +166,24 @@ export function companyNameOf(value) {
     return companyNameOf(value.name);
   }
   return "";
+}
+
+/** Own keys HiringCafe put on a job / hit object. Absent keys stay absent. */
+export function providedJobSource(job) {
+  const source = {};
+  if (!job || typeof job !== "object") return source;
+  for (const [key, value] of Object.entries(job)) {
+    if (value == null || value === "") continue;
+    source[key] = value;
+  }
+  return source;
+}
+
+export function assignProvided(record, key, value) {
+  if (!isFound(value)) return;
+  record[key] = value;
+}
+
+export function objectBag(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }

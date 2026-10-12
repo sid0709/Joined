@@ -11,6 +11,45 @@ import { clearHighlights, highlightElements } from "../highlighter";
 
 const inFlightFetches = new Map();
 
+function elementText(element) {
+  return String(element?.textContent || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pickMatch(elements, { nth = 0, contains, exact = false } = {}) {
+  const needle = String(contains || "")
+    .trim()
+    .toLowerCase();
+  if (!needle) return elements[nth] || null;
+  const matches = elements.filter((element) => {
+    const text = elementText(element).toLowerCase();
+    return exact ? text === needle : text.includes(needle);
+  });
+  matches.sort((left, right) => elementText(left).length - elementText(right).length);
+  return matches[nth] || matches[0] || null;
+}
+
+function hoverAt(element, { x = 100, y = 100 } = {}) {
+  const rect = element.getBoundingClientRect?.() || { left: 0, top: 0 };
+  const clientX = rect.left + x;
+  const clientY = rect.top + y;
+  const opts = {
+    bubbles: true,
+    cancelable: true,
+    clientX,
+    clientY,
+    view: typeof window !== "undefined" ? window : undefined,
+  };
+  for (const type of ["mouseover", "mouseenter", "mousemove"]) {
+    try {
+      element.dispatchEvent(new MouseEvent(type, opts));
+    } catch {
+      /* stand-in nodes in tests may not implement dispatchEvent */
+    }
+  }
+}
+
 const OPS = {
   count: ({ selector }) => ({ count: queryAll(document, selector).length }),
   scroll: (payload) => scrollElementIntoView(document, payload),
@@ -49,12 +88,20 @@ const OPS = {
     inFlightFetches.clear();
     return { aborted: true };
   },
-  click: async ({ selector, nth = 0, wait = 0 }) => {
-    const target = (await waitForMatches(document, selector, wait))[nth];
+  click: async ({ selector, nth = 0, wait = 0, contains, exact = false }) => {
+    const matches = await waitForMatches(document, selector, wait);
+    const target = pickMatch(matches, { nth, contains, exact });
     if (!target) return { found: false };
     // clickLikeHuman scrolls only when needed; skip focus()'s own scroll-into-view.
     target.focus?.({ preventScroll: true });
     clickLikeHuman(target);
+    return { found: true };
+  },
+  hover: async ({ selector, nth = 0, wait = 0, x = 100, y = 100 }) => {
+    const matches = await waitForMatches(document, selector, wait);
+    const target = matches[nth];
+    if (!target) return { found: false };
+    hoverAt(target, { x, y });
     return { found: true };
   },
   extract: async ({ field }) => {

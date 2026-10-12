@@ -17,6 +17,7 @@ export const RUN_STAT = Object.freeze({
   QUEUE: "queue",
   RECENT_JOBS: "recentJobs",
   HEARTS: "hearts",
+  MARKED: "marked",
 });
 
 export const RUN_SETTING = Object.freeze({

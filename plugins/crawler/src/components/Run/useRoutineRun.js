@@ -243,7 +243,18 @@ export function useRoutineRun() {
         setPace((current) => {
           const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
           const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
-          return { ...current, ...next, hearted, notHearted, heartDelta: undefined };
+          const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
+          const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
+          return {
+            ...current,
+            ...next,
+            hearted,
+            notHearted,
+            marked,
+            notMarked,
+            heartDelta: undefined,
+            markDelta: undefined,
+          };
         });
       },
       onNotice: (message, ok) => {

@@ -3,16 +3,31 @@ import { describe, expect, test } from "bun:test";
 import { CORE_JOB_FIELD_KEYS } from "../routineKit/declaredFields.js";
 import { findRoutineForUrl } from "../routineKit/match.js";
 import { listDeclaredFields } from "../routineKit/routine.js";
-import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../routineKit/runner.js";
+import {
+  RoutineBlockedError,
+  RoutineFinishedError,
+  RoutineStoppedError,
+  runRoutinePass,
+} from "../routineKit/runner.js";
 
 import BuiltInRoutine from "./BuiltInRoutine.js";
-import { CHALLENGE_WAIT_LABEL, START_FROM_PAGE_ONE_LABEL } from "./hiringcafe/constants.js";
+import {
+  CHALLENGE_WAIT_LABEL,
+  MARK_APPLIED_TEXT,
+  SIGN_IN_TO_MARK_MESSAGE,
+  START_FROM_PAGE_ONE_LABEL,
+  UPDATE_STAGE_OK,
+  UPDATE_STAGE_PATH,
+} from "./hiringcafe/constants.js";
 import { createHiringCafeStore, memoryStorage } from "./hiringcafe/store.js";
 import {
+  cardMarkup,
+  carouselMarkup,
   detailJob,
   detailPageHtml,
   groupedHits,
   listPageHtml,
+  overlayMarkup,
 } from "./hiringcafe/testing/pageHtml.js";
 import HiringCafeRoutine from "./HiringCafeRoutine.js";
 
@@ -42,11 +57,17 @@ function hiringCafeTab({
   blockWhen = null,
   challengeOnce = false,
   timeoutOnce = null,
+  alreadyApplied = [],
 } = {}) {
   let url = listUrl;
   let status = 200;
   let htmlOverride = null;
   let remainingChallenge = challengeOnce ? 3 : 0;
+  let overlay = "";
+  let toast = false;
+  let hoveredId = "";
+  const appliedIds = new Set(alreadyApplied);
+  const clicks = [];
   const navigates = [];
   const fetches = [];
   const defaultDetails = Object.fromEntries(
@@ -80,6 +101,19 @@ function hiringCafeTab({
     if (isList) return { html: listHtml, url: href };
     return { html: "", url: href };
   };
+  const idFromSelector = (selector) =>
+    String(selector || "").match(/href\*="([^"]+)"/)?.[1] || hoveredId;
+  const listWithOverlay = () =>
+    listPageHtml({
+      toast,
+      cards: [
+        cardMarkup(`/job/help-desk-coordinator-${hoveredId || "reqaaa1111111111"}`, "3h", {
+          overlay,
+          carousel: carouselMarkup(3, 1),
+        }),
+        cardMarkup(`/job/labor-production-reqddd4444444444`, "5h"),
+      ],
+    });
   const exec = async (op) => {
     if (op.op === "html") {
       if (remainingChallenge > 0) {
@@ -90,7 +124,9 @@ function hiringCafeTab({
           status: 403,
         };
       }
-      return { html: htmlOverride ?? pageFor(url).html, url, status };
+      const page = htmlOverride == null ? pageFor(url) : { html: htmlOverride, url };
+      const html = /\/classic/.test(url) && overlay ? listWithOverlay() : page.html;
+      return { html, url, status };
     }
     if (op.op === "fetch") {
       fetches.push(op.url);
@@ -116,10 +152,33 @@ function hiringCafeTab({
       }
       return { url, status };
     }
-    if (op.op === "highlight" || op.op === "clear") return {};
+    if (op.op === "highlight" || op.op === "clear" || op.op === "scroll") return {};
+    if (op.op === "hover") {
+      hoveredId = idFromSelector(op.selector);
+      overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
+      return { found: true };
+    }
+    if (op.op === "watchFetch") return { watching: true };
+    if (op.op === "watchedFetches") {
+      return {
+        hits: [
+          { url: `https://hiringcafe.com${UPDATE_STAGE_PATH}`, status: 200, body: UPDATE_STAGE_OK },
+        ],
+      };
+    }
+    if (op.op === "unwatchFetch") return { watching: false };
+    if (op.op === "click") {
+      clicks.push(op);
+      if (op.contains === MARK_APPLIED_TEXT) {
+        if (hoveredId) appliedIds.add(hoveredId);
+        overlay = overlayMarkup({ applied: true });
+        toast = true;
+      }
+      return { found: true };
+    }
     return {};
   };
-  return { exec, navigates, fetches };
+  return { exec, navigates, fetches, clicks };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -155,8 +214,10 @@ describe("HiringCafeRoutine", () => {
     }
     expect(keys).toContain("postedAtSource");
     expect(keys).toContain("companyWebsite");
-    expect(keys).toContain("companyProfileUrl");
+    expect(keys).not.toContain("companyProfileUrl");
+    expect(keys).not.toContain("companySocial");
     expect(HiringCafeRoutine.runView.stats).toContain("cursor");
+    expect(HiringCafeRoutine.runView.stats).toContain("marked");
     expect(HiringCafeRoutine.runView.stats).toContain("outcomes");
     expect(HiringCafeRoutine.runView.components).toContain("fieldGroups");
     expect(HiringCafeRoutine.options.allowFetch).toBe(false);
@@ -258,5 +319,33 @@ describe("HiringCafeRoutine", () => {
       "reqddd4444444444",
     ]);
     expect(outcomes.filter((outcome) => outcome === "duplicate").length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("skips a job whose hover overlay already shows Applied ✓", async () => {
+    const outcomes = [];
+    const records = await collectJobs(
+      createHiringCafeStore(memoryStorage()),
+      hiringCafeTab({ alreadyApplied: ["reqaaa1111111111"] }).exec,
+      { recordOutcome: (outcome) => outcomes.push(outcome) },
+    );
+    expect(records.map((record) => record.requisitionId)).not.toContain("reqaaa1111111111");
+    expect(outcomes).toContain("duplicate");
+  });
+
+  test("pauses when the list page has no ssrSignedIn session", async () => {
+    await expect(
+      runRoutinePass(routine, {
+        exec: hiringCafeTab({ listHtml: listPageHtml({ ssrSignedIn: false }) }).exec,
+        store: createHiringCafeStore(memoryStorage()),
+        skipDelays: true,
+      }),
+    ).rejects.toBeInstanceOf(RoutineBlockedError);
+    await expect(
+      runRoutinePass(routine, {
+        exec: hiringCafeTab({ listHtml: listPageHtml({ ssrSignedIn: false }) }).exec,
+        store: createHiringCafeStore(memoryStorage()),
+        skipDelays: true,
+      }),
+    ).rejects.toThrow(SIGN_IN_TO_MARK_MESSAGE);
   });
 });

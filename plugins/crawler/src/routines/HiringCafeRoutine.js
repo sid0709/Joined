@@ -23,9 +23,11 @@ import { ROUTINE_OUTPUTS } from "./outputs";
  * HiringCafe's classic board is server-rendered and paginated (`/classic?page=N`,
  * 0-indexed). Each pass opens the next unhandled ssrHits posting in the same tab
  * (cards group several requisition_ids; we enumerate every hit), reads
- * `__NEXT_DATA__.props.pageProps.job`, and enqueues it. Handled state is the
- * local requisition_id store. Mark Applied stays behind a flag. A 403 / 429
- * backs off without limit; a Turnstile challenge waits for the user.
+ * `__NEXT_DATA__.props.pageProps.job`, and enqueues it. After each save it
+ * carousels to that requisition and Marks Applied (hover overlay). Handled
+ * state is the local requisition_id store plus Applied ✓. A 403 / 429 backs
+ * off without limit; a Turnstile challenge waits for the user. Missing
+ * `ssrSignedIn` pauses the crawl.
  */
 
 async function loadResumeLabel(store = createHiringCafeStore()) {
