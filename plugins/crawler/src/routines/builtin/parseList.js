@@ -70,11 +70,14 @@ export function parseList(html, pageUrl = `${BUILTIN_ORIGIN}${JOBS_PATH}`) {
     seen.add(parsed.id);
     cards.push(parsed);
   }
+  const nextLink = queryOne(document, NEXT_PAGE);
   const nextPageUrl = parseNextPageUrl(document, pageUrl);
+  const hasNextPage = Boolean(nextLink);
   return {
     cards,
     nextPageUrl,
-    isLastPage: !nextPageUrl || cards.length === 0,
+    hasNextPage,
+    isLastPage: !hasNextPage || cards.length === 0,
     board: parseJobBoardInit(html),
   };
 }

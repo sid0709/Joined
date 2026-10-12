@@ -16,7 +16,7 @@ import { ROUTINE_OUTPUTS } from "./outputs";
  * Built In's job board is server-rendered and paginated. Each pass opens the next
  * unhandled card's job page in the same tab (the title link is target=_blank, so
  * we never click it), reads JSON-LD + Builtin.jobPostInit({...}) from the visible
- * page, enqueues the job, then returns to ?page=N and clicks that card's list
+ * page, enqueues the job, then restores the exact stored list URL and clicks that card's list
  * heart (one MAIN-world div.heart.click()). Already-saved hearts, or a card
  * with no my-item and a visible Saved badge, are skipped. A hidden Saved span
  * is not a skip. Missing my-item without a visible badge still opens and

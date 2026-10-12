@@ -17,6 +17,9 @@ export const COMPANY_LOGO = 'img[data-id="company-img"]';
 export const COMPANY_PROFILE_LINK = 'a[href^="/company/"]';
 export const NEXT_PAGE = '#pagination a[aria-label="Go to Next Page"]';
 export const PREV_PAGE = '#pagination a[aria-label="Go to Previous Page"]';
+export const NEXT_PAGE_LABEL = "Next page";
+export const LIST_CHANGE_MS = 10_000;
+export const LIST_CHANGE_POLL_MS = 200;
 
 /** List-card heart: open shadowRoot on `my-item`, inner `div.heart`. Never the job-page Save. */
 export const SAVE_HOST = 'my-item[entity-type="job"]';
@@ -101,7 +104,7 @@ export const PAGE_UNPROCESSED_MESSAGE =
   "This Built In page had no processed cards. Cursor stayed put.";
 export const START_FROM_PAGE_1_LABEL = "Start from page 1";
 export const START_FROM_PAGE_1_HINT =
-  "Clears builtinCrawlCursorV2 so the next run starts at page 1, card 1.";
+  "Clears builtinCrawlCursorV2 to page 1, card 1, and keeps the stored filtered list URL.";
 export const CLEAR_HANDLED_LABEL = "Clear saved job IDs";
 export const CLEAR_HANDLED_CONFIRM =
   "Clear locally remembered Built In job IDs? The next run will reopen jobs already scraped.";

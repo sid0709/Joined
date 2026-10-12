@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import { documentFromHtml } from "./html.js";
-import { cardIdKey, crawlListUrl, listUrlForPage, pageFromListUrl } from "./lists.js";
+import {
+  cardIdKey,
+  crawlListUrl,
+  exactJobsListUrl,
+  listUrlForPage,
+  pageFromListUrl,
+} from "./lists.js";
 import { parseList, parseNextPageUrl } from "./parseList.js";
 import { installDomParser } from "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -19,6 +25,7 @@ describe("parseList", () => {
     });
     expect(parsed.cards[0].logo).toContain("cdn.builtin.com");
     expect(parsed.nextPageUrl).toBe("https://builtin.com/jobs?page=2");
+    expect(parsed.hasNextPage).toBe(true);
     expect(parsed.isLastPage).toBe(false);
     expect(parsed.board.categoriesFilterOptions.map((item) => item.alias)).toEqual([
       "ai-machine-learning",
@@ -31,6 +38,7 @@ describe("parseList", () => {
     const parsed = parseList(loadFixture("list-last.html"), LIST_URL);
     expect(parsed.cards).toHaveLength(1);
     expect(parsed.nextPageUrl).toBeNull();
+    expect(parsed.hasNextPage).toBe(false);
     expect(parsed.isLastPage).toBe(true);
     expect(parseNextPageUrl(documentFromHtml(loadFixture("list-last.html")), LIST_URL)).toBeNull();
   });
@@ -74,6 +82,13 @@ describe("parseList", () => {
       "https://www.builtin.com/jobs/remote",
     );
     expect(crawlListUrl("https://builtin.com/job/x/1")).toBe("https://builtin.com/jobs");
+    expect(
+      exactJobsListUrl(
+        "https://builtin.com/jobs?daysSinceUpdated=1&city=&state=&country=USA&allLocations=true",
+      ),
+    ).toBe(
+      "https://builtin.com/jobs?daysSinceUpdated=1&city=&state=&country=USA&allLocations=true",
+    );
   });
 
   test("installs DOMParser when missing", () => {
