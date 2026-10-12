@@ -147,10 +147,17 @@ function jobUrlFrom(pageUrl) {
   return firstHttpUrl(pageUrl) || pageUrl;
 }
 
-function organizationName(org) {
-  if (typeof org === "string") return org.trim();
-  if (org && typeof org.name === "string") return org.name.trim();
-  return "";
+/** A company label as a string, or null. Never `String(object)`. */
+export function companyNameOf(value) {
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text || text === "[object Object]") return null;
+    return text;
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return companyNameOf(value.name);
+  }
+  return null;
 }
 
 function resolveApplyLink(document, job, jobUrl) {
@@ -171,7 +178,9 @@ function companyNameFromDom(document) {
 
 function companyNameFrom(document, job, org) {
   return (
-    String(job.companyName || "").trim() || organizationName(org) || companyNameFromDom(document)
+    companyNameOf(job.companyName) ||
+    companyNameOf(org) ||
+    companyNameOf(companyNameFromDom(document))
   );
 }
 

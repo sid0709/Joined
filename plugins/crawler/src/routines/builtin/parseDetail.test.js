@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { parseDetail } from "./parseDetail.js";
+import { companyNameOf, parseDetail } from "./parseDetail.js";
 import { parseJobPostingJsonLd } from "./parseInit.js";
 import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -93,6 +93,34 @@ describe("parseDetail", () => {
       page,
     );
     expect(domLast.companyName).toBe("From DOM");
+  });
+
+  test("normalizes companyName to a string or null, never [object Object]", () => {
+    expect(companyNameOf({ name: "Clearwater Analytics (CWAN)" })).toBe(
+      "Clearwater Analytics (CWAN)",
+    );
+    expect(companyNameOf({ id: 9, slug: "acme" })).toBeNull();
+    expect(companyNameOf("[object Object]")).toBeNull();
+    expect(companyNameOf("  ")).toBeNull();
+
+    const page = "https://builtin.com/job/eng-quality/11621046";
+    const fromName = parseDetail(
+      `<h1>Quality Engineer</h1>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"1"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":1,"companyName":{"name":"From Object"},"title":"Quality Engineer","applyUrl":"","isEasyApply":false,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(fromName.companyName).toBe("From Object");
+    expect(typeof fromName.companyName).toBe("string");
+    expect(fromName.companyName).not.toBe("[object Object]");
+
+    const empty = parseDetail(
+      `<h1>Quality Engineer</h1>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"1"},"hiringOrganization":{"@type":"Organization"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":1,"companyName":{"id":1},"title":"Quality Engineer","applyUrl":"","isEasyApply":false,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(empty.companyName).toBeNull();
   });
 
   test("reads escaped JSON-LD and scopes salary to the job header", () => {
