@@ -10,7 +10,6 @@ import {
   formatShare,
   type DataServices,
   type ServiceStatus,
-  type SystemSnapshot,
 } from "@/lib/monitoring";
 import { DataServicesCard } from "./infra-cards";
 import { MonitorFrame } from "./monitor-frame";
