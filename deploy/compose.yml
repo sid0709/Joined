@@ -107,6 +107,9 @@ services:
       # Public origin for sitemap, robots Sitemap:, canonicals, and JobPosting JSON-LD.
       JOINED_WEB_URL: ${FRONTEND_ORIGIN}
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+      GOOGLE_TAG_MANAGER_ID: ${GOOGLE_TAG_MANAGER_ID:-}
+      GOOGLE_ANALYTICS_MEASUREMENT_ID: ${GOOGLE_ANALYTICS_MEASUREMENT_ID:-}
 
   scoutwell-backend:
     <<: *api

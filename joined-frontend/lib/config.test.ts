@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
+  gaMeasurementId,
+  googleSiteVerification,
+  gtmContainerId,
   isBillingCheckoutEnabled,
   isCompanyModeEnabled,
   joinedApiUrl,
@@ -19,6 +22,9 @@ const KEYS = [
   "PREMIUM_YEARLY_PRICE_CENTS",
   "BILLING_CHECKOUT_ENABLED",
   "NEXT_PUBLIC_BILLING_CHECKOUT_ENABLED",
+  "GOOGLE_SITE_VERIFICATION",
+  "GOOGLE_TAG_MANAGER_ID",
+  "GOOGLE_ANALYTICS_MEASUREMENT_ID",
 ] as const;
 const saved = Object.fromEntries(KEYS.map((key) => [key, process.env[key]]));
 
@@ -83,6 +89,27 @@ describe("config", () => {
     process.env.PREMIUM_YEARLY_PRICE_CENTS = "nope";
     expect(premiumMonthlyPriceCents()).toBe(2900);
     expect(premiumYearlyPriceCents()).toBe(29000);
+  });
+
+  test("google site verification and tag ids read from env", () => {
+    delete process.env.GOOGLE_SITE_VERIFICATION;
+    delete process.env.GOOGLE_TAG_MANAGER_ID;
+    delete process.env.GOOGLE_ANALYTICS_MEASUREMENT_ID;
+    expect(googleSiteVerification()).toBe("");
+    expect(gtmContainerId()).toBe("");
+    expect(gaMeasurementId()).toBe("");
+
+    process.env.GOOGLE_SITE_VERIFICATION = "  token  ";
+    process.env.GOOGLE_TAG_MANAGER_ID = "GTM-ABC123";
+    process.env.GOOGLE_ANALYTICS_MEASUREMENT_ID = "G-XYZ789";
+    expect(googleSiteVerification()).toBe("token");
+    expect(gtmContainerId()).toBe("GTM-ABC123");
+    expect(gaMeasurementId()).toBe("G-XYZ789");
+
+    process.env.GOOGLE_TAG_MANAGER_ID = "bad";
+    process.env.GOOGLE_ANALYTICS_MEASUREMENT_ID = "UA-123";
+    expect(gtmContainerId()).toBe("");
+    expect(gaMeasurementId()).toBe("");
   });
 
   test("checkout stays on unless a kill switch is explicitly off", () => {

@@ -1,3 +1,4 @@
+import { CONSENT_CHANGED_EVENT } from "@/lib/analytics/consent-events";
 import { ROUTES } from "@/lib/routes";
 
 /** Bump when consent categories change so older cookies ask again. */
@@ -57,6 +58,9 @@ export function readConsentFromDocument(): CookieConsent | null {
 export function writeConsent(analytics: boolean) {
   const consent: CookieConsent = { necessary: true, analytics, version: CONSENT_VERSION };
   document.cookie = consentSetCookie(consent);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT));
+  }
 }
 
 /** Later vendors call this before loading. Declined or missing consent stays off. */

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { JoinedProvider } from "sid-ui/theme";
+import { GoogleConsentSync } from "@/components/analytics/google-consent-sync";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent";
 import { ModePicker } from "@/components/onboarding/mode-picker";
 
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <JoinedProvider mode="system" linkComponent={Link}>
       <ModePicker />
       {children}
+      <GoogleConsentSync />
       <CookieConsentBanner />
     </JoinedProvider>
   );
