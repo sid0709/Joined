@@ -15,12 +15,12 @@ import { formatElapsedTime } from "../../api/scrapeRunStats";
 import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
 import { heartedCountLabel, SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
 import {
-  MARK_APPLIED_LABEL,
   markedCountLabel,
   markedReasonsLabel,
   SIGN_IN_TO_MARK_MESSAGE,
 } from "../../routines/hiringcafe/constants";
 
+import { extractErrorBanner } from "./extractErrorBanner";
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";
 import { RUN_STATUS } from "./useRoutineRun";
@@ -35,13 +35,6 @@ const formatPercent = (value) => `${Math.round(value)}%`;
 
 const STUCK_BANNER_TITLE =
   "Crawl stopped: sign in to Built In (or the page is dead), then press Start to resume from the saved cursor";
-const EXTRACT_ERROR_TITLE = "Extraction error";
-
-function noticeTitle(message) {
-  return /not marked applied/i.test(String(message || ""))
-    ? MARK_APPLIED_LABEL
-    : EXTRACT_ERROR_TITLE;
-}
 
 const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
@@ -131,6 +124,7 @@ export default function LiveRunCard({ run, routine }) {
   const showStepper = hasRunComponent(routine, RUN_COMPONENT.STEPPER);
   const showPace = hasRunComponent(routine, RUN_COMPONENT.PACE);
   const showFields = hasRunComponent(routine, RUN_COMPONENT.FIELD_GROUPS);
+  const extractionBanner = extractErrorBanner(run.extractError);
 
   return (
     <Card padding={4}>
@@ -162,11 +156,11 @@ export default function LiveRunCard({ run, routine }) {
           />
         ) : null}
 
-        {run.extractError ? (
+        {extractionBanner ? (
           <Banner
-            status="warning"
-            title={noticeTitle(run.extractError)}
-            description={run.extractError}
+            status={extractionBanner.status}
+            title={extractionBanner.title}
+            description={extractionBanner.description}
           />
         ) : null}
 

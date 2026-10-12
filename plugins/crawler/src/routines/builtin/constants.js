@@ -87,6 +87,7 @@ export const HEART_CLICK_TARGETS = Object.freeze([
   HEART_CLICK_HOST,
 ]);
 export const HEART_SAVED_LOG = "heart saved";
+export const HEART_ALREADY_SAVED_LOG = "heart already saved";
 export const HEART_RETRY_LOG = "heart retry";
 export const HEART_FAIL_UNREAD = "unread";
 export const HEART_FAIL_NOT_SAVED = "not saved";
@@ -112,6 +113,10 @@ export function emptyPageLabel(page) {
 
 export function heartSavedLog(jobId) {
   return `${HEART_SAVED_LOG} ${jobId}`;
+}
+
+export function heartAlreadySavedLog(jobId) {
+  return `${HEART_ALREADY_SAVED_LOG} ${jobId}`;
 }
 
 export function heartRetryLog(jobId) {
