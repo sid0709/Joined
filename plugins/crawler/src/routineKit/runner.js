@@ -1,3 +1,4 @@
+import { listDeclaredFields, reportDeclaredFields } from "./declaredFields.js";
 import { describeSelector, describeStep, fieldLabel } from "./describe.js";
 import { assertFetchUrl } from "./match.js";
 import { listFields } from "./routine.js";
@@ -164,6 +165,12 @@ function setPath(record, path, value) {
 }
 
 async function readFields(ctx, progress) {
+  if (typeof ctx.routine.readRecord === "function") {
+    ctx.hooks.onActivity?.({ phase: "read", label: "Reading job" });
+    const record = await ctx.routine.readRecord(ctx);
+    await reportDeclaredFields(ctx, progress, record);
+    return record;
+  }
   const { highlightFields, fieldPauseMs } = ctx.routine.options;
   const record = {};
   for (const { path, field } of listFields(ctx.routine)) {
@@ -209,11 +216,18 @@ const STRATEGY_RUNNERS = {
   listDetail: runListDetailPass,
 };
 
+function countReadUnits(routine) {
+  if (typeof routine.readRecord === "function" || typeof routine.runPass === "function") {
+    return listDeclaredFields(routine).length;
+  }
+  return listFields(routine).length;
+}
+
 function countUnits(routine) {
   const phases = STRATEGY_PHASES[routine.strategy.kind];
   const steps = phases.reduce((total, phase) => total + routine.strategy[phase].length, 0);
   // One unit per step, per field, and one for handing over the record.
-  return steps + listFields(routine).length + 1;
+  return steps + countReadUnits(routine) + 1;
 }
 
 function createProgress(total, onProgress) {

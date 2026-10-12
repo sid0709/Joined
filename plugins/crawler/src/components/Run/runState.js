@@ -56,8 +56,12 @@ export function fieldStatus(found, valid) {
   return found ? "ok" : "empty";
 }
 
-export const pendingFields = (routine) =>
-  Object.fromEntries(Object.keys(routine?.fields ?? {}).map((path) => [path, "pending"]));
+export const pendingFields = (routine) => {
+  const keys = Array.isArray(routine?.declaredFields)
+    ? routine.declaredFields.map((field) => field.key)
+    : Object.keys(routine?.fields ?? {});
+  return Object.fromEntries(keys.map((path) => [path, "pending"]));
+};
 
 /** Count one read of a field, for its hit rate across the run. */
 export function recordFieldHit(hits, path, found) {

@@ -42,6 +42,9 @@ describe("defineRoutine", () => {
       "company.logo",
       "details",
     ]);
+    expect(
+      typeof defineRoutine({ ...validRoutine(), readRecord: async () => ({}) }).readRecord,
+    ).toBe("function");
   });
 
   test("throws with every problem when the routine is invalid", () => {
@@ -120,7 +123,10 @@ describe("routineProblems", () => {
       'field "badLabel" label must be text',
     ]);
     expect(routineProblems({ ...validRoutine(), fields: {} })).toEqual([
-      "fields must define at least one field",
+      "declaredFields or fields must define at least one field",
+    ]);
+    expect(routineProblems({ ...validRoutine(), readRecord: 1 })).toEqual([
+      "readRecord must be a function",
     ]);
   });
 });

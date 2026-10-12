@@ -1,5 +1,7 @@
 import { isHttpUrl } from "../../lib/httpUrl.js";
+import { workModeFrom } from "../../routineKit/workMode.js";
 
+import { resolveApplyUrl } from "./applyUrl.js";
 import {
   APPLY_FORM,
   APPLY_UNAUTH,
@@ -101,13 +103,14 @@ function applyLinkFromDom(document, pageUrl) {
   return "";
 }
 
+function asStringList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (value == null || value === "") return [];
+  return [String(value).trim()].filter(Boolean);
+}
+
 function companyTags(posting) {
-  const industries = Array.isArray(posting?.industry)
-    ? posting.industry
-    : posting?.industry
-      ? [posting.industry]
-      : [];
-  return industries.map((item) => String(item).trim()).filter(Boolean);
+  return asStringList(posting?.industry);
 }
 
 function jobTags({ isEasyApply, workplace, seniority, earlyApplicant }) {
@@ -129,7 +132,11 @@ function jobUrlFrom(document, pageUrl) {
 }
 
 function resolveApplyLink(document, job, jobUrl) {
-  return firstHttpUrl(job.applyUrl) || applyLinkFromDom(document, jobUrl) || firstHttpUrl(jobUrl);
+  return (
+    firstHttpUrl(resolveApplyUrl(job.applyUrl, jobUrl)) ||
+    applyLinkFromDom(document, jobUrl) ||
+    firstHttpUrl(jobUrl)
+  );
 }
 
 function postedAgoFrom(header, posting) {
@@ -140,22 +147,23 @@ function postedAgoFrom(header, posting) {
   );
 }
 
-function companyFrom(document, job, org, posting) {
+function companyNameFrom(document, job, org) {
+  return (
+    textOf(document.querySelector(`${HEADER_SCOPE} ${COMPANY_TITLE}, ${HEADER_SCOPE} h2`)) ||
+    job.companyName ||
+    org.name ||
+    ""
+  );
+}
+
+function companyLogoFrom(document, org) {
   const headerImg = document.querySelector(`${HEADER_SCOPE} picture img, ${HEADER_SCOPE} img`);
   const logoUrl = org.logo?.url || org.logo || "";
-  return {
-    name:
-      textOf(document.querySelector(`${HEADER_SCOPE} ${COMPANY_TITLE}, ${HEADER_SCOPE} h2`)) ||
-      job.companyName ||
-      org.name ||
-      "",
-    logo: firstHttpUrl(headerImg?.getAttribute("src") || headerImg?.src, logoUrl) || "",
-    tags: companyTags(posting),
-  };
+  return firstHttpUrl(headerImg?.getAttribute("src") || headerImg?.src, logoUrl) || "";
 }
 
 /**
- * JobRight-shaped record from a Built In detail page.
+ * Built In job record from JSON-LD, jobPostInit, and the header DOM.
  * Salary is read only from the job header, never Similar Jobs.
  */
 export function parseDetail(html, pageUrl = "") {
@@ -168,6 +176,7 @@ export function parseDetail(html, pageUrl = "") {
   const org = posting?.hiringOrganization ?? {};
   const isEasyApply = job.isEasyApply === true;
   const jobUrl = jobUrlFrom(document, pageUrl);
+  const workplace = iconRowText(header, ICON_WORKPLACE);
   const title =
     textOf(document.querySelector("h1 span") || document.querySelector("h1")) ||
     job.title ||
@@ -175,24 +184,28 @@ export function parseDetail(html, pageUrl = "") {
     "";
 
   return {
+    applyUrl: resolveApplyLink(document, job, jobUrl),
     title,
-    applyLink: resolveApplyLink(document, job, jobUrl),
-    postedAgo: postedAgoFrom(header, posting),
-    tags: jobTags({
+    description:
+      descriptionFromDocument(document, jobId) || htmlToPlainText(posting?.description || ""),
+    companyName: companyNameFrom(document, job, org),
+    location: locationFromHeader(header) || locationFromJsonLd(posting),
+    workMode: workModeFrom(workplace),
+    employmentType: String(posting?.employmentType || "").trim(),
+    seniority: iconRowText(header, ICON_SENIORITY),
+    salary: iconRowText(header, ICON_SALARY),
+    postedAt: String(posting?.datePosted || "").trim(),
+    badges: jobTags({
       isEasyApply,
-      workplace: iconRowText(header, ICON_WORKPLACE),
+      workplace,
       seniority: iconRowText(header, ICON_SENIORITY),
       earlyApplicant: hasEarlyApplicant(document),
     }),
-    details: {
-      location: locationFromHeader(header) || locationFromJsonLd(posting),
-      salary: iconRowText(header, ICON_SALARY),
-    },
-    description:
-      descriptionFromDocument(document, jobId) || htmlToPlainText(posting?.description || ""),
+    industryTags: companyTags(posting),
+    benefits: asStringList(posting?.jobBenefits),
     skills: skillsFromDocument(document),
-    companyLink: firstHttpUrl(org.sameAs, resolveUrl(org.sameAs, jobUrl)),
-    company: companyFrom(document, job, org, posting),
+    companyLogo: companyLogoFrom(document, org),
+    companyWebsite: firstHttpUrl(org.sameAs, resolveUrl(org.sameAs, jobUrl)),
     meta: {
       id: jobId,
       isEasyApply,

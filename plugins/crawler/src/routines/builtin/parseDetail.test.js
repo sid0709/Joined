@@ -15,12 +15,12 @@ describe("parseDetail", () => {
     expect(record.meta.isEasyApply).toBe(true);
     expect(record.meta.isLoggedIn).toBe(false);
     expect(record.meta.applyUrl).toBe("");
-    expect(record.applyLink).toBe(EASY_URL);
-    expect(record.tags).toContain("Easy Apply");
+    expect(record.applyUrl).toBe(EASY_URL);
+    expect(record.badges).toContain("Easy Apply");
     expect(record.title).toContain("Specialist Account Executive");
-    expect(record.company.name).toBe("Zscaler");
-    expect(record.details.salary).toBe("113K-162K Annually");
-    expect(record.details.salary).not.toContain("50K");
+    expect(record.companyName).toBe("Zscaler");
+    expect(record.salary).toBe("113K-162K Annually");
+    expect(record.salary).not.toContain("50K");
     expect(record.skills.length).toBeGreaterThan(0);
     expect(record.description).toContain("Short job description");
   });
@@ -28,25 +28,31 @@ describe("parseDetail", () => {
   test("reads an external job and keeps isEasyApply false", () => {
     const record = parseDetail(loadFixture("detail-external.html"), EXTERNAL_URL);
     expect(record.meta.isEasyApply).toBe(false);
-    expect(record.tags).not.toContain("Easy Apply");
-    expect(record.applyLink).toBe(EXTERNAL_URL);
+    expect(record.badges).not.toContain("Easy Apply");
+    expect(record.applyUrl).toBe(EXTERNAL_URL);
     expect(record.title).toContain("Staff/ Principal Engineer");
-    expect(record.company.name).toBe("Micron Technology");
-    expect(record.company.tags).toEqual([
+    expect(record.companyName).toBe("Micron Technology");
+    expect(record.industryTags).toEqual([
       "Artificial Intelligence",
       "Hardware",
       "Information Technology",
       "Machine Learning",
     ]);
-    expect(record.companyLink).toBe("https://builtin.com/company/micron-technology");
-    expect(record.postedAgo).toMatch(/Ago/i);
+    expect(record.companyWebsite).toBe("https://builtin.com/company/micron-technology");
+    expect(record.postedAt).toMatch(/2026-10-12/);
   });
 
   test("uses the signed-in applyUrl when jobPostInit provides one", () => {
     const record = parseDetail(loadFixture("detail-signed-in.html"), EXTERNAL_URL);
     expect(record.meta.isLoggedIn).toBe(true);
-    expect(record.applyLink).toBe("https://careers.micron.com/apply/9256204");
+    expect(record.applyUrl).toBe("https://careers.micron.com/apply/9256204");
     expect(record.meta.isEasyApply).toBe(false);
+  });
+
+  test("resolves a relative ApplyRedirect path to an absolute builtin.com URL", () => {
+    const record = parseDetail(loadFixture("detail-apply-redirect.html"), EXTERNAL_URL);
+    expect(record.applyUrl).toBe(`${EXTERNAL_URL}?handler=ApplyRedirect`);
+    expect(record.meta.applyUrl).toBe("?handler=ApplyRedirect");
   });
 
   test("reads escaped JSON-LD and scopes salary to the job header", () => {
@@ -56,8 +62,8 @@ describe("parseDetail", () => {
     expect(posting?.title).toContain("Staff/ Principal Engineer");
     expect(posting?.identifier?.value).toBe("9256204");
     const record = parseDetail(html, EXTERNAL_URL);
-    expect(record.details.salary).toBe("90K-100K Annually");
-    expect(record.details.salary).not.toBe("50K-60K Annually");
+    expect(record.salary).toBe("90K-100K Annually");
+    expect(record.salary).not.toBe("50K-60K Annually");
     expect(html).toContain("50K-60K Annually");
   });
 });

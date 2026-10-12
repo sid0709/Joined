@@ -1,7 +1,6 @@
 import { Glyph, HStack, Spinner, Text, VStack } from "sid-ui";
 
-import { fieldLabel } from "../../routineKit/describe";
-import { listFields } from "../../routineKit/routine";
+import { listDeclaredFields } from "../../routineKit/declaredFields";
 
 import { hitRate } from "./runState";
 
@@ -19,11 +18,11 @@ function FieldState({ state }) {
   return <Glyph name={glyph} className={tone} />;
 }
 
-/** Every field the routine reads: its state in this pass and its hit rate across the run. */
+/** Every declared field: required marker, state in this pass, and hit rate across the run. */
 export default function FieldChecklist({ routine, fieldStates, fieldHits }) {
-  const fields = listFields(routine);
-  const found = fields.filter(({ path }) => fieldStates[path] === "ok").length;
-  const invalid = fields.filter(({ path }) => fieldStates[path] === "invalid").length;
+  const fields = listDeclaredFields(routine);
+  const found = fields.filter(({ key }) => fieldStates[key] === "ok").length;
+  const invalid = fields.filter(({ key }) => fieldStates[key] === "invalid").length;
 
   return (
     <VStack gap={2}>
@@ -41,18 +40,18 @@ export default function FieldChecklist({ routine, fieldStates, fieldHits }) {
         </Text>
       </HStack>
       <ul className="crawler-field-grid" aria-label="Fields in this pass">
-        {fields.map(({ path, field }) => {
-          const state = fieldStates[path] ?? "pending";
-          const rate = hitRate(fieldHits[path]);
-          const label = fieldLabel(path, field);
+        {fields.map((declared) => {
+          const state = fieldStates[declared.key] ?? "pending";
+          const rate = hitRate(fieldHits[declared.key]);
           const spoken =
             state === "reading" ? "reading" : (FIELD_STATE[state] ?? FIELD_STATE.pending).spoken;
           return (
             <li
-              key={path}
+              key={declared.key}
               className="crawler-field"
               data-state={state}
-              title={`${label}: ${spoken}${rate === null ? "" : `, found in ${rate}% of passes`}`}
+              data-required={declared.required ? "true" : "false"}
+              title={`${declared.label}: ${spoken}${rate === null ? "" : `, found in ${rate}% of passes`}`}
             >
               <FieldState state={state} />
               <Text
@@ -61,7 +60,12 @@ export default function FieldChecklist({ routine, fieldStates, fieldHits }) {
                 maxLines={1}
                 className={state === "invalid" ? "crawler-tone-error" : undefined}
               >
-                {label}
+                {declared.label}
+                {declared.required ? (
+                  <span className="crawler-field-required" aria-label="required">
+                    *
+                  </span>
+                ) : null}
               </Text>
               {rate === null ? null : (
                 <Text

@@ -14,37 +14,36 @@ import {
 } from "sid-ui";
 
 import { openInNewTab } from "../../api/runtimeMessage";
+import { listDeclaredFields } from "../../routineKit/declaredFields";
 import {
-  describeRead,
   describeSelector,
   describeStep,
-  describeTransforms,
-  fieldLabel,
   PHASE_LABELS,
   QUIET_STEP_KINDS,
   STRATEGY_LABELS,
 } from "../../routineKit/describe";
-import { listFields } from "../../routineKit/routine";
 import { STRATEGY_PHASES } from "../../routineKit/strategies";
 
-function FieldRow({ path, field }) {
-  const transforms = describeTransforms(field.then);
+function FieldRow({ declared }) {
   return (
     <li className="crawler-routine-field">
       <HStack align="center" justify="between" gap={2}>
         <Text type="supporting" weight="semibold" maxLines={1}>
-          {fieldLabel(path, field)}
+          {declared.label}
+          {declared.required ? (
+            <span className="crawler-field-required" aria-label="required">
+              *
+            </span>
+          ) : null}
         </Text>
         <HStack gap={1}>
-          <Token size="sm" color="blue" label={describeRead(field.read)} />
-          {transforms.map((name) => (
-            <Token key={name} size="sm" color="gray" label={name} />
-          ))}
+          <Token size="sm" color="blue" label={declared.type} />
+          {declared.required ? <Token size="sm" color="gray" label="required" /> : null}
         </HStack>
       </HStack>
       <Text type="supporting" color="secondary" maxLines={1} hasTruncateTooltip>
         <Code color="secondary" size="inherit">
-          {describeSelector(field.selector)}
+          {declared.key}
         </Code>
       </Text>
     </li>
@@ -68,7 +67,7 @@ function stepItems(strategy) {
 
 /** One routine: where it runs, how it moves through the site, and what it reads. */
 export default function RoutineCard({ routine, isActive }) {
-  const fields = listFields(routine);
+  const fields = listDeclaredFields(routine);
   const steps = stepItems(routine.strategy);
   const [primaryHost] = routine.match.hosts;
 
@@ -111,8 +110,8 @@ export default function RoutineCard({ routine, isActive }) {
           }
         >
           <ul className="crawler-routine-fields">
-            {fields.map(({ path, field }) => (
-              <FieldRow key={path} path={path} field={field} />
+            {fields.map((declared) => (
+              <FieldRow key={declared.key} declared={declared} />
             ))}
           </ul>
         </Collapsible>

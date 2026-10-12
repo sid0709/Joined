@@ -1,5 +1,11 @@
 import { parseDuplicateWindowDays } from "../config/duplicateWindow.js";
 import { isHttpUrl } from "../lib/httpUrl.js";
+import {
+  CORE_JOB_FIELD_KEYS,
+  FIELD_TYPES,
+  isCoreJobFieldKey,
+} from "../routineKit/declaredFields.js";
+import { isFound, valueAt } from "../routineKit/html.js";
 
 function hasText(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -9,94 +15,96 @@ function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-const JOB_VALIDATION_RULES = [
-  {
-    field: "title",
-    issue: "Job title",
-    validate: (job) => hasText(job.title),
-  },
-  {
-    field: "postedAgo",
-    issue: "Posted date",
-    validate: (job) => hasText(job.postedAgo),
-  },
-  {
-    field: "tags",
-    issue: "Job tags",
-    validate: (job) => Array.isArray(job.tags),
-  },
-  {
-    field: "skills",
-    issue: "Skills",
-    validate: (job) => Array.isArray(job.skills),
-  },
-  {
-    field: "description",
-    issue: "Job description",
-    validate: (job) => hasText(job.description),
-  },
-  {
-    field: "details",
-    issue: "Job details",
-    validate: (job) => isRecord(job.details),
-  },
-  {
-    field: "applyLink",
-    issue: "Application link",
-    validate: (job) => isHttpUrl(job.applyLink),
-  },
-  {
-    field: "companyLink",
-    issue: "Company link",
-    validate: (job) => !hasText(job.companyLink) || isHttpUrl(job.companyLink),
-  },
-  {
-    field: "company.name",
-    issue: "Company name",
-    validate: (job) => isRecord(job.company) && hasText(job.company.name),
-  },
-  {
-    field: "company.logo",
-    issue: "Company logo",
-    validate: (job) => isRecord(job.company) && isHttpUrl(job.company.logo),
-  },
-  {
-    field: "company.tags",
-    issue: "Company tags",
-    validate: (job) => isRecord(job.company) && Array.isArray(job.company.tags),
-  },
-  {
-    field: "id",
-    issue: "Job ID",
-    validate: (job) => typeof job.id === "number" && Number.isFinite(job.id),
-  },
-  {
-    field: "duplicateWindowDays",
-    issue: "Duplicate window",
-    validate: (job) =>
-      parseDuplicateWindowDays(job.duplicateWindowDays) === job.duplicateWindowDays,
-  },
-];
+const CORE_ISSUES = {
+  applyUrl: "Apply URL",
+  title: "Job title",
+  description: "Job description",
+  companyName: "Company name",
+};
+
+function fieldIssue(declared) {
+  return declared?.label || CORE_ISSUES[declared?.key] || declared?.key || "Job data";
+}
+
+function typeOk(declared, value) {
+  if (!isFound(value)) return !declared.required;
+  switch (declared.type) {
+    case FIELD_TYPES.STRING:
+    case FIELD_TYPES.DATE:
+      return typeof value === "string" || typeof value === "number";
+    case FIELD_TYPES.URL:
+      return isHttpUrl(value);
+    case FIELD_TYPES.NUMBER:
+      return typeof value === "number" && Number.isFinite(value);
+    case FIELD_TYPES.LIST:
+      return Array.isArray(value);
+    case FIELD_TYPES.OBJECT:
+      return isRecord(value);
+    default: {
+      const exhaustive = declared.type;
+      void exhaustive;
+      return true;
+    }
+  }
+}
 
 /**
- * Whether the job's field at `path` (e.g. "company.name") passes its rules.
- * Null when no rule checks that field.
+ * Whether the job's declared field at `path` is valid.
+ * Null when the routine does not declare that field.
  */
-export function isJobFieldValid(job, path) {
-  const rules = JOB_VALIDATION_RULES.filter((rule) => rule.field === path);
-  if (!rules.length) return null;
-  return isRecord(job) && rules.every((rule) => rule.validate(job));
+export function isJobFieldValid(job, path, routine) {
+  if (!isRecord(job)) return false;
+  const declared = routine?.declaredFields?.find((field) => field.key === path);
+  if (!declared) {
+    if (path === "id") return typeof job.id === "number" && Number.isFinite(job.id);
+    if (path === "duplicateWindowDays") {
+      return parseDuplicateWindowDays(job.duplicateWindowDays) === job.duplicateWindowDays;
+    }
+    return null;
+  }
+  return typeOk(declared, valueAt(job, path) ?? valueAt(job.metadata, path));
+}
+
+function coreValue(job, key) {
+  if (key === "applyUrl") return job.applyUrl || job.applyLink;
+  if (key === "companyName") return job.companyName || job.company?.name;
+  return job[key];
 }
 
 /**
  * Validate the complete job payload before it can leave the extension.
- * Arrays and metadata objects may legitimately be empty, but they must exist
- * with the expected shape. Core scraped content must be non-empty.
- * Company website is optional: omit it when missing; if present it must be http(s).
+ * Only the core applyUrl, title, description, and companyName are required.
+ * Optional declared fields may be empty. A present URL must be http(s).
  */
-export function getJobValidationIssues(job) {
+export function getJobValidationIssues(job, routine) {
   if (!isRecord(job)) return ["Job data"];
-  return JOB_VALIDATION_RULES.filter((rule) => !rule.validate(job)).map((rule) => rule.issue);
+  const issues = [];
+  for (const key of CORE_JOB_FIELD_KEYS) {
+    const declared = routine?.declaredFields?.find((field) => field.key === key) ?? {
+      key,
+      label: CORE_ISSUES[key],
+      type: key === "applyUrl" ? FIELD_TYPES.URL : FIELD_TYPES.STRING,
+      required: true,
+    };
+    if (!typeOk(declared, coreValue(job, key))) issues.push(fieldIssue(declared));
+  }
+  if (typeof job.id !== "number" || !Number.isFinite(job.id)) issues.push("Job ID");
+  if (parseDuplicateWindowDays(job.duplicateWindowDays) !== job.duplicateWindowDays) {
+    issues.push("Duplicate window");
+  }
+  const declared = routine?.declaredFields ?? [];
+  for (const field of declared) {
+    if (
+      isCoreJobFieldKey(field.key) ||
+      !isFound(valueAt(job, field.key) ?? valueAt(job.metadata, field.key))
+    ) {
+      continue;
+    }
+    if (!typeOk(field, valueAt(job, field.key) ?? valueAt(job.metadata, field.key))) {
+      issues.push(fieldIssue(field));
+    }
+  }
+  return issues;
 }
 
 export class IncompleteJobDataError extends Error {
@@ -108,8 +116,10 @@ export class IncompleteJobDataError extends Error {
   }
 }
 
-export function assertCompleteJob(job) {
-  const issues = getJobValidationIssues(job);
+export function assertCompleteJob(job, routine) {
+  const issues = getJobValidationIssues(job, routine);
   if (issues.length) throw new IncompleteJobDataError(issues);
   return job;
 }
+
+export { hasText };

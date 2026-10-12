@@ -1,4 +1,4 @@
-import { listFields } from "../../routineKit/routine.js";
+import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import { RoutineFinishedError, RoutineStepError } from "../../routineKit/runner.js";
 
 import { JOB_DELAY_MS, MAX_PAGE, PAGE_DELAY_MS, jitterMs } from "./constants.js";
@@ -14,18 +14,6 @@ import {
 import { parseDetail } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { createBuiltinStore } from "./store.js";
-
-function valueAt(record, path) {
-  return path.split(".").reduce((current, key) => current?.[key], record);
-}
-
-function isFound(value) {
-  if (value == null) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "object") return Object.values(value).some((item) => isFound(item));
-  return true;
-}
 
 function jobRecord(detail) {
   const { meta: _meta, ...record } = detail;
@@ -83,17 +71,7 @@ async function maybeClickSave(call, detail) {
 }
 
 async function readFields(ctx, progress, record) {
-  const { hooks } = ctx;
-  for (const { path } of listFields(ctx.routine)) {
-    hooks.onActivity?.({
-      phase: "read",
-      label: `Reading ${path}`,
-      field: path,
-    });
-    const value = valueAt(record, path);
-    hooks.onField?.(path, value, record, isFound(value));
-    progress.tick();
-  }
+  await reportDeclaredFields(ctx, progress, record);
 }
 
 function nextCursorAfterPage(cursor, parsed) {

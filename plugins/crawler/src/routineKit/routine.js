@@ -1,3 +1,8 @@
+import {
+  declaredFieldProblems,
+  listDeclaredFields,
+  listExtractorFields,
+} from "./declaredFields.js";
 import { isValidRead } from "./fields.js";
 import { ON_MISSING, STEP_KINDS } from "./steps.js";
 import { STRATEGY_PHASES } from "./strategies.js";
@@ -97,13 +102,24 @@ export function routineProblems(routine) {
   if (routine.runPass != null && typeof routine.runPass !== "function") {
     problems.push("runPass must be a function");
   }
+  if (routine.readRecord != null && typeof routine.readRecord !== "function") {
+    problems.push("readRecord must be a function");
+  }
   const hosts = routine.match?.hosts;
   if (!Array.isArray(hosts) || !hosts.length || !hosts.every(isNonEmptyString))
     problems.push("match.hosts must list at least one host");
   problems.push(...strategyProblems(routine.strategy));
-  const fields = Object.entries(routine.fields ?? {});
-  if (!fields.length) problems.push("fields must define at least one field");
-  for (const [path, field] of fields) problems.push(...fieldProblems(field, path));
+  const extractorFields = Object.entries(routine.fields ?? {});
+  const declared = routine.declaredFields;
+  if (!extractorFields.length && !(Array.isArray(declared) && declared.length)) {
+    problems.push("declaredFields or fields must define at least one field");
+  }
+  problems.push(
+    ...declaredFieldProblems(declared, {
+      requireCore: routine.output === "job" && Array.isArray(declared),
+    }),
+  );
+  for (const [path, field] of extractorFields) problems.push(...fieldProblems(field, path));
   return problems;
 }
 
@@ -116,7 +132,9 @@ export function routineProblems(routine) {
  * - `match.hosts`: the sites it runs on (subdomains included).
  * - `output`: the kind of record it produces, e.g. "job".
  * - `strategy`: how to move through the site (see strategies.js).
- * - `fields`: output path → field. Dotted paths ("company.name") build nested objects.
+ * - `declaredFields`: schema the side panel and ingest use (key, label, type, required).
+ * - `fields`: optional CSS extractors. Dotted paths ("company.name") build nested objects.
+ * - `readRecord`: optional function that returns a record instead of CSS extraction.
  * - `options`: see DEFAULT_ROUTINE_OPTIONS.
  */
 export function defineRoutine(routine) {
@@ -130,7 +148,9 @@ export function defineRoutine(routine) {
   });
 }
 
-/** The routine's fields as `{ path, field }`, in the order they are read. */
+/** CSS extractor fields as `{ path, field }`, in the order they are read. */
 export function listFields(routine) {
-  return Object.entries(routine.fields).map(([path, field]) => ({ path, field }));
+  return listExtractorFields(routine);
 }
+
+export { listDeclaredFields };

@@ -81,10 +81,10 @@ describe("BuiltInRoutine", () => {
     });
     const [easy] = await collectPass(store, page.exec);
     expect(easy.title).toContain("Specialist Account Executive");
-    expect(easy.applyLink).toBe(JOB_A);
-    expect(easy.tags).toContain("Easy Apply");
-    expect(easy.details.salary).toBe("113K-162K Annually");
-    expect(easy.company.name).toBe("Zscaler");
+    expect(easy.applyUrl).toBe(JOB_A);
+    expect(easy.badges).toContain("Easy Apply");
+    expect(easy.salary).toBe("113K-162K Annually");
+    expect(easy.companyName).toBe("Zscaler");
     expect(page.fetches).toContain(JOB_A);
 
     const store2 = createBuiltinStore(memoryStorage());
@@ -92,8 +92,8 @@ describe("BuiltInRoutine", () => {
       details: { [JOB_A]: loadFixture("detail-signed-in.html") },
     });
     const [external] = await collectPass(store2, signed.exec);
-    expect(external.applyLink).toBe("https://careers.micron.com/apply/9256204");
-    expect(external.tags).not.toContain("Easy Apply");
+    expect(external.applyUrl).toBe("https://careers.micron.com/apply/9256204");
+    expect(external.badges).not.toContain("Easy Apply");
     expect(signed.clicks).toContain(jobSaveSelector("9256204"));
     expect([...(await store2.loadHandledIds())]).toContain("9256204");
   });
@@ -127,7 +127,7 @@ describe("BuiltInRoutine", () => {
     const [first] = await collectPass(store, page.exec);
     expect(page.fetches).toContain(JOB_B);
     expect(page.fetches).not.toContain(JOB_A);
-    expect(first.tags).toContain("Easy Apply");
+    expect(first.badges).toContain("Easy Apply");
 
     const savedPage = builtinExec({ listHtml: loadFixture("list-saved.html") });
     const savedStore = createBuiltinStore(memoryStorage());

@@ -97,11 +97,11 @@ export function useRoutineRun() {
       const entry = {
         key: `job-${job.id}`,
         title: job.title?.trim() || "Untitled job",
-        company: job.company?.name?.trim() || "",
+        company: job.companyName?.trim() || "",
         status: "queued",
       };
       try {
-        if (job.applyLink) assertCompleteJob(job);
+        if (job.applyUrl) assertCompleteJob(job, targetRef.current?.routine);
       } catch (error) {
         setRecentJobs((jobs) =>
           addRecentJob(jobs, { ...entry, status: SCRAPE_OUTCOMES.VALIDATION }),
@@ -212,7 +212,11 @@ export function useRoutineRun() {
         }
       },
       onField: (path, _value, record, found) => {
-        const valid = isJobFieldValid(toJobPayload(record, targetRef.current?.routine), path);
+        const valid = isJobFieldValid(
+          toJobPayload(record, targetRef.current?.routine),
+          path,
+          targetRef.current?.routine,
+        );
         setFieldStates((current) => ({ ...current, [path]: fieldStatus(found, valid) }));
         setFieldHits((hits) => recordFieldHit(hits, path, found));
       },

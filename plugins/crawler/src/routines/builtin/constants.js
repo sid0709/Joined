@@ -19,6 +19,9 @@ export const HEADER_SCOPE = ".match-background";
 export const SIMILAR_JOBS = ".job-unbounded-responsive";
 export const APPLY_FORM = 'div[x-data="applyForm"]';
 export const APPLY_UNAUTH = 'a[data-builtin-track-click-event="job_apply_unauth"]';
+/** Signed-in apply links are often a relative `?handler=ApplyRedirect` path. */
+export const APPLY_REDIRECT_PARAM = "handler";
+export const APPLY_REDIRECT_VALUE = "ApplyRedirect";
 export const SAVED_TAG = 'span[x-show="showSavedTag === true"]';
 export const SKILLS_HEADING = "h2";
 export const SKILLS_HEADING_TEXT = "Skills Required";
