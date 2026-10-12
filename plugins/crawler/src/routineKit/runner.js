@@ -1,4 +1,6 @@
+import { listDeclaredFields, reportDeclaredFields } from "./declaredFields.js";
 import { describeSelector, describeStep, fieldLabel } from "./describe.js";
+import { assertFetchUrl } from "./match.js";
 import { listFields } from "./routine.js";
 import { ON_MISSING } from "./steps.js";
 import { STRATEGY_PHASES } from "./strategies.js";
@@ -7,7 +9,9 @@ import { STRATEGY_PHASES } from "./strategies.js";
  * Runs one pass of a routine. The runner never touches the DOM: every page action is an
  * op sent through `hooks.exec({ op, ...payload })`, which the side panel routes to the
  * content script (see contentScript/messages/routineOps.js). Ops: count, highlight,
- * clear, click, extract.
+ * clear, click, extract, html, fetch. `fetch` requires `options.allowFetch` and is
+ * limited to `match.hosts`. A routine may set `runPass` to replace the
+ * built-in strategy runner.
  *
  * Hooks:
  * - `exec(op)` → Promise of the op's result. Required.
@@ -46,7 +50,27 @@ export class RoutineStepError extends Error {
   }
 }
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** The site is blocking the crawl; the run should stop and warn. */
+export class RoutineBlockedError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "RoutineBlockedError";
+  }
+}
+
+const sleep = (ms, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new RoutineStoppedError());
+      return;
+    }
+    const timer = setTimeout(resolve, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new RoutineStoppedError());
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -60,11 +84,18 @@ function createContext(routine, hooks) {
   const checkStopped = () => {
     if (hooks.signal?.aborted) throw new RoutineStoppedError();
   };
+  if (hooks.signal) {
+    const abortFetches = () => {
+      void Promise.resolve(hooks.exec?.({ op: "abortFetches" })).catch(() => {});
+    };
+    if (hooks.signal.aborted) abortFetches();
+    else hooks.signal.addEventListener("abort", abortFetches, { once: true });
+  }
   const opTimeoutMs = hooks.opTimeoutMs ?? OP_TIMEOUT_MS;
   const call = async (op, payload = {}, waitMs = 0) => {
     checkStopped();
     const result = await withTimeout(
-      Promise.resolve(hooks.exec({ op, ...payload })),
+      Promise.resolve(hooks.exec({ op, ...prepareOp(routine, op, payload) })),
       waitMs + opTimeoutMs,
       `Page op "${op}"`,
     );
@@ -72,10 +103,31 @@ function createContext(routine, hooks) {
     return result ?? {};
   };
   const rest = async (ms) => {
-    if (ms > 0) await sleep(ms);
+    if (ms > 0) await sleep(ms, hooks.signal);
     checkStopped();
   };
   return { routine, hooks, call, rest, checkStopped };
+}
+
+function prepareOp(routine, op, payload) {
+  if (op !== "fetch") return payload;
+  if (!routine.options.allowFetch) {
+    throw new RoutineStepError("This routine cannot fetch pages");
+  }
+  const hosts = [...routine.match.hosts];
+  const next = { ...payload, hosts };
+  if (!payload?.url) return next;
+  try {
+    next.url = new URL(payload.url).href;
+  } catch {
+    return next;
+  }
+  try {
+    next.url = assertFetchUrl(next.url, hosts);
+  } catch (error) {
+    throw new RoutineStepError(error.message);
+  }
+  return next;
 }
 
 function handleMissing(step) {
@@ -140,6 +192,12 @@ function setPath(record, path, value) {
 }
 
 async function readFields(ctx, progress) {
+  if (typeof ctx.routine.readRecord === "function") {
+    ctx.hooks.onActivity?.({ phase: "read", label: "Reading job" });
+    const record = await ctx.routine.readRecord(ctx);
+    await reportDeclaredFields(ctx, progress, record);
+    return record;
+  }
   const { highlightFields, fieldPauseMs } = ctx.routine.options;
   const record = {};
   for (const { path, field } of listFields(ctx.routine)) {
@@ -185,11 +243,18 @@ const STRATEGY_RUNNERS = {
   listDetail: runListDetailPass,
 };
 
+function countReadUnits(routine) {
+  if (typeof routine.readRecord === "function" || typeof routine.runPass === "function") {
+    return listDeclaredFields(routine).length;
+  }
+  return listFields(routine).length;
+}
+
 function countUnits(routine) {
   const phases = STRATEGY_PHASES[routine.strategy.kind];
   const steps = phases.reduce((total, phase) => total + routine.strategy[phase].length, 0);
   // One unit per step, per field, and one for handing over the record.
-  return steps + listFields(routine).length + 1;
+  return steps + countReadUnits(routine) + 1;
 }
 
 function createProgress(total, onProgress) {
@@ -205,10 +270,14 @@ function createProgress(total, onProgress) {
 
 /** Run one pass of `routine`. Resolves when the pass is done; see the errors above. */
 export async function runRoutinePass(routine, hooks) {
-  const run = STRATEGY_RUNNERS[routine.strategy.kind];
-  if (!run) throw new Error(`Unsupported strategy: ${routine.strategy.kind}`);
   if (typeof hooks?.exec !== "function") throw new Error("runRoutinePass needs hooks.exec");
   const ctx = createContext(routine, hooks);
   ctx.checkStopped();
+  if (typeof routine.runPass === "function") {
+    await routine.runPass(ctx, createProgress(countUnits(routine), hooks.onProgress));
+    return;
+  }
+  const run = STRATEGY_RUNNERS[routine.strategy.kind];
+  if (!run) throw new Error(`Unsupported strategy: ${routine.strategy.kind}`);
   await run(ctx, createProgress(countUnits(routine), hooks.onProgress));
 }

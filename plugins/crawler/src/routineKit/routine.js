@@ -1,4 +1,11 @@
+import {
+  declaredFieldProblems,
+  listDeclaredFields,
+  listExtractorFields,
+} from "./declaredFields.js";
+import { isAttrMatch } from "./extract.js";
 import { isValidRead } from "./fields.js";
+import { defaultRunView, runViewProblems } from "./runView.js";
 import { ON_MISSING, STEP_KINDS } from "./steps.js";
 import { STRATEGY_PHASES } from "./strategies.js";
 import { isKnownTransform } from "./transforms.js";
@@ -9,15 +16,17 @@ export const DEFAULT_ROUTINE_OPTIONS = Object.freeze({
   highlightFields: true,
   /** Pause after each field, in ms. */
   fieldPauseMs: 0,
+  /** Allow the same-host `fetch` op. Off unless a routine opts in. */
+  allowFetch: false,
 });
 
 const ON_MISSING_VALUES = Object.values(ON_MISSING);
 const STEPS_WITH_SELECTOR = new Set(["highlight", "click", "waitFor", "waitGone"]);
 
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+const isOneSelector = (value) => isNonEmptyString(value) || isAttrMatch(value);
 const isSelector = (value) =>
-  isNonEmptyString(value) ||
-  (Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString));
+  isOneSelector(value) || (Array.isArray(value) && value.length > 0 && value.every(isOneSelector));
 const isWholeNumber = (value) => Number.isInteger(value) && value >= 0;
 
 function pairPartProblems(part, label) {
@@ -45,7 +54,7 @@ function fieldProblems(field, path) {
   const nths = Array.isArray(field.nth) ? field.nth : [field.nth];
   if (!nths.length || !nths.every(isWholeNumber))
     problems.push(`${at} nth must be a whole number or a list of them`);
-  if (field.inner !== null && !isNonEmptyString(field.inner))
+  if (field.inner !== null && !isSelector(field.inner))
     problems.push(`${at} inner must be a selector`);
   if (field.inner && Array.isArray(field.nth))
     problems.push(`${at} cannot combine inner with a list nth`);
@@ -92,13 +101,29 @@ export function routineProblems(routine) {
   if (!Number.isInteger(routine.version) || routine.version < 1)
     problems.push("version must be a positive whole number");
   if (!isNonEmptyString(routine.output)) problems.push("output is required");
+  if (routine.runPass != null && typeof routine.runPass !== "function") {
+    problems.push("runPass must be a function");
+  }
+  if (routine.readRecord != null && typeof routine.readRecord !== "function") {
+    problems.push("readRecord must be a function");
+  }
   const hosts = routine.match?.hosts;
   if (!Array.isArray(hosts) || !hosts.length || !hosts.every(isNonEmptyString))
     problems.push("match.hosts must list at least one host");
   problems.push(...strategyProblems(routine.strategy));
-  const fields = Object.entries(routine.fields ?? {});
-  if (!fields.length) problems.push("fields must define at least one field");
-  for (const [path, field] of fields) problems.push(...fieldProblems(field, path));
+  const extractorFields = Object.entries(routine.fields ?? {});
+  const declared = routine.declaredFields;
+  if (!extractorFields.length && !(Array.isArray(declared) && declared.length)) {
+    problems.push("declaredFields or fields must define at least one field");
+  }
+  problems.push(
+    ...declaredFieldProblems(declared, {
+      requireCore: routine.output === "job" && Array.isArray(declared),
+    }),
+  );
+  const declaredKeys = Array.isArray(declared) ? declared.map((entry) => entry?.key) : [];
+  problems.push(...runViewProblems(routine.runView, declaredKeys.filter(Boolean)));
+  for (const [path, field] of extractorFields) problems.push(...fieldProblems(field, path));
   return problems;
 }
 
@@ -111,7 +136,9 @@ export function routineProblems(routine) {
  * - `match.hosts`: the sites it runs on (subdomains included).
  * - `output`: the kind of record it produces, e.g. "job".
  * - `strategy`: how to move through the site (see strategies.js).
- * - `fields`: output path → field. Dotted paths ("company.name") build nested objects.
+ * - `declaredFields`: schema the side panel and ingest use (key, label, type, required).
+ * - `fields`: optional CSS extractors. Dotted paths ("company.name") build nested objects.
+ * - `readRecord`: optional function that returns a record instead of CSS extraction.
  * - `options`: see DEFAULT_ROUTINE_OPTIONS.
  */
 export function defineRoutine(routine) {
@@ -122,10 +149,13 @@ export function defineRoutine(routine) {
   return Object.freeze({
     ...routine,
     options: { ...DEFAULT_ROUTINE_OPTIONS, ...routine.options },
+    runView: routine.runView ?? defaultRunView(routine),
   });
 }
 
-/** The routine's fields as `{ path, field }`, in the order they are read. */
+/** CSS extractor fields as `{ path, field }`, in the order they are read. */
 export function listFields(routine) {
-  return Object.entries(routine.fields).map(([path, field]) => ({ path, field }));
+  return listExtractorFields(routine);
 }
+
+export { listDeclaredFields };

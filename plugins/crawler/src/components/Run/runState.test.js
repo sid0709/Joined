@@ -40,6 +40,14 @@ describe("run state", () => {
       title: "pending",
       "company.name": "pending",
     });
+    expect(
+      pendingFields({
+        declaredFields: [
+          { key: "applyUrl", required: true },
+          { key: "title", required: true },
+        ],
+      }),
+    ).toEqual({ applyUrl: "pending", title: "pending" });
     expect(pendingFields(null)).toEqual({});
   });
 

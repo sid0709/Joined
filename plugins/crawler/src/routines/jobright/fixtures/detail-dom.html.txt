@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head><title>JobRight overlay</title></head>
+<body>
+  <div class="index_jobdetail-enter__x">
+    <img alt="company-logo" src="https://cdn.example/logo.png"/>
+    <h1 class="index_job-title__x">Staff Engineer</h1>
+    <h2><span class="index_company-name__x">North Labs</span></h2>
+    <span class="index_publish-time__x">2 hours ago</span>
+    <svg aria-label="position"></svg><span>Austin, TX</span>
+    <svg aria-label="time"></svg><span>Full-time</span>
+    <svg aria-label="remote"></svg><span>Hybrid</span>
+    <svg aria-label="seniority"></svg><span>Mid Level</span>
+    <span class="index_beTag__x">Early applicant</span>
+    <a class="index_origin__x" href="https://boards.example/apply/99">Original Job Post</a>
+    <a class="index_jobs-info" href="/jobs/info/abc123">open</a>
+    <div class="index_company-summary__x">We build products.</div>
+    <section>
+      <h2 class="index_label__x">Responsibilities</h2>
+      <span class="index_listText__x">Ship features.</span>
+    </section>
+    <section>
+      <h2 class="index_label__x">Required</h2>
+      <span class="index_listText__x">5 years of Go.</span>
+    </section>
+    <div id="company">
+      <h2 class="index_companyName__x">North Labs</h2>
+      <a class="index_company-link__x" href="https://north.example">Website</a>
+      <svg aria-label="people size"></svg><span>51-200 employees</span>
+      <div class="index_companySummary__x">Founded in 2014.</div>
+      <a class="index_socialLink__x" href="https://www.linkedin.com/company/north">LinkedIn</a>
+      <a class="index_socialLink__x" href="https://x.com/north">X</a>
+      <a class="index_socialLink__x" href="https://facebook.com/north">Facebook</a>
+      <a class="index_socialLink__x" href="https://github.com/north">GitHub</a>
+    </div>
+    <div id="skills-section">
+      <span>Go</span>
+      <span>Kubernetes</span>
+    </div>
+  </div>
+</body></html>

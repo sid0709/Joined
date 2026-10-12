@@ -5,6 +5,12 @@ import {
   IncompleteJobDataError,
   isJobFieldValid,
 } from "../../api/jobValidation";
+import {
+  clampPaceSettings,
+  DEFAULT_PACE_SETTINGS,
+  loadPaceSettings,
+  savePaceSettings,
+} from "../../api/paceSettings";
 import { useRuntime } from "../../api/runtimeContext";
 import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
@@ -14,7 +20,12 @@ import {
 } from "../../api/scrapeRunStats";
 import useNotification from "../../api/useNotification";
 import { QUIET_STEP_KINDS } from "../../routineKit/describe";
-import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../../routineKit/runner";
+import {
+  RoutineBlockedError,
+  RoutineFinishedError,
+  RoutineStoppedError,
+  runRoutinePass,
+} from "../../routineKit/runner";
 
 import { toJobPayload } from "./jobPayload";
 import {
@@ -55,6 +66,9 @@ export function useRoutineRun() {
   const [queueCounts, setQueueCounts] = useState(EMPTY_QUEUE);
   const [recentJobs, setRecentJobs] = useState([]);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [pace, setPace] = useState(null);
+  const [warning, setWarning] = useState(null);
+  const [paceSettings, setPaceSettings] = useState(DEFAULT_PACE_SETTINGS);
 
   const { addListener, removeListener } = useRuntime();
   const notification = useNotification();
@@ -64,6 +78,7 @@ export function useRoutineRun() {
   const targetRef = useRef(null);
   const passHooksRef = useRef(null);
   const phaseRef = useRef(null);
+  const paceSettingsRef = useRef(DEFAULT_PACE_SETTINGS);
   // Queue item id → recent-job key, and results that arrived before their enqueue ack.
   const queueKeys = useRef(new Map());
   const earlyResults = useRef(new Map());
@@ -97,11 +112,11 @@ export function useRoutineRun() {
       const entry = {
         key: `job-${job.id}`,
         title: job.title?.trim() || "Untitled job",
-        company: job.company?.name?.trim() || "",
+        company: job.companyName?.trim() || "",
         status: "queued",
       };
       try {
-        if (job.applyLink) assertCompleteJob(job);
+        assertCompleteJob(job, targetRef.current?.routine);
       } catch (error) {
         setRecentJobs((jobs) =>
           addRecentJob(jobs, { ...entry, status: SCRAPE_OUTCOMES.VALIDATION }),
@@ -109,13 +124,12 @@ export function useRoutineRun() {
         throw error;
       }
       setRecentJobs((jobs) => addRecentJob(jobs, entry));
-      // Fire-and-forget: the pass must not wait on storage or the backend.
-      sendRuntimeMessage({
+      return sendRuntimeMessage({
         action: "scrapeQueue:enqueue",
         payload: { runId: runIdRef.current, job },
       })
         .then((response) => {
-          if (!response?.id) return;
+          if (!response?.id) throw new Error("Failed to enqueue scraped job");
           queueKeys.current.set(response.id, entry.key);
           const early = earlyResults.current.get(response.id);
           if (early) {
@@ -126,6 +140,7 @@ export function useRoutineRun() {
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
           console.error("Failed to enqueue scraped job", error);
+          throw error;
         });
     },
     [applyItemResult],
@@ -181,6 +196,13 @@ export function useRoutineRun() {
   }, [addListener, removeListener, applyItemResult, notifyFailure]);
 
   useEffect(() => {
+    void loadPaceSettings().then((settings) => {
+      paceSettingsRef.current = settings;
+      setPaceSettings(settings);
+    });
+  }, []);
+
+  useEffect(() => {
     if (status !== RUN_STATUS.RUNNING || !runStartedAt.current) return undefined;
     const updateElapsed = () => setElapsedMs(Date.now() - runStartedAt.current);
     updateElapsed();
@@ -212,17 +234,28 @@ export function useRoutineRun() {
         }
       },
       onField: (path, _value, record, found) => {
-        const valid = isJobFieldValid(toJobPayload(record, targetRef.current?.routine), path);
+        const valid = isJobFieldValid(
+          toJobPayload(record, targetRef.current?.routine),
+          path,
+          targetRef.current?.routine,
+        );
         setFieldStates((current) => ({ ...current, [path]: fieldStatus(found, valid) }));
         setFieldHits((hits) => recordFieldHit(hits, path, found));
       },
       onRecord: submitJob,
+      pace: paceSettingsRef.current,
+      onPace: setPace,
       onNotice: (message, ok) => {
         if (!ok) notification.warning(message, { key: "run-notice", autoHideDuration: 2000 });
       },
       onFinished: (message) => {
         notification.success(message, { key: "run-finished", autoHideDuration: 3000 });
         endRun(RUN_STATUS.FINISHED);
+      },
+      onBlocked: (message) => {
+        setWarning(message);
+        notification.warning(message, { key: "run-blocked", autoHideDuration: 8000 });
+        endRun(RUN_STATUS.STOPPED);
       },
       recordOutcome,
       notifyFailure,
@@ -244,6 +277,10 @@ export function useRoutineRun() {
           if (err instanceof RoutineStoppedError) break;
           void hooks.exec({ op: "clear" }).catch(() => {});
           setProgress(0);
+          if (err instanceof RoutineBlockedError) {
+            hooks.onBlocked?.(err.message);
+            break;
+          }
           if (err instanceof RoutineFinishedError) {
             hooks.onFinished("No more jobs in the list. Run finished.");
             break;
@@ -286,6 +323,8 @@ export function useRoutineRun() {
       setProgress(0);
       setActivity(null);
       setElapsedMs(0);
+      setPace(null);
+      setWarning(null);
       abortRef.current = new AbortController();
       runStartedAt.current = Date.now();
       setStatus(RUN_STATUS.RUNNING);
@@ -309,6 +348,17 @@ export function useRoutineRun() {
     queueCounts,
     recentJobs,
     elapsedMs,
+    pace,
+    warning,
+    paceSettings,
+    setPaceSettings: (next) => {
+      const settings = clampPaceSettings({ ...paceSettingsRef.current, ...next });
+      paceSettingsRef.current = settings;
+      setPaceSettings(settings);
+      void savePaceSettings(settings).catch((error) =>
+        console.error("Failed to persist crawl pace settings", error),
+      );
+    },
     start,
     stop,
   };

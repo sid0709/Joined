@@ -25,9 +25,9 @@ const crawlerCompanySourcePrefix = "crawler:"
 // other gathered field stay under metadata. A job whose board omitted the
 // website or logo is still saved; its company is left unstaged.
 func (s *Store) stageCrawledCompany(ctx context.Context, job CrawledJob, now time.Time) error {
-	name := strings.TrimSpace(job.Company.Name)
-	link := strings.TrimSpace(job.CompanyLink)
-	logo := strings.TrimSpace(job.Company.Logo)
+	name := crawledCompanyName(job)
+	link := crawledCompanyLink(job)
+	logo := crawledCompanyLogo(job)
 	key := companySlug(name)
 	if key == "" || !isHTTPURL(link) || !isHTTPURL(logo) {
 		return nil
@@ -115,8 +115,8 @@ func crawledCompanyLinks(link string) []string {
 // companyUrl repeats companyLink so research and the directory, which read
 // companyUrl, see the website.
 func crawledCompanyDocument(id, sourceID string, job CrawledJob, now time.Time) bson.D {
-	name := strings.TrimSpace(job.Company.Name)
-	link := strings.TrimSpace(job.CompanyLink)
+	name := crawledCompanyName(job)
+	link := crawledCompanyLink(job)
 	doc := bson.D{
 		{Key: "id", Value: id},
 		{Key: "sourceId", Value: sourceID},
@@ -124,7 +124,7 @@ func crawledCompanyDocument(id, sourceID string, job CrawledJob, now time.Time) 
 		{Key: "companyLink", Value: link},
 		{Key: "companyUrl", Value: link},
 		{Key: "companyKey", Value: companySlug(name)},
-		{Key: "companyLogo", Value: strings.TrimSpace(job.Company.Logo)},
+		{Key: "companyLogo", Value: crawledCompanyLogo(job)},
 		{Key: "jobCount", Value: int64(0)},
 		{Key: "jobIds", Value: bson.A{}},
 		{Key: "source", Value: CrawlerIngest},
@@ -135,6 +135,8 @@ func crawledCompanyDocument(id, sourceID string, job CrawledJob, now time.Time) 
 	}
 	return doc
 }
+
+const maxMetadataDepth = 8
 
 // crawledCompanyMetadata is the board-specific company fields. Name and logo are
 // stored on their own, so they are left out here. Empty values are left out too,
@@ -147,6 +149,13 @@ func crawledCompanyMetadata(company CrawledCompany) bson.D {
 	if _, ok := meta["tags"]; !ok && len(company.Tags) > 0 {
 		meta["tags"] = company.Tags
 	}
+	return sanitizeMetadataMap(meta, 1, true)
+}
+
+func sanitizeMetadataMap(meta map[string]any, depth int, dropIdentity bool) bson.D {
+	if depth > maxMetadataDepth || len(meta) == 0 {
+		return nil
+	}
 	keys := make([]string, 0, len(meta))
 	for key := range meta {
 		keys = append(keys, key)
@@ -155,10 +164,13 @@ func crawledCompanyMetadata(company CrawledCompany) bson.D {
 	doc := make(bson.D, 0, len(keys))
 	for _, key := range keys {
 		cleanedKey := strings.TrimSpace(key)
-		if cleanedKey == "" || cleanedKey == "name" || cleanedKey == "logo" || strings.ContainsAny(cleanedKey, ".$") {
+		if cleanedKey == "" || strings.ContainsAny(cleanedKey, ".$") {
 			continue
 		}
-		cleaned := cleanMetadataValue(meta[key])
+		if dropIdentity && (cleanedKey == "name" || cleanedKey == "logo") {
+			continue
+		}
+		cleaned := cleanMetadataValue(meta[key], depth)
 		if cleaned == nil {
 			continue
 		}
@@ -167,7 +179,10 @@ func crawledCompanyMetadata(company CrawledCompany) bson.D {
 	return doc
 }
 
-func cleanMetadataValue(value any) any {
+func cleanMetadataValue(value any, depth int) any {
+	if depth > maxMetadataDepth {
+		return nil
+	}
 	switch typed := value.(type) {
 	case string:
 		trimmed := strings.TrimSpace(typed)
@@ -184,9 +199,12 @@ func cleanMetadataValue(value any) any {
 		}
 		return cleaned
 	case []any:
+		if depth >= maxMetadataDepth {
+			return nil
+		}
 		out := make(bson.A, 0, len(typed))
 		for _, item := range typed {
-			cleaned := cleanMetadataValue(item)
+			cleaned := cleanMetadataValue(item, depth+1)
 			if cleaned == nil {
 				continue
 			}
@@ -197,12 +215,15 @@ func cleanMetadataValue(value any) any {
 		}
 		return out
 	case map[string]any:
-		nested := crawledCompanyMetadata(CrawledCompany{Metadata: typed})
+		if depth >= maxMetadataDepth {
+			return nil
+		}
+		nested := sanitizeMetadataMap(typed, depth+1, false)
 		if len(nested) == 0 {
 			return nil
 		}
 		return nested
 	default:
-		return nil
+		return typed
 	}
 }

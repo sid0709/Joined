@@ -14,7 +14,7 @@ import (
 )
 
 func crawledJob(applyLink string) CrawledJob {
-	job := CrawledJob{
+	return CrawledJob{
 		CreatedBy:           "joined-scrapper",
 		Source:              "jobright",
 		ApplyLink:           applyLink,
@@ -22,16 +22,26 @@ func crawledJob(applyLink string) CrawledJob {
 		Description:         "Build things.",
 		PostedAgo:           "3 hours ago",
 		DuplicateWindowDays: 30,
-		Tags:                []string{"Early applicant", " "},
+		CompanyLink:         "https://acme.com/",
+		Tags:                []string{"Early applicant"},
 		Skills:              []string{"Go"},
-		Details:             map[string]string{"location": " Remote ", "bad.key": "dropped"},
+		Details:             map[string]string{"location": " Remote ", "remote": "remote", "bad.key": "dropped"},
+		Company: CrawledCompany{
+			Name: "Acme",
+			Logo: "https://cdn.example/logo.png",
+			Tags: []string{"SaaS", " "},
+			Metadata: map[string]any{
+				"website": "https://acme.com/",
+				"size":    "51-200",
+				"hq":      "Austin",
+			},
+		},
+		Metadata: map[string]any{
+			"workMode":     "remote",
+			"industryTags": []string{"SaaS"},
+			"bad.key":      "dropped",
+		},
 	}
-	job.CompanyLink = "https://acme.com/"
-	job.Company.Name = "Acme"
-	job.Company.Logo = "https://cdn.example/logo.png"
-	job.Company.Tags = []string{"SaaS", " "}
-	job.Applicants.Count = 25
-	return job
 }
 
 func TestParseCrawlerBatch(t *testing.T) {
@@ -127,7 +137,7 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 		IngestedVia  string `bson:"ingestedVia"`
 		Metadata     struct {
 			Details map[string]string `bson:"details"`
-			Tags    []string          `bson:"tags"`
+			Extra   map[string]any    `bson:"extra"`
 		} `bson:"metadata"`
 	}
 	if err := bson.Unmarshal(raw, &doc); err != nil {
@@ -136,8 +146,14 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	if doc.IngestedVia != CrawlerIngest || doc.ApplyLinkKey != CanonicalApplyURL("https://acme.com/apply/1") {
 		t.Fatalf("doc = %+v", doc)
 	}
-	if _, ok := doc.Metadata.Details["bad.key"]; ok || len(doc.Metadata.Tags) != 1 {
-		t.Fatalf("metadata = %+v", doc.Metadata)
+	if _, ok := doc.Metadata.Details["bad.key"]; ok || doc.Metadata.Details["remote"] != "remote" {
+		t.Fatalf("details = %+v", doc.Metadata.Details)
+	}
+	if doc.Metadata.Extra["workMode"] != "remote" {
+		t.Fatalf("extra = %+v", doc.Metadata.Extra)
+	}
+	if _, ok := doc.Metadata.Extra["bad.key"]; ok {
+		t.Fatalf("unsanitized extra key: %+v", doc.Metadata.Extra)
 	}
 
 	unnamed := crawledJob("https://acme.com/apply/2")
@@ -289,6 +305,79 @@ func TestCrawledCompanyDocumentPutsBoardFieldsInMetadata(t *testing.T) {
 	if len(tags) != 1 || tags[0] != "SaaS" {
 		t.Fatalf("tags metadata = %+v", doc.Metadata)
 	}
+	if doc.Metadata["size"] != "51-200" || doc.Metadata["hq"] != "Austin" || doc.Metadata["website"] != "https://acme.com/" {
+		t.Fatalf("company extras = %+v", doc.Metadata)
+	}
+}
+
+func TestJobExtraKeepsNestedNameLogoAndDropsDeepNesting(t *testing.T) {
+	job := crawledJob("https://acme.com/apply/1")
+	job.Metadata["boardCompany"] = map[string]any{
+		"name": "Nested Co",
+		"logo": "https://cdn.example/nested.png",
+		"rank": float64(3),
+	}
+	deep := map[string]any{"leaf": "ok"}
+	for i := 0; i < maxMetadataDepth+2; i++ {
+		deep = map[string]any{"n": deep}
+	}
+	job.Metadata["deep"] = deep
+
+	extra := mapToBSON(job.Metadata)
+	nested := bsonMap(lookupD(extra, "boardCompany"))
+	if nested["name"] != "Nested Co" || nested["logo"] != "https://cdn.example/nested.png" {
+		t.Fatalf("nested extra = %+v", nested)
+	}
+	if metadataDepth(mapToBSON(map[string]any{"deep": deep})) > maxMetadataDepth {
+		t.Fatalf("sanitized depth exceeded %d", maxMetadataDepth)
+	}
+}
+
+func lookupD(doc bson.D, key string) any {
+	for _, item := range doc {
+		if item.Key == key {
+			return item.Value
+		}
+	}
+	return nil
+}
+
+func bsonMap(value any) bson.M {
+	switch typed := value.(type) {
+	case bson.M:
+		return typed
+	case bson.D:
+		out := bson.M{}
+		for _, item := range typed {
+			out[item.Key] = item.Value
+		}
+		return out
+	default:
+		return bson.M{}
+	}
+}
+
+func metadataDepth(value any) int {
+	switch typed := value.(type) {
+	case bson.D:
+		max := 1
+		for _, item := range typed {
+			if child := metadataDepth(item.Value); child+1 > max {
+				max = child + 1
+			}
+		}
+		return max
+	case bson.A:
+		max := 1
+		for _, item := range typed {
+			if child := metadataDepth(item); child+1 > max {
+				max = child + 1
+			}
+		}
+		return max
+	default:
+		return 1
+	}
 }
 
 func TestIngestCrawledCompanySkipsExistingAndIncomplete(t *testing.T) {
@@ -318,6 +407,8 @@ func TestIngestCrawledCompanySkipsExistingAndIncomplete(t *testing.T) {
 	incomplete.Company.Name = "Plain Co"
 	incomplete.Company.Logo = ""
 	incomplete.CompanyLink = "https://plain.example/"
+	incomplete.Company.Metadata = map[string]any{"website": "https://plain.example/"}
+	incomplete.Metadata["companyLogo"] = ""
 	saved, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{incomplete}}, time.Now())
 	if err != nil || !saved.Results[0].Created {
 		t.Fatalf("incomplete company job = %+v, err = %v", saved, err)

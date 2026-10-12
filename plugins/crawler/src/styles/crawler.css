@@ -121,6 +121,11 @@ body {
   background: var(--color-error-muted);
 }
 
+.crawler-field-required {
+  margin-inline-start: var(--spacing-1);
+  color: var(--color-error);
+}
+
 /* Routine library: the fields a routine reads. */
 .crawler-routine-fields {
   display: flex;

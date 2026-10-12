@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { attrMatch } from "./extract.js";
 import { attr, pairs, text } from "./fields.js";
 import { DEFAULT_ROUTINE_OPTIONS, defineRoutine, listFields, routineProblems } from "./routine.js";
 import { click, highlight, pause, waitFor, waitGone } from "./steps.js";
@@ -32,7 +33,24 @@ describe("defineRoutine", () => {
     expect(defineRoutine({ ...validRoutine(), options: { fieldPauseMs: 50 } }).options).toEqual({
       highlightFields: true,
       fieldPauseMs: 50,
+      allowFetch: false,
     });
+  });
+
+  test("accepts Inspector attribute patterns as selectors", () => {
+    const pattern = attrMatch({ tag: "a", attr: "href", pattern: "?/jobs/info/?" });
+    expect(
+      routineProblems({
+        ...validRoutine(),
+        strategy: listDetail({
+          open: [click(pattern)],
+          ready: [waitFor(pattern)],
+          dismiss: [waitGone([".done", pattern])],
+          settle: [pause(1)],
+        }),
+        fields: { title: text(pattern, { inner: attrMatch({ tag: "span", pattern: "?chip?" }) }) },
+      }),
+    ).toEqual([]);
   });
 
   test("lists fields in the order they are read", () => {
@@ -41,6 +59,9 @@ describe("defineRoutine", () => {
       "company.logo",
       "details",
     ]);
+    expect(
+      typeof defineRoutine({ ...validRoutine(), readRecord: async () => ({}) }).readRecord,
+    ).toBe("function");
   });
 
   test("throws with every problem when the routine is invalid", () => {
@@ -63,6 +84,9 @@ describe("routineProblems", () => {
       "version must be a positive whole number",
       "output is required",
       "match.hosts must list at least one host",
+    ]);
+    expect(routineProblems({ ...validRoutine(), runPass: 1 })).toEqual([
+      "runPass must be a function",
     ]);
   });
 
@@ -116,7 +140,10 @@ describe("routineProblems", () => {
       'field "badLabel" label must be text',
     ]);
     expect(routineProblems({ ...validRoutine(), fields: {} })).toEqual([
-      "fields must define at least one field",
+      "declaredFields or fields must define at least one field",
+    ]);
+    expect(routineProblems({ ...validRoutine(), readRecord: 1 })).toEqual([
+      "readRecord must be a function",
     ]);
   });
 });

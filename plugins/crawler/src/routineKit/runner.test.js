@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { text } from "./fields.js";
 import { defineRoutine } from "./routine.js";
 import {
+  RoutineBlockedError,
   RoutineFinishedError,
   RoutineStepError,
   RoutineStoppedError,
@@ -185,10 +186,13 @@ describe("runRoutinePass", () => {
 
   test("stops when the signal is aborted, before or during a pass", async () => {
     const before = new AbortController();
+    const beforePage = fakePage();
     before.abort();
     await expect(
-      runRoutinePass(makeRoutine(), { exec: fakePage().exec, signal: before.signal }),
+      runRoutinePass(makeRoutine(), { exec: beforePage.exec, signal: before.signal }),
     ).rejects.toBeInstanceOf(RoutineStoppedError);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(beforePage.ops.some((op) => op.op === "abortFetches")).toBe(true);
 
     const during = new AbortController();
     const page = fakePage({
@@ -212,6 +216,7 @@ describe("runRoutinePass", () => {
     const pausedPass = runRoutinePass(paused, { exec: fakePage().exec, signal: pausing.signal });
     pausing.abort();
     await expect(pausedPass).rejects.toBeInstanceOf(RoutineStoppedError);
+    expect(new RoutineBlockedError("blocked").name).toBe("RoutineBlockedError");
   });
 
   test("gives up on a page that never answers", async () => {
@@ -229,5 +234,58 @@ describe("runRoutinePass", () => {
     await expect(runRoutinePass(unknown, { exec: fakePage().exec })).rejects.toThrow(
       "Unsupported strategy: teleport",
     );
+  });
+
+  test("uses a routine's own runPass when it provides one", async () => {
+    const routine = makeRoutine();
+    let seen = null;
+    const custom = {
+      ...routine,
+      runPass: async (ctx, progress) => {
+        seen = ctx.routine.id;
+        progress.tick();
+        await ctx.hooks.onRecord?.({ title: "from-custom" });
+      },
+    };
+    let record = null;
+    await runRoutinePass(custom, {
+      exec: fakePage().exec,
+      onRecord: (value) => {
+        record = value;
+      },
+    });
+    expect(seen).toBe("test");
+    expect(record).toEqual({ title: "from-custom" });
+  });
+
+  test("rejects fetch unless the routine opts in, and then only on match hosts", async () => {
+    const fetchPass = async (ctx) => {
+      await ctx.call("fetch", { url: "https://jobs.example/jobs" });
+    };
+    await expect(
+      runRoutinePass({ ...makeRoutine(), runPass: fetchPass }, { exec: fakePage().exec }),
+    ).rejects.toThrow("This routine cannot fetch pages");
+
+    const page = fakePage();
+    await runRoutinePass(
+      { ...makeRoutine({ options: { allowFetch: true } }), runPass: fetchPass },
+      { exec: page.exec },
+    );
+    expect(page.ops.find((op) => op.op === "fetch")).toMatchObject({
+      url: "https://jobs.example/jobs",
+      hosts: ["jobs.example"],
+    });
+
+    await expect(
+      runRoutinePass(
+        {
+          ...makeRoutine({ options: { allowFetch: true } }),
+          runPass: async (ctx) => {
+            await ctx.call("fetch", { url: "https://evil.test/jobs" });
+          },
+        },
+        { exec: fakePage().exec },
+      ),
+    ).rejects.toThrow("Fetch is limited to this routine's hosts");
   });
 });

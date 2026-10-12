@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { findRoutineForUrl, findRoutinesForUrl, hostMatches, routineMatchesUrl } from "./match.js";
+import {
+  assertFetchUrl,
+  findRoutineForUrl,
+  findRoutinesForUrl,
+  hostMatches,
+  routineMatchesUrl,
+} from "./match.js";
 
 const jobs = { id: "jobs", match: { hosts: ["jobs.example"] } };
 const other = { id: "other", match: { hosts: ["other.example"] } };
@@ -27,5 +33,28 @@ describe("routine matching", () => {
       jobs,
       alsoJobs,
     ]);
+  });
+});
+
+describe("assertFetchUrl", () => {
+  test("allows http(s) URLs on the routine's hosts", () => {
+    expect(assertFetchUrl("https://jobs.example/x", ["jobs.example"])).toBe(
+      "https://jobs.example/x",
+    );
+    expect(assertFetchUrl("/x", ["jobs.example"], "https://www.jobs.example/list")).toBe(
+      "https://www.jobs.example/x",
+    );
+  });
+
+  test("rejects other hosts, schemes, and missing allow-lists", () => {
+    expect(() => assertFetchUrl("https://evil.test/", ["jobs.example"])).toThrow(
+      "Fetch is limited to this routine's hosts",
+    );
+    expect(() => assertFetchUrl("ftp://jobs.example/x", ["jobs.example"])).toThrow(
+      "Fetch is limited to http(s) URLs",
+    );
+    expect(() => assertFetchUrl("https://jobs.example/x", [])).toThrow(
+      "Fetch is limited to this routine's hosts",
+    );
   });
 });

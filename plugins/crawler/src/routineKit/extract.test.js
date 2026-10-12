@@ -1,8 +1,21 @@
 import { describe, expect, spyOn, test } from "bun:test";
 
-import { extractField, queryAll, readElement, waitForMatches } from "./extract.js";
+import {
+  attrMatch,
+  extractField,
+  findElements,
+  queryAll,
+  queryOne,
+  readElement,
+  rewriteHashedSuffixes,
+  valueMatchesPattern,
+  waitForElements,
+  waitForMatches,
+} from "./extract.js";
 import { attr, html, pairs, prop, rawText, text } from "./fields.js";
+import { documentFromHtml } from "./html.js";
 import { fakeElement, fakeRoot } from "./testing/fakeDom.js";
+import "./testing/domParser.js";
 
 describe("queryAll", () => {
   test("uses the first selector in the list that matches", () => {
@@ -149,5 +162,94 @@ describe("extractField", () => {
     expect(
       extractField(root, pairs(".none", { key: ["i", "text"], value: ["b", "text"] })).value,
     ).toEqual({});
+  });
+});
+
+const MATCHER_HTML = `
+  <div id="job-card-9256204" class="index_job-title__Riiip">prefix card</div>
+  <div id="job-card-11111111" class="index_job-title__Abcde">second card</div>
+  <div id="mid" class="pre-gap-suf">mid gap</div>
+  <div id="other" class="ends-with-flag">suffix</div>
+  <a href="/jobs/info/abc">relative</a>
+  <a href="https://jobright.ai/jobs/info/xyz">absolute</a>
+`;
+
+describe("Inspector attribute patterns", () => {
+  test("matches prefix, suffix, contains, mid-gaps, and exact values", () => {
+    expect(valueMatchesPattern("job-card-9256204", "job-card-?")).toBe(true);
+    expect(valueMatchesPattern("x-job-card-9256204", "job-card-?")).toBe(false);
+    expect(valueMatchesPattern("ends-with-flag", "?flag")).toBe(true);
+    expect(valueMatchesPattern("flag-no", "?flag")).toBe(false);
+    expect(valueMatchesPattern("index_job-title__Riiip extra", "?index_job-title__?")).toBe(true);
+    expect(valueMatchesPattern("pre-gap-suf", "pre-?-suf")).toBe(true);
+    expect(valueMatchesPattern("presuf", "pre?suf")).toBe(true);
+    expect(valueMatchesPattern("preXXsuf", "pre-?-suf")).toBe(false);
+    expect(valueMatchesPattern("exact", "exact")).toBe(true);
+    expect(valueMatchesPattern("exacting", "exact")).toBe(false);
+    expect(valueMatchesPattern("anything", "?")).toBe(true);
+  });
+
+  test("findElements is the Inspector helper and queryAll reuses it", () => {
+    const document = documentFromHtml(MATCHER_HTML);
+    const prefix = findElements("div", "id", "job-card-?", document);
+    expect(prefix.map((node) => node.id)).toEqual(["job-card-9256204", "job-card-11111111"]);
+    expect(
+      queryAll(document, attrMatch({ tag: "div", attr: "id", pattern: "job-card-?" })),
+    ).toEqual(prefix);
+    expect(queryOne(document, attrMatch({ tag: "div", attr: "class", pattern: "?flag" }))?.id).toBe(
+      "other",
+    );
+    expect(
+      queryAll(document, attrMatch({ tag: "a", attr: "href", pattern: "?/jobs/info/?" })),
+    ).toHaveLength(2);
+    expect(
+      queryOne(document, attrMatch({ tag: "div", attr: "class", pattern: "pre-?-suf" }))?.id,
+    ).toBe("mid");
+  });
+
+  test("nth / order picks one node when a pattern matches several", () => {
+    const document = documentFromHtml(MATCHER_HTML);
+    const second = attrMatch({ tag: "div", attr: "id", pattern: "job-card-?", nth: 1 });
+    expect(queryOne(document, second)?.id).toBe("job-card-11111111");
+    expect(
+      queryAll(
+        document,
+        attrMatch({ tag: "div", attr: "id", pattern: "job-card-?", nth: [0, 1] }),
+      ).map((node) => node.id),
+    ).toEqual(["job-card-9256204", "job-card-11111111"]);
+    expect(
+      queryAll(document, attrMatch({ tag: "div", attr: "id", pattern: "job-card-?", nth: 9 })),
+    ).toEqual([]);
+  });
+
+  test("rewriting hashed class suffixes still matches contains patterns", () => {
+    const rewritten = rewriteHashedSuffixes(MATCHER_HTML, "ZZZZ9");
+    expect(rewritten).toContain("index_job-title__ZZZZ9");
+    expect(rewritten).not.toContain("index_job-title__Riiip");
+    const document = documentFromHtml(rewritten);
+    const titles = queryAll(
+      document,
+      attrMatch({ tag: "div", attr: "class", pattern: "?index_job-title__?" }),
+    );
+    expect(titles.map((node) => node.textContent.trim())).toEqual(["prefix card", "second card"]);
+    expect(
+      queryOne(
+        document,
+        attrMatch({ tag: "div", attr: "class", pattern: "?index_job-title__?", nth: 1 }),
+      )?.textContent,
+    ).toContain("second card");
+  });
+
+  test("waitForElements resolves through the same matcher", async () => {
+    const document = documentFromHtml('<div id="late-root"></div>');
+    const pending = waitForElements("div", "id", "job-card-?", 200, 5, document);
+    setTimeout(() => {
+      const node = document.createElement("div");
+      node.id = "job-card-42";
+      document.body.append(node);
+    }, 10);
+    const found = await pending;
+    expect(found?.[0]?.id).toBe("job-card-42");
+    expect(await waitForElements("div", "id", "missing-?", 5, 1, document)).toBeNull();
   });
 });

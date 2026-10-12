@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Easy Apply Job</title>
+<script type="application/ld&#x2B;json">
+            {
+              "@context": "https://schema.org",
+              "@graph": [{"@context":"https://schema.org","@type":"JobPosting","title":"Specialist Account Executive, ZT Branch - Commercial, East + South","description":"<p><p>Zscaler (NASDAQ: ZS) accelerates digital transformation so customers can be more agile, efficient, resilient, and secure. The Zscaler Zero Trust Exchange platform protects thousands of customers from cyberattacks and data loss by securely connecting users, devices, and applications in any location. Distributed across 200+ public data centers globally and thousands of private sites at the edge, the SASE-based Zero Trust Exchange is the world’s largest in-line cloud security platform.</p><p>We believe the future of work is Human + AI and are building an AI-native enterprise where human potential is amplified by machine intelligence to solve the world’s hardest security challenges. Driven by deep customer obsession, we are committed to the mission, outcome, and to each other. We bring these commitments to life through three core behaviors: ownership and collaboration, trust through outcomes and impact, and a challenge culture with ongoing feedback. Ready to make an impact at the company pioneering security transformation in the AI era? Join us at Zscaler.</p></p><p><strong>About the Role</strong></p><p>We are looking for a Specialist Account Executive to join our Sales and Go-to-Market team. This role can be based in any major city in the western or central regions, reporting to the Director - Zero Trust Branch. You will support the commercial segment, acting as the primary specialist to drive revenue growth within the Zero Trust Branch product suite, including Zero Trust SDWAN, IoT/OT device segmentation and Zero Trust Cellular. You will lead the charge in demonstrating the power of cloud transformation to cement our position as a global leader in cloud security.</p><p><strong>What you’ll do (Role Expectations)</strong></p><ul><li>Serve as the primary specialist for customers, partners, and internal teams to drive revenue growth across the zero trust branch (ZTB) product portfolio<br></li><li>Partner with domain-expert solution engineers to capture customer requirements and craft compelling value propositions that close complex business deals<br></li><li>Own the regional quota and territory achievement by building and implementing account-based strategies to land and expand ZTB solutions<br></li><li>Collaborate synergistically with primary sales teams and leadership to ensure a unified and effective Zscaler presence in the market<br></li><li>Engage stakeholders across the organization, selling effectively to both C-suite executives and technical practitioners<br></li></ul><p><strong>Who You Are (Success Profile)</strong></p><ul><li>You thrive in ambiguity. You're comfortable building the path as you walk it. You thrive in a dynamic environment, seeing ambiguity not as a hindrance, but as the raw material to build something meaningful.<br></li><li>You act like an owner. Your passion for the mission fuels your bias for action. You operate with integrity because you genuinely care about the outcome. True ownership involves leveraging dynamic range: the ability to navigate seamlessly between high-level strategy and hands-on execution.<br></li><li>You are a problem-solver. You love running towards the challenges because you are laser-focused on finding the solution, knowing that solving the hard problems delivers the biggest impact.<br></li><li>You are a high-trust collaborator. You are ambitious for the team, not just yourself. You embrace our challenge culture by giving and receiving ongoing feedback—knowing that candor delivered with clarity and respect is the truest form of teamwork and the fastest way to earn trust.<br></li><li>You are a learner. You have a true growth mindset and are obsessed with your own development, actively seeking feedback to become a better partner and a stronger teammate. You love what you do and you do it with purpose.<br></li></ul><p><strong>What We’re Looking for (Minimum Qualifications)</strong></p><ul><li><p><p><p><p><p><p><p><p><p><p><p><p>Demonstrated curiosity and active exploration of AI tools, with a proven history of integrating new technologies to enhance daily workflows and augment problem-solving</p><p>&nbsp;</p></p></p></p></p></p></p></p></p></p></p></p><p><p></p></p></li><li>3+ years of full-cycle sales experience within the software or security industry<br></li><li>Bachelor's degree or equivalent practical experience<br></li><li>Progressive experience engaging with and selling to accounts at the C-level<br></li><li>Demonstrated expertise and practical experience with value-based selling methodologies</li></ul><p><strong>What Will Make You Stand Out (Preferred Qualifications)</strong></p><ul><li>Established relationships with current and prospective customers within the enterprise security landscape<br></li><li>Direct experience selling SDWAN and advanced networking solutions<br></li><li>Proven proficiency in strategic sales planning and a track record of closing net new logos&nbsp;</li><li>Effectively leverage LLMs and Generative AI tools to boost productivity and sales effectiveness across research, prospecting, customer prep, and opportunity management</li></ul><p>#LI-LB1</p><p><p><p><p>Zscaler’s salary ranges are benchmarked and are determined by role and level. The range displayed on each job posting reflects the minimum and maximum target for new hire salaries for the position across all US locations and could be higher or lower based on a multitude of factors, including job-related skills, experience, and relevant education or training.</p><p>The base salary range listed for this full-time position excludes commission/ bonus/ equity (if applicable) + benefits.</p></p><p>Base Pay Range</p><p><span>$113,400</span><span>—</span><span>$162,000 USD</span></p></p></p><p><p>At Zscaler, we are committed to building a team that reflects the communities we serve and the customers we work with. We foster an inclusive environment that values all backgrounds and perspectives, emphasizing collaboration and belonging. Join us in our mission to make doing business seamless and secure.</p><p>Our Benefits program is one of the most important ways we support our employees. Zscaler proudly offers comprehensive and inclusive benefits to meet the diverse needs of our employees and their families throughout their life stages, including:</p><p><ul><li>Various health plans</li><li>Time off plans for vacation and sick time</li><li>Parental leave options</li><li>Retirement options</li><li>Education reimbursement</li><li>In-office perks, and more!</li></ul><p><p>Learn more about Zscaler's hybrid working model and benefits&nbsp;here.</p></p></p><p>By applying for this role, you adhere to applicable laws, regulations, and Zscaler policies, including those related to security and privacy standards and guidelines.</p><p>Zscaler is committed to providing equal employment opportunities to all individuals. We strive to create a workplace where employees are treated with respect and have the chance to succeed. All qualified applicants will be considered for employment without regard to race, color, religion, sex (including pregnancy or related medical conditions), age, national origin, sexual orientation, gender identity or expression, genetic information, disability status, protected veteran status, or any other characteristic protected by federal, state, or local laws. <em>See more information by clicking on the </em><em>Know Your Rights: Workplace Discrimination is Illegal </em><em>link.</em></p><p>Pay Transparency</p><p>Zscaler complies with all applicable federal, state, and local pay transparency rules.</p><p>Zscaler is committed to providing reasonable support (called accommodations or adjustments) in our recruiting processes for candidates who are differently abled, have long term conditions, mental health conditions or sincerely held religious beliefs, or who are neurodivergent or require pregnancy-related support.</p></p>","directApply":true,"jobLocationType":"TELECOMMUTE","identifier":{"@type":"PropertyValue","name":"Zscaler","value":"11617804"},"baseSalary":{"@type":"MonetaryAmount","currency":"USD","value":{"@type":"QuantitativeValue","minValue":113400,"maxValue":162000,"unitText":"YEAR"}},"datePosted":"2026-10-12","employmentType":"FULL_TIME","applicantLocationRequirements":{"@type":"Country","name":"USA"},"hiringOrganization":{"@type":"Organization","name":"Zscaler","sameAs":"https://builtin.com/company/zscaler","logo":{"@type":"ImageObject","url":"https://builtin.com/sites/www.builtin.com/files/2021-06/Zscaler-tech-companies-San-Jose.png","representativeOfPage":true}},"industry":["Cloud","Information Technology","Security","Software","Cybersecurity"],"jobBenefits":["Offers 401(K)","Provides 401(K) matching","Offers disability insurance","Offers life insurance","Offers charitable contribution matching","Provides a pension","Provides adoption assistance","Hosts company-sponsored family events","Provides family medical leave","Offers generous parental leave","Provides fertility benefits","Provides an onsite Mother's Room","Offers company equity","Offers employee stock purchase plan","Offers performance bonuses","Designated President's Club","Offers dental insurance","Offers Flexible Spending Account (FSA)","Offers health insurance","Offers pet insurance","Offers vision insurance","Offers mental health benefits","Offers transgender health care benefits","Offers Health Savings Account (HSA)","Offers immediate health care coverage on employee start date","Has a dedicated diversity and inclusion staff","Mandated unconscious bias training","Offers diversity-based Employee Resource Groups","Hiring practices promote diversity","Has a diversity recruitment program","Open office floor plan to encourage communication and collaboration","Implements team-based strategic planning","Uses an OKR operational model to clearly define goals and priorities","Provides onsite office parking","Provides free snacks and drinks","Some meals provided","Utilizes a hybrid work model","Established employee awards to honor work and contributions","Provides opportunities to volunteer in the local community","Partners with nonprofits","Offers wellness programs","Offers Employee Resource Groups","Provides paid sick days","Offers a flexible time off policy","Provides bereavement leave","Offers mentorship program","Hosts Lunch and Learns","Provides tuition reimbursement","Provides personal development training"],"jobLocation":[{"@type":"Place","address":{"@type":"PostalAddress","addressCountry":"USA","addressLocality":"New York","addressRegion":"New York","postalCode":"10119","streetAddress":"250 West 34th Street 3rd Floor, Suite 303"},"geo":{"@type":"GeoCoordinates","latitude":40.7130466,"longitude":-74.0072301}},{"@type":"Place","address":{"@type":"PostalAddress","addressCountry":"USA","addressRegion":"North Carolina"}}],"validThrough":"2026-11-11T15:36:42+00:00"}]
+    }
+        </script>
+</head><body>
+<div class="job-post-item bg-gray-01" id="11617804">
+
+<div class="match-background py-xl">
+    <div class="container">
+        <div class="row g-sm">
+            <div class="col-12 col-lg-5">
+                <div class="bg-white rounded-3 p-md position-relative h-100">
+                    <div class="mb-sm d-inline-flex align-items-center">
+                        <a href="/company/zscaler" target="_blank">
+                            <picture class="d-inline-block">
+                                <img src="https://cdn.builtin.com/cdn-cgi/image/f=auto,fit=scale-down,w=200,h=200/sites/www.builtin.com/files/2021-06/Zscaler-tech-companies-San-Jose.png" alt="https://cdn.builtin.com/cdn-cgi/image/f=auto,fit=scale-down,w=200,h=200/sites/www.builtin.com/files/2021-06/Zscaler-tech-companies-San-Jose.png Logo" height="48" width="48" class="p-xs rounded-2 border border-gray-02 me-md img-default object-fit-contain"/>
+                            </picture>
+                        </a>
+                        <a href="/company/zscaler" target="_blank" class="hover-underline text-pretty-blue font-barlow fw-medium fs-2xl">
+                            <h2 class="text-pretty-blue m-0">Zscaler</h2>
+                        </a>
+                    </div>
+                    <h1 class="fw-extrabold fs-xl mb-sm">
+                        <span class="mb-0">Specialist Account Executive, ZT Branch - Commercial, East &#x2B; South</span>
+                    </h1>
+                            <div class="mb-sm">
+                                <i class="fa-light text-pretty-blue fa-clock me-sm fs-sm" aria-hidden="true" title="Job Posted 5 Minutes Ago"></i>
+                                <span class="font-barlow fs-md fw-regular">Posted 5 Minutes Ago</span>
+                            </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-3">
+                <div class="d-flex flex-column gap-sm bg-white rounded-3 p-md position-relative h-100">
+                    <div class="d-flex flex-wrap gap-sm">
+                        <div class="d-inline-flex bg-ultraviolet text-white rounded-3 py-xs px-sm">
+                            <i class="fa-solid fa-bolt me-xs fs-sm" aria-hidden="true"></i>
+                            <span class="fw-semibold fs-xs">Easy Apply</span>
+                        </div>
+                        <div class="d-inline-flex bg-pretty-blue-highlight rounded-3 py-xs px-sm">
+                            <span class="fw-semibold fs-xs">Be an Early Applicant</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-start gap-sm">
+                            <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+                                <i class="fa-regular fa-location-dot fs-xs text-pretty-blue" aria-hidden="true"></i>
+                            </div>
+                            <div class="font-barlow text-gray-03 position-relative">
+                                <span class="cursor-pointer text-decoration-underline" data-bs-toggle="tooltip"
+                                      data-bs-placement="bottom"
+                                      data-html="true"
+                                      title="&lt;div class=&#x27;row g-xs py-sm font-barlow fs-md&#x27;&gt;&lt;div class=&#x27;col-lg-6 px-md&#x27;&gt;New York, NY, USA&lt;/div&gt;&lt;div class=&#x27;col-lg-6 px-md&#x27;&gt;North Carolina, USA&lt;/div&gt;&lt;/div&gt;">
+                                            2 Locations
+                                        </span>
+                            </div>
+                        </div>
+                    </div>
+                        <div class="d-flex gap-md">
+                            <div class="d-flex align-items-start gap-sm">
+                                <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+                                    <i class="fa-regular fa-house-building fs-xs text-pretty-blue"
+                                       aria-hidden="true"></i>
+                                </div>
+                                <span class="font-barlow text-gray-03">Remote or Hybrid</span>
+                            </div>
+                        </div>
+                    <div class="d-flex align-items-start gap-sm">
+                        <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+                            <i class="fa-regular fa-sack-dollar fs-xs text-pretty-blue" aria-hidden="true"></i>
+                        </div>
+                        <span class="font-barlow text-gray-03">113K-162K Annually</span>
+                    </div>
+                    <div class="d-flex align-items-start gap-sm">
+                        <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+                            <i class="fa-regular fa-trophy fs-xs text-pretty-blue" aria-hidden="true"></i>
+                        </div>
+                        <span class="font-barlow text-gray-03">Mid level</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="bg-white rounded-3 p-md h-100">
+                    <div class="font-barlow fw-medium mb-md">Cloud &#x2022; Information Technology &#x2022; Security &#x2022; Software &#x2022; Cybersecurity</div>
+                    <div class="fs-md fw-regular">Secure, simplify, and transform your enterprise with zero trust.&#xD;&#xA;</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container py-lg">
+    <div class="row gx-lg mb-xl">
+        <div class="col-12 col-lg-6 mb-sm mb-lg-0">
+            <div class="bg-midnight text-white rounded-3 mb-sm px-md py-sm fs-xl fw-extrabold">The Role</div>
+            <div class="bg-white rounded-3 p-md mb-sm overflow-hidden position-relative" :class="jobExpanded || !bodyTooLarge(11617804) ? 'full-size' : 'small-size'">
+                <div class="mb-sm">Drives commercial revenue for Zscaler&#x2019;s Zero Trust Branch portfolio, including SD-WAN, IoT/OT segmentation, and Zero Trust Cellular. Owns regional quota and territory strategy, develops account-based plans, engages C-suite and technical stakeholders, collaborates with solution engineers and sales teams, and closes complex deals through value-based selling. Requires software or security sales experience, executive engagement, AI tool adoption, and strategic sales planning.</div>
+                <div class="d-flex align-items-center justify-content-center mb-xl">
+                    <div class="bg-gray-04 w-md" style="height:1.5px;"></div>
+                    <div class="mx-sm">
+                        <div class="fs-xs">Summary Generated by Built In</div>
+                    </div>
+                    <div class="bg-gray-04 w-md" style="height:1.5px;"></div>
+                </div>
+                <div x-ref="job-post-body-11617804" id="job-post-body-11617804" class="fs-md fw-regular mb-md html-parsed-content"><p>Short job description for tests.</p></div>
+                <button @click="toggleJobExpanded"
+                        type="button"
+                        class="btn show-more-button position-absolute bottom-0 start-0 w-100 h-6xl d-flex align-items-end pb-lg justify-content-center gap-xs rounded-0 border-0"
+                        :class="bodyTooLarge(11617804) && !jobExpanded ? 'd-block' : 'd-none'"
+                        aria-label="Expand Full Description"
+                        :tabindex="0">
+                    <span class="text-decoration-underline">Read Full Description</span>
+                    <i class="fa-regular fa-chevron-down fs-sm" aria-hidden="true"></i>
+                </button>
+            </div>
+                <div class="bg-white rounded-3 p-md mb-sm full-size">
+                    <h2 class="fs-2xl text-transform-unset text-midnight fw-extrabold mb-sm">Skills Required</h2>
+                    <ul>
+                            <li>3&#x2B; years of full-cycle sales experience in the software or security industry</li>
+                            <li>Bachelor&#x2019;s degree or equivalent practical experience</li>
+                            <li>Progressive experience engaging with and selling to C-level accounts</li>
+                            <li>Expertise and practical experience with value-based selling methodologies</li>
+                            <li>Curiosity about AI tools and a history of integrating new technologies into workflows</li>
+                            <li>Established relationships with current and prospective enterprise security customers</li>
+                            <li>Direct experience selling SD-WAN and advanced networking solutions</li>
+                            <li>Strategic sales planning experience and a track record of closing net-new logos</li>
+                            <li>Proficiency using LLMs and generative AI tools for sales productivity</li>
+                    </ul>
+                </div>
+
+<div class="job-unbounded-responsive">
+  <div class="d-flex align-items-start gap-sm">
+    <i class="fa-regular fa-sack-dollar"></i>
+    <span class="font-barlow text-gray-03">50K-60K Annually</span>
+  </div>
+</div>
+
+
+<div x-data="applyForm">
+  <a href="/auth/login" data-builtin-track-click-event="job_apply_unauth" data-builtin-track-easy-apply="1">Log In to easy apply</a>
+</div>
+
+<script>Builtin.jobPostInit({"job":{"id":11617804,"drupalId":11617804,"isSaved":false,"applyUrl":"","applyText":"","companyName":"Zscaler","title":"Specialist Account Executive, ZT Branch - Commercial, East \u002B South","isEasyApply":true,"resolvedBidId":null},"siteId":9,"isApplyFormEnabled":false,"isApplyIdentityRequired":false,"isPhoneModalRequested":false,"isResumeFormEnabled":false,"resumeMaxFileSize":2097152,"resumeAllowedFileExtensions":["pdf","docx"],"isLoggedIn":false,"salesforceData":{"orgId":"00D1a000000HjWM","actionUrl":"https://webto.salesforce.com/servlet/servlet.WebToCase?encoding=UTF-8\u0026orgId=00D1a000000HjWM","jobUrlFieldId":"00NVb000001IX1l"},"user":{"subjectId":"","name":"","email":"","phone":""},"externalApiUrl":"https://api.builtin.com","jobTrackerStatus":"save"});</script>
+</body></html>

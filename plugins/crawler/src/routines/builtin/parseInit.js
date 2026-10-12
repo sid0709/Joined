@@ -1,0 +1,65 @@
+import { parseJobPostingJsonLd } from "../../routineKit/jsonLd.js";
+
+import { JOB_BOARD_INIT_NAME, JOB_POST_INIT_NAME } from "./constants.js";
+
+/**
+ * Slice the JSON argument of `Name({...})` out of a script, respecting strings
+ * so a `});` inside a value does not end the call early.
+ */
+export function extractCallPayload(source, fnName) {
+  const text = String(source ?? "");
+  const needle = `${fnName}(`;
+  const start = text.indexOf(needle);
+  if (start < 0) return null;
+  let index = start + needle.length;
+  while (index < text.length && text[index] !== "{" && text[index] !== "[") index += 1;
+  if (index >= text.length) return null;
+  const open = text[index];
+  const close = open === "{" ? "}" : "]";
+  let depth = 0;
+  let inString = false;
+  let quote = "";
+  let escaped = false;
+  for (let cursor = index; cursor < text.length; cursor += 1) {
+    const char = text[cursor];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (char === quote) inString = false;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      inString = true;
+      quote = char;
+      continue;
+    }
+    if (char === open) depth += 1;
+    else if (char === close) {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(index, cursor + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+export function parseJobPostInit(html) {
+  return extractCallPayload(html, JOB_POST_INIT_NAME);
+}
+
+export function parseJobBoardInit(html) {
+  return extractCallPayload(html, JOB_BOARD_INIT_NAME);
+}
+
+export { parseJobPostingJsonLd };

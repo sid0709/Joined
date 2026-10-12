@@ -81,6 +81,7 @@ type tempListing struct {
 			Seniority string `bson:"seniority"`
 			Salary    string `bson:"salary"`
 		} `bson:"details"`
+		Extra bson.M `bson:"extra,omitempty"`
 	} `bson:"metadata"`
 }
 

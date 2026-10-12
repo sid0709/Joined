@@ -8,6 +8,7 @@ import {
   fieldLabel,
   humanizePath,
 } from "./describe.js";
+import { attrMatch } from "./extract.js";
 import { text } from "./fields.js";
 import { clearHighlights, click, highlight, pause, waitFor, waitGone } from "./steps.js";
 
@@ -22,6 +23,12 @@ describe("describe", () => {
   test("describes selectors, reads, and transforms", () => {
     expect(describeSelector([".a", ".b"])).toBe(".a | .b");
     expect(describeSelector(undefined)).toBe("");
+    expect(
+      describeSelector(attrMatch({ tag: "h1", attr: "class", pattern: "?index_job-title__?" })),
+    ).toBe("h1[class=?index_job-title__?]");
+    expect(
+      describeSelector(attrMatch({ tag: "div", attr: "id", pattern: "job-card-?", nth: 1 })),
+    ).toBe("div[id=job-card-?][1]");
     expect(describeRead("text")).toBe("Text");
     expect(describeRead("pairs")).toBe("Key/value pairs");
     expect(describeRead("attr:alt")).toBe("Attribute alt");

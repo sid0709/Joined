@@ -6,14 +6,25 @@ import {
   EmptyState,
   Glyph,
   HStack,
+  NumberInput,
   Selector,
+  Switch,
   Text,
   Token,
   VStack,
 } from "sid-ui";
 
+import {
+  DEFAULT_CONCURRENCY,
+  DEFAULT_JOBS_PER_SECOND,
+  MIN_CONCURRENCY,
+  MIN_JOBS_PER_SECOND,
+  paceLimits,
+} from "../../api/paceSettings";
 import { SCRAPE_SOURCE } from "../../config/env";
+import { listDeclaredFields } from "../../routineKit/declaredFields";
 import { STRATEGY_LABELS } from "../../routineKit/describe";
+import { hasRunSetting, RUN_SETTING } from "../../routineKit/runView";
 
 function hostOf(url) {
   try {
@@ -24,7 +35,7 @@ function hostOf(url) {
 }
 
 function RoutineTokens({ routine }) {
-  const fieldCount = Object.keys(routine.fields).length;
+  const fieldCount = listDeclaredFields(routine).length;
   return (
     <HStack gap={1} wrap="wrap">
       <Token size="sm" color="purple" label={STRATEGY_LABELS[routine.strategy.kind]} />
@@ -36,6 +47,57 @@ function RoutineTokens({ routine }) {
 }
 
 /** The page a run acts on and the routine that will run there. */
+function PaceSettings({ routine, settings, onChange, isRunning }) {
+  const showConcurrency = hasRunSetting(routine, RUN_SETTING.CONCURRENCY);
+  const showRate = hasRunSetting(routine, RUN_SETTING.JOBS_PER_SECOND);
+  const showFastMode = hasRunSetting(routine, RUN_SETTING.FAST_MODE);
+  if (!showConcurrency && !showRate && !showFastMode) return null;
+  const limits = paceLimits(settings.fastMode);
+  return (
+    <VStack gap={3}>
+      {showFastMode ? (
+        <Switch
+          label="Advanced / fast mode"
+          value={Boolean(settings.fastMode)}
+          onChange={(value) => onChange({ fastMode: value })}
+          isDisabled={isRunning}
+        />
+      ) : null}
+      <Text type="supporting" color="secondary">
+        {settings.fastMode
+          ? `Up to ${limits.concurrency} workers and ${limits.jobsPerSecond} jobs/s`
+          : `Default ${DEFAULT_CONCURRENCY} workers / ${DEFAULT_JOBS_PER_SECOND} jobs/s. Enable fast mode to raise the cap.`}
+      </Text>
+      <HStack gap={3}>
+        {showConcurrency ? (
+          <NumberInput
+            label="Concurrency"
+            description={`Up to ${limits.concurrency} parallel detail fetches`}
+            value={settings.concurrency}
+            min={MIN_CONCURRENCY}
+            max={limits.concurrency}
+            onChange={(value) => onChange({ concurrency: value })}
+            isDisabled={isRunning}
+            width="100%"
+          />
+        ) : null}
+        {showRate ? (
+          <NumberInput
+            label="Jobs / s"
+            description="Token-bucket target"
+            value={settings.jobsPerSecond}
+            min={MIN_JOBS_PER_SECOND}
+            max={limits.jobsPerSecond}
+            onChange={(value) => onChange({ jobsPerSecond: value })}
+            isDisabled={isRunning}
+            width="100%"
+          />
+        ) : null}
+      </HStack>
+    </VStack>
+  );
+}
+
 export default function TargetCard({
   tab,
   routine,
@@ -43,6 +105,8 @@ export default function TargetCard({
   onChooseRoutine,
   isRunning,
   onBrowseRoutines,
+  paceSettings,
+  onPaceSettingsChange,
 }) {
   if (!tab) {
     return (
@@ -115,6 +179,15 @@ export default function TargetCard({
             options={matches.map((match) => ({ value: match.id, label: match.label }))}
             value={routine?.id ?? matches[0].id}
             onChange={onChooseRoutine}
+          />
+        ) : null}
+
+        {routine && paceSettings ? (
+          <PaceSettings
+            routine={routine}
+            settings={paceSettings}
+            onChange={onPaceSettingsChange}
+            isRunning={isRunning}
           />
         ) : null}
       </VStack>
