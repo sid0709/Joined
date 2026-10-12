@@ -48,9 +48,14 @@ describe("HiringCafe value helpers", () => {
       postedAtSource: POSTED_AT_SOURCE.JSON_LD,
     });
     expect(postedFrom({}, "", "Posted 3h ago")).toEqual({
-      postedAt: "Posted 3h ago",
+      postedAt: "",
       postedAgo: "Posted 3h ago",
-      postedAtSource: POSTED_AT_SOURCE.DOM,
+      postedAtSource: POSTED_AT_SOURCE.AGO,
+    });
+    expect(postedFrom({}, "", "")).toEqual({
+      postedAt: "",
+      postedAgo: "",
+      postedAtSource: "",
     });
   });
 

@@ -1,11 +1,14 @@
 import { queryAll, queryOne } from "../../routineKit/extract.js";
 
 import {
+  CARD_DOT,
   FIRST_PAGE_INDEX,
   HIRINGCAFE_ORIGIN,
   JOB_CARD,
   JOB_LINK,
+  JOB_PATH,
   POSTED_CHIP,
+  groupShortfallLabel,
   jobPathFromHref,
   requisitionIdFromHref,
 } from "./constants.js";
@@ -36,14 +39,26 @@ function groupHits(hits) {
 function hrefsByRequisition(document, pageUrl) {
   const found = new Map();
   const posted = new Map();
+  const dots = new Map();
+  const extras = [];
   for (const card of queryAll(document, JOB_CARD)) {
-    const href = queryOne(card, JOB_LINK)?.getAttribute("href") || "";
-    const id = requisitionIdFromHref(href);
-    if (!id || found.has(id)) continue;
-    found.set(id, resolveUrl(href, pageUrl));
-    posted.set(id, textOf(queryOne(card, POSTED_CHIP)));
+    const cardDots = queryAll(card, CARD_DOT).length;
+    let primaryId = "";
+    for (const link of queryAll(card, JOB_LINK)) {
+      const href = link.getAttribute("href") || "";
+      const id = requisitionIdFromHref(href);
+      if (!id) continue;
+      const url = resolveUrl(href, pageUrl);
+      extras.push({ id, url });
+      if (!primaryId) primaryId = id;
+      if (!found.has(id)) {
+        found.set(id, url);
+        posted.set(id, textOf(queryOne(card, POSTED_CHIP)));
+      }
+    }
+    if (primaryId && cardDots) dots.set(primaryId, cardDots);
   }
-  return { hrefs: found, posted };
+  return { hrefs: found, posted, dots, extras };
 }
 
 export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: new Map() }) {
@@ -97,6 +112,7 @@ function attachGroups(jobs, groups, cards) {
     if (!job.postedRaw && job.cardJobId) {
       job.postedRaw = cards.posted.get(job.cardJobId) || "";
     }
+    job.cardDots = cards.dots?.get(job.cardJobId) || cards.dots?.get(job.id) || 0;
     job.groupPaths = (group?.hits ?? [])
       .map((item) => {
         const itemId = requisitionIdOf(item);
@@ -124,6 +140,28 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
     seen.add(parsed.id);
     jobs.push(parsed);
   }
+  for (const extra of hits.length ? (cards.extras ?? []) : []) {
+    if (!extra.id || seen.has(extra.id)) continue;
+    seen.add(extra.id);
+    jobs.push({
+      id: extra.id,
+      title: "",
+      url: extra.url,
+      path: jobPathFromHref(extra.url) || `${JOB_PATH}${extra.id}`,
+      cardHref: extra.url,
+      collapseKey: "",
+      companyName: "",
+      applyUrl: "",
+      postedRaw: cards.posted.get(extra.id) || "",
+      cardJobId: extra.id,
+      cardDots: cards.dots?.get(extra.id) || 0,
+      groupIds: [extra.id],
+      groupIndex: 1,
+      groupSize: 1,
+      groupPaths: [jobPathFromHref(extra.url)],
+      hit: { requisition_id: extra.id },
+    });
+  }
   const groups = groupHits(hits);
   attachGroups(jobs, groups, cards);
   const cardNodes = queryAll(document, JOB_CARD);
@@ -146,5 +184,24 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
     signedIn: props.ssrSignedIn === true,
     isLastPage,
     nextPage: isLastPage ? null : page + 1,
+    shortfalls: groupShortfalls(jobs, groups),
   };
+}
+
+export function groupShortfalls(jobs, groups) {
+  const warnings = [];
+  for (const group of groups ?? []) {
+    const members = (jobs ?? []).filter((job) => job.collapseKey === group.collapseKey);
+    const captured = members.length || group.hits?.length || 0;
+    const dots = members.find((job) => job.cardDots)?.cardDots || 0;
+    if (dots > captured) {
+      warnings.push({
+        collapseKey: group.collapseKey,
+        captured,
+        dots,
+        label: groupShortfallLabel(group.collapseKey, captured, dots),
+      });
+    }
+  }
+  return warnings;
 }

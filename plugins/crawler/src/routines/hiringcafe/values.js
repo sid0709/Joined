@@ -103,10 +103,11 @@ export function isoDate(value) {
 
 export function postedFrom(v5, jsonLdDate, rawText) {
   const estimated = isoDate(v5?.estimated_publish_date);
+  const raw = asText(rawText);
   if (estimated) {
     return {
       postedAt: estimated,
-      postedAgo: asText(rawText),
+      postedAgo: raw,
       postedAtSource: POSTED_AT_SOURCE.ESTIMATED_PUBLISH_DATE,
     };
   }
@@ -114,15 +115,21 @@ export function postedFrom(v5, jsonLdDate, rawText) {
   if (fromJsonLd) {
     return {
       postedAt: fromJsonLd,
-      postedAgo: asText(rawText),
+      postedAgo: raw,
       postedAtSource: POSTED_AT_SOURCE.JSON_LD,
     };
   }
-  const raw = asText(rawText);
+  if (raw) {
+    return {
+      postedAt: "",
+      postedAgo: raw,
+      postedAtSource: POSTED_AT_SOURCE.AGO,
+    };
+  }
   return {
-    postedAt: raw,
-    postedAgo: raw,
-    postedAtSource: raw ? POSTED_AT_SOURCE.DOM : "",
+    postedAt: "",
+    postedAgo: "",
+    postedAtSource: "",
   };
 }
 
@@ -238,6 +245,8 @@ export function hiringCafeMetadata(job, extras = {}) {
   const attributed = pickKnownFields(job?.attributed_org, COMPANY_METADATA_KEYS);
   if (Object.keys(attributed).length) metadata.attributed_org = attributed;
   assignProvided(metadata, "postedRaw", extras.postedRaw);
+  assignProvided(metadata, "postedAtSource", extras.postedAtSource);
+  assignProvided(metadata, "companyWebsite", extras.companyWebsite);
   assignProvided(metadata, "logoSrc", extras.domLogo);
   assignProvided(metadata, "cardHref", extras.cardHref);
   return metadata;

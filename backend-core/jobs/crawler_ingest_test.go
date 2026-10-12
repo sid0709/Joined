@@ -38,9 +38,11 @@ func crawledJob(applyLink string) CrawledJob {
 		},
 		CrawledAt: "2026-10-12T18:00:00.000Z",
 		Metadata: map[string]any{
-			"workMode":     "remote",
-			"industryTags": []string{"SaaS"},
-			"bad.key":      "dropped",
+			"workMode":       "remote",
+			"industryTags":   []string{"SaaS"},
+			"postedAtSource": "estimated_publish_date",
+			"companyWebsite": "https://acme.com/",
+			"bad.key":        "dropped",
 		},
 	}
 }
@@ -85,21 +87,22 @@ func TestCrawledJobProblem(t *testing.T) {
 func TestPostedAtFromAgo(t *testing.T) {
 	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 	cases := map[string]time.Duration{
-		"3 hours ago":   3 * time.Hour,
-		"1 day ago":     24 * time.Hour,
-		"2 weeks ago":   14 * 24 * time.Hour,
-		"45 mins ago":   45 * time.Minute,
-		"1 month ago":   30 * 24 * time.Hour,
-		"2 years ago":   2 * 365 * 24 * time.Hour,
-		"Yesterday":     24 * time.Hour,
-		"just now":      0,
-		"":              0,
-		"posted lately": 0,
+		"3 hours ago": 3 * time.Hour,
+		"1 day ago":   24 * time.Hour,
+		"2 weeks ago": 14 * 24 * time.Hour,
+		"45 mins ago": 45 * time.Minute,
+		"1 month ago": 30 * 24 * time.Hour,
+		"2 years ago": 2 * 365 * 24 * time.Hour,
+		"Yesterday":   24 * time.Hour,
 	}
 	for text, back := range cases {
 		if got := PostedAtFromAgo(text, now); !got.Equal(now.Add(-back)) {
 			t.Errorf("%q: got %s, want %s", text, got, now.Add(-back))
 		}
+	}
+	if !PostedAtFromAgo("just now", now).IsZero() || !PostedAtFromAgo("", now).IsZero() ||
+		!PostedAtFromAgo("posted lately", now).IsZero() || !PostedAtFromAgo("3h", now).IsZero() {
+		t.Fatal("unparseable relative text must not become the crawl time")
 	}
 }
 
@@ -137,11 +140,13 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 		ApplyLinkKey string `bson:"applyLinkKey"`
 		IngestedVia  string `bson:"ingestedVia"`
 		Metadata     struct {
-			Details   map[string]string `bson:"details"`
-			PostedAgo string            `bson:"postedAgo"`
-			CrawledAt string            `bson:"crawledAt"`
-			Company   map[string]any    `bson:"company"`
-			Extra     map[string]any    `bson:"extra"`
+			Details        map[string]string `bson:"details"`
+			PostedAgo      string            `bson:"postedAgo"`
+			PostedAtSource string            `bson:"postedAtSource"`
+			CompanyWebsite string            `bson:"companyWebsite"`
+			CrawledAt      string            `bson:"crawledAt"`
+			Company        map[string]any    `bson:"company"`
+			Extra          map[string]any    `bson:"extra"`
 		} `bson:"metadata"`
 	}
 	if err := bson.Unmarshal(raw, &doc); err != nil {
@@ -156,8 +161,15 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	if doc.Metadata.Extra["workMode"] != "remote" {
 		t.Fatalf("extra = %+v", doc.Metadata.Extra)
 	}
-	if doc.Metadata.PostedAgo != "3 hours ago" || doc.Metadata.CrawledAt != "2026-10-12T18:00:00Z" {
+	if doc.Metadata.PostedAgo != "3 hours ago" || doc.Metadata.CrawledAt != "2026-10-12T18:00:00Z" ||
+		doc.Metadata.PostedAtSource != "estimated_publish_date" || doc.Metadata.CompanyWebsite != "https://acme.com/" {
 		t.Fatalf("metadata stamps = %+v", doc.Metadata)
+	}
+	if _, ok := doc.Metadata.Extra["postedAtSource"]; ok {
+		t.Fatalf("postedAtSource leaked into extra: %+v", doc.Metadata.Extra)
+	}
+	if _, ok := doc.Metadata.Extra["companyWebsite"]; ok {
+		t.Fatalf("companyWebsite leaked into extra: %+v", doc.Metadata.Extra)
 	}
 	if doc.Metadata.Company["website"] != "https://acme.com/" ||
 		doc.Metadata.Company["size"] != "51-200" ||
@@ -169,6 +181,23 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	}
 	if _, ok := doc.Metadata.Extra["bad.key"]; ok {
 		t.Fatalf("unsanitized extra key: %+v", doc.Metadata.Extra)
+	}
+
+	relative := crawledJob("https://acme.com/apply/3")
+	relative.PostedAt = ""
+	relative.PostedAgo = "3h"
+	rawRelative, err := bson.Marshal(crawledTempDocument(id, relative, "joined-scrapper", now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var relativeDoc struct {
+		PostedAt time.Time `bson:"postedAt"`
+	}
+	if err := bson.Unmarshal(rawRelative, &relativeDoc); err != nil {
+		t.Fatal(err)
+	}
+	if !relativeDoc.PostedAt.IsZero() {
+		t.Fatalf("relative postedAt became crawl time: %s", relativeDoc.PostedAt)
 	}
 
 	unnamed := crawledJob("https://acme.com/apply/2")

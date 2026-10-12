@@ -216,6 +216,19 @@ describe("markAppliedOnCard", () => {
     expect(result).toMatchObject({ marked: false, signedOut: true });
   });
 
+  test("logs a per-job reason when hover never reveals Mark Applied", async () => {
+    const harness = markHarness({ htmlAfterHover: listWith("") });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result.marked).toBe(false);
+    expect(result.reason).toBe("hover missed overlay");
+    expect(result.log).toBe("Job reqaaa1111111111 not marked applied: hover missed overlay");
+  });
+
   test("returns not marked when toast and stage update are missing", async () => {
     const harness = markHarness({
       htmlAfterClick: listWith(overlayMarkup()),
@@ -228,7 +241,8 @@ describe("markAppliedOnCard", () => {
       readPage: harness.readPage,
     });
     expect(result.marked).toBe(false);
-    expect(result.log).toContain("not marked");
+    expect(result.reason).toBe("no Applied ✓, toast, or stage 200");
+    expect(result.log).toContain("not marked applied: no Applied ✓, toast, or stage 200");
   });
 
   test("pauses when the sign-in wall is showing", async () => {

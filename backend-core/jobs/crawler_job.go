@@ -268,7 +268,10 @@ func parseCrawledPostedAt(job CrawledJob, now time.Time) time.Time {
 			return parsed.UTC()
 		}
 	}
-	return PostedAtFromAgo(firstString(job.PostedAgo, job.Metadata[crawlerPostedAgoKey]), now)
+	if parsed, ok := postedAtFromAgoText(firstString(job.PostedAgo, job.Metadata[crawlerPostedAgoKey]), now); ok {
+		return parsed
+	}
+	return time.Time{}
 }
 
 func parseFlexibleTime(raw string) (time.Time, bool) {

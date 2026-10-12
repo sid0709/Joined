@@ -26,6 +26,9 @@ describe("parseDetail fields", () => {
     expect(record.applyUrl).toBe(
       "https://myjobs.adp.com/shellmobilityandconvenience/cx/job-details?reqId=5001231308500",
     );
+    expect(record.applyLink).toBe(record.applyUrl);
+    expect(record.metadata.postedAtSource).toBe(POSTED_AT_SOURCE.ESTIMATED_PUBLISH_DATE);
+    expect(record.metadata.companyWebsite).toBe("https://texaspetroleumgroup.com");
     expect(record.title).toBe("Help Desk Coordinator");
     expect(record.description).toContain("Coordinate help desk tickets");
     expect(record.companyName).toBe("Shell Mobility and Convenience USA");

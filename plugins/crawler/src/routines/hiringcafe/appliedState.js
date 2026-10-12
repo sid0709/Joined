@@ -61,8 +61,9 @@ export function hasMarkAppliedControl(root) {
   const node = asRoot(root);
   if (!node) return false;
   const control = queryOne(node, MARK_APPLIED);
-  if (control && normalizeText(textOf(control)) === MARK_APPLIED_TEXT) return true;
-  return hasExactText(node, MARK_APPLIED_TEXT);
+  return Boolean(
+    control && isVisibleElement(control) && normalizeText(textOf(control)) === MARK_APPLIED_TEXT,
+  );
 }
 
 export function hasMarkToast(html) {

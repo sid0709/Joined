@@ -112,11 +112,13 @@ function hiringCafeTab({
     listPageHtml({
       toast,
       cards: [
-        cardMarkup(`/job/help-desk-coordinator-${hoveredId || "reqaaa1111111111"}`, "3h", {
-          overlay,
+        cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", {
+          overlay: hoveredId && hoveredId !== "reqddd4444444444" ? overlay : "",
           carousel: carouselMarkup(3, 1),
         }),
-        cardMarkup(`/job/labor-production-reqddd4444444444`, "5h"),
+        cardMarkup(`/job/labor-production-reqddd4444444444`, "5h", {
+          overlay: hoveredId === "reqddd4444444444" ? overlay : "",
+        }),
       ],
     });
   const exec = async (op) => {
@@ -240,6 +242,26 @@ describe("HiringCafeRoutine", () => {
     expect(HiringCafeRoutine.options.allowFetch).toBe(false);
     expect(HiringCafeRoutine.options.waitForIngestAccept).toBe(true);
     expect(HiringCafeRoutine.resume.resetLabel).toBe(START_FROM_PAGE_ONE_LABEL);
+  });
+
+  test("notices when a card has more dots than captured jobs", async () => {
+    const notices = [];
+    await collectJobs(
+      createHiringCafeStore(memoryStorage()),
+      hiringCafeTab({
+        listHtml: listPageHtml({
+          hits: groupedHits(),
+          cards: [
+            cardMarkup("/job/help-desk-coordinator-reqaaa1111111111", "3h", {
+              carousel: carouselMarkup(4, 1),
+            }),
+            cardMarkup("/job/labor-production-reqddd4444444444", "5h"),
+          ],
+        }),
+      }).exec,
+      { onNotice: (message) => notices.push(message) },
+    );
+    expect(notices.some((message) => String(message).includes("4 dots"))).toBe(true);
   });
 
   test("opens every grouped ssrHits posting, not just the two cards", async () => {

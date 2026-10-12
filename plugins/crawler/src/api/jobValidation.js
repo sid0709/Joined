@@ -65,20 +65,31 @@ export function isJobFieldValid(job, path, routine) {
   return typeOk(declared, declaredValue(job, path));
 }
 
+function extraValue(job, key) {
+  return valueAt(job?.metadata, key) ?? valueAt(job?.metadata?.extra, key);
+}
+
 function declaredValue(job, path) {
   switch (path) {
     case "applyUrl":
-      return job.applyUrl || job.applyLink;
+      return (
+        job.applyLink || job.applyUrl || extraValue(job, "apply_url") || extraValue(job, "applyUrl")
+      );
     case "companyName":
-      return job.companyName || job.company?.name;
+      return job.companyName || job.company?.name || extraValue(job, "companyName");
     case "companyWebsite":
-      return job.companyWebsite || job.company?.website || job.companyLink;
+      return (
+        job.companyWebsite ||
+        job.company?.website ||
+        job.companyLink ||
+        extraValue(job, "companyWebsite")
+      );
     case "companyProfileUrl":
       return job.companyProfileUrl || job.company?.profileUrl;
     case "companySocials":
       return job.companySocials || job.company?.socials;
     default:
-      return valueAt(job, path) ?? valueAt(job.metadata, path);
+      return valueAt(job, path) ?? extraValue(job, path);
   }
 }
 

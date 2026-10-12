@@ -85,6 +85,45 @@ describe("parseList grouping", () => {
     ).toHaveLength(3);
   });
 
+  test("warns when a card has more dots than captured jobs", () => {
+    const parsed = parseList(
+      listPageHtml({
+        hits: groupedHits(),
+        cards: [
+          cardMarkup("/job/help-desk-coordinator-reqaaa1111111111", "3h", {
+            carousel: carouselMarkup(4, 1),
+          }),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h"),
+        ],
+      }),
+      LIST_URL,
+    );
+    expect(parsed.jobs[0].cardDots).toBe(4);
+    expect(
+      parsed.jobs.filter((job) => job.collapseKey === parsed.jobs[0].collapseKey),
+    ).toHaveLength(3);
+    expect(parsed.shortfalls).toEqual([
+      expect.objectContaining({
+        collapseKey: parsed.jobs[0].collapseKey,
+        captured: 3,
+        dots: 4,
+      }),
+    ]);
+    expect(parsed.shortfalls[0].label).toContain("4 dots");
+  });
+
+  test("merges extra pageProps hit arrays when ssrHits is short", () => {
+    const extra = groupedHits()[2];
+    const parsed = parseList(
+      listPageHtml({
+        hits: groupedHits().slice(0, 2),
+        extraHits: [extra],
+      }),
+      LIST_URL,
+    );
+    expect(parsed.jobs.map((job) => job.id)).toContain(extra.requisition_id);
+  });
+
   test("treats only ssrIsLastPage as the last page", () => {
     const last = parseList(listPageHtml({ hits: groupedHits(), ssrIsLastPage: true }), LIST_URL);
     expect(last.isLastPage).toBe(true);

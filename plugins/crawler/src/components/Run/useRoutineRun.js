@@ -41,10 +41,14 @@ export const RUN_STATUS = Object.freeze({
   STOPPED: "stopped",
 });
 
-const INGEST_ACCEPT_TIMEOUT_MS = 30_000;
+const INGEST_ACCEPT_TIMEOUT_MS = 8_000;
 
 function isIngestAccepted(outcome) {
   return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
+}
+
+function isIngestRejected(outcome) {
+  return outcome === SCRAPE_OUTCOMES.FAILED || outcome === SCRAPE_OUTCOMES.VALIDATION;
 }
 
 /**
@@ -131,16 +135,24 @@ export function useRoutineRun() {
       if (already) {
         ingestOutcomes.current.delete(id);
         earlyResults.current.delete(id);
-        resolve(isIngestAccepted(already));
+        if (isIngestRejected(already)) {
+          resolve(false);
+          return;
+        }
+        resolve(isIngestAccepted(already) ? true : null);
         return;
       }
       const timer = setTimeout(() => {
         ingestWaiters.current.delete(id);
-        resolve(false);
+        resolve(null);
       }, INGEST_ACCEPT_TIMEOUT_MS);
       ingestWaiters.current.set(id, (outcome) => {
         clearTimeout(timer);
-        resolve(isIngestAccepted(outcome));
+        if (isIngestRejected(outcome)) {
+          resolve(false);
+          return;
+        }
+        resolve(isIngestAccepted(outcome) ? true : null);
       });
     });
   }, []);

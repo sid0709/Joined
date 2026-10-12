@@ -65,6 +65,13 @@ function warnIfPageEmpty(hooks, page, jobCount) {
   console.warn(label);
 }
 
+function warnGroupShortfalls(hooks, shortfalls) {
+  for (const shortfall of shortfalls ?? []) {
+    console.warn(shortfall.label);
+    hooks.onNotice?.(shortfall.label, false);
+  }
+}
+
 function throwIfSignedOut(html, markAppliedEnabled) {
   if (!markAppliedEnabled) return;
   if (isHiringCafeSignedOut(html)) {
@@ -286,6 +293,7 @@ export async function runHiringCafePass(ctx, progress) {
     const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = jobIdKey(parsed.jobs);
     warnIfPageEmpty(hooks, cursor.page, parsed.jobs.length);
+    warnGroupShortfalls(hooks, parsed.shortfalls);
     await finishIfNothingLeft(store, parsed, pageIds, cursor.lastPageIds);
 
     const job = await pickNextJob({
@@ -435,7 +443,8 @@ export async function runHiringCafePass(ctx, progress) {
       return;
     }
     throwIfSignedOut(listAfter.html, markAppliedEnabled);
-    const marked = detailMark.skipped ? await markAppliedOnCard(markArgs) : detailMark;
+    const marked =
+      detailMark.marked || detailMark.already ? detailMark : await markAppliedOnCard(markArgs);
     emitCursor({
       card: jobId,
       cardIndex: jobIndex,

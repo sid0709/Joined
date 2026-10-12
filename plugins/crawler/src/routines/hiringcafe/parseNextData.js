@@ -24,9 +24,32 @@ export function readPageProps(html) {
   return props && typeof props === "object" ? props : null;
 }
 
+function hitId(hit) {
+  return String(hit?.requisition_id || hit?.requisitionId || hit?.id || "").trim();
+}
+
+function collectHits(bag, hits, seen) {
+  if (!Array.isArray(bag)) return;
+  for (const hit of bag) {
+    if (!hit || typeof hit !== "object") continue;
+    const id = hitId(hit);
+    if (id && seen.has(id)) continue;
+    if (id) seen.add(id);
+    hits.push(hit);
+  }
+}
+
+/** Every ssrHits posting, plus any other pageProps hit arrays (View all / unpacked). */
 export function readSsrHits(html) {
-  const hits = readPageProps(html)?.ssrHits;
-  return Array.isArray(hits) ? hits.filter((hit) => hit && typeof hit === "object") : [];
+  const props = readPageProps(html) ?? {};
+  const hits = [];
+  const seen = new Set();
+  collectHits(props.ssrHits, hits, seen);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "ssrHits" || !/hit|job|unpack|viewall/i.test(key)) continue;
+    collectHits(value, hits, seen);
+  }
+  return hits;
 }
 
 export function readDetailJob(html) {

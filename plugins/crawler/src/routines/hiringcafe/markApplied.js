@@ -19,7 +19,8 @@ import {
   MARK_APPLIED_WAIT_MS,
   MARK_CONFIRM_MS,
   MARK_HOVER_MS,
-  MARK_HOVER_OFFSET,
+  MARK_HOVER_OFFSETS,
+  NOT_MARKED_REASON,
   SIGN_IN_TO_MARK_MESSAGE,
   UPDATE_STAGE_PATH,
   jobCardSelector,
@@ -51,8 +52,21 @@ async function stageUpdateHits(call) {
   return watched?.hits ?? [];
 }
 
-async function hoverCard(call, selector) {
-  return call("hover", { selector, ...MARK_HOVER_OFFSET });
+async function hoverCard(call, selector, offset = MARK_HOVER_OFFSETS[0]) {
+  return call("hover", { selector, ...offset });
+}
+
+async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, selector }) {
+  let last = { found: false };
+  for (const offset of MARK_HOVER_OFFSETS) {
+    last = await hoverCard(call, selector, offset).catch(() => ({ found: false }));
+    await pause(rest, skipDelays, MARK_HOVER_MS);
+    const page = await readPage();
+    const state = appliedStateFromHtml(page.html, job);
+    if (state.canMark || state.marked) return { hovered: last, state, page };
+  }
+  const page = await readPage();
+  return { hovered: last, state: appliedStateFromHtml(page.html, job), page };
 }
 
 function shownRequisitionId(html, job) {
@@ -103,13 +117,17 @@ export async function readAppliedOnCard({
   if (carousel) await carouselToJob({ job, call, rest, skipDelays, readPage });
   const selector = exactCardSelector(job);
   await call("scroll", { selector }).catch(() => {});
-  const hovered = await hoverCard(call, selector);
-  await pause(rest, skipDelays, MARK_HOVER_MS);
-  const page = await readPage();
+  const { hovered, state, page } = await hoverUntilOverlay({
+    job,
+    call,
+    rest,
+    skipDelays,
+    readPage,
+    selector,
+  });
   if (isHiringCafeSignedOut(page.html)) {
     return { found: Boolean(hovered?.found), marked: false, signedOut: true, page };
   }
-  const state = appliedStateFromHtml(page.html, job);
   return { ...state, signedOut: state.signedOut, page };
 }
 
@@ -152,7 +170,14 @@ export async function markAppliedOnCard({
 } = {}) {
   const jobId = job?.id || "";
   if (!isMarkAppliedEnabled(enabled) || !jobId) {
-    return { marked: false, log: notMarkedLog(jobId) };
+    const log = notMarkedLog(jobId, NOT_MARKED_REASON.NO_SELECTOR);
+    return { marked: false, log, reason: NOT_MARKED_REASON.NO_SELECTOR };
+  }
+  if (!exactCardSelector(job)) {
+    const log = notMarkedLog(jobId, NOT_MARKED_REASON.NO_SELECTOR);
+    noteMark(onActivity, log);
+    console.warn(log);
+    return { marked: false, log, reason: NOT_MARKED_REASON.NO_SELECTOR };
   }
   const ready = await readAppliedOnCard({ job, call, rest, skipDelays, readPage });
   if (ready.signedOut) {
@@ -164,6 +189,12 @@ export async function markAppliedOnCard({
     noteMark(onActivity, log);
     return { marked: true, already: true, log };
   }
+  if (!ready.canMark) {
+    const log = notMarkedLog(jobId, NOT_MARKED_REASON.HOVER_MISSED);
+    noteMark(onActivity, log);
+    console.warn(log);
+    return { marked: false, log, reason: NOT_MARKED_REASON.HOVER_MISSED };
+  }
 
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
   await watchStageUpdate(call);
@@ -173,6 +204,12 @@ export async function markAppliedOnCard({
     exact: true,
     wait: skipDelays ? 0 : MARK_APPLIED_WAIT_MS,
   });
+  if (!clicked?.found) {
+    const log = notMarkedLog(jobId, NOT_MARKED_REASON.CLICK_MISSED);
+    noteMark(onActivity, log);
+    console.warn(log);
+    return { marked: false, log, reason: NOT_MARKED_REASON.CLICK_MISSED };
+  }
   const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
   if (confirmed.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
@@ -183,10 +220,10 @@ export async function markAppliedOnCard({
     noteMark(onActivity, log);
     return { marked: true, log };
   }
-  const log = notMarkedLog(jobId);
+  const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
   noteMark(onActivity, log);
   console.warn(log, { found: clicked?.found, toast: confirmed.toast, fetchOk: confirmed.fetchOk });
-  return { marked: false, log };
+  return { marked: false, log, reason: NOT_MARKED_REASON.NOT_CONFIRMED };
 }
 
 /**

@@ -103,7 +103,13 @@ export function createOpenVisible({ withRetry, call, onActivity }) {
       if (isHiringCafeChallenge(current)) return current;
       if (sameUrl(current.url, url) && current.html) return current;
       onActivity?.({ phase, label, kind: "click" });
-      await call("navigate", { url, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
+      try {
+        await call("navigate", { url, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
+      } catch (error) {
+        const after = await readVisiblePage(call);
+        if (sameUrl(after.url, url) && after.html) return after;
+        throw error;
+      }
       return readVisiblePage(call);
     }, url);
   };

@@ -112,6 +112,7 @@ export function listPageHtml({
   ssrSignedIn = true,
   cards,
   toast = false,
+  extraHits,
 } = {}) {
   const visibleCards = cards ?? [
     cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", {
@@ -128,6 +129,7 @@ export function listPageHtml({
         ssrIsLastPage,
         ssrTotalCount,
         ssrUnpackJobCards: false,
+        ...(Array.isArray(extraHits) ? { ssrViewAllHits: extraHits } : {}),
         ...(ssrSignedIn !== undefined ? { ssrSignedIn } : {}),
       },
     },

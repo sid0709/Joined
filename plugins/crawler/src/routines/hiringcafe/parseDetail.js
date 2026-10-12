@@ -61,8 +61,13 @@ function recordFromJob(job, pageUrl, extras = {}) {
   const description = htmlToPlainText(info.description || posting.description || "");
   const logo = companyLogoFrom(extras.logo, org.logo?.url, org.logo, extras.domLogo);
 
+  const applyUrl =
+    firstHttpOrWebsite(job.apply_url, extras.applyUrl) ||
+    websiteUrl(job.apply_url) ||
+    websiteUrl(extras.applyUrl);
   const record = {
-    applyUrl: firstHttpOrWebsite(job.apply_url, extras.applyUrl),
+    applyUrl,
+    applyLink: applyUrl,
     title:
       asText(info.title) ||
       asText(v5.core_job_title) ||
@@ -123,7 +128,11 @@ function recordFromJob(job, pageUrl, extras = {}) {
   assignProvided(record, "companyAbout", asText(enriched.tagline || v5.company_tagline));
   assignProvided(record, "requisitionId", requisitionIdOf(job));
 
-  record.metadata = hiringCafeMetadata(job, extras);
+  record.metadata = hiringCafeMetadata(job, {
+    ...extras,
+    postedAtSource: posted.postedAtSource,
+    companyWebsite: website,
+  });
   record.meta = {
     id: requisitionIdOf(job),
     sourceId: asText(job.id),

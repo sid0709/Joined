@@ -36,6 +36,11 @@ export const UPDATE_STAGE_OK = "Update successful";
 export const CAROUSEL_NEXT = 'button[aria-label="Next job at this company"]';
 export const CAROUSEL_PREV = 'button[aria-label="Previous job at this company"]';
 export const MARK_HOVER_OFFSET = Object.freeze({ x: 100, y: 100 });
+export const MARK_HOVER_OFFSETS = Object.freeze([
+  Object.freeze({ x: 100, y: 100 }),
+  Object.freeze({ x: 40, y: 36 }),
+  Object.freeze({ x: 220, y: 36 }),
+]);
 
 /** Mark Applied is on by default; the Run panel persists the opposite choice. */
 export const MARK_APPLIED_DEFAULT = true;
@@ -66,11 +71,12 @@ export const HANDLED_MAX_AGE_MS = HANDLED_MAX_AGE_DAYS * MS_PER_DAY;
 
 export const JOB_DELAY_MS = Object.freeze({ min: 1500, max: 4000 });
 export const PAGE_DELAY_MS = Object.freeze({ min: 4000, max: 8000 });
-export const NAVIGATE_WAIT_MS = 15_000;
-export const DETAIL_READY_MS = 10_000;
+export const NAVIGATE_WAIT_MS = 8_000;
+export const DETAIL_READY_MS = 6_000;
 export const DETAIL_READY_POLL_MS = 200;
 export const CHALLENGE_POLL_MS = 1_000;
-export const RETRY_PAUSE_MS = 1_000;
+export const RETRY_PAUSE_MS = 400;
+export const CARD_DOT = 'button[aria-label^="Show job "]';
 export const INVALID_STREAK = 5;
 export const INVALID_STREAK_MESSAGE =
   "HiringCafe returned 5 incomplete jobs in a row. Crawl stopped.";
@@ -100,7 +106,16 @@ export const CARD_SKIP_INGEST_REJECTED = "ingest rejected";
 export const POSTED_AT_SOURCE = Object.freeze({
   ESTIMATED_PUBLISH_DATE: "estimated_publish_date",
   JSON_LD: "jsonLd",
+  AGO: "ago",
   DOM: "dom",
+});
+
+export const NOT_MARKED_REASON = Object.freeze({
+  NO_SELECTOR: "no card selector",
+  HOVER_MISSED: "hover missed overlay",
+  CLICK_MISSED: "Mark Applied click missed",
+  NOT_CONFIRMED: "no Applied ✓, toast, or stage 200",
+  INGEST_REJECTED: "ingest rejected",
 });
 
 export const COMPENSATION_PERIODS = Object.freeze([
@@ -231,8 +246,13 @@ export function alreadyMarkedLog(jobId) {
   return `Job ${jobId} already marked applied`;
 }
 
-export function notMarkedLog(jobId) {
-  return `Job ${jobId} not marked applied`;
+export function notMarkedLog(jobId, reason = "") {
+  const detail = String(reason || "").trim();
+  return detail ? `Job ${jobId} not marked applied: ${detail}` : `Job ${jobId} not marked applied`;
+}
+
+export function groupShortfallLabel(collapseKey, captured, dots) {
+  return `HiringCafe group ${collapseKey || "card"} captured ${captured} jobs but the card shows ${dots} dots`;
 }
 
 export function jitterMs(range, random = Math.random) {
