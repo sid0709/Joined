@@ -81,6 +81,36 @@ describe("JobRightRoutine", () => {
     expect(JobRightRoutine.runView.settings).toEqual([]);
   });
 
+  test("keeps sequential listDetail pacing — no pool, bucket, or pace settings", async () => {
+    expect(JobRightRoutine.runPass).toBeUndefined();
+    expect(JobRightRoutine.runView.settings).toEqual([]);
+    expect(JobRightRoutine.runView.components).not.toContain("pace");
+    expect(JobRightRoutine.runView.stats).not.toContain("jobsPerSecond");
+    expect(JobRightRoutine.runView.stats).not.toContain("concurrency");
+    expect(JobRightRoutine.options.fieldPauseMs).toBe(0);
+    const pauses = STRATEGY_PHASES.flatMap((phase) =>
+      JobRightRoutine.strategy[phase]
+        .filter((step) => step.kind === "pause")
+        .map((step) => step.ms),
+    );
+    expect(pauses).toEqual([250, 250, 250, 250, 250, 250]);
+
+    const detailUrl = "https://jobright.ai/jobs/info/abc123";
+    const fetchOps = [];
+    const tab = jobRightTab({
+      html: loadFixture("list-overlay.html"),
+      url: "https://jobright.ai/jobs/recommend",
+      details: { [detailUrl]: loadFixture("detail-next-data.html") },
+    });
+    const exec = async (op) => {
+      if (op.op === "fetch") fetchOps.push(op);
+      return tab.exec(op);
+    };
+    await runRoutinePass(routine, { exec, onRecord: () => {} });
+    expect(fetchOps.length).toBeGreaterThan(0);
+    expect(fetchOps.every((op) => !op.fetchId)).toBe(true);
+  });
+
   test("reads a job from __NEXT_DATA__ into the ingest core plus metadata fields", async () => {
     const tab = jobRightTab();
     let record = null;
