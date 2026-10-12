@@ -67,6 +67,50 @@ func TestJSONWebSearchSendsWebPluginAndReadsAnswer(t *testing.T) {
 	}
 }
 
+func TestJSONWebSearchSendsABatchModelToTheBatchAPI(t *testing.T) {
+	var got struct {
+		Endpoint string `json:"endpoint"`
+		Model    string `json:"model"`
+		Requests []struct {
+			Body struct {
+				Model string `json:"model"`
+				Tools []struct {
+					Type string `json:"type"`
+				} `json:"tools"`
+			} `json:"body"`
+		} `json:"requests"`
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/batches":
+			_ = json.NewDecoder(r.Body).Decode(&got)
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte(`{"id":"batch_1","status":"validating"}`))
+		case "/batches/batch_1":
+			_, _ = w.Write([]byte(`{"id":"batch_1","status":"completed","results":[{"custom_id":"request","response":{"status_code":200,"body":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"{\"name\":\"Acme\"}"}]}]}}}]}`))
+		default:
+			t.Errorf("path = %q", r.URL.Path)
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	client := New(config.OpenRouter{APIKey: "key", Model: "openai/gpt-6-luna:batch", BaseURL: server.URL})
+	answer, _, err := client.JSONWebSearch(context.Background(), "s", "Acme", json.RawMessage(`{"type":"object"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(answer) != `{"name":"Acme"}` || client.Model() != "openai/gpt-6-luna:batch" {
+		t.Fatalf("answer = %s model = %q", answer, client.Model())
+	}
+	if got.Endpoint != "/v1/responses" || got.Model != "openai/gpt-6-luna" || len(got.Requests) != 1 || got.Requests[0].Body.Model != "openai/gpt-6-luna" {
+		t.Fatalf("batch = %+v", got)
+	}
+	if len(got.Requests[0].Body.Tools) != 1 || got.Requests[0].Body.Tools[0].Type != "web_search" {
+		t.Fatalf("tools = %+v", got.Requests[0].Body.Tools)
+	}
+}
+
 func TestJSONWebSearchCapsSearchesAsConfigured(t *testing.T) {
 	var got struct {
 		Plugins []struct {

@@ -56,6 +56,17 @@ func TestJSONObjectModePutsSchemaInPromptAndDisablesThinking(t *testing.T) {
 	}
 }
 
+func TestJSONKeepsANonBatchSuffixOnChatCompletions(t *testing.T) {
+	server, got := captureChat(t)
+	client := New("key", "openai/gpt-6-luna:nitro", server.URL).ForProvider(ErrMissingAPIKey, true, true).OpenRouter()
+	if _, err := client.JSON(context.Background(), "sys", "user", json.RawMessage(`{"type":"object"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if (*got)["model"] != "openai/gpt-6-luna:nitro" || client.Model() != "openai/gpt-6-luna:nitro" {
+		t.Fatalf("model = %v, reported %q", (*got)["model"], client.Model())
+	}
+}
+
 func TestJSONWithoutKeyReturnsProviderError(t *testing.T) {
 	missing := errors.Join(errors.New("PROVIDER_KEY is not set"), ErrMissingAPIKey)
 	_, err := New("", "m", "http://unused").ForProvider(missing, true, false).JSON(context.Background(), "s", "u", nil)

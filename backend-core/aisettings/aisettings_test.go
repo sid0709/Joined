@@ -173,6 +173,25 @@ func TestListModelsKeepsTextChatModelsNewestFirst(t *testing.T) {
 	}
 }
 
+func TestListModelsKeepsBatchAndOtherVariants(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"data":[
+			{"id":"openai/gpt-6-luna:batch","name":"GPT-6 Luna (batch)","created":5,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/gpt-6-luna","name":"GPT-6 Luna","created":4,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/gpt-6-luna:free","name":"GPT-6 Luna (free)","created":3,"architecture":{"input_modalities":["text"],"output_modalities":["text"]}},
+			{"id":"openai/whisper-1","created":1,"architecture":{"input_modalities":["audio"],"output_modalities":["text"]}}]}`))
+	}))
+	defer server.Close()
+
+	got, err := ListModels(context.Background(), server.URL, "k")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ids := idsOf(got); len(ids) != 3 || ids[0] != "openai/gpt-6-luna:batch" || ids[1] != "openai/gpt-6-luna" || ids[2] != "openai/gpt-6-luna:free" {
+		t.Fatalf("models = %v", ids)
+	}
+}
+
 func TestListModelsKeepsRowsWithoutArchitecture(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"data":[{"id":"deepseek/deepseek-chat","name":"DeepSeek Chat","created":2},{"id":"deepseek/deepseek-reasoner","created":1}]}`))
