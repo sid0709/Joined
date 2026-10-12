@@ -264,14 +264,16 @@ describe("staged company import and export", () => {
   });
 
   it("downloads the staged export file", async () => {
-    const fetchMock = mock(() =>
-      Promise.resolve(
+    const fetchMock = mock((input: RequestInfo | URL, init?: RequestInit) => {
+      void input;
+      void init;
+      return Promise.resolve(
         new Response(JSON.stringify({ companies: [] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
-      ),
-    );
+      );
+    });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     const links: { href: string; download: string }[] = [];
     globalThis.document = {
@@ -296,14 +298,16 @@ describe("staged company import and export", () => {
   });
 
   it("posts the import body", async () => {
-    const fetchMock = mock(() =>
-      Promise.resolve(
+    const fetchMock = mock((input: RequestInfo | URL, init?: RequestInit) => {
+      void input;
+      void init;
+      return Promise.resolve(
         new Response(JSON.stringify({ published: 2, unmatched: ["x"] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         }),
-      ),
-    );
+      );
+    });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
     const body = '{"companies":[]}';
     await expect(importStagedCompanies(body)).resolves.toEqual({
