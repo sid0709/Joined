@@ -11,6 +11,7 @@ export const RUN_COMPONENT = Object.freeze({
 export const RUN_STAT = Object.freeze({
   JOBS_PER_SECOND: "jobsPerSecond",
   CONCURRENCY: "concurrency",
+  CURSOR: "cursor",
   BLOCKS: "blocks",
   OUTCOMES: "outcomes",
   QUEUE: "queue",

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { documentFromHtml } from "./html.js";
-import { cardIdKey, listUrlForPage, listUrlsFromBoard, pageFromListUrl } from "./lists.js";
+import { cardIdKey, crawlListUrl, listUrlForPage, pageFromListUrl } from "./lists.js";
 import { parseList, parseNextPageUrl } from "./parseList.js";
 import { installDomParser } from "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -49,20 +49,16 @@ describe("parseList", () => {
     expect(saved.cards[0].hasSavedTag).toBe(true);
   });
 
-  test("enumerates /jobs plus category lists from jobBoardInit", () => {
-    const parsed = parseList(loadFixture("list.html"), "https://www.builtin.com/jobs/remote");
-    expect(listUrlsFromBoard(parsed.board, "https://www.builtin.com/jobs/remote")).toEqual([
-      "https://www.builtin.com/jobs",
-      "https://www.builtin.com/jobs/remote",
-      "https://www.builtin.com/jobs/ai-machine-learning",
-      "https://www.builtin.com/jobs/consultant",
-      "https://www.builtin.com/jobs/customer-success-experience",
-    ]);
+  test("builds the current-tab list URL and page cursor", () => {
     expect(listUrlForPage("https://builtin.com/jobs", 1)).toBe("https://builtin.com/jobs");
     expect(listUrlForPage("https://builtin.com/jobs", 3)).toBe("https://builtin.com/jobs?page=3");
     expect(pageFromListUrl("https://builtin.com/jobs?page=4")).toBe(4);
     expect(pageFromListUrl("https://builtin.com/jobs")).toBe(1);
     expect(cardIdKey([{ id: "b" }, { id: "a" }, { id: "a" }])).toBe("a\nb");
+    expect(crawlListUrl("https://www.builtin.com/jobs/remote?page=3")).toBe(
+      "https://www.builtin.com/jobs/remote",
+    );
+    expect(crawlListUrl("https://builtin.com/job/x/1")).toBe("https://builtin.com/jobs");
   });
 
   test("installs DOMParser when missing", () => {

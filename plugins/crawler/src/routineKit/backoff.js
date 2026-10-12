@@ -51,6 +51,34 @@ export function detectFetchBlock({ status, html = "", retryAfter } = {}) {
   return { blocked: false, kind: "" };
 }
 
+export const TRANSIENT_BLOCK_KINDS = Object.freeze(["403", "429", "challenge", "retry-after"]);
+export const DEAD_PAGE_KIND = "dead";
+const DEAD_PAGE_STATUSES = new Set([404, 410]);
+const LOGIN_PATH_RE = /^\/auth\/login(?:\/|$)/i;
+
+/** 403 / 429 / captcha: back off forever. Never count toward a stop. */
+export function isTransientBlock(kind) {
+  return TRANSIENT_BLOCK_KINDS.includes(String(kind || ""));
+}
+
+/**
+ * A visible page is blocked on the same fetch signals, a dead page (404/410),
+ * or when the tab landed on a login wall. Job pages that only link to
+ * /auth/login are not a wall.
+ */
+export function detectPageBlock({ status, html = "", url = "", retryAfter } = {}) {
+  const code = Number(status);
+  if (DEAD_PAGE_STATUSES.has(code)) return { blocked: true, kind: DEAD_PAGE_KIND };
+  const fetchBlock = detectFetchBlock({ status, html, retryAfter });
+  if (fetchBlock.blocked) return fetchBlock;
+  try {
+    if (LOGIN_PATH_RE.test(new URL(url).pathname)) return { blocked: true, kind: "login" };
+  } catch {
+    // Ignore a malformed tab URL and fall through as not blocked.
+  }
+  return { blocked: false, kind: "" };
+}
+
 /**
  * Adaptive concurrency: on a block, halve concurrency, pause (Retry-After or
  * exponential jitter up to ~60s), then ramp back up one slot every few successes.

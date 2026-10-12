@@ -87,7 +87,10 @@ describe("JobRightRoutine", () => {
     expect(JobRightRoutine.runView.components).not.toContain("pace");
     expect(JobRightRoutine.runView.stats).not.toContain("jobsPerSecond");
     expect(JobRightRoutine.runView.stats).not.toContain("concurrency");
+    expect(JobRightRoutine.options.allowFetch).toBe(true);
     expect(JobRightRoutine.options.fieldPauseMs).toBe(0);
+    expect(JobRightRoutine.strategy.kind).toBe("listDetail");
+    expect(JobRightRoutine.readRecord).toBeDefined();
     const pauses = STRATEGY_PHASES.flatMap((phase) =>
       JobRightRoutine.strategy[phase]
         .filter((step) => step.kind === "pause")

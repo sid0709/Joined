@@ -1,17 +1,6 @@
 import { BUILTIN_ORIGIN, JOBS_PATH, PAGE_PARAM } from "./constants.js";
 import { isBuiltinUrl, originOf } from "./html.js";
 
-function unique(values) {
-  const seen = new Set();
-  const out = [];
-  for (const value of values) {
-    if (!value || seen.has(value)) continue;
-    seen.add(value);
-    out.push(value);
-  }
-  return out;
-}
-
 export function stripPageParam(url) {
   try {
     const parsed = new URL(url);
@@ -50,28 +39,10 @@ export function pageFromListUrl(url) {
   }
 }
 
-/**
- * Lists to crawl: the current jobs URL (if any), `/jobs`, and each category
- * from `Builtin.jobBoardInit`. Industry / company-size URL forms are unverified
- * and are left out on purpose.
- */
-export function listUrlsFromBoard(board, currentUrl) {
-  const origin = originOf(currentUrl) || BUILTIN_ORIGIN;
-  const urls = [];
-  const add = (href) => {
-    try {
-      urls.push(stripPageParam(new URL(href, origin).href));
-    } catch {
-      // Ignore a malformed option from the board payload.
-    }
-  };
-  add(JOBS_PATH);
-  if (isJobsListUrl(currentUrl)) add(currentUrl);
-  for (const category of board?.categoriesFilterOptions ?? []) {
-    const alias = category.urlName || category.alias;
-    if (alias) add(`${JOBS_PATH}/${alias}`);
-  }
-  return unique(urls);
+/** The jobs list this tab is on, stripped of `?page=`. Falls back to `/jobs`. */
+export function crawlListUrl(currentUrl) {
+  if (isJobsListUrl(currentUrl)) return stripPageParam(currentUrl);
+  return `${originOf(currentUrl) || BUILTIN_ORIGIN}${JOBS_PATH}`;
 }
 
 export function emptyCursor(lists = []) {

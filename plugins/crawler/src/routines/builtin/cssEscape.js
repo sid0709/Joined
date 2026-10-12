@@ -33,6 +33,10 @@ function escapeCssIdent(text) {
   return out;
 }
 
+export function jobCardSelector(id) {
+  return `div[data-id="job-card"]#${cssEscape(`job-card-${id}`)}`;
+}
+
 export function jobSaveSelector(id) {
   return `my-item[entity-type="job"][entity-id=${cssEscape(id)}]`;
 }

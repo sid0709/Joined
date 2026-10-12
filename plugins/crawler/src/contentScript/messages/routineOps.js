@@ -57,6 +57,23 @@ const OPS = {
     await waitForMatches(document, field.selector, field.wait);
     return extractField(document, field);
   },
+  shadow: ({ host, inner, action = "query" }) => {
+    const hostEl = queryAll(document, host)[0];
+    if (!hostEl) return { found: false, open: false, classes: "", prefix: "" };
+    const root = hostEl.shadowRoot;
+    if (!root) return { found: false, open: false, classes: "", prefix: "" };
+    const target = inner ? root.querySelector(inner) : null;
+    if (inner && !target) return { found: false, open: true, classes: "", prefix: "" };
+    const node = target || root;
+    if (action === "click") clickLikeHuman(target || hostEl);
+    const prefixNode = node.querySelector?.("[data-prefix]") || node;
+    return {
+      found: true,
+      open: true,
+      classes: String(node.className || ""),
+      prefix: prefixNode.getAttribute?.("data-prefix") || "",
+    };
+  },
 };
 
 export function handleRoutineOp(payload, sendResponse) {

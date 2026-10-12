@@ -18,4 +18,10 @@ describe("resolveApplyUrl", () => {
     expect(isApplyRedirect(resolved)).toBe(true);
     expect(isApplyRedirect("https://careers.example/apply/1")).toBe(false);
   });
+
+  test("resolves a root-relative ApplyRedirect against https://builtin.com", () => {
+    expect(resolveApplyUrl("/job/eng-quality/11621046?handler=ApplyRedirect", PAGE)).toBe(
+      "https://builtin.com/job/eng-quality/11621046?handler=ApplyRedirect",
+    );
+  });
 });

@@ -5,12 +5,6 @@ import {
   IncompleteJobDataError,
   isJobFieldValid,
 } from "../../api/jobValidation";
-import {
-  clampPaceSettings,
-  DEFAULT_PACE_SETTINGS,
-  loadPaceSettings,
-  savePaceSettings,
-} from "../../api/paceSettings";
 import { useRuntime } from "../../api/runtimeContext";
 import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
@@ -68,7 +62,6 @@ export function useRoutineRun() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pace, setPace] = useState(null);
   const [warning, setWarning] = useState(null);
-  const [paceSettings, setPaceSettings] = useState(DEFAULT_PACE_SETTINGS);
 
   const { addListener, removeListener } = useRuntime();
   const notification = useNotification();
@@ -78,7 +71,6 @@ export function useRoutineRun() {
   const targetRef = useRef(null);
   const passHooksRef = useRef(null);
   const phaseRef = useRef(null);
-  const paceSettingsRef = useRef(DEFAULT_PACE_SETTINGS);
   // Queue item id → recent-job key, and results that arrived before their enqueue ack.
   const queueKeys = useRef(new Map());
   const earlyResults = useRef(new Map());
@@ -196,13 +188,6 @@ export function useRoutineRun() {
   }, [addListener, removeListener, applyItemResult, notifyFailure]);
 
   useEffect(() => {
-    void loadPaceSettings().then((settings) => {
-      paceSettingsRef.current = settings;
-      setPaceSettings(settings);
-    });
-  }, []);
-
-  useEffect(() => {
     if (status !== RUN_STATUS.RUNNING || !runStartedAt.current) return undefined;
     const updateElapsed = () => setElapsedMs(Date.now() - runStartedAt.current);
     updateElapsed();
@@ -243,7 +228,6 @@ export function useRoutineRun() {
         setFieldHits((hits) => recordFieldHit(hits, path, found));
       },
       onRecord: submitJob,
-      pace: paceSettingsRef.current,
       onPace: setPace,
       onNotice: (message, ok) => {
         if (!ok) notification.warning(message, { key: "run-notice", autoHideDuration: 2000 });
@@ -350,15 +334,6 @@ export function useRoutineRun() {
     elapsedMs,
     pace,
     warning,
-    paceSettings,
-    setPaceSettings: (next) => {
-      const settings = clampPaceSettings({ ...paceSettingsRef.current, ...next });
-      paceSettingsRef.current = settings;
-      setPaceSettings(settings);
-      void savePaceSettings(settings).catch((error) =>
-        console.error("Failed to persist crawl pace settings", error),
-      );
-    },
     start,
     stop,
   };
