@@ -6,13 +6,19 @@ import {
   CARD_SKIP_HEART_SAVED,
   CARD_SKIP_SAVED_BADGE,
   CARD_SKIP_NO_URL,
+  CARD_SKIP_EXTRACT_FAILED,
+  CURSOR_STORAGE_KEY,
+  CURSOR_STORAGE_KEY_V1,
   HANDLED_MAX_AGE_MS,
   HANDLED_MAX_IDS,
   HANDLED_STORAGE_KEY,
   JOB_DELAY_MS,
   cardDecisionLabel,
+  cardExtractFailedDecision,
   cardInvalidDecision,
   jitterMs,
+  resumeCursorLabel,
+  START_FROM_PAGE_1_HINT,
 } from "./constants.js";
 import {
   cssEscape,
@@ -70,6 +76,10 @@ describe("handled skip", () => {
     expect(cardDecisionLabel("11623103", cardInvalidDecision(["applyUrl", "companyName"]))).toBe(
       "Card 11623103 skipped: invalid applyUrl, companyName",
     );
+    expect(cardExtractFailedDecision(new Error("checker exploded"))).toBe(
+      `${CARD_SKIP_EXTRACT_FAILED} (checker exploded)`,
+    );
+    expect(START_FROM_PAGE_1_HINT).toMatch(/builtinCrawlCursorV2/);
   });
 
   test("escapes the Save control's entity id", () => {
@@ -112,6 +122,33 @@ describe("handled skip", () => {
     });
     await store.clearCursor();
     expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("Start from page 1 writes a V2 page-1 cursor and drops V1", async () => {
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY_V1]: {
+        listIndex: 0,
+        page: 2,
+        lastJobId: "old",
+        lists: ["https://builtin.com/jobs"],
+      },
+      [CURSOR_STORAGE_KEY]: {
+        listIndex: 0,
+        page: 2,
+        lastJobId: "11623491",
+        lastPageIds: "",
+        pageProcessed: 3,
+        lists: ["https://builtin.com/jobs"],
+        writtenBy: "2.4.5",
+      },
+    });
+    const store = createBuiltinStore(storage);
+    expect(resumeCursorLabel(await store.loadCursor())).toBe("Resume at page 2 · card 11623491");
+    await store.resetToPage1();
+    const cursor = await store.loadCursor();
+    expect(resumeCursorLabel(cursor)).toBe("Start at page 1");
+    expect(cursor).toMatchObject({ page: 1, lastJobId: "", pageProcessed: 0 });
+    expect(storage.snapshot()[CURSOR_STORAGE_KEY_V1]).toBeNull();
   });
 
   test("ignores builtinCrawlCursorV1 and clears the stale key", async () => {

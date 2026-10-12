@@ -1,4 +1,5 @@
 import { IncompleteJobDataError } from "../../api/jobValidation.js";
+import { SCRAPE_OUTCOMES } from "../../api/scrapeRunStats.js";
 import {
   createAdaptiveBackoff,
   DEFAULT_BACKOFF_BASE_MS,
@@ -41,6 +42,7 @@ import {
   STUCK_PAGE_FAILURES,
   stuckPageMessage,
   cardDecisionLabel,
+  cardExtractFailedDecision,
   cardInvalidDecision,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
@@ -93,6 +95,17 @@ function nextInvalidStreak(streak) {
   return next;
 }
 
+function noteExtractProblem(hooks, jobId, decision, outcome) {
+  const label = cardDecisionLabel(jobId, decision);
+  hooks.onActivity?.({
+    phase: "dismiss",
+    label,
+    kind: "waitFor",
+  });
+  hooks.recordOutcome?.(outcome);
+  hooks.onNotice?.(label, false);
+}
+
 function throwIfSignedOut(html, isLoggedIn) {
   if (isSignedOutSession({ html, isLoggedIn })) {
     throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
@@ -143,6 +156,50 @@ async function ensureCursor(store, tab) {
   const cursor = emptyCursor([crawlListUrl(tab.url)]);
   await store.saveCursor(cursor);
   return cursor;
+}
+
+/** Parse, report fields, and enqueue. Skips stay on the caller so the cursor can move. */
+async function extractOpenedJob(ctx, progress, card, detailPage, handledIds, invalidStreak) {
+  const { hooks } = ctx;
+  const jobId = card.id;
+  let detail;
+  try {
+    const parse = hooks.parseDetail ?? parseDetail;
+    detail = parse(detailPage.html, detailPage.url || card.url, {
+      companyName: card.companyName,
+    });
+  } catch (error) {
+    noteExtractProblem(hooks, jobId, cardExtractFailedDecision(error), SCRAPE_OUTCOMES.FAILED);
+    return { jobId, invalidStreak: nextInvalidStreak(invalidStreak), skipped: true };
+  }
+  const detailId = detail.meta.id || card.id;
+  if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
+    return { jobId, detailId, savedOnPage: true, invalidStreak };
+  }
+  const record = jobRecord(detail);
+  try {
+    await reportDeclaredFields(ctx, progress, record);
+  } catch (error) {
+    noteExtractProblem(hooks, jobId, cardExtractFailedDecision(error), SCRAPE_OUTCOMES.FAILED);
+    return { jobId, detailId, invalidStreak: nextInvalidStreak(invalidStreak), skipped: true };
+  }
+  const issues = requiredRecordIssues(record);
+  if (issues.length) {
+    noteExtractProblem(hooks, jobId, cardInvalidDecision(issues), SCRAPE_OUTCOMES.VALIDATION);
+    return { jobId, detailId, invalidStreak: nextInvalidStreak(invalidStreak), skipped: true };
+  }
+  hooks.onActivity?.({ phase: "submit", label: "Saving record" });
+  try {
+    await hooks.onRecord?.(record);
+  } catch (error) {
+    if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
+      const fields = error.issues?.length ? error.issues : issues;
+      noteExtractProblem(hooks, jobId, cardInvalidDecision(fields), SCRAPE_OUTCOMES.VALIDATION);
+      return { jobId, detailId, invalidStreak: nextInvalidStreak(invalidStreak), skipped: true };
+    }
+    throw error;
+  }
+  return { jobId, detailId, detail, invalidStreak: 0 };
 }
 
 /**
@@ -432,47 +489,30 @@ export async function runBuiltInPass(ctx, progress) {
     }
 
     progress.tick();
-    const detail = parseDetail(detailPage.html, detailPage.url || card.url, {
-      companyName: card.companyName,
-    });
-    const jobId = card.id;
-    const detailId = detail.meta.id || card.id;
-    if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
+    const extracted = await extractOpenedJob(
+      ctx,
+      progress,
+      card,
+      detailPage,
+      handledIds,
+      invalidStreak,
+    );
+    invalidStreak = extracted.invalidStreak;
+    const jobId = extracted.jobId;
+    if (extracted.savedOnPage) {
       noteCardDecision(jobId, CARD_SKIP_DETAIL_SAVED);
       await markJob(jobId);
-      if (detailId !== jobId) await markJob(detailId);
+      if (extracted.detailId !== jobId) await markJob(extracted.detailId);
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
     }
-
-    const record = jobRecord(detail);
-    const issues = requiredRecordIssues(record);
-    if (issues.length) {
-      invalidStreak = nextInvalidStreak(invalidStreak);
-      noteCardDecision(jobId, cardInvalidDecision(issues));
+    if (extracted.skipped) {
       await advancePast(jobId);
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
     }
-
-    await reportDeclaredFields(ctx, progress, record);
-    hooks.onActivity?.({ phase: "submit", label: "Saving record" });
-    try {
-      await hooks.onRecord?.(record);
-    } catch (error) {
-      if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
-        invalidStreak = nextInvalidStreak(invalidStreak);
-        const fields = error.issues?.length ? error.issues : issues;
-        noteCardDecision(jobId, cardInvalidDecision(fields));
-        await advancePast(jobId);
-        await openVisible(pageUrl, "Returning to job list", "settle");
-        continue;
-      }
-      throw error;
-    }
-    invalidStreak = 0;
     await markJob(jobId);
-    if (detailId !== jobId) await markJob(detailId);
+    if (extracted.detailId !== jobId) await markJob(extracted.detailId);
 
     const listAfter = await openVisible(pageUrl, "Returning to job list", "settle");
     if (await handleBlock(listAfter, pageUrl)) {
@@ -480,7 +520,7 @@ export async function runBuiltInPass(ctx, progress) {
       progress.tick();
       return;
     }
-    throwIfSignedOut(listAfter.html, detail.meta.isLoggedIn);
+    throwIfSignedOut(listAfter.html, extracted.detail.meta.isLoggedIn);
     const heart = await saveListCardHeart({
       jobId,
       call,

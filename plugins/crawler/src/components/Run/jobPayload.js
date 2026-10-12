@@ -16,6 +16,7 @@ const ENVELOPE_KEYS = new Set([
   "companyLink",
   "postedAt",
   "postedAgo",
+  "crawledAt",
   "tags",
   "skills",
   "applicants",
@@ -90,7 +91,7 @@ export function toJobPayload(record, routine) {
     title: record?.title || "",
     description: record?.description || "",
     company,
-    companyLink: company.website || record?.companyWebsite || record?.companyProfileUrl || "",
+    companyLink: company.website || record?.companyWebsite || "",
     details: detailsFrom(record ?? {}),
     metadata,
     createdBy: SCRAPE_SOURCE,
@@ -100,6 +101,7 @@ export function toJobPayload(record, routine) {
   };
   if (isFound(record?.postedAt)) payload.postedAt = record.postedAt;
   if (isFound(record?.postedAgo)) payload.postedAgo = record.postedAgo;
+  if (isFound(record?.crawledAt)) payload.crawledAt = record.crawledAt;
   if (Array.isArray(record?.badges) && record.badges.length) payload.tags = record.badges;
   if (Array.isArray(record?.skills) && record.skills.length) payload.skills = record.skills;
   if (typeof applicantCount === "number" && Number.isFinite(applicantCount)) {

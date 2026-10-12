@@ -13,6 +13,7 @@ import {
   fieldRunSummary,
   fieldStatus,
   hitRate,
+  isActiveQueueRun,
   outcomeSegments,
   pendingFields,
   RECENT_JOBS_LIMIT,
@@ -64,14 +65,35 @@ describe("run state", () => {
       fieldRunSummary(
         [{ key: "applyUrl" }, { key: "companyName" }],
         { applyUrl: { found: 12, reads: 12 }, companyName: { found: 12, reads: 12 } },
-        { applyUrl: "invalid", companyName: "invalid" },
+        { applyUrl: "ok", companyName: "ok" },
       ),
     ).toEqual({ found: 2, invalid: 0, total: 2 });
+    expect(
+      fieldRunSummary(
+        [{ key: "applyUrl" }, { key: "companyWebsite" }, { key: "companySocials" }],
+        {
+          applyUrl: { found: 12, reads: 12 },
+          companyWebsite: { found: 0, reads: 12 },
+          companySocials: { found: 0, reads: 12 },
+        },
+        { applyUrl: "ok", companyWebsite: "empty", companySocials: "empty" },
+      ),
+    ).toEqual({ found: 1, invalid: 0, total: 3 });
+    expect(
+      fieldRunSummary(
+        [{ key: "applyUrl" }, { key: "companyName" }],
+        { applyUrl: { found: 12, reads: 12 }, companyName: { found: 12, reads: 12 } },
+        { applyUrl: "invalid", companyName: "invalid" },
+      ),
+    ).toEqual({ found: 2, invalid: 2, total: 2 });
     expect(fieldRunSummary([{ key: "title" }], {}, { title: "invalid" })).toEqual({
       found: 0,
       invalid: 1,
       total: 1,
     });
+    expect(isActiveQueueRun(null, "run-old")).toBe(false);
+    expect(isActiveQueueRun("run-new", "run-old")).toBe(false);
+    expect(isActiveQueueRun("run-new", "run-new")).toBe(true);
     expect(mergeScrapeRunStats({ registered: 12 }, { registered: 3, failed: 1 })).toEqual({
       registered: 12,
       duplicate: 0,

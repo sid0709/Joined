@@ -74,6 +74,31 @@ func TestCrawledJobPersistsCompanyMetadata(t *testing.T) {
 	}
 }
 
+func TestCrawledJobLiftsCrawledAtAndBuiltinSocials(t *testing.T) {
+	body := []byte(`{"jobs":[{
+		"title":"Eng","description":"Build","applyLink":"https://builtin.com/job/1",
+		"crawledAt":"2026-10-12T18:00:00.000Z",
+		"company":{"name":"North","logo":"https://cdn.example/n.png","website":"https://north.example","profileUrl":"https://builtin.com/company/north","socials":{"linkedin":"https://linkedin.com/company/north"}},
+		"metadata":{"postedAtSource":"jsonld+ago"}
+	}]}`)
+	batch, err := ParseCrawlerBatch(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := batch.Jobs[0]
+	if job.CrawledAt != "2026-10-12T18:00:00Z" {
+		t.Fatalf("crawledAt = %q", job.CrawledAt)
+	}
+	if job.Company.Metadata["website"] != "https://north.example" ||
+		job.Company.Metadata["profileUrl"] != "https://builtin.com/company/north" {
+		t.Fatalf("company metadata = %+v", job.Company.Metadata)
+	}
+	socials, _ := job.Company.Metadata["socials"].(map[string]any)
+	if socials["linkedin"] != "https://linkedin.com/company/north" {
+		t.Fatalf("socials = %+v", job.Company.Metadata["socials"])
+	}
+}
+
 func TestCrawledJobRejectsOversizedMetadata(t *testing.T) {
 	job := crawledJob("https://acme.com/apply/1")
 	job.Metadata = map[string]any{"blob": strings.Repeat("x", maxCrawlerJobMetadataBytes+1)}

@@ -36,6 +36,7 @@ func crawledJob(applyLink string) CrawledJob {
 				"hq":      "Austin",
 			},
 		},
+		CrawledAt: "2026-10-12T18:00:00.000Z",
 		Metadata: map[string]any{
 			"workMode":     "remote",
 			"industryTags": []string{"SaaS"},
@@ -136,8 +137,11 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 		ApplyLinkKey string `bson:"applyLinkKey"`
 		IngestedVia  string `bson:"ingestedVia"`
 		Metadata     struct {
-			Details map[string]string `bson:"details"`
-			Extra   map[string]any    `bson:"extra"`
+			Details   map[string]string `bson:"details"`
+			PostedAgo string            `bson:"postedAgo"`
+			CrawledAt string            `bson:"crawledAt"`
+			Company   map[string]any    `bson:"company"`
+			Extra     map[string]any    `bson:"extra"`
 		} `bson:"metadata"`
 	}
 	if err := bson.Unmarshal(raw, &doc); err != nil {
@@ -152,6 +156,17 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	if doc.Metadata.Extra["workMode"] != "remote" {
 		t.Fatalf("extra = %+v", doc.Metadata.Extra)
 	}
+	if doc.Metadata.PostedAgo != "3 hours ago" || doc.Metadata.CrawledAt != "2026-10-12T18:00:00Z" {
+		t.Fatalf("metadata stamps = %+v", doc.Metadata)
+	}
+	if doc.Metadata.Company["website"] != "https://acme.com/" ||
+		doc.Metadata.Company["size"] != "51-200" ||
+		doc.Metadata.Company["hq"] != "Austin" {
+		t.Fatalf("metadata.company = %+v", doc.Metadata.Company)
+	}
+	if _, ok := doc.Metadata.Extra["crawledAt"]; ok {
+		t.Fatalf("crawledAt leaked into extra: %+v", doc.Metadata.Extra)
+	}
 	if _, ok := doc.Metadata.Extra["bad.key"]; ok {
 		t.Fatalf("unsanitized extra key: %+v", doc.Metadata.Extra)
 	}
@@ -162,6 +177,45 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	_ = bson.Unmarshal(raw, &listing)
 	if listing.Source != crawlerFallbackSource {
 		t.Fatalf("fallback source = %q", listing.Source)
+	}
+}
+
+func TestCrawledTempDocumentStoresCompanyProfileAndSocials(t *testing.T) {
+	now := time.Date(2026, 10, 12, 18, 0, 0, 0, time.UTC)
+	job := crawledJob("https://north.example/apply/1")
+	job.Company.Name = "North"
+	job.CompanyLink = "https://builtin.com/company/north"
+	job.Company.Metadata = map[string]any{
+		"website":    "https://north.example/",
+		"profileUrl": "https://builtin.com/company/north",
+		"socials": map[string]any{
+			"linkedin": "https://linkedin.com/company/north",
+			"x":        "https://x.com/north",
+		},
+	}
+	raw, err := bson.Marshal(crawledTempDocument(bson.NewObjectID(), job, "joined-scrapper", now))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		CompanyLink string `bson:"companyLink"`
+		Metadata    struct {
+			Company struct {
+				Website    string            `bson:"website"`
+				ProfileURL string            `bson:"profileUrl"`
+				Socials    map[string]string `bson:"socials"`
+			} `bson:"company"`
+		} `bson:"metadata"`
+	}
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.CompanyLink != "https://north.example/" ||
+		doc.Metadata.Company.Website != "https://north.example/" ||
+		doc.Metadata.Company.ProfileURL != "https://builtin.com/company/north" ||
+		doc.Metadata.Company.Socials["linkedin"] != "https://linkedin.com/company/north" ||
+		doc.Metadata.Company.Socials["x"] != "https://x.com/north" {
+		t.Fatalf("doc = %+v", doc)
 	}
 }
 
@@ -265,8 +319,8 @@ func TestCrawledCompanyDocumentPutsBoardFieldsInMetadata(t *testing.T) {
 		"title":"Eng",
 		"description":"Build",
 		"applyLink":"https://builtin.com/apply/1",
-		"companyLink":"https://builtin.com/company/north",
-		"company":{"name":"North","logo":"https://cdn.example/north.png","employees":"51-200"}
+		"companyLink":"https://north.example/",
+		"company":{"name":"North","logo":"https://cdn.example/north.png","employees":"51-200","profileUrl":"https://builtin.com/company/north"}
 	}]}`)
 	batch, err := ParseCrawlerBatch(body)
 	if err != nil {
@@ -281,7 +335,7 @@ func TestCrawledCompanyDocumentPutsBoardFieldsInMetadata(t *testing.T) {
 	if err := bson.Unmarshal(raw, &doc); err != nil {
 		t.Fatal(err)
 	}
-	if doc.CompanyName != "North" || doc.CompanyLink != "https://builtin.com/company/north" ||
+	if doc.CompanyName != "North" || doc.CompanyLink != "https://north.example/" ||
 		doc.CompanyURL != doc.CompanyLink || doc.CompanyLogo != "https://cdn.example/north.png" {
 		t.Fatalf("doc = %+v", doc)
 	}
@@ -415,5 +469,63 @@ func TestIngestCrawledCompanySkipsExistingAndIncomplete(t *testing.T) {
 	}
 	if n, err := store.stagedCompanies().CountDocuments(ctx, bson.D{{Key: "companyKey", Value: "plain-co"}}); err != nil || n != 0 {
 		t.Fatalf("staged a company without a logo: %d, err = %v", n, err)
+	}
+}
+
+func TestIngestStoresCompanyMetadataWhenCompanyAlreadyExists(t *testing.T) {
+	store := crawlerTestStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if _, err := store.companies().InsertOne(ctx, bson.D{
+		{Key: "id", Value: "already-published"},
+		{Key: "sourceId", Value: "source-north"},
+		{Key: "companyName", Value: "North"},
+		{Key: "companyKey", Value: "north"},
+		{Key: "companyUrl", Value: "https://north.example"},
+	}); err != nil {
+		t.Fatalf("seed company: %v", err)
+	}
+
+	job := crawledJob("https://north.example/apply/known")
+	job.Company.Name = "North"
+	job.CompanyLink = "https://north.example/"
+	job.Company.Metadata = map[string]any{
+		"website":    "https://north.example/",
+		"profileUrl": "https://builtin.com/company/north",
+		"socials": map[string]any{
+			"linkedin": "https://linkedin.com/company/north",
+			"x":        "https://x.com/north",
+		},
+	}
+	job.CrawledAt = "2026-10-12T18:00:00Z"
+
+	result, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{job}}, time.Now())
+	if err != nil || !result.Results[0].Created {
+		t.Fatalf("ingest = %+v, err = %v", result, err)
+	}
+	if n, err := store.stagedCompanies().CountDocuments(ctx, bson.D{}); err != nil || n != 0 {
+		t.Fatalf("staged an existing company: %d, err = %v", n, err)
+	}
+
+	var stored struct {
+		Metadata struct {
+			CrawledAt string `bson:"crawledAt"`
+			Company   struct {
+				Website    string            `bson:"website"`
+				ProfileURL string            `bson:"profileUrl"`
+				Socials    map[string]string `bson:"socials"`
+			} `bson:"company"`
+		} `bson:"metadata"`
+	}
+	if err := store.dest().FindOne(ctx, bson.D{}).Decode(&stored); err != nil {
+		t.Fatalf("load temp job: %v", err)
+	}
+	if stored.Metadata.CrawledAt != "2026-10-12T18:00:00Z" ||
+		stored.Metadata.Company.Website != "https://north.example/" ||
+		stored.Metadata.Company.ProfileURL != "https://builtin.com/company/north" ||
+		stored.Metadata.Company.Socials["linkedin"] != "https://linkedin.com/company/north" ||
+		stored.Metadata.Company.Socials["x"] != "https://x.com/north" {
+		t.Fatalf("temp job company metadata = %+v", stored.Metadata)
 	}
 }

@@ -64,4 +64,25 @@ describe("jobValidation", () => {
       ),
     ).toBe(true);
   });
+
+  test("reads ingest aliases so Apply URL and Company stay valid on the payload", () => {
+    const payload = {
+      applyLink: "https://jobs.example/apply/1",
+      title: "Engineer",
+      description: "Build things.",
+      company: {
+        name: "Acme",
+        website: "https://acme.com",
+        socials: { linkedin: "https://linkedin.com/company/acme" },
+      },
+      companyLink: "https://acme.com",
+      id: 1,
+      duplicateWindowDays: 30,
+    };
+    expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(payload, "companyName", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(payload, "companyWebsite", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(payload, "companySocials", BuiltInRoutine)).toBe(true);
+    expect(getJobValidationIssues(payload, BuiltInRoutine)).toEqual([]);
+  });
 });

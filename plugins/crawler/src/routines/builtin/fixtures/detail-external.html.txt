@@ -131,6 +131,44 @@
 </div>
 
 
+<div class="bg-midnight text-white rounded-3 mb-sm px-md py-sm fs-xl fw-extrabold">The Company</div>
+<div class="bg-white rounded-3 mb-sm p-md">
+  <div class="d-flex">
+    <div class="flex-grow-1">
+      <div class="d-flex align-items-start gap-sm">
+        <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+          <i class="fa-regular fa-map-location-dot fs-xs text-pretty-blue" aria-hidden="true"></i>
+        </div>
+        <div class="font-barlow text-gray-03">HQ:  Boise, ID</div>
+      </div>
+      <div class="d-flex align-items-start gap-sm">
+        <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+          <i class="fa-regular fa-user-group fs-xs text-pretty-blue" aria-hidden="true"></i>
+        </div>
+        <span class="font-barlow text-gray-03">45,000 Employees</span>
+      </div>
+    </div>
+    <div class="flex-grow-1">
+      <div class="d-flex align-items-start gap-sm">
+        <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+          <i class="fa-regular fa-calendar fs-xs text-pretty-blue" aria-hidden="true"></i>
+        </div>
+        <span class="font-barlow text-gray-03">Year Founded: 1978</span>
+      </div>
+      <div class="d-flex align-items-start gap-sm">
+        <div class="d-flex justify-content-center align-items-center h-lg min-w-md">
+          <i class="fa-regular fa-globe fs-xs text-pretty-blue" aria-hidden="true"></i>
+        </div>
+        <a href="https://www.micron.com/" class="font-barlow text-gray-03">www.micron.com</a>
+      </div>
+      <div class="d-flex gap-sm">
+        <a href="https://www.linkedin.com/company/micron-technology">LinkedIn</a>
+        <a href="https://x.com/MicronTech">X</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div x-data="applyForm">
   <a href="/auth/login" data-builtin-track-click-event="job_apply_unauth" data-builtin-track-easy-apply="0">Log In to apply</a>
 </div>
