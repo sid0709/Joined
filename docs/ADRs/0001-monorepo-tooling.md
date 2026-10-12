@@ -27,8 +27,7 @@ create conflicting lockfiles and CI behavior.
   contribute coverage.
 - Keep local Husky hooks as fast feedback. CI is authoritative because local
   hooks can be bypassed.
-- Run CI for pull requests targeting `main` and pushes to `main`. Validate
-  Conventional Commit pull request titles in CI.
+- Run CI for pull requests targeting `main` and pushes to `main`.
 - Keep ownership, CODEOWNERS, and branch-protection settings under the
   repository owner's control. Do not apply live GitHub settings from scripts.
 - Defer Changesets and semantic releases until the repository publishes

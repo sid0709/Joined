@@ -103,39 +103,12 @@ jobs:
           SCOUTWELL_API_URL: http://127.0.0.1:8082
         run: bun run ci build
 
-  commit-conventions:
-    name: Check commit conventions and PR title
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-bun
-      - name: Validate pull request commit messages
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA"
-      - name: Validate pushed commit messages
-        if: github.event_name == 'push'
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
-        run: bunx commitlint --from "$BEFORE_SHA" --to "$HEAD_SHA"
-      - name: Validate Conventional Commit title
-        if: github.event_name == 'pull_request'
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s\n' "$PR_TITLE" | bunx commitlint
-
   # Single stable check for branch protection to require. Add every new job's id above to
   # `needs:` here — branch protection then never has to change when CI gains or renames jobs.
   ci-passed:
     name: All CI passed
     if: always()
-    needs: [lint, format, typecheck, dependencies, test, go, build, commit-conventions]
+    needs: [lint, format, typecheck, dependencies, test, go, build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

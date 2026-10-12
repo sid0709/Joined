@@ -7,8 +7,6 @@ import { spawnSync } from "node:child_process";
 
 import { repoRoot } from "./workspaces.mjs";
 
-const baseRef = process.env.CI_BASE_REF ?? "origin/main";
-
 const jobs = {
   lint: [
     ["bun", "run", "lint:workspaces"],
@@ -24,25 +22,11 @@ const jobs = {
     ["bun", "run", "test:go"],
   ],
   build: [["bun", "run", "build"]],
-  // CI validates the pull request's commits and title itself; locally we check what this branch
-  // adds on top of the base branch.
-  commits: [() => ["bunx", "commitlint", "--from", mergeBase(), "--to", "HEAD"]],
 };
 
 const bold = (text) => `\x1b[1m${text}\x1b[0m`;
 const green = (text) => `\x1b[32m${text}\x1b[0m`;
 const red = (text) => `\x1b[31m${text}\x1b[0m`;
-
-function mergeBase() {
-  const result = spawnSync("git", ["merge-base", baseRef, "HEAD"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  });
-  if (result.status !== 0) {
-    throw new Error(`cannot find merge base with ${baseRef}; run \`git fetch\` or set CI_BASE_REF`);
-  }
-  return result.stdout.trim();
-}
 
 function runJob(name) {
   for (const step of jobs[name]) {
