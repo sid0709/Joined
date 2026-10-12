@@ -116,7 +116,7 @@ export function useRoutineRun() {
         status: "queued",
       };
       try {
-        if (job.applyUrl) assertCompleteJob(job, targetRef.current?.routine);
+        assertCompleteJob(job, targetRef.current?.routine);
       } catch (error) {
         setRecentJobs((jobs) =>
           addRecentJob(jobs, { ...entry, status: SCRAPE_OUTCOMES.VALIDATION }),
