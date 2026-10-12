@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDialog, Banner, Button, PageHeader, Stack, StatGrid, Switch } from "sid-ui";
+import { AlertDialog, Banner, Button, PageHeader, Stack, StatGrid } from "sid-ui";
 import { TempJobsBrowser } from "@/components/jobs/temp-jobs-browser";
+import { AnalyzeApproachFields, useAnalyzeApproach } from "@/components/migration/analyze-approach";
 import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";
+import { jobRedoDescription } from "@/lib/analyze-approach";
 import { formatCount } from "@/lib/format";
 import {
   isRunning,
@@ -27,12 +29,12 @@ export function JobMigration() {
   const { status, error, finished, start, cancel } = useMigration();
   const [confirmRedo, setConfirmRedo] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [webSearch, setWebSearch] = useState(true);
+  const analyze = useAnalyzeApproach("job", status?.model ?? "");
 
   const counts = status?.counts;
   const runs = status?.runs ?? {};
   const analyzing = isRunning(runs[analyzeJobs]);
-  const model = status?.model || "the default model";
+  const model = analyze.model || status?.model || "the default model";
   const notPublishable = counts?.notPublishableJobs ?? 0;
   // Published jobs leave temp_jobs, so every temp job not marked is still waiting.
   const pending = counts ? remaining(counts.tempJobs, notPublishable) : 0;
@@ -87,7 +89,7 @@ export function JobMigration() {
       ) : null}
       <MigrationStep
         title="Analyze with AI"
-        description={`${model} reads each job's description into the Joined job schema, many jobs at once, and publishes each job whose analysis has a real title and company, a summary, its duties or requirements, and its skills. Published jobs are removed from temp_jobs. Jobs it cannot describe that well, or without a description, are marked not publishable; failed ones stay waiting for the next run.`}
+        description={analyze.description}
         run={runs[analyzeJobs]}
         onCancel={() => stop(analyzeJobs)}
         actions={
@@ -95,24 +97,30 @@ export function JobMigration() {
             <Button
               label="Re-analyze all"
               variant="secondary"
-              isDisabled={analyzing || !status?.modelReady}
+              isDisabled={analyzing || !status?.modelReady || !analyze.canRun}
               clickAction={() => setConfirmRedo(true)}
             />
             <Button
               label={pending ? `Analyze ${formatCount(pending)} waiting` : "Analyze waiting"}
               variant="primary"
-              isDisabled={analyzing || !status?.modelReady || pending === 0}
-              clickAction={() => run(analyzeJobs, { webSearch })}
+              isDisabled={analyzing || !status?.modelReady || !analyze.canRun || pending === 0}
+              clickAction={() => run(analyzeJobs, analyze.startBody)}
             />
           </>
         }
       >
-        <Switch
-          label="Web search"
-          description="The model searches the live web before it answers, including for a salary the posting leaves out. Off, it only uses the posting."
-          value={webSearch}
-          onChange={setWebSearch}
-          isDisabled={analyzing}
+        {analyze.catalogError ? <Banner status="error" title={analyze.catalogError} /> : null}
+        <AnalyzeApproachFields
+          kind="job"
+          approach={analyze.approach}
+          onApproach={analyze.setApproach}
+          model={analyze.model}
+          onModel={analyze.setChosen}
+          laneModels={analyze.laneModels}
+          webSearch={analyze.webSearch}
+          onWebSearch={analyze.setWebSearch}
+          disabled={analyzing}
+          catalogError={analyze.catalogError}
         />
       </MigrationStep>
       <TempJobsBrowser
@@ -122,7 +130,8 @@ export function JobMigration() {
         pageSizes={MIGRATION_PAGE_SIZES}
         refreshKey={finished}
         onAnalyze={async (ids) => {
-          await start(analyzeJobs, { tempJobIds: ids, webSearch });
+          if (!analyze.canRun) throw new Error("Pick a model for this approach.");
+          await start(analyzeJobs, { tempJobIds: ids, ...analyze.startBody });
           return {
             status: "success",
             title: `Analyzing ${formatCount(ids.length)} jobs. Progress shows under Analyze with AI.`,
@@ -133,9 +142,13 @@ export function JobMigration() {
         isOpen={confirmRedo}
         onOpenChange={setConfirmRedo}
         title="Analyze every temp job again?"
-        description={`This sends all ${formatCount(counts?.tempJobs ?? 0)} temp jobs to ${model} again, including ones marked not publishable, and publishes those it can. Published jobs have already left temp jobs.`}
+        description={jobRedoDescription(
+          analyze.approach,
+          model,
+          formatCount(counts?.tempJobs ?? 0),
+        )}
         actionLabel="Re-analyze all"
-        onAction={() => run(analyzeJobs, { redo: true, webSearch })}
+        onAction={() => run(analyzeJobs, { redo: true, ...analyze.startBody })}
       />
     </Stack>
   );

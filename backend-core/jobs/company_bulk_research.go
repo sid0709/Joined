@@ -22,7 +22,10 @@ type ResearchScope struct {
 	// Redo researches companies an earlier run already tried.
 	Redo bool
 	// WebSearch lets the model look the company up. Off, it answers without web_search.
+	// The Decisions approach ignores it and classifies the company instead.
 	WebSearch bool
+	// Approach is chat, batch, or decisions. Empty means chat.
+	Approach string
 }
 
 // ResearchCompanies researches staged companies on the web, workers at a time,
@@ -49,7 +52,7 @@ func (s *Store) ResearchCompanies(ctx context.Context, researcher CompanyReader,
 		return docs, nil
 	}
 	work := func(ctx context.Context, doc storedCompany) error {
-		published, err := s.researchOne(ctx, researcher, model, doc, scope.WebSearch)
+		published, err := s.researchOne(ctx, researcher, model, doc, scope.WebSearch, scope.Approach)
 		switch {
 		case err == nil && published:
 			progress.Done(1)
@@ -130,12 +133,12 @@ func (s *Store) stagedToResearch(ctx context.Context, redo bool, seen map[string
 // researchOne researches one staged company and publishes it when research found it.
 // A company research cannot find, or that has nothing to search for, is marked not
 // found and stays staged.
-func (s *Store) researchOne(ctx context.Context, researcher CompanyReader, model string, doc storedCompany, webSearch bool) (bool, error) {
+func (s *Store) researchOne(ctx context.Context, researcher CompanyReader, model string, doc storedCompany, webSearch bool, approach string) (bool, error) {
 	website := doc.displayURL()
 	if !validLink(website, maxCompanyURL) {
 		website = ""
 	}
-	found, err := researchCompany(ctx, researcher, doc.displayName(), website, webSearch)
+	found, err := researchCompany(ctx, researcher, doc.displayName(), website, webSearch, approach)
 	if err != nil && !errors.Is(err, ErrInvalidInput) {
 		return false, err
 	}

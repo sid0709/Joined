@@ -12,16 +12,22 @@ import (
 	"time"
 
 	"github.com/sid0709/Joined/backend-core/llmhttp"
+	"github.com/sid0709/Joined/backend-core/openai"
 )
 
 const (
 	listTimeout = 15 * time.Second
 	// maxModelsBody bounds the provider's answer; OpenRouter's catalog with
 	// descriptions is large but still well under this.
-	maxModelsBody = 4 << 20
-	textModality  = "text"
-	modelsPath    = "/models"
-	newestSort    = "newest"
+	maxModelsBody     = 4 << 20
+	textModality      = "text"
+	decisionsModality = "decisions"
+	modelsPath        = "/models"
+	newestSort        = "newest"
+	// LaneChat, LaneBatch, and LaneDecisions are the analyze approaches.
+	LaneChat      = "chat"
+	LaneBatch     = "batch"
+	LaneDecisions = "decisions"
 )
 
 // ErrNoKey is returned when there is no API key to list models with.
@@ -39,6 +45,8 @@ type CatalogModel struct {
 	Pricing         CatalogPricing `json:"pricing"`
 	Architecture    CatalogArch    `json:"architecture"`
 	SupportedParams []string       `json:"supportedParameters"`
+	// Lane is chat, batch, or decisions: which analyze approach can run this model.
+	Lane string `json:"lane"`
 }
 
 // CatalogPricing is USD per token or per request, as OpenRouter returns it.
@@ -112,7 +120,8 @@ func ListModels(ctx context.Context, baseURL, apiKey string) ([]CatalogModel, er
 	all := make([]CatalogModel, 0, len(body.Data))
 	for _, item := range body.Data {
 		id := strings.TrimSpace(item.ID)
-		if id == "" || !isTextChat(item) {
+		lane := modelLane(item)
+		if id == "" || lane == "" {
 			continue
 		}
 		name := strings.TrimSpace(item.Name)
@@ -138,6 +147,7 @@ func ListModels(ctx context.Context, baseURL, apiKey string) ([]CatalogModel, er
 				InputModalities:  slices.Clone(item.Architecture.InputModalities),
 				OutputModalities: slices.Clone(item.Architecture.OutputModalities),
 			},
+			Lane: lane,
 		})
 	}
 	sort.SliceStable(all, func(i, j int) bool {
@@ -147,6 +157,19 @@ func ListModels(ctx context.Context, baseURL, apiKey string) ([]CatalogModel, er
 		return all[i].ID < all[j].ID
 	})
 	return all, nil
+}
+
+func modelLane(item openRouterModel) string {
+	if hasModality(item.Architecture.OutputModalities, decisionsModality) || strings.Contains(strings.ToLower(item.Architecture.Modality), decisionsModality) {
+		return LaneDecisions
+	}
+	if !isTextChat(item) {
+		return ""
+	}
+	if openai.IsBatchCatalog(item.ID) {
+		return LaneBatch
+	}
+	return LaneChat
 }
 
 func isTextChat(item openRouterModel) bool {

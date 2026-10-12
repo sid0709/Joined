@@ -23,8 +23,8 @@ const (
 )
 
 // JSONWebSearch answers a question from the live web as JSON matching schema, plus the
-// pages it cited. Search runs through OpenRouter's web plugin for every catalog model
-// except a :batch id, which the Batch API serves with native search instead.
+// pages it cited. Perplexity Sonar searches on its own. A :batch model uses the Batch
+// API. Every other model gets OpenRouter's web plugin.
 func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema json.RawMessage) ([]byte, []string, error) {
 	if !c.Ready() {
 		return nil, nil, ErrMissingAPIKey
@@ -35,6 +35,12 @@ func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema 
 	if openai.IsBatchCatalog(c.model) {
 		return c.chat.BatchWebSearch(ctx, system, user, schema)
 	}
+	// Sonar searches inside the model. The web plugin would search first and hand
+	// Sonar another engine's pages.
+	plugins := []searchPlugin{{ID: webPluginID, MaxResults: c.maxSearches}}
+	if IsNativeSearch(c.model) {
+		plugins = nil
+	}
 	body, err := json.Marshal(searchRequest{
 		Model: c.model,
 		Messages: []searchMessage{
@@ -42,7 +48,7 @@ func (c *Client) JSONWebSearch(ctx context.Context, system, user string, schema 
 			{Role: "user", Content: user},
 		},
 		ResponseFormat: searchFormat{Type: "json_object"},
-		Plugins:        []searchPlugin{{ID: webPluginID, MaxResults: c.maxSearches}},
+		Plugins:        plugins,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -109,7 +115,7 @@ func research(reply searchReply) ([]byte, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return answer, sources(message.citationURLs()), nil
+	return answer, sources(append(message.citationURLs(), reply.Citations...)), nil
 }
 
 // jsonObject is the one JSON object in text, without any prose or code fence around it.
@@ -153,7 +159,7 @@ type searchRequest struct {
 	Model          string          `json:"model"`
 	Messages       []searchMessage `json:"messages"`
 	ResponseFormat searchFormat    `json:"response_format"`
-	Plugins        []searchPlugin  `json:"plugins"`
+	Plugins        []searchPlugin  `json:"plugins,omitempty"`
 }
 
 type searchMessage struct {
@@ -171,7 +177,9 @@ type searchPlugin struct {
 }
 
 type searchReply struct {
-	Choices []struct {
+	// Citations is how Perplexity lists the pages Sonar actually opened.
+	Citations []string `json:"citations"`
+	Choices   []struct {
 		Message searchChoice `json:"message"`
 	} `json:"choices"`
 	Error *struct {

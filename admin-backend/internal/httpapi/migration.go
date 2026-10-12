@@ -8,8 +8,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/sid0709/Joined/admin-backend/internal/migration"
+	"github.com/sid0709/Joined/backend-core/deepseek"
 	"github.com/sid0709/Joined/backend-core/httpkit"
 	"github.com/sid0709/Joined/backend-core/jobs"
 	"github.com/sid0709/Joined/backend-core/metrics"
@@ -53,7 +55,12 @@ type migrationStartRequest struct {
 	// Redo works through items an earlier run already finished.
 	Redo bool `json:"redo"`
 	// WebSearch is whether the model may use web_search. Nil keeps it on.
+	// The Decisions approach ignores it.
 	WebSearch *bool `json:"webSearch"`
+	// Approach is chat, batch, or decisions. Empty follows the model id.
+	Approach string `json:"approach"`
+	// Model overrides the saved default for this run.
+	Model string `json:"model"`
 }
 
 func (r migrationStartRequest) useWebSearch() bool {
@@ -110,7 +117,25 @@ func (s *Server) startMigration(w http.ResponseWriter, r *http.Request) {
 			httpkit.WriteError(w, http.StatusServiceUnavailable, missingMigrationKey)
 			return
 		}
-		model = s.ai.Model()
+		model = strings.TrimSpace(body.Model)
+		if model == "" {
+			model = s.ai.Model()
+		}
+		if len(model) > maxModelID || strings.ContainsAny(model, " \t\r\n") {
+			httpkit.WriteError(w, http.StatusBadRequest, invalidModelName)
+			return
+		}
+		approach := body.Approach
+		if approach == "" {
+			approach = deepseek.ApproachFor(model)
+		}
+		if err := deepseek.CheckApproach(approach, model); err != nil {
+			httpkit.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		body.Approach = approach
+		body.Model = model
+		work, _, _ = s.migrationWork(task, body)
 	}
 	run, err := s.migration.Start(task, model, work)
 	if errors.Is(err, migration.ErrBusy) {
@@ -142,20 +167,32 @@ func (s *Server) cancelMigration(w http.ResponseWriter, r *http.Request) {
 func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) (migration.Work, bool, bool) {
 	switch task {
 	case migration.AnalyzeJobs:
-		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}
+		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch(), Approach: body.Approach}
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
 			ctx = metrics.WithFeature(ctx, metrics.FeatureMigration)
-			err := s.store.AnalyzeTempJobs(ctx, s.ai, scope, s.analyzeWorkers, progress)
+			err := s.store.AnalyzeTempJobs(ctx, s.migrationReader(body.Model), scope, s.analyzeWorkers, progress)
 			return tally("Published", "not publishable", progress.Snapshot()), err
 		}, true, true
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
 			ctx = metrics.WithFeature(ctx, metrics.FeatureMigration)
-			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}, s.researchWorkers, progress)
+			reader := s.migrationReader(body.Model)
+			err := s.store.ResearchCompanies(ctx, reader, reader.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo, WebSearch: body.useWebSearch(), Approach: body.Approach}, s.researchWorkers, progress)
 			return tally("Published", "not found", progress.Snapshot()), err
 		}, true, true
 	}
 	return nil, false, false
+}
+
+// migrationReader is the saved model, or that client pinned to model for this run.
+func (s *Server) migrationReader(model string) MigrationModel {
+	if model == "" || s.ai == nil {
+		return s.ai
+	}
+	if live, ok := s.ai.(*deepseek.Reloading); ok {
+		return live.WithModel(model)
+	}
+	return s.ai
 }
 
 // tally says how a run went: "Published 90 of 100. 8 not found, 2 failed."

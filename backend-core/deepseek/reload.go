@@ -87,4 +87,7 @@ func (r *Reloading) JSONWebSearch(ctx context.Context, system, user string, sche
 
 func (r *Reloading) Model() string { return r.current().Model() }
 
+// WithModel pins one run to model. An empty model keeps the saved one.
+func (r *Reloading) WithModel(model string) *Client { return r.current().WithModel(model) }
+
 func (r *Reloading) Ready() bool { return r.current().Ready() }

@@ -34,6 +34,7 @@ import {
   type AIModelSettings,
   type CatalogModel,
 } from "@/lib/ai-model";
+import { modelLane } from "@/lib/analyze-approach";
 import { formatDateTime } from "@/lib/format";
 import { useAdminQuery } from "@/lib/use-admin-query";
 
@@ -78,10 +79,16 @@ export function ModelSettingsForm() {
   const model = chosen ?? (result ? effectiveModel(result) : "");
   const change = result ? aiModelChange(result, key, model) : null;
   const source = result ? SOURCE[aiModelSource(result)] : null;
-  const catalog = useMemo(
-    () => (result ? modelOptions(result, live.result?.models ?? []) : []),
-    [result, live.result?.models],
-  );
+  const catalog = useMemo(() => {
+    if (!result) return [];
+    const current = effectiveModel(result);
+    const liveModels = (live.result?.models ?? []).filter(
+      (model) => modelLane(model) !== "decisions",
+    );
+    return modelOptions(result, liveModels).filter(
+      (model) => modelLane(model) !== "decisions" || model.id === current,
+    );
+  }, [result, live.result?.models]);
   const filtered = useMemo(() => {
     const matches = filterCatalog(catalog, query);
     if (!model || matches.some((item) => item.id === model)) return matches;
@@ -141,7 +148,7 @@ export function ModelSettingsForm() {
             description={
               live.result?.reason ||
               (result
-                ? `Default: ${result.defaultModel}. Newest first, from OpenRouter.`
+                ? `Default: ${result.defaultModel}. Newest chat and batch models first. Decision models are chosen on Temp jobs and Temp companies.`
                 : undefined)
             }
             options={filtered.map((item) => ({
