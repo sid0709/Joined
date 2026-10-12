@@ -21,7 +21,11 @@ export function clickSaveInDocument(host, inner, root, which) {
   const types = ["pointerdown", "mousedown", "pointerup", "mouseup"];
   for (const type of types) {
     const usePointer = type.startsWith("pointer") && typeof PointerEvent === "function";
-    const EventCtor = usePointer ? PointerEvent : MouseEvent;
+    const EventCtor = usePointer
+      ? PointerEvent
+      : typeof MouseEvent === "function"
+        ? MouseEvent
+        : Event;
     try {
       node.dispatchEvent(
         new EventCtor(type, {

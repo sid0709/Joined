@@ -13,23 +13,22 @@ afterEach(() => {
 });
 
 function clickable(label, extra = {}) {
-  const events = [];
-  return {
-    events,
+  const node = {
+    events: [],
     click() {
-      events.push("click");
+      node.events.push("click");
     },
     dispatchEvent(event) {
-      events.push(event?.type || "event");
+      node.events.push(event?.type || "event");
       return true;
     },
-    ...extra,
     label,
+    ...extra,
   };
+  return node;
 }
 
 function heartTree({ svg = true, prefix = true } = {}) {
-  const heartEvents = [];
   const svgNode = svg
     ? clickable("svg", {
         getAttribute: (name) => (name === "data-prefix" && prefix ? "far" : ""),
@@ -41,7 +40,6 @@ function heartTree({ svg = true, prefix = true } = {}) {
       })
     : null;
   const heart = clickable("heart", {
-    events: heartEvents,
     querySelector(selector) {
       if (selector === "svg") return svgNode;
       if (selector === "[data-prefix]") return prefixNode;
@@ -138,11 +136,15 @@ describe("clickSaveInDocument", () => {
     });
   });
 
-  test("falls back to Event when PointerEvent construction fails", () => {
+  test("falls back to Event when the first dispatchEvent throws", () => {
     const events = [];
+    let failed = false;
     const heart = {
       dispatchEvent(event) {
-        if (event instanceof PointerEvent) throw new Error("no pointer");
+        if (!failed) {
+          failed = true;
+          throw new Error("no constructor");
+        }
         events.push(event.type);
         return true;
       },
