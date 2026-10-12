@@ -22,7 +22,8 @@ const OPS = {
   fetch: async ({ url, hosts, fetchId }) => {
     const resolved = assertFetchUrl(url, hosts, location.href);
     const controller = new AbortController();
-    const id = fetchId || resolved;
+    // Built In keys by unique request id. JobRight still keys by URL.
+    const id = String(fetchId || "").trim() || resolved;
     inFlightFetches.set(id, controller);
     try {
       const response = await fetch(resolved, {

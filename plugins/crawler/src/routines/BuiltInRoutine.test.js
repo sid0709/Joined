@@ -32,10 +32,12 @@ function builtinExec({
 } = {}) {
   const clicks = [];
   const fetches = [];
+  const fetchIds = [];
   const exec = async (op) => {
     if (op.op === "html") return { html: listHtml, url: listUrl };
     if (op.op === "fetch") {
       fetches.push(op.url);
+      fetchIds.push(op.fetchId);
       const html = details[op.url];
       if (html == null) {
         const isList = /\/jobs/.test(op.url) && !/\/job\//.test(op.url);
@@ -53,7 +55,7 @@ function builtinExec({
     }
     return {};
   };
-  return { exec, clicks, fetches };
+  return { exec, clicks, fetches, fetchIds };
 }
 
 async function collectPass(store, exec, extra = {}) {
@@ -98,6 +100,9 @@ describe("BuiltInRoutine", () => {
     expect(easy.salary).toBe("113K-162K Annually");
     expect(easy.companyName).toBe("Zscaler");
     expect(page.fetches).toContain(JOB_A);
+    expect(page.fetchIds.every(Boolean)).toBe(true);
+    expect(new Set(page.fetchIds).size).toBe(page.fetchIds.length);
+    expect(page.fetchIds.some((id) => id === JOB_A)).toBe(false);
 
     const store2 = createBuiltinStore(memoryStorage());
     const signed = builtinExec({

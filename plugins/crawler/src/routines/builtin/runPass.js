@@ -1,13 +1,20 @@
 import {
-  BACKOFF_PAUSE_MS,
   BACKOFF_RAMP_EVERY,
   BLOCK_WINDOW_MS,
   clampPaceSettings,
   DEFAULT_PACE_SETTINGS,
   MAX_BLOCKS_IN_WINDOW,
   MIN_CONCURRENCY,
+  TOKEN_BUCKET_CAPACITY,
+  WORKER_JITTER_MS,
 } from "../../api/paceSettings.js";
-import { createAdaptiveBackoff, detectFetchBlock } from "../../routineKit/backoff.js";
+import {
+  createAdaptiveBackoff,
+  DEFAULT_BACKOFF_BASE_MS,
+  DEFAULT_BACKOFF_MAX_MS,
+  detectFetchBlock,
+  MAX_RETRY_AFTER_MS,
+} from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import { createPaceMeter } from "../../routineKit/paceMeter.js";
 import {
@@ -16,10 +23,11 @@ import {
   RoutineStepError,
   RoutineStoppedError,
 } from "../../routineKit/runner.js";
+import { newFetchId } from "../../routineKit/fetchId.js";
 import { createTokenBucket } from "../../routineKit/tokenBucket.js";
 import { createWorkerPool } from "../../routineKit/workerPool.js";
 
-import { MAX_PAGE } from "./constants.js";
+import { jitterMs, MAX_PAGE } from "./constants.js";
 import { jobSaveSelector } from "./cssEscape.js";
 import { contiguousLastJobId, isJobHandled, unhandledCards } from "./handled.js";
 import {
@@ -59,7 +67,7 @@ async function currentPage(call) {
 
 async function fetchPage(call, url) {
   try {
-    const result = await call("fetch", { url, fetchId: url });
+    const result = await call("fetch", { url, fetchId: newFetchId() });
     if (!result?.html && !detectFetchBlock(result).blocked) {
       throw new RoutineStepError(`Failed to fetch ${url}`);
     }
@@ -85,8 +93,9 @@ function stripTrailingSlash(url) {
   }
 }
 
-async function loadListPage(call, tab, listUrl) {
+async function loadListPage(call, tab, listUrl, takePace) {
   if (tab?.url && stripTrailingSlash(tab.url) === stripTrailingSlash(listUrl)) return tab;
+  if (takePace) await takePace();
   return fetchPage(call, listUrl);
 }
 
@@ -132,17 +141,27 @@ export async function runBuiltInPass(ctx, progress) {
   const skipDelays = Boolean(hooks.skipDelays);
   const bucket = createTokenBucket({
     rate: skipDelays ? Infinity : settings.jobsPerSecond,
+    capacity: TOKEN_BUCKET_CAPACITY,
     now: hooks.now,
     sleep: (ms) => rest(ms),
   });
+  const takePace = async ({ jitter = false } = {}) => {
+    await bucket.take();
+    if (!skipDelays && jitter) {
+      await rest(jitterMs(WORKER_JITTER_MS, hooks.random ?? Math.random));
+    }
+  };
   const backoff = createAdaptiveBackoff({
     maxConcurrency: settings.concurrency,
     minConcurrency: MIN_CONCURRENCY,
     maxBlocks: MAX_BLOCKS_IN_WINDOW,
     windowMs: BLOCK_WINDOW_MS,
-    pauseMs: BACKOFF_PAUSE_MS,
+    pauseMs: DEFAULT_BACKOFF_BASE_MS,
+    maxPauseMs: DEFAULT_BACKOFF_MAX_MS,
+    maxRetryAfterMs: MAX_RETRY_AFTER_MS,
     rampEvery: BACKOFF_RAMP_EVERY,
     now: hooks.now,
+    random: hooks.random,
     sleep: (ms) => (skipDelays ? Promise.resolve() : rest(ms)),
   });
   const pool = createWorkerPool({
@@ -182,7 +201,7 @@ export async function runBuiltInPass(ctx, progress) {
       listCache.set(
         listUrl,
         (async () => {
-          const page = await loadListPage(call, tab, listUrl);
+          const page = await loadListPage(call, tab, listUrl, takePace);
           await handleBlock(page, listUrl);
           return { page, parsed: parseList(page.html, page.url) };
         })(),
@@ -226,7 +245,7 @@ export async function runBuiltInPass(ctx, progress) {
       await markJob(card.id);
       return;
     }
-    await bucket.take();
+    await takePace({ jitter: true });
     ctx.checkStopped();
     hooks.onActivity?.({ phase: "ready", label: "Opening job", kind: "waitFor" });
     const detailPage = await fetchPage(call, card.url);
