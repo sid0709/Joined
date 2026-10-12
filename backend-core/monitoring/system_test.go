@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -72,6 +74,48 @@ func TestLoadSystemAssemblesThePage(t *testing.T) {
 	traffic := sys.Charts["traffic"]
 	if len(traffic) != 2 || traffic[0].Name != "admin-backend" {
 		t.Fatalf("traffic lines are named by job and sorted: %+v", traffic)
+	}
+}
+
+// recordingQuerier keeps every query it is sent.
+type recordingQuerier struct {
+	mu      sync.Mutex
+	queries []string
+}
+
+func (r *recordingQuerier) record(query string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.queries = append(r.queries, query)
+}
+
+func (r *recordingQuerier) Query(_ context.Context, query string, _ time.Time) ([]Sample, error) {
+	r.record(query)
+	return nil, nil
+}
+
+func (r *recordingQuerier) QueryRange(_ context.Context, query string, _, _ time.Time, _ time.Duration) ([]Series, error) {
+	r.record(query)
+	return nil, nil
+}
+
+func TestLoadSystemSendsFilledQueries(t *testing.T) {
+	for key := range ranges {
+		q := &recordingQuerier{}
+		if _, err := LoadSystem(context.Background(), q, ParseRange(key), time.Unix(1_700_000_000, 0)); err != nil {
+			t.Fatal(err)
+		}
+		if len(q.queries) != len(instantQueries)+len(chartQueries) {
+			t.Fatalf("%s: sent %d queries", key, len(q.queries))
+		}
+		for _, query := range q.queries {
+			if strings.Contains(query, "$") || strings.Contains(query, "%!") {
+				t.Errorf("%s: unfilled query %q", key, query)
+			}
+		}
+		if !slices.Contains(q.queries, "probe_success") {
+			t.Errorf("%s: a query without placeholders is sent as written", key)
+		}
 	}
 }
 

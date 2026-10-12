@@ -78,7 +78,7 @@ See [Command.md → Dependencies](Command.md#2-dependencies-one-version-one-node
 - **bun only** — never npm, yarn, or pnpm. The only lockfile is `bun.lock`.
 - **No hardcoding** — colors, spacing, and type come from design tokens; URLs and flags from config.
 - **Shared code goes in `packages/*`**, never copied between apps.
-- **Conventional Commits** — enforced by the `commit-msg` hook.
+- **Commits and PR titles** — any clear message; CI does not enforce a format.
 
 Day-to-day rules (coding, running, checks, tests, commits, pull requests): [`guide.md`](guide.md).
 

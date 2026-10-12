@@ -259,13 +259,13 @@ Run exactly what CI runs before pushing:
 bun run ci
 ```
 
-It runs every CI job in order, keeps going when one fails, and ends with a pass/fail summary. Run only some jobs by naming them — `lint`, `format`, `typecheck`, `dependencies`, `test`, `build`, `commits`:
+It runs every CI job in order, keeps going when one fails, and ends with a pass/fail summary. Run only some jobs by naming them — `lint`, `format`, `typecheck`, `dependencies`, `test`, `build`:
 
 ```bash
 bun run ci lint test
 ```
 
-`commits` runs commitlint on what your branch adds on top of `origin/main` (`git fetch` first; set `CI_BASE_REF` to compare against another ref). The individual checks it runs:
+The individual checks it runs:
 
 | Command                     | What it checks                                                                                                                                                                              |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -305,7 +305,6 @@ bun test tests
 | Test and coverage                         | `bun run test` (includes `tests/dependency-policy.test.js`)                 |
 | Vet and test Go                           | `bun run vet:go` then `bun run test:go`                                     |
 | Build applications                        | Production build of all three apps                                          |
-| Commit conventions                        | commitlint on every commit and the PR title                                 |
 
 ---
 
@@ -400,23 +399,13 @@ Open a pull request back into `main`.
 
 ### Hooks (installed by `bun install`)
 
-| Hook         | Runs                     | Effect                                            |
-| ------------ | ------------------------ | ------------------------------------------------- |
-| `pre-commit` | `bunx lint-staged`       | Prettier formats staged files automatically       |
-| `commit-msg` | `bunx commitlint --edit` | Rejects messages that aren't Conventional Commits |
+| Hook         | Runs               | Effect                                      |
+| ------------ | ------------------ | ------------------------------------------- |
+| `pre-commit` | `bunx lint-staged` | Prettier formats staged files automatically |
 
 ### Commit messages
 
-[Conventional Commits](https://www.conventionalcommits.org) — `type(scope): summary`.
-
-```text
-feat(joined-frontend): split candidate and employer modes
-fix(design-system): stop nested grid columns inheriting spans
-build: unify dependency versions in a root catalog
-docs: update command guide
-```
-
-Common types: `feat`, `fix`, `docs`, `build`, `refactor`, `style`, `test`, `chore`, `perf`.
+Use any clear message. CI does not enforce Conventional Commits or a pull request title format.
 
 ### Push
 

@@ -146,15 +146,28 @@ type NamedSeries struct {
 // The label cadvisor gives each container's compose service (see deploy/compose.yml).
 const serviceLabel = "container_label_com_docker_compose_service"
 
-// Instant queries. %[1]s is the range window, %[2]s the instant rate window.
+// Query placeholders, filled by expand. Named rather than fmt verbs: Sprintf
+// appends "%!(EXTRA ...)" to a query that uses none of its arguments, and
+// Prometheus refuses the result.
+const (
+	rangeVar = "$range"
+	rateVar  = "$rate"
+)
+
+// expand fills a query's $range and $rate placeholders.
+func expand(query, window, rate string) string {
+	return strings.NewReplacer(rangeVar, window, rateVar, rate).Replace(query)
+}
+
+// Instant queries. $range is the range window, $rate the instant rate window.
 var instantQueries = map[string]string{
 	"probeUp":      `probe_success`,
-	"probeUptime":  `avg_over_time(probe_success[%[1]s])`,
+	"probeUptime":  `avg_over_time(probe_success[$range])`,
 	"probeMS":      `probe_duration_seconds * 1000`,
 	"scrapeUp":     `up{job!="probe"}`,
-	"scrapeUptime": `avg_over_time(up{job!="probe"}[%[1]s])`,
+	"scrapeUptime": `avg_over_time(up{job!="probe"}[$range])`,
 
-	"cpu":         `100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[%[2]s])))`,
+	"cpu":         `100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[$rate])))`,
 	"cores":       `count(node_cpu_seconds_total{mode="idle"})`,
 	"load1":       `node_load1`,
 	"memory":      `100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)`,
@@ -162,33 +175,33 @@ var instantQueries = map[string]string{
 	"disk":        `100 * (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})`,
 	"diskTotal":   `node_filesystem_size_bytes{mountpoint="/"}`,
 	"diskFull":    `(node_filesystem_avail_bytes{mountpoint="/"} / -deriv(node_filesystem_avail_bytes{mountpoint="/"}[6h])) / 86400 > 0`,
-	"netRx":       `sum(rate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[%[2]s]))`,
-	"netTx":       `sum(rate(node_network_transmit_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[%[2]s]))`,
+	"netRx":       `sum(rate(node_network_receive_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[$rate]))`,
+	"netTx":       `sum(rate(node_network_transmit_bytes_total{device!~"lo|veth.*|docker.*|br-.*"}[$rate]))`,
 
-	"containerCPU":      `100 * sum by (` + serviceLabel + `) (rate(container_cpu_usage_seconds_total{` + serviceLabel + `!=""}[%[2]s]))`,
+	"containerCPU":      `100 * sum by (` + serviceLabel + `) (rate(container_cpu_usage_seconds_total{` + serviceLabel + `!=""}[$rate]))`,
 	"containerMemory":   `sum by (` + serviceLabel + `) (container_memory_working_set_bytes{` + serviceLabel + `!=""})`,
-	"containerRestarts": `sum by (` + serviceLabel + `) (changes(container_start_time_seconds{` + serviceLabel + `!=""}[%[1]s]))`,
+	"containerRestarts": `sum by (` + serviceLabel + `) (changes(container_start_time_seconds{` + serviceLabel + `!=""}[$range]))`,
 
-	"apiRPS":    `sum by (job) (rate(http_request_duration_seconds_count[%[2]s]))`,
-	"apiP50":    `1000 * histogram_quantile(0.50, sum by (job, le) (rate(http_request_duration_seconds_bucket[%[2]s])))`,
-	"apiP95":    `1000 * histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket[%[2]s])))`,
-	"apiP99":    `1000 * histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket[%[2]s])))`,
-	"apiErrors": `sum by (job) (rate(http_request_duration_seconds_count{status=~"5.."}[%[2]s])) / sum by (job) (rate(http_request_duration_seconds_count[%[2]s]))`,
+	"apiRPS":    `sum by (job) (rate(http_request_duration_seconds_count[$rate]))`,
+	"apiP50":    `1000 * histogram_quantile(0.50, sum by (job, le) (rate(http_request_duration_seconds_bucket[$rate])))`,
+	"apiP95":    `1000 * histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket[$rate])))`,
+	"apiP99":    `1000 * histogram_quantile(0.99, sum by (job, le) (rate(http_request_duration_seconds_bucket[$rate])))`,
+	"apiErrors": `sum by (job) (rate(http_request_duration_seconds_count{status=~"5.."}[$rate])) / sum by (job) (rate(http_request_duration_seconds_count[$rate]))`,
 
-	"routeRPS":    `sum by (job, route) (rate(http_request_duration_seconds_count[%[1]s]))`,
-	"routeP95":    `1000 * histogram_quantile(0.95, sum by (job, route, le) (rate(http_request_duration_seconds_bucket[%[1]s])))`,
-	"routeErrors": `sum by (job, route) (rate(http_request_duration_seconds_count{status=~"5.."}[%[1]s])) / sum by (job, route) (rate(http_request_duration_seconds_count[%[1]s]))`,
+	"routeRPS":    `sum by (job, route) (rate(http_request_duration_seconds_count[$range]))`,
+	"routeP95":    `1000 * histogram_quantile(0.95, sum by (job, route, le) (rate(http_request_duration_seconds_bucket[$range])))`,
+	"routeErrors": `sum by (job, route) (rate(http_request_duration_seconds_count{status=~"5.."}[$range])) / sum by (job, route) (rate(http_request_duration_seconds_count[$range]))`,
 
 	"mongoConnections": `sum(mongodb_ss_connections{conn_type="current"})`,
-	"mongoOps":         `sum(rate(mongodb_ss_opcounters[%[2]s]))`,
+	"mongoOps":         `sum(rate(mongodb_ss_opcounters[$rate]))`,
 	"redisMemory":      `redis_memory_used_bytes`,
-	"redisHitRate":     `sum(rate(redis_keyspace_hits_total[%[1]s])) / (sum(rate(redis_keyspace_hits_total[%[1]s])) + sum(rate(redis_keyspace_misses_total[%[1]s])))`,
+	"redisHitRate":     `sum(rate(redis_keyspace_hits_total[$range])) / (sum(rate(redis_keyspace_hits_total[$range])) + sum(rate(redis_keyspace_misses_total[$range])))`,
 	"qdrantVectors":    `sum(collections_vector_total)`,
-	"searches":         `sum by (path) (rate(joined_search_served_total[%[1]s]))`,
-	"eventsDropped":    `sum(increase(joined_ranking_events_dropped_total[%[1]s]))`,
+	"searches":         `sum by (path) (rate(joined_search_served_total[$range]))`,
+	"eventsDropped":    `sum(increase(joined_ranking_events_dropped_total[$range]))`,
 }
 
-// chartQuery is one line on a chart. %[1]s is the chart's rate window. nameBy
+// chartQuery is one line on a chart. $rate is the chart's rate window. nameBy
 // names each resulting series by that label; otherwise it is called name.
 type chartQuery struct {
 	chart  string
@@ -198,13 +211,13 @@ type chartQuery struct {
 }
 
 var chartQueries = []chartQuery{
-	{chart: "host", name: "CPU %", query: `100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[%[1]s])))`},
-	{chart: "host", name: "Memory %", query: `100 * (1 - avg_over_time(node_memory_MemAvailable_bytes[%[1]s]) / node_memory_MemTotal_bytes)`},
-	{chart: "traffic", nameBy: "job", query: `sum by (job) (rate(http_request_duration_seconds_count[%[1]s]))`},
-	{chart: "latency", name: "p50", query: `1000 * histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket[%[1]s])))`},
-	{chart: "latency", name: "p95", query: `1000 * histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[%[1]s])))`},
-	{chart: "latency", name: "p99", query: `1000 * histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket[%[1]s])))`},
-	{chart: "errors", name: "5xx share", query: `sum(rate(http_request_duration_seconds_count{status=~"5.."}[%[1]s])) / sum(rate(http_request_duration_seconds_count[%[1]s]))`},
+	{chart: "host", name: "CPU %", query: `100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[$rate])))`},
+	{chart: "host", name: "Memory %", query: `100 * (1 - avg_over_time(node_memory_MemAvailable_bytes[$rate]) / node_memory_MemTotal_bytes)`},
+	{chart: "traffic", nameBy: "job", query: `sum by (job) (rate(http_request_duration_seconds_count[$rate]))`},
+	{chart: "latency", name: "p50", query: `1000 * histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket[$rate])))`},
+	{chart: "latency", name: "p95", query: `1000 * histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[$rate])))`},
+	{chart: "latency", name: "p99", query: `1000 * histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket[$rate])))`},
+	{chart: "errors", name: "5xx share", query: `sum(rate(http_request_duration_seconds_count{status=~"5.."}[$rate])) / sum(rate(http_request_duration_seconds_count[$rate]))`},
 }
 
 // Querier is the part of Prometheus the system page needs.
@@ -223,7 +236,7 @@ func LoadSystem(ctx context.Context, prom Querier, r Range, now time.Time) (Syst
 	group, ctx := errgroup.WithContext(ctx)
 	for name, query := range instantQueries {
 		group.Go(func() error {
-			samples, err := prom.Query(ctx, fmt.Sprintf(query, r.window(), instantRate), now)
+			samples, err := prom.Query(ctx, expand(query, r.window(), instantRate), now)
 			if err != nil {
 				return fmt.Errorf("query %s: %w", name, err)
 			}
@@ -235,7 +248,7 @@ func LoadSystem(ctx context.Context, prom Querier, r Range, now time.Time) (Syst
 	}
 	for _, chart := range chartQueries {
 		group.Go(func() error {
-			series, err := prom.QueryRange(ctx, fmt.Sprintf(chart.query, r.rate), now.Add(-r.Window), now, r.Step)
+			series, err := prom.QueryRange(ctx, expand(chart.query, r.window(), r.rate), now.Add(-r.Window), now, r.Step)
 			if err != nil {
 				return fmt.Errorf("chart %s/%s: %w", chart.chart, chart.name, err)
 			}
