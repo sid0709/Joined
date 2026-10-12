@@ -55,10 +55,15 @@ describe("JobRight parseDetail", () => {
     expect(record.companyWebsite).toBe("https://north.example");
     expect(record.companySocial.linkedin).toContain("linkedin.com/company/north");
     expect(record.companySocial.x).toContain("x.com/north");
+    expect(record.companySocial.facebook).toContain("facebook.com/north");
+    expect(record.companySocial.github).toContain("github.com/north");
+    expect(record.skills).toEqual(expect.arrayContaining(["Go", "Kubernetes"]));
     expect(record.description).toContain("Ship features.");
     expect(
       jobInfoUrlFrom(loadFixture("detail-dom.html"), "https://jobright.ai/jobs/recommend"),
     ).toContain("/jobs/info/abc123");
+    expect(jobInfoUrlFrom("<html></html>", DETAIL_URL)).toBe(DETAIL_URL);
+    expect(jobInfoUrlFrom("<html></html>", "not-a-url")).toBe("");
   });
 
   test("keeps salary optional when the board omitted it", () => {

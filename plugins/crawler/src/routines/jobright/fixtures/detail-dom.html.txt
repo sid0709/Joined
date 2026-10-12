@@ -29,6 +29,12 @@
       <div class="index_companySummary__x">Founded in 2014.</div>
       <a class="index_socialLink__x" href="https://www.linkedin.com/company/north">LinkedIn</a>
       <a class="index_socialLink__x" href="https://x.com/north">X</a>
+      <a class="index_socialLink__x" href="https://facebook.com/north">Facebook</a>
+      <a class="index_socialLink__x" href="https://github.com/north">GitHub</a>
+    </div>
+    <div id="skills-section">
+      <span>Go</span>
+      <span>Kubernetes</span>
     </div>
   </div>
 </body></html>

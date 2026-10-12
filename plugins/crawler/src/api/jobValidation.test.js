@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import BuiltInRoutine from "../routines/BuiltInRoutine.js";
+import JobRightRoutine from "../routines/JobRightRoutine.js";
 
 import { assertCompleteJob, getJobValidationIssues, isJobFieldValid } from "./jobValidation.js";
 
@@ -39,5 +40,22 @@ describe("jobValidation", () => {
     expect(isJobFieldValid(completeJob({ applyUrl: "" }), "applyUrl", BuiltInRoutine)).toBe(false);
     expect(isJobFieldValid(completeJob(), "salary", BuiltInRoutine)).toBe(true);
     expect(isJobFieldValid(completeJob(), "id", BuiltInRoutine)).toBe(true);
+    expect(isJobFieldValid(completeJob({ duplicateWindowDays: 30 }), "duplicateWindowDays")).toBe(
+      true,
+    );
+    expect(isJobFieldValid(null, "title", BuiltInRoutine)).toBe(false);
+    expect(
+      isJobFieldValid(completeJob({ postedAt: "2026-10-12" }), "postedAt", BuiltInRoutine),
+    ).toBe(true);
+    expect(isJobFieldValid(completeJob({ badges: ["Early"] }), "badges", BuiltInRoutine)).toBe(
+      true,
+    );
+    expect(
+      isJobFieldValid(
+        completeJob({ companySocial: { x: "https://x.com/acme" } }),
+        "companySocial",
+        JobRightRoutine,
+      ),
+    ).toBe(true);
   });
 });
