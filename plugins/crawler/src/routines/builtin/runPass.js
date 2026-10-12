@@ -95,7 +95,7 @@ function nextInvalidStreak(streak) {
   return next;
 }
 
-function noteExtractProblem(hooks, jobId, decision, outcome) {
+export function noteExtractProblem(hooks, jobId, decision, outcome) {
   const label = cardDecisionLabel(jobId, decision);
   hooks.onActivity?.({
     phase: "dismiss",
@@ -159,7 +159,7 @@ async function ensureCursor(store, tab) {
 }
 
 /** Parse, report fields, and enqueue. Skips stay on the caller so the cursor can move. */
-async function extractOpenedJob(ctx, progress, card, detailPage, handledIds, invalidStreak) {
+export async function extractOpenedJob(ctx, progress, card, detailPage, handledIds, invalidStreak) {
   const { hooks } = ctx;
   const jobId = card.id;
   let detail;
