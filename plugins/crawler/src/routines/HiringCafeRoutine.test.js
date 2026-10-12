@@ -88,7 +88,7 @@ function hiringCafeTab({
       ];
     }),
   );
-  const pages = details ?? defaultDetails;
+  const pages = { ...defaultDetails, ...(details ?? {}) };
   const pageFor = (href) => {
     if (pages[href]) return { html: pages[href], url: href };
     const isList = /\/classic/.test(href);
@@ -101,8 +101,10 @@ function hiringCafeTab({
     if (isList) return { html: listHtml, url: href };
     return { html: "", url: href };
   };
-  const idFromSelector = (selector) =>
-    String(selector || "").match(/href\*="([^"]+)"/)?.[1] || hoveredId;
+  const idFromSelector = (selector) => {
+    const path = String(selector || "").match(/href\$="([^"]+)"/)?.[1] || "";
+    return path.match(/-([a-z0-9]+)$/i)?.[1] || hoveredId;
+  };
   const listWithOverlay = () =>
     listPageHtml({
       toast,
@@ -119,7 +121,7 @@ function hiringCafeTab({
       if (remainingChallenge > 0) {
         remainingChallenge -= 1;
         return {
-          html: "<html><body>Just a moment... Verify you are human<div class='cf-turnstile'></div></body></html>",
+          html: "<html><head><title>Just a moment...</title></head><body><div class='cf-turnstile'></div></body></html>",
           url,
           status: 403,
         };
@@ -221,6 +223,7 @@ describe("HiringCafeRoutine", () => {
     expect(HiringCafeRoutine.runView.stats).toContain("outcomes");
     expect(HiringCafeRoutine.runView.components).toContain("fieldGroups");
     expect(HiringCafeRoutine.options.allowFetch).toBe(false);
+    expect(HiringCafeRoutine.options.waitForIngestAccept).toBe(true);
     expect(HiringCafeRoutine.resume.resetLabel).toBe(START_FROM_PAGE_ONE_LABEL);
   });
 
@@ -347,5 +350,72 @@ describe("HiringCafeRoutine", () => {
         skipDelays: true,
       }),
     ).rejects.toThrow(SIGN_IN_TO_MARK_MESSAGE);
+  });
+
+  test("does not pause for signed-out when Mark Applied is off", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveMarkAppliedEnabled(false);
+    const records = await collectJobs(
+      store,
+      hiringCafeTab({ listHtml: listPageHtml({ ssrSignedIn: false }) }).exec,
+    );
+    expect(records.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("does not mark handled or Applied when ingest rejects", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    const page = hiringCafeTab();
+    const records = await collectJobs(store, page.exec, { onRecord: () => false });
+    expect(records).toEqual([]);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
+    expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+  });
+
+  test("skips enqueue when metadata is over the client size cap", async () => {
+    const first = groupedHits()[0];
+    const href = jobUrl(first.requisition_id, first.job_information.title);
+    const job = detailJob({
+      ...first,
+      job_information: {
+        ...first.job_information,
+        description: `<p>Description for ${first.job_information.title}</p>`,
+      },
+      v5_processed_job_data: {
+        ...detailJob().v5_processed_job_data,
+        ...first.v5_processed_job_data,
+        company_tagline: "x".repeat(50_000),
+      },
+    });
+    const records = [];
+    await collectJobs(
+      createHiringCafeStore(memoryStorage()),
+      hiringCafeTab({
+        details: {
+          [href]: detailPageHtml({ job }),
+        },
+      }).exec,
+      { onRecord: (record) => records.push(record) },
+    );
+    expect(records.map((record) => record.requisitionId)).not.toContain(first.requisition_id);
+    expect(records.length).toBe(3);
+  });
+
+  test("warns when a later page parses to zero jobs", async () => {
+    const activities = [];
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 1,
+      lastJobId: "",
+      lists: [LIST_URL],
+    });
+    await collectJobs(
+      store,
+      hiringCafeTab({
+        paginatedListHtml: listPageHtml({ hits: [], ssrPage: 1, ssrIsLastPage: true }),
+      }).exec,
+      { onActivity: (activity) => activities.push(activity) },
+    );
+    expect(activities.some((activity) => activity.label === "Page 2 has 0 jobs")).toBe(true);
   });
 });

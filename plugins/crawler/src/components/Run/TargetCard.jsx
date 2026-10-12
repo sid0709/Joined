@@ -16,6 +16,8 @@ import { SCRAPE_SOURCE } from "../../config/env";
 import { listDeclaredFields } from "../../routineKit/declaredFields";
 import { STRATEGY_LABELS } from "../../routineKit/describe";
 
+import HiringCafeSettings from "./HiringCafeSettings";
+
 function hostOf(url) {
   try {
     return new URL(url).hostname;
@@ -122,6 +124,8 @@ export default function TargetCard({
             ) : null}
           </HStack>
         ) : null}
+
+        {!isRunning && routine?.id === "hiringcafe" ? <HiringCafeSettings /> : null}
 
         {!isRunning && matches.length > 1 ? (
           <Selector

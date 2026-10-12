@@ -5,6 +5,8 @@ import {
   HANDLED_MAX_AGE_MS,
   HANDLED_MAX_IDS,
   HANDLED_STORAGE_KEY,
+  MARK_APPLIED_DEFAULT,
+  MARK_APPLIED_STORAGE_KEY,
 } from "./constants.js";
 
 /** Drop handled IDs older than 90 days, then keep the newest HANDLED_MAX_IDS. */
@@ -125,6 +127,15 @@ export function createHiringCafeStore(storage = chromeLocal()) {
     },
     async clearCursor() {
       return writeKey(storage, CURSOR_STORAGE_KEY, null);
+    },
+    async loadMarkAppliedEnabled() {
+      const raw = await readKey(storage, MARK_APPLIED_STORAGE_KEY);
+      if (raw === false) return false;
+      if (raw === true) return true;
+      return MARK_APPLIED_DEFAULT;
+    },
+    async saveMarkAppliedEnabled(enabled) {
+      return writeKey(storage, MARK_APPLIED_STORAGE_KEY, enabled !== false);
     },
   };
 }

@@ -40,9 +40,14 @@ export const RUN_STATUS = Object.freeze({
 });
 
 const EMPTY_QUEUE = { queued: 0, saving: 0 };
+const INGEST_ACCEPT_TIMEOUT_MS = 30_000;
 
 const newRunId = () =>
   globalThis.crypto?.randomUUID?.() || `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+function isIngestAccepted(outcome) {
+  return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
+}
 
 /**
  * A routine run: start/stop, the pass loop, and everything the Run tab shows about it.
@@ -76,6 +81,8 @@ export function useRoutineRun() {
   const queueKeys = useRef(new Map());
   const earlyResults = useRef(new Map());
   const countedOutcomes = useRef(new Set());
+  const ingestWaiters = useRef(new Map());
+  const ingestOutcomes = useRef(new Map());
 
   const notifyFailure = useCallback(
     (err, fallback) => {
@@ -97,6 +104,36 @@ export function useRoutineRun() {
 
   const applyItemResult = useCallback((key, outcome) => {
     setRecentJobs((jobs) => updateRecentJob(jobs, key, { status: outcome }));
+  }, []);
+
+  const resolveIngestWaiter = useCallback((id, outcome) => {
+    const waiter = ingestWaiters.current.get(id);
+    if (waiter) {
+      ingestWaiters.current.delete(id);
+      waiter(outcome);
+      return;
+    }
+    ingestOutcomes.current.set(id, outcome);
+  }, []);
+
+  const waitForIngestAccept = useCallback((id) => {
+    return new Promise((resolve) => {
+      const already = ingestOutcomes.current.get(id) ?? earlyResults.current.get(id);
+      if (already) {
+        ingestOutcomes.current.delete(id);
+        earlyResults.current.delete(id);
+        resolve(isIngestAccepted(already));
+        return;
+      }
+      const timer = setTimeout(() => {
+        ingestWaiters.current.delete(id);
+        resolve(false);
+      }, INGEST_ACCEPT_TIMEOUT_MS);
+      ingestWaiters.current.set(id, (outcome) => {
+        clearTimeout(timer);
+        resolve(isIngestAccepted(outcome));
+      });
+    });
   }, []);
 
   /** Validate a finished record and queue it for the backend. Throws IncompleteJobDataError. */
@@ -122,7 +159,7 @@ export function useRoutineRun() {
         action: "scrapeQueue:enqueue",
         payload: { runId: runIdRef.current, job },
       })
-        .then((response) => {
+        .then(async (response) => {
           if (!response?.id) throw new Error("Failed to enqueue scraped job");
           queueKeys.current.set(response.id, entry.key);
           const early = earlyResults.current.get(response.id);
@@ -130,6 +167,9 @@ export function useRoutineRun() {
             earlyResults.current.delete(response.id);
             applyItemResult(entry.key, early);
           }
+          if (!targetRef.current?.routine?.options?.waitForIngestAccept) return;
+          const accepted = early ? isIngestAccepted(early) : await waitForIngestAccept(response.id);
+          if (!accepted) return false;
         })
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
@@ -137,7 +177,7 @@ export function useRoutineRun() {
           throw error;
         });
     },
-    [applyItemResult],
+    [applyItemResult, waitForIngestAccept],
   );
 
   const endRun = useCallback((nextStatus) => {
@@ -176,6 +216,7 @@ export function useRoutineRun() {
         const key = queueKeys.current.get(id);
         if (key) applyItemResult(key, outcome);
         else earlyResults.current.set(id, outcome);
+        resolveIngestWaiter(id, outcome);
         if (outcome && !countedOutcomes.current.has(id)) {
           countedOutcomes.current.add(id);
           setRunStats((current) => incrementScrapeRunStats(current, outcome));
@@ -196,7 +237,7 @@ export function useRoutineRun() {
         // Outside the extension there is no queue to restore.
       });
     return () => removeListener(listener);
-  }, [addListener, removeListener, applyItemResult, notifyFailure]);
+  }, [addListener, removeListener, applyItemResult, notifyFailure, resolveIngestWaiter]);
 
   useEffect(() => {
     if (status !== RUN_STATUS.RUNNING || !runStartedAt.current) return undefined;

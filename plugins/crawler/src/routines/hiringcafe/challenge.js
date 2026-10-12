@@ -1,18 +1,37 @@
 import { detectPageBlock, isTransientBlock } from "../../routineKit/backoff.js";
+import { queryAll } from "../../routineKit/extract.js";
+import { isVisibleElement } from "../builtin/visible.js";
 
-const TURNSTILE_RE =
-  /cf-turnstile|cf-challenge|challenge-platform|just a moment|performing security verification|verify you are (a )?human/i;
+import { CHALLENGE_TITLE_RE, TURNSTILE_WIDGET } from "./constants.js";
+import { documentFromHtml, textOf } from "./html.js";
 
-/** Cloudflare Turnstile / managed challenge on a visible HiringCafe page. */
+function challengeTitle(html) {
+  if (!html) return false;
+  return CHALLENGE_TITLE_RE.test(textOf(documentFromHtml(html).querySelector("title")));
+}
+
+function visibleTurnstile(html) {
+  if (!html) return false;
+  return queryAll(documentFromHtml(html), TURNSTILE_WIDGET).some((node) => isVisibleElement(node));
+}
+
+/**
+ * Visible Turnstile iframe/widget, or the challenge page title. Never raw
+ * HTML — Cloudflare injects challenge-platform scripts on normal pages.
+ */
 export function isHiringCafeChallenge(page = {}) {
-  const detected = detectPageBlock(page);
-  if (detected.kind === "challenge") return true;
-  return Boolean(page.html && TURNSTILE_RE.test(page.html));
+  return visibleTurnstile(page.html) || challengeTitle(page.html);
 }
 
 export function detectHiringCafeBlock(page = {}) {
   if (isHiringCafeChallenge(page)) return { blocked: true, kind: "challenge" };
-  return detectPageBlock(page);
+  const detected = detectPageBlock({
+    status: page.status,
+    url: page.url,
+    retryAfter: page.retryAfter,
+  });
+  if (detected.kind === "challenge") return { blocked: false, kind: "" };
+  return detected;
 }
 
 export { isTransientBlock };

@@ -3,7 +3,7 @@ import { queryOne } from "../../routineKit/extract.js";
 import { isFound } from "../../routineKit/html.js";
 import { parseJobPostingJsonLd } from "../../routineKit/jsonLd.js";
 
-import { POSTED_TEXT_RE, TITLE_HEADING } from "./constants.js";
+import { METADATA_LIMIT_BYTES, POSTED_TEXT_RE, TITLE_HEADING } from "./constants.js";
 import { documentFromHtml, htmlToPlainText, resolveUrl, textOf } from "./html.js";
 import { hasNextDataJob, readDetailJob } from "./parseNextData.js";
 import {
@@ -15,9 +15,10 @@ import {
   companyLogoFrom,
   companyNameOf,
   firstHttpOrWebsite,
+  hiringCafeMetadata,
+  metadataFits,
   objectBag,
   postedFrom,
-  providedJobSource,
   requisitionIdOf,
   salaryFrom,
   websiteUrl,
@@ -122,12 +123,7 @@ function recordFromJob(job, pageUrl, extras = {}) {
   assignProvided(record, "companyAbout", asText(enriched.tagline || v5.company_tagline));
   assignProvided(record, "requisitionId", requisitionIdOf(job));
 
-  const metadata = providedJobSource(job);
-  if (isFound(posting)) metadata.jsonLd = posting;
-  if (isFound(extras.postedRaw)) metadata.postedRaw = extras.postedRaw;
-  if (isFound(extras.domLogo)) metadata.logoSrc = extras.domLogo;
-  if (isFound(extras.cardHref)) metadata.cardHref = extras.cardHref;
-  record.metadata = metadata;
+  record.metadata = hiringCafeMetadata(job, extras);
   record.meta = {
     id: requisitionIdOf(job),
     sourceId: asText(job.id),
@@ -177,4 +173,11 @@ export function requiredRecordIssues(record) {
   if (!String(record?.title || "").trim()) issues.push("title");
   if (!String(record?.description || "").trim()) issues.push("description");
   return issues;
+}
+
+export function recordReadyToEnqueue(record, limit = METADATA_LIMIT_BYTES) {
+  const issues = requiredRecordIssues(record);
+  if (issues.length) return { ok: false, reason: "invalid", issues };
+  if (!metadataFits(record?.metadata, limit)) return { ok: false, reason: "metadata-size", issues };
+  return { ok: true, issues };
 }

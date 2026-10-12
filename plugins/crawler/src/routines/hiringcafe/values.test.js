@@ -7,8 +7,11 @@ import {
   companyNameOf,
   firstHttpOrWebsite,
   isoDate,
+  hiringCafeMetadata,
+  metadataByteSize,
+  metadataFits,
+  pickKnownFields,
   postedFrom,
-  providedJobSource,
   websiteUrl,
 } from "./values.js";
 
@@ -51,10 +54,23 @@ describe("HiringCafe value helpers", () => {
     });
   });
 
-  test("copies only keys HiringCafe put on the job object", () => {
-    expect(providedJobSource({ apply_url: "https://a.example", empty: "", skip: null })).toEqual({
+  test("keeps an explicit metadata set and drops description HTML", () => {
+    expect(
+      pickKnownFields({ apply_url: "https://a.example", empty: "", skip: null }, ["apply_url"]),
+    ).toEqual({ apply_url: "https://a.example" });
+    const metadata = hiringCafeMetadata({
+      id: "src___1",
+      requisition_id: "req1",
       apply_url: "https://a.example",
+      job_information: { title: "Help", description: "<p>Huge HTML</p>" },
+      unknown_blob: { dump: "nope" },
     });
+    expect(metadata.job_information).toEqual({ title: "Help" });
+    expect(metadata.job_information.description).toBeUndefined();
+    expect(metadata.unknown_blob).toBeUndefined();
+    expect(metadata.jsonLd).toBeUndefined();
+    expect(metadataFits(metadata, 1024)).toBe(true);
+    expect(metadataByteSize({ blob: "x".repeat(2000) })).toBeGreaterThan(1000);
     const record = { title: "Kept" };
     assignProvided(record, "salary", "");
     assignProvided(record, "location", "Austin");

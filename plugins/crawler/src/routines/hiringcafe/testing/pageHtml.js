@@ -128,7 +128,7 @@ export function listPageHtml({
         ssrIsLastPage,
         ssrTotalCount,
         ssrUnpackJobCards: false,
-        ssrSignedIn,
+        ...(ssrSignedIn !== undefined ? { ssrSignedIn } : {}),
       },
     },
     page: "/classic",

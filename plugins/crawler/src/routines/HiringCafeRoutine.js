@@ -23,11 +23,13 @@ import { ROUTINE_OUTPUTS } from "./outputs";
  * HiringCafe's classic board is server-rendered and paginated (`/classic?page=N`,
  * 0-indexed). Each pass opens the next unhandled ssrHits posting in the same tab
  * (cards group several requisition_ids; we enumerate every hit), reads
- * `__NEXT_DATA__.props.pageProps.job`, and enqueues it. After each save it
- * carousels to that requisition and Marks Applied (hover overlay). Handled
- * state is the local requisition_id store plus Applied ✓. A 403 / 429 backs
- * off without limit; a Turnstile challenge waits for the user. Missing
- * `ssrSignedIn` pauses the crawl.
+ * `__NEXT_DATA__.props.pageProps.job`, and enqueues it. After the server
+ * accepts the job (confirmed 2xx) it carousels to that requisition and Marks
+ * Applied (hover overlay) when the Run-panel toggle is on. Handled state is
+ * the local requisition_id store plus Applied ✓. A 403 / 429 backs off
+ * without limit; a visible Turnstile challenge waits for the user. Signed-out
+ * (`ssrSignedIn` false or a visible sign-in modal) pauses only when Mark
+ * Applied is on.
  */
 
 async function loadResumeLabel(store = createHiringCafeStore()) {
@@ -46,7 +48,12 @@ export default defineRoutine({
   output: ROUTINE_OUTPUTS.JOB,
   declaredFields: HIRINGCAFE_FIELDS,
   runView: HIRINGCAFE_RUN_VIEW,
-  options: { highlightFields: false, fieldPauseMs: 0, allowFetch: false },
+  options: {
+    highlightFields: false,
+    fieldPauseMs: 0,
+    allowFetch: false,
+    waitForIngestAccept: true,
+  },
   runPass: runHiringCafePass,
   resume: {
     resetLabel: START_FROM_PAGE_ONE_LABEL,

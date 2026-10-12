@@ -4,7 +4,7 @@ import {
   hasAppliedCheck,
   hasMarkAppliedControl,
   hasMarkToast,
-  isSignedOutWall,
+  isHiringCafeSignedOut,
   markConfirmed,
   stageUpdateSucceeded,
 } from "./appliedState.js";
@@ -14,7 +14,6 @@ import {
   CAROUSEL_NEXT,
   JOB_LINK,
   MARK_APPLIED,
-  MARK_APPLIED_ENABLED,
   MARK_APPLIED_LABEL,
   MARK_APPLIED_TEXT,
   MARK_APPLIED_WAIT_MS,
@@ -29,10 +28,9 @@ import {
 } from "./constants.js";
 import { documentFromHtml } from "./html.js";
 import { requisitionIdFromHref } from "./parseList.js";
-import { readSignedIn } from "./parseNextData.js";
 
-export function isMarkAppliedEnabled() {
-  return MARK_APPLIED_ENABLED === true;
+export function isMarkAppliedEnabled(enabled) {
+  return enabled !== false;
 }
 
 function noteMark(onActivity, label, kind = "waitFor") {
@@ -62,6 +60,10 @@ function shownRequisitionId(html, job) {
   const card = document.querySelector(cardSelectorForJob(job));
   const href = card?.querySelector?.(JOB_LINK)?.getAttribute("href") || "";
   return requisitionIdFromHref(href);
+}
+
+function exactCardSelector(job) {
+  return jobCardSelector(job) || cardSelectorForJob(job);
 }
 
 /**
@@ -99,12 +101,12 @@ export async function readAppliedOnCard({
   carousel = true,
 } = {}) {
   if (carousel) await carouselToJob({ job, call, rest, skipDelays, readPage });
-  const selector = jobCardSelector(job.id) || cardSelectorForJob(job);
+  const selector = exactCardSelector(job);
   await call("scroll", { selector }).catch(() => {});
   const hovered = await hoverCard(call, selector);
   await pause(rest, skipDelays, MARK_HOVER_MS);
   const page = await readPage();
-  if (isSignedOutWall(page.html) || readSignedIn(page.html) === false) {
+  if (isHiringCafeSignedOut(page.html)) {
     return { found: Boolean(hovered?.found), marked: false, signedOut: true, page };
   }
   const state = appliedStateFromHtml(page.html, job);
@@ -117,21 +119,27 @@ async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
   const fetchOk = stageUpdateSucceeded(hits);
   let page = await readPage();
   const toast = hasMarkToast(page.html);
-  if (isSignedOutWall(page.html)) {
+  if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, toast, fetchOk };
   }
-  await hoverCard(call, jobCardSelector(job.id) || cardSelectorForJob(job));
+  await hoverCard(call, exactCardSelector(job));
   await pause(rest, skipDelays, MARK_HOVER_MS);
   page = await readPage();
-  const applied = appliedStateFromHtml(page.html, job).marked || hasAppliedCheck(page);
-  const marked = markConfirmed({ applied, toast, fetchOk }) || applied;
-  return { marked, signedOut: isSignedOutWall(page.html), toast, fetchOk, applied };
+  const cardApplied = appliedStateFromHtml(page.html, job).marked;
+  const marked = markConfirmed({ applied: cardApplied, toast, fetchOk });
+  return {
+    marked,
+    signedOut: isHiringCafeSignedOut(page.html),
+    toast,
+    fetchOk,
+    applied: cardApplied,
+  };
 }
 
 /**
  * Hover the specific grouped job's card, click Mark Applied only when the
- * overlay is not already Applied ✓, then confirm via toast or the stage API
- * 200 plus an Applied ✓ re-read.
+ * overlay is not already Applied ✓, then confirm via toast, the stage API
+ * 200, or Applied ✓ on that one card.
  */
 export async function markAppliedOnCard({
   job,
@@ -140,9 +148,10 @@ export async function markAppliedOnCard({
   skipDelays = false,
   onActivity,
   readPage,
+  enabled,
 } = {}) {
   const jobId = job?.id || "";
-  if (!isMarkAppliedEnabled() || !jobId) {
+  if (!isMarkAppliedEnabled(enabled) || !jobId) {
     return { marked: false, log: notMarkedLog(jobId) };
   }
   const ready = await readAppliedOnCard({ job, call, rest, skipDelays, readPage });
@@ -159,7 +168,7 @@ export async function markAppliedOnCard({
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
   await watchStageUpdate(call);
   const clicked = await call("click", {
-    selector: `${jobCardSelector(jobId)} ${MARK_APPLIED}`,
+    selector: `${exactCardSelector(job)} ${MARK_APPLIED}`,
     contains: MARK_APPLIED_TEXT,
     exact: true,
     wait: skipDelays ? 0 : MARK_APPLIED_WAIT_MS,
@@ -192,18 +201,22 @@ export async function markAppliedOnDetail({
   skipDelays = false,
   onActivity,
   readPage,
+  enabled,
 } = {}) {
   const jobId = job?.id || "";
+  if (!isMarkAppliedEnabled(enabled) || !jobId) {
+    return { marked: false, skipped: true, via: "detail", log: "" };
+  }
   const page = await readPage();
-  if (isSignedOutWall(page.html) || readSignedIn(page.html) === false) {
+  if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
-  if (hasAppliedCheck(page)) {
+  if (hasAppliedCheck(page.html)) {
     const log = alreadyMarkedLog(jobId);
     noteMark(onActivity, log);
     return { marked: true, already: true, via: "detail", log };
   }
-  if (!hasMarkAppliedControl(page)) {
+  if (!hasMarkAppliedControl(page.html)) {
     return { marked: false, via: "detail", skipped: true, log: "" };
   }
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
@@ -225,6 +238,9 @@ export async function markAppliedOnDetail({
 }
 
 export async function markAppliedForJob(options) {
+  if (!isMarkAppliedEnabled(options?.enabled)) {
+    return { marked: false, skipped: true, log: "" };
+  }
   const fromDetail = await markAppliedOnDetail(options);
   if (fromDetail.signedOut) return fromDetail;
   if (fromDetail.skipped) return markAppliedOnCard(options);

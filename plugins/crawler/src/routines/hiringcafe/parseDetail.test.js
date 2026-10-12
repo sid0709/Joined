@@ -1,16 +1,27 @@
 import { describe, expect, test } from "bun:test";
 
-import { POSTED_AT_SOURCE } from "./constants.js";
-import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
+import {
+  METADATA_LIMIT_BYTES,
+  POSTED_AT_SOURCE,
+  SERVER_METADATA_LIMIT_BYTES,
+} from "./constants.js";
+import {
+  hasDeclaredValue,
+  parseDetail,
+  parseDetailNeedsJob,
+  recordReadyToEnqueue,
+  requiredRecordIssues,
+} from "./parseDetail.js";
 import { detailJob, detailPageHtml } from "./testing/pageHtml.js";
+import { metadataByteSize, salaryFrom, websiteUrl } from "./values.js";
+
 import "./testing/domParser.js";
-import { salaryFrom, websiteUrl } from "./values.js";
 
 const DETAIL_URL =
   "https://hiringcafe.com/job/help-desk-coordinator-shell-mobility-and-convenience-usa-houston-texas-uplqcnmhu405bzud";
 
 describe("parseDetail fields", () => {
-  test("reads required ingest fields and dumps the job JSON into metadata", () => {
+  test("reads required ingest fields and an explicit metadata set", () => {
     const record = parseDetail(detailPageHtml(), DETAIL_URL);
     expect(record.applyUrl).toBe(
       "https://myjobs.adp.com/shellmobilityandconvenience/cx/job-details?reqId=5001231308500",
@@ -36,8 +47,14 @@ describe("parseDetail fields", () => {
     expect(record.metadata.v5_processed_job_data.hourly_min_compensation).toBe(19.5);
     expect(record.metadata.enriched_company_data.external_id).toBe("org123");
     expect(record.metadata.job_information.title).toBe("Help Desk Coordinator");
-    expect(record.metadata.jsonLd["@type"]).toBe("JobPosting");
+    expect(record.metadata.job_information.description).toBeUndefined();
+    expect(record.metadata.jsonLd).toBeUndefined();
+    expect(metadataByteSize(record.metadata)).toBeLessThan(METADATA_LIMIT_BYTES);
+    expect(metadataByteSize(record.metadata)).toBeLessThan(SERVER_METADATA_LIMIT_BYTES);
     expect(requiredRecordIssues(record)).toEqual([]);
+    expect(recordReadyToEnqueue(record)).toEqual({ ok: true, issues: [] });
+    expect(hasDeclaredValue(record, "title")).toBe(true);
+    expect(parseDetailNeedsJob(detailPageHtml())).toBe(false);
   });
 
   test("prefers a non-favicon logo when JSON-LD has one", () => {
@@ -104,5 +121,17 @@ describe("parseDetail fields", () => {
       "title",
       "description",
     ]);
+    expect(recordReadyToEnqueue(record).ok).toBe(false);
+    expect(
+      recordReadyToEnqueue({
+        applyUrl: "https://boards.example/apply/1",
+        title: "Help",
+        description: "Coordinate tickets.",
+        companyName: "Acme",
+        metadata: { blob: "x".repeat(50_000) },
+      }).reason,
+    ).toBe("metadata-size");
+    expect(parseDetailNeedsJob("<html></html>")).toBe(true);
+    expect(hasDeclaredValue({}, "title")).toBe(false);
   });
 });

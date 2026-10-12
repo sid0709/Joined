@@ -1,5 +1,7 @@
 /** HiringCafe job board: live-confirmed hosts, selectors, and crawl pacing. */
 
+import { cssEscape } from "./cssEscape.js";
+
 export const HIRINGCAFE_HOSTS = ["hiringcafe.com", "www.hiringcafe.com", "hiring.cafe"];
 export const HIRINGCAFE_ORIGIN = "https://hiringcafe.com";
 
@@ -34,8 +36,9 @@ export const CAROUSEL_NEXT = 'button[aria-label="Next job at this company"]';
 export const CAROUSEL_PREV = 'button[aria-label="Previous job at this company"]';
 export const MARK_HOVER_OFFSET = Object.freeze({ x: 100, y: 100 });
 
-/** Mark Applied is on by default for a signed-in session. */
-export const MARK_APPLIED_ENABLED = true;
+/** Mark Applied is on by default; the Run panel persists the opposite choice. */
+export const MARK_APPLIED_DEFAULT = true;
+export const MARK_APPLIED_STORAGE_KEY = "hiringcafeMarkAppliedEnabledV1";
 export const MARK_HOVER_MS = 250;
 export const MARK_CONFIRM_MS = 1_000;
 export const MARK_APPLIED_WAIT_MS = 1_000;
@@ -43,9 +46,11 @@ export const MARK_APPLIED_LABEL = "Mark Applied";
 export const SIGN_IN_TO_MARK_MESSAGE =
   "Sign in to HiringCafe to Mark Applied. The crawl pauses until you do.";
 export const SIGN_IN_TRACKER_TEXT = "Sign in so we can update your job tracker";
-export const SIGN_IN_WALL_RE =
-  /sign in so we can update your job tracker|sign in to (continue|mark|save)|log in to (continue|mark)|you need to (sign|log) in/i;
 export const SIGN_IN_DIALOG_RE = /sign in|log in|continue with/i;
+export const SIGN_IN_DIALOG = '[role="dialog"], [aria-modal="true"], dialog';
+export const TURNSTILE_WIDGET =
+  '.cf-turnstile, [data-cf-turnstile], iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"]';
+export const CHALLENGE_TITLE_RE = /just a moment|attention required|verify you are (a )?human/i;
 
 export function carouselShowSelector(index) {
   return `button[aria-label="Show job ${index}"]`;
@@ -79,12 +84,17 @@ export const START_FROM_PAGE_ONE_LABEL = "Start from page 1";
 export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 jobs";
 export const CHALLENGE_WAIT_LABEL = "Waiting for Cloudflare verification";
 export const CHALLENGE_NOTICE = "Complete the Cloudflare check. The crawl continues after it.";
+/** Server cap is 64 KiB; stay well under so ingest cannot reject on size. */
+export const METADATA_LIMIT_BYTES = 48 * 1024;
+export const SERVER_METADATA_LIMIT_BYTES = 64 * 1024;
 
 export const CARD_DECISION_OPENED = "opened";
 export const CARD_SKIP_HANDLED = "already handled";
 export const CARD_SKIP_NO_URL = "no job URL";
 export const CARD_SKIP_DETAIL_HANDLED = "job page already handled";
 export const CARD_SKIP_ALREADY_APPLIED = "already marked applied";
+export const CARD_SKIP_METADATA_SIZE = "metadata too large";
+export const CARD_SKIP_INGEST_REJECTED = "ingest rejected";
 
 export const POSTED_AT_SOURCE = Object.freeze({
   ESTIMATED_PUBLISH_DATE: "estimated_publish_date",
@@ -139,6 +149,10 @@ export function displayPage(pageIndex) {
   return index + 1;
 }
 
+export function emptyPageLabel(pageIndex) {
+  return `Page ${displayPage(pageIndex)} has 0 jobs`;
+}
+
 export function resumeLabelFromCursor(cursor) {
   if (!cursor || !Array.isArray(cursor.lists) || !cursor.lists.length) return "";
   const page = displayPage(cursor.page);
@@ -156,14 +170,37 @@ export function cardInvalidDecision(fields) {
   return `invalid ${names.join(", ") || "job data"}`;
 }
 
-export function jobCardSelector(jobId) {
-  return `${JOB_CARD}:has(a[href*="${jobId}"])`;
+/** Path ending `/job/<slug>-<id>` from a list hit or the live card href. */
+export function jobLinkPath(job) {
+  if (!job || typeof job !== "object") return "";
+  const fromPath = String(job.path || "")
+    .split("?")[0]
+    .replace(/\/$/, "");
+  if (fromPath.startsWith(JOB_PATH)) return fromPath;
+  const href = String(job.url || job.href || "");
+  if (!href) return "";
+  try {
+    const path = new URL(href, HIRINGCAFE_ORIGIN).pathname.replace(/\/$/, "");
+    return path.startsWith(JOB_PATH) ? path : "";
+  } catch {
+    return "";
+  }
 }
 
-export function jobCardSelectorForIds(ids) {
-  return [...new Set((ids ?? []).map((id) => String(id).trim()).filter(Boolean))]
-    .map((id) => jobCardSelector(id))
-    .join(", ");
+/**
+ * Card that owns this posting: the job link's path must end with
+ * `/job/<slug>-<id>`, and the id is passed through CSS.escape.
+ */
+export function jobCardSelector(job) {
+  const path = jobLinkPath(job);
+  const id = String(job?.id || "").trim();
+  if (!path || !id || !path.endsWith(`-${id}`)) return "";
+  const prefix = path.slice(0, path.length - id.length);
+  return `${JOB_CARD}:has(a[href$="${prefix}${cssEscape(id)}"])`;
+}
+
+export function jobCardSelectorForJobs(jobs) {
+  return [...new Set((jobs ?? []).map((item) => jobCardSelector(item)).filter(Boolean))].join(", ");
 }
 
 export function markedCountLabel(marked = 0, notMarked = 0) {

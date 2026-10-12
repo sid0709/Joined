@@ -168,15 +168,87 @@ export function companyNameOf(value) {
   return "";
 }
 
-/** Own keys HiringCafe put on a job / hit object. Absent keys stay absent. */
-export function providedJobSource(job) {
-  const source = {};
-  if (!job || typeof job !== "object") return source;
-  for (const [key, value] of Object.entries(job)) {
-    if (value == null || value === "") continue;
-    source[key] = value;
+const JOB_METADATA_KEYS = Object.freeze(["id", "requisition_id", "collapse_key", "apply_url"]);
+const JOB_INFORMATION_METADATA_KEYS = Object.freeze(["title", "job_title_raw", "num_applies"]);
+const V5_METADATA_KEYS = Object.freeze([
+  "core_job_title",
+  "company_name",
+  "company_website",
+  "company_tagline",
+  "estimated_publish_date",
+  "formatted_workplace_location",
+  "workplace_type",
+  "commitment",
+  "seniority_level",
+  "technical_tools",
+  "listed_compensation_frequency",
+  "listed_compensation_currency",
+  "yearly_min_compensation",
+  "yearly_max_compensation",
+  "hourly_min_compensation",
+  "hourly_max_compensation",
+  "monthly_min_compensation",
+  "monthly_max_compensation",
+  "weekly_min_compensation",
+  "weekly_max_compensation",
+  "daily_min_compensation",
+  "daily_max_compensation",
+  "401k_matching",
+  "retirement_plan",
+  "tuition_reimbursement",
+  "generous_parental_leave",
+  "visa_sponsorship",
+  "relocation_assistance",
+]);
+const COMPANY_METADATA_KEYS = Object.freeze([
+  "name",
+  "homepage_uri",
+  "website",
+  "external_id",
+  "org_entity_id",
+  "industries",
+  "nb_employees",
+  "year_founded",
+  "hq_country",
+  "tagline",
+]);
+
+export function pickKnownFields(source, keys) {
+  const picked = {};
+  if (!source || typeof source !== "object") return picked;
+  for (const key of keys) {
+    if (source[key] == null || source[key] === "") continue;
+    picked[key] = source[key];
   }
-  return source;
+  return picked;
+}
+
+/**
+ * Explicit HiringCafe metadata. Drops description HTML and the full JSON-LD
+ * copy; absent keys stay absent.
+ */
+export function hiringCafeMetadata(job, extras = {}) {
+  const metadata = pickKnownFields(job, JOB_METADATA_KEYS);
+  const info = pickKnownFields(job?.job_information, JOB_INFORMATION_METADATA_KEYS);
+  if (Object.keys(info).length) metadata.job_information = info;
+  const v5 = pickKnownFields(job?.v5_processed_job_data, V5_METADATA_KEYS);
+  if (Object.keys(v5).length) metadata.v5_processed_job_data = v5;
+  const enriched = pickKnownFields(job?.enriched_company_data, COMPANY_METADATA_KEYS);
+  if (Object.keys(enriched).length) metadata.enriched_company_data = enriched;
+  const attributed = pickKnownFields(job?.attributed_org, COMPANY_METADATA_KEYS);
+  if (Object.keys(attributed).length) metadata.attributed_org = attributed;
+  assignProvided(metadata, "postedRaw", extras.postedRaw);
+  assignProvided(metadata, "logoSrc", extras.domLogo);
+  assignProvided(metadata, "cardHref", extras.cardHref);
+  return metadata;
+}
+
+export function metadataByteSize(metadata) {
+  return new TextEncoder().encode(JSON.stringify(metadata ?? {})).length;
+}
+
+export function metadataFits(metadata, limit) {
+  return metadataByteSize(metadata) <= limit;
 }
 
 export function assignProvided(record, key, value) {

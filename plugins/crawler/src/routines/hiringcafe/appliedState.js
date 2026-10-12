@@ -1,19 +1,22 @@
 import { queryAll, queryOne } from "../../routineKit/extract.js";
+import { isVisibleElement } from "../builtin/visible.js";
 
 import {
   APPLIED_CHECK_RE,
   APPLIED_CHECK_TEXT,
   CARD_OVERLAY,
+  jobCardSelector,
+  jobCardSelectorForJobs,
+  jobLinkPath,
   MARK_APPLIED,
   MARK_APPLIED_TEXT,
   MARK_TOAST_TEXT,
+  SIGN_IN_DIALOG,
   SIGN_IN_DIALOG_RE,
-  SIGN_IN_TRACKER_TEXT,
-  SIGN_IN_WALL_RE,
-  jobCardSelector,
-  jobCardSelectorForIds,
 } from "./constants.js";
 import { documentFromHtml, textOf } from "./html.js";
+import { requisitionIdFromHref } from "./parseList.js";
+import { readSignedIn } from "./parseNextData.js";
 
 function normalizeText(value) {
   return String(value || "")
@@ -30,12 +33,27 @@ function hasExactText(root, needle) {
   return false;
 }
 
+function jobsForCard(job) {
+  if (job?.groupPaths?.length) {
+    return job.groupPaths.map((path, index) => ({
+      path,
+      id: job.groupIds?.[index] || requisitionIdFromHref(path),
+    }));
+  }
+  if (jobLinkPath(job) && job?.id) return [job];
+  return [];
+}
+
 export function cardSelectorForJob(job) {
-  const ids = job?.groupIds?.length ? job.groupIds : [job?.id || job?.cardJobId].filter(Boolean);
-  return jobCardSelectorForIds(ids) || jobCardSelector(job?.id || "");
+  return jobCardSelectorForJobs(jobsForCard(job)) || jobCardSelector(job);
 }
 
 export function cardForJob(document, job) {
+  const exact = jobCardSelector(job);
+  if (exact) {
+    const card = queryOne(document, exact);
+    if (card) return card;
+  }
   const selector = cardSelectorForJob(job);
   return selector ? queryOne(document, selector) : null;
 }
@@ -48,8 +66,7 @@ function asRoot(root) {
 export function hasAppliedCheck(root) {
   const node = asRoot(root);
   if (!node) return false;
-  if (APPLIED_CHECK_RE.test(typeof root === "string" ? root : textOf(node))) return true;
-  return hasExactText(node, APPLIED_CHECK_TEXT);
+  return hasExactText(node, APPLIED_CHECK_TEXT) || APPLIED_CHECK_RE.test(textOf(node));
 }
 
 export function hasMarkAppliedControl(root) {
@@ -64,26 +81,40 @@ export function hasMarkToast(html) {
   return normalizeText(html).includes(MARK_TOAST_TEXT);
 }
 
-export function isSignedOutWall(html) {
+export function hasVisibleSignInModal(html) {
   if (!html) return false;
-  if (SIGN_IN_WALL_RE.test(html)) return true;
-  if (html.includes(SIGN_IN_TRACKER_TEXT)) return true;
   const document = documentFromHtml(html);
-  const dialog = queryOne(document, '[role="dialog"], [aria-modal="true"], dialog');
-  return Boolean(dialog && SIGN_IN_DIALOG_RE.test(textOf(dialog)));
+  return queryAll(document, SIGN_IN_DIALOG).some(
+    (dialog) => isVisibleElement(dialog) && SIGN_IN_DIALOG_RE.test(textOf(dialog)),
+  );
+}
+
+/** `ssrSignedIn`, or a visible sign-in modal. Hidden copy and raw HTML are ignored. */
+export function isHiringCafeSignedOut(html) {
+  const signedIn = readSignedIn(html);
+  if (signedIn === true) return false;
+  if (signedIn === false) return true;
+  return hasVisibleSignInModal(html);
+}
+
+export function isSignedOutWall(html) {
+  return isHiringCafeSignedOut(html);
 }
 
 export function appliedStateFromHtml(html, job = {}) {
   const document = documentFromHtml(html);
-  const card = cardForJob(document, job) || queryOne(document, CARD_OVERLAY)?.closest("div");
-  const overlay = card ? queryOne(card, CARD_OVERLAY) || card : document;
-  const marked = hasAppliedCheck(overlay) || hasAppliedCheck(card);
+  const card = cardForJob(document, job);
+  const overlay = card ? queryOne(card, CARD_OVERLAY) || card : null;
+  const marked =
+    Boolean(overlay && hasAppliedCheck(overlay)) || Boolean(card && hasAppliedCheck(card));
   return {
     found: Boolean(card),
     marked,
-    canMark: hasMarkAppliedControl(overlay) || hasMarkAppliedControl(card),
+    canMark: Boolean(
+      (overlay && hasMarkAppliedControl(overlay)) || (card && hasMarkAppliedControl(card)),
+    ),
     toast: hasMarkToast(html),
-    signedOut: isSignedOutWall(html),
+    signedOut: isHiringCafeSignedOut(html),
   };
 }
 
@@ -100,5 +131,5 @@ export function stageUpdateSucceeded(hits = []) {
 }
 
 export function markConfirmed({ applied, toast, fetchOk }) {
-  return Boolean(applied && (toast || fetchOk));
+  return Boolean(applied || toast || fetchOk);
 }

@@ -56,13 +56,14 @@ describe("parseList grouping", () => {
     ).toHaveLength(3);
   });
 
-  test("treats ssrIsLastPage or zero hits as the last page", () => {
+  test("treats only ssrIsLastPage as the last page", () => {
     const last = parseList(listPageHtml({ hits: groupedHits(), ssrIsLastPage: true }), LIST_URL);
     expect(last.isLastPage).toBe(true);
     expect(last.nextPage).toBeNull();
     const empty = parseList(listPageHtml({ hits: [], ssrPage: 9, ssrIsLastPage: false }), LIST_URL);
     expect(empty.jobs).toHaveLength(0);
-    expect(empty.isLastPage).toBe(true);
+    expect(empty.isLastPage).toBe(false);
+    expect(empty.nextPage).toBe(10);
   });
 
   test("reads the 0-indexed page cursor from the list URL", () => {

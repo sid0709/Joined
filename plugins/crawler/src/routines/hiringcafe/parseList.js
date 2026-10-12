@@ -98,6 +98,7 @@ function attachGroups(jobs, groups, cards) {
     if (!job.postedRaw && job.cardJobId) {
       job.postedRaw = cards.posted.get(job.cardJobId) || "";
     }
+    job.groupPaths = (group?.hits ?? []).map((hit) => jobPathFromHit(hit)).filter(Boolean);
   }
   return jobs;
 }
@@ -126,7 +127,7 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
     Number.isInteger(props.ssrPage) && props.ssrPage >= FIRST_PAGE_INDEX
       ? props.ssrPage
       : pageFromListUrl(pageUrl);
-  const isLastPage = props.ssrIsLastPage === true || jobs.length === 0;
+  const isLastPage = props.ssrIsLastPage === true;
   return {
     jobs,
     groups,

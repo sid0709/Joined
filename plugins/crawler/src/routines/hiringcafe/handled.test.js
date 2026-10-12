@@ -7,7 +7,13 @@ import {
   HANDLED_MAX_IDS,
   HANDLED_STORAGE_KEY,
   JOB_DELAY_MS,
-  MARK_APPLIED_ENABLED,
+  MARK_APPLIED_DEFAULT,
+  MARK_APPLIED_STORAGE_KEY,
+  emptyPageLabel,
+  jobCardSelector,
+  jobCardSelectorForJobs,
+  jobLinkPath,
+  markedCountLabel,
   START_FROM_PAGE_ONE_LABEL,
   cardDecisionLabel,
   cardInvalidDecision,
@@ -46,6 +52,18 @@ describe("handled skip", () => {
       "Job reqaaa1111111111 skipped: already handled",
     );
     expect(cardInvalidDecision(["applyUrl", "description"])).toBe("invalid applyUrl, description");
+    expect(cardInvalidDecision()).toBe("invalid job data");
+    expect(stuckPageMessage()).toBe("The same HiringCafe page failed 3 times. Crawl stopped.");
+    expect(markedCountLabel()).toBe("0 marked · 0 not marked");
+    expect(jobLinkPath("reqaaa1111111111")).toBe("");
+    expect(jobLinkPath({ url: "https://hiringcafe.com/classic" })).toBe("");
+    expect(jobLinkPath({ url: "not a url" })).toBe("");
+    expect(
+      jobCardSelectorForJobs([
+        { id: "reqaaa1111111111", path: "/job/help-desk-coordinator-reqaaa1111111111" },
+        { id: "" },
+      ]),
+    ).toContain("help-desk-coordinator-reqaaa1111111111");
     expect(stuckPageMessage(3)).toBe("The same HiringCafe page failed 3 times. Crawl stopped.");
   });
 
@@ -79,9 +97,29 @@ describe("handled skip", () => {
     expect(START_FROM_PAGE_ONE_LABEL).toBe("Start from page 1");
   });
 
-  test("keeps Mark Applied on by default for a signed-in session", () => {
-    expect(MARK_APPLIED_ENABLED).toBe(true);
+  test("keeps Mark Applied on by default and persists the Run-panel toggle", async () => {
+    expect(MARK_APPLIED_DEFAULT).toBe(true);
     expect(isMarkAppliedEnabled()).toBe(true);
+    expect(isMarkAppliedEnabled(false)).toBe(false);
+    expect(emptyPageLabel(0)).toBe("Page 1 has 0 jobs");
+    expect(emptyPageLabel(4)).toBe("Page 5 has 0 jobs");
+    expect(
+      jobCardSelector({
+        id: "reqaaa1111111111",
+        path: "/job/help-desk-coordinator-reqaaa1111111111",
+      }),
+    ).toContain('href$="/job/help-desk-coordinator-reqaaa1111111111"');
+    expect(
+      jobCardSelector({
+        id: "reqaaa1111111111",
+        path: "/job/help-desk-coordinator-reqaaa1111111111",
+      }),
+    ).not.toContain('href*="');
+    const store = createHiringCafeStore(memoryStorage());
+    expect(await store.loadMarkAppliedEnabled()).toBe(true);
+    await store.saveMarkAppliedEnabled(false);
+    expect(await store.loadMarkAppliedEnabled()).toBe(false);
+    expect(MARK_APPLIED_STORAGE_KEY).toBe("hiringcafeMarkAppliedEnabledV1");
   });
 
   test("drops handled IDs older than 90 days and keeps the newest 50k", () => {
@@ -122,5 +160,7 @@ describe("handled skip", () => {
     const chromeStore = createHiringCafeStore(chromeStorage);
     await chromeStore.markHandled("reqaaa1111111111", new Set(), now);
     expect([...(await chromeStore.loadHandledIds())]).toEqual(["reqaaa1111111111"]);
+    await chromeStore.saveMarkAppliedEnabled(false);
+    expect(await chromeStore.loadMarkAppliedEnabled()).toBe(false);
   });
 });

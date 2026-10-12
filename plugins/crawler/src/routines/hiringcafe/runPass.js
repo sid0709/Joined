@@ -8,15 +8,16 @@ import {
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import { RoutineBlockedError, RoutineFinishedError } from "../../routineKit/runner.js";
 
+import { isHiringCafeSignedOut } from "./appliedState.js";
 import { detectHiringCafeBlock, isTransientBlock } from "./challenge.js";
 import {
   CARD_DECISION_OPENED,
   CARD_SKIP_ALREADY_APPLIED,
   CARD_SKIP_DETAIL_HANDLED,
   CARD_SKIP_HANDLED,
+  CARD_SKIP_INGEST_REJECTED,
+  CARD_SKIP_METADATA_SIZE,
   CARD_SKIP_NO_URL,
-  EMPTY_PAGE_ONE_LABEL,
-  FIRST_PAGE_INDEX,
   INVALID_STREAK,
   INVALID_STREAK_MESSAGE,
   JOB_DELAY_MS,
@@ -28,6 +29,7 @@ import {
   cardDecisionLabel,
   cardInvalidDecision,
   displayPage,
+  emptyPageLabel,
   jobCardSelector,
   jitterMs,
   stuckPageMessage,
@@ -43,9 +45,8 @@ import {
   stripTrailingSlash,
   waitForChallengeClear,
 } from "./page.js";
-import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
+import { parseDetail, recordReadyToEnqueue } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
-import { readSignedIn } from "./parseNextData.js";
 import { createHiringCafeStore } from "./store.js";
 
 function jobRecord(detail) {
@@ -53,19 +54,22 @@ function jobRecord(detail) {
   return record;
 }
 
-function warnIfPageOneEmpty(hooks, page, jobCount) {
-  if (page !== FIRST_PAGE_INDEX || jobCount !== 0) return;
+function warnIfPageEmpty(hooks, page, jobCount) {
+  if (jobCount !== 0) return;
+  const label = emptyPageLabel(page);
   hooks.onActivity?.({
     phase: "open",
-    label: EMPTY_PAGE_ONE_LABEL,
+    label,
     kind: "waitFor",
   });
-  console.warn(EMPTY_PAGE_ONE_LABEL);
+  console.warn(label);
 }
 
-function throwIfSignedOut(html) {
-  if (readSignedIn(html) === true) return;
-  throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
+function throwIfSignedOut(html, markAppliedEnabled) {
+  if (!markAppliedEnabled) return;
+  if (isHiringCafeSignedOut(html)) {
+    throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
+  }
 }
 
 async function finishIfNothingLeft(store, parsed, pageIds, lastPageIds) {
@@ -103,6 +107,7 @@ async function pickNextJob({
   recordOutcome,
   markJob,
   readApplied,
+  markAppliedEnabled,
 }) {
   for (const candidate of jobsAfterCursor(jobs, lastJobId)) {
     if (isJobHandled(candidate, handledIds)) {
@@ -110,6 +115,7 @@ async function pickNextJob({
       recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
       continue;
     }
+    if (!markAppliedEnabled) return candidate;
     const applied = await readApplied(candidate);
     if (applied.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
     if (applied.marked) {
@@ -129,14 +135,16 @@ function markDeltaOf(result) {
 
 /**
  * One visible job: navigate the same tab to the posting, read `__NEXT_DATA__`,
- * enqueue, Mark Applied, then return to `?page=N`. Never fetches in the
- * background. 403 / 429 back off without limit. A Turnstile challenge waits
- * for the user. Signed-out sessions pause.
+ * enqueue, wait for a confirmed 2xx, Mark Applied, then return to `?page=N`.
+ * Never fetches in the background. 403 / 429 back off without limit. A
+ * Turnstile challenge waits for the user. Signed-out pauses only when Mark
+ * Applied is on.
  */
 export async function runHiringCafePass(ctx, progress) {
   const { hooks, call, rest } = ctx;
   const store = hooks.store ?? createHiringCafeStore();
   const skipDelays = Boolean(hooks.skipDelays);
+  const markAppliedEnabled = await store.loadMarkAppliedEnabled();
   const backoff = createAdaptiveBackoff({
     maxConcurrency: 1,
     minConcurrency: 1,
@@ -273,11 +281,11 @@ export async function runHiringCafePass(ctx, progress) {
     emitCursor();
     const listPage = await openVisible(pageUrl, `Opening page ${displayPage(cursor.page)}`);
     if (await handleBlock(listPage, pageUrl)) continue;
-    throwIfSignedOut(listPage.html);
+    throwIfSignedOut(listPage.html, markAppliedEnabled);
 
     const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = jobIdKey(parsed.jobs);
-    warnIfPageOneEmpty(hooks, cursor.page, parsed.jobs.length);
+    warnIfPageEmpty(hooks, cursor.page, parsed.jobs.length);
     await finishIfNothingLeft(store, parsed, pageIds, cursor.lastPageIds);
 
     const job = await pickNextJob({
@@ -287,6 +295,7 @@ export async function runHiringCafePass(ctx, progress) {
       noteJobDecision,
       recordOutcome: hooks.recordOutcome,
       markJob,
+      markAppliedEnabled,
       readApplied: (candidate) =>
         readAppliedOnCard({
           job: candidate,
@@ -297,7 +306,7 @@ export async function runHiringCafePass(ctx, progress) {
         }),
     });
     if (!job) {
-      if (parsed.isLastPage || parsed.jobs.length === 0) {
+      if (parsed.isLastPage) {
         await store.clearCursor();
         throw new RoutineFinishedError("Nothing left to process on HiringCafe");
       }
@@ -320,10 +329,10 @@ export async function runHiringCafePass(ctx, progress) {
       label: `Page ${displayPage(cursor.page)} · job ${jobIndex} of ${parsed.jobs.length}`,
       kind: "click",
     });
-    await call("highlight", { selector: jobCardSelector(job.id) }).catch(() => {});
+    await call("highlight", { selector: jobCardSelector(job) }).catch(() => {});
     if (!job.url) {
       noteJobDecision(job.id, CARD_SKIP_NO_URL);
-      await markJob(job.id);
+      await advancePast(job.id);
       continue;
     }
     noteJobDecision(job.id, CARD_DECISION_OPENED, "open", "click");
@@ -358,10 +367,16 @@ export async function runHiringCafePass(ctx, progress) {
     }
 
     const record = jobRecord(detail);
-    const issues = requiredRecordIssues(record);
-    if (issues.length) {
+    const ready = recordReadyToEnqueue(record);
+    if (!ready.ok && ready.reason === "metadata-size") {
+      noteJobDecision(jobId, CARD_SKIP_METADATA_SIZE);
+      await advancePast(jobId);
+      await openVisible(pageUrl, "Returning to job list", "settle");
+      continue;
+    }
+    if (ready.issues.length) {
       invalidStreak = nextInvalidStreak(invalidStreak);
-      noteJobDecision(jobId, cardInvalidDecision(issues));
+      noteJobDecision(jobId, cardInvalidDecision(ready.issues));
       await advancePast(jobId);
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
@@ -369,12 +384,13 @@ export async function runHiringCafePass(ctx, progress) {
 
     await reportDeclaredFields(ctx, progress, record);
     hooks.onActivity?.({ phase: "submit", label: "Saving record" });
+    let accepted;
     try {
-      await hooks.onRecord?.(record);
+      accepted = await hooks.onRecord?.(record);
     } catch (error) {
       if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
         invalidStreak = nextInvalidStreak(invalidStreak);
-        const fields = error.issues?.length ? error.issues : issues;
+        const fields = error.issues?.length ? error.issues : ready.issues;
         noteJobDecision(jobId, cardInvalidDecision(fields));
         await advancePast(jobId);
         await openVisible(pageUrl, "Returning to job list", "settle");
@@ -382,9 +398,23 @@ export async function runHiringCafePass(ctx, progress) {
       }
       throw error;
     }
+    if (accepted === false) {
+      noteJobDecision(jobId, CARD_SKIP_INGEST_REJECTED);
+      hooks.recordOutcome?.(SCRAPE_OUTCOMES.FAILED);
+      await advancePast(jobId);
+      await openVisible(pageUrl, "Returning to job list", "settle");
+      continue;
+    }
     invalidStreak = 0;
     await markJob(jobId);
     if (detailId !== jobId) await markJob(detailId);
+
+    if (!markAppliedEnabled) {
+      backoff.onSuccess();
+      await pause(JOB_DELAY_MS);
+      progress.tick();
+      return;
+    }
 
     const markArgs = {
       job,
@@ -393,6 +423,7 @@ export async function runHiringCafePass(ctx, progress) {
       skipDelays,
       onActivity: hooks.onActivity,
       readPage,
+      enabled: markAppliedEnabled,
     };
     const detailMark = await markAppliedOnDetail(markArgs);
     if (detailMark.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
@@ -403,7 +434,7 @@ export async function runHiringCafePass(ctx, progress) {
       progress.tick();
       return;
     }
-    throwIfSignedOut(listAfter.html);
+    throwIfSignedOut(listAfter.html, markAppliedEnabled);
     const marked = detailMark.skipped ? await markAppliedOnCard(markArgs) : detailMark;
     emitCursor({
       card: jobId,
