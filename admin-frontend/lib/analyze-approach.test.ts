@@ -2,7 +2,11 @@ import { expect, test } from "bun:test";
 
 import { stubCatalogModel, type CatalogModel } from "./ai-model";
 import {
+  approachLabel,
+  companyRetryDescription,
   companyStepDescription,
+  isApproach,
+  jobRedoDescription,
   jobStepDescription,
   modelLane,
   modelsForApproach,
@@ -57,14 +61,51 @@ test("nativeSearch is Perplexity Sonar and skips batch ids", () => {
 });
 
 test("job and company copy follow the approach", () => {
+  expect(isApproach("chat")).toBe(true);
+  expect(isApproach("plugins")).toBe(false);
+  expect(approachLabel("batch")).toBe("Batch");
+  expect(jobStepDescription("chat", "")).toContain("the model");
   expect(jobStepDescription("decisions", "typesafe/jev-1.13")).toContain("not publishable");
   expect(jobStepDescription("batch", "openai/gpt-6:batch")).toContain("batch API");
   expect(companyStepDescription("decisions", "typesafe/jev-1.13", true)).toContain("industry");
   expect(companyStepDescription("chat", "openai/gpt-6", false)).toContain("without web search");
+  expect(companyStepDescription("batch", "openai/gpt-6:batch", true)).toContain("batch API");
+  expect(companyStepDescription("batch", "openai/gpt-6:batch", false)).toContain("already knows");
   expect(searchSwitchDescription("job", "chat", "perplexity/sonar-pro", true)).toContain(
     "plugin stays off",
+  );
+  expect(searchSwitchDescription("company", "chat", "perplexity/sonar-pro", false)).toContain(
+    "Sonar still searches",
   );
   expect(searchSwitchDescription("company", "batch", "openai/gpt-6:batch", true)).toContain(
     "provider's own search",
   );
+  expect(searchSwitchDescription("job", "batch", "openai/gpt-6:batch", false)).toContain("posting");
+  expect(searchSwitchDescription("company", "batch", "openai/gpt-6:batch", false)).toContain(
+    "already knows",
+  );
+  expect(searchSwitchDescription("job", "chat", "openai/gpt-6", true)).toContain("salary");
+  expect(searchSwitchDescription("company", "chat", "openai/gpt-6", false)).toContain(
+    "already knows",
+  );
+  expect(jobRedoDescription("chat", "", "12")).toContain("Chat");
+  expect(jobRedoDescription("decisions", "typesafe/jev-1.13", "12")).toContain("not publishable");
+  expect(companyRetryDescription("chat", "openai/gpt-6", true, "2", "3")).toContain(
+    "searches the web",
+  );
+  expect(companyRetryDescription("chat", "openai/gpt-6", false, "2", "3")).toContain(
+    "without web search",
+  );
+  expect(companyRetryDescription("batch", "openai/gpt-6:batch", true, "2", "3")).toContain(
+    "batch API",
+  );
+  expect(companyRetryDescription("batch", "", false, "2", "3")).toContain("the model");
+  expect(companyRetryDescription("decisions", "typesafe/jev-1.13", true, "2", "3")).toContain(
+    "industry",
+  );
+});
+
+test("an unlabeled decision slug stays off the chat lane", () => {
+  expect(modelLane(row("acme/decision-pro"))).toBe("decisions");
+  expect(modelLane(row("perplexity/sonar-reasoning"))).toBe("chat");
 });
