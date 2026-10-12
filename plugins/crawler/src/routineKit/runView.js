@@ -20,6 +20,7 @@ export const RUN_STAT = Object.freeze({
 export const RUN_SETTING = Object.freeze({
   CONCURRENCY: "concurrency",
   JOBS_PER_SECOND: "jobsPerSecond",
+  FAST_MODE: "fastMode",
 });
 
 const COMPONENT_VALUES = new Set(Object.values(RUN_COMPONENT));

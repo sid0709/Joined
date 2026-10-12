@@ -23,12 +23,15 @@ describe("defineRunView", () => {
       groups: [fieldGroup("job", "Job", ["title"])],
       components: [RUN_COMPONENT.PACE, RUN_COMPONENT.PACE],
       stats: [RUN_STAT.JOBS_PER_SECOND],
-      settings: [RUN_SETTING.CONCURRENCY],
+      settings: [RUN_SETTING.CONCURRENCY, RUN_SETTING.FAST_MODE],
     });
     expect(view.components).toEqual([RUN_COMPONENT.PACE]);
     expect(listRunComponents({ runView: view })).toEqual([RUN_COMPONENT.PACE]);
     expect(listRunStats({ runView: view })).toEqual([RUN_STAT.JOBS_PER_SECOND]);
-    expect(listRunSettings({ runView: view })).toEqual([RUN_SETTING.CONCURRENCY]);
+    expect(listRunSettings({ runView: view })).toEqual([
+      RUN_SETTING.CONCURRENCY,
+      RUN_SETTING.FAST_MODE,
+    ]);
     expect(listFieldGroups({ runView: view })[0].fields).toEqual(["title"]);
     expect(hasRunComponent({ runView: view }, RUN_COMPONENT.PACE)).toBe(true);
     expect(hasRunStat({ runView: view }, RUN_STAT.OUTCOMES)).toBe(false);

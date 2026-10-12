@@ -8,16 +8,18 @@ import {
   HStack,
   NumberInput,
   Selector,
+  Switch,
   Text,
   Token,
   VStack,
 } from "sid-ui";
 
 import {
-  MAX_CONCURRENCY,
-  MAX_JOBS_PER_SECOND,
+  DEFAULT_CONCURRENCY,
+  DEFAULT_JOBS_PER_SECOND,
   MIN_CONCURRENCY,
   MIN_JOBS_PER_SECOND,
+  paceLimits,
 } from "../../api/paceSettings";
 import { SCRAPE_SOURCE } from "../../config/env";
 import { listDeclaredFields } from "../../routineKit/declaredFields";
@@ -48,34 +50,51 @@ function RoutineTokens({ routine }) {
 function PaceSettings({ routine, settings, onChange, isRunning }) {
   const showConcurrency = hasRunSetting(routine, RUN_SETTING.CONCURRENCY);
   const showRate = hasRunSetting(routine, RUN_SETTING.JOBS_PER_SECOND);
-  if (!showConcurrency && !showRate) return null;
+  const showFastMode = hasRunSetting(routine, RUN_SETTING.FAST_MODE);
+  if (!showConcurrency && !showRate && !showFastMode) return null;
+  const limits = paceLimits(settings.fastMode);
   return (
-    <HStack gap={3}>
-      {showConcurrency ? (
-        <NumberInput
-          label="Concurrency"
-          description={`Up to ${MAX_CONCURRENCY} parallel detail fetches`}
-          value={settings.concurrency}
-          min={MIN_CONCURRENCY}
-          max={MAX_CONCURRENCY}
-          onChange={(value) => onChange({ concurrency: value })}
+    <VStack gap={3}>
+      {showFastMode ? (
+        <Switch
+          label="Advanced / fast mode"
+          value={Boolean(settings.fastMode)}
+          onChange={(value) => onChange({ fastMode: value })}
           isDisabled={isRunning}
-          width="100%"
         />
       ) : null}
-      {showRate ? (
-        <NumberInput
-          label="Jobs / s"
-          description="Token-bucket target"
-          value={settings.jobsPerSecond}
-          min={MIN_JOBS_PER_SECOND}
-          max={MAX_JOBS_PER_SECOND}
-          onChange={(value) => onChange({ jobsPerSecond: value })}
-          isDisabled={isRunning}
-          width="100%"
-        />
-      ) : null}
-    </HStack>
+      <Text type="supporting" color="secondary">
+        {settings.fastMode
+          ? `Up to ${limits.concurrency} workers and ${limits.jobsPerSecond} jobs/s`
+          : `Default ${DEFAULT_CONCURRENCY} workers / ${DEFAULT_JOBS_PER_SECOND} jobs/s. Enable fast mode to raise the cap.`}
+      </Text>
+      <HStack gap={3}>
+        {showConcurrency ? (
+          <NumberInput
+            label="Concurrency"
+            description={`Up to ${limits.concurrency} parallel detail fetches`}
+            value={settings.concurrency}
+            min={MIN_CONCURRENCY}
+            max={limits.concurrency}
+            onChange={(value) => onChange({ concurrency: value })}
+            isDisabled={isRunning}
+            width="100%"
+          />
+        ) : null}
+        {showRate ? (
+          <NumberInput
+            label="Jobs / s"
+            description="Token-bucket target"
+            value={settings.jobsPerSecond}
+            min={MIN_JOBS_PER_SECOND}
+            max={limits.jobsPerSecond}
+            onChange={(value) => onChange({ jobsPerSecond: value })}
+            isDisabled={isRunning}
+            width="100%"
+          />
+        ) : null}
+      </HStack>
+    </VStack>
   );
 }
 
