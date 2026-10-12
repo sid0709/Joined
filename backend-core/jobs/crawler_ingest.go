@@ -241,11 +241,12 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 	if source == "" {
 		source = crawlerFallbackSource
 	}
+	foldCompanyMetadata(&job)
 	sanitizeCrawledJob(&job)
 	apply := crawledApplyURL(job)
 	extraMeta := map[string]any{}
 	for key, value := range job.Metadata {
-		if key == crawlerCrawledAtKey {
+		if key == crawlerCrawledAtKey || key == crawlerPostedAtSourceKey || isFoldedCompanyExtraKey(key) {
 			continue
 		}
 		extraMeta[key] = value
@@ -257,11 +258,14 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "tags", Value: cleanStrings(job.Tags)},
 		{Key: "skills", Value: cleanStrings(job.Skills)},
 		{Key: crawlerPostedAgoKey, Value: strings.TrimSpace(job.PostedAgo)},
-		{Key: "applicants", Value: bson.D{
-			{Key: "count", Value: job.Applicants.Count},
-			{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
-		}},
 	}
+	if source := strings.TrimSpace(stringValue(job.Metadata[crawlerPostedAtSourceKey])); source != "" {
+		metadata = append(metadata, bson.E{Key: crawlerPostedAtSourceKey, Value: source})
+	}
+	metadata = append(metadata, bson.E{Key: "applicants", Value: bson.D{
+		{Key: "count", Value: job.Applicants.Count},
+		{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
+	}})
 	if crawledAt := job.CrawledAt; crawledAt != "" {
 		metadata = append(metadata, bson.E{Key: crawlerCrawledAtKey, Value: crawledAt})
 	}

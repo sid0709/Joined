@@ -8,24 +8,27 @@ import (
 )
 
 const (
-	crawlerApplyURLKey    = "applyUrl"
-	crawlerApplyLinkKey   = "applyLink"
-	crawlerCompanyNameKey = "companyName"
-	crawlerCompanyKey     = "company"
-	crawlerCompanyLinkKey = "companyLink"
-	crawlerMetadataKey    = "metadata"
-	crawlerPostedAtKey    = "postedAt"
-	crawlerPostedAgoKey   = "postedAgo"
-	crawlerCrawledAtKey   = "crawledAt"
-	crawlerWebsiteKey     = "companyWebsite"
-	crawlerLogoKey        = "companyLogo"
-	crawlerLocationKey    = "location"
-	crawlerWorkModeKey    = "workMode"
-	crawlerEmploymentKey  = "employmentType"
-	crawlerSeniorityKey   = "seniority"
-	crawlerSalaryKey      = "salary"
-	crawlerDetailsKey     = "details"
-	crawlerExtraKey       = "extra"
+	crawlerApplyURLKey       = "applyUrl"
+	crawlerApplyLinkKey      = "applyLink"
+	crawlerCompanyNameKey    = "companyName"
+	crawlerCompanyKey        = "company"
+	crawlerCompanyLinkKey    = "companyLink"
+	crawlerMetadataKey       = "metadata"
+	crawlerPostedAtKey       = "postedAt"
+	crawlerPostedAgoKey      = "postedAgo"
+	crawlerPostedAtSourceKey = "postedAtSource"
+	crawlerCrawledAtKey      = "crawledAt"
+	crawlerWebsiteKey        = "companyWebsite"
+	crawlerSocialsKey        = "companySocials"
+	crawlerProfileURLKey     = "companyProfileUrl"
+	crawlerLogoKey           = "companyLogo"
+	crawlerLocationKey       = "location"
+	crawlerWorkModeKey       = "workMode"
+	crawlerEmploymentKey     = "employmentType"
+	crawlerSeniorityKey      = "seniority"
+	crawlerSalaryKey         = "salary"
+	crawlerDetailsKey        = "details"
+	crawlerExtraKey          = "extra"
 
 	// maxCrawlerJobMetadataBytes is the most extra metadata one job may store.
 	maxCrawlerJobMetadataBytes = 64 << 10
@@ -54,10 +57,17 @@ var companyMetadataAliases = []struct {
 	{"about", "about"},
 	{"companySocial", "social"},
 	{"social", "social"},
-	{"companySocials", "socials"},
+	{crawlerSocialsKey, "socials"},
 	{"socials", "socials"},
-	{"companyProfileUrl", "profileUrl"},
+	{crawlerProfileURLKey, "profileUrl"},
 	{"profileUrl", "profileUrl"},
+}
+
+// foldedCompanyExtraKeys are copied into metadata.company then dropped from extra.
+var foldedCompanyExtraKeys = map[string]struct{}{
+	crawlerWebsiteKey:    {},
+	crawlerSocialsKey:    {},
+	crawlerProfileURLKey: {},
 }
 
 // CrawledJob is one job as the crawler extension reads it from a job board.
@@ -219,6 +229,14 @@ func foldCompanyMetadata(job *CrawledJob) {
 	if _, exists := job.Company.Metadata["website"]; !exists && job.CompanyLink != "" {
 		job.Company.Metadata["website"] = job.CompanyLink
 	}
+	for key := range foldedCompanyExtraKeys {
+		delete(job.Metadata, key)
+	}
+}
+
+func isFoldedCompanyExtraKey(key string) bool {
+	_, ok := foldedCompanyExtraKeys[key]
+	return ok
 }
 
 func crawledApplyURL(job CrawledJob) string {
