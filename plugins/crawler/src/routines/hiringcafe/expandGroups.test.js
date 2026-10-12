@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { VIEW_ALL_CONTROL, VIEW_ALL_TEXT } from "./constants.js";
-import { expandShortGroups } from "./expandGroups.js";
+import { expandShortGroups, jobLinksFrom, viewAllJobLinks } from "./expandGroups.js";
 import { parseList } from "./parseList.js";
 import {
   INTERIM_JOBS,
@@ -106,5 +106,54 @@ describe("expandShortGroups", () => {
     );
     expect(expanded.jobs.some((job) => job.id === "zzzzzzzzzzzzzzzz")).toBe(false);
     expect(expanded.jobs.some((job) => job.id === "yyyyyyyyyyyyyyyy")).toBe(false);
+  });
+
+  test("keeps the parsed list when Show job and View all clicks fail", async () => {
+    const truncated = listPageHtml({
+      hits: interimHits().slice(0, 3),
+      cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
+    });
+    const parsed = parseList(truncated, LIST_URL);
+    const expanded = await expandShortGroups({
+      parsed,
+      pageUrl: LIST_URL,
+      skipDelays: true,
+      readPage: async () => ({ html: truncated, url: LIST_URL }),
+      call: async () => {
+        throw new Error("overlay gone");
+      },
+    });
+    expect(expanded.jobs.map((job) => job.id)).toEqual(parsed.jobs.map((job) => job.id));
+  });
+
+  test("returns the parsed list when there is no shortfall or no page reader", async () => {
+    const parsed = parseList(listPageHtml({ hits: interimHits().slice(0, 1) }), LIST_URL);
+    expect(parsed.shortfalls).toEqual([]);
+    expect(
+      await expandShortGroups({
+        parsed,
+        call: async () => ({}),
+        readPage: async () => ({}),
+      }),
+    ).toBe(parsed);
+    expect(
+      await expandShortGroups({
+        parsed: { jobs: [], shortfalls: [{ collapseKey: "missing", dots: 2 }] },
+        call: async () => ({}),
+        readPage: async () => ({ html: "", url: LIST_URL }),
+        pageUrl: LIST_URL,
+      }),
+    ).toEqual({ jobs: [], shortfalls: [{ collapseKey: "missing", dots: 2 }] });
+  });
+
+  test("jobLinksFrom ignores empty html and hrefs with no requisition id", () => {
+    expect(jobLinksFrom("", LIST_URL)).toEqual([]);
+    expect(jobLinksFrom("<a href='/jobs/all'>All</a>", LIST_URL)).toEqual([]);
+    expect(
+      viewAllJobLinks(
+        `<div role="dialog"><a href="${INTERIM_JOBS[0].path}">${INTERIM_JOBS[0].title}</a></div>`,
+        LIST_URL,
+      ),
+    ).toHaveLength(1);
   });
 });

@@ -171,7 +171,7 @@ function markDeltaOf(result) {
   return {
     marked: result?.marked ? 1 : 0,
     notMarked: result?.marked ? 0 : 1,
-    reason: result?.marked ? "" : String(result?.reason || "").trim(),
+    reason: result?.marked ? "" : String(result?.reason || result?.log || "").trim(),
     log: result?.log || "",
   };
 }

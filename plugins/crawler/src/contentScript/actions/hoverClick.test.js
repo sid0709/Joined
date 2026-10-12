@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { parseHTML } from "linkedom";
 
-import { hoverClickInDocument } from "./hoverClick.js";
+import { hoverAt, hoverClickInDocument, pickMatch } from "./hoverClick.js";
 
 const CARD = '[data-testid="job-results"] .hc-card-grid > div';
 const MARK = "div.absolute.top-0.right-0 div.bg-white";
@@ -60,5 +60,38 @@ describe("hoverClickInDocument", () => {
       }),
     ).toEqual({ found: true, hovered: true });
     expect(clicks).toBe(1);
+  });
+
+  test("returns found false when the card or Mark Applied is missing", () => {
+    const document = hoverOnlyCard(false);
+    expect(hoverClickInDocument(document, { selector: "[data-missing]" })).toEqual({
+      found: false,
+      hovered: false,
+    });
+    expect(
+      hoverClickInDocument(document, {
+        selector: CARD,
+        clickSelector: MARK,
+        contains: "Save for later",
+        exact: true,
+      }),
+    ).toEqual({ found: false, hovered: true });
+  });
+
+  test("pickMatch uses exact or includes text and hoverAt ignores dead nodes", () => {
+    const document = hoverOnlyCard(false);
+    const nodes = [...document.querySelectorAll("div")];
+    expect(pickMatch(nodes, { contains: "Mark Applied", exact: true })?.textContent.trim()).toBe(
+      "Mark Applied",
+    );
+    expect(pickMatch(nodes, { contains: "applied" })?.textContent.trim()).toBe("Mark Applied");
+    expect(pickMatch(nodes, { nth: 0 })?.tagName).toBe("DIV");
+    hoverAt({ getBoundingClientRect: () => ({ left: 8, top: 12 }) });
+    hoverAt({
+      getBoundingClientRect: () => ({ left: 0, top: 0 }),
+      dispatchEvent: () => {
+        throw new Error("no hover");
+      },
+    });
   });
 });

@@ -124,7 +124,7 @@ export default function LiveRunCard({ run, routine }) {
   const showStepper = hasRunComponent(routine, RUN_COMPONENT.STEPPER);
   const showPace = hasRunComponent(routine, RUN_COMPONENT.PACE);
   const showFields = hasRunComponent(routine, RUN_COMPONENT.FIELD_GROUPS);
-  const extractionBanner = extractErrorBanner(run.extractError);
+  const extractionBanner = extractErrorBanner(run.extractError, run.pace?.markReasons);
 
   return (
     <Card padding={4}>
