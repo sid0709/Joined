@@ -62,6 +62,37 @@ function jobRecord(detail) {
   return record;
 }
 
+function warnIfPageOneEmpty(hooks, page, cardCount) {
+  if (page !== 1 || cardCount !== 0) return;
+  hooks.onActivity?.({
+    phase: "open",
+    label: EMPTY_PAGE_ONE_LABEL,
+    kind: "waitFor",
+  });
+  console.warn(EMPTY_PAGE_ONE_LABEL);
+}
+
+async function finishIfNothingLeft(store, parsed, pageIds, lastPageIds) {
+  if ((!parsed.nextPageUrl && parsed.cards.length === 0) || (pageIds && pageIds === lastPageIds)) {
+    await store.clearCursor();
+    throw new RoutineFinishedError("Nothing left to process on Built In");
+  }
+}
+
+function nextInvalidStreak(streak) {
+  const next = streak + 1;
+  if (next >= INVALID_STREAK) {
+    throw new RoutineBlockedError(INVALID_STREAK_MESSAGE);
+  }
+  return next;
+}
+
+function throwIfSignedOut(html, isLoggedIn) {
+  if (isSignedOutSession({ html, isLoggedIn })) {
+    throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
+  }
+}
+
 function isAbortError(error) {
   return (
     error instanceof RoutineStoppedError ||
@@ -375,26 +406,9 @@ export async function runBuiltInPass(ctx, progress) {
 
     const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = cardIdKey(parsed.cards);
-    if (cursor.page === 1 && parsed.cards.length === 0) {
-      hooks.onActivity?.({
-        phase: "open",
-        label: EMPTY_PAGE_ONE_LABEL,
-        kind: "waitFor",
-      });
-      console.warn(EMPTY_PAGE_ONE_LABEL);
-    }
-    if (!parsed.nextPageUrl && parsed.cards.length === 0) {
-      await store.clearCursor();
-      throw new RoutineFinishedError("Nothing left to process on Built In");
-    }
-    if (pageIds && pageIds === cursor.lastPageIds) {
-      await store.clearCursor();
-      throw new RoutineFinishedError("Nothing left to process on Built In");
-    }
-
-    if (parsed.cards.length && isSignedOutSession({ html: listPage.html })) {
-      throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
-    }
+    warnIfPageOneEmpty(hooks, cursor.page, parsed.cards.length);
+    await finishIfNothingLeft(store, parsed, pageIds, cursor.lastPageIds);
+    if (parsed.cards.length) throwIfSignedOut(listPage.html);
 
     const card = await pickNextCard(parsed.cards, cursor.lastJobId);
 
@@ -452,12 +466,9 @@ export async function runBuiltInPass(ctx, progress) {
     const record = jobRecord(detail);
     const issues = requiredRecordIssues(record);
     if (issues.length) {
-      invalidStreak += 1;
+      invalidStreak = nextInvalidStreak(invalidStreak);
       noteCardDecision(jobId, cardInvalidDecision(issues));
       await advancePast(jobId);
-      if (invalidStreak >= INVALID_STREAK) {
-        throw new RoutineBlockedError(INVALID_STREAK_MESSAGE);
-      }
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
     }
@@ -468,13 +479,10 @@ export async function runBuiltInPass(ctx, progress) {
       await hooks.onRecord?.(record);
     } catch (error) {
       if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
-        invalidStreak += 1;
+        invalidStreak = nextInvalidStreak(invalidStreak);
         const fields = error.issues?.length ? error.issues : issues;
         noteCardDecision(jobId, cardInvalidDecision(fields));
         await advancePast(jobId);
-        if (invalidStreak >= INVALID_STREAK) {
-          throw new RoutineBlockedError(INVALID_STREAK_MESSAGE);
-        }
         await openVisible(pageUrl, "Returning to job list", "settle");
         continue;
       }
@@ -490,15 +498,11 @@ export async function runBuiltInPass(ctx, progress) {
       progress.tick();
       return;
     }
-    if (isSignedOutSession({ html: listAfter.html, isLoggedIn: detail.meta.isLoggedIn })) {
-      throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
-    }
+    throwIfSignedOut(listAfter.html, detail.meta.isLoggedIn);
     const heartSaved = await clickListHeart(jobId);
     if (!heartSaved) {
       const afterHeart = await readVisiblePage(call);
-      if (isSignedOutSession({ html: afterHeart.html, isLoggedIn: detail.meta.isLoggedIn })) {
-        throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
-      }
+      throwIfSignedOut(afterHeart.html, detail.meta.isLoggedIn);
     }
     backoff.onSuccess();
     emitCursor({ card: jobId, cardIndex, cardsOnPage: parsed.cards.length });
