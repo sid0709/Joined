@@ -20,9 +20,11 @@ import "./testing/domParser.js";
 const DETAIL_URL =
   "https://hiringcafe.com/job/help-desk-coordinator-shell-mobility-and-convenience-usa-houston-texas-uplqcnmhu405bzud";
 
+const CRAWL_TIME = new Date("2026-10-12T18:00:00.000Z");
+
 describe("parseDetail fields", () => {
   test("reads required ingest fields and an explicit metadata set", () => {
-    const record = parseDetail(detailPageHtml(), DETAIL_URL);
+    const record = parseDetail(detailPageHtml(), DETAIL_URL, { now: CRAWL_TIME });
     expect(record.applyUrl).toBe(
       "https://myjobs.adp.com/shellmobilityandconvenience/cx/job-details?reqId=5001231308500",
     );
@@ -38,6 +40,7 @@ describe("parseDetail fields", () => {
     expect(record.postedAt).toBe("2026-10-12T18:03:03.455Z");
     expect(record.postedAgo).toBe("Posted 3h ago");
     expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.ESTIMATED_PUBLISH_DATE);
+    expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(record.companyLogo).toContain("googleusercontent.com/s2/favicons");
     expect(record.location).toBe("Austin, Texas, United States");
     expect(record.workMode).toBe("onsite");

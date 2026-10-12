@@ -178,6 +178,18 @@ function hiringCafeTab({
       overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
       return { found: true };
     }
+    if (op.op === "hoverClick") {
+      hoveredId = idFromSelector(op.selector);
+      clicks.push(op);
+      if (appliedIds.has(hoveredId)) {
+        overlay = overlayMarkup({ applied: true });
+        return { found: false, hovered: true };
+      }
+      appliedIds.add(hoveredId);
+      overlay = overlayMarkup({ applied: true });
+      toast = true;
+      return { found: true, hovered: true };
+    }
     if (op.op === "watchFetch") return { watching: true };
     if (op.op === "watchedFetches") {
       return {
@@ -444,6 +456,23 @@ describe("HiringCafeRoutine", () => {
       "reqddd4444444444",
     ]);
     expect(outcomes.filter((outcome) => outcome === "duplicate").length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("marks already-ingested jobs that are not Applied on HiringCafe", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.markHandled("reqaaa1111111111", new Set());
+    const notices = [];
+    const page = hiringCafeTab();
+    const records = await collectJobs(store, page.exec, {
+      onNotice: (message) => notices.push(message),
+    });
+    expect(records.map((record) => record.requisitionId)).not.toContain("reqaaa1111111111");
+    expect(
+      page.clicks.some(
+        (click) => click.op === "hoverClick" && click.contains === MARK_APPLIED_TEXT,
+      ),
+    ).toBe(true);
+    expect(notices.some((message) => /not marked applied/i.test(message))).toBe(false);
   });
 
   test("skips a job whose hover overlay already shows Applied ✓", async () => {

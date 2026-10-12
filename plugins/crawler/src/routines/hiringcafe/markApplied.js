@@ -34,8 +34,12 @@ export function isMarkAppliedEnabled(enabled) {
   return enabled !== false;
 }
 
-function noteMark(onActivity, label, kind = "waitFor") {
+function noteMark(onActivity, label, kind = "waitFor", onNotice, ok = true) {
   onActivity?.({ phase: "dismiss", label, kind });
+  if (!ok) {
+    console.warn(label);
+    onNotice?.(label, false);
+  }
 }
 
 async function pause(rest, skipDelays, ms) {
@@ -154,10 +158,31 @@ async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
   };
 }
 
+async function clickMarkOnCard({ job, call, skipDelays }) {
+  const selector = exactCardSelector(job);
+  const wait = skipDelays ? 0 : MARK_APPLIED_WAIT_MS;
+  const hovered = await call("hoverClick", {
+    selector,
+    clickSelector: MARK_APPLIED,
+    contains: MARK_APPLIED_TEXT,
+    exact: true,
+    offsets: MARK_HOVER_OFFSETS,
+    wait,
+  }).catch(() => ({ found: false }));
+  if (hovered?.found) return hovered;
+  await hoverCard(call, selector);
+  return call("click", {
+    selector: `${selector} ${MARK_APPLIED}`,
+    contains: MARK_APPLIED_TEXT,
+    exact: true,
+    wait,
+  });
+}
+
 /**
- * Hover the specific grouped job's card, click Mark Applied only when the
- * overlay is not already Applied ✓, then confirm via toast, the stage API
- * 200, or Applied ✓ on that one card.
+ * Hover the specific grouped job's card and click Mark Applied in the same
+ * turn (the overlay is hover-only). Confirm via toast, the stage API 200, or
+ * Applied ✓ on that one card.
  */
 export async function markAppliedOnCard({
   job,
@@ -165,6 +190,7 @@ export async function markAppliedOnCard({
   rest,
   skipDelays = false,
   onActivity,
+  onNotice,
   readPage,
   enabled,
 } = {}) {
@@ -175,8 +201,7 @@ export async function markAppliedOnCard({
   }
   if (!exactCardSelector(job)) {
     const log = notMarkedLog(jobId, NOT_MARKED_REASON.NO_SELECTOR);
-    noteMark(onActivity, log);
-    console.warn(log);
+    noteMark(onActivity, log, "waitFor", onNotice, false);
     return { marked: false, log, reason: NOT_MARKED_REASON.NO_SELECTOR };
   }
   const ready = await readAppliedOnCard({ job, call, rest, skipDelays, readPage });
@@ -189,26 +214,15 @@ export async function markAppliedOnCard({
     noteMark(onActivity, log);
     return { marked: true, already: true, log };
   }
-  if (!ready.canMark) {
-    const log = notMarkedLog(jobId, NOT_MARKED_REASON.HOVER_MISSED);
-    noteMark(onActivity, log);
-    console.warn(log);
-    return { marked: false, log, reason: NOT_MARKED_REASON.HOVER_MISSED };
-  }
 
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
   await watchStageUpdate(call);
-  const clicked = await call("click", {
-    selector: `${exactCardSelector(job)} ${MARK_APPLIED}`,
-    contains: MARK_APPLIED_TEXT,
-    exact: true,
-    wait: skipDelays ? 0 : MARK_APPLIED_WAIT_MS,
-  });
+  const clicked = await clickMarkOnCard({ job, call, skipDelays });
   if (!clicked?.found) {
-    const log = notMarkedLog(jobId, NOT_MARKED_REASON.CLICK_MISSED);
-    noteMark(onActivity, log);
-    console.warn(log);
-    return { marked: false, log, reason: NOT_MARKED_REASON.CLICK_MISSED };
+    const reason = ready.canMark ? NOT_MARKED_REASON.CLICK_MISSED : NOT_MARKED_REASON.HOVER_MISSED;
+    const log = notMarkedLog(jobId, reason);
+    noteMark(onActivity, log, "waitFor", onNotice, false);
+    return { marked: false, log, reason };
   }
   const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
   if (confirmed.signedOut) {
@@ -221,7 +235,7 @@ export async function markAppliedOnCard({
     return { marked: true, log };
   }
   const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
-  noteMark(onActivity, log);
+  noteMark(onActivity, log, "waitFor", onNotice, false);
   console.warn(log, { found: clicked?.found, toast: confirmed.toast, fetchOk: confirmed.fetchOk });
   return { marked: false, log, reason: NOT_MARKED_REASON.NOT_CONFIRMED };
 }
@@ -237,6 +251,7 @@ export async function markAppliedOnDetail({
   rest,
   skipDelays = false,
   onActivity,
+  onNotice,
   readPage,
   enabled,
 } = {}) {
@@ -284,7 +299,7 @@ export async function markAppliedOnDetail({
     return { marked: true, via: "detail", log };
   }
   const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
-  noteMark(onActivity, log);
+  noteMark(onActivity, log, "waitFor", onNotice, false);
   return {
     marked: false,
     via: "detail",
@@ -314,10 +329,10 @@ export async function resolveMarkAfterDetail(detailMark, options) {
     noteMark(options?.onActivity, log);
     return { marked: true, already: true, via: "reread", log };
   }
-  return {
-    ...detailMark,
-    reason: detailMark?.reason || NOT_MARKED_REASON.NOT_CONFIRMED,
-  };
+  const reason = detailMark?.reason || NOT_MARKED_REASON.NOT_CONFIRMED;
+  const log = detailMark?.log || notMarkedLog(options?.job?.id || "", reason);
+  if (!detailMark?.log) noteMark(options?.onActivity, log, "waitFor", options?.onNotice, false);
+  return { ...detailMark, reason, log };
 }
 
 export async function markAppliedForJob(options) {

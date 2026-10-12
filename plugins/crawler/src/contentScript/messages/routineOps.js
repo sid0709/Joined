@@ -3,6 +3,7 @@ import { extractField, queryAll, waitForMatches } from "../../routineKit/extract
 import { assertFetchUrl, hostMatches } from "../../routineKit/match.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { clickLikeHuman } from "../actions/dom";
+import { hoverAt, hoverClickInDocument, pickMatch } from "../actions/hoverClick";
 import { scrollElementIntoView } from "../actions/scroll";
 import { clearHighlights, highlightElements } from "../highlighter";
 
@@ -10,45 +11,6 @@ import { clearHighlights, highlightElements } from "../highlighter";
 // the live page and answers with its result.
 
 const inFlightFetches = new Map();
-
-function elementText(element) {
-  return String(element?.textContent || "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function pickMatch(elements, { nth = 0, contains, exact = false } = {}) {
-  const needle = String(contains || "")
-    .trim()
-    .toLowerCase();
-  if (!needle) return elements[nth] || null;
-  const matches = elements.filter((element) => {
-    const text = elementText(element).toLowerCase();
-    return exact ? text === needle : text.includes(needle);
-  });
-  matches.sort((left, right) => elementText(left).length - elementText(right).length);
-  return matches[nth] || matches[0] || null;
-}
-
-function hoverAt(element, { x = 100, y = 100 } = {}) {
-  const rect = element.getBoundingClientRect?.() || { left: 0, top: 0 };
-  const clientX = rect.left + x;
-  const clientY = rect.top + y;
-  const opts = {
-    bubbles: true,
-    cancelable: true,
-    clientX,
-    clientY,
-    view: typeof window !== "undefined" ? window : undefined,
-  };
-  for (const type of ["mouseover", "mouseenter", "mousemove"]) {
-    try {
-      element.dispatchEvent(new MouseEvent(type, opts));
-    } catch {
-      /* stand-in nodes in tests may not implement dispatchEvent */
-    }
-  }
-}
 
 const OPS = {
   count: ({ selector }) => ({ count: queryAll(document, selector).length }),
@@ -103,6 +65,25 @@ const OPS = {
     if (!target) return { found: false };
     hoverAt(target, { x, y });
     return { found: true };
+  },
+  hoverClick: async ({
+    selector,
+    clickSelector,
+    nth = 0,
+    wait = 0,
+    contains,
+    exact = false,
+    offsets,
+  }) => {
+    await waitForMatches(document, selector, wait);
+    return hoverClickInDocument(document, {
+      selector,
+      clickSelector,
+      nth,
+      contains,
+      exact,
+      offsets,
+    });
   },
   extract: async ({ field }) => {
     await waitForMatches(document, field.selector, field.wait);

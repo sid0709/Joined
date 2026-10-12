@@ -25,6 +25,12 @@ import {
   workModeFrom,
 } from "./values.js";
 
+function crawlTimeOf(extras = {}) {
+  const now = extras.now;
+  if (now instanceof Date && !Number.isNaN(now.getTime())) return now;
+  return new Date();
+}
+
 function postedRawFrom(document) {
   for (const node of document.querySelectorAll("span, time, p, div")) {
     const text = textOf(node);
@@ -127,6 +133,7 @@ function recordFromJob(job, pageUrl, extras = {}) {
   );
   assignProvided(record, "companyAbout", asText(enriched.tagline || v5.company_tagline));
   assignProvided(record, "requisitionId", requisitionIdOf(job));
+  assignProvided(record, "crawledAt", crawlTimeOf(extras).toISOString());
 
   record.metadata = hiringCafeMetadata(job, {
     ...extras,
@@ -159,6 +166,7 @@ export function parseDetail(html, pageUrl = "", extras = {}) {
     cardHref: extras.cardHref,
     logo: extras.logo,
     location: extras.location,
+    now: extras.now,
     domLogo: companyLogoFromDom(document),
   });
   if (!parsed.applyUrl && extras.applyUrl) parsed.applyUrl = firstHttpOrWebsite(extras.applyUrl);

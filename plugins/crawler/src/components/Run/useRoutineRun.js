@@ -333,6 +333,8 @@ export function useRoutineRun() {
           const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
           const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
           const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
+          const markReasons = [...(current?.markReasons ?? [])];
+          if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
           return {
             ...current,
             ...next,
@@ -340,6 +342,7 @@ export function useRoutineRun() {
             notHearted,
             marked,
             notMarked,
+            markReasons,
             heartDelta: undefined,
             markDelta: undefined,
           };

@@ -14,6 +14,7 @@ import {
   jobCardSelectorForJobs,
   jobLinkPath,
   markedCountLabel,
+  markedReasonsLabel,
   START_FROM_PAGE_ONE_LABEL,
   cardDecisionLabel,
   cardInvalidDecision,
@@ -55,6 +56,9 @@ describe("handled skip", () => {
     expect(cardInvalidDecision()).toBe("invalid job data");
     expect(stuckPageMessage()).toBe("The same HiringCafe page failed 3 times. Crawl stopped.");
     expect(markedCountLabel()).toBe("0 marked · 0 not marked");
+    expect(markedReasonsLabel(["hover missed overlay", "hover missed overlay"])).toBe(
+      "hover missed overlay",
+    );
     expect(jobLinkPath("reqaaa1111111111")).toBe("");
     expect(jobLinkPath({ url: "https://hiringcafe.com/classic" })).toBe("");
     expect(jobLinkPath({ url: "not a url" })).toBe("");

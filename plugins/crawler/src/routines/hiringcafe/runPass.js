@@ -11,6 +11,7 @@ import { RoutineBlockedError, RoutineFinishedError } from "../../routineKit/runn
 import { isHiringCafeSignedOut } from "./appliedState.js";
 import { detectHiringCafeBlock, isTransientBlock } from "./challenge.js";
 import {
+  CARD_DECISION_MARK_ONLY,
   CARD_DECISION_OPENED,
   CARD_SKIP_ALREADY_APPLIED,
   CARD_SKIP_DETAIL_HANDLED,
@@ -37,7 +38,12 @@ import {
 import { expandShortGroups } from "./expandGroups.js";
 import { isJobHandled, jobsAfterCursor } from "./handled.js";
 import { advanceCursor, crawlListUrl, emptyCursor, jobIdKey, listUrlForPage } from "./lists.js";
-import { markAppliedOnDetail, readAppliedOnCard, resolveMarkAfterDetail } from "./markApplied.js";
+import {
+  markAppliedOnCard,
+  markAppliedOnDetail,
+  readAppliedOnCard,
+  resolveMarkAfterDetail,
+} from "./markApplied.js";
 import {
   createOpenVisible,
   createWaitForDetailReady,
@@ -131,9 +137,21 @@ async function pickNextJob({
 }) {
   for (const candidate of jobsAfterCursor(jobs, lastJobId)) {
     if (isJobHandled(candidate, handledIds)) {
-      noteJobDecision(candidate.id, CARD_SKIP_HANDLED);
+      if (!markAppliedEnabled) {
+        noteJobDecision(candidate.id, CARD_SKIP_HANDLED);
+        recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+        continue;
+      }
+      const applied = await readApplied(candidate);
+      if (applied.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
+      if (applied.marked) {
+        noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
+        recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+        continue;
+      }
+      noteJobDecision(candidate.id, CARD_DECISION_MARK_ONLY);
       recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
-      continue;
+      return { ...candidate, markOnly: true };
     }
     if (!markAppliedEnabled) return candidate;
     const applied = await readApplied(candidate);
@@ -150,7 +168,36 @@ async function pickNextJob({
 }
 
 function markDeltaOf(result) {
-  return { marked: result?.marked ? 1 : 0, notMarked: result?.marked ? 0 : 1 };
+  return {
+    marked: result?.marked ? 1 : 0,
+    notMarked: result?.marked ? 0 : 1,
+    reason: result?.marked ? "" : String(result?.reason || "").trim(),
+    log: result?.log || "",
+  };
+}
+
+async function finishMarkOnList({
+  marked,
+  emitCursor,
+  jobId,
+  jobIndex,
+  jobsOnPage,
+  backoff,
+  pause,
+  progress,
+}) {
+  emitCursor({
+    card: jobId,
+    cardIndex: jobIndex,
+    cardsOnPage: jobsOnPage,
+    jobIndex,
+    jobsOnPage,
+    markDelta: markDeltaOf(marked),
+  });
+  if (marked.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
+  backoff.onSuccess();
+  await pause(JOB_DELAY_MS);
+  progress.tick();
 }
 
 /**
@@ -356,6 +403,29 @@ export async function runHiringCafePass(ctx, progress) {
       kind: "click",
     });
     await call("highlight", { selector: jobCardSelector(job) }).catch(() => {});
+    const markArgs = {
+      job,
+      call,
+      rest,
+      skipDelays,
+      onActivity: hooks.onActivity,
+      onNotice: hooks.onNotice,
+      readPage,
+      enabled: markAppliedEnabled,
+    };
+    if (job.markOnly) {
+      await finishMarkOnList({
+        marked: await markAppliedOnCard(markArgs),
+        emitCursor,
+        jobId: job.id,
+        jobIndex,
+        jobsOnPage: parsed.jobs.length,
+        backoff,
+        pause,
+        progress,
+      });
+      return;
+    }
     if (!job.url) {
       noteJobDecision(job.id, CARD_SKIP_NO_URL);
       await advancePast(job.id);
@@ -388,8 +458,24 @@ export async function runHiringCafePass(ctx, progress) {
       hooks.recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
       await markJob(jobId);
       if (detailId !== jobId) await markJob(detailId);
-      await openVisible(pageUrl, "Returning to job list", "settle");
-      continue;
+      const listAfterHandled = await openVisible(pageUrl, "Returning to job list", "settle");
+      if (await handleBlock(listAfterHandled, pageUrl)) {
+        backoff.onSuccess();
+        progress.tick();
+        return;
+      }
+      throwIfSignedOut(listAfterHandled.html, markAppliedEnabled);
+      await finishMarkOnList({
+        marked: await markAppliedOnCard(markArgs),
+        emitCursor,
+        jobId,
+        jobIndex,
+        jobsOnPage: parsed.jobs.length,
+        backoff,
+        pause,
+        progress,
+      });
+      return;
     }
 
     const record = jobRecord(detail);
@@ -442,15 +528,6 @@ export async function runHiringCafePass(ctx, progress) {
       return;
     }
 
-    const markArgs = {
-      job,
-      call,
-      rest,
-      skipDelays,
-      onActivity: hooks.onActivity,
-      readPage,
-      enabled: markAppliedEnabled,
-    };
     const detailMark = await markAppliedOnDetail(markArgs);
     if (detailMark.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
 
@@ -461,19 +538,16 @@ export async function runHiringCafePass(ctx, progress) {
       return;
     }
     throwIfSignedOut(listAfter.html, markAppliedEnabled);
-    const marked = await resolveMarkAfterDetail(detailMark, markArgs);
-    emitCursor({
-      card: jobId,
-      cardIndex: jobIndex,
-      cardsOnPage: parsed.jobs.length,
+    await finishMarkOnList({
+      marked: await resolveMarkAfterDetail(detailMark, markArgs),
+      emitCursor,
+      jobId,
       jobIndex,
       jobsOnPage: parsed.jobs.length,
-      markDelta: markDeltaOf(marked),
+      backoff,
+      pause,
+      progress,
     });
-    if (marked.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
-    backoff.onSuccess();
-    await pause(JOB_DELAY_MS);
-    progress.tick();
     return;
   }
 }

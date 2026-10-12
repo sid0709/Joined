@@ -83,10 +83,13 @@ function markHarness({
       if (!marked) html = htmlAfterHover ?? listWith(overlayMarkup());
       return { found: true };
     }
-    if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
+    if (op === "hoverClick" || (op === "click" && payload.contains === MARK_APPLIED_TEXT)) {
+      if (op === "hoverClick" && !marked) html = htmlAfterHover ?? listWith(overlayMarkup());
+      const canClick = html.includes(MARK_APPLIED_TEXT) && !html.includes("Applied ✓");
+      if (!canClick) return { found: false, hovered: op === "hoverClick" };
       marked = true;
       html = htmlAfterClick ?? listWith(overlayMarkup({ applied: true }), { toast: true });
-      return { found: true };
+      return { found: true, hovered: true };
     }
     if (op === "click") return { found: true };
     if (op === "watchFetch") return { watching: true };
@@ -174,9 +177,11 @@ describe("markAppliedOnCard", () => {
     expect(result.marked).toBe(true);
     expect(result.already).toBeUndefined();
     expect(harness.ops.some((op) => op.op === "hover")).toBe(true);
-    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
-      true,
-    );
+    expect(
+      harness.ops.some(
+        (op) => (op.op === "hoverClick" || op.op === "click") && op.contains === MARK_APPLIED_TEXT,
+      ),
+    ).toBe(true);
     expect(harness.ops.some((op) => op.op === "watchFetch")).toBe(true);
     expect(result.log).toContain("marked applied");
   });
@@ -462,9 +467,11 @@ describe("resolveMarkAfterDetail", () => {
       { job: JOB, call: harness.call, skipDelays: true, readPage: harness.readPage },
     );
     expect(result.marked).toBe(true);
-    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
-      true,
-    );
+    expect(
+      harness.ops.some(
+        (op) => (op.op === "hoverClick" || op.op === "click") && op.contains === MARK_APPLIED_TEXT,
+      ),
+    ).toBe(true);
   });
 
   test("re-reads Applied ✓ after NOT_CONFIRMED and never clicks again", async () => {
@@ -482,6 +489,20 @@ describe("resolveMarkAfterDetail", () => {
     expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
       false,
     );
+  });
+
+  test("surfaces the not-marked reason on the errors notice", async () => {
+    const notices = [];
+    const harness = markHarness({ htmlAfterHover: listWith("") });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+      onNotice: (message, ok) => notices.push({ message, ok }),
+    });
+    expect(result.reason).toBe(NOT_MARKED_REASON.HOVER_MISSED);
+    expect(notices).toEqual([{ message: result.log, ok: false }]);
   });
 
   test("does not click again when the re-read is still unmarked", async () => {
@@ -529,7 +550,7 @@ describe("readAppliedOnCard", () => {
         if (op === "watchFetch" || op === "watchedFetches" || op === "unwatchFetch") {
           throw new Error("watch failed");
         }
-        if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
+        if ((op === "hoverClick" || op === "click") && payload.contains === MARK_APPLIED_TEXT) {
           html = listWith(overlayMarkup({ applied: true }), { toast: true });
         }
         return { found: true };

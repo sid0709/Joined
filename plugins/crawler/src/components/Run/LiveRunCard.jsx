@@ -14,7 +14,12 @@ import {
 import { formatElapsedTime } from "../../api/scrapeRunStats";
 import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
 import { heartedCountLabel, SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
-import { markedCountLabel, SIGN_IN_TO_MARK_MESSAGE } from "../../routines/hiringcafe/constants";
+import {
+  MARK_APPLIED_LABEL,
+  markedCountLabel,
+  markedReasonsLabel,
+  SIGN_IN_TO_MARK_MESSAGE,
+} from "../../routines/hiringcafe/constants";
 
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";
@@ -31,6 +36,12 @@ const formatPercent = (value) => `${Math.round(value)}%`;
 const STUCK_BANNER_TITLE =
   "Crawl stopped: sign in to Built In (or the page is dead), then press Start to resume from the saved cursor";
 const EXTRACT_ERROR_TITLE = "Extraction error";
+
+function noticeTitle(message) {
+  return /not marked applied/i.test(String(message || ""))
+    ? MARK_APPLIED_LABEL
+    : EXTRACT_ERROR_TITLE;
+}
 
 const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
@@ -84,7 +95,7 @@ function PaceStats({ pace, routine }) {
         <Badge
           variant="neutral"
           label={markedCountLabel(pace.marked ?? 0, pace.notMarked ?? 0)}
-          description="Mark Applied this run"
+          description={markedReasonsLabel(pace.markReasons) || "Mark Applied this run"}
         />
       ) : null}
       {showRate ? (
@@ -152,7 +163,11 @@ export default function LiveRunCard({ run, routine }) {
         ) : null}
 
         {run.extractError ? (
-          <Banner status="warning" title={EXTRACT_ERROR_TITLE} description={run.extractError} />
+          <Banner
+            status="warning"
+            title={noticeTitle(run.extractError)}
+            description={run.extractError}
+          />
         ) : null}
 
         {showPace ||

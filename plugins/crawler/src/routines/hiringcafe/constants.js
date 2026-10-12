@@ -100,6 +100,7 @@ export const METADATA_LIMIT_BYTES = 48 * 1024;
 export const SERVER_METADATA_LIMIT_BYTES = 64 * 1024;
 
 export const CARD_DECISION_OPENED = "opened";
+export const CARD_DECISION_MARK_ONLY = "already ingested, marking applied";
 export const CARD_SKIP_HANDLED = "already handled";
 export const CARD_SKIP_NO_URL = "no job URL";
 export const CARD_SKIP_DETAIL_HANDLED = "job page already handled";
@@ -240,6 +241,13 @@ export function jobCardSelectorForJobs(jobs) {
 
 export function markedCountLabel(marked = 0, notMarked = 0) {
   return `${marked} marked · ${notMarked} not marked`;
+}
+
+export function markedReasonsLabel(reasons = []) {
+  const unique = [
+    ...new Set((reasons ?? []).map((reason) => String(reason || "").trim()).filter(Boolean)),
+  ];
+  return unique.join(" · ");
 }
 
 export function markedAppliedLog(jobId) {
