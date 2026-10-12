@@ -258,28 +258,71 @@ export async function markAppliedOnDetail({
   }
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
   await watchStageUpdate(call);
-  await call("click", {
+  const clicked = await call("click", {
     selector: MARK_APPLIED,
     contains: MARK_APPLIED_TEXT,
     exact: true,
     wait: skipDelays ? 0 : MARK_APPLIED_WAIT_MS,
   });
+  if (!clicked?.found) {
+    return {
+      marked: false,
+      skipped: true,
+      via: "detail",
+      reason: NOT_MARKED_REASON.NO_SELECTOR,
+      log: "",
+    };
+  }
   const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
   if (confirmed.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
-  const log = confirmed.marked ? markedAppliedLog(jobId) : notMarkedLog(jobId);
+  if (confirmed.marked) {
+    const log = markedAppliedLog(jobId);
+    noteMark(onActivity, log);
+    return { marked: true, via: "detail", log };
+  }
+  const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
   noteMark(onActivity, log);
-  return { marked: confirmed.marked, via: "detail", log };
+  return {
+    marked: false,
+    via: "detail",
+    reason: NOT_MARKED_REASON.NOT_CONFIRMED,
+    log,
+  };
+}
+
+export function detailClickedNothing(result) {
+  return Boolean(result?.skipped) || result?.reason === NOT_MARKED_REASON.NO_SELECTOR;
+}
+
+/**
+ * Card fallback only when detail never clicked. After NOT_CONFIRMED, re-read
+ * Applied ✓ and do not click again (a second click can undo the mark).
+ */
+export async function resolveMarkAfterDetail(detailMark, options) {
+  if (detailMark?.signedOut) return detailMark;
+  if (detailMark?.marked || detailMark?.already) return detailMark;
+  if (detailClickedNothing(detailMark)) return markAppliedOnCard(options);
+  const ready = await readAppliedOnCard(options);
+  if (ready.signedOut) {
+    return { marked: false, signedOut: true, via: "reread", log: SIGN_IN_TO_MARK_MESSAGE };
+  }
+  if (ready.marked) {
+    const log = alreadyMarkedLog(options?.job?.id || "");
+    noteMark(options?.onActivity, log);
+    return { marked: true, already: true, via: "reread", log };
+  }
+  return {
+    ...detailMark,
+    reason: detailMark?.reason || NOT_MARKED_REASON.NOT_CONFIRMED,
+  };
 }
 
 export async function markAppliedForJob(options) {
   if (!isMarkAppliedEnabled(options?.enabled)) {
     return { marked: false, skipped: true, log: "" };
   }
-  const fromDetail = await markAppliedOnDetail(options);
-  if (fromDetail.signedOut) return fromDetail;
-  if (fromDetail.skipped) return markAppliedOnCard(options);
-  return fromDetail;
+  return resolveMarkAfterDetail(await markAppliedOnDetail(options), options);
 }

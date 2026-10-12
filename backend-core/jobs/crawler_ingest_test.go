@@ -209,6 +209,82 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 	}
 }
 
+func TestCrawledTempDocumentRejectsRawCompanyWebsite(t *testing.T) {
+	now := time.Date(2026, 10, 12, 18, 0, 0, 0, time.UTC)
+	id := bson.NewObjectID()
+
+	type websiteDoc struct {
+		CompanyLink string `bson:"companyLink"`
+		Metadata    struct {
+			CompanyWebsite string         `bson:"companyWebsite"`
+			PostedAtSource string         `bson:"postedAtSource"`
+			Extra          map[string]any `bson:"extra"`
+		} `bson:"metadata"`
+	}
+
+	decode := func(job CrawledJob) websiteDoc {
+		t.Helper()
+		raw, err := bson.Marshal(crawledTempDocument(id, job, "joined-scrapper", now))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var doc websiteDoc
+		if err := bson.Unmarshal(raw, &doc); err != nil {
+			t.Fatal(err)
+		}
+		return doc
+	}
+
+	preferCleaned := crawledJob("https://acme.com/apply/js")
+	preferCleaned.CompanyLink = "https://acme.com/"
+	preferCleaned.Company.Metadata["website"] = "javascript:alert(1)"
+	preferCleaned.Metadata["companyWebsite"] = "javascript:void(0)"
+	got := decode(preferCleaned)
+	if got.CompanyLink != "https://acme.com/" || got.Metadata.CompanyWebsite != "https://acme.com/" {
+		t.Fatalf("prefer cleaned CompanyLink: %+v", got)
+	}
+	if _, ok := got.Metadata.Extra["companyWebsite"]; ok {
+		t.Fatalf("raw extra leaked: %+v", got.Metadata.Extra)
+	}
+
+	rejectJS := crawledJob("https://acme.com/apply/js2")
+	rejectJS.CompanyLink = "javascript:void(0)"
+	rejectJS.Company.Metadata["website"] = "javascript:void(0)"
+	rejectJS.Metadata["companyWebsite"] = "javascript:void(0)"
+	got = decode(rejectJS)
+	if got.CompanyLink != "" || got.Metadata.CompanyWebsite != "" {
+		t.Fatalf("javascript: website lifted: %+v", got)
+	}
+
+	rejectBuiltin := crawledJob("https://acme.com/apply/bi")
+	rejectBuiltin.CompanyLink = "https://www.builtin.com/company/north"
+	rejectBuiltin.Company.Metadata["website"] = "https://builtin.com/company/north"
+	rejectBuiltin.Metadata["companyWebsite"] = "https://builtin.com/company/acme"
+	got = decode(rejectBuiltin)
+	if got.CompanyLink != "" || got.Metadata.CompanyWebsite != "" {
+		t.Fatalf("builtin.com website lifted: %+v", got)
+	}
+
+	fromExtra := crawledJob("https://acme.com/apply/extra")
+	fromExtra.CompanyLink = ""
+	fromExtra.Company.Metadata["website"] = ""
+	fromExtra.Metadata["companyWebsite"] = "https://clean.example/"
+	got = decode(fromExtra)
+	if got.CompanyLink != "https://clean.example/" || got.Metadata.CompanyWebsite != "https://clean.example/" {
+		t.Fatalf("valid extra website: %+v", got)
+	}
+
+	unknownSource := crawledJob("https://acme.com/apply/src")
+	unknownSource.Metadata["postedAtSource"] = "crawl_clock"
+	got = decode(unknownSource)
+	if got.Metadata.PostedAtSource != "" {
+		t.Fatalf("unknown postedAtSource lifted: %q", got.Metadata.PostedAtSource)
+	}
+	if _, ok := got.Metadata.Extra["postedAtSource"]; ok {
+		t.Fatalf("postedAtSource leaked into extra: %+v", got.Metadata.Extra)
+	}
+}
+
 func TestCrawledTempDocumentStoresCompanyProfileAndSocials(t *testing.T) {
 	now := time.Date(2026, 10, 12, 18, 0, 0, 0, time.UTC)
 	job := crawledJob("https://north.example/apply/1")

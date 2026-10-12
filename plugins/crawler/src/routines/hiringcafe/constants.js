@@ -78,7 +78,7 @@ export const CHALLENGE_POLL_MS = 1_000;
 export const RETRY_PAUSE_MS = 400;
 export const CARD_DOT = 'button[aria-label^="Show job "]';
 export const VIEW_ALL_TEXT = "View all";
-export const VIEW_ALL_CONTROL = "button, a";
+export const VIEW_ALL_CONTROL = "button";
 export const VIEW_ALL_PANEL =
   '[role="dialog"], [aria-modal="true"], dialog, [data-testid="view-all"]';
 export const INVALID_STREAK = 5;

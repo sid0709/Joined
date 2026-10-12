@@ -1,10 +1,10 @@
 import { queryAll } from "../../routineKit/extract.js";
 
 import {
-  JOB_CARD,
   JOB_LINK,
   JOB_PATH,
   MARK_HOVER_MS,
+  NAVIGATE_WAIT_MS,
   VIEW_ALL_CONTROL,
   VIEW_ALL_PANEL,
   VIEW_ALL_TEXT,
@@ -14,6 +14,7 @@ import {
   requisitionIdFromHref,
 } from "./constants.js";
 import { documentFromHtml, resolveUrl, textOf } from "./html.js";
+import { sameUrl } from "./page.js";
 import { attachGroups, groupHits, groupShortfalls, parseJobHit } from "./parseList.js";
 import { asText } from "./values.js";
 
@@ -136,16 +137,24 @@ export async function expandShortGroups({
         selector: `${selector} ${carouselShowSelector(index)}`,
       }).catch(() => {});
       await pause(rest, skipDelays, MARK_HOVER_MS);
-      extras.push(...jobLinksFrom((await readPage()).html, pageUrl, JOB_CARD));
+      extras.push(...jobLinksFrom((await readPage()).html, pageUrl, selector));
     }
+    const before = await readPage();
     await call("click", {
       selector: `${selector} ${VIEW_ALL_CONTROL}`,
       contains: VIEW_ALL_TEXT,
       exact: true,
     }).catch(() => {});
     await pause(rest, skipDelays, MARK_HOVER_MS);
-    extras.push(...viewAllJobLinks((await readPage()).html, pageUrl));
-    extras.push(...jobLinksFrom((await readPage()).html, pageUrl, JOB_CARD));
+    let after = await readPage();
+    if (after.url && pageUrl && !sameUrl(after.url, pageUrl)) {
+      await call("navigate", { url: pageUrl, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS).catch(
+        () => {},
+      );
+      after = await readPage();
+    }
+    extras.push(...viewAllJobLinks(after.html, pageUrl));
+    extras.push(...jobLinksFrom(after.html || before.html, pageUrl, selector));
     next = mergeLinksIntoGroup(next, extras, shortfall.collapseKey, pageUrl);
   }
   return next;

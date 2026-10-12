@@ -41,7 +41,8 @@ export const RUN_STATUS = Object.freeze({
   STOPPED: "stopped",
 });
 
-const INGEST_ACCEPT_TIMEOUT_MS = 8_000;
+const INGEST_ACCEPT_TIMEOUT_MS = 20_000;
+const INGEST_ACCEPT_RETRIES = 1;
 
 function isIngestAccepted(outcome) {
   return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
@@ -142,18 +143,38 @@ export function useRoutineRun() {
         resolve(isIngestAccepted(already) ? true : null);
         return;
       }
-      const timer = setTimeout(() => {
-        ingestWaiters.current.delete(id);
-        resolve(null);
-      }, INGEST_ACCEPT_TIMEOUT_MS);
-      ingestWaiters.current.set(id, (outcome) => {
-        clearTimeout(timer);
-        if (isIngestRejected(outcome)) {
-          resolve(false);
-          return;
-        }
-        resolve(isIngestAccepted(outcome) ? true : null);
-      });
+      let attempts = 0;
+      const arm = () => {
+        const timer = setTimeout(() => {
+          ingestWaiters.current.delete(id);
+          const late = ingestOutcomes.current.get(id) ?? earlyResults.current.get(id);
+          if (late) {
+            ingestOutcomes.current.delete(id);
+            earlyResults.current.delete(id);
+            if (isIngestRejected(late)) {
+              resolve(false);
+              return;
+            }
+            resolve(isIngestAccepted(late) ? true : null);
+            return;
+          }
+          if (attempts < INGEST_ACCEPT_RETRIES) {
+            attempts += 1;
+            arm();
+            return;
+          }
+          resolve(null);
+        }, INGEST_ACCEPT_TIMEOUT_MS);
+        ingestWaiters.current.set(id, (outcome) => {
+          clearTimeout(timer);
+          if (isIngestRejected(outcome)) {
+            resolve(false);
+            return;
+          }
+          resolve(isIngestAccepted(outcome) ? true : null);
+        });
+      };
+      arm();
     });
   }, []);
 
@@ -191,7 +212,7 @@ export function useRoutineRun() {
           }
           if (!targetRef.current?.routine?.options?.waitForIngestAccept) return;
           const accepted = early ? isIngestAccepted(early) : await waitForIngestAccept(response.id);
-          if (!accepted) return false;
+          if (accepted === false) return false;
         })
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);

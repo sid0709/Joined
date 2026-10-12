@@ -16,6 +16,7 @@ import {
   APPLIED_CHECK_TEXT,
   MARK_APPLIED_TEXT,
   MARK_TOAST_TEXT,
+  NOT_MARKED_REASON,
   SIGN_IN_TO_MARK_MESSAGE,
   UPDATE_STAGE_OK,
   UPDATE_STAGE_PATH,
@@ -26,6 +27,7 @@ import {
   markAppliedOnCard,
   markAppliedOnDetail,
   readAppliedOnCard,
+  resolveMarkAfterDetail,
 } from "./markApplied.js";
 import {
   cardMarkup,
@@ -422,6 +424,82 @@ describe("markAppliedForJob", () => {
       readPage: async () => ({ html: listPageHtml() }),
     });
     expect(result).toEqual({ marked: false, skipped: true, log: "" });
+  });
+
+  test("does not click Mark Applied a second time after detail NOT_CONFIRMED", async () => {
+    let html = listWith(overlayMarkup());
+    let markClicks = 0;
+    const result = await markAppliedForJob({
+      job: JOB,
+      skipDelays: true,
+      call: async (op, payload = {}) => {
+        if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
+          markClicks += 1;
+          html = listWith(overlayMarkup());
+        }
+        if (op === "watchedFetches") return { hits: [] };
+        return { found: true };
+      },
+      readPage: async () => ({ html, url: "https://hiringcafe.com/job/x", status: 200 }),
+    });
+    expect(markClicks).toBe(1);
+    expect(result.marked).toBe(false);
+    expect(result.reason).toBe(NOT_MARKED_REASON.NOT_CONFIRMED);
+  });
+});
+
+describe("resolveMarkAfterDetail", () => {
+  test("falls back to the card only when detail clicked nothing", async () => {
+    const harness = markHarness();
+    const result = await resolveMarkAfterDetail(
+      {
+        marked: false,
+        skipped: true,
+        via: "detail",
+        reason: NOT_MARKED_REASON.NO_SELECTOR,
+        log: "",
+      },
+      { job: JOB, call: harness.call, skipDelays: true, readPage: harness.readPage },
+    );
+    expect(result.marked).toBe(true);
+    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
+      true,
+    );
+  });
+
+  test("re-reads Applied ✓ after NOT_CONFIRMED and never clicks again", async () => {
+    const harness = markHarness({ htmlAfterHover: listWith(overlayMarkup({ applied: true })) });
+    const result = await resolveMarkAfterDetail(
+      {
+        marked: false,
+        via: "detail",
+        reason: NOT_MARKED_REASON.NOT_CONFIRMED,
+        log: "Job reqaaa1111111111 not marked applied: no Applied ✓, toast, or stage 200",
+      },
+      { job: JOB, call: harness.call, skipDelays: true, readPage: harness.readPage },
+    );
+    expect(result).toMatchObject({ marked: true, already: true, via: "reread" });
+    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
+      false,
+    );
+  });
+
+  test("does not click again when the re-read is still unmarked", async () => {
+    const harness = markHarness({ htmlAfterHover: listWith(overlayMarkup()) });
+    const result = await resolveMarkAfterDetail(
+      {
+        marked: false,
+        via: "detail",
+        reason: NOT_MARKED_REASON.NOT_CONFIRMED,
+        log: "Job reqaaa1111111111 not marked applied: no Applied ✓, toast, or stage 200",
+      },
+      { job: JOB, call: harness.call, skipDelays: true, readPage: harness.readPage },
+    );
+    expect(result.marked).toBe(false);
+    expect(result.reason).toBe(NOT_MARKED_REASON.NOT_CONFIRMED);
+    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
+      false,
+    );
   });
 });
 

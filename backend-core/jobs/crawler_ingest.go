@@ -224,6 +224,38 @@ func cleanStrings(values []string) []string {
 	return out
 }
 
+var allowedPostedAtSources = map[string]struct{}{
+	"estimated_publish_date": {},
+	"jsonLd":                 {},
+	"jsonld":                 {},
+	"jsonld+ago":             {},
+	"ago":                    {},
+	"dom":                    {},
+	"none":                   {},
+}
+
+func postedAtSourceValue(raw string) string {
+	value := strings.TrimSpace(raw)
+	if _, ok := allowedPostedAtSources[value]; ok {
+		return value
+	}
+	return ""
+}
+
+func cleanedCompanyWebsite(job CrawledJob, extraMeta map[string]any) string {
+	for _, raw := range []string{
+		job.CompanyLink,
+		stringValue(job.Company.Metadata[crawlerCompanyWebsiteKey]),
+		stringValue(extraMeta[crawlerWebsiteKey]),
+		stringValue(job.Metadata[crawlerWebsiteKey]),
+	} {
+		if clean, ok := crawlerCompanyWebsite(raw); ok {
+			return clean
+		}
+	}
+	return ""
+}
+
 func mapToBSON(meta map[string]any) bson.D {
 	return sanitizeMetadataMap(meta, 1, false)
 }
@@ -273,19 +305,15 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 	if crawledAt := job.CrawledAt; crawledAt != "" {
 		metadata = append(metadata, bson.E{Key: crawlerCrawledAtKey, Value: crawledAt})
 	}
-	if source := firstString(extraMeta["postedAtSource"], job.Metadata["postedAtSource"]); source != "" {
+	if source := postedAtSourceValue(firstString(extraMeta["postedAtSource"], job.Metadata["postedAtSource"])); source != "" {
 		metadata = append(metadata, bson.E{Key: "postedAtSource", Value: source})
-		delete(extraMeta, "postedAtSource")
 	}
-	if website := firstString(
-		extraMeta[crawlerWebsiteKey],
-		job.Metadata[crawlerWebsiteKey],
-		job.CompanyLink,
-		job.Company.Metadata["website"],
-	); website != "" {
+	delete(extraMeta, "postedAtSource")
+	website := cleanedCompanyWebsite(job, extraMeta)
+	if website != "" {
 		metadata = append(metadata, bson.E{Key: crawlerWebsiteKey, Value: website})
-		delete(extraMeta, crawlerWebsiteKey)
 	}
+	delete(extraMeta, crawlerWebsiteKey)
 	if company := crawledCompanyMetadata(job.Company); len(company) > 0 {
 		metadata = append(metadata, bson.E{Key: crawlerCompanyKey, Value: company})
 	}
@@ -296,7 +324,7 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "_id", Value: id},
 		{Key: "title", Value: strings.TrimSpace(job.Title)},
 		{Key: "companyName", Value: crawledCompanyName(job)},
-		{Key: "companyLink", Value: strings.TrimSpace(firstString(job.CompanyLink, job.Company.Metadata["website"], job.Metadata[crawlerWebsiteKey]))},
+		{Key: "companyLink", Value: website},
 		{Key: "description", Value: strings.TrimSpace(job.Description)},
 		{Key: "applyLink", Value: apply},
 		{Key: applyLinkKeyField, Value: CanonicalApplyURL(apply)},

@@ -37,7 +37,7 @@ import {
 import { expandShortGroups } from "./expandGroups.js";
 import { isJobHandled, jobsAfterCursor } from "./handled.js";
 import { advanceCursor, crawlListUrl, emptyCursor, jobIdKey, listUrlForPage } from "./lists.js";
-import { markAppliedOnCard, markAppliedOnDetail, readAppliedOnCard } from "./markApplied.js";
+import { markAppliedOnDetail, readAppliedOnCard, resolveMarkAfterDetail } from "./markApplied.js";
 import {
   createOpenVisible,
   createWaitForDetailReady,
@@ -461,8 +461,7 @@ export async function runHiringCafePass(ctx, progress) {
       return;
     }
     throwIfSignedOut(listAfter.html, markAppliedEnabled);
-    const marked =
-      detailMark.marked || detailMark.already ? detailMark : await markAppliedOnCard(markArgs);
+    const marked = await resolveMarkAfterDetail(detailMark, markArgs);
     emitCursor({
       card: jobId,
       cardIndex: jobIndex,
