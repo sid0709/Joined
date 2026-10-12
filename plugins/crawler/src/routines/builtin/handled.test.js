@@ -12,7 +12,13 @@ import {
   cardDecisionLabel,
   jitterMs,
 } from "./constants.js";
-import { cssEscape, jobCardSelector, jobSaveSelector } from "./cssEscape.js";
+import {
+  cssEscape,
+  cssUnescape,
+  entityIdFromSaveHost,
+  jobCardSelector,
+  jobSaveSelector,
+} from "./cssEscape.js";
 import {
   cardsAfterCursor,
   contiguousLastJobId,
@@ -39,9 +45,9 @@ describe("handled skip", () => {
     expect(cardsAfterCursor(cards, "missing").map((card) => card.id)).toEqual(["a", "b", "c", "d"]);
     expect(nextUnhandledCard(cards, handled, "a")?.id).toBe("d");
     expect(nextUnhandledCard(cards, handledIdSet([]), "")?.id).toBe("a");
-    expect(nextUnhandledCard(cards, handledIdSet(["a", "c", "d"]), "")).toBeNull();
+    expect(nextUnhandledCard(cards, handledIdSet(["a", "b", "c", "d"]), "")).toBeNull();
     expect(nextUnhandledCard(cards, handledIdSet([]), "missing")?.id).toBe("a");
-    expect(nextUnhandledCard(cards, handledIdSet(["a", "c"]), "missing")?.id).toBe("d");
+    expect(nextUnhandledCard(cards, handledIdSet(["a", "b", "c"]), "missing")?.id).toBe("d");
     expect(contiguousLastJobId(cards, handledIdSet(["c", "d"]), "a")).toBe("a");
     expect(contiguousLastJobId(cards, handledIdSet(["c", "d"]), "")).toBe("");
     expect(contiguousLastJobId([{ id: "a" }, { id: "b" }], handledIdSet(["a", "b"]), "")).toBe("b");
@@ -69,6 +75,8 @@ describe("handled skip", () => {
     expect(jobSaveSelector(evil)).toBe(`my-item[entity-type="job"][entity-id=${cssEscape(evil)}]`);
     expect(jobSaveSelector(evil)).not.toContain(`"${evil}"`);
     expect(cssEscape("\0")).toBe("\uFFFD");
+    expect(cssUnescape(cssEscape("22222222"))).toBe("22222222");
+    expect(entityIdFromSaveHost(jobSaveSelector("22222222"))).toBe("22222222");
   });
 
   test("persists handled IDs and the crawl cursor", async () => {

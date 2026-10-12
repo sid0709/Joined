@@ -33,10 +33,22 @@ function escapeCssIdent(text) {
   return out;
 }
 
+/** Reverse `cssEscape` for numeric ids (`\\32 2222222` → `22222222`). */
+export function cssUnescape(value) {
+  return String(value ?? "").replace(/\\([0-9a-fA-F]{1,6})(?:\r\n|[ \t\r\n\f])?/g, (_, hex) =>
+    String.fromCodePoint(Number.parseInt(hex, 16)),
+  );
+}
+
 export function jobCardSelector(id) {
   return `div[data-id="job-card"]#${cssEscape(`job-card-${id}`)}`;
 }
 
 export function jobSaveSelector(id) {
   return `my-item[entity-type="job"][entity-id=${cssEscape(id)}]`;
+}
+
+export function entityIdFromSaveHost(host) {
+  const raw = String(host ?? "").match(/entity-id=([^\]]+)/)?.[1] || "";
+  return cssUnescape(raw);
 }

@@ -18,7 +18,7 @@ import {
   cardDecisionLabel,
   stuckPageMessage,
 } from "./builtin/constants.js";
-import { jobSaveSelector } from "./builtin/cssEscape.js";
+import { entityIdFromSaveHost, jobSaveSelector } from "./builtin/cssEscape.js";
 import { createBuiltinStore, memoryStorage } from "./builtin/store.js";
 import { loadFixture } from "./builtin/testing/loadFixture.js";
 import BuiltInRoutine from "./BuiltInRoutine.js";
@@ -117,7 +117,7 @@ function builtinTab({
     }
     if (op.op === "shadow") {
       shadows.push({ host: op.host, action: op.action });
-      const id = String(op.host).match(/entity-id=([^\]\s]+)/)?.[1];
+      const id = entityIdFromSaveHost(op.host);
       if (!shadowFound) return { found: false, open: false, classes: "", prefix: "" };
       if (op.action === "click" && id) heartsState[id] = true;
       const saved = Boolean(id && heartsState[id]);
