@@ -299,12 +299,6 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "skills", Value: cleanStrings(job.Skills)},
 		{Key: crawlerPostedAgoKey, Value: strings.TrimSpace(job.PostedAgo)},
 	}
-	if source := postedAtSourceValue(
-		firstString(job.Metadata[crawlerPostedAtSourceKey], extraMeta[crawlerPostedAtSourceKey]),
-	); source != "" {
-		metadata = append(metadata, bson.E{Key: crawlerPostedAtSourceKey, Value: source})
-	}
-	delete(extraMeta, crawlerPostedAtSourceKey)
 	metadata = append(metadata, bson.E{Key: "applicants", Value: bson.D{
 		{Key: "count", Value: job.Applicants.Count},
 		{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
@@ -312,6 +306,12 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 	if crawledAt := job.CrawledAt; crawledAt != "" {
 		metadata = append(metadata, bson.E{Key: crawlerCrawledAtKey, Value: crawledAt})
 	}
+	if source := postedAtSourceValue(
+		firstString(job.Metadata[crawlerPostedAtSourceKey], extraMeta[crawlerPostedAtSourceKey]),
+	); source != "" {
+		metadata = append(metadata, bson.E{Key: crawlerPostedAtSourceKey, Value: source})
+	}
+	delete(extraMeta, crawlerPostedAtSourceKey)
 	website := cleanedCompanyWebsite(job, extraMeta)
 	if website != "" {
 		metadata = append(metadata, bson.E{Key: crawlerWebsiteKey, Value: website})

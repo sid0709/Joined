@@ -219,14 +219,14 @@ func foldCompanyMetadata(job *CrawledJob) {
 		job.Company.Metadata = map[string]any{}
 	}
 	for _, alias := range companyMetadataAliases {
-		if _, exists := job.Company.Metadata[alias.to]; exists {
+		if strings.TrimSpace(stringValue(job.Company.Metadata[alias.to])) != "" {
 			continue
 		}
 		if value, ok := job.Metadata[alias.from]; ok {
 			job.Company.Metadata[alias.to] = value
 		}
 	}
-	if _, exists := job.Company.Metadata["website"]; !exists && job.CompanyLink != "" {
+	if strings.TrimSpace(stringValue(job.Company.Metadata["website"])) == "" && job.CompanyLink != "" {
 		job.Company.Metadata["website"] = job.CompanyLink
 	}
 	for key := range foldedCompanyExtraKeys {
