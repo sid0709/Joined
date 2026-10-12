@@ -13,6 +13,7 @@ import {
 
 import { formatElapsedTime } from "../../api/scrapeRunStats";
 import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
+import { SIGN_IN_TO_SAVE_MESSAGE } from "../../routines/builtin/constants";
 
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";
@@ -110,7 +111,17 @@ export default function LiveRunCard({ run, routine }) {
         </HStack>
 
         {run.warning ? (
-          <Banner status="warning" title={STUCK_BANNER_TITLE} description={run.warning} />
+          <Banner
+            status="warning"
+            title={
+              run.warning === SIGN_IN_TO_SAVE_MESSAGE ? SIGN_IN_TO_SAVE_MESSAGE : STUCK_BANNER_TITLE
+            }
+            description={
+              run.warning === SIGN_IN_TO_SAVE_MESSAGE
+                ? "Press Start to resume from the saved cursor after you sign in."
+                : run.warning
+            }
+          />
         ) : null}
 
         {showPace ||

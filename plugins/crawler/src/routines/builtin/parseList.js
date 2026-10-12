@@ -8,11 +8,13 @@ import {
   JOB_CARD_TITLE,
   JOBS_PATH,
   NEXT_PAGE,
-  SAVED_TAG,
-  SAVED_TAG_TEXT,
+  SAVE_HOST,
+  SAVED_BADGE,
+  SAVED_BADGE_TEXT,
 } from "./constants.js";
 import { documentFromHtml, resolveUrl, textOf } from "./html.js";
 import { parseJobBoardInit } from "./parseInit.js";
+import { isVisibleElement } from "./visible.js";
 
 const JOB_ID_FROM_CARD = /^job-card-(\d+)$/;
 const JOB_ID_FROM_ALIAS = /\/(\d+)\/?$/;
@@ -27,27 +29,25 @@ export function jobIdFromCard(card, alias = "") {
   return String(alias).match(JOB_ID_FROM_ALIAS)?.[1] || "";
 }
 
-/** True when Alpine has revealed the Saved tag (SSR HTML keeps both spans x-cloak). */
-export function cardHasSavedTag(card) {
-  const saved = queryOne(card, SAVED_TAG);
-  if (!saved) return false;
-  if (saved.hasAttribute("x-cloak")) return false;
-  return saved.textContent?.toLowerCase().includes(SAVED_TAG_TEXT.toLowerCase()) ?? false;
-}
-
 export function parseJobCard(card, pageUrl) {
   const titleLink = queryOne(card, JOB_CARD_TITLE);
   const alias = titleLink?.getAttribute("data-alias") || titleLink?.getAttribute("href") || "";
   const id = jobIdFromCard(card, alias);
   if (!id) return null;
   const company = queryOne(card, COMPANY_TITLE);
+  const badge = queryOne(card, SAVED_BADGE);
+  const badgeText = textOf(badge);
   return {
     id: String(id),
     title: textOf(titleLink),
     url: alias ? resolveUrl(alias, pageUrl) : "",
     companyName: textOf(queryOne(company, "span") || company),
     logo: queryOne(card, COMPANY_LOGO)?.getAttribute("src") || "",
-    hasSavedTag: cardHasSavedTag(card),
+    hasSaveHost: Boolean(queryOne(card, SAVE_HOST)),
+    hasVisibleSavedBadge:
+      Boolean(badge) &&
+      new RegExp(SAVED_BADGE_TEXT, "i").test(badgeText) &&
+      isVisibleElement(badge),
   };
 }
 

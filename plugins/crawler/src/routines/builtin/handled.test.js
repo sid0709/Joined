@@ -1,37 +1,75 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  CARD_DECISION_OPENED,
+  CARD_SKIP_HANDLED,
+  CARD_SKIP_HEART_SAVED,
+  CARD_SKIP_SAVED_BADGE,
+  CARD_SKIP_NO_URL,
   HANDLED_MAX_AGE_MS,
   HANDLED_MAX_IDS,
   HANDLED_STORAGE_KEY,
   JOB_DELAY_MS,
+  cardDecisionLabel,
+  cardInvalidDecision,
   jitterMs,
 } from "./constants.js";
-import { cssEscape, jobCardSelector, jobSaveSelector } from "./cssEscape.js";
-import { contiguousLastJobId, handledIdSet, isJobHandled, nextUnhandledCard } from "./handled.js";
+import {
+  cssEscape,
+  cssUnescape,
+  entityIdFromSaveHost,
+  jobCardSelector,
+  jobSaveSelector,
+} from "./cssEscape.js";
+import {
+  cardsAfterCursor,
+  contiguousLastJobId,
+  handledIdSet,
+  isJobHandled,
+  nextUnhandledCard,
+} from "./handled.js";
 import { createBuiltinStore, memoryStorage, pruneHandledRecord } from "./store.js";
 
 describe("handled skip", () => {
-  test("skips local IDs, isSaved, and a visible Saved tag", () => {
+  test("skips local IDs and a job-page isSaved flag, never a Saved span", () => {
     const handled = handledIdSet(["1", "2"]);
     expect(isJobHandled({ id: "1" }, handled)).toBe(true);
     expect(isJobHandled({ id: "3" }, handled)).toBe(false);
     expect(isJobHandled({ id: "3", isSaved: true }, handled)).toBe(true);
-    expect(isJobHandled({ id: "3", hasSavedTag: true }, handled)).toBe(true);
+    expect(isJobHandled({ id: "3", hasSavedTag: true }, handled)).toBe(false);
     expect(isJobHandled({ id: "" }, handled)).toBe(false);
   });
 
   test("walks past the resume cursor and already-handled cards", () => {
-    const cards = [{ id: "a" }, { id: "b", hasSavedTag: true }, { id: "c" }, { id: "d" }];
-    const handled = handledIdSet(["c"]);
+    const cards = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+    const handled = handledIdSet(["b", "c"]);
+    expect(cardsAfterCursor(cards, "a").map((card) => card.id)).toEqual(["b", "c", "d"]);
+    expect(cardsAfterCursor(cards, "missing").map((card) => card.id)).toEqual(["a", "b", "c", "d"]);
     expect(nextUnhandledCard(cards, handled, "a")?.id).toBe("d");
     expect(nextUnhandledCard(cards, handledIdSet([]), "")?.id).toBe("a");
-    expect(nextUnhandledCard(cards, handledIdSet(["a", "c", "d"]), "")).toBeNull();
+    expect(nextUnhandledCard(cards, handledIdSet(["a", "b", "c", "d"]), "")).toBeNull();
     expect(nextUnhandledCard(cards, handledIdSet([]), "missing")?.id).toBe("a");
-    expect(nextUnhandledCard(cards, handledIdSet(["a", "c"]), "missing")?.id).toBe("d");
+    expect(nextUnhandledCard(cards, handledIdSet(["a", "b", "c"]), "missing")?.id).toBe("d");
     expect(contiguousLastJobId(cards, handledIdSet(["c", "d"]), "a")).toBe("a");
     expect(contiguousLastJobId(cards, handledIdSet(["c", "d"]), "")).toBe("");
     expect(contiguousLastJobId([{ id: "a" }, { id: "b" }], handledIdSet(["a", "b"]), "")).toBe("b");
+  });
+
+  test("names every card decision for the activity log", () => {
+    expect(cardDecisionLabel("9256204", CARD_DECISION_OPENED)).toBe("Card 9256204 opened");
+    expect(cardDecisionLabel("9256204", CARD_SKIP_HANDLED)).toBe(
+      "Card 9256204 skipped: already handled",
+    );
+    expect(cardDecisionLabel("9256204", CARD_SKIP_HEART_SAVED)).toBe(
+      "Card 9256204 skipped: list-card heart already saved",
+    );
+    expect(cardDecisionLabel("22222222", CARD_SKIP_SAVED_BADGE)).toBe(
+      "Card 22222222 skipped: visible Saved badge",
+    );
+    expect(cardDecisionLabel("9256204", CARD_SKIP_NO_URL)).toBe("Card 9256204 skipped: no job URL");
+    expect(cardDecisionLabel("11623103", cardInvalidDecision(["applyUrl", "companyName"]))).toBe(
+      "Card 11623103 skipped: invalid applyUrl, companyName",
+    );
   });
 
   test("escapes the Save control's entity id", () => {
@@ -45,6 +83,8 @@ describe("handled skip", () => {
     expect(jobSaveSelector(evil)).toBe(`my-item[entity-type="job"][entity-id=${cssEscape(evil)}]`);
     expect(jobSaveSelector(evil)).not.toContain(`"${evil}"`);
     expect(cssEscape("\0")).toBe("\uFFFD");
+    expect(cssUnescape(cssEscape("22222222"))).toBe("22222222");
+    expect(entityIdFromSaveHost(jobSaveSelector("22222222"))).toBe("22222222");
   });
 
   test("persists handled IDs and the crawl cursor", async () => {

@@ -1,3 +1,4 @@
+import { IncompleteJobDataError } from "../../api/jobValidation.js";
 import {
   createAdaptiveBackoff,
   DEFAULT_BACKOFF_BASE_MS,
@@ -14,27 +15,44 @@ import {
 } from "../../routineKit/runner.js";
 
 import {
-  HEART_CONFIRM_MS,
+  CARD_DECISION_OPENED,
+  CARD_SKIP_DETAIL_SAVED,
+  CARD_SKIP_HANDLED,
+  CARD_SKIP_HEART_SAVED,
+  CARD_SKIP_SAVED_BADGE,
+  CARD_SKIP_NO_URL,
+  DETAIL_READY_MS,
+  DETAIL_READY_POLL_MS,
+  EMPTY_PAGE_ONE_LABEL,
+  HEART_CLICK_TARGETS,
   HEART_INNER,
-  HEART_POLL_MS,
+  HEART_NOT_SAVED_LABEL,
+  HEART_TARGET_WAIT_MS,
   HEART_UNREAD_LABEL,
+  INVALID_STREAK,
+  INVALID_STREAK_MESSAGE,
   JOB_DELAY_MS,
   jitterMs,
   MAX_PAGE,
   NAVIGATE_WAIT_MS,
   PAGE_DELAY_MS,
   RETRY_PAUSE_MS,
+  SIGN_IN_TO_SAVE_MESSAGE,
   STUCK_LOGIN_MESSAGE,
   STUCK_LOGIN_STREAK,
   STUCK_PAGE_FAILURES,
   stuckPageMessage,
+  cardDecisionLabel,
+  cardInvalidDecision,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
-import { isJobHandled, nextUnhandledCard } from "./handled.js";
-import { isHeartSaved } from "./heart.js";
+import { isJobDetailReady } from "./detailReady.js";
+import { cardsAfterCursor, isJobHandled } from "./handled.js";
+import { isHeartSaved, isListCardSaved } from "./heart.js";
 import { advanceCursor, cardIdKey, crawlListUrl, emptyCursor, listUrlForPage } from "./lists.js";
-import { parseDetail } from "./parseDetail.js";
+import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
+import { isSignedOutSession } from "./signedOut.js";
 import { createBuiltinStore } from "./store.js";
 
 const START_PAGE_KEY = "builtin:start";
@@ -42,6 +60,37 @@ const START_PAGE_KEY = "builtin:start";
 function jobRecord(detail) {
   const { meta: _meta, ...record } = detail;
   return record;
+}
+
+function warnIfPageOneEmpty(hooks, page, cardCount) {
+  if (page !== 1 || cardCount !== 0) return;
+  hooks.onActivity?.({
+    phase: "open",
+    label: EMPTY_PAGE_ONE_LABEL,
+    kind: "waitFor",
+  });
+  console.warn(EMPTY_PAGE_ONE_LABEL);
+}
+
+async function finishIfNothingLeft(store, parsed, pageIds, lastPageIds) {
+  if ((!parsed.nextPageUrl && parsed.cards.length === 0) || (pageIds && pageIds === lastPageIds)) {
+    await store.clearCursor();
+    throw new RoutineFinishedError("Nothing left to process on Built In");
+  }
+}
+
+function nextInvalidStreak(streak) {
+  const next = streak + 1;
+  if (next >= INVALID_STREAK) {
+    throw new RoutineBlockedError(INVALID_STREAK_MESSAGE);
+  }
+  return next;
+}
+
+function throwIfSignedOut(html, isLoggedIn) {
+  if (isSignedOutSession({ html, isLoggedIn })) {
+    throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
+  }
 }
 
 function isAbortError(error) {
@@ -94,8 +143,9 @@ async function ensureCursor(store, tab) {
  * One visible job: navigate the same tab to the card href, read the job page,
  * enqueue, then return to ?page=N and click that list-card heart. Never fetches
  * in the background. A block backs off and resumes; a timeout is retried.
- * 403 / 429 / captcha back off without limit. Repeated sign-in redirects or
- * N dead-page failures (404/410 or the page never loading) stop the run.
+ * 403 / 429 / captcha back off without limit. Repeated sign-in redirects,
+ * a signed-out save wall, or N dead-page failures (404/410 or the page never
+ * loading) stop the run.
  */
 export async function runBuiltInPass(ctx, progress) {
   const { hooks, call, rest } = ctx;
@@ -114,6 +164,7 @@ export async function runBuiltInPass(ctx, progress) {
   let handledIds = await store.loadHandledIds();
   let cursor;
   let consecutiveLogins = 0;
+  let invalidStreak = 0;
   const pageFailures = new Map();
 
   const emitCursor = (extra = {}) => {
@@ -179,7 +230,9 @@ export async function runBuiltInPass(ctx, progress) {
         if (
           isAbortError(error) ||
           error instanceof RoutineFinishedError ||
-          error instanceof RoutineBlockedError
+          error instanceof RoutineBlockedError ||
+          error instanceof IncompleteJobDataError ||
+          error?.name === "IncompleteJobDataError"
         ) {
           throw error;
         }
@@ -204,12 +257,37 @@ export async function runBuiltInPass(ctx, progress) {
     }, url);
   };
 
+  const waitForDetailReady = async () => {
+    let page = await readVisiblePage(call);
+    if (isJobDetailReady(page.html)) return page;
+    hooks.onActivity?.({
+      phase: "ready",
+      label: "Waiting for job page data",
+      kind: "waitFor",
+    });
+    if (skipDelays) {
+      page = await readVisiblePage(call);
+      return page;
+    }
+    const deadline = Date.now() + DETAIL_READY_MS;
+    while (Date.now() < deadline) {
+      ctx.checkStopped();
+      await rest(DETAIL_READY_POLL_MS);
+      page = await readVisiblePage(call);
+      if (isJobDetailReady(page.html)) return page;
+    }
+    return page;
+  };
+
   const queryHeart = (jobId) =>
     call("shadow", { host: jobSaveSelector(jobId), inner: HEART_INNER, action: "query" });
 
-  const isCardSavedLive = async (card) => {
-    const state = await queryHeart(card.id);
-    return Boolean(state?.found) && isHeartSaved(state);
+  const noteCardDecision = (cardId, decision, phase = "dismiss", kind = "waitFor") => {
+    hooks.onActivity?.({
+      phase,
+      label: cardDecisionLabel(cardId, decision),
+      kind,
+    });
   };
 
   const clickListHeart = async (jobId) => {
@@ -224,15 +302,40 @@ export async function runBuiltInPass(ctx, progress) {
     }
     hooks.onActivity?.({ phase: "dismiss", label: "Saving job on Built In", kind: "click" });
     await call("highlight", { selector: host });
-    await call("shadow", { host, inner: HEART_INNER, action: "click" });
-    const deadline = Date.now() + (skipDelays ? 0 : HEART_CONFIRM_MS);
-    for (;;) {
+    for (const which of HEART_CLICK_TARGETS) {
       ctx.checkStopped();
+      const current = await queryHeart(jobId);
+      if (isHeartSaved(current)) {
+        hooks.onActivity?.({
+          phase: "dismiss",
+          label: "Saved job on Built In",
+          kind: "click",
+        });
+        return true;
+      }
+      await call("shadow", { host, inner: HEART_INNER, action: "click", which });
+      if (!skipDelays) await rest(HEART_TARGET_WAIT_MS);
       const next = await queryHeart(jobId);
-      if (isHeartSaved(next)) return true;
-      if (Date.now() >= deadline) return false;
-      await rest(HEART_POLL_MS);
+      if (isHeartSaved(next)) {
+        hooks.onActivity?.({
+          phase: "dismiss",
+          label: "Saved job on Built In",
+          kind: "click",
+        });
+        return true;
+      }
+      const page = await readVisiblePage(call);
+      if (isSignedOutSession({ html: page.html })) {
+        throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
+      }
     }
+    hooks.onActivity?.({
+      phase: "dismiss",
+      label: HEART_NOT_SAVED_LABEL,
+      kind: "waitFor",
+    });
+    console.warn(HEART_NOT_SAVED_LABEL, jobId);
+    return false;
   };
 
   const markJob = async (jobId) => {
@@ -240,6 +343,38 @@ export async function runBuiltInPass(ctx, progress) {
     handledIds = await store.markHandled(jobId, handledIds);
     cursor = { ...cursor, lastJobId: jobId };
     await store.saveCursor(cursor);
+  };
+
+  const advancePast = async (jobId) => {
+    if (!jobId) return;
+    cursor = { ...cursor, lastJobId: jobId };
+    await store.saveCursor(cursor);
+  };
+
+  const pickNextCard = async (cards, lastJobId) => {
+    for (const candidate of cardsAfterCursor(cards, lastJobId)) {
+      if (isJobHandled(candidate, handledIds)) {
+        noteCardDecision(candidate.id, CARD_SKIP_HANDLED);
+        continue;
+      }
+      const heart = await queryHeart(candidate.id);
+      if (
+        isListCardSaved({
+          heart,
+          hasSaveHost: candidate.hasSaveHost,
+          hasVisibleSavedBadge: candidate.hasVisibleSavedBadge,
+        })
+      ) {
+        noteCardDecision(
+          candidate.id,
+          heart?.found && isHeartSaved(heart) ? CARD_SKIP_HEART_SAVED : CARD_SKIP_SAVED_BADGE,
+        );
+        await advancePast(candidate.id);
+        continue;
+      }
+      return candidate;
+    }
+    return null;
   };
 
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
@@ -271,20 +406,11 @@ export async function runBuiltInPass(ctx, progress) {
 
     const parsed = parseList(listPage.html, listPage.url || pageUrl);
     const pageIds = cardIdKey(parsed.cards);
-    if (!parsed.nextPageUrl && parsed.cards.length === 0) {
-      await store.clearCursor();
-      throw new RoutineFinishedError("Nothing left to process on Built In");
-    }
-    if (pageIds && pageIds === cursor.lastPageIds) {
-      await store.clearCursor();
-      throw new RoutineFinishedError("Nothing left to process on Built In");
-    }
+    warnIfPageOneEmpty(hooks, cursor.page, parsed.cards.length);
+    await finishIfNothingLeft(store, parsed, pageIds, cursor.lastPageIds);
+    if (parsed.cards.length) throwIfSignedOut(listPage.html);
 
-    let card = nextUnhandledCard(parsed.cards, handledIds, cursor.lastJobId);
-    while (card && (await isCardSavedLive(card))) {
-      await markJob(card.id);
-      card = nextUnhandledCard(parsed.cards, handledIds, card.id);
-    }
+    const card = await pickNextCard(parsed.cards, cursor.lastJobId);
 
     if (!card) {
       if (!parsed.nextPageUrl || parsed.cards.length === 0) {
@@ -306,21 +432,31 @@ export async function runBuiltInPass(ctx, progress) {
     });
     await call("highlight", { selector: jobCardSelector(card.id) });
     if (!card.url) {
+      noteCardDecision(card.id, CARD_SKIP_NO_URL);
       await markJob(card.id);
       continue;
     }
+    noteCardDecision(card.id, CARD_DECISION_OPENED, "open", "click");
 
-    const detailPage = await openVisible(card.url, "Opening job");
+    const opened = await openVisible(card.url, "Opening job");
+    if (await handleBlock(opened, card.url)) {
+      await openVisible(pageUrl, "Returning to job list", "settle");
+      continue;
+    }
+    const detailPage = await waitForDetailReady();
     if (await handleBlock(detailPage, card.url)) {
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;
     }
 
     progress.tick();
-    const detail = parseDetail(detailPage.html, detailPage.url || card.url);
+    const detail = parseDetail(detailPage.html, detailPage.url || card.url, {
+      companyName: card.companyName,
+    });
     const jobId = card.id;
     const detailId = detail.meta.id || card.id;
     if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
+      noteCardDecision(jobId, CARD_SKIP_DETAIL_SAVED);
       await markJob(jobId);
       if (detailId !== jobId) await markJob(detailId);
       await openVisible(pageUrl, "Returning to job list", "settle");
@@ -328,9 +464,31 @@ export async function runBuiltInPass(ctx, progress) {
     }
 
     const record = jobRecord(detail);
+    const issues = requiredRecordIssues(record);
+    if (issues.length) {
+      invalidStreak = nextInvalidStreak(invalidStreak);
+      noteCardDecision(jobId, cardInvalidDecision(issues));
+      await advancePast(jobId);
+      await openVisible(pageUrl, "Returning to job list", "settle");
+      continue;
+    }
+
     await reportDeclaredFields(ctx, progress, record);
     hooks.onActivity?.({ phase: "submit", label: "Saving record" });
-    await hooks.onRecord?.(record);
+    try {
+      await hooks.onRecord?.(record);
+    } catch (error) {
+      if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
+        invalidStreak = nextInvalidStreak(invalidStreak);
+        const fields = error.issues?.length ? error.issues : issues;
+        noteCardDecision(jobId, cardInvalidDecision(fields));
+        await advancePast(jobId);
+        await openVisible(pageUrl, "Returning to job list", "settle");
+        continue;
+      }
+      throw error;
+    }
+    invalidStreak = 0;
     await markJob(jobId);
     if (detailId !== jobId) await markJob(detailId);
 
@@ -340,7 +498,12 @@ export async function runBuiltInPass(ctx, progress) {
       progress.tick();
       return;
     }
-    await clickListHeart(jobId);
+    throwIfSignedOut(listAfter.html, detail.meta.isLoggedIn);
+    const heartSaved = await clickListHeart(jobId);
+    if (!heartSaved) {
+      const afterHeart = await readVisiblePage(call);
+      throwIfSignedOut(afterHeart.html, detail.meta.isLoggedIn);
+    }
     backoff.onSuccess();
     emitCursor({ card: jobId, cardIndex, cardsOnPage: parsed.cards.length });
     await pause(JOB_DELAY_MS);

@@ -24,6 +24,12 @@ export const HEART_INNER = "div.heart";
 export const HEART_SAVED_CLASS = "saved";
 export const HEART_PREFIX_SAVED = "fas";
 export const HEART_PREFIX_UNSAVED = "far";
+/** After reload, a saved card drops `my-item` and shows this pink badge. */
+export const SAVED_BADGE = 'span[x-show="showSavedTag === true"]';
+export const SAVED_BADGE_TEXT = "Saved";
+export const CLOAK_ATTR = "x-cloak";
+export const DISPLAY_NONE_RE = /display\s*:\s*none/i;
+export const VISIBILITY_HIDDEN_RE = /visibility\s*:\s*hidden/i;
 export const JOB_PAGE_SAVE = 'button:has([data-id="heart-button"])';
 export const APPLY_BUTTON = 'a[aria-label="Apply to job"]';
 
@@ -41,7 +47,6 @@ export const APPLY_FORM = 'div[x-data="applyForm"]';
 export const APPLY_UNAUTH = 'a[data-builtin-track-click-event="job_apply_unauth"]';
 export const APPLY_REDIRECT_PARAM = "handler";
 export const APPLY_REDIRECT_VALUE = "ApplyRedirect";
-export const SAVED_TAG = 'span[x-show="showSavedTag === true"]';
 export const JOB_BODY_ID_PREFIX = "job-post-body-";
 export const JOB_BODY = '[id^="job-post-body-"]';
 
@@ -61,9 +66,33 @@ export const HANDLED_MAX_AGE_MS = HANDLED_MAX_AGE_DAYS * MS_PER_DAY;
 export const JOB_DELAY_MS = Object.freeze({ min: 1500, max: 4000 });
 export const PAGE_DELAY_MS = Object.freeze({ min: 4000, max: 8000 });
 export const NAVIGATE_WAIT_MS = 15_000;
-export const HEART_CONFIRM_MS = 4_000;
+export const DETAIL_READY_MS = 10_000;
+export const DETAIL_READY_POLL_MS = 200;
+export const HEART_CONFIRM_MS = 5_000;
 export const HEART_POLL_MS = 200;
+export const HEART_TARGET_WAIT_MS = 1_500;
+export const HEART_CLICK_HEART = "heart";
+export const HEART_CLICK_SVG = "svg";
+export const HEART_CLICK_HOST = "host";
+export const HEART_CLICK_TARGETS = Object.freeze([
+  HEART_CLICK_HEART,
+  HEART_CLICK_SVG,
+  HEART_CLICK_HOST,
+]);
 export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
+export const HEART_NOT_SAVED_LABEL = "heart not saved";
+export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 cards";
+export const INVALID_STREAK = 5;
+export const INVALID_STREAK_MESSAGE =
+  "Built In returned 5 incomplete jobs in a row. Crawl stopped.";
+export const CARD_DECISION_OPENED = "opened";
+export const CARD_SKIP_HANDLED = "already handled";
+export const CARD_SKIP_HEART_SAVED = "list-card heart already saved";
+export const CARD_SKIP_SAVED_BADGE = "visible Saved badge";
+export const CARD_SKIP_NO_URL = "no job URL";
+export const CARD_SKIP_DETAIL_SAVED = "job page already saved";
+export const SIGN_IN_TO_SAVE_MESSAGE = "Sign in to Built In to save jobs";
+export const SIGN_UP_MODAL_TEXT = "Sign up now. Access later.";
 export const RETRY_PAUSE_MS = 1_000;
 export const STUCK_LOGIN_STREAK = 3;
 export const STUCK_PAGE_FAILURES = 3;
@@ -74,8 +103,18 @@ export function stuckPageMessage(count = STUCK_PAGE_FAILURES) {
 }
 
 export const EASY_APPLY_TAG = "Easy Apply";
-export const SAVED_TAG_TEXT = "Saved";
 export const LOGIN_PATH_PREFIX = "/auth/login";
+
+/** Debug activity line for every list-card decision. */
+export function cardDecisionLabel(cardId, decision) {
+  if (decision === CARD_DECISION_OPENED) return `Card ${cardId} opened`;
+  return `Card ${cardId} skipped: ${decision}`;
+}
+
+export function cardInvalidDecision(fields) {
+  const names = (fields ?? []).map((field) => String(field).trim()).filter(Boolean);
+  return `invalid ${names.join(", ") || "job data"}`;
+}
 
 export function jitterMs(range, random = Math.random) {
   const span = range.max - range.min;
