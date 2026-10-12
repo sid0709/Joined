@@ -18,7 +18,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "catalog:",
     "eslint": "catalog:",
-    "linkedom": "0.18.13",
+    "linkedom": "catalog:",
     "vite": "catalog:"
   }
 }
