@@ -16,6 +16,7 @@ import {
   MAX_RETRY_AFTER_MS,
 } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
+import { newFetchId } from "../../routineKit/fetchId.js";
 import { createPaceMeter } from "../../routineKit/paceMeter.js";
 import {
   RoutineBlockedError,
@@ -23,7 +24,6 @@ import {
   RoutineStepError,
   RoutineStoppedError,
 } from "../../routineKit/runner.js";
-import { newFetchId } from "../../routineKit/fetchId.js";
 import { createTokenBucket } from "../../routineKit/tokenBucket.js";
 import { createWorkerPool } from "../../routineKit/workerPool.js";
 
