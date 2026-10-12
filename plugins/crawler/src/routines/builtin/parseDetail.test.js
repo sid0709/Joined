@@ -56,6 +56,45 @@ describe("parseDetail", () => {
     expect(record.meta.applyUrl).toBe("?handler=ApplyRedirect");
   });
 
+  test("prefers jobPostInit companyName, then JSON-LD org.name, then the first company link with text", () => {
+    const page = "https://builtin.com/job/eng-quality/11621046";
+    const initFirst = parseDetail(
+      `<h1>Quality Engineer</h1>
+       <a href="/company/logo"></a>
+       <a href="/company/dom-co">From DOM</a>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"11621046"},"hiringOrganization":{"@type":"Organization","name":"From JSON-LD"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":11621046,"companyName":"From Init","title":"Quality Engineer","applyUrl":"/job/eng-quality/11621046?handler=ApplyRedirect","isEasyApply":false,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(initFirst.companyName).toBe("From Init");
+    expect(typeof initFirst.companyName).toBe("string");
+    expect(initFirst.applyUrl).toBe(
+      "https://builtin.com/job/eng-quality/11621046?handler=ApplyRedirect",
+    );
+
+    const ldNext = parseDetail(
+      `<h1>Quality Engineer</h1>
+       <a href="/company/logo"></a>
+       <a href="/company/dom-co">From DOM</a>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"1"},"hiringOrganization":{"@type":"Organization","name":"From JSON-LD"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":1,"companyName":"","title":"Quality Engineer","applyUrl":"","isEasyApply":true,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(ldNext.companyName).toBe("From JSON-LD");
+    expect(ldNext.applyUrl).toBe(page);
+    expect(ldNext.title).toBe("Quality Engineer");
+
+    const domLast = parseDetail(
+      `<h1>Quality Engineer</h1>
+       <a href="/company/logo"></a>
+       <a href="/company/dom-co">From DOM</a>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"1"},"hiringOrganization":{"@type":"Organization"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":1,"title":"Quality Engineer","applyUrl":"","isEasyApply":true,"isSaved":false}});</script>`,
+      page,
+    );
+    expect(domLast.companyName).toBe("From DOM");
+  });
+
   test("reads escaped JSON-LD and scopes salary to the job header", () => {
     const html = loadFixture("detail-jsonld-escaped.html");
     expect(html).toContain("ld&#x2B;json");

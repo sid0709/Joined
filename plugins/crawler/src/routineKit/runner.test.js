@@ -288,4 +288,32 @@ describe("runRoutinePass", () => {
       ),
     ).rejects.toThrow("Fetch is limited to this routine's hosts");
   });
+
+  test("allows navigate on match hosts without allowFetch", async () => {
+    const page = fakePage();
+    await runRoutinePass(
+      {
+        ...makeRoutine(),
+        runPass: async (ctx) => {
+          await ctx.call("navigate", { url: "https://jobs.example/jobs" });
+        },
+      },
+      { exec: page.exec },
+    );
+    expect(page.ops.find((op) => op.op === "navigate")).toMatchObject({
+      url: "https://jobs.example/jobs",
+      hosts: ["jobs.example"],
+    });
+    await expect(
+      runRoutinePass(
+        {
+          ...makeRoutine(),
+          runPass: async (ctx) => {
+            await ctx.call("navigate", { url: "https://evil.test/jobs" });
+          },
+        },
+        { exec: fakePage().exec },
+      ),
+    ).rejects.toThrow("Fetch is limited to this routine's hosts");
+  });
 });

@@ -7,7 +7,7 @@ import {
   JOB_DELAY_MS,
   jitterMs,
 } from "./constants.js";
-import { cssEscape, jobSaveSelector } from "./cssEscape.js";
+import { cssEscape, jobCardSelector, jobSaveSelector } from "./cssEscape.js";
 import { contiguousLastJobId, handledIdSet, isJobHandled, nextUnhandledCard } from "./handled.js";
 import { createBuiltinStore, memoryStorage, pruneHandledRecord } from "./store.js";
 
@@ -36,6 +36,9 @@ describe("handled skip", () => {
 
   test("escapes the Save control's entity id", () => {
     const evil = '9256204"][role="x';
+    expect(jobCardSelector("9256204")).toBe(
+      `div[data-id="job-card"]#${cssEscape("job-card-9256204")}`,
+    );
     expect(jobSaveSelector("9256204")).toBe(
       `my-item[entity-type="job"][entity-id=${cssEscape("9256204")}]`,
     );

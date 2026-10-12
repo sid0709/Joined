@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import { documentFromHtml } from "./html.js";
-import { cardIdKey, listUrlForPage, listUrlsFromBoard, pageFromListUrl } from "./lists.js";
+import {
+  cardIdKey,
+  crawlListUrl,
+  listUrlForPage,
+  listUrlsFromBoard,
+  pageFromListUrl,
+} from "./lists.js";
 import { parseList, parseNextPageUrl } from "./parseList.js";
 import { installDomParser } from "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -63,6 +69,10 @@ describe("parseList", () => {
     expect(pageFromListUrl("https://builtin.com/jobs?page=4")).toBe(4);
     expect(pageFromListUrl("https://builtin.com/jobs")).toBe(1);
     expect(cardIdKey([{ id: "b" }, { id: "a" }, { id: "a" }])).toBe("a\nb");
+    expect(crawlListUrl("https://www.builtin.com/jobs/remote?page=3")).toBe(
+      "https://www.builtin.com/jobs/remote",
+    );
+    expect(crawlListUrl("https://builtin.com/job/x/1")).toBe("https://builtin.com/jobs");
   });
 
   test("installs DOMParser when missing", () => {
