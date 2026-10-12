@@ -23,8 +23,14 @@ const (
 	batchEndpointResponses = "/v1/responses"
 	batchWindow            = "24h"
 	batchCustomID          = "request"
-	batchPollEvery         = 2 * time.Second
 	maxBatchBody           = 4 << 20
+)
+
+// A batch is often missing for a moment after submit. Poll until it shows up,
+// and treat a 404 inside this window as that delay.
+var (
+	batchPollEvery  = 2 * time.Second
+	batchMissingFor = 30 * time.Second
 )
 
 // batchChat runs one JSON completion on the Batch API and waits for it.
@@ -118,12 +124,14 @@ func (c *Client) awaitBatch(ctx context.Context, endpoint, model string, body js
 	if created.ID == "" {
 		return nil, fmt.Errorf("model request failed: the batch had no id")
 	}
+	var missingSince time.Time
 	for {
 		current, status, err := c.getBatch(ctx, created.ID)
 		if err != nil {
 			return nil, err
 		}
 		if status >= 200 && status < 300 {
+			missingSince = time.Time{}
 			switch current.Status {
 			case "completed":
 				return current.result()
@@ -133,6 +141,12 @@ func (c *Client) awaitBatch(ctx context.Context, endpoint, model string, body js
 					message = "batch " + current.Status
 				}
 				return nil, statusError(http.StatusBadGateway, message)
+			}
+		} else if status == http.StatusNotFound {
+			if missingSince.IsZero() {
+				missingSince = time.Now()
+			} else if time.Since(missingSince) > batchMissingFor {
+				return nil, statusError(status, current.errorMessage())
 			}
 		} else if !llmhttp.Retryable(status) {
 			return nil, statusError(status, current.errorMessage())
