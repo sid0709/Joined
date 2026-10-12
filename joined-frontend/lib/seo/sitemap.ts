@@ -35,15 +35,19 @@ export function publicSitemapEntries(
     changeFrequency: SITEMAP_HOME_CHANGE,
     priority: SITEMAP_HOME_PRIORITY,
   };
-  const jobEntries = jobs.slice(0, SITEMAP_JOB_LIMIT).map((job) => ({
-    url: `${origin}${ROUTES.job(job.id)}`,
-    lastModified: postedAt(job.postedHoursAgo, now),
-    changeFrequency: SITEMAP_JOB_CHANGE,
-    priority: SITEMAP_JOB_PRIORITY,
-  }));
+  const jobEntries = jobs
+    .slice(0, SITEMAP_JOB_LIMIT)
+    .filter((job) => Boolean(job.id?.trim()))
+    .map((job) => ({
+      url: `${origin}${ROUTES.job(job.id)}`,
+      lastModified: postedAt(job.postedHoursAgo, now),
+      changeFrequency: SITEMAP_JOB_CHANGE,
+      priority: SITEMAP_JOB_PRIORITY,
+    }));
   return [home, ...jobEntries];
 }
 
 function postedAt(postedHoursAgo: number, now: Date): Date {
-  return new Date(now.getTime() - Math.max(0, postedHoursAgo) * MS_PER_HOUR);
+  const hours = Number.isFinite(postedHoursAgo) ? Math.max(0, postedHoursAgo) : 0;
+  return new Date(now.getTime() - hours * MS_PER_HOUR);
 }
