@@ -1,3 +1,4 @@
+import { COMPANY_SIZES, MAX_BENEFITS, VALUE_ICONS, type CompanySize } from "@joined/job-schema";
 import { adminDownload, adminFetch } from "@/lib/api";
 import { API_PROXY } from "@/lib/config";
 
@@ -12,6 +13,33 @@ export const LOGO_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
 export { COMPANY_SIZES, COMPANY_TYPES, INDUSTRIES, VALUE_ICONS } from "@joined/job-schema";
 export type { ValueIcon } from "@joined/job-schema";
+
+/** PATCH /v1/companies/{id} body keys. Matches backend-core/jobs/postman_analyze.go. */
+export const COMPANY_WRITE_KEYS = [
+  "name",
+  "url",
+  "logo",
+  "tagline",
+  "about",
+  "industry",
+  "size",
+  "founded",
+  "replyDays",
+  "headquarters",
+  "companyType",
+  "locations",
+  "specialties",
+  "mission",
+  "values",
+  "benefitCategories",
+] as const;
+
+const MAX_COMPANY_NAME = 80;
+const MAX_COMPANY_URL = 300;
+const MAX_COMPANY_LOGO = 500;
+const MIN_FOUNDED_YEAR = 1800;
+const MAX_FOUNDED_YEAR = 2100;
+const MAX_REPLY_DAYS = 365;
 
 export type CompanyValue = {
   icon: string;
@@ -196,6 +224,217 @@ export function companyWriteFrom(company: AdminCompany): CompanyWrite {
     values: company.values ?? [],
     benefitCategories: company.benefitCategories ?? [],
   };
+}
+
+export function companyWriteJSON(draft: CompanyWrite) {
+  return JSON.stringify(draft, null, 2);
+}
+
+/** Parses and validates a company PATCH body before save. */
+export function parseCompanyWriteJSON(text: string): CompanyWrite | { error: string } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { error: "JSON is not valid" };
+  }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { error: "Expected a JSON object" };
+  }
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (!(COMPANY_WRITE_KEYS as readonly string[]).includes(key)) {
+      return { error: `Unknown field "${key}"` };
+    }
+  }
+  let draft: CompanyWrite;
+  try {
+    draft = {
+      name: readString(record, "name"),
+      url: readString(record, "url"),
+      logo: readString(record, "logo"),
+      tagline: readString(record, "tagline"),
+      about: readString(record, "about"),
+      industry: readString(record, "industry"),
+      size: readString(record, "size"),
+      founded: readCount(record, "founded"),
+      replyDays: readCount(record, "replyDays"),
+      headquarters: readString(record, "headquarters"),
+      companyType: readString(record, "companyType"),
+      locations: readString(record, "locations"),
+      specialties: readStringList(record, "specialties"),
+      mission: readString(record, "mission"),
+      values: readValues(record, "values"),
+      benefitCategories: readBenefitCategories(record, "benefitCategories"),
+    };
+  } catch (cause) {
+    if (cause instanceof FieldTypeError) {
+      return { error: cause.message };
+    }
+    throw cause;
+  }
+  const problem = validateCompanyWrite(draft);
+  return problem ? { error: problem } : draft;
+}
+
+function readString(record: Record<string, unknown>, key: string): string {
+  const value = record[key];
+  if (value === undefined || value === null) return "";
+  if (typeof value !== "string") {
+    throw new FieldTypeError(key, "string");
+  }
+  return value.trim();
+}
+
+function readCount(record: Record<string, unknown>, key: string): number {
+  const value = record[key];
+  if (value === undefined || value === null || value === "") return 0;
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new FieldTypeError(key, "integer");
+  }
+  return value;
+}
+
+class FieldTypeError extends Error {
+  constructor(key: string, kind: string) {
+    super(`${key} must be a ${kind}`);
+  }
+}
+
+function readStringList(record: Record<string, unknown>, key: string): string[] {
+  const value = record[key];
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    throw new FieldTypeError(key, "string array");
+  }
+  return value.map((item, index) => {
+    if (typeof item !== "string") {
+      throw new FieldTypeError(`${key}[${index}]`, "string");
+    }
+    return item.trim();
+  });
+}
+
+function readValues(record: Record<string, unknown>, key: string): CompanyValue[] {
+  const value = record[key];
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    throw new FieldTypeError(key, "array");
+  }
+  return value.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new FieldTypeError(`${key}[${index}]`, "object");
+    }
+    const row = item as Record<string, unknown>;
+    return {
+      icon: readNestedString(row, "icon", `${key}[${index}].icon`),
+      title: readNestedString(row, "title", `${key}[${index}].title`),
+      description: readNestedString(row, "description", `${key}[${index}].description`),
+    };
+  });
+}
+
+function readBenefitCategories(record: Record<string, unknown>, key: string): BenefitCategory[] {
+  const value = record[key];
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    throw new FieldTypeError(key, "array");
+  }
+  return value.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new FieldTypeError(`${key}[${index}]`, "object");
+    }
+    const row = item as Record<string, unknown>;
+    const items = row.items;
+    if (items === undefined || items === null) {
+      return {
+        label: readNestedString(row, "label", `${key}[${index}].label`),
+        items: [],
+      };
+    }
+    if (!Array.isArray(items)) {
+      throw new FieldTypeError(`${key}[${index}].items`, "string array");
+    }
+    return {
+      label: readNestedString(row, "label", `${key}[${index}].label`),
+      items: items.map((entry, itemIndex) => {
+        if (typeof entry !== "string") {
+          throw new FieldTypeError(`${key}[${index}].items[${itemIndex}]`, "string");
+        }
+        return entry.trim();
+      }),
+    };
+  });
+}
+
+function readNestedString(row: Record<string, unknown>, key: string, label: string): string {
+  const value = row[key];
+  if (value === undefined || value === null) return "";
+  if (typeof value !== "string") {
+    throw new FieldTypeError(label, "string");
+  }
+  return value.trim();
+}
+
+function validateCompanyWrite(draft: CompanyWrite): string | null {
+  if (!draft.name.trim()) {
+    return "name is required";
+  }
+  if (draft.name.length > MAX_COMPANY_NAME) {
+    return "name is too long";
+  }
+  if (draft.url && !validCompanyLink(draft.url, MAX_COMPANY_URL)) {
+    return "url is not a link";
+  }
+  if (draft.logo && !validCompanyLink(draft.logo, MAX_COMPANY_LOGO)) {
+    return "logo is not a link";
+  }
+  if (draft.size) {
+    const canonical = canonicalCompanySize(draft.size.replace(/-/g, "–"));
+    if (!canonical) {
+      return "size is not a listed company size";
+    }
+    draft.size = canonical;
+  }
+  if (
+    draft.founded !== 0 &&
+    (draft.founded < MIN_FOUNDED_YEAR || draft.founded > MAX_FOUNDED_YEAR)
+  ) {
+    return "founded is out of range";
+  }
+  if (draft.replyDays < 0 || draft.replyDays > MAX_REPLY_DAYS) {
+    return "replyDays is out of range";
+  }
+  if (draft.benefitCategories.length > MAX_BENEFITS) {
+    return `benefitCategories cannot exceed ${MAX_BENEFITS}`;
+  }
+  for (const value of draft.values) {
+    if (value.icon && !VALUE_ICONS.includes(value.icon as (typeof VALUE_ICONS)[number])) {
+      return `values icon "${value.icon}" is not listed`;
+    }
+  }
+  return null;
+}
+
+function validCompanyLink(value: string, limit: number): boolean {
+  if (value.length > limit || !value.includes(".")) {
+    return false;
+  }
+  const lower = value.toLowerCase();
+  if (lower.includes(" ") || lower.startsWith("javascript:")) {
+    return false;
+  }
+  return true;
+}
+
+function canonicalCompanySize(size: string): CompanySize | null {
+  const trimmed = size.trim();
+  for (const option of COMPANY_SIZES) {
+    if (option.toLowerCase() === trimmed.toLowerCase()) {
+      return option;
+    }
+  }
+  return null;
 }
 
 /** What POST /v1/companies/{id}/autofill returns: a draft to review. Nothing is saved. */

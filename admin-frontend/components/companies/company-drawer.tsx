@@ -19,6 +19,8 @@ import {
   Selector,
   Skeleton,
   Stack,
+  Tab,
+  TabList,
   Text,
   TextArea,
   TextInput,
@@ -43,6 +45,8 @@ import {
   autofillPath,
   companyLogoSrc,
   companyWriteFrom,
+  companyWriteJSON,
+  parseCompanyWriteJSON,
   type AdminCompany,
   type BenefitCategory,
   type CompanyAutofill,
@@ -55,6 +59,8 @@ const TAGLINE_SEPARATOR = " · ";
 const DRAWER_SIZE = 760;
 const LOADING_HEIGHT = 200;
 const NOT_SET = { value: "", label: "Not set" };
+const EDITOR = { form: "form", json: "json" } as const;
+type EditorMode = (typeof EDITOR)[keyof typeof EDITOR];
 
 function options(
   values: readonly string[],
@@ -104,6 +110,9 @@ function CompanyDetail({
   const [beforeAutofill, setBeforeAutofill] = useState<CompanyWrite | null>(null);
   // Bumped after an autofill so fields that keep their own text restart from the new draft.
   const [fillKey, setFillKey] = useState(0);
+  const [editorMode, setEditorMode] = useState<EditorMode>(EDITOR.form);
+  const [jsonText, setJsonText] = useState("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
   const path = `${COMPANIES_PATH}/${encodeURIComponent(companyId)}`;
 
   useEffect(() => {
@@ -112,7 +121,11 @@ function CompanyDetail({
       .then((body) => {
         if (controller.signal.aborted) return;
         setCompany(body);
-        setDraft(companyWriteFrom(body));
+        const next = companyWriteFrom(body);
+        setDraft(next);
+        setJsonText(companyWriteJSON(next));
+        setEditorMode(EDITOR.form);
+        setJsonError(null);
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted) {
@@ -159,11 +172,46 @@ function CompanyDetail({
     setFillKey((token) => token + 1);
   }
 
+  function draftToSave(): CompanyWrite | null {
+    if (!draft) return null;
+    if (editorMode === EDITOR.form) return draft;
+    const parsed = parseCompanyWriteJSON(jsonText);
+    if ("error" in parsed) {
+      setJsonError(parsed.error);
+      setSaveError(parsed.error);
+      return null;
+    }
+    setJsonError(null);
+    return parsed;
+  }
+
+  function openJsonEditor() {
+    if (!draft) return;
+    setJsonText(companyWriteJSON(draft));
+    setJsonError(null);
+    setEditorMode(EDITOR.json);
+  }
+
+  function openFormEditor() {
+    const parsed = parseCompanyWriteJSON(jsonText);
+    if ("error" in parsed) {
+      setJsonError(parsed.error);
+      return;
+    }
+    setDraft(parsed);
+    setJsonError(null);
+    setEditorMode(EDITOR.form);
+    setFillKey((token) => token + 1);
+    setSaved(false);
+  }
+
   async function save() {
-    if (!draft || !company) return;
+    if (!company) return;
+    const payload = draftToSave();
+    if (!payload) return;
     setSaveError(null);
     try {
-      let updated = await adminSend<AdminCompany>(path, "PATCH", draft);
+      let updated = await adminSend<AdminCompany>(path, "PATCH", payload);
       if (logoFile) {
         const body = new FormData();
         body.append("logo", logoFile);
@@ -172,7 +220,10 @@ function CompanyDetail({
         updated = await adminFetch<AdminCompany>(`${path}/logo`, { method: "DELETE" });
       }
       setCompany(updated);
-      setDraft(companyWriteFrom(updated));
+      const next = companyWriteFrom(updated);
+      setDraft(next);
+      setJsonText(companyWriteJSON(next));
+      setEditorMode(EDITOR.form);
       setLogoFile(null);
       setLogoCleared(false);
       setBeforeAutofill(null);
@@ -217,6 +268,13 @@ function CompanyDetail({
       <Stack gap={5}>
         {error ? <Banner status="error" title={error} /> : null}
         {saveError ? <Banner status="error" title={saveError} /> : null}
+        {jsonError && editorMode === EDITOR.json ? (
+          <Banner
+            status="error"
+            title={jsonError}
+            description="Fix the JSON, then save or switch back to Form."
+          />
+        ) : null}
         {autofillError ? <Banner status="error" title={autofillError} /> : null}
         {autofillSources ? (
           <Stack gap={2}>
@@ -259,137 +317,160 @@ function CompanyDetail({
         {!draft && !error ? <Skeleton width="100%" height={LOADING_HEIGHT} /> : null}
         {draft && company ? (
           <Stack gap={6}>
-            <Group
-              title="Identity"
-              action={
-                <Button
-                  label={
-                    autofilling
-                      ? "Researching…"
-                      : autofillSources
-                        ? "Autofill again"
-                        : "Autofill with AI"
-                  }
-                  variant="secondary"
-                  size="sm"
-                  clickAction={autofill}
-                  isDisabled={autofilling || (!draft.name.trim() && !draft.url.trim())}
-                />
-              }
+            <TabList
+              value={editorMode}
+              onChange={(mode) => (mode === EDITOR.json ? openJsonEditor() : openFormEditor())}
             >
-              <GridSystem gap={4}>
-                <GridColumn span="full" md={6}>
-                  <TextInput label="Name" value={draft.name} onChange={set("name")} />
-                </GridColumn>
-                <GridColumn span="full" md={6}>
-                  <TextInput
-                    label="Website"
-                    value={draft.url}
-                    onChange={set("url")}
-                    placeholder="acme.example"
-                  />
-                </GridColumn>
-              </GridSystem>
-              <LogoField
-                company={company}
-                name={draft.name}
-                url={draft.logo}
-                file={logoFile}
-                cleared={logoCleared}
-                version={version}
-                onUrl={set("logo")}
-                onFile={(file) => {
-                  setLogoFile(file);
-                  setLogoCleared(false);
+              <Tab value={EDITOR.form} label="Form" />
+              <Tab value={EDITOR.json} label="JSON" />
+            </TabList>
+            {editorMode === EDITOR.json ? (
+              <TextArea
+                label="Company JSON"
+                value={jsonText}
+                onChange={(value) => {
+                  setJsonText(value);
+                  setJsonError(null);
                   setSaved(false);
+                  setSaveError(null);
                 }}
-                onClear={() => {
-                  setLogoFile(null);
-                  setLogoCleared(true);
-                  setSaved(false);
-                }}
+                description="Same fields as PATCH /v1/companies/{id}. Save runs validation before writing."
               />
-              <TaglineField
-                key={`tagline-${version}-${fillKey}`}
-                value={draft.tagline}
-                onChange={set("tagline")}
-              />
-            </Group>
+            ) : (
+              <>
+                <Group
+                  title="Identity"
+                  action={
+                    <Button
+                      label={
+                        autofilling
+                          ? "Researching…"
+                          : autofillSources
+                            ? "Autofill again"
+                            : "Autofill with AI"
+                      }
+                      variant="secondary"
+                      size="sm"
+                      clickAction={autofill}
+                      isDisabled={autofilling || (!draft.name.trim() && !draft.url.trim())}
+                    />
+                  }
+                >
+                  <GridSystem gap={4}>
+                    <GridColumn span="full" md={6}>
+                      <TextInput label="Name" value={draft.name} onChange={set("name")} />
+                    </GridColumn>
+                    <GridColumn span="full" md={6}>
+                      <TextInput
+                        label="Website"
+                        value={draft.url}
+                        onChange={set("url")}
+                        placeholder="acme.example"
+                      />
+                    </GridColumn>
+                  </GridSystem>
+                  <LogoField
+                    company={company}
+                    name={draft.name}
+                    url={draft.logo}
+                    file={logoFile}
+                    cleared={logoCleared}
+                    version={version}
+                    onUrl={set("logo")}
+                    onFile={(file) => {
+                      setLogoFile(file);
+                      setLogoCleared(false);
+                      setSaved(false);
+                    }}
+                    onClear={() => {
+                      setLogoFile(null);
+                      setLogoCleared(true);
+                      setSaved(false);
+                    }}
+                  />
+                  <TaglineField
+                    key={`tagline-${version}-${fillKey}`}
+                    value={draft.tagline}
+                    onChange={set("tagline")}
+                  />
+                </Group>
 
-            <Group title="Profile">
-              <GridSystem gap={4}>
-                <GridColumn span="full" md={4}>
-                  <Selector
-                    label="Industry"
-                    options={options(INDUSTRIES, draft.industry)}
-                    value={draft.industry}
-                    onChange={set("industry")}
+                <Group title="Profile">
+                  <GridSystem gap={4}>
+                    <GridColumn span="full" md={4}>
+                      <Selector
+                        label="Industry"
+                        options={options(INDUSTRIES, draft.industry)}
+                        value={draft.industry}
+                        onChange={set("industry")}
+                      />
+                    </GridColumn>
+                    <GridColumn span="full" md={4}>
+                      <Selector
+                        label="Company type"
+                        options={options(COMPANY_TYPES, draft.companyType)}
+                        value={draft.companyType}
+                        onChange={set("companyType")}
+                      />
+                    </GridColumn>
+                    <GridColumn span="full" md={4}>
+                      <Selector
+                        label="Size"
+                        options={options(COMPANY_SIZES, draft.size, companySizeLabel)}
+                        value={draft.size}
+                        onChange={set("size")}
+                      />
+                    </GridColumn>
+                    <GridColumn span="full" md={6}>
+                      <NumberInput
+                        label="Founded"
+                        value={draft.founded || null}
+                        onChange={set("founded")}
+                      />
+                    </GridColumn>
+                    <GridColumn span="full" md={6}>
+                      <NumberInput
+                        label="Typical reply, days"
+                        value={draft.replyDays || null}
+                        onChange={set("replyDays")}
+                      />
+                    </GridColumn>
+                  </GridSystem>
+                  <TextArea label="About" value={draft.about} onChange={set("about")} />
+                  <TextArea label="Mission" value={draft.mission} onChange={set("mission")} />
+                  <ListField
+                    key={`specialties-${version}-${fillKey}`}
+                    label="Specialties"
+                    value={draft.specialties}
+                    onChange={set("specialties")}
+                    placeholder="Payments infrastructure"
                   />
-                </GridColumn>
-                <GridColumn span="full" md={4}>
-                  <Selector
-                    label="Company type"
-                    options={options(COMPANY_TYPES, draft.companyType)}
-                    value={draft.companyType}
-                    onChange={set("companyType")}
-                  />
-                </GridColumn>
-                <GridColumn span="full" md={4}>
-                  <Selector
-                    label="Size"
-                    options={options(COMPANY_SIZES, draft.size, companySizeLabel)}
-                    value={draft.size}
-                    onChange={set("size")}
-                  />
-                </GridColumn>
-                <GridColumn span="full" md={6}>
-                  <NumberInput
-                    label="Founded"
-                    value={draft.founded || null}
-                    onChange={set("founded")}
-                  />
-                </GridColumn>
-                <GridColumn span="full" md={6}>
-                  <NumberInput
-                    label="Typical reply, days"
-                    value={draft.replyDays || null}
-                    onChange={set("replyDays")}
-                  />
-                </GridColumn>
-              </GridSystem>
-              <TextArea label="About" value={draft.about} onChange={set("about")} />
-              <TextArea label="Mission" value={draft.mission} onChange={set("mission")} />
-              <ListField
-                key={`specialties-${version}-${fillKey}`}
-                label="Specialties"
-                value={draft.specialties}
-                onChange={set("specialties")}
-                placeholder="Payments infrastructure"
-              />
-            </Group>
+                </Group>
 
-            <Group title="Places">
-              <AddressSelector
-                key={`hq-${version}-${fillKey}`}
-                label="Headquarters"
-                value={parseAddress(draft.headquarters)}
-                onChange={(address) => set("headquarters")(formatAddress(address))}
-              />
-              <CitySelector
-                key={`offices-${fillKey}`}
-                multiple
-                label="Offices"
-                value={splitLocations(draft.locations)}
-                onChange={(cities) => set("locations")(joinLocations(cities))}
-              />
-            </Group>
+                <Group title="Places">
+                  <AddressSelector
+                    key={`hq-${version}-${fillKey}`}
+                    label="Headquarters"
+                    value={parseAddress(draft.headquarters)}
+                    onChange={(address) => set("headquarters")(formatAddress(address))}
+                  />
+                  <CitySelector
+                    key={`offices-${fillKey}`}
+                    multiple
+                    label="Offices"
+                    value={splitLocations(draft.locations)}
+                    onChange={(cities) => set("locations")(joinLocations(cities))}
+                  />
+                </Group>
 
-            <ValuesField values={draft.values} onChange={set("values")} />
-            <BenefitsField
-              key={`benefits-${version}-${fillKey}`}
-              groups={draft.benefitCategories}
-              onChange={set("benefitCategories")}
-            />
+                <ValuesField values={draft.values} onChange={set("values")} />
+                <BenefitsField
+                  key={`benefits-${version}-${fillKey}`}
+                  groups={draft.benefitCategories}
+                  onChange={set("benefitCategories")}
+                />
+              </>
+            )}
           </Stack>
         ) : null}
       </Stack>

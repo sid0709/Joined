@@ -8,6 +8,8 @@ import {
   type AdminCompany,
   companyLogoSrc,
   companyWriteFrom,
+  companyWriteJSON,
+  parseCompanyWriteJSON,
   STAGED_COMPANY_STATUS,
   stagedCompanyStatusLabel,
 } from "./company";
@@ -119,5 +121,30 @@ describe("stagedCompanyStatusLabel", () => {
   it("names the two staged states", () => {
     expect(stagedCompanyStatusLabel(STAGED_COMPANY_STATUS.waiting)).toBe("Waiting");
     expect(stagedCompanyStatusLabel(STAGED_COMPANY_STATUS.notFound)).toBe("Not found");
+  });
+});
+
+describe("parseCompanyWriteJSON", () => {
+  it("round-trips a form draft", () => {
+    const draft = companyWriteFrom(base);
+    const parsed = parseCompanyWriteJSON(companyWriteJSON(draft));
+    expect(parsed).toEqual(draft);
+  });
+
+  it("rejects unknown fields and bad sizes", () => {
+    expect(parseCompanyWriteJSON('{"id":"x","name":"Acme"}')).toEqual({
+      error: 'Unknown field "id"',
+    });
+    expect(parseCompanyWriteJSON('{"name":"Acme","size":"huge"}')).toEqual({
+      error: "size is not a listed company size",
+    });
+  });
+
+  it("canonicalizes listed sizes", () => {
+    const parsed = parseCompanyWriteJSON('{"name":"Acme","size":"11-50"}');
+    if ("error" in parsed) {
+      throw new Error(parsed.error);
+    }
+    expect(parsed.size).toBe("11–50");
   });
 });
