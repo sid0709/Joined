@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
 import { POSTED_AT_SOURCE } from "./constants.js";
-import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
+import {
+  hasDeclaredValue,
+  parseDetail,
+  parseDetailNeedsJob,
+  requiredRecordIssues,
+} from "./parseDetail.js";
 import { detailJob, detailPageHtml } from "./testing/pageHtml.js";
 import "./testing/domParser.js";
 import { faviconUrlFor, salaryFrom, websiteUrl } from "./values.js";
@@ -33,6 +38,9 @@ describe("parseDetail fields", () => {
     expect(record.requisitionId).toBe("uplqcnmhu405bzud");
     expect(record.meta.id).toBe("uplqcnmhu405bzud");
     expect(requiredRecordIssues(record)).toEqual([]);
+    expect(hasDeclaredValue(record, "title")).toBe(true);
+    expect(parseDetailNeedsJob(detailPageHtml())).toBe(false);
+    expect(parseDetailNeedsJob("<html></html>")).toBe(true);
   });
 
   test("prefers a non-favicon logo when JSON-LD has one", () => {

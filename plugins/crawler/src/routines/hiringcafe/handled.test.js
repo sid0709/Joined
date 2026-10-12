@@ -10,8 +10,10 @@ import {
   MARK_APPLIED_ENABLED,
   START_FROM_PAGE_ONE_LABEL,
   cardDecisionLabel,
+  cardInvalidDecision,
   jitterMs,
   resumeLabelFromCursor,
+  stuckPageMessage,
 } from "./constants.js";
 import { handledIdSet, isJobHandled, jobsAfterCursor, nextUnhandledJob } from "./handled.js";
 import { isMarkAppliedEnabled, markAppliedIfEnabled } from "./markApplied.js";
@@ -43,6 +45,8 @@ describe("handled skip", () => {
     expect(cardDecisionLabel("reqaaa1111111111", CARD_SKIP_HANDLED)).toBe(
       "Job reqaaa1111111111 skipped: already handled",
     );
+    expect(cardInvalidDecision(["applyUrl", "description"])).toBe("invalid applyUrl, description");
+    expect(stuckPageMessage(3)).toBe("The same HiringCafe page failed 3 times. Crawl stopped.");
   });
 
   test("persists handled IDs and a 0-indexed crawl cursor", async () => {

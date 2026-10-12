@@ -232,6 +232,19 @@ describe("HiringCafeRoutine", () => {
     expect(activities.some((activity) => activity.label === CHALLENGE_WAIT_LABEL)).toBe(true);
   });
 
+  test("finishes when the first page has no jobs", async () => {
+    const activities = [];
+    const page = hiringCafeTab({
+      listHtml: listPageHtml({ hits: [], ssrPage: 0, ssrIsLastPage: true }),
+    });
+    expect(
+      await collectJobs(createHiringCafeStore(memoryStorage()), page.exec, {
+        onActivity: (activity) => activities.push(activity),
+      }),
+    ).toEqual([]);
+    expect(activities.some((activity) => activity.label === "Page 1 has 0 jobs")).toBe(true);
+  });
+
   test("skips already-handled requisition ids on a later run", async () => {
     const store = createHiringCafeStore(memoryStorage());
     await store.markHandled("reqaaa1111111111", new Set());

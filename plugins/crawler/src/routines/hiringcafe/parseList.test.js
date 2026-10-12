@@ -82,6 +82,11 @@ describe("parseList grouping", () => {
     expect(isJobDetailUrl("https://hiringcafe.com/job/x-reqaaa1111111111")).toBe(true);
     expect(isHiringCafeHost("www.hiringcafe.com")).toBe(true);
     expect(isHiringCafeUrl("https://hiring.cafe/classic")).toBe(true);
+    expect(isHiringCafeUrl("not a url")).toBe(false);
+    expect(isClassicListUrl("not a url")).toBe(false);
+    expect(isJobDetailUrl("not a url")).toBe(false);
+    expect(pageFromListUrl("not a url")).toBe(0);
+    expect(jobUrlFromHit({ path: "" }, LIST_URL)).toBe("");
     expect(crawlListUrl("https://hiringcafe.com/classic?searchState=%7B%7D&page=2")).toContain(
       "searchState=",
     );
