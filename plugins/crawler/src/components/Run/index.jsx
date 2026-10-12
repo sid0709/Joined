@@ -102,9 +102,16 @@ export default function RunPanel({ onBrowseRoutines }) {
           onChooseRoutine={setChosenRoutineId}
           isRunning={isRunning}
           onBrowseRoutines={onBrowseRoutines}
+          paceSettings={run.paceSettings}
+          onPaceSettingsChange={run.setPaceSettings}
         />
         {run.status === RUN_STATUS.IDLE ? null : <LiveRunCard run={run} routine={shownRoutine} />}
-        <ResultsCard stats={run.runStats} queue={run.queueCounts} recentJobs={run.recentJobs} />
+        <ResultsCard
+          stats={run.runStats}
+          queue={run.queueCounts}
+          recentJobs={run.recentJobs}
+          routine={shownRoutine}
+        />
       </VStack>
       <RunActionBar
         run={run}

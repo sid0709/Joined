@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+import { rewriteHashedSuffixes } from "../../routineKit/extract.js";
+
 import { hasCore, jobInfoUrlFrom, parseDetail, parseDetailNeedsFetch } from "./parseDetail.js";
+import { salaryFromJobCard } from "./parseDom.js";
 import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
 
@@ -74,5 +77,29 @@ describe("JobRight parseDetail", () => {
     const record = parseDetail(html, DETAIL_URL);
     expect(record.salary).toBe("$180K");
     expect(record.benefits).toEqual(["Health insurance"]);
+  });
+
+  test("still extracts after hashed class suffixes change", () => {
+    const rewritten = rewriteHashedSuffixes(loadFixture("detail-dom.html"), "Q9Q9Q");
+    expect(rewritten).toContain("index_job-title__Q9Q9Q");
+    expect(rewritten).not.toContain("index_job-title__x");
+    const record = parseDetail(rewritten, "https://jobright.ai/jobs/recommend");
+    expect(record.title).toBe("Staff Engineer");
+    expect(record.companyName).toBe("North Labs");
+    expect(record.skills).toEqual(expect.arrayContaining(["Go", "Kubernetes"]));
+  });
+
+  test("reads salary from the list card and prefers JSON-LD sameAs for the website", () => {
+    const overlay = loadFixture("list-overlay.html");
+    expect(salaryFromJobCard(overlay, "abc123")).toBe("$140K");
+    expect(salaryFromJobCard(overlay, "")).toBe("");
+    const record = parseDetail(overlay, "https://jobright.ai/jobs/recommend", { salary: "$140K" });
+    expect(record.salary).toBe("$140K");
+
+    const withSameAs = loadFixture("detail-next-data.html").replace(
+      "</body>",
+      '<script type="application/ld+json">{"@type":"JobPosting","hiringOrganization":{"sameAs":"https://same-as.example/"}}</script></body>',
+    );
+    expect(parseDetail(withSameAs, DETAIL_URL).companyWebsite).toBe("https://same-as.example/");
   });
 });

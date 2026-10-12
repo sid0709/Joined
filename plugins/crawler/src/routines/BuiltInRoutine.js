@@ -8,7 +8,7 @@ import {
   NEXT_PAGE,
   PAGE_DELAY_MS,
 } from "./builtin/constants";
-import { BUILTIN_FIELDS } from "./builtin/fields";
+import { BUILTIN_FIELDS, BUILTIN_RUN_VIEW } from "./builtin/fields";
 import { runBuiltInPass } from "./builtin/runPass";
 import { ROUTINE_OUTPUTS } from "./outputs";
 
@@ -30,6 +30,7 @@ export default defineRoutine({
   match: { hosts: BUILTIN_HOSTS },
   output: ROUTINE_OUTPUTS.JOB,
   declaredFields: BUILTIN_FIELDS,
+  runView: BUILTIN_RUN_VIEW,
   options: { highlightFields: false, fieldPauseMs: 0, allowFetch: true },
   runPass: runBuiltInPass,
 

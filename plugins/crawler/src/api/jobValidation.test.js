@@ -30,9 +30,15 @@ describe("jobValidation", () => {
     expect(
       getJobValidationIssues(
         completeJob({ companyWebsite: "javascript:alert(1)" }),
-        BuiltInRoutine,
+        JobRightRoutine,
       ),
     ).toContain("Website");
+    expect(
+      getJobValidationIssues(
+        completeJob({ companyWebsite: "javascript:alert(1)" }),
+        BuiltInRoutine,
+      ),
+    ).toEqual([]);
   });
 
   test("checks a declared field on the payload or its metadata", () => {

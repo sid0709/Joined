@@ -6,6 +6,8 @@ import { clearHighlights, highlightElements } from "../highlighter";
 // The page side of the routine runner (routineKit/runner.js): each op does one thing to
 // the live page and answers with its result.
 
+const inFlightFetches = new Map();
+
 const OPS = {
   count: ({ selector }) => ({ count: queryAll(document, selector).length }),
   highlight: ({ selector }) => highlightElements(queryAll(document, selector)),
@@ -17,10 +19,30 @@ const OPS = {
     html: document.documentElement?.outerHTML ?? "",
     url: location.href,
   }),
-  fetch: async ({ url, hosts }) => {
+  fetch: async ({ url, hosts, fetchId }) => {
     const resolved = assertFetchUrl(url, hosts, location.href);
-    const response = await fetch(resolved, { credentials: "include" });
-    return { html: await response.text(), url: response.url, status: response.status };
+    const controller = new AbortController();
+    const id = fetchId || resolved;
+    inFlightFetches.set(id, controller);
+    try {
+      const response = await fetch(resolved, {
+        credentials: "include",
+        signal: controller.signal,
+      });
+      return {
+        html: await response.text(),
+        url: response.url,
+        status: response.status,
+        retryAfter: response.headers.get("Retry-After") || "",
+      };
+    } finally {
+      inFlightFetches.delete(id);
+    }
+  },
+  abortFetches: () => {
+    for (const controller of inFlightFetches.values()) controller.abort();
+    inFlightFetches.clear();
+    return { aborted: true };
   },
   click: async ({ selector, nth = 0, wait = 0 }) => {
     const target = (await waitForMatches(document, selector, wait))[nth];

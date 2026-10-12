@@ -8,7 +8,7 @@ import {
   jitterMs,
 } from "./constants.js";
 import { cssEscape, jobSaveSelector } from "./cssEscape.js";
-import { handledIdSet, isJobHandled, nextUnhandledCard } from "./handled.js";
+import { contiguousLastJobId, handledIdSet, isJobHandled, nextUnhandledCard } from "./handled.js";
 import { createBuiltinStore, memoryStorage, pruneHandledRecord } from "./store.js";
 
 describe("handled skip", () => {
@@ -29,6 +29,9 @@ describe("handled skip", () => {
     expect(nextUnhandledCard(cards, handledIdSet(["a", "c", "d"]), "")).toBeNull();
     expect(nextUnhandledCard(cards, handledIdSet([]), "missing")?.id).toBe("a");
     expect(nextUnhandledCard(cards, handledIdSet(["a", "c"]), "missing")?.id).toBe("d");
+    expect(contiguousLastJobId(cards, handledIdSet(["c", "d"]), "a")).toBe("a");
+    expect(contiguousLastJobId(cards, handledIdSet(["c", "d"]), "")).toBe("");
+    expect(contiguousLastJobId([{ id: "a" }, { id: "b" }], handledIdSet(["a", "b"]), "")).toBe("b");
   });
 
   test("escapes the Save control's entity id", () => {

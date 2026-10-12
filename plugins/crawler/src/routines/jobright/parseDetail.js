@@ -52,11 +52,12 @@ function hasCore(record) {
 /**
  * JobRight detail: prefer `#__NEXT_DATA__` jobResult/companyResult, fill gaps from the DOM.
  */
-export function parseDetail(html, pageUrl = "") {
+export function parseDetail(html, pageUrl = "", extras = {}) {
   const fromJson = parseFromNextData(html);
   const fromDom = parseFromDom(html, pageUrl);
-  if (!fromJson) return fromDom;
-  return mergeRecords(fromJson, fromDom);
+  const merged = fromJson ? mergeRecords(fromJson, fromDom) : fromDom;
+  if (!isFound(merged.salary) && isFound(extras.salary)) merged.salary = extras.salary;
+  return merged;
 }
 
 export function parseDetailNeedsFetch(html) {

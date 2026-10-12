@@ -1,3 +1,5 @@
+import { queryAll } from "./extract.js";
+
 /**
  * Parse HTML into a document. The side panel has DOMParser; tests install linkedom
  * (see testing/domParser.js).
@@ -60,4 +62,14 @@ export function valueAt(record, path) {
   return String(path)
     .split(".")
     .reduce((current, key) => current?.[key], record);
+}
+
+/** First match of `selector` whose normalized text equals `label`. Never use :-soup-contains. */
+export function firstElementByText(root, selector, label) {
+  const needle = normalizeSpace(label).toLowerCase();
+  if (!root || !needle) return null;
+  for (const node of queryAll(root, selector)) {
+    if (textOf(node).toLowerCase() === needle) return node;
+  }
+  return null;
 }

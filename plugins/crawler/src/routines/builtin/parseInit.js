@@ -1,5 +1,6 @@
-import { JOB_BOARD_INIT_NAME, JOB_POST_INIT_NAME, JSON_LD_SCRIPT } from "./constants.js";
-import { documentFromHtml } from "./html.js";
+import { parseJobPostingJsonLd } from "../../routineKit/jsonLd.js";
+
+import { JOB_BOARD_INIT_NAME, JOB_POST_INIT_NAME } from "./constants.js";
 
 /**
  * Slice the JSON argument of `Name({...})` out of a script, respecting strings
@@ -61,33 +62,4 @@ export function parseJobBoardInit(html) {
   return extractCallPayload(html, JOB_BOARD_INIT_NAME);
 }
 
-function asArray(value) {
-  if (Array.isArray(value)) return value;
-  return value ? [value] : [];
-}
-
-function walkGraph(node, found) {
-  if (!node || typeof node !== "object") return;
-  if (node["@type"] === "JobPosting") found.push(node);
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value) || (value && typeof value === "object")) walkGraph(value, found);
-  }
-}
-
-/** JobPosting objects from JSON-LD, matching escaped (`ld&#x2B;json`) and plain types. */
-export function parseJobPostingJsonLd(html) {
-  const document = documentFromHtml(html);
-  const postings = [];
-  for (const script of document.querySelectorAll(JSON_LD_SCRIPT)) {
-    const type = script.getAttribute("type") || "";
-    if (!/ld/i.test(type) || !/json/i.test(type)) continue;
-    let data;
-    try {
-      data = JSON.parse(script.textContent || "");
-    } catch {
-      continue;
-    }
-    walkGraph(data, postings);
-  }
-  return postings[0] ?? null;
-}
+export { parseJobPostingJsonLd };

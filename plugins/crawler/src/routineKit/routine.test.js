@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { attrMatch } from "./extract.js";
 import { attr, pairs, text } from "./fields.js";
 import { DEFAULT_ROUTINE_OPTIONS, defineRoutine, listFields, routineProblems } from "./routine.js";
 import { click, highlight, pause, waitFor, waitGone } from "./steps.js";
@@ -34,6 +35,22 @@ describe("defineRoutine", () => {
       fieldPauseMs: 50,
       allowFetch: false,
     });
+  });
+
+  test("accepts Inspector attribute patterns as selectors", () => {
+    const pattern = attrMatch({ tag: "a", attr: "href", pattern: "?/jobs/info/?" });
+    expect(
+      routineProblems({
+        ...validRoutine(),
+        strategy: listDetail({
+          open: [click(pattern)],
+          ready: [waitFor(pattern)],
+          dismiss: [waitGone([".done", pattern])],
+          settle: [pause(1)],
+        }),
+        fields: { title: text(pattern, { inner: attrMatch({ tag: "span", pattern: "?chip?" }) }) },
+      }),
+    ).toEqual([]);
   });
 
   test("lists fields in the order they are read", () => {

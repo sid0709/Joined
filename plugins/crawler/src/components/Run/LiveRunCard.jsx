@@ -1,6 +1,18 @@
-import { Badge, Card, HStack, ProgressBar, StatusDot, Step, Stepper, Text, VStack } from "sid-ui";
+import {
+  Badge,
+  Banner,
+  Card,
+  HStack,
+  ProgressBar,
+  StatusDot,
+  Step,
+  Stepper,
+  Text,
+  VStack,
+} from "sid-ui";
 
 import { formatElapsedTime } from "../../api/scrapeRunStats";
+import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
 
 import FieldChecklist from "./FieldChecklist";
 import { RUN_STEPS, runStepIndex } from "./runState";
@@ -14,14 +26,49 @@ const STATUS_META = {
 
 const formatPercent = (value) => `${Math.round(value)}%`;
 
-/** Keep all four phase labels visible down to a narrow side panel. */
 const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
-/** The current run: status, which phase of the pass it is in, what it is doing, and fields. */
+function PaceStats({ pace, routine }) {
+  if (!pace) return null;
+  const showRate = hasRunStat(routine, RUN_STAT.JOBS_PER_SECOND);
+  const showConcurrency = hasRunStat(routine, RUN_STAT.CONCURRENCY);
+  const showBlocks = hasRunStat(routine, RUN_STAT.BLOCKS);
+  if (!showRate && !showConcurrency && !showBlocks) return null;
+  return (
+    <HStack gap={2} wrap="wrap">
+      {showRate ? (
+        <Badge
+          variant="blue"
+          label={`${pace.jobsPerSecond ?? 0} jobs/s`}
+          description="Live ingest pace"
+        />
+      ) : null}
+      {showConcurrency ? (
+        <Badge
+          variant="neutral"
+          label={`${pace.concurrency ?? 0} concurrent`}
+          description="Current fetch concurrency"
+        />
+      ) : null}
+      {showBlocks && pace.blockCount ? (
+        <Badge
+          variant="orange"
+          label={`${pace.blockCount} blocks`}
+          description="Blocks in window"
+        />
+      ) : null}
+    </HStack>
+  );
+}
+
+/** The current run: only the components the active routine declared. */
 export default function LiveRunCard({ run, routine }) {
   const meta = STATUS_META[run.status] ?? STATUS_META[RUN_STATUS.STOPPED];
   const isRunning = run.status === RUN_STATUS.RUNNING;
   const activeStep = isRunning ? runStepIndex(run.activity?.phase) : RUN_STEPS.length;
+  const showStepper = hasRunComponent(routine, RUN_COMPONENT.STEPPER);
+  const showPace = hasRunComponent(routine, RUN_COMPONENT.PACE);
+  const showFields = hasRunComponent(routine, RUN_COMPONENT.FIELD_GROUPS);
 
   return (
     <Card padding={4}>
@@ -37,7 +84,13 @@ export default function LiveRunCard({ run, routine }) {
           </Text>
         </HStack>
 
-        {isRunning ? (
+        {run.warning ? (
+          <Banner status="warning" title="Crawl paused" description={run.warning} />
+        ) : null}
+
+        {showPace ? <PaceStats pace={run.pace} routine={routine} /> : null}
+
+        {isRunning && showStepper ? (
           <>
             <Stepper
               activeStep={activeStep}
@@ -58,7 +111,7 @@ export default function LiveRunCard({ run, routine }) {
           </>
         ) : null}
 
-        {routine ? (
+        {showFields && routine ? (
           <FieldChecklist
             routine={routine}
             fieldStates={run.fieldStates}

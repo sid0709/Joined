@@ -50,7 +50,27 @@ export class RoutineStepError extends Error {
   }
 }
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** The site is blocking the crawl; the run should stop and warn. */
+export class RoutineBlockedError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "RoutineBlockedError";
+  }
+}
+
+const sleep = (ms, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new RoutineStoppedError());
+      return;
+    }
+    const timer = setTimeout(resolve, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new RoutineStoppedError());
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 
 function withTimeout(promise, ms, label) {
   let timer;
@@ -64,6 +84,13 @@ function createContext(routine, hooks) {
   const checkStopped = () => {
     if (hooks.signal?.aborted) throw new RoutineStoppedError();
   };
+  if (hooks.signal) {
+    const abortFetches = () => {
+      void Promise.resolve(hooks.exec?.({ op: "abortFetches" })).catch(() => {});
+    };
+    if (hooks.signal.aborted) abortFetches();
+    else hooks.signal.addEventListener("abort", abortFetches, { once: true });
+  }
   const opTimeoutMs = hooks.opTimeoutMs ?? OP_TIMEOUT_MS;
   const call = async (op, payload = {}, waitMs = 0) => {
     checkStopped();
@@ -76,7 +103,7 @@ function createContext(routine, hooks) {
     return result ?? {};
   };
   const rest = async (ms) => {
-    if (ms > 0) await sleep(ms);
+    if (ms > 0) await sleep(ms, hooks.signal);
     checkStopped();
   };
   return { routine, hooks, call, rest, checkStopped };

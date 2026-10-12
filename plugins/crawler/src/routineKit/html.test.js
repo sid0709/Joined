@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+import { attrMatch } from "./extract.js";
 import {
   documentFromHtml,
+  firstElementByText,
   htmlToPlainText,
   isFound,
   originOf,
@@ -23,6 +25,19 @@ describe("html helpers", () => {
       "https://jobright.ai/jobs/info/1",
     );
     expect(resolveUrl("", "https://jobright.ai")).toBe("");
+    const labeled = documentFromHtml(
+      '<h2 class="index_label__abc">Required</h2><h2 class="index_label__def">Preferred</h2>',
+    );
+    expect(
+      textOf(
+        firstElementByText(
+          labeled,
+          attrMatch({ tag: "h2", attr: "class", pattern: "?index_label__?" }),
+          "Preferred",
+        ),
+      ),
+    ).toBe("Preferred");
+    expect(firstElementByText(labeled, "h2", "")).toBeNull();
   });
 
   test("valueAt and isFound cover empty and nested values", () => {

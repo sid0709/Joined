@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { findRoutineForUrl } from "../routineKit/match.js";
+import { listDeclaredFields } from "../routineKit/routine.js";
 import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../routineKit/runner.js";
 
 import "./builtin/testing/domParser.js";
@@ -57,13 +58,17 @@ function builtinExec({
 
 async function collectPass(store, exec, extra = {}) {
   const records = [];
-  await runRoutinePass(routine, {
-    exec,
-    store,
-    skipDelays: true,
-    onRecord: (record) => records.push(record),
-    ...extra,
-  });
+  try {
+    await runRoutinePass(routine, {
+      exec,
+      store,
+      skipDelays: true,
+      onRecord: (record) => records.push(record),
+      ...extra,
+    });
+  } catch (error) {
+    if (!(error instanceof RoutineFinishedError)) throw error;
+  }
   return records;
 }
 
@@ -72,14 +77,21 @@ describe("BuiltInRoutine", () => {
     expect(findRoutineForUrl(ROUTINES, "https://builtin.com/jobs")).toBe(BuiltInRoutine);
     expect(findRoutineForUrl(ROUTINES, "https://www.builtin.com/job/x/1")).toBe(BuiltInRoutine);
     expect(findRoutineForUrl(ROUTINES, "https://jobright.ai/jobs")).not.toBe(BuiltInRoutine);
+    const keys = listDeclaredFields(BuiltInRoutine).map((field) => field.key);
+    expect(keys).not.toContain("skills");
+    expect(keys).not.toContain("companyWebsite");
+    expect(BuiltInRoutine.runView.settings).toContain("concurrency");
+    expect(BuiltInRoutine.runView.components).toContain("pace");
   });
 
   test("fetches a job and reads the ingest shape, including Easy Apply vs external apply URLs", async () => {
     const store = createBuiltinStore(memoryStorage());
     const page = builtinExec({
+      listHtml: loadFixture("list-last.html"),
       details: { [JOB_A]: loadFixture("detail-easyapply.html") },
     });
-    const [easy] = await collectPass(store, page.exec);
+    const records = await collectPass(store, page.exec);
+    const easy = records.find((record) => record.badges?.includes("Easy Apply"));
     expect(easy.title).toContain("Specialist Account Executive");
     expect(easy.applyUrl).toBe(JOB_A);
     expect(easy.badges).toContain("Easy Apply");
@@ -89,9 +101,13 @@ describe("BuiltInRoutine", () => {
 
     const store2 = createBuiltinStore(memoryStorage());
     const signed = builtinExec({
+      listHtml: loadFixture("list-last.html"),
       details: { [JOB_A]: loadFixture("detail-signed-in.html") },
     });
-    const [external] = await collectPass(store2, signed.exec);
+    const signedRecords = await collectPass(store2, signed.exec);
+    const external = signedRecords.find((record) =>
+      String(record.applyUrl).includes("careers.micron.com"),
+    );
     expect(external.applyUrl).toBe("https://careers.micron.com/apply/9256204");
     expect(external.badges).not.toContain("Easy Apply");
     expect(signed.clicks).toContain(jobSaveSelector("9256204"));
@@ -124,21 +140,18 @@ describe("BuiltInRoutine", () => {
         [JOB_B]: loadFixture("detail-easyapply.html"),
       },
     });
-    const [first] = await collectPass(store, page.exec);
+    const firstRecords = await collectPass(store, page.exec);
+    const first = firstRecords.find((record) => record.badges?.includes("Easy Apply"));
     expect(page.fetches).toContain(JOB_B);
     expect(page.fetches).not.toContain(JOB_A);
     expect(first.badges).toContain("Easy Apply");
 
     const savedPage = builtinExec({ listHtml: loadFixture("list-saved.html") });
     const savedStore = createBuiltinStore(memoryStorage());
-    await expect(collectPass(savedStore, savedPage.exec)).rejects.toBeInstanceOf(
-      RoutineFinishedError,
-    );
+    expect(await collectPass(savedStore, savedPage.exec)).toEqual([]);
 
     const empty = builtinExec({ listHtml: loadFixture("list-empty.html") });
-    await expect(
-      collectPass(createBuiltinStore(memoryStorage()), empty.exec),
-    ).rejects.toBeInstanceOf(RoutineFinishedError);
+    expect(await collectPass(createBuiltinStore(memoryStorage()), empty.exec)).toEqual([]);
   });
 
   test("resumes from a stored cursor and honours Stop", async () => {
@@ -150,8 +163,8 @@ describe("BuiltInRoutine", () => {
       lists: [LIST_URL],
     });
     const page = builtinExec();
-    const [record] = await collectPass(store, page.exec);
-    expect(record.title).toContain("Staff/ Principal Engineer");
+    const records = await collectPass(store, page.exec);
+    expect(records.some((record) => record.title.includes("Staff/ Principal Engineer"))).toBe(true);
     expect(page.fetches).toContain(JOB_B);
     expect(page.fetches).not.toContain(JOB_A);
 
@@ -177,10 +190,10 @@ describe("BuiltInRoutine", () => {
       lists: [LIST_URL],
     });
     const page = builtinExec();
-    const [record] = await collectPass(store, page.exec);
+    const records = await collectPass(store, page.exec);
     expect(page.fetches).toContain(JOB_A);
-    expect(page.fetches).not.toContain(JOB_B);
-    expect(record.title).toContain("Staff/ Principal Engineer");
+    expect(page.fetches).toContain(JOB_B);
+    expect(records.some((record) => record.title.includes("Staff/ Principal Engineer"))).toBe(true);
   });
 
   test("stops a list when the next page repeats the same card IDs", async () => {
@@ -199,7 +212,7 @@ describe("BuiltInRoutine", () => {
     });
     const listHtml = loadFixture("list.html");
     const page = builtinExec({ listHtml, paginatedListHtml: listHtml });
-    await expect(collectPass(store, page.exec)).rejects.toBeInstanceOf(RoutineFinishedError);
+    expect(await collectPass(store, page.exec)).toEqual([]);
     expect(page.fetches.some((url) => String(url).includes("page=2"))).toBe(true);
     expect(page.fetches.some((url) => String(url).includes("page=3"))).toBe(false);
   });

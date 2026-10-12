@@ -1,4 +1,6 @@
 import { isHttpUrl } from "../../lib/httpUrl.js";
+import { queryAll, queryOne } from "../../routineKit/extract.js";
+import { firstElementByText, isFound } from "../../routineKit/html.js";
 import { workModeFrom } from "../../routineKit/workMode.js";
 
 import { resolveApplyUrl } from "./applyUrl.js";
@@ -8,56 +10,57 @@ import {
   COMPANY_TITLE,
   EASY_APPLY_TAG,
   HEADER_SCOPE,
+  ICON_EMPLOYEES,
+  ICON_FOUNDED,
+  ICON_HQ,
   ICON_LOCATION,
   ICON_POSTED,
   ICON_SALARY,
   ICON_SENIORITY,
   ICON_WORKPLACE,
+  JOB_BODY,
   JOB_BODY_ID_PREFIX,
-  SKILLS_HEADING,
-  SKILLS_HEADING_TEXT,
+  JOB_POST_ITEM,
 } from "./constants.js";
 import { documentFromHtml, htmlToPlainText, resolveUrl, textOf } from "./html.js";
 import { parseJobPostingJsonLd, parseJobPostInit } from "./parseInit.js";
 
 function headerRoot(document) {
-  return document.querySelector(HEADER_SCOPE) || document;
+  return queryOne(document, HEADER_SCOPE) || queryOne(document, JOB_POST_ITEM) || document;
 }
 
-function iconRow(scope, iconSelector) {
-  const icon = scope.querySelector(iconSelector);
+function rowByIcon(scope, iconSelector) {
+  const icon = queryOne(scope, iconSelector);
   if (!icon) return null;
-  if (icon.nextElementSibling) return icon.parentElement;
-  return (
-    icon.closest(".d-flex.align-items-start.gap-sm") ||
-    icon.parentElement?.parentElement ||
-    icon.parentElement
-  );
+  return icon.closest("div.gap-sm") || icon.parentElement;
 }
 
 function iconRowText(scope, iconSelector) {
-  return textOf(iconRow(scope, iconSelector)?.querySelector("span"));
+  const row = rowByIcon(scope, iconSelector);
+  if (!row) return "";
+  return textOf(queryOne(row, "span") || queryOne(row, "div.font-barlow"));
 }
 
 function locationFromHeader(scope) {
-  const row = iconRow(scope, ICON_LOCATION);
+  const row = rowByIcon(scope, ICON_LOCATION);
   if (!row) return "";
-  const tip = row.querySelector("[title], [data-bs-title], [aria-label]");
+  const tip = queryOne(row, "[title], [data-bs-title], [aria-label]");
   const raw = tip?.getAttribute("title") || tip?.getAttribute("data-bs-title") || "";
   if (raw) {
     const decoded = htmlToPlainText(raw);
     if (decoded) return decoded;
   }
-  return textOf(row.querySelector("span"));
+  return textOf(queryOne(row, "span") || queryOne(row, "div.font-barlow"));
+}
+
+function placesFrom(posting) {
+  const value = posting?.jobLocation;
+  if (Array.isArray(value)) return value;
+  return value ? [value] : [];
 }
 
 function locationFromJsonLd(posting) {
-  const places = Array.isArray(posting?.jobLocation)
-    ? posting.jobLocation
-    : posting?.jobLocation
-      ? [posting.jobLocation]
-      : [];
-  const labels = places
+  const labels = placesFrom(posting)
     .map((place) => {
       const address = place?.address || {};
       return [address.addressLocality, address.addressRegion, address.addressCountry]
@@ -68,20 +71,37 @@ function locationFromJsonLd(posting) {
   return labels.join("; ");
 }
 
-function skillsFromDocument(document) {
-  for (const heading of document.querySelectorAll(SKILLS_HEADING)) {
-    if (textOf(heading) !== SKILLS_HEADING_TEXT) continue;
-    const list = heading.parentElement?.querySelector("ul") || heading.nextElementSibling;
-    if (!list) return [];
-    return [...list.querySelectorAll("li")].map((item) => textOf(item)).filter(Boolean);
-  }
-  return [];
+function formatSalaryK(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  if (Math.abs(n) >= 1000) return `${Math.round(n / 1000)}K`;
+  return String(n);
+}
+
+function salaryUnit(unitText) {
+  const unit = String(unitText || "").toUpperCase();
+  if (unit.includes("YEAR")) return "Annually";
+  if (unit.includes("HOUR")) return "Hourly";
+  if (unit.includes("MONTH")) return "Monthly";
+  return String(unitText || "").trim();
+}
+
+function salaryFromJsonLd(posting) {
+  const salary = posting?.baseSalary;
+  if (!salary || typeof salary !== "object") return "";
+  const value = salary.value && typeof salary.value === "object" ? salary.value : {};
+  const min = formatSalaryK(value.minValue);
+  const max = formatSalaryK(value.maxValue);
+  const unit = salaryUnit(value.unitText);
+  if (min && max) return `${min}-${max}${unit ? ` ${unit}` : ""}`;
+  if (min || max) return `${min || max}${unit ? ` ${unit}` : ""}`;
+  return "";
 }
 
 function descriptionFromDocument(document, jobId) {
   const body =
-    document.getElementById(`${JOB_BODY_ID_PREFIX}${jobId}`) ||
-    document.querySelector(`[id^="${JOB_BODY_ID_PREFIX}"]`);
+    (jobId && document.getElementById(`${JOB_BODY_ID_PREFIX}${jobId}`)) ||
+    queryOne(document, JOB_BODY);
   return textOf(body);
 }
 
@@ -93,10 +113,10 @@ function firstHttpUrl(...values) {
 }
 
 function applyLinkFromDom(document, pageUrl) {
-  const form = document.querySelector(APPLY_FORM);
-  const anchors = [...(form?.querySelectorAll("a[href]") ?? [])];
-  for (const anchor of anchors) {
-    if (anchor.matches(APPLY_UNAUTH)) continue;
+  const form = queryOne(document, APPLY_FORM);
+  const skip = new Set(queryAll(form, APPLY_UNAUTH));
+  for (const anchor of queryAll(form, "a[href]")) {
+    if (skip.has(anchor)) continue;
     const href = resolveUrl(anchor.getAttribute("href") || anchor.href, pageUrl);
     if (isHttpUrl(href) && !/\/auth\/login/i.test(href)) return href;
   }
@@ -109,10 +129,6 @@ function asStringList(value) {
   return [String(value).trim()].filter(Boolean);
 }
 
-function companyTags(posting) {
-  return asStringList(posting?.industry);
-}
-
 function jobTags({ isEasyApply, workplace, seniority, earlyApplicant }) {
   const tags = [];
   if (isEasyApply) tags.push(EASY_APPLY_TAG);
@@ -122,12 +138,12 @@ function jobTags({ isEasyApply, workplace, seniority, earlyApplicant }) {
   return tags;
 }
 
-function hasEarlyApplicant(document) {
-  return /be an early applicant/i.test(headerRoot(document).textContent || "");
+function hasEarlyApplicant(header) {
+  return /be an early applicant/i.test(header.textContent || "");
 }
 
 function jobUrlFrom(document, pageUrl) {
-  const canonical = document.querySelector("link[rel=canonical]")?.getAttribute("href") || "";
+  const canonical = queryOne(document, "link[rel=canonical]")?.getAttribute("href") || "";
   return firstHttpUrl(pageUrl, canonical) || pageUrl;
 }
 
@@ -139,32 +155,60 @@ function resolveApplyLink(document, job, jobUrl) {
   );
 }
 
-function postedAgoFrom(header, posting) {
+function companyNameFrom(header, job, org) {
   return (
-    iconRowText(header, ICON_POSTED) ||
-    textOf(header.querySelector(`${ICON_POSTED} + span`)) ||
-    String(posting?.datePosted || "")
-  );
-}
-
-function companyNameFrom(document, job, org) {
-  return (
-    textOf(document.querySelector(`${HEADER_SCOPE} ${COMPANY_TITLE}, ${HEADER_SCOPE} h2`)) ||
+    textOf(
+      queryOne(queryOne(header, COMPANY_TITLE), "h2") ||
+        queryOne(header, 'a[href^="/company/"] h2') ||
+        queryOne(header, "h2"),
+    ) ||
     job.companyName ||
     org.name ||
     ""
   );
 }
 
-function companyLogoFrom(document, org) {
-  const headerImg = document.querySelector(`${HEADER_SCOPE} picture img, ${HEADER_SCOPE} img`);
+function companyLogoFrom(header, org) {
+  const headerImg =
+    queryOne(header, 'a[href^="/company/"] picture img') ||
+    queryOne(header, "picture img") ||
+    queryOne(header, "img");
   const logoUrl = org.logo?.url || org.logo || "";
   return firstHttpUrl(headerImg?.getAttribute("src") || headerImg?.src, logoUrl) || "";
 }
 
+function companyBox(document) {
+  for (const box of queryAll(document, "div.bg-white.rounded-3.p-md")) {
+    if (queryOne(box, ICON_HQ) || queryOne(box, ICON_FOUNDED)) return box;
+  }
+  return null;
+}
+
+function companyHqFrom(box) {
+  const text = iconRowText(box, ICON_HQ);
+  return text.replace(/^HQ:\s*/i, "");
+}
+
+function headingSection(document, title) {
+  const heading = firstElementByText(document, "h2", title);
+  if (!heading) return null;
+  return heading.parentElement;
+}
+
+function benefitsFrom(document, posting) {
+  const fromJson = asStringList(posting?.jobBenefits);
+  if (fromJson.length) return fromJson;
+  const section = headingSection(document, "Compensation & Benefits");
+  if (!section) return [];
+  return queryAll(section, "li")
+    .map((item) => textOf(item))
+    .filter(Boolean);
+}
+
 /**
  * Built In job record from JSON-LD, jobPostInit, and the header DOM.
- * Salary is read only from the job header, never Similar Jobs.
+ * Salary prefers JSON-LD baseSalary. Skills stay off the record.
+ * A non-empty jobPostInit applyUrl is the sign-in signal.
  */
 export function parseDetail(html, pageUrl = "") {
   const document = documentFromHtml(html);
@@ -177,41 +221,49 @@ export function parseDetail(html, pageUrl = "") {
   const isEasyApply = job.isEasyApply === true;
   const jobUrl = jobUrlFrom(document, pageUrl);
   const workplace = iconRowText(header, ICON_WORKPLACE);
+  const seniority = iconRowText(header, ICON_SENIORITY);
+  const box = companyBox(document);
   const title =
-    textOf(document.querySelector("h1 span") || document.querySelector("h1")) ||
+    textOf(queryOne(header, "h1 span") || queryOne(header, "h1")) ||
     job.title ||
     posting?.title ||
     "";
+  const applyFromInit = String(job.applyUrl || "").trim();
 
   return {
     applyUrl: resolveApplyLink(document, job, jobUrl),
     title,
     description:
       descriptionFromDocument(document, jobId) || htmlToPlainText(posting?.description || ""),
-    companyName: companyNameFrom(document, job, org),
-    location: locationFromHeader(header) || locationFromJsonLd(posting),
+    companyName: companyNameFrom(header, job, org),
+    location: locationFromJsonLd(posting) || locationFromHeader(header),
     workMode: workModeFrom(workplace),
     employmentType: String(posting?.employmentType || "").trim(),
-    seniority: iconRowText(header, ICON_SENIORITY),
-    salary: iconRowText(header, ICON_SALARY),
-    postedAt: String(posting?.datePosted || "").trim(),
+    seniority,
+    salary: salaryFromJsonLd(posting) || iconRowText(header, ICON_SALARY),
+    postedAt: String(posting?.datePosted || "").trim() || iconRowText(header, ICON_POSTED),
     badges: jobTags({
       isEasyApply,
       workplace,
-      seniority: iconRowText(header, ICON_SENIORITY),
-      earlyApplicant: hasEarlyApplicant(document),
+      seniority,
+      earlyApplicant: hasEarlyApplicant(header),
     }),
-    industryTags: companyTags(posting),
-    benefits: asStringList(posting?.jobBenefits),
-    skills: skillsFromDocument(document),
-    companyLogo: companyLogoFrom(document, org),
-    companyWebsite: firstHttpUrl(org.sameAs, resolveUrl(org.sameAs, jobUrl)),
+    industryTags: asStringList(posting?.industry),
+    benefits: benefitsFrom(document, posting),
+    companyLogo: companyLogoFrom(header, org),
+    companyHq: box ? companyHqFrom(box) : "",
+    companySize: box ? iconRowText(box, ICON_EMPLOYEES) : "",
+    companyFounded: box ? iconRowText(box, ICON_FOUNDED).replace(/^year founded:\s*/i, "") : "",
     meta: {
       id: jobId,
       isEasyApply,
       isSaved: job.isSaved === true,
-      isLoggedIn: init?.isLoggedIn === true,
+      isSignedIn: Boolean(applyFromInit),
       applyUrl: job.applyUrl || "",
     },
   };
+}
+
+export function hasDeclaredValue(record, key) {
+  return isFound(record?.[key]);
 }

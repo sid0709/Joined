@@ -4,24 +4,150 @@ import { applyTransforms } from "./transforms.js";
  * Reads fields from a DOM root. Runs in the content script against the live page; it
  * only needs `querySelectorAll` and the element properties a read names, so tests can
  * pass a small fake root.
+ *
+ * Matching is the Inspector's helper: a CSS selector, or an attribute pattern
+ * (`text?` prefix, `?text` suffix, `?text?` contains, `a?b?c` mid-gaps) plus `nth`
+ * when several nodes match.
  */
 
 export const MATCH_POLL_INTERVAL_MS = 100;
 
-/** Matches of the first selector in the list that matches anything. */
+export function escapeAttrSelectorValue(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"');
+}
+
+export function isAttrMatch(value) {
+  return Boolean(
+    value && typeof value === "object" && !Array.isArray(value) && value.pattern != null,
+  );
+}
+
+/** Inspector pattern spec: `{ tag, attr, pattern, nth }`. */
+export function attrMatch({ tag = "*", attr = "class", pattern = "", nth } = {}) {
+  const name = attr === "className" ? "class" : attr;
+  return nth == null ? { tag, attr: name, pattern } : { tag, attr: name, pattern, nth };
+}
+
+function patternParts(pattern) {
+  const raw = String(pattern ?? "");
+  return {
+    raw,
+    startsOpen: raw.startsWith("?"),
+    endsOpen: raw.endsWith("?") && raw.length >= 1,
+    parts: raw.split("?").filter((part) => part.length > 0),
+  };
+}
+
+/** True when `value` matches an Inspector `?` pattern (prefix, suffix, contains, mid-gaps). */
+export function valueMatchesPattern(value, pattern) {
+  const haystack = String(value ?? "");
+  const { raw, parts, startsOpen, endsOpen } = patternParts(pattern);
+  if (!raw.includes("?")) return haystack === raw;
+  if (!parts.length) return true;
+  let cursor = 0;
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    const at = haystack.indexOf(part, cursor);
+    if (at < 0) return false;
+    if (index === 0 && !startsOpen && at !== 0) return false;
+    cursor = at + part.length;
+  }
+  return endsOpen || cursor === haystack.length;
+}
+
+function cssForPattern(tag, attr, pattern) {
+  const { raw, parts, startsOpen, endsOpen } = patternParts(pattern);
+  const name = attr === "className" ? "class" : attr;
+  const host = tag || "*";
+  if (!raw.includes("?")) {
+    return `${host}[${name}="${escapeAttrSelectorValue(raw)}"]`;
+  }
+  if (parts.length === 1 && startsOpen && endsOpen) {
+    return `${host}[${name}*="${escapeAttrSelectorValue(parts[0])}"]`;
+  }
+  if (parts.length === 1 && !startsOpen && endsOpen) {
+    return `${host}[${name}^="${escapeAttrSelectorValue(parts[0])}"]`;
+  }
+  if (parts.length === 1 && startsOpen && !endsOpen) {
+    return `${host}[${name}$="${escapeAttrSelectorValue(parts[0])}"]`;
+  }
+  if (parts[0]) return `${host}[${name}*="${escapeAttrSelectorValue(parts[0])}"]`;
+  return host;
+}
+
+function pickNth(nodes, nth) {
+  if (nth == null) return nodes;
+  const indexes = Array.isArray(nth) ? nth : [nth];
+  return indexes.map((index) => nodes[index]).filter(Boolean);
+}
+
+function queryCss(root, css) {
+  try {
+    return Array.from(root?.querySelectorAll?.(css) ?? []);
+  } catch (error) {
+    console.warn("Routine selector is invalid", css, error);
+    return [];
+  }
+}
+
+/**
+ * Inspector matching: attribute patterns from findElements (`text?`, `?text`, `?text?`,
+ * mid-gaps) and an optional `nth` when several nodes match.
+ */
+export function matchElements(root, spec = {}) {
+  const tag = spec.tag || spec.componentType || "*";
+  const attr =
+    spec.attr === "className" || spec.propertyName === "className"
+      ? "class"
+      : spec.attr || spec.propertyName || "id";
+  const pattern = spec.pattern ?? "";
+  const css = cssForPattern(tag, attr, pattern);
+  const nodes = queryCss(root, css).filter((node) =>
+    valueMatchesPattern(node.getAttribute?.(attr) ?? node[attr] ?? "", pattern),
+  );
+  return pickNth(nodes, spec.nth ?? spec.order);
+}
+
+/**
+ * Content-script shape: findElements(tag, attr, pattern). `root` is `document`
+ * in the page; tests pass a document from fixtures.
+ */
+export function findElements(componentType, propertyName, pattern, root = globalThis.document) {
+  return matchElements(root, { tag: componentType, attr: propertyName, pattern });
+}
+
+export function waitForElements(
+  componentType,
+  propertyName,
+  pattern,
+  timeoutMs = 2000,
+  intervalMs = MATCH_POLL_INTERVAL_MS,
+  root = globalThis.document,
+) {
+  return waitForMatches(
+    root,
+    attrMatch({ tag: componentType, attr: propertyName, pattern }),
+    timeoutMs,
+    intervalMs,
+  ).then((matches) => (matches.length ? matches : null));
+}
+
+/** Matches of the first selector (CSS or Inspector pattern) that matches anything. */
 export function queryAll(root, selector) {
   const candidates = Array.isArray(selector) ? selector : [selector];
   for (const candidate of candidates) {
-    let matches;
-    try {
-      matches = Array.from(root?.querySelectorAll?.(candidate) ?? []);
-    } catch (error) {
-      console.warn("Routine selector is invalid", candidate, error);
-      continue;
-    }
+    const matches = isAttrMatch(candidate)
+      ? matchElements(root, candidate)
+      : queryCss(root, candidate);
     if (matches.length) return matches;
   }
   return [];
+}
+
+export function queryOne(root, selector) {
+  return queryAll(root, selector)[0] ?? null;
 }
 
 /** Resolve with the matches as soon as there are any, or with [] after `timeoutMs`. */
@@ -91,4 +217,12 @@ export function extractField(root, field) {
   const outer = queryAll(root, field.selector);
   const value = assembleValue(pickTargets(outer, field), field);
   return { found: outer.length > 0, value: applyTransforms(value, field.then) };
+}
+
+/**
+ * Rewrite CSS-module `__<hash>` suffixes so extraction can be proven against a
+ * different hash without changing the stable `index_<name>__` prefix.
+ */
+export function rewriteHashedSuffixes(html, replacement = "ZZZZ9") {
+  return String(html ?? "").replace(/(index_[A-Za-z0-9-]+)__[A-Za-z0-9_-]+/g, `$1__${replacement}`);
 }

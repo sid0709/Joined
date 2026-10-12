@@ -2,6 +2,8 @@ import { isHttpUrl } from "../../lib/httpUrl.js";
 import { isFound } from "../../routineKit/html.js";
 import { workModeFrom } from "../../routineKit/workMode.js";
 
+const SCHOOL_ALUMNI_RE = /school alumni/i;
+
 export { workModeFrom };
 
 export function asText(value) {
@@ -52,6 +54,10 @@ export function joinSections(parts) {
     .map((part) => asText(part))
     .filter(Boolean)
     .join("\n\n");
+}
+
+export function filterJobBadges(tags) {
+  return (tags ?? []).filter((tag) => tag && !SCHOOL_ALUMNI_RE.test(tag));
 }
 
 export function skillNames(skills) {

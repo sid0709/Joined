@@ -5,6 +5,12 @@ import { findRoutineForUrl } from "../routineKit/match.js";
 import { listDeclaredFields } from "../routineKit/routine.js";
 import { RoutineFinishedError, runRoutinePass } from "../routineKit/runner.js";
 
+import {
+  CLOSE_DETAIL_BUTTON,
+  JOB_LINK,
+  NOT_INTERESTED_BUTTON,
+  NOT_INTERESTED_CONFIRM,
+} from "./jobright/constants.js";
 import "./jobright/testing/domParser.js";
 import { loadFixture } from "./jobright/testing/loadFixture.js";
 import JobRightRoutine from "./JobRightRoutine.js";
@@ -38,12 +44,12 @@ function jobRightTab({
   const exec = async (op) => {
     if (op.op === "click") {
       clicks.push(op.selector);
-      if (op.selector === "a[href*='jobs/info/']") {
+      if (op.selector === JOB_LINK) {
         if (jobsLeft === 0) return { found: false };
         jobsLeft -= 1;
         detailOpen = true;
       }
-      if (op.selector === "button[id^='index_job-detail-close-button']") detailOpen = false;
+      if (op.selector === CLOSE_DETAIL_BUTTON) detailOpen = false;
       return { found: true };
     }
     if (op.op === "count") return { count: detailOpen ? 1 : 0 };
@@ -70,6 +76,9 @@ describe("JobRightRoutine", () => {
     }
     expect(keys).toContain("workMode");
     expect(keys).toContain("companySocial");
+    expect(keys).toContain("skills");
+    expect(JobRightRoutine.runView.groups.some((group) => group.id === "skills")).toBe(true);
+    expect(JobRightRoutine.runView.settings).toEqual([]);
   });
 
   test("reads a job from __NEXT_DATA__ into the ingest core plus metadata fields", async () => {
@@ -87,10 +96,10 @@ describe("JobRightRoutine", () => {
     expect(record.workMode).toBe("remote");
     expect(record.applicantCount).toBe(25);
     expect(tab.clicks).toEqual([
-      "a[href*='jobs/info/']",
-      "button[id^='index_not-interest-button__']",
-      "li[class='ant-dropdown-menu-item ant-dropdown-menu-item-only-child']",
-      "button[id^='index_job-detail-close-button']",
+      JOB_LINK,
+      NOT_INTERESTED_BUTTON,
+      NOT_INTERESTED_CONFIRM,
+      CLOSE_DETAIL_BUTTON,
     ]);
   });
 

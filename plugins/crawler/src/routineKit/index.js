@@ -7,6 +7,28 @@ export {
   FIELD_TYPES,
   listDeclaredFields,
 } from "./declaredFields.js";
+export {
+  attrMatch,
+  findElements,
+  queryAll,
+  queryOne,
+  rewriteHashedSuffixes,
+  valueMatchesPattern,
+} from "./extract.js";
+export {
+  defineRunView,
+  fieldGroup,
+  hasRunComponent,
+  hasRunSetting,
+  hasRunStat,
+  listFieldGroups,
+  listRunComponents,
+  listRunSettings,
+  listRunStats,
+  RUN_COMPONENT,
+  RUN_SETTING,
+  RUN_STAT,
+} from "./runView.js";
 export { attr, html, pairs, prop, rawText, text } from "./fields.js";
 export { defineRoutine } from "./routine.js";
 export {

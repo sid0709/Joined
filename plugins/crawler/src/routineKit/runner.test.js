@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { text } from "./fields.js";
 import { defineRoutine } from "./routine.js";
 import {
+  RoutineBlockedError,
   RoutineFinishedError,
   RoutineStepError,
   RoutineStoppedError,
@@ -185,10 +186,13 @@ describe("runRoutinePass", () => {
 
   test("stops when the signal is aborted, before or during a pass", async () => {
     const before = new AbortController();
+    const beforePage = fakePage();
     before.abort();
     await expect(
-      runRoutinePass(makeRoutine(), { exec: fakePage().exec, signal: before.signal }),
+      runRoutinePass(makeRoutine(), { exec: beforePage.exec, signal: before.signal }),
     ).rejects.toBeInstanceOf(RoutineStoppedError);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(beforePage.ops.some((op) => op.op === "abortFetches")).toBe(true);
 
     const during = new AbortController();
     const page = fakePage({
@@ -212,6 +216,7 @@ describe("runRoutinePass", () => {
     const pausedPass = runRoutinePass(paused, { exec: fakePage().exec, signal: pausing.signal });
     pausing.abort();
     await expect(pausedPass).rejects.toBeInstanceOf(RoutineStoppedError);
+    expect(new RoutineBlockedError("blocked").name).toBe("RoutineBlockedError");
   });
 
   test("gives up on a page that never answers", async () => {

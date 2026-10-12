@@ -1,9 +1,27 @@
+import {
+  BACKOFF_PAUSE_MS,
+  BACKOFF_RAMP_EVERY,
+  BLOCK_WINDOW_MS,
+  clampPaceSettings,
+  DEFAULT_PACE_SETTINGS,
+  MAX_BLOCKS_IN_WINDOW,
+  MIN_CONCURRENCY,
+} from "../../api/paceSettings.js";
+import { createAdaptiveBackoff, detectFetchBlock } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
-import { RoutineFinishedError, RoutineStepError } from "../../routineKit/runner.js";
+import { createPaceMeter } from "../../routineKit/paceMeter.js";
+import {
+  RoutineBlockedError,
+  RoutineFinishedError,
+  RoutineStepError,
+  RoutineStoppedError,
+} from "../../routineKit/runner.js";
+import { createTokenBucket } from "../../routineKit/tokenBucket.js";
+import { createWorkerPool } from "../../routineKit/workerPool.js";
 
-import { JOB_DELAY_MS, MAX_PAGE, PAGE_DELAY_MS, jitterMs } from "./constants.js";
+import { MAX_PAGE } from "./constants.js";
 import { jobSaveSelector } from "./cssEscape.js";
-import { isJobHandled, nextUnhandledCard } from "./handled.js";
+import { contiguousLastJobId, isJobHandled, unhandledCards } from "./handled.js";
 import {
   advanceCursor,
   cardIdKey,
@@ -20,16 +38,41 @@ function jobRecord(detail) {
   return record;
 }
 
+function isAbortError(error) {
+  return (
+    error instanceof RoutineStoppedError ||
+    error?.name === "RoutineStoppedError" ||
+    error?.name === "AbortError"
+  );
+}
+
 async function currentPage(call) {
   const result = await call("html");
   if (!result?.html) throw new RoutineStepError("The page did not return HTML");
-  return { html: result.html, url: result.url || "" };
+  return {
+    html: result.html,
+    url: result.url || "",
+    status: result.status || 200,
+    retryAfter: result.retryAfter,
+  };
 }
 
 async function fetchPage(call, url) {
-  const result = await call("fetch", { url });
-  if (!result?.html) throw new RoutineStepError(`Failed to fetch ${url}`);
-  return { html: result.html, url: result.url || url };
+  try {
+    const result = await call("fetch", { url, fetchId: url });
+    if (!result?.html && !detectFetchBlock(result).blocked) {
+      throw new RoutineStepError(`Failed to fetch ${url}`);
+    }
+    return {
+      html: result?.html || "",
+      url: result?.url || url,
+      status: result?.status || 0,
+      retryAfter: result?.retryAfter || "",
+    };
+  } catch (error) {
+    if (isAbortError(error)) throw new RoutineStoppedError();
+    throw error;
+  }
 }
 
 function stripTrailingSlash(url) {
@@ -56,24 +99,6 @@ async function ensureCursor(store, tab) {
   return cursor;
 }
 
-async function markJob(store, handledIds, cursor, jobId) {
-  const nextHandled = await store.markHandled(jobId, handledIds);
-  await store.saveCursor({ ...cursor, lastJobId: String(jobId) });
-  return nextHandled;
-}
-
-async function maybeClickSave(call, detail) {
-  if (!detail.meta.isLoggedIn || detail.meta.isSaved || !detail.meta.id) return;
-  await call("click", {
-    selector: jobSaveSelector(detail.meta.id),
-    wait: 0,
-  });
-}
-
-async function readFields(ctx, progress, record) {
-  await reportDeclaredFields(ctx, progress, record);
-}
-
 function nextCursorAfterPage(cursor, parsed) {
   const pageIds = cardIdKey(parsed.cards);
   const repeated = Boolean(pageIds) && pageIds === cursor.lastPageIds;
@@ -84,26 +109,162 @@ function nextCursorAfterPage(cursor, parsed) {
   return advanceCursor(cursor, { nextList: true });
 }
 
+function emitPace(hooks, meter, backoff, extra = {}) {
+  const snapshot = {
+    jobsPerSecond: Number(meter.jobsPerSecond().toFixed(2)),
+    concurrency: backoff.concurrency,
+    blockCount: backoff.blockCount,
+    ...extra,
+  };
+  console.debug("[crawler:builtin] pace", snapshot);
+  hooks.onPace?.(snapshot);
+}
+
 /**
- * One pass: skip already-handled cards, fetch the next job's HTML, enqueue it,
- * persist the cursor, and honour Stop via ctx.rest / checkStopped.
+ * One crawl: prefetch list pages, fetch details through a worker pool, and
+ * enqueue asynchronously. Stop cancels in-flight fetches. A job is marked
+ * handled only after enqueue succeeds.
  */
 export async function runBuiltInPass(ctx, progress) {
   const { hooks, call, rest } = ctx;
   const store = hooks.store ?? createBuiltinStore();
-  const pause = async (range) => {
-    if (hooks.skipDelays) return;
-    await rest(jitterMs(range, hooks.random));
+  const settings = clampPaceSettings(hooks.pace ?? DEFAULT_PACE_SETTINGS);
+  const skipDelays = Boolean(hooks.skipDelays);
+  const bucket = createTokenBucket({
+    rate: skipDelays ? Infinity : settings.jobsPerSecond,
+    now: hooks.now,
+    sleep: (ms) => rest(ms),
+  });
+  const backoff = createAdaptiveBackoff({
+    maxConcurrency: settings.concurrency,
+    minConcurrency: MIN_CONCURRENCY,
+    maxBlocks: MAX_BLOCKS_IN_WINDOW,
+    windowMs: BLOCK_WINDOW_MS,
+    pauseMs: BACKOFF_PAUSE_MS,
+    rampEvery: BACKOFF_RAMP_EVERY,
+    now: hooks.now,
+    sleep: (ms) => (skipDelays ? Promise.resolve() : rest(ms)),
+  });
+  const pool = createWorkerPool({
+    getConcurrency: () => backoff.concurrency,
+    signal: hooks.signal,
+  });
+  const meter = createPaceMeter({ now: hooks.now });
+  const listCache = new Map();
+  let clickQueue = Promise.resolve();
+  let writeQueue = Promise.resolve();
+  let handledIds;
+  let cursor;
+  let stopReason = null;
+
+  const serializeWrite = (fn) => {
+    const next = writeQueue.then(fn, fn);
+    writeQueue = next.catch(() => {});
+    return next;
   };
+
+  const handleBlock = async (page, label) => {
+    const detected = detectFetchBlock(page);
+    if (!detected.blocked) return false;
+    hooks.onActivity?.({ phase: "settle", label: `Backing off (${detected.kind})`, kind: "pause" });
+    const result = await backoff.onBlock({ retryAfter: page.retryAfter, kind: detected.kind });
+    emitPace(hooks, meter, backoff, { event: detected.kind, url: page.url });
+    if (result.stop) {
+      stopReason = `Built In blocked the crawl (${result.blockCount} blocks). Stopped to protect the session.`;
+      throw new RoutineBlockedError(stopReason);
+    }
+    void label;
+    return true;
+  };
+
+  async function cachedList(listUrl) {
+    if (!listCache.has(listUrl)) {
+      listCache.set(
+        listUrl,
+        (async () => {
+          const page = await loadListPage(call, tab, listUrl);
+          await handleBlock(page, listUrl);
+          return { page, parsed: parseList(page.html, page.url) };
+        })(),
+      );
+    }
+    return listCache.get(listUrl);
+  }
+
+  function prefetch(url) {
+    if (!url || listCache.has(url)) return;
+    void cachedList(url).catch((error) => {
+      if (!isAbortError(error) && !(error instanceof RoutineBlockedError)) {
+        console.debug("[crawler:builtin] prefetch failed", url, error);
+      }
+      listCache.delete(url);
+    });
+  }
+
+  async function markJob(jobId) {
+    handledIds = await serializeWrite(async () => {
+      const nextHandled = await store.markHandled(jobId, handledIds);
+      const lastJobId = contiguousLastJobId(currentCards, nextHandled, cursor.lastJobId);
+      cursor = { ...cursor, lastJobId };
+      await store.saveCursor(cursor);
+      return nextHandled;
+    });
+  }
+
+  async function maybeClickSave(detail) {
+    if (!detail.meta.isSignedIn || detail.meta.isSaved || !detail.meta.id) return;
+    clickQueue = clickQueue.then(async () => {
+      ctx.checkStopped();
+      await call("click", { selector: jobSaveSelector(detail.meta.id), wait: 0 });
+    });
+    await clickQueue;
+  }
+
+  async function processCard(card) {
+    ctx.checkStopped();
+    if (!card.url) {
+      await markJob(card.id);
+      return;
+    }
+    await bucket.take();
+    ctx.checkStopped();
+    hooks.onActivity?.({ phase: "ready", label: "Opening job", kind: "waitFor" });
+    const detailPage = await fetchPage(call, card.url);
+    if (await handleBlock(detailPage, card.url)) {
+      return processCard(card);
+    }
+    progress.tick();
+    const detail = parseDetail(detailPage.html, detailPage.url || card.url);
+    const jobId = card.id;
+    const detailId = detail.meta.id || card.id;
+    if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
+      await markJob(jobId);
+      if (detailId !== jobId) await markJob(detailId);
+      return;
+    }
+    const record = jobRecord(detail);
+    await reportDeclaredFields(ctx, progress, record);
+    hooks.onActivity?.({ phase: "submit", label: "Saving record" });
+    await hooks.onRecord?.(record);
+    await markJob(jobId);
+    if (detailId !== jobId) await markJob(detailId);
+    hooks.onActivity?.({ phase: "dismiss", label: "Marking job handled", kind: "click" });
+    await maybeClickSave(detail);
+    meter.mark();
+    backoff.onSuccess();
+    emitPace(hooks, meter, backoff, { jobId });
+    progress.tick();
+  }
 
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
   const tab = await currentPage(call);
   progress.tick();
 
-  let handledIds = await store.loadHandledIds();
-  let cursor = await ensureCursor(store, tab);
+  handledIds = await store.loadHandledIds();
+  cursor = await ensureCursor(store, tab);
   const maxSteps = MAX_PAGE * Math.max(cursor.lists.length, 1) + 1;
   let steps = 0;
+  let currentCards = [];
 
   for (;;) {
     ctx.checkStopped();
@@ -123,58 +284,41 @@ export async function runBuiltInPass(ctx, progress) {
       label: `List ${cursor.listIndex + 1}/${cursor.lists.length}, page ${cursor.page}`,
       kind: "waitFor",
     });
-    const listPage = await loadListPage(call, tab, listUrlForPage(listUrl, cursor.page));
-    const parsed = parseList(listPage.html, listPage.url);
+    emitPace(hooks, meter, backoff, { listUrl, page: cursor.page });
+    const pageUrl = listUrlForPage(listUrl, cursor.page);
+    const { parsed } = await cachedList(pageUrl);
     const pageIds = cardIdKey(parsed.cards);
+    currentCards = parsed.cards;
+
     if (pageIds && pageIds === cursor.lastPageIds) {
       cursor = advanceCursor(cursor, { nextList: true });
       await store.saveCursor(cursor);
-      await pause(PAGE_DELAY_MS);
       continue;
     }
-    const card = nextUnhandledCard(parsed.cards, handledIds, cursor.lastJobId);
+    if (parsed.nextPageUrl) prefetch(listUrlForPage(listUrl, cursor.page + 1));
 
-    if (!card) {
+    const cards = unhandledCards(parsed.cards, handledIds, cursor.lastJobId);
+    if (!cards.length) {
       cursor = nextCursorAfterPage(cursor, parsed);
       await store.saveCursor(cursor);
-      await pause(PAGE_DELAY_MS);
       continue;
     }
 
-    if (!card.url) {
-      handledIds = await markJob(store, handledIds, cursor, card.id);
-      continue;
-    }
+    const results = await Promise.allSettled(
+      cards.map((card) => pool.run(() => processCard(card))),
+    );
+    const blocked = results.find(
+      (result) => result.status === "rejected" && result.reason instanceof RoutineBlockedError,
+    );
+    if (blocked) throw blocked.reason;
+    const stopped = results.find(
+      (result) => result.status === "rejected" && isAbortError(result.reason),
+    );
+    if (stopped) throw new RoutineStoppedError();
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed) throw failed.reason;
 
-    hooks.onActivity?.({ phase: "ready", label: "Opening job", kind: "waitFor" });
-    await pause(JOB_DELAY_MS);
-    const detailPage = await fetchPage(call, card.url);
-    progress.tick();
-
-    const detail = parseDetail(detailPage.html, detailPage.url || card.url);
-    const jobId = card.id;
-    const detailId = detail.meta.id || card.id;
-    if (isJobHandled({ id: detailId, isSaved: detail.meta.isSaved }, handledIds)) {
-      handledIds = await markJob(store, handledIds, cursor, jobId);
-      continue;
-    }
-
-    const record = jobRecord(detail);
-    await readFields(ctx, progress, record);
-    hooks.onActivity?.({ phase: "submit", label: "Saving record" });
-    try {
-      await hooks.onRecord?.(record);
-    } catch (error) {
-      await store.saveCursor({ ...cursor, lastJobId: String(jobId) });
-      throw error;
-    }
-    handledIds = await markJob(store, handledIds, cursor, jobId);
-    if (detailId !== jobId) handledIds = await markJob(store, handledIds, cursor, detailId);
-    hooks.onActivity?.({ phase: "dismiss", label: "Marking job handled", kind: "click" });
-    await maybeClickSave(call, detail);
-    progress.tick();
-    hooks.onActivity?.({ phase: "settle", label: "Waiting before the next job", kind: "pause" });
-    progress.tick();
-    return;
+    cursor = nextCursorAfterPage(cursor, parsed);
+    await store.saveCursor(cursor);
   }
 }

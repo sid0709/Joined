@@ -1,10 +1,12 @@
 import { documentFromHtml } from "../../routineKit/html.js";
+import { parseJobPostingJsonLd } from "../../routineKit/jsonLd.js";
 
 import { NEXT_DATA_SCRIPT } from "./constants.js";
 import {
   asFiniteNumber,
   asStringList,
   asText,
+  filterJobBadges,
   firstHttpUrl,
   joinSections,
   postedAtFrom,
@@ -96,7 +98,12 @@ function industryTagsFrom(company) {
 }
 
 function badgesFrom(job) {
-  return [...asStringList(job?.jobTags), ...asStringList(job?.recommendationTags)];
+  return filterJobBadges([...asStringList(job?.jobTags), ...asStringList(job?.recommendationTags)]);
+}
+
+function jsonLdWebsite(html) {
+  const org = parseJobPostingJsonLd(html)?.hiringOrganization;
+  return firstHttpUrl(org?.sameAs);
 }
 
 function yearsOfExperienceFrom(job) {
@@ -146,7 +153,7 @@ export function parseFromNextData(html) {
     descriptionSections: sections,
     originalPostUrl,
     companyLogo: firstHttpUrl(job.jdLogo),
-    companyWebsite: firstHttpUrl(company.companyURL),
+    companyWebsite: firstHttpUrl(jsonLdWebsite(html), company.companyURL),
     companySize: asText(company.companySize),
     companyHq: asText(company.companyLocation),
     companyFounded: asText(company.companyFoundYear),

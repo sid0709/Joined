@@ -10,16 +10,39 @@ export function isJobHandled({ id, isSaved = false, hasSavedTag = false }, handl
   return isSaved === true || hasSavedTag === true;
 }
 
-export function nextUnhandledCard(cards, handledIds, lastJobId = "") {
+export function unhandledCards(cards, handledIds, lastJobId = "") {
   const resumeId = lastJobId ? String(lastJobId) : "";
   const resumeOnPage = Boolean(resumeId && cards.some((card) => String(card.id) === resumeId));
   let pastCursor = !resumeOnPage;
+  const out = [];
   for (const card of cards) {
     if (!pastCursor) {
       if (String(card.id) === resumeId) pastCursor = true;
       continue;
     }
-    if (!isJobHandled(card, handledIds)) return card;
+    if (!isJobHandled(card, handledIds)) out.push(card);
   }
-  return null;
+  return out;
+}
+
+export function nextUnhandledCard(cards, handledIds, lastJobId = "") {
+  return unhandledCards(cards, handledIds, lastJobId)[0] ?? null;
+}
+
+/** lastJobId may only move forward over a contiguous prefix of handled cards. */
+export function contiguousLastJobId(cards, handledIds, lastJobId = "") {
+  const resumeId = lastJobId ? String(lastJobId) : "";
+  const resumeOnPage = Boolean(resumeId && cards.some((card) => String(card.id) === resumeId));
+  let pastCursor = !resumeOnPage;
+  let last = resumeOnPage ? resumeId : lastJobId;
+  for (const card of cards) {
+    const id = String(card.id);
+    if (!pastCursor) {
+      if (id === resumeId) pastCursor = true;
+      continue;
+    }
+    if (!handledIds?.has?.(id)) break;
+    last = id;
+  }
+  return last || "";
 }

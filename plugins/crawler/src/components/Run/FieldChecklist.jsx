@@ -1,6 +1,7 @@
 import { Glyph, HStack, Spinner, Text, VStack } from "sid-ui";
 
 import { listDeclaredFields } from "../../routineKit/declaredFields";
+import { listFieldGroups } from "../../routineKit/runView";
 
 import { hitRate } from "./runState";
 
@@ -18,68 +19,90 @@ function FieldState({ state }) {
   return <Glyph name={glyph} className={tone} />;
 }
 
-/** Every declared field: required marker, state in this pass, and hit rate across the run. */
+function FieldRow({ declared, state, rate }) {
+  const spoken =
+    state === "reading" ? "reading" : (FIELD_STATE[state] ?? FIELD_STATE.pending).spoken;
+  return (
+    <li
+      className="crawler-field"
+      data-state={state}
+      data-required={declared.required ? "true" : "false"}
+      title={`${declared.label}: ${spoken}${rate === null ? "" : `, found in ${rate}% of jobs`}`}
+    >
+      <FieldState state={state} />
+      <Text
+        type="supporting"
+        weight="medium"
+        maxLines={1}
+        className={state === "invalid" ? "crawler-tone-error" : undefined}
+      >
+        {declared.label}
+        {declared.required ? (
+          <span className="crawler-field-required" aria-label="required">
+            *
+          </span>
+        ) : null}
+      </Text>
+      {rate === null ? null : (
+        <Text
+          type="supporting"
+          hasTabularNumbers
+          className={rate < 100 ? "crawler-tone-warning" : "crawler-tone-muted"}
+        >
+          {rate}%
+        </Text>
+      )}
+    </li>
+  );
+}
+
+/** Declared field groups only: the Run panel never invents a field the routine omitted. */
 export default function FieldChecklist({ routine, fieldStates, fieldHits }) {
-  const fields = listDeclaredFields(routine);
+  const declared = listDeclaredFields(routine);
+  const byKey = Object.fromEntries(declared.map((field) => [field.key, field]));
+  const groups = listFieldGroups(routine)
+    .map((group) => ({
+      ...group,
+      fields: group.fields.map((key) => byKey[key]).filter(Boolean),
+    }))
+    .filter((group) => group.fields.length);
+  const fields = groups.flatMap((group) => group.fields);
   const found = fields.filter(({ key }) => fieldStates[key] === "ok").length;
   const invalid = fields.filter(({ key }) => fieldStates[key] === "invalid").length;
 
+  if (!groups.length) return null;
+
   return (
-    <VStack gap={2}>
-      <HStack align="center" justify="between">
-        <Text type="supporting" weight="semibold">
-          Fields
-        </Text>
-        <Text
-          type="supporting"
-          weight="semibold"
-          hasTabularNumbers
-          className={invalid ? "crawler-tone-error" : "crawler-tone-muted"}
-        >
-          {invalid ? `${invalid} invalid` : `${found}/${fields.length} found`}
-        </Text>
-      </HStack>
-      <ul className="crawler-field-grid" aria-label="Fields in this pass">
-        {fields.map((declared) => {
-          const state = fieldStates[declared.key] ?? "pending";
-          const rate = hitRate(fieldHits[declared.key]);
-          const spoken =
-            state === "reading" ? "reading" : (FIELD_STATE[state] ?? FIELD_STATE.pending).spoken;
-          return (
-            <li
-              key={declared.key}
-              className="crawler-field"
-              data-state={state}
-              data-required={declared.required ? "true" : "false"}
-              title={`${declared.label}: ${spoken}${rate === null ? "" : `, found in ${rate}% of passes`}`}
-            >
-              <FieldState state={state} />
+    <VStack gap={3}>
+      {groups.map((group) => (
+        <VStack key={group.id} gap={2}>
+          <HStack align="center" justify="between">
+            <Text type="supporting" weight="semibold">
+              {group.label}
+            </Text>
+            {group.id === groups[0].id ? (
               <Text
                 type="supporting"
-                weight="medium"
-                maxLines={1}
-                className={state === "invalid" ? "crawler-tone-error" : undefined}
+                weight="semibold"
+                hasTabularNumbers
+                className={invalid ? "crawler-tone-error" : "crawler-tone-muted"}
               >
-                {declared.label}
-                {declared.required ? (
-                  <span className="crawler-field-required" aria-label="required">
-                    *
-                  </span>
-                ) : null}
+                {invalid ? `${invalid} invalid` : `${found}/${fields.length} found`}
               </Text>
-              {rate === null ? null : (
-                <Text
-                  type="supporting"
-                  hasTabularNumbers
-                  className={rate < 100 ? "crawler-tone-warning" : "crawler-tone-muted"}
-                >
-                  {rate}%
-                </Text>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+            ) : null}
+          </HStack>
+          <ul className="crawler-field-grid" aria-label={group.label}>
+            {group.fields.map((item) => (
+              <FieldRow
+                key={item.key}
+                declared={item}
+                state={fieldStates[item.key] ?? "pending"}
+                rate={hitRate(fieldHits[item.key])}
+              />
+            ))}
+          </ul>
+        </VStack>
+      ))}
     </VStack>
   );
 }

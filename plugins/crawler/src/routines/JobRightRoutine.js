@@ -19,7 +19,7 @@ import {
   NOT_INTERESTED_BUTTON,
   NOT_INTERESTED_CONFIRM,
 } from "./jobright/constants";
-import { JOBRIGHT_FIELDS } from "./jobright/fields";
+import { JOBRIGHT_FIELDS, JOBRIGHT_RUN_VIEW } from "./jobright/fields";
 import { readJobRightRecord } from "./jobright/readRecord";
 import { ROUTINE_OUTPUTS } from "./outputs";
 
@@ -37,6 +37,7 @@ export default defineRoutine({
   match: { hosts: JOBRIGHT_HOSTS },
   output: ROUTINE_OUTPUTS.JOB,
   declaredFields: JOBRIGHT_FIELDS,
+  runView: JOBRIGHT_RUN_VIEW,
   options: { highlightFields: false, fieldPauseMs: 0, allowFetch: true },
   readRecord: readJobRightRecord,
 

@@ -12,6 +12,8 @@ import {
   VStack,
 } from "sid-ui";
 
+import { hasRunComponent, hasRunStat, RUN_COMPONENT, RUN_STAT } from "../../routineKit/runView";
+
 import { JOB_STATUS, outcomeSegments } from "./runState";
 
 function QueueStatus({ queue }) {
@@ -61,8 +63,12 @@ function RecentJobs({ jobs }) {
   );
 }
 
-/** What the run produced: outcomes, the save queue, and the latest jobs. */
-export default function ResultsCard({ stats, queue, recentJobs }) {
+/** Outcomes, queue, and recent jobs — only the stats the routine declared. */
+export default function ResultsCard({ stats, queue, recentJobs, routine }) {
+  if (!hasRunComponent(routine, RUN_COMPONENT.RESULTS)) return null;
+  const showOutcomes = hasRunStat(routine, RUN_STAT.OUTCOMES);
+  const showQueue = hasRunStat(routine, RUN_STAT.QUEUE);
+  const showRecent = hasRunStat(routine, RUN_STAT.RECENT_JOBS);
   const segments = outcomeSegments(stats);
   const total = segments.reduce((sum, segment) => sum + segment.value, 0);
 
@@ -71,20 +77,24 @@ export default function ResultsCard({ stats, queue, recentJobs }) {
       <VStack gap={3}>
         <HStack align="center" justify="between" gap={2}>
           <Text weight="semibold">Results</Text>
-          <QueueStatus queue={queue} />
+          {showQueue ? <QueueStatus queue={queue} /> : null}
         </HStack>
-        {total ? (
+        {showOutcomes && total ? (
           <SegmentBar segments={segments} unit="jobs" />
-        ) : (
+        ) : showOutcomes ? (
           <Text type="supporting" color="secondary">
             No results yet. Start a run to fill this in.
           </Text>
-        )}
-        <Divider />
-        <Text type="supporting" weight="semibold" color="secondary">
-          Recent jobs
-        </Text>
-        <RecentJobs jobs={recentJobs} />
+        ) : null}
+        {showRecent ? (
+          <>
+            <Divider />
+            <Text type="supporting" weight="semibold" color="secondary">
+              Recent jobs
+            </Text>
+            <RecentJobs jobs={recentJobs} />
+          </>
+        ) : null}
       </VStack>
     </Card>
   );

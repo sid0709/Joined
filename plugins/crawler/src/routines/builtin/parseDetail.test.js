@@ -13,7 +13,7 @@ describe("parseDetail", () => {
   test("reads Easy Apply jobs and falls back to the Built In URL when applyUrl is empty", () => {
     const record = parseDetail(loadFixture("detail-easyapply.html"), EASY_URL);
     expect(record.meta.isEasyApply).toBe(true);
-    expect(record.meta.isLoggedIn).toBe(false);
+    expect(record.meta.isSignedIn).toBe(false);
     expect(record.meta.applyUrl).toBe("");
     expect(record.applyUrl).toBe(EASY_URL);
     expect(record.badges).toContain("Easy Apply");
@@ -21,7 +21,8 @@ describe("parseDetail", () => {
     expect(record.companyName).toBe("Zscaler");
     expect(record.salary).toBe("113K-162K Annually");
     expect(record.salary).not.toContain("50K");
-    expect(record.skills.length).toBeGreaterThan(0);
+    expect(record.skills).toBeUndefined();
+    expect(record.companyWebsite).toBeUndefined();
     expect(record.description).toContain("Short job description");
   });
 
@@ -38,13 +39,13 @@ describe("parseDetail", () => {
       "Information Technology",
       "Machine Learning",
     ]);
-    expect(record.companyWebsite).toBe("https://builtin.com/company/micron-technology");
+    expect(record.companyWebsite).toBeUndefined();
     expect(record.postedAt).toMatch(/2026-10-12/);
   });
 
   test("uses the signed-in applyUrl when jobPostInit provides one", () => {
     const record = parseDetail(loadFixture("detail-signed-in.html"), EXTERNAL_URL);
-    expect(record.meta.isLoggedIn).toBe(true);
+    expect(record.meta.isSignedIn).toBe(true);
     expect(record.applyUrl).toBe("https://careers.micron.com/apply/9256204");
     expect(record.meta.isEasyApply).toBe(false);
   });

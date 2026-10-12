@@ -3,7 +3,9 @@ import {
   listDeclaredFields,
   listExtractorFields,
 } from "./declaredFields.js";
+import { isAttrMatch } from "./extract.js";
 import { isValidRead } from "./fields.js";
+import { defaultRunView, runViewProblems } from "./runView.js";
 import { ON_MISSING, STEP_KINDS } from "./steps.js";
 import { STRATEGY_PHASES } from "./strategies.js";
 import { isKnownTransform } from "./transforms.js";
@@ -22,9 +24,9 @@ const ON_MISSING_VALUES = Object.values(ON_MISSING);
 const STEPS_WITH_SELECTOR = new Set(["highlight", "click", "waitFor", "waitGone"]);
 
 const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+const isOneSelector = (value) => isNonEmptyString(value) || isAttrMatch(value);
 const isSelector = (value) =>
-  isNonEmptyString(value) ||
-  (Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString));
+  isOneSelector(value) || (Array.isArray(value) && value.length > 0 && value.every(isOneSelector));
 const isWholeNumber = (value) => Number.isInteger(value) && value >= 0;
 
 function pairPartProblems(part, label) {
@@ -52,7 +54,7 @@ function fieldProblems(field, path) {
   const nths = Array.isArray(field.nth) ? field.nth : [field.nth];
   if (!nths.length || !nths.every(isWholeNumber))
     problems.push(`${at} nth must be a whole number or a list of them`);
-  if (field.inner !== null && !isNonEmptyString(field.inner))
+  if (field.inner !== null && !isSelector(field.inner))
     problems.push(`${at} inner must be a selector`);
   if (field.inner && Array.isArray(field.nth))
     problems.push(`${at} cannot combine inner with a list nth`);
@@ -119,6 +121,8 @@ export function routineProblems(routine) {
       requireCore: routine.output === "job" && Array.isArray(declared),
     }),
   );
+  const declaredKeys = Array.isArray(declared) ? declared.map((entry) => entry?.key) : [];
+  problems.push(...runViewProblems(routine.runView, declaredKeys.filter(Boolean)));
   for (const [path, field] of extractorFields) problems.push(...fieldProblems(field, path));
   return problems;
 }
@@ -145,6 +149,7 @@ export function defineRoutine(routine) {
   return Object.freeze({
     ...routine,
     options: { ...DEFAULT_ROUTINE_OPTIONS, ...routine.options },
+    runView: routine.runView ?? defaultRunView(routine),
   });
 }
 

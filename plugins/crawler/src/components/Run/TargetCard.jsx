@@ -6,14 +6,23 @@ import {
   EmptyState,
   Glyph,
   HStack,
+  NumberInput,
   Selector,
   Text,
   Token,
   VStack,
 } from "sid-ui";
 
+import {
+  MAX_CONCURRENCY,
+  MAX_JOBS_PER_SECOND,
+  MIN_CONCURRENCY,
+  MIN_JOBS_PER_SECOND,
+} from "../../api/paceSettings";
 import { SCRAPE_SOURCE } from "../../config/env";
+import { listDeclaredFields } from "../../routineKit/declaredFields";
 import { STRATEGY_LABELS } from "../../routineKit/describe";
+import { hasRunSetting, RUN_SETTING } from "../../routineKit/runView";
 
 function hostOf(url) {
   try {
@@ -24,7 +33,7 @@ function hostOf(url) {
 }
 
 function RoutineTokens({ routine }) {
-  const fieldCount = Object.keys(routine.fields).length;
+  const fieldCount = listDeclaredFields(routine).length;
   return (
     <HStack gap={1} wrap="wrap">
       <Token size="sm" color="purple" label={STRATEGY_LABELS[routine.strategy.kind]} />
@@ -36,6 +45,40 @@ function RoutineTokens({ routine }) {
 }
 
 /** The page a run acts on and the routine that will run there. */
+function PaceSettings({ routine, settings, onChange, isRunning }) {
+  const showConcurrency = hasRunSetting(routine, RUN_SETTING.CONCURRENCY);
+  const showRate = hasRunSetting(routine, RUN_SETTING.JOBS_PER_SECOND);
+  if (!showConcurrency && !showRate) return null;
+  return (
+    <HStack gap={3}>
+      {showConcurrency ? (
+        <NumberInput
+          label="Concurrency"
+          description={`Up to ${MAX_CONCURRENCY} parallel detail fetches`}
+          value={settings.concurrency}
+          min={MIN_CONCURRENCY}
+          max={MAX_CONCURRENCY}
+          onChange={(value) => onChange({ concurrency: value })}
+          isDisabled={isRunning}
+          width="100%"
+        />
+      ) : null}
+      {showRate ? (
+        <NumberInput
+          label="Jobs / s"
+          description="Token-bucket target"
+          value={settings.jobsPerSecond}
+          min={MIN_JOBS_PER_SECOND}
+          max={MAX_JOBS_PER_SECOND}
+          onChange={(value) => onChange({ jobsPerSecond: value })}
+          isDisabled={isRunning}
+          width="100%"
+        />
+      ) : null}
+    </HStack>
+  );
+}
+
 export default function TargetCard({
   tab,
   routine,
@@ -43,6 +86,8 @@ export default function TargetCard({
   onChooseRoutine,
   isRunning,
   onBrowseRoutines,
+  paceSettings,
+  onPaceSettingsChange,
 }) {
   if (!tab) {
     return (
@@ -115,6 +160,15 @@ export default function TargetCard({
             options={matches.map((match) => ({ value: match.id, label: match.label }))}
             value={routine?.id ?? matches[0].id}
             onChange={onChooseRoutine}
+          />
+        ) : null}
+
+        {routine && paceSettings ? (
+          <PaceSettings
+            routine={routine}
+            settings={paceSettings}
+            onChange={onPaceSettingsChange}
+            isRunning={isRunning}
           />
         ) : null}
       </VStack>

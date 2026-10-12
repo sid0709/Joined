@@ -1,6 +1,8 @@
+import { INGEST_BATCH_MAX_JOBS, splitIngestBatches } from "./ingestBatcher.js";
+
 export const SCRAPE_QUEUE_STORAGE_KEY = "scrapeRegistrationQueueV1";
 export const SCRAPE_QUEUE_ALARM = "scrapeRegistrationQueue:retry";
-export const SCRAPE_QUEUE_BATCH_SIZE = 5;
+export const SCRAPE_QUEUE_BATCH_SIZE = INGEST_BATCH_MAX_JOBS;
 export const SCRAPE_QUEUE_MAX_ATTEMPTS = 5;
 
 const OUTCOMES = ["registered", "duplicate", "validation", "blocked", "failed"];
@@ -41,10 +43,10 @@ export function queueCounts(items, runId = null) {
   };
 }
 
-export function selectReadyItems(items, now, limit = SCRAPE_QUEUE_BATCH_SIZE) {
-  return items
-    .filter((item) => item.status === "queued" && item.nextAttemptAt <= now)
-    .slice(0, limit);
+export function selectReadyItems(items, now, limit = SCRAPE_QUEUE_BATCH_SIZE, options = {}) {
+  const ready = items.filter((item) => item.status === "queued" && item.nextAttemptAt <= now);
+  const [batch] = splitIngestBatches(ready, { maxJobs: limit, ...options });
+  return batch ?? [];
 }
 
 export function classifyBulkItem(result) {

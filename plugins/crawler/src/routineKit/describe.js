@@ -28,8 +28,25 @@ const READ_LABELS = {
   pairs: "Key/value pairs",
 };
 
+function describeOneSelector(selector) {
+  if (
+    selector &&
+    typeof selector === "object" &&
+    !Array.isArray(selector) &&
+    selector.pattern != null
+  ) {
+    const tag = selector.tag || "*";
+    const attr = selector.attr || "class";
+    const nth = selector.nth == null ? "" : `[${selector.nth}]`;
+    return `${tag}[${attr}=${selector.pattern}]${nth}`;
+  }
+  return String(selector ?? "");
+}
+
 export const describeSelector = (selector) =>
-  Array.isArray(selector) ? selector.join(" | ") : String(selector ?? "");
+  Array.isArray(selector)
+    ? selector.map(describeOneSelector).join(" | ")
+    : describeOneSelector(selector);
 
 /** "company.name" → "Company name", "applyLink" → "Apply link". */
 export function humanizePath(path) {
