@@ -89,6 +89,10 @@ are hidden in logs, variables are easier to read and edit.
 `JOINED_WEB_URL` so `/sitemap.xml`, robots `Sitemap:`, canonicals, and JobPosting
 JSON-LD get absolute public URLs.
 
+Optional on **joined-frontend** (Search Console + analytics): `GOOGLE_SITE_VERIFICATION`
+(meta tag token), `GOOGLE_TAG_MANAGER_ID` (`GTM-…`), `GOOGLE_ANALYTICS_MEASUREMENT_ID`
+(`G-…`). The HTML-file verifier is static at `/google2ed8ee3d9b3b9452.html`.
+
 **Secrets** (encrypted, never shown again):
 
 | Name                             | Value                                                                                                             | Needed                |

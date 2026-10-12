@@ -6,6 +6,12 @@ const PREMIUM_MONTHLY_PRICE_CENTS_KEY = "PREMIUM_MONTHLY_PRICE_CENTS";
 const PREMIUM_YEARLY_PRICE_CENTS_KEY = "PREMIUM_YEARLY_PRICE_CENTS";
 const BILLING_CHECKOUT_ENABLED_KEY = "BILLING_CHECKOUT_ENABLED";
 const PUBLIC_BILLING_CHECKOUT_ENABLED_KEY = "NEXT_PUBLIC_BILLING_CHECKOUT_ENABLED";
+const GOOGLE_SITE_VERIFICATION_KEY = "GOOGLE_SITE_VERIFICATION";
+const GOOGLE_TAG_MANAGER_ID_KEY = "GOOGLE_TAG_MANAGER_ID";
+const GOOGLE_ANALYTICS_MEASUREMENT_ID_KEY = "GOOGLE_ANALYTICS_MEASUREMENT_ID";
+
+const GTM_ID_PATTERN = /^GTM-[A-Z0-9]+$/;
+const GA4_MEASUREMENT_ID_PATTERN = /^G-[A-Z0-9]+$/;
 
 /** Defaults match backend-core/billing when the env vars are unset. */
 const DEFAULT_PREMIUM_MONTHLY_PRICE_CENTS = 2900;
@@ -38,6 +44,23 @@ export function joinedWebOrigin(): URL | undefined {
 
 export function isCompanyModeEnabled(): boolean {
   return process.env[COMPANY_MODE_ENABLED_KEY] === "true";
+}
+
+/** Search Console HTML-tag verification token (meta name="google-site-verification"). */
+export function googleSiteVerification(): string {
+  return process.env[GOOGLE_SITE_VERIFICATION_KEY]?.trim() ?? "";
+}
+
+/** GTM container id (e.g. GTM-XXXX). Empty when unset or invalid. */
+export function gtmContainerId(): string {
+  const id = process.env[GOOGLE_TAG_MANAGER_ID_KEY]?.trim() ?? "";
+  return GTM_ID_PATTERN.test(id) ? id : "";
+}
+
+/** GA4 measurement id (e.g. G-XXXX). Empty when unset or invalid. Omit if GA runs inside GTM. */
+export function gaMeasurementId(): string {
+  const id = process.env[GOOGLE_ANALYTICS_MEASUREMENT_ID_KEY]?.trim() ?? "";
+  return GA4_MEASUREMENT_ID_PATTERN.test(id) ? id : "";
 }
 
 /** Monthly Premium price in cents from the step-29 billing config. */
