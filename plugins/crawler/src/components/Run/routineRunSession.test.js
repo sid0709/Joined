@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 
-import { emptyRunSummary } from "../../api/scrapeQueue";
 import { createScrapeRunStats } from "../../api/scrapeRunStats";
 import { listDeclaredFields } from "../../routineKit/declaredFields";
 import { isFound } from "../../routineKit/html.js";
@@ -28,13 +27,13 @@ function fakeScrapeQueue() {
       const beginRunId = message.payload?.beginRunId;
       items.length = 0;
       for (const key of Object.keys(runs)) delete runs[key];
-      if (beginRunId) runs[beginRunId] = { ...emptyRunSummary(), updatedAt: Date.now() };
+      if (beginRunId) runs[beginRunId] = { ...createScrapeRunStats(), updatedAt: Date.now() };
       return {
         success: true,
         state: {
           runId: beginRunId,
           counts: { ...EMPTY_QUEUE },
-          summary: emptyRunSummary(),
+          summary: createScrapeRunStats(),
         },
       };
     }
@@ -43,14 +42,14 @@ function fakeScrapeQueue() {
       if (!runId || !job) return { success: false, error: "runId and job are required" };
       const id = `q-${items.length + 1}`;
       items.push({ id, runId, job });
-      if (!runs[runId]) runs[runId] = { ...emptyRunSummary(), updatedAt: Date.now() };
+      if (!runs[runId]) runs[runId] = { ...createScrapeRunStats(), updatedAt: Date.now() };
       return {
         success: true,
         id,
         state: {
           runId,
           counts: { queued: items.filter((item) => item.runId === runId).length, saving: 0 },
-          summary: { ...emptyRunSummary(), ...runs[runId] },
+          summary: { ...createScrapeRunStats(), ...runs[runId] },
         },
       };
     }
@@ -80,7 +79,7 @@ describe("routineRunSession", () => {
       session.applyQueueState({
         runId: "run-old",
         counts: { queued: 9, saving: 1 },
-        summary: { ...emptyRunSummary(), registered: 48 },
+        summary: { ...createScrapeRunStats(), registered: 48 },
       }),
     ).toBe(false);
     expect(session.snapshot.stats.registered).toBe(0);
