@@ -67,10 +67,10 @@ export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could 
 export const RETRY_PAUSE_MS = 1_000;
 export const STUCK_LOGIN_STREAK = 3;
 export const STUCK_PAGE_FAILURES = 3;
-export const STUCK_LOGIN_MESSAGE = "Built In redirected to sign-in repeatedly. Crawl paused.";
+export const STUCK_LOGIN_MESSAGE = "Built In redirected to sign-in repeatedly. Crawl stopped.";
 
 export function stuckPageMessage(count = STUCK_PAGE_FAILURES) {
-  return `The same Built In page failed ${count} times. Crawl paused.`;
+  return `The same Built In page failed ${count} times. Crawl stopped.`;
 }
 
 export const EASY_APPLY_TAG = "Easy Apply";

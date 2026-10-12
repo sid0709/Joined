@@ -3,6 +3,7 @@ import {
   DEFAULT_BACKOFF_BASE_MS,
   DEFAULT_BACKOFF_MAX_MS,
   detectPageBlock,
+  isTransientBlock,
 } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import {
@@ -93,7 +94,8 @@ async function ensureCursor(store, tab) {
  * One visible job: navigate the same tab to the card href, read the job page,
  * enqueue, then return to ?page=N and click that list-card heart. Never fetches
  * in the background. A block backs off and resumes; a timeout is retried.
- * Repeated sign-in redirects or N failures on the same page pause the run.
+ * 403 / 429 / captcha back off without limit. Repeated sign-in redirects or
+ * N dead-page failures (404/410 or the page never loading) stop the run.
  */
 export async function runBuiltInPass(ctx, progress) {
   const { hooks, call, rest } = ctx;
@@ -159,7 +161,9 @@ export async function runBuiltInPass(ctx, progress) {
       }
     } else {
       consecutiveLogins = 0;
-      notePageFailure(intendedUrl || page.url);
+      if (!isTransientBlock(detected.kind)) {
+        notePageFailure(intendedUrl || page.url);
+      }
     }
     await backoff.onBlock({ kind: detected.kind });
     emitCursor({ lastBlock: detected.kind });

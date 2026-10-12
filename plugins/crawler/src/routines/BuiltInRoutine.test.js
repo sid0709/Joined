@@ -41,6 +41,7 @@ function builtinTab({
   hearts = {},
   shadowFound = true,
   blockOnce = null,
+  blockWhen = null,
   timeoutOnce = null,
   timeoutWhen = null,
   loginWall = false,
@@ -91,7 +92,10 @@ function builtinTab({
         throw new Error('Page op "navigate" timed out after 15 ms');
       }
       url = loginWall ? "https://builtin.com/auth/login" : op.url;
-      if (blockOnce && blockOnce(op.url)) {
+      if (blockWhen?.(op.url)) {
+        status = 403;
+        htmlOverride = "access denied";
+      } else if (blockOnce && blockOnce(op.url)) {
         status = 403;
         htmlOverride = "access denied";
         blockOnce = null;
@@ -289,6 +293,23 @@ describe("BuiltInRoutine", () => {
     expect(records).toHaveLength(1);
     expect(page.navigates.filter((url) => url === JOB_A).length).toBeGreaterThan(1);
     expect(page.fetches).toEqual([]);
+  });
+
+  test("does not stop after 3+ 403 blocks on the same page", async () => {
+    let blocks = 0;
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-easyapply.html") },
+      blockWhen: (href) => {
+        if (href !== JOB_A) return false;
+        blocks += 1;
+        return blocks <= 4;
+      },
+    });
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    expect(blocks).toBeGreaterThanOrEqual(3);
+    expect(records).toHaveLength(1);
+    expect(page.navigates.filter((href) => href === JOB_A).length).toBeGreaterThanOrEqual(3);
   });
 
   test("pauses the run after repeated sign-in redirects", async () => {

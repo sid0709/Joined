@@ -5,6 +5,7 @@ import {
   createAdaptiveBackoff,
   detectFetchBlock,
   detectPageBlock,
+  isTransientBlock,
   MAX_RETRY_AFTER_MS,
   parseRetryAfter,
 } from "./backoff.js";
@@ -61,6 +62,13 @@ describe("detectPageBlock", () => {
       }).blocked,
     ).toBe(false);
     expect(detectPageBlock({ status: 429, url: "https://builtin.com/jobs" }).kind).toBe("429");
+    expect(detectPageBlock({ status: 404, url: "https://builtin.com/jobs" }).kind).toBe("dead");
+    expect(detectPageBlock({ status: 410, url: "https://builtin.com/job/x/1" }).kind).toBe("dead");
+    expect(isTransientBlock("403")).toBe(true);
+    expect(isTransientBlock("429")).toBe(true);
+    expect(isTransientBlock("challenge")).toBe(true);
+    expect(isTransientBlock("login")).toBe(false);
+    expect(isTransientBlock("dead")).toBe(false);
   });
 });
 
