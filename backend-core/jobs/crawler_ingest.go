@@ -142,6 +142,7 @@ func ParseCrawlerBatch(body []byte) (CrawlerBatch, error) {
 
 // crawledJobProblem names what a job is missing, or returns "" when it can be staged.
 func crawledJobProblem(job CrawledJob) string {
+	sanitizeCrawledJob(&job)
 	switch {
 	case strings.TrimSpace(job.Title) == "":
 		return "title is required"
@@ -240,8 +241,8 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 	if source == "" {
 		source = crawlerFallbackSource
 	}
+	sanitizeCrawledJob(&job)
 	apply := crawledApplyURL(job)
-	crawledAt := firstString(job.CrawledAt, job.Metadata[crawlerCrawledAtKey])
 	extraMeta := map[string]any{}
 	for key, value := range job.Metadata {
 		if key == crawlerCrawledAtKey {
@@ -256,11 +257,16 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "tags", Value: cleanStrings(job.Tags)},
 		{Key: "skills", Value: cleanStrings(job.Skills)},
 		{Key: crawlerPostedAgoKey, Value: strings.TrimSpace(job.PostedAgo)},
-		{Key: crawlerCrawledAtKey, Value: crawledAt},
 		{Key: "applicants", Value: bson.D{
 			{Key: "count", Value: job.Applicants.Count},
 			{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
 		}},
+	}
+	if crawledAt := job.CrawledAt; crawledAt != "" {
+		metadata = append(metadata, bson.E{Key: crawlerCrawledAtKey, Value: crawledAt})
+	}
+	if company := crawledCompanyMetadata(job.Company); len(company) > 0 {
+		metadata = append(metadata, bson.E{Key: crawlerCompanyKey, Value: company})
 	}
 	if extra := mapToBSON(extraMeta); len(extra) > 0 {
 		metadata = append(metadata, bson.E{Key: crawlerExtraKey, Value: extra})
@@ -323,6 +329,7 @@ func (s *Store) findRecentTempJob(ctx context.Context, key string, since time.Ti
 
 func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob, createdBy string, now time.Time) CrawlerJobResult {
 	result := CrawlerJobResult{Index: index}
+	sanitizeCrawledJob(&job)
 	if problem := crawledJobProblem(job); problem != "" {
 		result.Error = problem
 		result.StatusCode = 400

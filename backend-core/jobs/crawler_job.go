@@ -168,6 +168,7 @@ func normalizeCrawledJob(job *CrawledJob, raw map[string]any) {
 	}
 	fillAnalyzerDetails(job)
 	foldCompanyMetadata(job)
+	sanitizeCrawledJob(job)
 }
 
 func fillAnalyzerDetails(job *CrawledJob) {
@@ -254,6 +255,9 @@ func crawlerJobMetadataBytes(job CrawledJob) int {
 	}
 	if len(job.Company.Metadata) > 0 {
 		combined["company"] = job.Company.Metadata
+	}
+	if crawled := strings.TrimSpace(job.CrawledAt); crawled != "" {
+		combined[crawlerCrawledAtKey] = crawled
 	}
 	return crawlerMetadataBytes(combined)
 }

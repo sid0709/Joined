@@ -86,7 +86,7 @@ func TestCrawledJobLiftsCrawledAtAndBuiltinSocials(t *testing.T) {
 		t.Fatal(err)
 	}
 	job := batch.Jobs[0]
-	if job.CrawledAt != "2026-10-12T18:00:00.000Z" {
+	if job.CrawledAt != "2026-10-12T18:00:00Z" {
 		t.Fatalf("crawledAt = %q", job.CrawledAt)
 	}
 	if job.Company.Metadata["website"] != "https://north.example" ||
