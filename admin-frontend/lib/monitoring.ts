@@ -1,9 +1,17 @@
 /** System monitoring: GET /v1/admin/monitoring/system (backend-core/monitoring). */
 
+/** Chart windows on Overview. The strips ignore this and stay on today plus 90 days. */
+export const CHART_RANGES = [
+  { value: "15m", label: "15 minutes" },
+  { value: "1h", label: "1 hour" },
+  { value: "6h", label: "6 hours" },
+  { value: "24h", label: "24 hours" },
+] as const;
+
 export const MONITORING_RANGES = [
-  { value: "1h", label: "Last hour" },
-  { value: "24h", label: "Last 24 hours" },
-  { value: "7d", label: "Last 7 days" },
+  ...CHART_RANGES,
+  { value: "7d", label: "7 days" },
+  { value: "30d", label: "30 days" },
 ] as const;
 export type MonitoringRange = (typeof MONITORING_RANGES)[number]["value"];
 export const DEFAULT_MONITORING_RANGE: MonitoringRange = "24h";
@@ -20,6 +28,7 @@ export type ServiceStatus = {
   name: string;
   target: string;
   kind: "probe" | "scrape";
+  component?: string;
   up: boolean;
   uptime: number;
   latencyMs?: number;
@@ -38,6 +47,28 @@ export type Host = {
   diskFullDays: Maybe;
   networkRxBytesPerSecond: Maybe;
   networkTxBytesPerSecond: Maybe;
+  uptimeSeconds: Maybe;
+  load5: Maybe;
+  load15: Maybe;
+  loadPerCore: Maybe;
+  ioWaitPercent: Maybe;
+  stealPercent: Maybe;
+  softIrqPercent: Maybe;
+  cpuCores: { cpu: string; percent: number }[] | null;
+  memoryAvailableBytes: Maybe;
+  swapPercent: Maybe;
+  inodePercent: Maybe;
+  diskReadBytesPerSecond: Maybe;
+  diskWriteBytesPerSecond: Maybe;
+  networkRxPacketsPerSecond: Maybe;
+  networkTxPacketsPerSecond: Maybe;
+  networkDropsPerSecond: Maybe;
+  networkErrorsPerSecond: Maybe;
+  tcpEstablished: Maybe;
+  tcpTimeWait: Maybe;
+  fileDescriptors: Maybe;
+  fileDescriptorMax: Maybe;
+  contextSwitchesPerSecond: Maybe;
 };
 
 export type Container = {
@@ -45,23 +76,54 @@ export type Container = {
   cpuPercent: number;
   memoryBytes: number;
   restarts: number;
+  group: string;
+  hostShare: number;
+  oomKills: number;
 };
+
+export type MemoryGroup = { name: string; bytes: number; percent: number };
 
 export type ApiTraffic = {
   name: string;
   requestsPerSecond: number;
   p50Ms: Maybe;
+  p90Ms: Maybe;
   p95Ms: Maybe;
   p99Ms: Maybe;
   errorRate: number;
+  clientErrorRate: number;
+  count: number;
 };
 
 export type RouteTraffic = {
   api: string;
   route: string;
+  method?: string;
   requestsPerSecond: number;
+  p50Ms: Maybe;
   p95Ms: Maybe;
+  p99Ms: Maybe;
   errorRate: number;
+  clientErrorRate: number;
+  count: number;
+};
+
+export type FailureCount = { status: string; count: number };
+
+export type TrafficSummary = {
+  requests: number;
+  requestsPerSecond: number;
+  successRate: Maybe;
+  successDelta: Maybe;
+  p50Ms: Maybe;
+  p90Ms: Maybe;
+  p95Ms: Maybe;
+  p99Ms: Maybe;
+  clientErrorRate: Maybe;
+  errorRate: Maybe;
+  unmatchedRate: Maybe;
+  failures: FailureCount[] | null;
+  slowErrors: number;
 };
 
 export type DataServices = {
@@ -72,21 +134,94 @@ export type DataServices = {
   qdrantVectors: Maybe;
   searchesPerSecond: Record<string, number> | null;
   rankingEventsDropped: Maybe;
+  fallbackShare: Maybe;
+  mongoAvailableConnections: Maybe;
+  mongoOpsByType: Record<string, number> | null;
+  mongoReplicationLagSeconds: Maybe;
+  mongoCacheBytes: Maybe;
+  mongoQueuedReaders: Maybe;
+  mongoQueuedWriters: Maybe;
+  mongoAssertsPerSecond: Maybe;
+  redisMaxBytes: Maybe;
+  redisEvictionsPerSecond: Maybe;
+  redisClients: Maybe;
+  redisBlockedClients: Maybe;
+  redisHitsPerSecond: Maybe;
+  redisMissesPerSecond: Maybe;
+  qdrantCollections: Maybe;
+};
+
+export type ModelStat = {
+  feature: string;
+  model: string;
+  calls: number;
+  successRate: Maybe;
+  p50Ms: Maybe;
+  p95Ms: Maybe;
+  retries: number;
+  missingKey: number;
+  timeouts: number;
+  empty: number;
+  promptTokens: number;
+  completionTokens: number;
+};
+
+export type WorkerStat = {
+  name: string;
+  lastSuccess: string | null;
+  lastDurationSeconds: Maybe;
+  lastError: boolean;
+  items: number;
+};
+
+export type QueueStat = { name: string; count: number };
+
+export type UptimeSlot = { at: string; tone: "up" | "degraded" | "down" | "none"; uptime: Maybe };
+export type UptimeDayBar = { date: string; uptime: Maybe; tone: UptimeSlot["tone"] };
+
+export type StatusStrip = {
+  id: string;
+  name: string;
+  todayUptime: Maybe;
+  latencyMs?: Maybe;
+  up?: boolean;
+  today: UptimeSlot[] | null;
+  days: UptimeDayBar[] | null;
+};
+
+export type ServiceLevel = { name: string; target: string; now: string; met: boolean };
+
+export type MonitorBanner = {
+  status: "operational" | "degraded" | "major_outage";
+  uptimeSeconds: Maybe;
+  loadPerCore: Maybe;
 };
 
 export type ChartPoint = { at: string; value: number };
 export type NamedSeries = { name: string; points: ChartPoint[] };
-export type ChartKey = "host" | "traffic" | "latency" | "errors";
+export type ChartKey =
+  "host" | "traffic" | "latency" | "errors" | "ram" | "disk" | "requests" | "success";
 
 export type SystemSnapshot = {
   range: MonitoringRange;
   at: string;
+  banner: MonitorBanner;
   services: ServiceStatus[] | null;
   host: Host;
   containers: Container[] | null;
+  memory: MemoryGroup[] | null;
   apis: ApiTraffic[] | null;
   routes: RouteTraffic[] | null;
+  methods: RouteTraffic[] | null;
+  traffic: TrafficSummary;
   data: DataServices;
+  product: {
+    models: ModelStat[] | null;
+    workers: WorkerStat[] | null;
+    queues: QueueStat[] | null;
+  };
+  strips: StatusStrip[] | null;
+  levels: ServiceLevel[] | null;
   charts: Partial<Record<ChartKey, NamedSeries[]>> | null;
 };
 
@@ -115,7 +250,7 @@ const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB"];
 const BYTE_STEP = 1024;
 const PERCENT = 100;
 const MS_PER_SECOND = 1000;
-const SHORT_TIME_RANGES: MonitoringRange[] = ["1h", "24h"];
+const SHORT_TIME_RANGES: MonitoringRange[] = ["15m", "1h", "6h", "24h"];
 const clockFormat = new Intl.DateTimeFormat(LOCALE, { hour: "numeric", minute: "2-digit" });
 const monthDayFormat = new Intl.DateTimeFormat(LOCALE, { month: "short", day: "numeric" });
 const hourFormat = new Intl.DateTimeFormat(LOCALE, { hour: "numeric" });
@@ -158,6 +293,28 @@ export function formatRate(value: Maybe | undefined, unit = "/s") {
 
 export function formatNumber(value: Maybe | undefined) {
   return value == null ? "—" : Math.round(value).toLocaleString(LOCALE);
+}
+
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** A duration in seconds, as "6d 18h" or "4h 12m". */
+export function formatDuration(seconds: Maybe | undefined) {
+  if (seconds == null || seconds < 0) return "—";
+  const whole = Math.round(seconds);
+  const days = Math.floor(whole / DAY);
+  const hours = Math.floor((whole % DAY) / HOUR);
+  const minutes = Math.floor((whole % HOUR) / MINUTE);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+/** One named line, or the first line when name is omitted. */
+export function seriesValues(lines: NamedSeries[] | undefined, name?: string) {
+  const line = name ? lines?.find((item) => item.name === name) : lines?.[0];
+  return line?.points.map((point) => point.value) ?? [];
 }
 
 /** Chart axis label: time of day for short ranges, the date for a week. */

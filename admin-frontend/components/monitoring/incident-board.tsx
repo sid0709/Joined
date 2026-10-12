@@ -5,6 +5,7 @@ import { Banner, Button, EmptyState, PageHeader, Skeleton, Stack } from "sid-ui"
 import { sortIncidents, STATUS_INCIDENTS_PATH, type IncidentList } from "@/lib/status-incidents";
 import { useAdminQuery } from "@/lib/use-admin-query";
 import { IncidentItem } from "./incident-item";
+import { MonitoringTabs } from "./monitor-frame";
 import { NewIncidentForm } from "./new-incident-form";
 
 /** Staff write the incidents joinedhq.com/status shows: open, update, resolve. */
@@ -15,6 +16,7 @@ export function IncidentBoard({ statusPageUrl }: { statusPageUrl: string | null 
 
   return (
     <Stack gap={5}>
+      <MonitoringTabs value="incidents" />
       <PageHeader
         title="Status incidents"
         description="What people read on the public status page. Up and down is measured on its own; incidents explain it."

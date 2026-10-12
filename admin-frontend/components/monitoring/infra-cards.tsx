@@ -11,6 +11,7 @@ import {
 
 const containerColumns: TableColumn<Container>[] = [
   { key: "name", header: "Container", render: (row) => <Text weight="semibold">{row.name}</Text> },
+  { key: "group", header: "Group", render: (row) => row.group || "—" },
   {
     key: "cpuPercent",
     header: "CPU",
@@ -28,12 +29,28 @@ const containerColumns: TableColumn<Container>[] = [
     render: (row) => formatBytes(row.memoryBytes),
   },
   {
+    key: "hostShare",
+    header: "Of host",
+    align: "end",
+    sortable: true,
+    sortValue: (row) => row.hostShare,
+    render: (row) => formatShare(row.hostShare),
+  },
+  {
     key: "restarts",
     header: "Restarts",
     align: "end",
     sortable: true,
     sortValue: (row) => row.restarts,
     render: (row) => formatNumber(row.restarts),
+  },
+  {
+    key: "oomKills",
+    header: "OOM",
+    align: "end",
+    sortable: true,
+    sortValue: (row) => row.oomKills,
+    render: (row) => formatNumber(row.oomKills),
   },
 ];
 

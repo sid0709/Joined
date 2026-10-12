@@ -20,6 +20,13 @@ test("the deepest matching link is active", () => {
   expect(activeHref("/trust/reports/new")).toBe(ROUTES.reports);
   expect(activeHref("/trust/reports/rep-1")).toBe(ROUTES.reports);
   expect(activeHref("/ops")).toBe(ROUTES.retentionOps);
+  expect(activeHref("/monitoring")).toBe(ROUTES.monitoring);
+  expect(activeHref("/monitoring/host")).toBe(ROUTES.monitoringHost);
+  expect(activeHref("/monitoring/traffic")).toBe(ROUTES.monitoringTraffic);
+  expect(activeHref("/monitoring/data")).toBe(ROUTES.monitoringData);
+  expect(activeHref("/monitoring/product")).toBe(ROUTES.monitoringProduct);
+  expect(activeHref("/monitoring/incidents")).toBe(ROUTES.statusIncidents);
+  expect(activeHref("/monitoring/system")).toBe(ROUTES.monitoring);
   expect(activeHref("/settings/acorn-ai")).toBe(ROUTES.acornAI);
   expect(activeHref("/settings/deepseek")).toBe(ROUTES.deepSeek);
   expect(activeHref("/elsewhere")).toBeUndefined();

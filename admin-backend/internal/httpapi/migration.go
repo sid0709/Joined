@@ -13,6 +13,7 @@ import (
 	"github.com/sid0709/Joined/backend-core/httpkit"
 	"github.com/sid0709/Joined/backend-core/jobs"
 	"github.com/sid0709/Joined/backend-core/killswitch"
+	"github.com/sid0709/Joined/backend-core/metrics"
 )
 
 const (
@@ -166,11 +167,13 @@ func (s *Server) migrationWork(task migration.Task, body migrationStartRequest) 
 	case migration.AnalyzeJobs:
 		scope := jobs.AnalyzeScope{IDs: body.TempJobIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
+			ctx = metrics.WithFeature(ctx, metrics.FeatureMigration)
 			err := s.store.AnalyzeTempJobs(ctx, s.ai, scope, s.analyzeWorkers, progress)
 			return tally("Published", "not publishable", progress.Snapshot()), err
 		}, true, true
 	case migration.ResearchCompanies:
 		return func(ctx context.Context, progress *migration.Tracker) (string, error) {
+			ctx = metrics.WithFeature(ctx, metrics.FeatureMigration)
 			err := s.store.ResearchCompanies(ctx, s.ai, s.ai.Model(), jobs.ResearchScope{IDs: body.CompanyIDs, Redo: body.Redo, WebSearch: body.useWebSearch()}, s.researchWorkers, progress)
 			return tally("Published", "not found", progress.Snapshot()), err
 		}, true, true

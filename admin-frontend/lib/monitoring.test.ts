@@ -4,11 +4,13 @@ import {
   formatBytes,
   formatChartTime,
   formatMs,
+  formatDuration,
   formatNumber,
   formatPercent,
   formatRate,
   formatShare,
   parseMonitoringRange,
+  seriesValues,
   systemPath,
 } from "./monitoring";
 
@@ -58,13 +60,33 @@ describe("formatters", () => {
     expect(formatNumber(undefined)).toBe("—");
     const at = new Date(2026, 9, 11, 15, 30).toISOString();
     expect(formatChartTime(at, "1h")).toBe("3:30 PM");
+    expect(formatChartTime(at, "15m")).toBe("3:30 PM");
     expect(formatChartTime(at, "7d")).toBe("Oct 11, 3 PM");
+    expect(formatChartTime(at, "30d")).toBe("Oct 11, 3 PM");
+    expect(formatDuration(6 * 86400 + 18 * 3600)).toBe("6d 18h");
+    expect(formatDuration(null)).toBe("—");
+  });
+});
+
+describe("seriesValues", () => {
+  it("reads one named line", () => {
+    expect(
+      seriesValues(
+        [
+          { name: "CPU %", points: [{ at: "t", value: 4 }] },
+          { name: "Memory %", points: [{ at: "t", value: 9 }] },
+        ],
+        "Memory %",
+      ),
+    ).toEqual([9]);
   });
 });
 
 describe("range", () => {
   it("falls back to the last 24 hours", () => {
     expect(parseMonitoringRange("1y")).toBe("24h");
+    expect(parseMonitoringRange("15m")).toBe("15m");
+    expect(parseMonitoringRange("30d")).toBe("30d");
     expect(systemPath(parseMonitoringRange("7d"))).toBe("/v1/admin/monitoring/system?range=7d");
   });
 });

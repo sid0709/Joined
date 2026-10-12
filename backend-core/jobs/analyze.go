@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sid0709/Joined/backend-core/metrics"
 	"github.com/sid0709/Joined/backend-core/openai"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -249,6 +250,7 @@ func (s *Store) analysisRecord(ctx context.Context, reader ModelReader, listing 
 // readExtraction asks the model for the structured posting. With web search it must
 // look the company up; without it, the posting is the only source.
 func readExtraction(ctx context.Context, reader ModelReader, listing tempListing, webSearch bool) ([]byte, error) {
+	ctx = metrics.EnsureFeature(ctx, metrics.FeatureJobAnalyze)
 	user := listingPrompt(listing)
 	schema := json.RawMessage(extractionSchema)
 	if !webSearch {
