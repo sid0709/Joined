@@ -31,11 +31,13 @@ const DETAIL_KEYS = {
 
 const COMPANY_EXTRA_KEYS = {
   companyWebsite: "website",
+  companyProfileUrl: "profileUrl",
   companySize: "size",
   companyHq: "hq",
   companyFounded: "founded",
   companyAbout: "about",
   companySocial: "social",
+  companySocials: "socials",
 };
 
 function isRecord(value) {
@@ -88,7 +90,7 @@ export function toJobPayload(record, routine) {
     title: record?.title || "",
     description: record?.description || "",
     company,
-    companyLink: company.website || record?.companyWebsite || "",
+    companyLink: company.website || record?.companyWebsite || record?.companyProfileUrl || "",
     details: detailsFrom(record ?? {}),
     metadata,
     createdBy: SCRAPE_SOURCE,

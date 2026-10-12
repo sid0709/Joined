@@ -50,4 +50,56 @@ describe("toJobPayload", () => {
     expect(payload.source).toBe("jobright");
     expect(payload.title).toBe("Engineer");
   });
+
+  test("falls companyLink back to the Built In profile and keeps socials plus crawl time", () => {
+    const payload = toJobPayload(
+      {
+        applyUrl: "https://builtin.com/job/role/1",
+        title: "Engineer",
+        description: "Build.",
+        companyName: "Micron Technology",
+        companyLogo: "https://cdn.example/micron.png",
+        companyWebsite: "",
+        companyProfileUrl: "https://builtin.com/company/micron-technology",
+        companySocials: { linkedin: "https://linkedin.com/company/micron" },
+        postedAt: "2026-10-12T17:59:12.000Z",
+        postedAgo: "Reposted 48 Seconds Ago",
+        crawledAt: "2026-10-12T18:00:00.000Z",
+      },
+      { id: "builtin" },
+    );
+    expect(payload.companyLink).toBe("https://builtin.com/company/micron-technology");
+    expect(payload.company).toEqual({
+      name: "Micron Technology",
+      logo: "https://cdn.example/micron.png",
+      profileUrl: "https://builtin.com/company/micron-technology",
+      socials: { linkedin: "https://linkedin.com/company/micron" },
+    });
+    expect(payload.postedAt).toBe("2026-10-12T17:59:12.000Z");
+    expect(payload.postedAgo).toBe("Reposted 48 Seconds Ago");
+    expect(payload.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(payload.metadata.companyProfileUrl).toBe(
+      "https://builtin.com/company/micron-technology",
+    );
+    expect(payload.metadata.companySocials).toEqual({
+      linkedin: "https://linkedin.com/company/micron",
+    });
+  });
+
+  test("prefers the company website over the Built In profile for companyLink", () => {
+    const payload = toJobPayload(
+      {
+        applyUrl: "https://builtin.com/job/role/1",
+        title: "Engineer",
+        description: "Build.",
+        companyName: "North",
+        companyWebsite: "https://north.example/",
+        companyProfileUrl: "https://builtin.com/company/north",
+      },
+      { id: "builtin" },
+    );
+    expect(payload.companyLink).toBe("https://north.example/");
+    expect(payload.company.website).toBe("https://north.example/");
+    expect(payload.company.profileUrl).toBe("https://builtin.com/company/north");
+  });
 });

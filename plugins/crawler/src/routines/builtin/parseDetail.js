@@ -4,6 +4,7 @@ import { firstElementByText, isFound } from "../../routineKit/html.js";
 import { workModeFrom } from "../../routineKit/workMode.js";
 
 import { resolveApplyUrl } from "./applyUrl.js";
+import { companyProfileUrlFrom, companySocialsFrom, companyWebsiteFrom } from "./companyLinks.js";
 import {
   APPLY_FORM,
   APPLY_UNAUTH,
@@ -25,6 +26,7 @@ import {
 } from "./constants.js";
 import { documentFromHtml, htmlToPlainText, resolveUrl, textOf } from "./html.js";
 import { parseJobPostingJsonLd, parseJobPostInit } from "./parseInit.js";
+import { postedAgoText, resolvePostedAt } from "./postedAgo.js";
 
 function headerRoot(document) {
   return queryOne(document, HEADER_SCOPE) || queryOne(document, JOB_POST_ITEM) || document;
@@ -230,7 +232,11 @@ function benefitsFrom(document, posting) {
  * Salary prefers JSON-LD baseSalary. Skills stay off the record.
  * A non-empty jobPostInit applyUrl is the sign-in signal.
  */
-export function parseDetail(html, pageUrl = "", { companyName: listCompanyName } = {}) {
+export function parseDetail(
+  html,
+  pageUrl = "",
+  { companyName: listCompanyName, now = new Date() } = {},
+) {
   const document = documentFromHtml(html);
   const posting = parseJobPostingJsonLd(html);
   const init = parseJobPostInit(html);
@@ -249,6 +255,11 @@ export function parseDetail(html, pageUrl = "", { companyName: listCompanyName }
     posting?.title ||
     "";
   const applyFromInit = String(job.applyUrl || "").trim();
+  const postedAgo = postedAgoText(iconRowText(header, ICON_POSTED));
+  const crawlTime = now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
+  const companyProfileUrl = companyProfileUrlFrom(document, org, jobUrl);
+  const companyWebsite = companyWebsiteFrom(document, org, jobUrl, companyProfileUrl, box);
+  const companySocials = companySocialsFrom(document, jobUrl);
 
   return {
     applyUrl: resolveApplyLink(document, job, jobUrl),
@@ -261,7 +272,13 @@ export function parseDetail(html, pageUrl = "", { companyName: listCompanyName }
     employmentType: String(posting?.employmentType || "").trim(),
     seniority,
     salary: salaryFromJsonLd(posting) || iconRowText(header, ICON_SALARY),
-    postedAt: String(posting?.datePosted || "").trim() || iconRowText(header, ICON_POSTED),
+    postedAt: resolvePostedAt({
+      datePosted: String(posting?.datePosted || "").trim(),
+      postedAgo,
+      now: crawlTime,
+    }),
+    postedAgo,
+    crawledAt: crawlTime.toISOString(),
     badges: jobTags({
       isEasyApply,
       workplace,
@@ -274,6 +291,9 @@ export function parseDetail(html, pageUrl = "", { companyName: listCompanyName }
     companyHq: box ? companyHqFrom(box) : "",
     companySize: box ? iconRowText(box, ICON_EMPLOYEES) : "",
     companyFounded: box ? iconRowText(box, ICON_FOUNDED).replace(/^year founded:\s*/i, "") : "",
+    companyWebsite,
+    companyProfileUrl,
+    companySocials,
     meta: {
       id: jobId,
       isEasyApply,

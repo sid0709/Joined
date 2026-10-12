@@ -38,7 +38,7 @@ describe("jobValidation", () => {
         completeJob({ companyWebsite: "javascript:alert(1)" }),
         BuiltInRoutine,
       ),
-    ).toEqual([]);
+    ).toContain("Website");
   });
 
   test("checks a declared field on the payload or its metadata", () => {

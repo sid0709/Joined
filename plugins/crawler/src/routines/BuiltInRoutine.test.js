@@ -200,7 +200,9 @@ describe("BuiltInRoutine", () => {
     expect(findRoutineForUrl(ROUTINES, "https://jobright.ai/jobs")).not.toBe(BuiltInRoutine);
     const keys = listDeclaredFields(BuiltInRoutine).map((field) => field.key);
     expect(keys).not.toContain("skills");
-    expect(keys).not.toContain("companyWebsite");
+    expect(keys).toContain("companyWebsite");
+    expect(keys).toContain("companyProfileUrl");
+    expect(keys).toContain("postedAgo");
     expect(BuiltInRoutine.runView.settings).toEqual([]);
     expect(BuiltInRoutine.runView.components).not.toContain("pace");
     expect(BuiltInRoutine.runView.stats).toContain("cursor");

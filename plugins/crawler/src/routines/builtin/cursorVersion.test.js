@@ -16,5 +16,6 @@ describe("cursorVersion", () => {
     expect(isUsableCursorVersion("")).toBe(false);
     expect(isUsableCursorVersion("2.4.1")).toBe(true);
     expect(isUsableCursorVersion("2.4.2")).toBe(true);
+    expect(isUsableCursorVersion("2.4.3")).toBe(true);
   });
 });
