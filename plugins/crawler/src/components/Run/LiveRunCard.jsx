@@ -30,6 +30,7 @@ const formatPercent = (value) => `${Math.round(value)}%`;
 
 const STUCK_BANNER_TITLE =
   "Crawl stopped: sign in to Built In (or the page is dead), then press Start to resume from the saved cursor";
+const EXTRACT_ERROR_TITLE = "Extraction error";
 
 const STEPPER_LAYOUT = { minimumStepWidth: 56, collapsedVariant: "withLabel" };
 
@@ -148,6 +149,10 @@ export default function LiveRunCard({ run, routine }) {
                 : run.warning
             }
           />
+        ) : null}
+
+        {run.extractError ? (
+          <Banner status="warning" title={EXTRACT_ERROR_TITLE} description={run.extractError} />
         ) : null}
 
         {showPace ||

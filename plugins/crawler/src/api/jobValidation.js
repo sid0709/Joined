@@ -62,13 +62,24 @@ export function isJobFieldValid(job, path, routine) {
     }
     return null;
   }
-  return typeOk(declared, valueAt(job, path) ?? valueAt(job.metadata, path));
+  return typeOk(declared, declaredValue(job, path));
 }
 
-function coreValue(job, key) {
-  if (key === "applyUrl") return job.applyUrl || job.applyLink;
-  if (key === "companyName") return job.companyName || job.company?.name;
-  return job[key];
+function declaredValue(job, path) {
+  switch (path) {
+    case "applyUrl":
+      return job.applyUrl || job.applyLink;
+    case "companyName":
+      return job.companyName || job.company?.name;
+    case "companyWebsite":
+      return job.companyWebsite || job.company?.website || job.companyLink;
+    case "companyProfileUrl":
+      return job.companyProfileUrl || job.company?.profileUrl;
+    case "companySocials":
+      return job.companySocials || job.company?.socials;
+    default:
+      return valueAt(job, path) ?? valueAt(job.metadata, path);
+  }
 }
 
 /**
@@ -86,7 +97,7 @@ export function getJobValidationIssues(job, routine) {
       type: key === "applyUrl" ? FIELD_TYPES.URL : FIELD_TYPES.STRING,
       required: true,
     };
-    if (!typeOk(declared, coreValue(job, key))) issues.push(fieldIssue(declared));
+    if (!typeOk(declared, declaredValue(job, key))) issues.push(fieldIssue(declared));
   }
   if (typeof job.id !== "number" || !Number.isFinite(job.id)) issues.push("Job ID");
   if (parseDuplicateWindowDays(job.duplicateWindowDays) !== job.duplicateWindowDays) {
@@ -94,13 +105,11 @@ export function getJobValidationIssues(job, routine) {
   }
   const declared = routine?.declaredFields ?? [];
   for (const field of declared) {
-    if (
-      isCoreJobFieldKey(field.key) ||
-      !isFound(valueAt(job, field.key) ?? valueAt(job.metadata, field.key))
-    ) {
+    const value = declaredValue(job, field.key);
+    if (isCoreJobFieldKey(field.key) || !isFound(value)) {
       continue;
     }
-    if (!typeOk(field, valueAt(job, field.key) ?? valueAt(job.metadata, field.key))) {
+    if (!typeOk(field, value)) {
       issues.push(fieldIssue(field));
     }
   }

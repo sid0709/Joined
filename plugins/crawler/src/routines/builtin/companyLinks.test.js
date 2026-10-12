@@ -29,11 +29,16 @@ describe("companyProfileUrlFrom", () => {
     );
   });
 
-  test("falls back to JSON-LD sameAs when the page has no /company/ link", () => {
+  test("falls back to JSON-LD sameAs when it is a Built In profile", () => {
     const { document, org } = page("");
     expect(companyProfileUrlFrom(document, org, PAGE)).toBe(
       "https://builtin.com/company/micron-technology",
     );
+  });
+
+  test("does not treat a real-website sameAs as the Built In profile", () => {
+    const { document } = page("");
+    expect(companyProfileUrlFrom(document, { sameAs: "https://www.micron.com/" }, PAGE)).toBe("");
   });
 });
 
@@ -59,6 +64,31 @@ describe("companyWebsiteFrom", () => {
     );
   });
 
+  test("uses hiringOrganization.sameAs when it is the company site, not a Built In profile", () => {
+    const { document } = page("");
+    const org = {
+      sameAs: ["https://builtin.com/company/micron-technology", "https://www.micron.com/"],
+    };
+    expect(
+      companyWebsiteFrom(document, org, PAGE, "https://builtin.com/company/micron-technology"),
+    ).toBe("https://www.micron.com/");
+  });
+
+  test("reads a globe link from The Company box", () => {
+    const { document } = page(`
+      <div class="bg-white rounded-3 p-md">
+        <i class="fa-regular fa-map-location-dot"></i>
+        <div class="d-flex align-items-start gap-sm">
+          <i class="fa-regular fa-globe"></i>
+          <a href="https://www.micron.com/">www.micron.com</a>
+        </div>
+      </div>`);
+    const box = document.querySelector("div.bg-white");
+    expect(companyWebsiteFrom(document, {}, PAGE, "https://builtin.com/company/micron", box)).toBe(
+      "https://www.micron.com/",
+    );
+  });
+
   test("does not treat a social or Built In link as the website", () => {
     const { document } = page(`
       <div class="box">
@@ -79,7 +109,7 @@ describe("companySocialsFrom", () => {
       <a href="https://www.facebook.com/micron">Facebook</a>
       <a href="https://instagram.com/micron">Instagram</a>
       <a href="https://github.com/micron">GitHub</a>`);
-    expect(companySocialsFrom(document, PAGE)).toEqual({
+    expect(companySocialsFrom(document, {}, PAGE)).toEqual({
       linkedin: "https://www.linkedin.com/company/micron",
       x: "https://x.com/micron",
       facebook: "https://www.facebook.com/micron",
@@ -87,17 +117,31 @@ describe("companySocialsFrom", () => {
       github: "https://github.com/micron",
     });
   });
+
+  test("reads social hosts from JSON-LD sameAs", () => {
+    expect(
+      companySocialsFrom(
+        documentFromHtml("<html></html>"),
+        {
+          sameAs: [
+            "https://builtin.com/company/micron-technology",
+            "https://www.linkedin.com/company/micron-technology",
+            "https://x.com/MicronTech",
+          ],
+        },
+        PAGE,
+      ),
+    ).toEqual({
+      linkedin: "https://www.linkedin.com/company/micron-technology",
+      x: "https://x.com/MicronTech",
+    });
+  });
 });
 
 describe("companyLinkFrom", () => {
-  test("prefers the website and falls back to the Built In profile URL", () => {
-    expect(companyLinkFrom("https://www.micron.com/", "https://builtin.com/company/micron")).toBe(
-      "https://www.micron.com/",
-    );
-    expect(companyLinkFrom("", "https://builtin.com/company/micron")).toBe(
-      "https://builtin.com/company/micron",
-    );
-    expect(companyLinkFrom("", "")).toBe("");
+  test("is the company website only, never the Built In profile", () => {
+    expect(companyLinkFrom("https://www.micron.com/")).toBe("https://www.micron.com/");
+    expect(companyLinkFrom("")).toBe("");
   });
 });
 

@@ -98,7 +98,7 @@ describe("postedAtFromAgo", () => {
 });
 
 describe("resolvePostedAt", () => {
-  test("prefers a real JSON-LD datePosted, including date-only, over inferred ago", () => {
+  test("prefers a timed JSON-LD datePosted over inferred ago", () => {
     expect(
       resolvePostedAt({
         datePosted: "2026-10-01T14:30:00Z",
@@ -109,10 +109,56 @@ describe("resolvePostedAt", () => {
       postedAt: "2026-10-01T14:30:00.000Z",
       postedAtSource: POSTED_AT_SOURCE.JSONLD,
     });
+  });
+
+  test("uses ago time when date-only JSON-LD and intra-day ago fall on the same UTC date", () => {
     expect(
       resolvePostedAt({
         datePosted: "2026-10-12",
         postedAgo: "Reposted 48 Seconds Ago",
+        now: NOW,
+      }),
+    ).toEqual({
+      postedAt: "2026-10-12T17:59:12.000Z",
+      postedAtSource: POSTED_AT_SOURCE.JSONLD_AGO,
+    });
+    expect(
+      resolvePostedAt({
+        datePosted: "2026-10-12",
+        postedAgo: "Posted 5 Minutes Ago",
+        now: NOW,
+      }),
+    ).toEqual({
+      postedAt: "2026-10-12T17:55:00.000Z",
+      postedAtSource: POSTED_AT_SOURCE.JSONLD_AGO,
+    });
+    expect(
+      resolvePostedAt({
+        datePosted: "2026-10-12",
+        postedAgo: "Reposted 6 Hours Ago",
+        now: NOW,
+      }),
+    ).toEqual({
+      postedAt: "2026-10-12T12:00:00.000Z",
+      postedAtSource: POSTED_AT_SOURCE.JSONLD_AGO,
+    });
+  });
+
+  test("keeps date-only midnight when ago is days or crosses the UTC date", () => {
+    expect(
+      resolvePostedAt({
+        datePosted: "2026-10-12",
+        postedAgo: "Posted 12 Days Ago",
+        now: NOW,
+      }),
+    ).toEqual({
+      postedAt: "2026-10-12T00:00:00.000Z",
+      postedAtSource: POSTED_AT_SOURCE.JSONLD,
+    });
+    expect(
+      resolvePostedAt({
+        datePosted: "2026-10-12",
+        postedAgo: "20 Hours Ago",
         now: NOW,
       }),
     ).toEqual({

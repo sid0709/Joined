@@ -264,15 +264,21 @@ export function handleScrapeQueueClear(message, sendResponse) {
   (async () => {
     await scrapeQueueInitialization;
     const runId = typeof message.payload?.runId === "string" ? message.payload.runId : null;
+    const beginRunId =
+      typeof message.payload?.beginRunId === "string" ? message.payload.beginRunId : null;
     if (runId) {
       scrapeQueueState.items = scrapeQueueState.items.filter((item) => item.runId !== runId);
       delete scrapeQueueState.runs[runId];
     } else {
       scrapeQueueState = normalizeQueueState();
     }
+    if (beginRunId) {
+      scrapeQueueState.runs[beginRunId] = { ...emptyRunSummary(), updatedAt: Date.now() };
+    }
     await persistScrapeQueue();
-    broadcastScrapeQueue(runId);
-    sendResponse?.({ success: true, state: scrapeQueueSnapshot(runId) });
+    const snapshotId = beginRunId || runId;
+    broadcastScrapeQueue(snapshotId);
+    sendResponse?.({ success: true, state: scrapeQueueSnapshot(snapshotId) });
   })().catch((error) => sendResponse?.({ success: false, error: error.message }));
 }
 

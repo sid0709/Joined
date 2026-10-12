@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  assertCompleteJob,
-  IncompleteJobDataError,
-  isJobFieldValid,
-} from "../../api/jobValidation";
+import { assertCompleteJob, IncompleteJobDataError } from "../../api/jobValidation";
 import { useRuntime } from "../../api/runtimeContext";
 import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
@@ -24,6 +20,12 @@ import {
 
 import { toJobPayload } from "./jobPayload";
 import {
+  applyActiveQueueSnapshot,
+  EMPTY_QUEUE,
+  newRunId,
+  readDeclaredField,
+} from "./routineRunSession";
+import {
   addRecentJob,
   fieldStatus,
   pendingFields,
@@ -39,11 +41,7 @@ export const RUN_STATUS = Object.freeze({
   STOPPED: "stopped",
 });
 
-const EMPTY_QUEUE = { queued: 0, saving: 0 };
 const INGEST_ACCEPT_TIMEOUT_MS = 30_000;
-
-const newRunId = () =>
-  globalThis.crypto?.randomUUID?.() || `run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function isIngestAccepted(outcome) {
   return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
@@ -68,6 +66,7 @@ export function useRoutineRun() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [pace, setPace] = useState(null);
   const [warning, setWarning] = useState(null);
+  const [extractError, setExtractError] = useState(null);
 
   const { addListener, removeListener } = useRuntime();
   const notification = useNotification();
@@ -104,6 +103,16 @@ export function useRoutineRun() {
 
   const applyItemResult = useCallback((key, outcome) => {
     setRecentJobs((jobs) => updateRecentJob(jobs, key, { status: outcome }));
+  }, []);
+
+  const applyQueueSnapshot = useCallback((state) => {
+    const applied = applyActiveQueueSnapshot(runIdRef.current, state);
+    if (!applied) return false;
+    setQueueCounts(applied.counts);
+    if (applied.summary) {
+      setRunStats((current) => mergeScrapeRunStats(current, applied.summary));
+    }
+    return true;
   }, []);
 
   const resolveIngestWaiter = useCallback((id, outcome) => {
@@ -161,6 +170,7 @@ export function useRoutineRun() {
       })
         .then(async (response) => {
           if (!response?.id) throw new Error("Failed to enqueue scraped job");
+          applyQueueSnapshot(response.state);
           queueKeys.current.set(response.id, entry.key);
           const early = earlyResults.current.get(response.id);
           if (early) {
@@ -177,7 +187,7 @@ export function useRoutineRun() {
           throw error;
         });
     },
-    [applyItemResult, waitForIngestAccept],
+    [applyItemResult, applyQueueSnapshot, waitForIngestAccept],
   );
 
   const endRun = useCallback((nextStatus) => {
@@ -197,16 +207,7 @@ export function useRoutineRun() {
   useEffect(() => {
     const listener = (message) => {
       if (message?.action === "scrapeQueue:state") {
-        const state = message.payload;
-        if (!state?.runId || (runIdRef.current && state.runId !== runIdRef.current)) return;
-        setQueueCounts(state.counts || EMPTY_QUEUE);
-        if (state.summary) {
-          setRunStats((current) =>
-            runIdRef.current
-              ? mergeScrapeRunStats(current, state.summary)
-              : { ...createScrapeRunStats(), ...state.summary },
-          );
-        }
+        applyQueueSnapshot(message.payload);
       }
       if (
         message?.action === "scrapeQueue:itemResult" &&
@@ -237,7 +238,14 @@ export function useRoutineRun() {
         // Outside the extension there is no queue to restore.
       });
     return () => removeListener(listener);
-  }, [addListener, removeListener, applyItemResult, notifyFailure, resolveIngestWaiter]);
+  }, [
+    addListener,
+    removeListener,
+    applyItemResult,
+    applyQueueSnapshot,
+    notifyFailure,
+    resolveIngestWaiter,
+  ]);
 
   useEffect(() => {
     if (status !== RUN_STATUS.RUNNING || !runStartedAt.current) return undefined;
@@ -271,13 +279,19 @@ export function useRoutineRun() {
         }
       },
       onField: (path, _value, record, found) => {
-        const valid = isJobFieldValid(
-          toJobPayload(record, targetRef.current?.routine),
-          path,
-          targetRef.current?.routine,
-        );
-        setFieldStates((current) => ({ ...current, [path]: fieldStatus(found, valid) }));
-        setFieldHits((hits) => recordFieldHit(hits, path, found));
+        const result = readDeclaredField(path, record, found, targetRef.current?.routine);
+        setFieldStates((current) => ({
+          ...current,
+          [path]: fieldStatus(result.found, result.valid),
+        }));
+        setFieldHits((hits) => recordFieldHit(hits, path, result.found));
+        if (result.error) {
+          setExtractError(result.error.message);
+          notification.warning(result.error.message, {
+            key: "run-extract",
+            autoHideDuration: 4000,
+          });
+        }
       },
       onRecord: submitJob,
       onPace: (next) => {
@@ -299,7 +313,10 @@ export function useRoutineRun() {
         });
       },
       onNotice: (message, ok) => {
-        if (!ok) notification.warning(message, { key: "run-notice", autoHideDuration: 2000 });
+        if (!ok) {
+          setExtractError(message);
+          notification.warning(message, { key: "run-notice", autoHideDuration: 4000 });
+        }
       },
       onFinished: (message) => {
         notification.success(message, { key: "run-finished", autoHideDuration: 3000 });
@@ -340,10 +357,12 @@ export function useRoutineRun() {
           }
           if (err instanceof IncompleteJobDataError) {
             hooks.recordOutcome(SCRAPE_OUTCOMES.VALIDATION);
+            hooks.onNotice?.(err.message, false);
             console.warn("Skipping job with invalid data", err.issues);
             continue;
           }
           hooks.recordOutcome(SCRAPE_OUTCOMES.FAILED);
+          hooks.onNotice?.(err.message || "Error in routine pass", false);
           hooks.notifyFailure(err, "Error in routine pass");
         }
       }
@@ -366,7 +385,10 @@ export function useRoutineRun() {
       earlyResults.current.clear();
       countedOutcomes.current.clear();
       // Drop leftover queue items from earlier failed retries (delayed nextAttemptAt).
-      await sendRuntimeMessage({ action: "scrapeQueue:clear" }).catch(() => {});
+      const cleared = await sendRuntimeMessage({
+        action: "scrapeQueue:clear",
+        payload: { beginRunId: runIdRef.current },
+      }).catch(() => null);
       setRunStats(createScrapeRunStats());
       setQueueCounts(EMPTY_QUEUE);
       setRecentJobs([]);
@@ -379,6 +401,8 @@ export function useRoutineRun() {
       setElapsedMs(0);
       setPace(null);
       setWarning(null);
+      setExtractError(null);
+      applyQueueSnapshot(cleared?.state);
       abortRef.current = new AbortController();
       runStartedAt.current = Date.now();
       setStatus(RUN_STATUS.RUNNING);
@@ -404,6 +428,7 @@ export function useRoutineRun() {
     elapsedMs,
     pace,
     warning,
+    extractError,
     start,
     stop,
   };

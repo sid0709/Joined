@@ -5,6 +5,7 @@ import {
   CLEAR_HANDLED_CONFIRM,
   CLEAR_HANDLED_LABEL,
   resumeCursorLabel,
+  START_FROM_PAGE_1_HINT,
   START_FROM_PAGE_1_LABEL,
 } from "../../routines/builtin/constants";
 import { createBuiltinStore } from "../../routines/builtin/store";
@@ -25,7 +26,7 @@ export default function BuiltinResume({ hidden = false }) {
   if (hidden) return null;
 
   const resetCursor = async () => {
-    await store.clearCursor();
+    await store.resetToPage1();
     await refresh();
   };
 
@@ -47,6 +48,9 @@ export default function BuiltinResume({ hidden = false }) {
         onClick={resetCursor}
         width="100%"
       />
+      <Text type="supporting" color="secondary" justify="center">
+        {START_FROM_PAGE_1_HINT}
+      </Text>
       <Button
         variant="ghost"
         size="sm"

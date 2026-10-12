@@ -76,18 +76,24 @@ export const hitRate = (hit) => (hit?.reads ? Math.round((hit.found / hit.reads)
 export function fieldRunSummary(fields, fieldHits, fieldStates) {
   const keys = (fields ?? []).map((field) => field.key);
   const withHits = keys.filter((key) => fieldHits?.[key]?.reads);
+  const invalid = keys.filter((key) => fieldStates?.[key] === "invalid").length;
   if (withHits.length) {
     return {
       found: withHits.filter((key) => fieldHits[key].found > 0).length,
-      invalid: withHits.filter((key) => fieldHits[key].found === 0).length,
+      invalid,
       total: keys.length,
     };
   }
   return {
     found: keys.filter((key) => fieldStates?.[key] === "ok").length,
-    invalid: keys.filter((key) => fieldStates?.[key] === "invalid").length,
+    invalid,
     total: keys.length,
   };
+}
+
+/** True when a scrapeQueue broadcast belongs to the run the panel is showing. */
+export function isActiveQueueRun(runId, stateRunId) {
+  return Boolean(runId) && runId === stateRunId;
 }
 
 export const addRecentJob = (jobs, job, limit = RECENT_JOBS_LIMIT) =>
