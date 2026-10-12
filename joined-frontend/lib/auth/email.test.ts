@@ -78,7 +78,7 @@ describe("email request builders", () => {
       password: "password123",
     });
     expect(body).not.toHaveProperty("role");
-    expect(allowEmailSignup("candidate")).toBe(true);
+    expect(allowEmailSignup("candidate")).toBe(false);
     expect(allowEmailSignup("employee")).toBe(false);
   });
 

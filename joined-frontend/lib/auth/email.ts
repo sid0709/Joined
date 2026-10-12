@@ -110,8 +110,10 @@ export function validatePasswordConfirm(password: string, confirm: string): stri
   return undefined;
 }
 
+/** Email sign-up is disabled in the product UI; Google is the only create-account path. */
 export function allowEmailSignup(mode: AccountMode): boolean {
-  return mode === "candidate";
+  void mode;
+  return false;
 }
 
 export function checkEmailHref(email: string) {
