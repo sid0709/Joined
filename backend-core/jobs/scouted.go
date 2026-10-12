@@ -161,7 +161,7 @@ func salaryHint(listing ScoutedListing) string {
 }
 
 // PublishScouted writes an approved scout job straight into the search pool.
-// It never goes through temp_jobs: that collection is rebuilt by Copy.
+// It never goes through temp_jobs.
 func (s *Store) PublishScouted(ctx context.Context, listing ScoutedListing, now time.Time) (PublishedJob, error) {
 	companyID, err := s.resolveScoutCompany(ctx, listing, now)
 	if err != nil {

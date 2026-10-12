@@ -24,7 +24,7 @@ func TestImportRunsEmptyWhenDisabled(t *testing.T) {
 		AdminToken: "secret",
 		Import: ImportOptions{
 			Enabled: false,
-			Sources: []jobs.SourceStatus{{ID: jobs.AthensSourceID, Enabled: false}},
+			Sources: []jobs.SourceStatus{{ID: "board", Enabled: false}},
 			Runs:    log,
 		},
 	})
@@ -45,7 +45,7 @@ func TestImportRunsEmptyWhenDisabled(t *testing.T) {
 	if len(body.Runs) != 0 {
 		t.Fatalf("runs = %#v", body.Runs)
 	}
-	if len(body.Sources) != 1 || body.Sources[0].ID != jobs.AthensSourceID || body.Sources[0].Enabled {
+	if len(body.Sources) != 1 || body.Sources[0].ID != "board" || body.Sources[0].Enabled {
 		t.Fatalf("sources = %#v", body.Sources)
 	}
 }

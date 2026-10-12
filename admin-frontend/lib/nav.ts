@@ -30,10 +30,9 @@ export const ROUTES = {
   monitoringProduct: "/monitoring/product",
   systemMonitoring: "/monitoring/system",
   statusIncidents: "/monitoring/incidents",
-  jobMigration: "/migration/jobs",
-  companyMigration: "/migration/companies",
-  acornAI: "/settings/acorn-ai",
-  deepSeek: "/settings/deepseek",
+  tempJobs: "/temp/jobs",
+  tempCompanies: "/temp/companies",
+  aiModel: "/settings/ai-model",
 } as const;
 
 export type NavLink = {
@@ -95,18 +94,15 @@ export const CONSOLE_NAV: { title: string; links: NavLink[] }[] = [
     links: [{ href: ROUTES.companies, label: "Companies", icon: "seat" }],
   },
   {
-    title: "Migration",
+    title: "Temp",
     links: [
-      { href: ROUTES.jobMigration, label: "Jobs", icon: "archive" },
-      { href: ROUTES.companyMigration, label: "Companies", icon: "download" },
+      { href: ROUTES.tempJobs, label: "Jobs", icon: "archive" },
+      { href: ROUTES.tempCompanies, label: "Companies", icon: "download" },
     ],
   },
   {
     title: "Settings",
-    links: [
-      { href: ROUTES.acornAI, label: "Acorn AI", icon: "settings" },
-      { href: ROUTES.deepSeek, label: "DeepSeek", icon: "sparkle" },
-    ],
+    links: [{ href: ROUTES.aiModel, label: "AI Model", icon: "sparkle" }],
   },
 ];
 

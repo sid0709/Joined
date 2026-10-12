@@ -3,10 +3,10 @@ import { ListSkeleton } from "@/components/list-skeleton";
 import { JobMigration } from "@/components/migration/job-migration";
 
 export const metadata = {
-  title: "Job migration",
+  title: "Temp jobs",
 };
 
-export default function JobMigrationPage() {
+export default function TempJobsPage() {
   return (
     <Suspense fallback={<ListSkeleton />}>
       <JobMigration />

@@ -64,7 +64,7 @@ function pageSizeOption(value: string | null) {
 type TempCompaniesBrowserProps = {
   title?: string;
   description?: string;
-  /** Changing it reloads the list, e.g. when a copy or research run ends. */
+  /** Changing it reloads the list, e.g. when a research run ends. */
   refreshKey?: number;
   /** Starts research for the checked companies and returns what to tell the admin. */
   onResearch?: (ids: string[]) => Promise<Notice>;
@@ -86,10 +86,10 @@ function importNotice(result: CompanyImportResult): Notice {
   };
 }
 
-/** Companies copied into staging. Published ones leave this list. */
+/** Companies staged because they are not already in the directory. Published ones leave this list. */
 export function TempCompaniesBrowser({
   title = "Staged companies",
-  description = "Copied companies, busiest first. Research publishes the ones it finds; not found stay in this list.",
+  description = "Companies that are not already in the directory, busiest first. Research publishes the ones it finds; not found stay in this list.",
   refreshKey = 0,
   onResearch,
   busy = false,
@@ -168,7 +168,7 @@ export function TempCompaniesBrowser({
   const go = useCallback(
     (values: Record<string, string | number | null>) =>
       router.replace(
-        listingHref(ROUTES.companyMigration, new URLSearchParams(window.location.search), values),
+        listingHref(ROUTES.tempCompanies, new URLSearchParams(window.location.search), values),
       ),
     [router],
   );
@@ -330,7 +330,7 @@ export function TempCompaniesBrowser({
               isCompact
               title={query ? `No companies match "${query}"` : "No staged companies yet"}
               description={
-                query ? "Try another search." : "Copy them from Athens to fill this list."
+                query ? "Try another search." : "Companies the crawler could not match land here."
               }
             />
           }

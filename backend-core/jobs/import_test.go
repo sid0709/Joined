@@ -186,7 +186,7 @@ func TestLookupImportKillSwitchMissingIsAllowAll(t *testing.T) {
 	if LookupImportKillSwitch() != nil {
 		t.Fatal("missing step-26 gate should be nil")
 	}
-	if !effectiveKillSwitch(LookupImportKillSwitch()).Allow(AthensSourceID) {
+	if !effectiveKillSwitch(LookupImportKillSwitch()).Allow("blocked") {
 		t.Fatal("nil gate must allow imports")
 	}
 }
@@ -198,22 +198,15 @@ func TestKillSwitchFromOptionalInterfaces(t *testing.T) {
 	if KillSwitchFrom(struct{}{}) != nil {
 		t.Fatal("unknown type should be ignored")
 	}
-	gate := KillSwitchFrom(sourceEnabledStub{on: map[string]bool{AthensSourceID: false, FakeSourceID: true}})
+	gate := KillSwitchFrom(sourceEnabledStub{on: map[string]bool{"blocked": false, FakeSourceID: true}})
 	if gate == nil {
 		t.Fatal("SourceEnabled adapter missing")
 	}
-	if gate.Allow(AthensSourceID) {
-		t.Fatal("athens should be blocked")
+	if gate.Allow("blocked") {
+		t.Fatal("blocked source should be blocked")
 	}
 	if !gate.Allow(FakeSourceID) {
 		t.Fatal("fake should be allowed")
-	}
-}
-
-func TestAthensSourceStaysDisabledUntilFlagged(t *testing.T) {
-	source := NewAthensSource(&Store{}, false)
-	if source.Enabled() || source.ID() != AthensSourceID {
-		t.Fatalf("id=%s enabled=%v", source.ID(), source.Enabled())
 	}
 }
 

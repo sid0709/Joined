@@ -72,14 +72,3 @@ func TestKillSwitchUnknownNameAndMissingEnabled(t *testing.T) {
 		t.Fatalf("missing enabled = %d %s", rec.Code, rec.Body.String())
 	}
 }
-
-func TestJobImportKillSwitchBlocksCopySteps(t *testing.T) {
-	mem := killswitch.NewMemory(killswitch.Defaults{killswitch.JobImports: false})
-	handler := New(nil, nil, nil, nil, Options{KillSwitches: mem})
-	for _, step := range []string{"jobs-copy", "companies-copy"} {
-		rec := postMigration(t, handler, "/v1/migration/"+step, `{}`)
-		if rec.Code != http.StatusServiceUnavailable || !strings.Contains(rec.Body.String(), "Job imports") {
-			t.Fatalf("%s: %d %s", step, rec.Code, rec.Body.String())
-		}
-	}
-}

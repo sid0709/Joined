@@ -5,8 +5,8 @@ import { activeHref, ROUTES, signInHref } from "./nav";
 test("the deepest matching link is active", () => {
   expect(activeHref("/scouting")).toBe(ROUTES.scouting);
   expect(activeHref("/scouting/queue")).toBe(ROUTES.queue);
-  expect(activeHref("/migration/jobs")).toBe(ROUTES.jobMigration);
-  expect(activeHref("/migration/companies")).toBe(ROUTES.companyMigration);
+  expect(activeHref("/temp/jobs")).toBe(ROUTES.tempJobs);
+  expect(activeHref("/temp/companies")).toBe(ROUTES.tempCompanies);
   expect(activeHref("/jobs/scout")).toBe(ROUTES.scoutJobs);
   expect(activeHref("/jobs")).toBe(ROUTES.jobs);
   expect(activeHref("/jobs/direct-review")).toBe(ROUTES.directReview);
@@ -27,8 +27,7 @@ test("the deepest matching link is active", () => {
   expect(activeHref("/monitoring/product")).toBe(ROUTES.monitoringProduct);
   expect(activeHref("/monitoring/incidents")).toBe(ROUTES.statusIncidents);
   expect(activeHref("/monitoring/system")).toBe(ROUTES.monitoring);
-  expect(activeHref("/settings/acorn-ai")).toBe(ROUTES.acornAI);
-  expect(activeHref("/settings/deepseek")).toBe(ROUTES.deepSeek);
+  expect(activeHref("/settings/ai-model")).toBe(ROUTES.aiModel);
   expect(activeHref("/elsewhere")).toBeUndefined();
 });
 

@@ -7,19 +7,16 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// MigrationCounts is how far the copy from the source database has come.
+// MigrationCounts is how much staged work is still waiting, and how much is published.
 type MigrationCounts struct {
-	JobSource      string `json:"jobSource"`
 	JobDestination string `json:"jobDestination"`
-	SourceJobs     int64  `json:"sourceJobs"`
 	TempJobs       int64  `json:"tempJobs"`
 	AnalyzedJobs   int64  `json:"analyzedJobs"`
 	// NotPublishableJobs are temp jobs whose analysis did not say enough to publish.
-	NotPublishableJobs int64  `json:"notPublishableJobs"`
-	CompanySource      string `json:"companySource"`
+	NotPublishableJobs int64 `json:"notPublishableJobs"`
+	// CompanyStaging is where companies wait until research publishes them.
 	CompanyStaging     string `json:"companyStaging"`
 	CompanyDestination string `json:"companyDestination"`
-	SourceCompanies    int64  `json:"sourceCompanies"`
 	// WaitingCompanies are staged and not researched yet.
 	WaitingCompanies int64 `json:"waitingCompanies"`
 	// NotFoundCompanies are staged because research could not find them.
@@ -29,13 +26,11 @@ type MigrationCounts struct {
 	ResearchedCompanies int64 `json:"researchedCompanies"`
 }
 
-// MigrationCounts counts both sides of the migration at once. Whole collections use
-// the fast estimate.
+// MigrationCounts counts staged jobs and companies, and the published catalogs, at once.
+// Whole collections use the fast estimate.
 func (s *Store) MigrationCounts(ctx context.Context) (MigrationCounts, error) {
 	counts := MigrationCounts{
-		JobSource:          s.sourceDB + "." + s.sourceCollection,
 		JobDestination:     s.destDB + "." + s.destCollection,
-		CompanySource:      s.sourceDB + "." + s.sourceCompanies,
 		CompanyStaging:     s.destDB + "." + s.tempCompanies,
 		CompanyDestination: s.destDB + "." + s.destCompanies,
 	}
@@ -47,11 +42,7 @@ func (s *Store) MigrationCounts(ctx context.Context) (MigrationCounts, error) {
 			return err
 		})
 	}
-	estimate(&counts.SourceJobs, func(ctx context.Context) (int64, error) { return s.source().EstimatedDocumentCount(ctx) })
 	estimate(&counts.TempJobs, func(ctx context.Context) (int64, error) { return s.dest().EstimatedDocumentCount(ctx) })
-	estimate(&counts.SourceCompanies, func(ctx context.Context) (int64, error) {
-		return s.sourceCompaniesColl().EstimatedDocumentCount(ctx)
-	})
 	estimate(&counts.Companies, func(ctx context.Context) (int64, error) { return s.companies().EstimatedDocumentCount(ctx) })
 	estimate(&counts.AnalyzedJobs, func(ctx context.Context) (int64, error) {
 		// Scouted jobs are published without a temp job, so only analyzed temp jobs count.

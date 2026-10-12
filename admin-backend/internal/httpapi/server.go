@@ -23,7 +23,7 @@ const (
 	analyzeTimeout = 15 * time.Minute
 	maxAnalyzeBody = 16 << 10
 	// missingAPIKey tells staff how to turn on the model-backed tools.
-	missingAPIKey = "Set OPENAI_API_KEY in the admin API environment"
+	missingAPIKey = "Save an OpenRouter API key under Settings → AI Model, or set OPENROUTER_API_KEY"
 )
 
 type Server struct {
@@ -35,9 +35,8 @@ type Server struct {
 	migration         *migration.Runner
 	staffAuth         StaffSignIn
 	acornAI           *aisettings.Store
-	acornAIEnv        config.OpenAI
 	deepSeek          *aisettings.Store
-	deepSeekEnv       config.DeepSeek
+	openRouter        config.OpenRouter
 	analyzeWorkers    int
 	researchWorkers   int
 	adminToken        string
@@ -68,17 +67,15 @@ type Options struct {
 	// Staff turns on Sign in with Google for the console. Once it is set up, every
 	// route but sign-in needs a staff session as well as the admin token.
 	Staff StaffSignIn
-	// AcornAI holds the API key and model Acorn's AI routes use, set from the console.
+	// AcornAI is mirrored when staff save the OpenRouter key, so Acorn keeps using
+	// the same default model.
 	AcornAI *aisettings.Store
-	// AcornAIEnv is the environment's OpenAI settings: the model Acorn uses until one
-	// is saved, and whether OPENAI_API_KEY already covers a missing saved key.
-	AcornAIEnv config.OpenAI
-	// DeepSeek holds the API key and model job analysis, company research, and
-	// company autofill use, set from the console.
+	// DeepSeek holds the OpenRouter API key and model job analysis, company research,
+	// company autofill, and Acorn's AI use, set from the console.
 	DeepSeek *aisettings.Store
-	// DeepSeekEnv is the environment's DeepSeek settings: the model used until one
-	// is saved, and whether DEEPSEEK_API_KEY already covers a missing saved key.
-	DeepSeekEnv config.DeepSeek
+	// OpenRouter is the environment fallback: the model used until one is saved, and
+	// whether OPENROUTER_API_KEY already covers a missing saved key.
+	OpenRouter config.OpenRouter
 	// Import is the read-only scheduled import status and recent-run log.
 	Import ImportOptions
 	// KillSwitches are runtime feature toggles staff flip from the API. Nil leaves
@@ -104,9 +101,8 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 		researchWorkers:   opts.Migration.ResearchWorkers,
 		staffAuth:         opts.Staff,
 		acornAI:           opts.AcornAI,
-		acornAIEnv:        opts.AcornAIEnv,
 		deepSeek:          opts.DeepSeek,
-		deepSeekEnv:       opts.DeepSeekEnv,
+		openRouter:        opts.OpenRouter,
 		adminToken:        opts.AdminToken,
 		analyzerToken:     opts.AnalyzerToken,
 		crawlerToken:      opts.CrawlerToken,
@@ -146,8 +142,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	server.registerStaffAdmin(api)
 	server.registerKillSwitches(api)
 	server.registerScamHolds(api)
-	server.registerAcornAI(api)
-	server.registerDeepSeek(api)
+	server.registerAIModel(api)
 	server.registerMonitoring(api)
 	server.registerStatusIncidents(api)
 

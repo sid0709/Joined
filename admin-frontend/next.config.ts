@@ -12,9 +12,12 @@ const nextConfig: NextConfig = {
   ],
   async redirects() {
     return [
-      // Temp jobs moved into Migration, beside the copy and the bulk analysis.
-      { source: "/jobs/temp", destination: ROUTES.jobMigration, permanent: true },
-      { source: "/migration", destination: ROUTES.jobMigration, permanent: false },
+      { source: "/jobs/temp", destination: ROUTES.tempJobs, permanent: true },
+      { source: "/migration", destination: ROUTES.tempJobs, permanent: false },
+      { source: "/migration/jobs", destination: ROUTES.tempJobs, permanent: false },
+      { source: "/migration/companies", destination: ROUTES.tempCompanies, permanent: false },
+      { source: "/settings/acorn-ai", destination: ROUTES.aiModel, permanent: true },
+      { source: "/settings/deepseek", destination: ROUTES.aiModel, permanent: true },
     ];
   },
 };

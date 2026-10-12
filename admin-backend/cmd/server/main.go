@@ -13,10 +13,8 @@ import (
 	"github.com/sid0709/Joined/backend-core/google"
 	"github.com/sid0709/Joined/backend-core/httpkit"
 	"github.com/sid0709/Joined/backend-core/jobs"
-	"github.com/sid0709/Joined/backend-core/killswitch"
 	"github.com/sid0709/Joined/backend-core/metrics"
 	"github.com/sid0709/Joined/backend-core/monitoring"
-	"github.com/sid0709/Joined/backend-core/openai"
 	"github.com/sid0709/Joined/backend-core/platform"
 )
 
@@ -24,8 +22,7 @@ const (
 	defaultHTTPAddr = "127.0.0.1:8081"
 	backfillTimeout = 2 * time.Minute
 	dropTimeout     = 30 * time.Second
-	// DeepSeek does not rate-limit by request count, so both AI steps run wide. A
-	// research answer waits on web searches for most of its time, so many run at once.
+	// OpenRouter's web plugin waits on search, so research can run many items at once.
 	defaultAnalyzeWorkers  = 64
 	defaultResearchWorkers = 128
 )
@@ -44,8 +41,7 @@ func main() {
 		slog.Error("config", "error", err)
 		os.Exit(1)
 	}
-	ai := config.LoadOpenAI()
-	deepSeekEnv := config.LoadDeepSeek()
+	openRouter := config.LoadOpenRouter()
 	googleConfig := config.LoadGoogle()
 	staffDomain := config.Env("ADMIN_GOOGLE_DOMAIN", "")
 	adminToken := config.Env("ADMIN_API_TOKEN", "")
@@ -71,7 +67,8 @@ func main() {
 		slog.Warn("CRAWLER_INGEST_TOKEN is not set: the crawler extension cannot stage jobs")
 	}
 	reporter := httpkit.NewReporter(config.LoadErrorReporting().SentryDSN)
-	reader := openai.New(ai.APIKey, ai.Model, ai.BaseURL)
+	migrationAI := deepseek.NewReloading(p.DeepSeekSettings, openRouter)
+	reader := migrationAI
 	staff := httpapi.StaffSignIn{
 		Accounts:    p.Accounts,
 		OAuth:       &google.Client{ClientID: googleConfig.ClientID, ClientSecret: googleConfig.ClientSecret},
@@ -84,33 +81,11 @@ func main() {
 	case staffDomain == "":
 		slog.Error("ADMIN_GOOGLE_DOMAIN is not set: no Google account can sign in to the console")
 	}
-	migrationAI := deepseek.NewReloading(p.DeepSeekSettings, deepSeekEnv)
 	if !migrationAI.Ready() {
-		slog.Warn("no DeepSeek key yet: save one under Settings → DeepSeek, or set DEEPSEEK_API_KEY, before analyzing or researching")
+		slog.Warn("no OpenRouter key yet: save one under Settings → AI Model, or set OPENROUTER_API_KEY, before analyzing or researching")
 	}
 	importCfg := config.LoadJobImport()
-	importRegistry := jobs.NewSourceRegistry()
-	importRegistry.Register(jobs.NewAthensSource(p.Jobs, importCfg.SourceEnabled(jobs.AthensSourceID)))
 	importLog := jobs.NewStoreRunLog(p.Jobs, importCfg.RunsCollection)
-	if err := p.Jobs.EnsureImportIndexes(context.Background(), importCfg.RunsCollection); err != nil {
-		slog.Error("import indexes", "error", config.Redact(err, db.MongoURI))
-	}
-	importGate := jobs.LookupImportKillSwitch()
-	if importGate == nil {
-		importGate = jobImportsGate(p.KillSwitches)
-	}
-	importRunner := jobs.NewRunner(jobs.RunnerOptions{
-		Enabled:  importCfg.Enabled,
-		Interval: importCfg.Interval,
-		Timeout:  importCfg.RunTimeout,
-		Registry: importRegistry,
-		Lock:     jobs.NewStoreImportLock(p.Jobs, importCfg.LocksCollection, importCfg.RunTimeout),
-		Log:      importLog,
-		Gate:     importGate,
-		Sink:     p.Jobs,
-		Pool:     p.Jobs,
-	})
-	go importRunner.Start(context.Background())
 
 	handler := httpapi.New(p.Jobs, p.Scouts, p.Staff, reader, httpapi.Options{
 		Origins:       server.Origins,
@@ -119,17 +94,14 @@ func main() {
 		CrawlerToken:  crawlerToken,
 		Staff:         staff,
 		AcornAI:       p.AISettings,
-		AcornAIEnv:    ai,
 		DeepSeek:      p.DeepSeekSettings,
-		DeepSeekEnv:   deepSeekEnv,
+		OpenRouter:    openRouter,
 		Migration: httpapi.MigrationOptions{
 			Model:           migrationAI,
 			AnalyzeWorkers:  config.EnvInt("MIGRATION_ANALYZE_WORKERS", defaultAnalyzeWorkers),
 			ResearchWorkers: config.EnvInt("MIGRATION_RESEARCH_WORKERS", defaultResearchWorkers),
 		},
 		Import: httpapi.ImportOptions{
-			Enabled:     importCfg.Enabled,
-			Sources:     importRegistry.Status(),
 			RecentLimit: importCfg.RecentLimit,
 			Runs:        importLog,
 		},
@@ -173,21 +145,6 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 	} else if dropped > 0 {
 		slog.Info("drop company leadership", "companies", dropped)
 	}
-}
-
-type jobImportsSwitch struct {
-	switches killswitch.Switches
-}
-
-func jobImportsGate(switches killswitch.Switches) jobs.ImportKillSwitch {
-	if switches == nil {
-		return nil
-	}
-	return jobImportsSwitch{switches: switches}
-}
-
-func (g jobImportsSwitch) Allow(string) bool {
-	return killswitch.On(g.switches, context.Background(), killswitch.JobImports)
 }
 
 // prometheus is the system monitoring source, or nil when PROMETHEUS_URL is unset.

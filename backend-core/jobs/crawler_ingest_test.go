@@ -151,7 +151,7 @@ func TestCrawledTempDocumentHasTheAnalyzerFields(t *testing.T) {
 
 // crawlerTestStore connects to MONGODB_TEST_URI and returns a store on throwaway
 // databases that are dropped when the test ends.
-func crawlerTestStore(t *testing.T) (*Store, *mongo.Client, string, string) {
+func crawlerTestStore(t *testing.T) *Store {
 	t.Helper()
 	uri := os.Getenv("MONGODB_TEST_URI")
 	if uri == "" {
@@ -161,20 +161,17 @@ func crawlerTestStore(t *testing.T) (*Store, *mongo.Client, string, string) {
 	if err != nil {
 		t.Fatalf("mongo connect: %v", err)
 	}
-	suffix := bson.NewObjectID().Hex()
-	sourceDB, destDB := "test_crawler_src_"+suffix, "test_crawler_dest_"+suffix
+	destDB := "test_crawler_" + bson.NewObjectID().Hex()
 	t.Cleanup(func() {
 		ctx := context.Background()
-		_ = client.Database(sourceDB).Drop(ctx)
 		_ = client.Database(destDB).Drop(ctx)
 		_ = client.Disconnect(ctx)
 	})
-	store := NewStore(client, sourceDB, "jobs", destDB, "temp_jobs", "jobs", "companies", "companies", "temp_companies")
-	return store, client, sourceDB, destDB
+	return NewStore(client, destDB, "temp_jobs", "jobs", "companies", "temp_companies")
 }
 
 func TestIngestCrawledJobsStagesAndSkipsDuplicates(t *testing.T) {
-	store, _, _, _ := crawlerTestStore(t)
+	store := crawlerTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	now := time.Now().UTC()
@@ -229,42 +226,6 @@ func TestIngestCrawledJobsStagesAndSkipsDuplicates(t *testing.T) {
 	}
 	if n, err := store.stagedCompanies().CountDocuments(ctx, bson.D{{Key: "companyKey", Value: "acme"}}); err != nil || n != 1 {
 		t.Fatalf("companies after second job = %d, err = %v", n, err)
-	}
-}
-
-func TestCopyKeepsCrawledJobs(t *testing.T) {
-	store, client, sourceDB, _ := crawlerTestStore(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	sourceID := bson.NewObjectID()
-	if _, err := client.Database(sourceDB).Collection("jobs").InsertOne(ctx, bson.D{
-		{Key: "_id", Value: sourceID}, {Key: "title", Value: "From source"},
-	}); err != nil {
-		t.Fatalf("seed source: %v", err)
-	}
-	ingested, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{crawledJob("https://acme.com/apply/9")}}, time.Now())
-	if err != nil {
-		t.Fatalf("ingest: %v", err)
-	}
-
-	result, err := store.Copy(ctx, nil)
-	if err != nil {
-		t.Fatalf("copy: %v", err)
-	}
-	if result.Copied != 1 || result.Kept != 1 {
-		t.Fatalf("copy result = %+v", result)
-	}
-	for _, id := range []string{sourceID.Hex(), ingested.Results[0].TempJobID} {
-		if _, err := store.listingFrom(ctx, store.dest(), id); err != nil {
-			t.Fatalf("temp job %s after copy: %v", id, err)
-		}
-	}
-
-	// The duplicate check still works after Copy swapped temp_jobs.
-	again, err := store.IngestCrawledJobs(ctx, CrawlerBatch{Jobs: []CrawledJob{crawledJob("https://acme.com/apply/9")}}, time.Now())
-	if err != nil || !again.Results[0].Duplicate {
-		t.Fatalf("after copy = %+v, err = %v", again, err)
 	}
 }
 
@@ -331,7 +292,7 @@ func TestCrawledCompanyDocumentPutsBoardFieldsInMetadata(t *testing.T) {
 }
 
 func TestIngestCrawledCompanySkipsExistingAndIncomplete(t *testing.T) {
-	store, _, _, _ := crawlerTestStore(t)
+	store := crawlerTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 

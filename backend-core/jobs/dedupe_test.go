@@ -194,7 +194,7 @@ func TestEnsureDedupeIndexesIdempotent(t *testing.T) {
 	if err := client.Ping(ctx, nil); err != nil {
 		t.Fatalf("mongo ping: %v", err)
 	}
-	store := NewStore(client, "test_dedupe_src", "jobs", "test_dedupe_dest", "temp_jobs", "jobs", "companies", "companies", "temp_companies")
+	store := NewStore(client, "test_dedupe_dest", "temp_jobs", "jobs", "companies", "temp_companies")
 	if err := store.EnsureDedupeIndexes(ctx); err != nil {
 		t.Fatalf("first ensure: %v", err)
 	}

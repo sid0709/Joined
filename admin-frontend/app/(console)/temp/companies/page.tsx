@@ -1,9 +1,9 @@
 import { CompanyMigration } from "@/components/migration/company-migration";
 
 export const metadata = {
-  title: "Company migration",
+  title: "Temp companies",
 };
 
-export default function CompanyMigrationPage() {
+export default function TempCompaniesPage() {
   return <CompanyMigration />;
 }

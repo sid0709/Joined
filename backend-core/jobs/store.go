@@ -14,7 +14,6 @@ import (
 var (
 	ErrNotFound          = errors.New("job not found")
 	ErrInvalidID         = errors.New("invalid job id")
-	ErrCopyInProgress    = errors.New("a copy is already running")
 	ErrAnalyzeInProgress = errors.New("an analysis is already running")
 	ErrInvalidInput      = errors.New("check the form and try again")
 	ErrMissingResearcher = errors.New("web search is not configured")
@@ -30,47 +29,25 @@ type ListResult struct {
 	PageSize    int64             `json:"pageSize"`
 }
 
-type CopyResult struct {
-	Copied int64 `json:"copied"`
-	// Kept counts crawler-ingested jobs carried over from the old temp_jobs.
-	Kept int64 `json:"kept"`
-	// Published counts copied jobs left out of temp_jobs because they are already published.
-	Published   int64  `json:"published"`
-	Source      string `json:"source"`
-	Destination string `json:"destination"`
-	Indexes     int    `json:"indexes"`
-}
-
 type Store struct {
 	client               *mongo.Client
-	sourceDB             string
-	sourceCollection     string
 	destDB               string
 	destCollection       string
 	structuredCollection string
-	sourceCompanies      string
 	destCompanies        string
 	tempCompanies        string
-	companyRefs          CompanyRefs
-	copyMu               sync.Mutex
-	// tempWriteMu lets crawler ingest write to temp_jobs while Copy is not swapping it.
-	tempWriteMu   sync.RWMutex
-	companyCopyMu sync.Mutex
-	analyzeMu     sync.Mutex
-	scamHolds     scamHoldAPI
+	analyzeMu            sync.Mutex
+	scamHolds            scamHoldAPI
 	// hydrated serves CatalogJobsByObjectIDs from memory for recently read jobs.
 	hydrated hydrationCache
 }
 
-func NewStore(client *mongo.Client, sourceDB, sourceCollection, destDB, destCollection, structuredCollection, sourceCompanies, destCompanies, tempCompanies string) *Store {
+func NewStore(client *mongo.Client, destDB, destCollection, structuredCollection, destCompanies, tempCompanies string) *Store {
 	return &Store{
 		client:               client,
-		sourceDB:             sourceDB,
-		sourceCollection:     sourceCollection,
 		destDB:               destDB,
 		destCollection:       destCollection,
 		structuredCollection: structuredCollection,
-		sourceCompanies:      sourceCompanies,
 		destCompanies:        destCompanies,
 		tempCompanies:        tempCompanies,
 	}
@@ -171,10 +148,6 @@ func (s *Store) tempFilter(ctx context.Context, query ListQuery) (bson.D, error)
 		return filter, nil
 	}
 	return append(filter, bson.E{Key: "_id", Value: bson.D{{Key: "$nin", Value: ids}}}), nil
-}
-
-func (s *Store) source() *mongo.Collection {
-	return s.client.Database(s.sourceDB).Collection(s.sourceCollection)
 }
 
 func (s *Store) dest() *mongo.Collection {

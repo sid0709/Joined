@@ -33,9 +33,11 @@ type Platform struct {
 	Hiring   *employer.Store
 	Scouts   *scout.Store
 	Staff    *staff.Store
-	// AISettings holds the OpenAI settings staff save for Acorn.
+	// AISettings is mirrored from the OpenRouter settings staff save, so Acorn
+	// uses the same default model.
 	AISettings *aisettings.Store
-	// DeepSeekSettings holds the DeepSeek settings staff save for admin analysis.
+	// DeepSeekSettings holds the OpenRouter settings staff save for admin analysis
+	// and Acorn's AI.
 	DeepSeekSettings *aisettings.Store
 	// KillSwitches are runtime feature toggles. Env is the default; Mongo can override.
 	KillSwitches *killswitch.Store
@@ -73,7 +75,7 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 		calendar = &candidate.Google{}
 	}
 
-	listings := jobs.NewStore(client, db.SourceDB, db.SourceCollection, db.DestDB, db.DestCollection, db.JobsCollection, db.SourceCompanies, db.CompaniesCollection, db.TempCompaniesCollection)
+	listings := jobs.NewStore(client, db.DestDB, db.DestCollection, db.JobsCollection, db.CompaniesCollection, db.TempCompaniesCollection)
 	scamHolds := jobscam.NewService(jobscam.NewStore(client, db.DestDB), listings, jobscam.LoadConfig())
 	listings.SetScamHolds(scamHolds)
 	accounts := auth.NewStore(client, db.DestDB, db.CompaniesCollection)
@@ -82,7 +84,6 @@ func Open(ctx context.Context, db config.Database, opts Options) (*Platform, err
 	scouts := scout.NewStore(client, db.DestDB, accounts, listings, people, scout.NewHTTPFetcher())
 	moderation := staff.NewStore(client, db.DestDB, db.CompaniesCollection, listings)
 	accounts.SetUserData(newAccountEraser(people, scouts, listings, hiring))
-	listings.SetCompanyRefs(companiesInUse(accounts, scouts))
 
 	p := &Platform{
 		client:   client,

@@ -12,7 +12,7 @@ import (
 // offlineModel is a migration model without an API key.
 type offlineModel struct{}
 
-func (offlineModel) Model() string { return "deepseek-flash" }
+func (offlineModel) Model() string { return "deepseek/deepseek-chat" }
 func (offlineModel) Ready() bool   { return false }
 func (offlineModel) JSON(context.Context, string, string, json.RawMessage) ([]byte, error) {
 	return nil, nil
@@ -28,7 +28,7 @@ func postMigration(t *testing.T, handler http.Handler, path, body string) *httpt
 	return recorder
 }
 
-func TestMigrationAIStepsNeedTheDeepSeekKey(t *testing.T) {
+func TestMigrationAIStepsNeedTheOpenRouterKey(t *testing.T) {
 	for name, opts := range map[string]Options{
 		"no model":     {},
 		"model no key": {Migration: MigrationOptions{Model: offlineModel{}}},
@@ -36,7 +36,7 @@ func TestMigrationAIStepsNeedTheDeepSeekKey(t *testing.T) {
 		handler := New(nil, nil, nil, nil, opts)
 		for _, step := range []string{"jobs-analyze", "companies-research"} {
 			recorder := postMigration(t, handler, "/v1/migration/"+step, `{}`)
-			if recorder.Code != http.StatusServiceUnavailable || !strings.Contains(recorder.Body.String(), "DEEPSEEK_API_KEY") {
+			if recorder.Code != http.StatusServiceUnavailable || !strings.Contains(recorder.Body.String(), "OPENROUTER_API_KEY") {
 				t.Fatalf("%s %s: %d %s", name, step, recorder.Code, recorder.Body)
 			}
 		}
@@ -63,7 +63,7 @@ func TestMigrationRejectsUnknownStepsAndBadBodies(t *testing.T) {
 	if recorder := postMigration(t, handler, "/v1/migration/companies-research", string(body)); recorder.Code != http.StatusBadRequest {
 		t.Fatalf("too many companies: %d %s", recorder.Code, recorder.Body.String())
 	}
-	if recorder := postMigration(t, handler, "/v1/migration/jobs-copy/cancel", ``); recorder.Code != http.StatusConflict {
+	if recorder := postMigration(t, handler, "/v1/migration/jobs-analyze/cancel", ``); recorder.Code != http.StatusConflict {
 		t.Fatalf("cancel idle: %d", recorder.Code)
 	}
 }

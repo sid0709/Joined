@@ -20,11 +20,8 @@ type TempPurge struct {
 	Companies int64 `json:"companies"`
 }
 
-// dropTempJob deletes a temp job that was published. It waits while Copy swaps
-// temp_jobs, so the delete reaches the collection that stays.
+// dropTempJob deletes a temp job that was published.
 func (s *Store) dropTempJob(ctx context.Context, id bson.ObjectID) error {
-	s.tempWriteMu.RLock()
-	defer s.tempWriteMu.RUnlock()
 	if _, err := s.dest().DeleteOne(ctx, bson.D{{Key: "_id", Value: id}}); err != nil {
 		return fmt.Errorf("clear published job from temp jobs: %w", err)
 	}
@@ -47,8 +44,6 @@ func (s *Store) PurgePublishedTemp(ctx context.Context) (TempPurge, error) {
 }
 
 func (s *Store) purgePublishedTempJobs(ctx context.Context) (int64, error) {
-	s.tempWriteMu.RLock()
-	defer s.tempWriteMu.RUnlock()
 	return s.deletePublishedJobs(ctx, s.dest())
 }
 

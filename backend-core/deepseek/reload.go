@@ -18,13 +18,13 @@ const (
 	loadTimeout  = 3 * time.Second
 )
 
-// Reloading is the DeepSeek client job analysis, company research, and company
-// autofill use. It prefers the key and model saved in the admin console and falls
-// back to the environment's, picking up a change within refreshAfter. The search
-// endpoint and search cap stay on the environment's defaults.
+// Reloading is the OpenRouter client job analysis, company research, company
+// autofill, and Acorn's AI use. It prefers the key and model saved in the admin
+// console and falls back to the environment's, picking up a change within
+// refreshAfter. The search cap stays on the environment's default.
 type Reloading struct {
 	store    aisettings.Loader
-	fallback config.DeepSeek
+	fallback config.OpenRouter
 
 	mu       sync.Mutex
 	client   *Client
@@ -34,7 +34,7 @@ type Reloading struct {
 
 // NewReloading builds a client that reloads saved settings. fallback covers whatever
 // staff have not saved, including a blank key.
-func NewReloading(store aisettings.Loader, fallback config.DeepSeek) *Reloading {
+func NewReloading(store aisettings.Loader, fallback config.OpenRouter) *Reloading {
 	return &Reloading{store: store, fallback: fallback}
 }
 
@@ -52,11 +52,11 @@ func (r *Reloading) current() *Client {
 		cancel()
 		switch {
 		case err != nil && r.client != nil:
-			slog.Warn("deepseek settings not reloaded", "error", err)
+			slog.Warn("openrouter settings not reloaded", "error", err)
 			r.loadedAt = time.Now()
 			return r.client
 		case err != nil:
-			slog.Warn("deepseek settings unavailable, using the environment's", "error", err)
+			slog.Warn("openrouter settings unavailable, using the environment's", "error", err)
 		default:
 			if saved.APIKey != "" {
 				key = saved.APIKey

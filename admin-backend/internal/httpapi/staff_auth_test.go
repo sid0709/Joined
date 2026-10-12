@@ -96,6 +96,7 @@ func TestAdminRouteGroupsRejectUnsignedAndUserTokens(t *testing.T) {
 		"/v1/admin/jobs",
 		"/v1/admin/companies/verifications",
 		"/v1/admin/scout/meta",
+		"/v1/admin/ai-model",
 		"/v1/admin/acorn-ai",
 		"/v1/admin/deepseek",
 	}

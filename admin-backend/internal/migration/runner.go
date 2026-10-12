@@ -1,7 +1,5 @@
-// Package migration runs the long copies and AI passes that move AthensDB into JoinedDB
+// Package migration runs the AI passes that publish staged jobs and companies
 // in the background, one run of each step at a time, and reports their progress.
-// Steps run side by side: copies upsert or swap in whole collections the AI steps
-// read by id, so an AI step can run while its copy does.
 package migration
 
 import (
@@ -17,14 +15,12 @@ import (
 type Task string
 
 const (
-	CopyJobs          Task = "jobs-copy"
 	AnalyzeJobs       Task = "jobs-analyze"
-	CopyCompanies     Task = "companies-copy"
 	ResearchCompanies Task = "companies-research"
 )
 
 // Tasks lists every step, in the order the console shows them.
-var Tasks = []Task{CopyJobs, AnalyzeJobs, CopyCompanies, ResearchCompanies}
+var Tasks = []Task{AnalyzeJobs, ResearchCompanies}
 
 type Status string
 
