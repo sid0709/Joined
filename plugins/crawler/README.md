@@ -60,7 +60,7 @@ python3 plugins/crawler/scripts/export-brand-icons.py
 - **dist/**: The built extension (not committed).
 - **public/**: Contains the public assets of the extension.
 - **src/**: Contains the source code of the extension.
-  - **routines/**: One module per site (`JobRightRoutine.js`, `BuiltInRoutine.js`) and the registry (`index.js`). Built In crawls visibly (same-tab navigation, list-card heart after enqueue). Its parsers and handled-ID store live in `routines/builtin/`.
+  - **routines/**: One module per site (`JobRightRoutine.js`, `BuiltInRoutine.js`, `HiringCafeRoutine.js`) and the registry (`index.js`). Built In and HiringCafe crawl visibly (same-tab navigation). HiringCafe enumerates every `ssrHits` posting, including grouped cards, waits for a confirmed ingest 2xx, then Marks Applied from the hover overlay when the Run-panel toggle is on (default on). Signed-out (`ssrSignedIn` false or a visible sign-in modal) pauses only while that toggle is on. Parsers and handled-ID stores live in `routines/builtin/` and `routines/hiringcafe/`.
   - **routineKit/**: The toolkit routines are written with: field and step builders, strategies, transforms, the runner, and the page-side extractor.
   - **api/**: Runtime messaging, the focused tab, backend health, job validation, and notifications.
   - **components/**: The side panel: the header and tabs (`layout.jsx`), `Run/`, `Routines/`, and `Inspector/`.

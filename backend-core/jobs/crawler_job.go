@@ -219,14 +219,14 @@ func foldCompanyMetadata(job *CrawledJob) {
 		job.Company.Metadata = map[string]any{}
 	}
 	for _, alias := range companyMetadataAliases {
-		if _, exists := job.Company.Metadata[alias.to]; exists {
+		if strings.TrimSpace(stringValue(job.Company.Metadata[alias.to])) != "" {
 			continue
 		}
 		if value, ok := job.Metadata[alias.from]; ok {
 			job.Company.Metadata[alias.to] = value
 		}
 	}
-	if _, exists := job.Company.Metadata["website"]; !exists && job.CompanyLink != "" {
+	if strings.TrimSpace(stringValue(job.Company.Metadata["website"])) == "" && job.CompanyLink != "" {
 		job.Company.Metadata["website"] = job.CompanyLink
 	}
 	for key := range foldedCompanyExtraKeys {
@@ -286,7 +286,10 @@ func parseCrawledPostedAt(job CrawledJob, now time.Time) time.Time {
 			return parsed.UTC()
 		}
 	}
-	return PostedAtFromAgo(firstString(job.PostedAgo, job.Metadata[crawlerPostedAgoKey]), now)
+	if parsed, ok := postedAtFromAgoText(firstString(job.PostedAgo, job.Metadata[crawlerPostedAgoKey]), now); ok {
+		return parsed
+	}
+	return time.Time{}
 }
 
 func parseFlexibleTime(raw string) (time.Time, bool) {

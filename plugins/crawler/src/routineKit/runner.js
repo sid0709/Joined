@@ -9,7 +9,8 @@ import { STRATEGY_PHASES } from "./strategies.js";
  * Runs one pass of a routine. The runner never touches the DOM: every page action is an
  * op sent through `hooks.exec({ op, ...payload })`, which the side panel routes to the
  * content script (see contentScript/messages/routineOps.js). Ops: count, highlight,
- * clear, click, extract, html, fetch, navigate, scroll, shadow. `fetch` requires
+ * clear, click, hover, extract, html, fetch, navigate, scroll, shadow, watchFetch.
+ * `fetch` requires
  * `options.allowFetch` and is limited to `match.hosts`. `navigate` is limited
  * to `match.hosts`. A routine may set `runPass` to replace the
  * built-in strategy runner.

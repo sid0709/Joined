@@ -131,4 +131,18 @@ describe("toJobPayload", () => {
     expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
     expect(isJobFieldValid(payload, "companyName", BuiltInRoutine)).toBe(true);
   });
+
+  test("lifts apply_url from metadata onto applyLink", () => {
+    const payload = toJobPayload(
+      {
+        title: "Engineer",
+        description: "Build.",
+        companyName: "Acme",
+        metadata: { apply_url: "https://boards.example/apply/9" },
+      },
+      { id: "hiringcafe" },
+    );
+    expect(payload.applyLink).toBe("https://boards.example/apply/9");
+    expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
+  });
 });

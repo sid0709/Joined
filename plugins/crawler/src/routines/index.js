@@ -5,8 +5,9 @@
 import { CORE_JOB_FIELDS } from "../routineKit";
 
 import BuiltInRoutine from "./BuiltInRoutine";
+import HiringCafeRoutine from "./HiringCafeRoutine";
 import JobRightRoutine from "./JobRightRoutine";
 
 export { CORE_JOB_FIELDS };
 
-export const ROUTINES = [JobRightRoutine, BuiltInRoutine];
+export const ROUTINES = [JobRightRoutine, BuiltInRoutine, HiringCafeRoutine];

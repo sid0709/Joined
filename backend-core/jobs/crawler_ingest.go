@@ -188,22 +188,30 @@ var postedAgoUnits = map[string]time.Duration{
 	"year":   365 * 24 * time.Hour,
 }
 
-// PostedAtFromAgo turns a board's "3 hours ago" into a time. Text it cannot read
-// ("just now", "") counts as now; "yesterday" is one day back.
+// PostedAtFromAgo turns a board's "3 hours ago" into a time. Text it cannot
+// read is left as zero so ingest never writes the crawl clock as postedAt.
 func PostedAtFromAgo(text string, now time.Time) time.Time {
+	parsed, _ := postedAtFromAgoText(text, now)
+	return parsed
+}
+
+func postedAtFromAgoText(text string, now time.Time) (time.Time, bool) {
 	value := strings.ToLower(strings.TrimSpace(text))
+	if value == "" {
+		return time.Time{}, false
+	}
 	if strings.Contains(value, "yesterday") {
-		return now.Add(-24 * time.Hour)
+		return now.Add(-24 * time.Hour), true
 	}
 	match := postedAgoPattern.FindStringSubmatch(value)
 	if match == nil {
-		return now
+		return time.Time{}, false
 	}
 	count, err := strconv.Atoi(match[1])
 	if err != nil {
-		return now
+		return time.Time{}, false
 	}
-	return now.Add(-time.Duration(count) * postedAgoUnits[match[2]])
+	return now.Add(-time.Duration(count) * postedAgoUnits[match[2]]), true
 }
 
 func cleanStrings(values []string) []string {
@@ -214,6 +222,38 @@ func cleanStrings(values []string) []string {
 		}
 	}
 	return out
+}
+
+var allowedPostedAtSources = map[string]struct{}{
+	"estimated_publish_date": {},
+	"jsonLd":                 {},
+	"jsonld":                 {},
+	"jsonld+ago":             {},
+	"ago":                    {},
+	"dom":                    {},
+	"none":                   {},
+}
+
+func postedAtSourceValue(raw string) string {
+	value := strings.TrimSpace(raw)
+	if _, ok := allowedPostedAtSources[value]; ok {
+		return value
+	}
+	return ""
+}
+
+func cleanedCompanyWebsite(job CrawledJob, extraMeta map[string]any) string {
+	for _, raw := range []string{
+		job.CompanyLink,
+		stringValue(job.Company.Metadata[crawlerCompanyWebsiteKey]),
+		stringValue(extraMeta[crawlerWebsiteKey]),
+		stringValue(job.Metadata[crawlerWebsiteKey]),
+	} {
+		if clean, ok := crawlerCompanyWebsite(raw); ok {
+			return clean
+		}
+	}
+	return ""
 }
 
 func mapToBSON(meta map[string]any) bson.D {
@@ -259,9 +299,6 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "skills", Value: cleanStrings(job.Skills)},
 		{Key: crawlerPostedAgoKey, Value: strings.TrimSpace(job.PostedAgo)},
 	}
-	if source := strings.TrimSpace(stringValue(job.Metadata[crawlerPostedAtSourceKey])); source != "" {
-		metadata = append(metadata, bson.E{Key: crawlerPostedAtSourceKey, Value: source})
-	}
 	metadata = append(metadata, bson.E{Key: "applicants", Value: bson.D{
 		{Key: "count", Value: job.Applicants.Count},
 		{Key: "text", Value: strings.TrimSpace(job.Applicants.Text)},
@@ -269,27 +306,41 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 	if crawledAt := job.CrawledAt; crawledAt != "" {
 		metadata = append(metadata, bson.E{Key: crawlerCrawledAtKey, Value: crawledAt})
 	}
+	if source := postedAtSourceValue(
+		firstString(job.Metadata[crawlerPostedAtSourceKey], extraMeta[crawlerPostedAtSourceKey]),
+	); source != "" {
+		metadata = append(metadata, bson.E{Key: crawlerPostedAtSourceKey, Value: source})
+	}
+	delete(extraMeta, crawlerPostedAtSourceKey)
+	website := cleanedCompanyWebsite(job, extraMeta)
+	if website != "" {
+		metadata = append(metadata, bson.E{Key: crawlerWebsiteKey, Value: website})
+	}
+	delete(extraMeta, crawlerWebsiteKey)
 	if company := crawledCompanyMetadata(job.Company); len(company) > 0 {
 		metadata = append(metadata, bson.E{Key: crawlerCompanyKey, Value: company})
 	}
 	if extra := mapToBSON(extraMeta); len(extra) > 0 {
 		metadata = append(metadata, bson.E{Key: crawlerExtraKey, Value: extra})
 	}
-	return bson.D{
+	doc := bson.D{
 		{Key: "_id", Value: id},
 		{Key: "title", Value: strings.TrimSpace(job.Title)},
 		{Key: "companyName", Value: crawledCompanyName(job)},
-		{Key: "companyLink", Value: strings.TrimSpace(firstString(job.CompanyLink, job.Company.Metadata["website"], job.Metadata[crawlerWebsiteKey]))},
+		{Key: "companyLink", Value: website},
 		{Key: "description", Value: strings.TrimSpace(job.Description)},
 		{Key: "applyLink", Value: apply},
 		{Key: applyLinkKeyField, Value: CanonicalApplyURL(apply)},
-		{Key: "postedAt", Value: parseCrawledPostedAt(job, now)},
 		{Key: "createdAt", Value: now.UTC()},
 		{Key: "createdBy", Value: createdBy},
 		{Key: "source", Value: source},
 		{Key: ingestedViaField, Value: CrawlerIngest},
 		{Key: crawlerMetadataKey, Value: metadata},
 	}
+	if posted := parseCrawledPostedAt(job, now); !posted.IsZero() {
+		doc = append(doc, bson.E{Key: "postedAt", Value: posted})
+	}
+	return doc
 }
 
 // ensureCrawlerIndexes indexes temp_jobs for the duplicate check. Creating an

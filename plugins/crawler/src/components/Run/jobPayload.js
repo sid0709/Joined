@@ -87,7 +87,12 @@ export function toJobPayload(record, routine) {
   const company = companyFrom(record ?? {});
   const applicantCount = record?.applicantCount;
   const payload = {
-    applyLink: record?.applyUrl || record?.applyLink || "",
+    applyLink:
+      record?.applyLink ||
+      record?.applyUrl ||
+      record?.metadata?.apply_url ||
+      record?.metadata?.extra?.apply_url ||
+      "",
     title: record?.title || "",
     description: record?.description || "",
     company,

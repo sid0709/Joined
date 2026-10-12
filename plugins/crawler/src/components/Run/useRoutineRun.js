@@ -41,6 +41,17 @@ export const RUN_STATUS = Object.freeze({
   STOPPED: "stopped",
 });
 
+const INGEST_ACCEPT_TIMEOUT_MS = 20_000;
+const INGEST_ACCEPT_RETRIES = 1;
+
+function isIngestAccepted(outcome) {
+  return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
+}
+
+function isIngestRejected(outcome) {
+  return outcome === SCRAPE_OUTCOMES.FAILED || outcome === SCRAPE_OUTCOMES.VALIDATION;
+}
+
 /**
  * A routine run: start/stop, the pass loop, and everything the Run tab shows about it.
  * Each pass runs the routine once in the target tab and queues the job it reads.
@@ -74,6 +85,8 @@ export function useRoutineRun() {
   const queueKeys = useRef(new Map());
   const earlyResults = useRef(new Map());
   const countedOutcomes = useRef(new Set());
+  const ingestWaiters = useRef(new Map());
+  const ingestOutcomes = useRef(new Map());
 
   const notifyFailure = useCallback(
     (err, fallback) => {
@@ -107,6 +120,64 @@ export function useRoutineRun() {
     return true;
   }, []);
 
+  const resolveIngestWaiter = useCallback((id, outcome) => {
+    const waiter = ingestWaiters.current.get(id);
+    if (waiter) {
+      ingestWaiters.current.delete(id);
+      waiter(outcome);
+      return;
+    }
+    ingestOutcomes.current.set(id, outcome);
+  }, []);
+
+  const waitForIngestAccept = useCallback((id) => {
+    return new Promise((resolve) => {
+      const already = ingestOutcomes.current.get(id) ?? earlyResults.current.get(id);
+      if (already) {
+        ingestOutcomes.current.delete(id);
+        earlyResults.current.delete(id);
+        if (isIngestRejected(already)) {
+          resolve(false);
+          return;
+        }
+        resolve(isIngestAccepted(already) ? true : null);
+        return;
+      }
+      let attempts = 0;
+      const arm = () => {
+        const timer = setTimeout(() => {
+          ingestWaiters.current.delete(id);
+          const late = ingestOutcomes.current.get(id) ?? earlyResults.current.get(id);
+          if (late) {
+            ingestOutcomes.current.delete(id);
+            earlyResults.current.delete(id);
+            if (isIngestRejected(late)) {
+              resolve(false);
+              return;
+            }
+            resolve(isIngestAccepted(late) ? true : null);
+            return;
+          }
+          if (attempts < INGEST_ACCEPT_RETRIES) {
+            attempts += 1;
+            arm();
+            return;
+          }
+          resolve(null);
+        }, INGEST_ACCEPT_TIMEOUT_MS);
+        ingestWaiters.current.set(id, (outcome) => {
+          clearTimeout(timer);
+          if (isIngestRejected(outcome)) {
+            resolve(false);
+            return;
+          }
+          resolve(isIngestAccepted(outcome) ? true : null);
+        });
+      };
+      arm();
+    });
+  }, []);
+
   /** Validate a finished record and queue it for the backend. Throws IncompleteJobDataError. */
   const submitJob = useCallback(
     (record) => {
@@ -130,7 +201,7 @@ export function useRoutineRun() {
         action: "scrapeQueue:enqueue",
         payload: { runId: runIdRef.current, job },
       })
-        .then((response) => {
+        .then(async (response) => {
           if (!response?.id) throw new Error("Failed to enqueue scraped job");
           applyQueueSnapshot(response.state);
           queueKeys.current.set(response.id, entry.key);
@@ -139,6 +210,9 @@ export function useRoutineRun() {
             earlyResults.current.delete(response.id);
             applyItemResult(entry.key, early);
           }
+          if (!targetRef.current?.routine?.options?.waitForIngestAccept) return;
+          const accepted = early ? isIngestAccepted(early) : await waitForIngestAccept(response.id);
+          if (accepted === false) return false;
         })
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
@@ -146,7 +220,7 @@ export function useRoutineRun() {
           throw error;
         });
     },
-    [applyItemResult, applyQueueSnapshot],
+    [applyItemResult, applyQueueSnapshot, waitForIngestAccept],
   );
 
   const endRun = useCallback((nextStatus) => {
@@ -176,6 +250,7 @@ export function useRoutineRun() {
         const key = queueKeys.current.get(id);
         if (key) applyItemResult(key, outcome);
         else earlyResults.current.set(id, outcome);
+        resolveIngestWaiter(id, outcome);
         if (outcome && !countedOutcomes.current.has(id)) {
           countedOutcomes.current.add(id);
           setRunStats((current) => incrementScrapeRunStats(current, outcome));
@@ -196,7 +271,14 @@ export function useRoutineRun() {
         // Outside the extension there is no queue to restore.
       });
     return () => removeListener(listener);
-  }, [addListener, removeListener, applyItemResult, applyQueueSnapshot, notifyFailure]);
+  }, [
+    addListener,
+    removeListener,
+    applyItemResult,
+    applyQueueSnapshot,
+    notifyFailure,
+    resolveIngestWaiter,
+  ]);
 
   useEffect(() => {
     if (status !== RUN_STATUS.RUNNING || !runStartedAt.current) return undefined;
@@ -249,7 +331,21 @@ export function useRoutineRun() {
         setPace((current) => {
           const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
           const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
-          return { ...current, ...next, hearted, notHearted, heartDelta: undefined };
+          const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
+          const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
+          const markReasons = [...(current?.markReasons ?? [])];
+          if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
+          return {
+            ...current,
+            ...next,
+            hearted,
+            notHearted,
+            marked,
+            notMarked,
+            markReasons,
+            heartDelta: undefined,
+            markDelta: undefined,
+          };
         });
       },
       onNotice: (message, ok) => {

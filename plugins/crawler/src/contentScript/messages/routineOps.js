@@ -3,6 +3,7 @@ import { extractField, queryAll, waitForMatches } from "../../routineKit/extract
 import { assertFetchUrl, hostMatches } from "../../routineKit/match.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { clickLikeHuman } from "../actions/dom";
+import { hoverAt, hoverClickInDocument, pickMatch } from "../actions/hoverClick";
 import { scrollElementIntoView } from "../actions/scroll";
 import { clearHighlights, highlightElements } from "../highlighter";
 
@@ -49,13 +50,40 @@ const OPS = {
     inFlightFetches.clear();
     return { aborted: true };
   },
-  click: async ({ selector, nth = 0, wait = 0 }) => {
-    const target = (await waitForMatches(document, selector, wait))[nth];
+  click: async ({ selector, nth = 0, wait = 0, contains, exact = false }) => {
+    const matches = await waitForMatches(document, selector, wait);
+    const target = pickMatch(matches, { nth, contains, exact });
     if (!target) return { found: false };
     // clickLikeHuman scrolls only when needed; skip focus()'s own scroll-into-view.
     target.focus?.({ preventScroll: true });
     clickLikeHuman(target);
     return { found: true };
+  },
+  hover: async ({ selector, nth = 0, wait = 0, x = 100, y = 100 }) => {
+    const matches = await waitForMatches(document, selector, wait);
+    const target = matches[nth];
+    if (!target) return { found: false };
+    hoverAt(target, { x, y });
+    return { found: true };
+  },
+  hoverClick: async ({
+    selector,
+    clickSelector,
+    nth = 0,
+    wait = 0,
+    contains,
+    exact = false,
+    offsets,
+  }) => {
+    await waitForMatches(document, selector, wait);
+    return hoverClickInDocument(document, {
+      selector,
+      clickSelector,
+      nth,
+      contains,
+      exact,
+      offsets,
+    });
   },
   extract: async ({ field }) => {
     await waitForMatches(document, field.selector, field.wait);

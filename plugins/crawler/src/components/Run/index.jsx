@@ -14,6 +14,7 @@ import LiveRunCard from "./LiveRunCard";
 import ResultsCard from "./ResultsCard";
 import { startBlocker } from "./runState";
 import TargetCard from "./TargetCard";
+import { useRoutineResume } from "./useRoutineResume";
 import { RUN_STATUS, useRoutineRun } from "./useRoutineRun";
 
 const JOB_ROUTINES = ROUTINES.filter((routine) => routine.output === ROUTINE_OUTPUTS.JOB);
@@ -30,7 +31,13 @@ function BackendBanner() {
   );
 }
 
-function RunActionBar({ run, routine, blocker, onStart }) {
+function startLabel(routine, resumeLabel) {
+  if (!routine) return "Start";
+  if (resumeLabel) return `Resume ${routine.label}`;
+  return `Start ${routine.label}`;
+}
+
+function RunActionBar({ run, routine, blocker, onStart, resumeLabel }) {
   const isRunning = run.status === RUN_STATUS.RUNNING;
   return (
     <div className="crawler-action-bar">
@@ -48,7 +55,7 @@ function RunActionBar({ run, routine, blocker, onStart }) {
           <Button
             variant="primary"
             size="lg"
-            label={routine ? `Start ${routine.label}` : "Start"}
+            label={startLabel(routine, resumeLabel)}
             icon={<Glyph name="play" />}
             onClick={onStart}
             isDisabled={Boolean(blocker)}
@@ -79,6 +86,7 @@ export default function RunPanel({ onBrowseRoutines }) {
   );
   const chosenRoutine =
     matches.find((routine) => routine.id === chosenRoutineId) ?? matches[0] ?? null;
+  const resume = useRoutineResume(chosenRoutine);
 
   const isRunning = run.status === RUN_STATUS.RUNNING;
   const tab = isRunning ? run.target.tab : activeTab;
@@ -104,6 +112,9 @@ export default function RunPanel({ onBrowseRoutines }) {
           onChooseRoutine={setChosenRoutineId}
           isRunning={isRunning}
           onBrowseRoutines={onBrowseRoutines}
+          resumeLabel={resume.label}
+          resetLabel={resume.resetLabel}
+          onResetCursor={resume.canReset ? resume.reset : undefined}
         />
         {run.status === RUN_STATUS.IDLE ? null : <LiveRunCard run={run} routine={shownRoutine} />}
         <ResultsCard
@@ -117,6 +128,7 @@ export default function RunPanel({ onBrowseRoutines }) {
         run={run}
         routine={chosenRoutine}
         blocker={blocker}
+        resumeLabel={resume.label}
         onStart={() => run.start(activeTab, chosenRoutine)}
       />
     </div>

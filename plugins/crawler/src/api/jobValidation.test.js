@@ -85,4 +85,14 @@ describe("jobValidation", () => {
     expect(isJobFieldValid(payload, "companySocials", BuiltInRoutine)).toBe(true);
     expect(getJobValidationIssues(payload, BuiltInRoutine)).toEqual([]);
   });
+
+  test("reads applyLink from metadata.extra.apply_url", () => {
+    const payload = completeJob({
+      applyUrl: "",
+      applyLink: "",
+      metadata: { extra: { apply_url: "https://boards.example/apply/9" } },
+    });
+    expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
+    expect(getJobValidationIssues(payload, BuiltInRoutine)).toEqual([]);
+  });
 });
