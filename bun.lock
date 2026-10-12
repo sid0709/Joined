@@ -115,7 +115,7 @@
     },
     "plugins/crawler": {
       "name": "joined-scrapper",
-      "version": "2.4.0",
+      "version": "2.5.5",
       "dependencies": {
         "react": "catalog:",
         "react-dom": "catalog:",
