@@ -60,14 +60,21 @@ export const HANDLED_MAX_AGE_MS = HANDLED_MAX_AGE_DAYS * MS_PER_DAY;
 export const JOB_DELAY_MS = Object.freeze({ min: 1500, max: 4000 });
 export const PAGE_DELAY_MS = Object.freeze({ min: 4000, max: 8000 });
 export const NAVIGATE_WAIT_MS = 15_000;
-export const HEART_CONFIRM_MS = 4_000;
+export const DETAIL_READY_MS = 10_000;
+export const DETAIL_READY_POLL_MS = 200;
+export const HEART_CONFIRM_MS = 5_000;
 export const HEART_POLL_MS = 200;
 export const HEART_UNREAD_LABEL = "Skipping list-card heart; shadow state could not be read";
+export const HEART_NOT_SAVED_LABEL = "heart not saved";
 export const CARD_DECISION_OPENED = "opened";
 export const CARD_SKIP_HANDLED = "already handled";
 export const CARD_SKIP_HEART_SAVED = "list-card heart already saved";
 export const CARD_SKIP_NO_URL = "no job URL";
 export const CARD_SKIP_DETAIL_SAVED = "job page already saved";
+export const SIGN_IN_TO_SAVE_MESSAGE = "Sign in to Built In to save jobs";
+export const SIGN_UP_MODAL_TEXT = "Sign up now. Access later.";
+/** Header Sign In / Log In. Not "Log In to apply" on the job form. */
+export const HEADER_LOGIN_TEXT_RE = /^(sign in|log in)$/i;
 export const RETRY_PAUSE_MS = 1_000;
 export const STUCK_LOGIN_STREAK = 3;
 export const STUCK_PAGE_FAILURES = 3;
@@ -84,6 +91,11 @@ export const LOGIN_PATH_PREFIX = "/auth/login";
 export function cardDecisionLabel(cardId, decision) {
   if (decision === CARD_DECISION_OPENED) return `Card ${cardId} opened`;
   return `Card ${cardId} skipped: ${decision}`;
+}
+
+export function cardInvalidDecision(fields) {
+  const names = (fields ?? []).map((field) => String(field).trim()).filter(Boolean);
+  return `invalid ${names.join(", ") || "job data"}`;
 }
 
 export function jitterMs(range, random = Math.random) {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { companyNameOf, parseDetail } from "./parseDetail.js";
+import { companyNameOf, parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseJobPostingJsonLd } from "./parseInit.js";
 import "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -8,6 +8,7 @@ import { loadFixture } from "./testing/loadFixture.js";
 const EXTERNAL_URL =
   "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/9256204";
 const EASY_URL = "https://builtin.com/job/specialist-account-executive/11617804";
+const HPE_URL = "https://builtin.com/job/software-development-engineer-test/11623103";
 
 describe("parseDetail", () => {
   test("reads Easy Apply jobs and falls back to the Built In URL when applyUrl is empty", () => {
@@ -67,6 +68,7 @@ describe("parseDetail", () => {
       page,
     );
     expect(initFirst.companyName).toBe("From Init");
+    expect(initFirst.meta.isLoggedIn).toBeUndefined();
     expect(typeof initFirst.companyName).toBe("string");
     expect(initFirst.applyUrl).toBe(
       "https://builtin.com/job/eng-quality/11621046?handler=ApplyRedirect",
@@ -93,6 +95,26 @@ describe("parseDetail", () => {
       page,
     );
     expect(domLast.companyName).toBe("From DOM");
+
+    const fromCard = parseDetail(
+      `<h1>Quality Engineer</h1>
+       <script type="application/ld+json">{"@type":"JobPosting","title":"Quality Engineer","description":"D","identifier":{"value":"1"}}</script>
+       <script>Builtin.jobPostInit({"job":{"id":1,"title":"Quality Engineer","applyUrl":"","isEasyApply":true,"isSaved":false},"isLoggedIn":true});</script>`,
+      page,
+      { companyName: "From List Card" },
+    );
+    expect(fromCard.companyName).toBe("From List Card");
+  });
+
+  test("resolves a relative HPE applyUrl and reads Hewlett Packard Enterprise", () => {
+    const record = parseDetail(loadFixture("detail-hpe.html"), HPE_URL);
+    expect(record.meta.isEasyApply).toBe(false);
+    expect(record.meta.applyUrl).toBe("/job/software-development-engineer-test/11623103");
+    expect(record.applyUrl).toBe(HPE_URL);
+    expect(record.applyUrl.startsWith("https://")).toBe(true);
+    expect(record.companyName).toBe("Hewlett Packard Enterprise");
+    expect(record.title).toContain("Software Development Engineer in Test");
+    expect(record.meta.isLoggedIn).toBe(true);
   });
 
   test("normalizes companyName to a string or null, never [object Object]", () => {
@@ -133,5 +155,17 @@ describe("parseDetail", () => {
     expect(record.salary).toBe("90K-100K Annually");
     expect(record.salary).not.toBe("50K-60K Annually");
     expect(html).toContain("50K-60K Annually");
+  });
+
+  test("lists missing core fields without treating them as a page block", () => {
+    expect(requiredRecordIssues({})).toEqual(["applyUrl", "companyName", "title", "description"]);
+    expect(
+      requiredRecordIssues({
+        applyUrl: HPE_URL,
+        companyName: "Hewlett Packard Enterprise",
+        title: "SDET",
+        description: "Role",
+      }),
+    ).toEqual([]);
   });
 });

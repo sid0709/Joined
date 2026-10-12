@@ -10,6 +10,7 @@ import {
   HANDLED_STORAGE_KEY,
   JOB_DELAY_MS,
   cardDecisionLabel,
+  cardInvalidDecision,
   jitterMs,
 } from "./constants.js";
 import {
@@ -62,6 +63,9 @@ describe("handled skip", () => {
       "Card 9256204 skipped: list-card heart already saved",
     );
     expect(cardDecisionLabel("9256204", CARD_SKIP_NO_URL)).toBe("Card 9256204 skipped: no job URL");
+    expect(cardDecisionLabel("11623103", cardInvalidDecision(["applyUrl", "companyName"]))).toBe(
+      "Card 11623103 skipped: invalid applyUrl, companyName",
+    );
   });
 
   test("escapes the Save control's entity id", () => {

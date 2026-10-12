@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<title>Software Development Engineer in Test | Built In</title>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"JobPosting","title":"Software Development Engineer in Test","description":"<p>HPE SDET role.</p>","identifier":{"@type":"PropertyValue","name":"Hewlett Packard Enterprise","value":"11623103"},"datePosted":"2026-10-12","employmentType":"FULL_TIME","hiringOrganization":{"@type":"Organization","name":"Hewlett Packard Enterprise"}}
+</script>
+</head><body>
+<div class="job-post-item bg-gray-01" id="11623103">
+<div class="match-background py-xl">
+  <a href="/company/hewlett-packard-enterprise" target="_blank">
+    <h2 class="text-pretty-blue m-0">Hewlett Packard Enterprise</h2>
+  </a>
+  <h1 class="fw-extrabold fs-xl mb-sm"><span>Software Development Engineer in Test</span></h1>
+</div>
+<div id="job-post-body-11623103" class="fs-md fw-regular mb-md html-parsed-content"><p>Build and run tests for HPE software.</p></div>
+</div>
+<script>Builtin.jobPostInit({"job":{"id":11623103,"drupalId":11623103,"isSaved":false,"applyUrl":"/job/software-development-engineer-test/11623103","applyText":"Apply","companyName":"Hewlett Packard Enterprise","title":"Software Development Engineer in Test","isEasyApply":false,"resolvedBidId":null},"siteId":9,"isLoggedIn":true,"jobTrackerStatus":"save"});</script>
+</body></html>

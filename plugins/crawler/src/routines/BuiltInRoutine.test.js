@@ -2,7 +2,12 @@ import { describe, expect, test } from "bun:test";
 
 import { findRoutineForUrl } from "../routineKit/match.js";
 import { listDeclaredFields } from "../routineKit/routine.js";
-import { RoutineFinishedError, RoutineStoppedError, runRoutinePass } from "../routineKit/runner.js";
+import {
+  RoutineBlockedError,
+  RoutineFinishedError,
+  RoutineStoppedError,
+  runRoutinePass,
+} from "../routineKit/runner.js";
 
 import "./builtin/testing/domParser.js";
 import {
@@ -10,12 +15,16 @@ import {
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
   HANDLED_STORAGE_KEY,
+  HEART_NOT_SAVED_LABEL,
   HEART_UNREAD_LABEL,
   JOB_CARD_TITLE,
   JOB_PAGE_SAVE,
+  SIGN_IN_TO_SAVE_MESSAGE,
+  SIGN_UP_MODAL_TEXT,
   STUCK_LOGIN_MESSAGE,
   STUCK_PAGE_FAILURES,
   cardDecisionLabel,
+  cardInvalidDecision,
   stuckPageMessage,
 } from "./builtin/constants.js";
 import { entityIdFromSaveHost, jobSaveSelector } from "./builtin/cssEscape.js";
@@ -33,6 +42,7 @@ const JOB_B =
   "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/11111111";
 const JOB_SAVED =
   "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/22222222";
+const JOB_HPE = "https://builtin.com/job/software-development-engineer-test/11623103";
 
 const routine = { ...BuiltInRoutine, options: { ...BuiltInRoutine.options, fieldPauseMs: 0 } };
 
@@ -51,6 +61,9 @@ function builtinTab({
   timeoutOnce = null,
   timeoutWhen = null,
   loginWall = false,
+  delayedReady = {},
+  heartStaysUnsaved = false,
+  heartShowsModal = false,
 } = {}) {
   let url = listUrl;
   let status = 200;
@@ -77,6 +90,11 @@ function builtinTab({
           url: "https://builtin.com/auth/login",
           status: 200,
         };
+      }
+      const remaining = delayedReady[url];
+      if (Number(remaining) > 0) {
+        delayedReady[url] = remaining - 1;
+        return { html: "<html><body><p>loading</p></body></html>", url, status };
       }
       return {
         html: htmlOverride ?? pageFor(url).html,
@@ -119,7 +137,10 @@ function builtinTab({
       shadows.push({ host: op.host, action: op.action });
       const id = entityIdFromSaveHost(op.host);
       if (!shadowFound) return { found: false, open: false, classes: "", prefix: "" };
-      if (op.action === "click" && id) heartsState[id] = true;
+      if (op.action === "click" && id && !heartStaysUnsaved) heartsState[id] = true;
+      if (op.action === "click" && heartShowsModal) {
+        htmlOverride = `${pageFor(url).html}<dialog>${SIGN_UP_MODAL_TEXT}</dialog>`;
+      }
       const saved = Boolean(id && heartsState[id]);
       return {
         found: true,
@@ -249,6 +270,127 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
     expect(page.navigates).toContain(JOB_SAVED);
     expect(records).toHaveLength(1);
+  });
+
+  test("waits for jobPostInit on an HPE job and stores an absolute applyUrl", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html")
+        .replaceAll("9256204", "11623103")
+        .replaceAll(
+          "/job/staff-principal-engineer-oct-mte-material-engineering/11623103",
+          "/job/software-development-engineer-test/11623103",
+        ),
+      details: { [JOB_HPE]: loadFixture("detail-hpe.html") },
+      delayedReady: { [JOB_HPE]: 2 },
+    });
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    expect(records).toHaveLength(1);
+    expect(records[0].applyUrl).toBe(JOB_HPE);
+    expect(records[0].companyName).toBe("Hewlett Packard Enterprise");
+    expect(page.navigates.filter((url) => url === JOB_HPE).length).toBe(1);
+  });
+
+  test("skips a card that is still incomplete after the ready wait without striking the page", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list.html"),
+      details: {
+        [JOB_A]: "<html><body><p>loading</p></body></html>",
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    const activities = [];
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(records).toHaveLength(1);
+    expect(page.navigates).toContain(JOB_A);
+    expect(page.navigates).toContain(JOB_B);
+    expect(
+      activities.some(
+        (activity) =>
+          activity.label ===
+          cardDecisionLabel(
+            "9256204",
+            cardInvalidDecision(["companyName", "title", "description"]),
+          ),
+      ),
+    ).toBe(true);
+    expect(records[0].title).toContain("Specialist Account Executive");
+  });
+
+  test("stops before hearting when Built In is signed out", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html").replace('"isLoggedIn":true', '"isLoggedIn":false'),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    await expect(
+      runRoutinePass(routine, {
+        exec: page.exec,
+        store: createBuiltinStore(memoryStorage()),
+        skipDelays: true,
+        onRecord: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: SIGN_IN_TO_SAVE_MESSAGE,
+    });
+    expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
+    expect(page.shadows.some((op) => op.action === "click")).toBe(false);
+  });
+
+  test("stops on a header login link before opening jobs", async () => {
+    const page = builtinTab({
+      listHtml: `${loadFixture("list-last.html")}<header><a href="/auth/login">Sign In</a></header>`,
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    await expect(
+      runRoutinePass(routine, {
+        exec: page.exec,
+        store: createBuiltinStore(memoryStorage()),
+        skipDelays: true,
+        onRecord: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: SIGN_IN_TO_SAVE_MESSAGE,
+    });
+    expect(page.navigates.some((href) => /\/job\//.test(href))).toBe(false);
+  });
+
+  test("logs heart not saved and continues the crawl", async () => {
+    const activities = [];
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+      heartStaysUnsaved: true,
+    });
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(records).toHaveLength(1);
+    expect(activities.some((activity) => activity.label === HEART_NOT_SAVED_LABEL)).toBe(true);
+    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
+  });
+
+  test("stops when a heart click opens the sign-up modal", async () => {
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+      heartStaysUnsaved: true,
+      heartShowsModal: true,
+    });
+    await expect(
+      runRoutinePass(routine, {
+        exec: page.exec,
+        store: createBuiltinStore(memoryStorage()),
+        skipDelays: true,
+        onRecord: () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: SIGN_IN_TO_SAVE_MESSAGE,
+    });
+    expect(page.shadows.some((op) => op.action === "click")).toBe(true);
   });
 
   test("does not click the heart when the shadow state cannot be read", async () => {

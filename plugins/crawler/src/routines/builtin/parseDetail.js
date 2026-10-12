@@ -161,6 +161,9 @@ export function companyNameOf(value) {
 }
 
 function resolveApplyLink(document, job, jobUrl) {
+  if (job.isEasyApply === true) {
+    return firstHttpUrl(jobUrl);
+  }
   return (
     firstHttpUrl(resolveApplyUrl(job.applyUrl, jobUrl)) ||
     applyLinkFromDom(document, jobUrl) ||
@@ -176,11 +179,12 @@ function companyNameFromDom(document) {
   return "";
 }
 
-function companyNameFrom(document, job, org) {
+function companyNameFrom(document, job, org, listCompanyName) {
   return (
     companyNameOf(job.companyName) ||
     companyNameOf(org) ||
-    companyNameOf(companyNameFromDom(document))
+    companyNameOf(companyNameFromDom(document)) ||
+    companyNameOf(listCompanyName)
   );
 }
 
@@ -226,7 +230,7 @@ function benefitsFrom(document, posting) {
  * Salary prefers JSON-LD baseSalary. Skills stay off the record.
  * A non-empty jobPostInit applyUrl is the sign-in signal.
  */
-export function parseDetail(html, pageUrl = "") {
+export function parseDetail(html, pageUrl = "", { companyName: listCompanyName } = {}) {
   const document = documentFromHtml(html);
   const posting = parseJobPostingJsonLd(html);
   const init = parseJobPostInit(html);
@@ -251,7 +255,7 @@ export function parseDetail(html, pageUrl = "") {
     title,
     description:
       descriptionFromDocument(document, jobId) || htmlToPlainText(posting?.description || ""),
-    companyName: companyNameFrom(document, job, org),
+    companyName: companyNameFrom(document, job, org, listCompanyName),
     location: locationFromJsonLd(posting) || locationFromHeader(header),
     workMode: workModeFrom(workplace),
     employmentType: String(posting?.employmentType || "").trim(),
@@ -275,6 +279,7 @@ export function parseDetail(html, pageUrl = "") {
       isEasyApply,
       isSaved: job.isSaved === true,
       isSignedIn: Boolean(applyFromInit),
+      isLoggedIn: typeof init?.isLoggedIn === "boolean" ? init.isLoggedIn : undefined,
       applyUrl: job.applyUrl || "",
     },
   };
@@ -282,4 +287,14 @@ export function parseDetail(html, pageUrl = "") {
 
 export function hasDeclaredValue(record, key) {
   return isFound(record?.[key]);
+}
+
+/** Core ingest fields that must be present before enqueue. */
+export function requiredRecordIssues(record) {
+  const issues = [];
+  if (!isHttpUrl(record?.applyUrl)) issues.push("applyUrl");
+  if (!String(record?.companyName || "").trim()) issues.push("companyName");
+  if (!String(record?.title || "").trim()) issues.push("title");
+  if (!String(record?.description || "").trim()) issues.push("description");
+  return issues;
 }

@@ -24,4 +24,10 @@ describe("resolveApplyUrl", () => {
       "https://builtin.com/job/eng-quality/11621046?handler=ApplyRedirect",
     );
   });
+
+  test("resolves the live HPE job path against https://builtin.com", () => {
+    expect(resolveApplyUrl("/job/software-development-engineer-test/11623103", PAGE)).toBe(
+      "https://builtin.com/job/software-development-engineer-test/11623103",
+    );
+  });
 });
