@@ -1,6 +1,15 @@
 import { expect, test } from "bun:test";
 
-import { attentionChecks, flagSummary, queueFilter, queueQuery } from "./scouting";
+import {
+  attentionChecks,
+  flagSummary,
+  payoutListStatus,
+  payoutsPath,
+  queueFilter,
+  queueQuery,
+  scoutsPath,
+  submissionsPath,
+} from "./scouting";
 
 const check = (id: string, outcome: "pass" | "fail" | "review" | "flag") => ({
   id,
@@ -29,4 +38,20 @@ test("queue query leaves defaults out", () => {
   expect(queueQuery({ status: "", q: "acme", channel: "api", page: 2 })).toBe(
     "?status=all&q=acme&channel=api&page=2",
   );
+});
+
+test("scout list paths keep filters and default payouts to requested", () => {
+  expect(submissionsPath({ status: "needs_review", q: "", channel: "", page: 1 })).toBe(
+    "/v1/admin/scout/submissions?page=1&page_size=25&status=needs_review",
+  );
+  expect(scoutsPath({ verification: "pending", level: "", q: "ada", page: 2 })).toBe(
+    "/v1/admin/scout/scouts?page=2&page_size=25&verification=pending&q=ada",
+  );
+  expect(payoutListStatus(null)).toBe("requested");
+  expect(payoutListStatus("nope")).toBe("requested");
+  expect(payoutListStatus("paid")).toBe("paid");
+  expect(payoutsPath("requested", 1)).toBe(
+    "/v1/admin/scout/payouts?page=1&page_size=25&status=requested",
+  );
+  expect(payoutsPath("all", 3)).toBe("/v1/admin/scout/payouts?page=3&page_size=25");
 });

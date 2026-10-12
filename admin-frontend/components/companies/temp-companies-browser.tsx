@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   Badge,
   Banner,
@@ -35,14 +34,14 @@ import {
   type StagedCompanyStatus,
 } from "@/lib/company";
 import { formatCount, formatDate, positiveInt } from "@/lib/format";
-import { listingHref } from "@/lib/listing";
 import {
   MAX_MIGRATION_SELECTION,
   MIGRATION_PAGE_SIZE,
   MIGRATION_PAGE_SIZES,
 } from "@/lib/migration";
 import { ROUTES } from "@/lib/nav";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 type Notice = { status: "success" | "error"; title: string };
 
@@ -95,8 +94,7 @@ export function TempCompaniesBrowser({
   busy = false,
   maxSelection = MAX_MIGRATION_SELECTION,
 }: TempCompaniesBrowserProps = {}) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, replace } = useListingSearch(ROUTES.tempCompanies);
   const page = positiveInt(searchParams.get("page"), 1);
   const pageSize = pageSizeOption(searchParams.get("size"));
   const query = searchParams.get("q") ?? "";
@@ -123,9 +121,9 @@ export function TempCompaniesBrowser({
 
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), q: query });
   if (hideNotFound) params.set("hide", "notFound");
-  const { result, loading, error, reload } = useAdminQuery<StagedCompanyList>(
-    `${TEMP_COMPANIES_PATH}?${params}`,
-  );
+  const path = `${TEMP_COMPANIES_PATH}?${params}`;
+  const { result, loading, error, reload } = useAdminQuery<StagedCompanyList>(path);
+  useWarmNextPage(path, page, pageSize, result?.total);
 
   async function exportCompanies() {
     setNotice(null);
@@ -166,11 +164,8 @@ export function TempCompaniesBrowser({
   }, [refreshKey, reload]);
 
   const go = useCallback(
-    (values: Record<string, string | number | null>) =>
-      router.replace(
-        listingHref(ROUTES.tempCompanies, new URLSearchParams(window.location.search), values),
-      ),
-    [router],
+    (values: Record<string, string | number | null>) => replace(values),
+    [replace],
   );
 
   const columns: TableColumn<StagedCompany>[] = [

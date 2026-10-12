@@ -1,8 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Tab, TabList } from "sid-ui";
-import { ROUTES } from "@/lib/nav";
 
 export const PAYOUT_FILTERS = [
   { value: "requested", label: "To pay" },
@@ -11,16 +9,15 @@ export const PAYOUT_FILTERS = [
   { value: "all", label: "All" },
 ] as const;
 
-export function PayoutFilters({ status }: { status: string }) {
-  const router = useRouter();
+export function PayoutFilters({
+  status,
+  onChange,
+}: {
+  status: string;
+  onChange: (status: string) => void;
+}) {
   return (
-    <TabList
-      value={status}
-      onChange={(value) =>
-        router.push(value === "requested" ? ROUTES.payouts : `${ROUTES.payouts}?status=${value}`)
-      }
-      hasDivider
-    >
+    <TabList value={status} onChange={onChange} hasDivider>
       {PAYOUT_FILTERS.map((item) => (
         <Tab key={item.value} value={item.value} label={item.label} />
       ))}

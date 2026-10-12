@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Badge, PageHeader, Stack, Tab, TabList, Table, Text, type TableColumn } from "sid-ui";
 import { UrlPager } from "@/components/scouting/url-pager";
 import { TrustState } from "@/components/trust/trust-state";
@@ -19,18 +19,19 @@ import {
   verificationsPath,
   type VerificationRow,
 } from "@/lib/trust";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 /** Pending company verification and claim requests. */
 export function CompanyCaseQueue() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, commit } = useListingSearch();
   const status = verificationListStatus(searchParams.get("status"));
   const page = positiveInt(searchParams.get("page"), 1);
-  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(
-    verificationsPath(status, page),
-  );
+  const path = verificationsPath(status, page);
+  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(path);
   const list = result ? readVerificationList(result) : null;
+  useWarmNextPage(path, page, TRUST_PAGE_SIZE, list?.total);
   const message =
     list && !list.recognized
       ? "The API responded, but not with a verification list."
@@ -39,8 +40,8 @@ export function CompanyCaseQueue() {
         : null;
 
   const go = useCallback(
-    (next: string) => router.push(`${ROUTES.companyVerification}${verificationListQuery(next, 1)}`),
-    [router],
+    (next: string) => commit(`${ROUTES.companyVerification}${verificationListQuery(next, 1)}`),
+    [commit],
   );
 
   const columns: TableColumn<VerificationRow>[] = [
@@ -113,7 +114,14 @@ export function CompanyCaseQueue() {
         />
       )}
       {list?.recognized && list.total > 0 ? (
-        <UrlPager page={page} pageSize={TRUST_PAGE_SIZE} total={list.total} />
+        <UrlPager
+          page={page}
+          pageSize={TRUST_PAGE_SIZE}
+          total={list.total}
+          onPageChange={(next) =>
+            commit(`${ROUTES.companyVerification}${verificationListQuery(status, next)}`)
+          }
+        />
       ) : null}
     </Stack>
   );

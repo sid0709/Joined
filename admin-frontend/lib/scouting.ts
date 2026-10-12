@@ -3,6 +3,12 @@ import type { AdminSubmission, Check, SubmissionStatus } from "@joined/scout";
 export const QUEUE_PAGE_SIZE = 25;
 export const SCOUTS_PAGE_SIZE = 25;
 export const PAYOUTS_PAGE_SIZE = 25;
+const SUBMISSIONS_PATH = "/v1/admin/scout/submissions";
+const SCOUTS_PATH = "/v1/admin/scout/scouts";
+const PAYOUTS_PATH = "/v1/admin/scout/payouts";
+export const SCOUT_OVERVIEW_PATH = "/v1/admin/scout/overview";
+export const PAYOUT_REQUESTED = "requested";
+const PAYOUT_STATUSES = ["requested", "paid", "rejected", "all"] as const;
 /** Rows of the queue shown on the overview. */
 export const OVERVIEW_QUEUE_ROWS = 8;
 
@@ -46,6 +52,48 @@ export function queueQuery(next: {
   if (next.page > 1) params.set("page", String(next.page));
   const query = params.toString();
   return query ? `?${query}` : "";
+}
+
+export function submissionsPath(next: {
+  status: QueueFilter;
+  q: string;
+  channel: string;
+  page: number;
+}) {
+  const search = new URLSearchParams({
+    page: String(next.page),
+    page_size: String(QUEUE_PAGE_SIZE),
+  });
+  if (next.status) search.set("status", next.status);
+  if (next.q) search.set("q", next.q);
+  if (next.channel) search.set("channel", next.channel);
+  return `${SUBMISSIONS_PATH}?${search}`;
+}
+
+export function scoutsPath(next: { verification: string; level: string; q: string; page: number }) {
+  const search = new URLSearchParams({
+    page: String(next.page),
+    page_size: String(SCOUTS_PAGE_SIZE),
+  });
+  if (next.verification) search.set("verification", next.verification);
+  if (next.level) search.set("level", next.level);
+  if (next.q) search.set("q", next.q);
+  return `${SCOUTS_PATH}?${search}`;
+}
+
+/** Named payout tabs stay. Anything else is the default "to pay" list. */
+export function payoutListStatus(value: string | null | undefined) {
+  const status = value ?? "";
+  return (PAYOUT_STATUSES as readonly string[]).includes(status) ? status : PAYOUT_REQUESTED;
+}
+
+export function payoutsPath(status: string, page: number) {
+  const search = new URLSearchParams({
+    page: String(page),
+    page_size: String(PAYOUTS_PAGE_SIZE),
+  });
+  if (status !== "all") search.set("status", status);
+  return `${PAYOUTS_PATH}?${search}`;
 }
 
 /** Rows whose checks flagged something, for the "why is this here" column. */

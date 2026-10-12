@@ -1,3 +1,10 @@
+/** The href to write, or null when the address bar already shows it. */
+export function listingUrlChange(current: { pathname: string; search: string }, href: string) {
+  const next = href.startsWith("?") ? `${current.pathname}${href}` : href;
+  const now = `${current.pathname}${current.search}`;
+  return now === next ? null : next;
+}
+
 /** Rebuilds a list page URL from its query values, leaving defaults out. */
 export function listingHref(
   path: string,

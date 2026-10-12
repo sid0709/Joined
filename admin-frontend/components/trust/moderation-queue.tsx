@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Badge,
   Button,
@@ -35,19 +35,20 @@ import {
 import { positiveInt } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import { TRUST_PAGE_SIZE, trustLoadError } from "@/lib/trust";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 /** Reports, disputes, and fraud flags — staff GET /v1/admin/cases (docs/62 Layer H). */
 export function ModerationCaseQueue() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, commit } = useListingSearch();
   const queue = caseListQueue(searchParams.get("queue"));
   const status = caseListStatus(searchParams.get("status"));
   const page = positiveInt(searchParams.get("page"), 1);
-  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(
-    casesPath(queue, status, page),
-  );
+  const path = casesPath(queue, status, page);
+  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(path);
   const list = result ? readCaseList(result) : null;
+  useWarmNextPage(path, page, TRUST_PAGE_SIZE, list?.total);
   const message =
     list && !list.recognized
       ? "The API responded, but not with a case list."
@@ -57,10 +58,9 @@ export function ModerationCaseQueue() {
 
   const go = useCallback(
     (next: { queue?: string; status?: string }) => {
-      const path = casesListQuery(next.queue ?? queue, next.status ?? status, 1);
-      router.push(`${ROUTES.cases}${path}`);
+      commit(`${ROUTES.cases}${casesListQuery(next.queue ?? queue, next.status ?? status, 1)}`);
     },
-    [queue, router, status],
+    [commit, queue, status],
   );
 
   const columns: TableColumn<ModerationCase>[] = [
@@ -146,7 +146,12 @@ export function ModerationCaseQueue() {
         />
       )}
       {list?.recognized && list.total > 0 ? (
-        <UrlPager page={page} pageSize={TRUST_PAGE_SIZE} total={list.total} />
+        <UrlPager
+          page={page}
+          pageSize={TRUST_PAGE_SIZE}
+          total={list.total}
+          onPageChange={(next) => commit(`${ROUTES.cases}${casesListQuery(queue, status, next)}`)}
+        />
       ) : null}
     </Stack>
   );

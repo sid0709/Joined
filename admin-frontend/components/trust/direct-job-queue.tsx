@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Badge, PageHeader, Stack, Table, Text, type TableColumn } from "sid-ui";
 import { UrlPager } from "@/components/scouting/url-pager";
 import { TrustState } from "@/components/trust/trust-state";
@@ -13,15 +13,18 @@ import {
   trustLoadError,
   type AdminDirectJob,
 } from "@/lib/trust";
-import { useAdminQuery } from "@/lib/use-admin-query";
+import { useAdminQuery, useWarmNextPage } from "@/lib/use-admin-query";
+import { useListingSearch } from "@/lib/use-listing-search";
 
 /** Direct jobs in pending_review, separate from the jobs CMS. */
 export function DirectJobQueue() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { searchParams, replace } = useListingSearch();
   const page = positiveInt(searchParams.get("page"), 1);
-  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(directJobsPath(page));
+  const path = directJobsPath(page);
+  const { result, loading, error, errorStatus } = useAdminQuery<unknown>(path);
   const list = result ? readDirectJobList(result) : null;
+  useWarmNextPage(path, page, TRUST_PAGE_SIZE, list?.total);
   const message =
     list && !list.recognized
       ? "The API responded, but not with a direct-job list."
@@ -95,7 +98,12 @@ export function DirectJobQueue() {
         />
       )}
       {list?.recognized && list.total > TRUST_PAGE_SIZE ? (
-        <UrlPager page={page} pageSize={TRUST_PAGE_SIZE} total={list.total} />
+        <UrlPager
+          page={page}
+          pageSize={TRUST_PAGE_SIZE}
+          total={list.total}
+          onPageChange={(next) => replace({ page: next })}
+        />
       ) : null}
     </Stack>
   );

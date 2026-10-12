@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Badge,
   Banner,
@@ -32,8 +31,7 @@ import { ROUTES } from "@/lib/nav";
 const DIALOG_WIDTH = 480;
 
 /** Payout requests with pay and decline actions; declining needs a reason. */
-export function PayoutsTable({ rows }: { rows: Payout[] }) {
-  const router = useRouter();
+export function PayoutsTable({ rows, onDecided }: { rows: Payout[]; onDecided: () => void }) {
   const toast = useToast();
   const [declining, setDeclining] = useState<Payout | null>(null);
   const [note, setNote] = useState("");
@@ -46,7 +44,7 @@ export function PayoutsTable({ rows }: { rows: Payout[] }) {
       toast({ body: done });
       setDeclining(null);
       setNote("");
-      router.refresh();
+      onDecided();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not save the decision.");
     }
