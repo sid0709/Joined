@@ -10,6 +10,7 @@ import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
   createScrapeRunStats,
   incrementScrapeRunStats,
+  mergeScrapeRunStats,
   SCRAPE_OUTCOMES,
 } from "../../api/scrapeRunStats";
 import useNotification from "../../api/useNotification";
@@ -74,6 +75,7 @@ export function useRoutineRun() {
   // Queue item id → recent-job key, and results that arrived before their enqueue ack.
   const queueKeys = useRef(new Map());
   const earlyResults = useRef(new Map());
+  const countedOutcomes = useRef(new Set());
 
   const notifyFailure = useCallback(
     (err, fallback) => {
@@ -157,9 +159,14 @@ export function useRoutineRun() {
       if (message?.action === "scrapeQueue:state") {
         const state = message.payload;
         if (!state?.runId || (runIdRef.current && state.runId !== runIdRef.current)) return;
-        if (!runIdRef.current) runIdRef.current = state.runId;
         setQueueCounts(state.counts || EMPTY_QUEUE);
-        if (state.summary) setRunStats({ ...createScrapeRunStats(), ...state.summary });
+        if (state.summary) {
+          setRunStats((current) =>
+            runIdRef.current
+              ? mergeScrapeRunStats(current, state.summary)
+              : { ...createScrapeRunStats(), ...state.summary },
+          );
+        }
       }
       if (
         message?.action === "scrapeQueue:itemResult" &&
@@ -169,6 +176,10 @@ export function useRoutineRun() {
         const key = queueKeys.current.get(id);
         if (key) applyItemResult(key, outcome);
         else earlyResults.current.set(id, outcome);
+        if (outcome && !countedOutcomes.current.has(id)) {
+          countedOutcomes.current.add(id);
+          setRunStats((current) => incrementScrapeRunStats(current, outcome));
+        }
         if (outcome === SCRAPE_OUTCOMES.FAILED) {
           notifyFailure(
             new Error(
@@ -228,7 +239,13 @@ export function useRoutineRun() {
         setFieldHits((hits) => recordFieldHit(hits, path, found));
       },
       onRecord: submitJob,
-      onPace: setPace,
+      onPace: (next) => {
+        setPace((current) => {
+          const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
+          const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
+          return { ...current, ...next, hearted, notHearted, heartDelta: undefined };
+        });
+      },
       onNotice: (message, ok) => {
         if (!ok) notification.warning(message, { key: "run-notice", autoHideDuration: 2000 });
       },
@@ -295,6 +312,7 @@ export function useRoutineRun() {
       runIdRef.current = newRunId();
       queueKeys.current.clear();
       earlyResults.current.clear();
+      countedOutcomes.current.clear();
       // Drop leftover queue items from earlier failed retries (delayed nextAttemptAt).
       await sendRuntimeMessage({ action: "scrapeQueue:clear" }).catch(() => {});
       setRunStats(createScrapeRunStats());

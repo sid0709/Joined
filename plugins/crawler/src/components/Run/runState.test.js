@@ -5,10 +5,12 @@ import {
   formatElapsedTime,
   getSkippedScrapeCount,
   incrementScrapeRunStats,
+  mergeScrapeRunStats,
 } from "../../api/scrapeRunStats";
 
 import {
   addRecentJob,
+  fieldRunSummary,
   fieldStatus,
   hitRate,
   outcomeSegments,
@@ -58,6 +60,25 @@ describe("run state", () => {
     expect(hits.title).toEqual({ found: 2, reads: 3 });
     expect(hitRate(hits.title)).toBe(67);
     expect(hitRate(undefined)).toBeNull();
+    expect(
+      fieldRunSummary(
+        [{ key: "applyUrl" }, { key: "companyName" }],
+        { applyUrl: { found: 12, reads: 12 }, companyName: { found: 12, reads: 12 } },
+        { applyUrl: "invalid", companyName: "invalid" },
+      ),
+    ).toEqual({ found: 2, invalid: 0, total: 2 });
+    expect(fieldRunSummary([{ key: "title" }], {}, { title: "invalid" })).toEqual({
+      found: 0,
+      invalid: 1,
+      total: 1,
+    });
+    expect(mergeScrapeRunStats({ registered: 12 }, { registered: 3, failed: 1 })).toEqual({
+      registered: 12,
+      duplicate: 0,
+      validation: 0,
+      blocked: 0,
+      failed: 1,
+    });
   });
 
   test("keeps the newest jobs first, without duplicates, up to the limit", () => {

@@ -20,4 +20,15 @@ describe("isVisibleElement", () => {
     expect(isVisibleElement(document.getElementById("vis"))).toBe(false);
     expect(isVisibleElement(null)).toBe(false);
   });
+
+  test("uses getComputedStyle for class-based hidden nodes", () => {
+    const document = documentFromHtml(`<span id="hidden" class="d-none">Saved</span>`);
+    const node = document.getElementById("hidden");
+    const view = {
+      getComputedStyle: (el) =>
+        el === node ? { display: "none", visibility: "visible", position: "static" } : {},
+    };
+    Object.defineProperty(document, "defaultView", { configurable: true, value: view });
+    expect(isVisibleElement(node)).toBe(false);
+  });
 });

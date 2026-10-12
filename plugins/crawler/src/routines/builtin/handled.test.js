@@ -107,10 +107,27 @@ describe("handled skip", () => {
       page: 4,
       lastJobId: "9256204",
       lastPageIds: "",
+      pageProcessed: 0,
       lists: ["https://builtin.com/jobs"],
     });
     await store.clearCursor();
     expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("ignores builtinCrawlCursorV1 and clears the stale key", async () => {
+    const storage = memoryStorage({
+      builtinCrawlCursorV1: {
+        listIndex: 0,
+        page: 35,
+        lastJobId: "x",
+        lists: ["https://builtin.com/jobs"],
+      },
+    });
+    const store = createBuiltinStore(storage);
+    expect(await store.loadCursor()).toBeNull();
+    expect(storage.snapshot().builtinCrawlCursorV1).toBeNull();
+    await store.clearHandled();
+    expect(storage.snapshot()[HANDLED_STORAGE_KEY]).toEqual({});
   });
 
   test("drops handled IDs older than 90 days and keeps the newest 50k", () => {

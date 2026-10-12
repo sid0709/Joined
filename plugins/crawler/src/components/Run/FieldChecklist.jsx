@@ -3,7 +3,7 @@ import { Glyph, HStack, Spinner, Text, VStack } from "sid-ui";
 import { listDeclaredFields } from "../../routineKit/declaredFields";
 import { listFieldGroups } from "../../routineKit/runView";
 
-import { hitRate } from "./runState";
+import { fieldRunSummary, hitRate } from "./runState";
 
 /** Glyph, tone, and spoken status for each field state (see runState.fieldStatus). */
 const FIELD_STATE = {
@@ -67,8 +67,7 @@ export default function FieldChecklist({ routine, fieldStates, fieldHits }) {
     }))
     .filter((group) => group.fields.length);
   const fields = groups.flatMap((group) => group.fields);
-  const found = fields.filter(({ key }) => fieldStates[key] === "ok").length;
-  const invalid = fields.filter(({ key }) => fieldStates[key] === "invalid").length;
+  const { found, invalid } = fieldRunSummary(fields, fieldHits, fieldStates);
 
   if (!groups.length) return null;
 

@@ -16,6 +16,7 @@ export const RUN_STAT = Object.freeze({
   OUTCOMES: "outcomes",
   QUEUE: "queue",
   RECENT_JOBS: "recentJobs",
+  HEARTS: "hearts",
 });
 
 export const RUN_SETTING = Object.freeze({
