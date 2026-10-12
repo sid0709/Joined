@@ -24,6 +24,7 @@ function io(overrides = {}) {
     installFetchWatchInMainWorld: async () => ({ watching: true, hits: [] }),
     readFetchWatchInMainWorld: async () => ({ hits: [] }),
     clearFetchWatchInMainWorld: async () => ({ watching: false, hits: [] }),
+    dispatchTrustedMouse: async () => ({ found: true, hovered: true }),
     ...overrides,
   };
 }
@@ -192,6 +193,79 @@ describe("handleRoutineExec", () => {
         payload: { op: "watchFetch", urlIncludes: "/api/updateMarketplaceJobStageForUser" },
       },
     ]);
+  });
+
+  test("dispatches trusted debugger mouse on HiringCafe hoverClick", async () => {
+    const calls = [];
+    const result = await exec(
+      {
+        payload: {
+          op: "hoverClick",
+          selector: ".card",
+          clickSelector: ".mark",
+          offsets: [{ x: 100, y: 100 }],
+        },
+      },
+      io({
+        resolveTargetTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        dispatchTrustedMouse: async (tabId, payload) => {
+          calls.push({ tabId, payload });
+          return { found: true, hovered: true };
+        },
+        sendToContentScript: async () => {
+          throw new Error("synthetic hover must not run on HiringCafe");
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { found: true, hovered: true } });
+    expect(calls).toEqual([
+      {
+        tabId: 3,
+        payload: {
+          op: "hoverClick",
+          selector: ".card",
+          clickSelector: ".mark",
+          offsets: [{ x: 100, y: 100 }],
+        },
+      },
+    ]);
+  });
+
+  test("falls back to the content script when trusted mouse throws", async () => {
+    const isolated = [];
+    const result = await exec(
+      { payload: { op: "hover", selector: ".card", x: 100, y: 100 } },
+      io({
+        resolveTargetTab: async () => ({ id: 3, url: "https://hiring.cafe/classic" }),
+        dispatchTrustedMouse: async () => {
+          throw new Error("debugger denied");
+        },
+        sendToContentScript: async (tabId, message) => {
+          isolated.push({ tabId, message });
+          return { success: true, result: { found: true } };
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { found: true } });
+    expect(isolated[0].tabId).toBe(3);
+    expect(isolated[0].message.payload.op).toBe("hover");
+  });
+
+  test("keeps synthetic hover off HiringCafe", async () => {
+    const isolated = [];
+    await exec(
+      { payload: { op: "hover", selector: ".card" } },
+      io({
+        dispatchTrustedMouse: async () => {
+          throw new Error("HiringCafe-only");
+        },
+        sendToContentScript: async (_tabId, message) => {
+          isolated.push(message.payload.op);
+          return { success: true, result: { found: true } };
+        },
+      }),
+    );
+    expect(isolated).toEqual(["hover"]);
   });
 
   test("rejects fetch watch off HiringCafe", async () => {

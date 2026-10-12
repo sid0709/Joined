@@ -63,14 +63,18 @@ describe("HiringCafe value helpers", () => {
     expect(
       pickKnownFields({ apply_url: "https://a.example", empty: "", skip: null }, ["apply_url"]),
     ).toEqual({ apply_url: "https://a.example" });
-    const metadata = hiringCafeMetadata({
-      id: "src___1",
-      requisition_id: "req1",
-      apply_url: "https://a.example",
-      job_information: { title: "Help", description: "<p>Huge HTML</p>" },
-      unknown_blob: { dump: "nope" },
-    });
+    const metadata = hiringCafeMetadata(
+      {
+        id: "src___1",
+        requisition_id: "req1",
+        apply_url: "https://a.example",
+        job_information: { title: "Help", description: "<p>Huge HTML</p>" },
+        unknown_blob: { dump: "nope" },
+      },
+      { crawledAt: "2026-10-12T18:00:00.000Z" },
+    );
     expect(metadata.job_information).toEqual({ title: "Help" });
+    expect(metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(metadata.job_information.description).toBeUndefined();
     expect(metadata.unknown_blob).toBeUndefined();
     expect(metadata.jsonLd).toBeUndefined();

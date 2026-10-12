@@ -15,6 +15,7 @@ import {
 import {
   APPLIED_CHECK_TEXT,
   MARK_APPLIED_TEXT,
+  MARK_OVERLAY_WAIT_MS,
   MARK_TOAST_TEXT,
   NOT_MARKED_REASON,
   SIGN_IN_TO_MARK_MESSAGE,
@@ -132,6 +133,7 @@ describe("HiringCafe applied-state readers", () => {
     expect(markConfirmed({ applied: false, toast: false, fetchOk: false })).toBe(false);
     expect(jobCardSelector(JOB)).toContain('href$="/job/help-desk-coordinator-reqaaa1111111111"');
     expect(cardSelectorForJob(JOB)).toContain("help-desk-coordinator-reqaaa1111111111");
+    expect(MARK_OVERLAY_WAIT_MS).toBeGreaterThanOrEqual(2000);
   });
 
   test("reads Applied ✓ only on the matched card, not a sibling", () => {
@@ -187,6 +189,12 @@ describe("markAppliedOnCard", () => {
       ),
     ).toBe(true);
     expect(harness.ops.some((op) => op.op === "watchFetch")).toBe(true);
+    expect(harness.ops.some((op) => op.op === "scroll")).toBe(true);
+    expect(
+      harness.ops.some(
+        (op) => op.op === "hoverClick" && op.overlayWait === 0 && Array.isArray(op.offsets),
+      ),
+    ).toBe(true);
     expect(result.log).toContain("marked applied");
   });
 

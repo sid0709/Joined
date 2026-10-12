@@ -133,12 +133,14 @@ function recordFromJob(job, pageUrl, extras = {}) {
   );
   assignProvided(record, "companyAbout", asText(enriched.tagline || v5.company_tagline));
   assignProvided(record, "requisitionId", requisitionIdOf(job));
-  assignProvided(record, "crawledAt", crawlTimeOf(extras).toISOString());
+  const crawledAt = crawlTimeOf(extras).toISOString();
+  assignProvided(record, "crawledAt", crawledAt);
 
   record.metadata = hiringCafeMetadata(job, {
     ...extras,
     postedAtSource: posted.postedAtSource,
     companyWebsite: website,
+    crawledAt,
   });
   record.meta = {
     id: requisitionIdOf(job),

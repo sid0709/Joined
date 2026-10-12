@@ -4,6 +4,7 @@ import { assertFetchUrl, hostMatches } from "../../routineKit/match.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { clickLikeHuman } from "../actions/dom";
 import { hoverAt, hoverClickInDocument, pickMatch } from "../actions/hoverClick";
+import { hoverTargetInDocument, waitForOverlayTarget } from "../actions/hoverTarget";
 import { scrollElementIntoView } from "../actions/scroll";
 import { clearHighlights, highlightElements } from "../highlighter";
 
@@ -83,6 +84,28 @@ const OPS = {
       contains,
       exact,
       offsets,
+    });
+  },
+  hoverTarget: async ({ selector, nth = 0, wait = 0, x = 100, y = 100 }) => {
+    await waitForMatches(document, selector, wait);
+    return hoverTargetInDocument(document, { selector, nth, x, y });
+  },
+  overlayTarget: async ({
+    selector,
+    clickSelector,
+    nth = 0,
+    wait = 0,
+    contains,
+    exact = false,
+  }) => {
+    await waitForMatches(document, selector, 0);
+    return waitForOverlayTarget(document, {
+      selector,
+      clickSelector,
+      nth,
+      contains,
+      exact,
+      wait,
     });
   },
   extract: async ({ field }) => {

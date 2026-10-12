@@ -41,6 +41,7 @@ describe("parseDetail fields", () => {
     expect(record.postedAgo).toBe("Posted 3h ago");
     expect(record.postedAtSource).toBe(POSTED_AT_SOURCE.ESTIMATED_PUBLISH_DATE);
     expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(record.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(record.companyLogo).toContain("googleusercontent.com/s2/favicons");
     expect(record.location).toBe("Austin, Texas, United States");
     expect(record.workMode).toBe("onsite");

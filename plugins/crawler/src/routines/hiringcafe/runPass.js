@@ -251,17 +251,29 @@ export async function runHiringCafePass(ctx, progress) {
   const pageFailures = new Map();
 
   const emitCursor = (extra = {}) => {
+    const jobIndex = extra.jobIndex ?? extra.cardIndex;
+    const jobsOnPage = extra.jobsOnPage ?? extra.cardsOnPage;
     const snapshot = {
       page: displayPage(cursor?.page),
       card: extra.card ?? cursor?.lastJobId ?? "",
-      cardIndex: extra.cardIndex,
-      cardsOnPage: extra.cardsOnPage,
-      jobIndex: extra.jobIndex ?? extra.cardIndex,
-      jobsOnPage: extra.jobsOnPage ?? extra.cardsOnPage,
       blockCount: backoff.blockCount,
       blocks: backoff.blocks.map((entry) => ({ kind: entry.kind, at: entry.at })),
       ...extra,
     };
+    if (jobIndex != null) {
+      snapshot.jobIndex = jobIndex;
+      snapshot.cardIndex = extra.cardIndex ?? jobIndex;
+    } else {
+      delete snapshot.jobIndex;
+      delete snapshot.cardIndex;
+    }
+    if (jobsOnPage != null) {
+      snapshot.jobsOnPage = jobsOnPage;
+      snapshot.cardsOnPage = extra.cardsOnPage ?? jobsOnPage;
+    } else {
+      delete snapshot.jobsOnPage;
+      delete snapshot.cardsOnPage;
+    }
     hooks.onPace?.(snapshot);
   };
 

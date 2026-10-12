@@ -4,6 +4,8 @@ import { isJobFieldValid } from "../../api/jobValidation.js";
 import { parseDetail } from "../../routines/builtin/parseDetail.js";
 import "../../routines/builtin/testing/domParser.js";
 import { loadFixture } from "../../routines/builtin/testing/loadFixture.js";
+import { parseDetail as parseHiringCafeDetail } from "../../routines/hiringcafe/parseDetail.js";
+import { detailPageHtml } from "../../routines/hiringcafe/testing/pageHtml.js";
 import BuiltInRoutine from "../../routines/BuiltInRoutine.js";
 import JobRightRoutine from "../../routines/JobRightRoutine.js";
 
@@ -85,7 +87,7 @@ describe("toJobPayload", () => {
     expect(payload.postedAt).toBe("2026-10-12T17:59:12.000Z");
     expect(payload.postedAgo).toBe("Reposted 48 Seconds Ago");
     expect(payload.metadata.postedAtSource).toBe("jsonld+ago");
-    expect(payload.metadata.crawledAt).toBeUndefined();
+    expect(payload.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(payload.metadata.companyProfileUrl).toBe(
       "https://builtin.com/company/micron-technology",
     );
@@ -126,6 +128,7 @@ describe("toJobPayload", () => {
       x: "https://x.com/MicronTech",
     });
     expect(payload.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(payload.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
     expect(isJobFieldValid(payload, "companyWebsite", BuiltInRoutine)).toBe(true);
     expect(isJobFieldValid(payload, "companySocials", BuiltInRoutine)).toBe(true);
     expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
@@ -144,5 +147,18 @@ describe("toJobPayload", () => {
     );
     expect(payload.applyLink).toBe("https://boards.example/apply/9");
     expect(isJobFieldValid(payload, "applyUrl", BuiltInRoutine)).toBe(true);
+  });
+
+  test("HiringCafe parseDetail keeps crawledAt on the payload and metadata", () => {
+    const record = parseHiringCafeDetail(
+      detailPageHtml(),
+      "https://hiringcafe.com/job/help-desk-coordinator-shell-mobility-and-convenience-usa-houston-texas-uplqcnmhu405bzud",
+      { now: new Date("2026-10-12T18:00:00.000Z") },
+    );
+    const payload = toJobPayload(record, { id: "hiringcafe" });
+    expect(record.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(record.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(payload.crawledAt).toBe("2026-10-12T18:00:00.000Z");
+    expect(payload.metadata.crawledAt).toBe("2026-10-12T18:00:00.000Z");
   });
 });
