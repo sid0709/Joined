@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestParseCrawlerBatchKeepsApplyLinkAndCompanyName(t *testing.T) {
@@ -109,6 +111,36 @@ func TestCrawledJobDropsFoldedCompanyExtraKeys(t *testing.T) {
 	}
 	if job.Metadata["postedAtSource"] != "jsonld+ago" {
 		t.Fatalf("unrelated extra dropped: %+v", job.Metadata)
+	}
+}
+
+func TestCrawledJobLiftsMetadataCrawledAtOntoTempDocument(t *testing.T) {
+	body := []byte(`{"jobs":[{
+		"title":"Eng","description":"Build","applyLink":"https://hiringcafe.com/job/1",
+		"company":{"name":"North"},
+		"metadata":{"crawledAt":"2026-10-12T18:00:00.000Z"}
+	}]}`)
+	batch, err := ParseCrawlerBatch(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if batch.Jobs[0].CrawledAt != "2026-10-12T18:00:00Z" {
+		t.Fatalf("lifted crawledAt = %q", batch.Jobs[0].CrawledAt)
+	}
+	raw, err := bson.Marshal(crawledTempDocument(bson.NewObjectID(), batch.Jobs[0], "joined-scrapper", time.Date(2026, 10, 12, 18, 0, 0, 0, time.UTC)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc struct {
+		Metadata struct {
+			CrawledAt string `bson:"crawledAt"`
+		} `bson:"metadata"`
+	}
+	if err := bson.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if doc.Metadata.CrawledAt != "2026-10-12T18:00:00Z" {
+		t.Fatalf("stored metadata.crawledAt = %q", doc.Metadata.CrawledAt)
 	}
 }
 

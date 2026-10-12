@@ -4,6 +4,7 @@ import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { HIRINGCAFE_HOSTS } from "../../routines/hiringcafe/constants.js";
 import { resolveTargetTab, sendToContentScript } from "../tabs.js";
 
+import { dispatchTrustedMouse } from "./debuggerMouse.js";
 import {
   clearFetchWatchInMainWorld,
   installFetchWatchInMainWorld,
@@ -13,6 +14,7 @@ import { abortInFlightNavigate, navigateTab } from "./navigateTab.js";
 import { clickShadowInMainWorld } from "./shadowClick.js";
 
 const FETCH_WATCH_OPS = new Set(["watchFetch", "watchedFetches", "unwatchFetch"]);
+const TRUSTED_MOUSE_OPS = new Set(["hover", "hoverClick"]);
 
 const defaultIo = {
   resolveTargetTab,
@@ -20,6 +22,7 @@ const defaultIo = {
   navigateTab,
   abortInFlightNavigate,
   clickShadowInMainWorld,
+  dispatchTrustedMouse,
   installFetchWatchInMainWorld,
   readFetchWatchInMainWorld,
   clearFetchWatchInMainWorld,
@@ -76,6 +79,15 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
       const result = await runFetchWatch(op, tab, message.payload, io);
       sendResponse({ success: true, result });
       return;
+    }
+    if (TRUSTED_MOUSE_OPS.has(op) && isHiringCafeTab(tab.url)) {
+      try {
+        const result = await io.dispatchTrustedMouse(tab.id, message.payload, io);
+        sendResponse({ success: true, result });
+        return;
+      } catch (error) {
+        console.warn("trusted mouse failed; falling back to the isolated world", error);
+      }
     }
     if (op === "shadow") {
       if (!isShadowHostAllowed(tab.url, message.payload)) {

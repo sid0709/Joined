@@ -549,6 +549,19 @@ describe("HiringCafeRoutine", () => {
     expect(notices.some((message) => /ingest timed out/i.test(message))).toBe(true);
   });
 
+  test("updates the panel cursor as each job is opened", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveMarkAppliedEnabled(false);
+    const paces = [];
+    await collectJobs(store, hiringCafeTab().exec, {
+      onPace: (next) => paces.push(next),
+    });
+    const withIndex = paces.filter((pace) => pace.jobIndex);
+    expect(withIndex.map((pace) => pace.jobIndex)).toContain(1);
+    expect(Math.max(...withIndex.map((pace) => pace.jobIndex))).toBeGreaterThan(1);
+    expect(withIndex.every((pace) => pace.jobsOnPage >= 1)).toBe(true);
+  });
+
   test("does not Mark Applied when ingest is not accepted", async () => {
     const store = createHiringCafeStore(memoryStorage());
     const page = hiringCafeTab();

@@ -2,16 +2,26 @@ import { MARK_APPLIED_LABEL, markedReasonsLabel } from "../../routines/hiringcaf
 
 export const EXTRACT_ERROR_TITLE = "Extraction error";
 
+function uniqueLogs(values) {
+  return [
+    ...new Set(
+      (values ?? [])
+        .flatMap((value) => String(value || "").split("\n"))
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 /** Props for the LiveRunCard extraction-error Banner, or null when none. */
-export function extractErrorBanner(extractError, markReasons = []) {
+export function extractErrorBanner(extractError, markReasons = [], markLogs = []) {
+  const logs = uniqueLogs([...(markLogs ?? []), extractError]);
   const reasons = markedReasonsLabel(markReasons);
-  const message = String(extractError || "").trim();
-  if (!reasons && !message) return null;
-  const isMark = Boolean(reasons) || /not marked applied/i.test(message);
-  const description = [...new Set([reasons, message].filter(Boolean))].join(" · ");
+  if (!logs.length && !reasons) return null;
+  const isMark = Boolean(reasons) || logs.some((log) => /not marked applied/i.test(log));
   return {
     status: "warning",
     title: isMark ? MARK_APPLIED_LABEL : EXTRACT_ERROR_TITLE,
-    description,
+    description: logs.length ? logs.join(" · ") : reasons,
   };
 }

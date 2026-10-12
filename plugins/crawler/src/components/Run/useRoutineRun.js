@@ -20,6 +20,7 @@ import {
 
 import { ingestAcceptFromOutcome } from "./ingestAccept";
 import { toJobPayload } from "./jobPayload";
+import { appendNotice, mergePace } from "./paceState";
 import {
   applyActiveQueueSnapshot,
   EMPTY_QUEUE,
@@ -311,30 +312,12 @@ export function useRoutineRun() {
       },
       onRecord: submitJob,
       onPace: (next) => {
-        setPace((current) => {
-          const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
-          const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
-          const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
-          const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
-          const markReasons = [...(current?.markReasons ?? [])];
-          if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
-          return {
-            ...current,
-            ...next,
-            hearted,
-            notHearted,
-            marked,
-            notMarked,
-            markReasons,
-            heartDelta: undefined,
-            markDelta: undefined,
-          };
-        });
+        setPace((current) => mergePace(current, next));
       },
       onNotice: (message, ok) => {
         if (!ok) {
-          setExtractError(message);
-          notification.warning(message, { key: "run-notice", autoHideDuration: 4000 });
+          setExtractError((current) => appendNotice(current, message));
+          notification.warning(message, { key: `run-notice-${message}`, autoHideDuration: 4000 });
         }
       },
       onFinished: (message) => {

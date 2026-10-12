@@ -106,7 +106,12 @@ export function toJobPayload(record, routine) {
   };
   if (isFound(record?.postedAt)) payload.postedAt = record.postedAt;
   if (isFound(record?.postedAgo)) payload.postedAgo = record.postedAgo;
-  if (isFound(record?.crawledAt)) payload.crawledAt = record.crawledAt;
+  if (isFound(record?.crawledAt)) {
+    payload.crawledAt = record.crawledAt;
+    metadata.crawledAt = record.crawledAt;
+  } else if (isFound(metadata.crawledAt)) {
+    payload.crawledAt = metadata.crawledAt;
+  }
   if (Array.isArray(record?.badges) && record.badges.length) payload.tags = record.badges;
   if (Array.isArray(record?.skills) && record.skills.length) payload.skills = record.skills;
   if (typeof applicantCount === "number" && Number.isFinite(applicantCount)) {
