@@ -84,14 +84,17 @@ are hidden in logs, variables are easier to read and edit.
 | `ADMIN_GOOGLE_CLIENT_ID`                                                           | the admin OAuth client ID (project `joined-admin`)    | with `admin`            |
 | `ADMIN_GOOGLE_SIGNIN_REDIRECT_URL`                                                 | `<ADMIN_ORIGIN>/auth/google/callback`                 | with `admin`            |
 | `ADMIN_GOOGLE_DOMAIN`                                                              | the staff Google Workspace domain                     | with `admin`            |
+| `GOOGLE_SITE_VERIFICATION`                                                         | Search Console HTML-tag token (content value only)    | optional (joined SEO)   |
+| `GOOGLE_TAG_MANAGER_ID`                                                            | `GTM-…` container id                                  | optional (joined SEO)   |
+| `GOOGLE_ANALYTICS_MEASUREMENT_ID`                                                  | `G-…` GA4 id (omit if GA runs only inside GTM)        | optional (joined SEO)   |
 
 `FRONTEND_ORIGIN` is also passed to the joined, scoutwell, and admin frontends as
 `JOINED_WEB_URL` so `/sitemap.xml`, robots `Sitemap:`, canonicals, and JobPosting
 JSON-LD get absolute public URLs.
 
-Optional on **joined-frontend** (Search Console + analytics): `GOOGLE_SITE_VERIFICATION`
-(meta tag token), `GOOGLE_TAG_MANAGER_ID` (`GTM-…`), `GOOGLE_ANALYTICS_MEASUREMENT_ID`
-(`G-…`). The HTML-file verifier is static at `/google2ed8ee3d9b3b9452.html`.
+Store those three in **Variables** if you like — they are not secret (they appear in
+HTML). Secrets work too; deploy reads `vars.*` first, then `secrets.*`. The HTML-file
+verifier is static at `/google2ed8ee3d9b3b9452.html` and needs no env.
 
 **Secrets** (encrypted, never shown again):
 
