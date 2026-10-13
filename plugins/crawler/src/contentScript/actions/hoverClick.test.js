@@ -86,6 +86,37 @@ describe("hoverClickInDocument", () => {
     expect(clicks).toBe(1);
   });
 
+  test("ancestor overlay hit clicks Mark Applied and not the job link", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div class="job-card">
+          <div class="flex justify-between">
+            <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
+            <button class="bg-white">Mark Applied</button>
+          </div>
+        </div>
+      </div></div>
+    </body></html>`);
+    let linkClicks = 0;
+    let markClicks = 0;
+    document.querySelector("a").addEventListener("click", () => {
+      linkClicks += 1;
+    });
+    document.querySelector("button").addEventListener("click", () => {
+      markClicks += 1;
+    });
+    expect(
+      hoverClickInDocument(document, {
+        selector: CARD,
+        clickSelector: MARK,
+        contains: "Mark Applied",
+        exact: true,
+      }),
+    ).toEqual({ found: true, hovered: true });
+    expect(markClicks).toBe(1);
+    expect(linkClicks).toBe(0);
+  });
+
   test("returns found false when the card or Mark Applied is missing", () => {
     const document = hoverOnlyCard(false);
     expect(hoverClickInDocument(document, { selector: "[data-missing]" })).toEqual({

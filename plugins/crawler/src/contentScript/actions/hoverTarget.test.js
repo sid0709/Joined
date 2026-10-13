@@ -258,7 +258,7 @@ describe("overlayTargetInDocument", () => {
       found: true,
       x: 240,
       y: 50,
-      candidates: expect.arrayContaining(["Mark Applied"]),
+      candidates: [],
     });
   });
 
@@ -336,6 +336,55 @@ describe("overlayTargetInDocument", () => {
       found: true,
       candidates: expect.arrayContaining(["Mark Applied"]),
     });
+  });
+
+  test("ancestor hit on the overlay row does not treat the job link as the target", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div class="job-card">
+          <div class="flex justify-between">
+            <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
+            <button class="bg-white">Mark Applied</button>
+          </div>
+        </div>
+      </div></div>
+    </body></html>`);
+    const button = document.querySelector("button");
+    button.getBoundingClientRect = () => ({
+      left: 200,
+      top: 40,
+      width: 80,
+      height: 20,
+      right: 280,
+      bottom: 60,
+    });
+    document.elementFromPoint = () => document.querySelector("div.flex.justify-between");
+    expect(
+      overlayTargetInDocument(
+        document,
+        { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
+        { width: 800, height: 600 },
+      ),
+    ).toMatchObject({ found: true, x: 240, y: 50 });
+  });
+
+  test("does not treat card-wide Applied text as overlay candidates", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div class="job-card">
+          <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
+          <span>Applied</span>
+        </div>
+      </div></div>
+    </body></html>`);
+    expect(
+      overlayTargetInDocument(document, {
+        selector: CARD,
+        clickSelector: MARK,
+        contains: "Mark Applied",
+        exact: true,
+      }),
+    ).toMatchObject({ found: false, candidates: [] });
   });
 
   test("returns Applied and App Tracker candidates when the toggle already flipped", () => {

@@ -1,6 +1,7 @@
 import {
   appliedFromCandidateTexts,
   appliedStateFromHtml,
+  cardForJob,
   cardSelectorForJob,
   hasAppliedState,
   hasMarkAppliedControl,
@@ -8,6 +9,7 @@ import {
   isHiringCafeSignedOut,
   markConfirmed,
   markStateRoot,
+  overlayAppliedCandidateTexts,
   stageUpdateSucceeded,
 } from "./appliedState.js";
 import { isHiringCafeChallenge } from "./challenge.js";
@@ -74,6 +76,15 @@ function overlayCandidates(...sources) {
   return [];
 }
 
+function appliedCandidatesFromPage(html, job, ...probes) {
+  const fromOverlay = overlayAppliedCandidateTexts(cardForJob(documentFromHtml(html), job));
+  if (fromOverlay.length) return fromOverlay;
+  for (const probe of probes) {
+    if (probe?.found) return overlayCandidates(probe);
+  }
+  return [];
+}
+
 function overlayProbe(call, selector, wait = 0) {
   return call("overlayTarget", {
     selector,
@@ -99,7 +110,7 @@ async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, select
     last = await hoverCard(call, selector, offset).catch(() => ({ found: false }));
     const overlay = await overlayProbe(call, selector, skipDelays ? 0 : MARK_OVERLAY_WAIT_MS);
     const page = await readPage();
-    const candidates = overlayCandidates(overlay, last);
+    const candidates = appliedCandidatesFromPage(page.html, job, overlay);
     const state = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates);
     const overlaySeen = Boolean(overlay?.found || state.canMark || state.marked);
     last = {
@@ -114,7 +125,7 @@ async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, select
     await pause(rest, skipDelays, MARK_OVERLAY_POLL_MS);
   }
   const page = await readPage();
-  const candidates = overlayCandidates(last);
+  const candidates = appliedCandidatesFromPage(page.html, job);
   return {
     hovered: last,
     state: appliedOverlayState(appliedStateFromHtml(page.html, job), candidates),
@@ -201,7 +212,7 @@ async function confirmAfterClick({ job, call, rest, skipDelays, readPage, before
   await pause(rest, skipDelays, MARK_HOVER_MS);
   page = await readPage();
   const overlay = await overlayProbe(call, selector);
-  const candidates = overlayCandidates(overlay);
+  const candidates = appliedCandidatesFromPage(page.html, job, overlay);
   const cardApplied = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates).marked;
   const marked = markConfirmed({
     applied: cardApplied,

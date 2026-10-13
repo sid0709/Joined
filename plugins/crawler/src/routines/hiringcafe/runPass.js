@@ -343,6 +343,7 @@ export async function runHiringCafePass(ctx, progress) {
   const skipPickedChallenge = async (job, pageUrl, pageIds, parsed) => {
     if (job?.challenge) {
       await handleBlock(await readPage(), pageUrl);
+      await pause(PAGE_DELAY_MS);
       return true;
     }
     if (job) return false;

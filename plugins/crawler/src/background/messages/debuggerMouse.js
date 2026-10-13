@@ -190,7 +190,7 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
     diagnostics = {
       ...(hover.diagnostics || diagnostics || {}),
       overlay: Boolean(overlay?.found),
-      candidates: overlay?.candidates || hover.diagnostics?.candidates || [],
+      candidates: overlay?.candidates ?? hover.diagnostics?.candidates ?? [],
     };
     diagnosticsText = formatHoverDiagnostics(diagnostics);
     if (!overlay?.found) continue;

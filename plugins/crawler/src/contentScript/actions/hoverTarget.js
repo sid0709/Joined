@@ -1,7 +1,7 @@
 import { queryAll } from "../../routineKit/extract.js";
 import {
   findMarkAppliedControl,
-  overlayCandidateTexts,
+  overlayAppliedCandidateTexts,
 } from "../../routines/hiringcafe/appliedState.js";
 import {
   MARK_APPLIED_CONTROL,
@@ -324,7 +324,7 @@ export async function hoverTargetInDocument(
     zoom: view.zoom || pageZoomOf(),
     hit: { tag: resolved.hit.tag, classes: resolved.hit.classes },
     overlay: false,
-    candidates: overlayCandidateTexts(card),
+    candidates: overlayAppliedCandidateTexts(card),
   };
   if (!resolved.hit.ok) {
     return {
@@ -352,7 +352,7 @@ export function overlayTargetInDocument(
   elementFromPoint,
 ) {
   const card = queryAll(root, selector)[nth];
-  const candidates = overlayCandidateTexts(card);
+  const candidates = overlayAppliedCandidateTexts(card);
   if (!card) return { found: false, candidates };
   const needle = String(contains || MARK_APPLIED_TEXT).trim() || MARK_APPLIED_TEXT;
   const lookingForMark = !contains || needle === MARK_APPLIED_TEXT;

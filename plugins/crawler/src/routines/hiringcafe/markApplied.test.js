@@ -17,6 +17,8 @@ import {
   isListCardApplied,
   isSignedOutWall,
   markConfirmed,
+  markStateRoot,
+  overlayAppliedCandidateTexts,
   overlayCandidateTexts,
   stageUpdateSucceeded,
 } from "./appliedState.js";
@@ -42,6 +44,7 @@ import {
   readAppliedOnCard,
   resolveMarkAfterDetail,
 } from "./markApplied.js";
+import { pickNextJob } from "./runPass.js";
 import {
   cardMarkup,
   carouselMarkup,
@@ -93,7 +96,7 @@ function chromeList(overlay, extras = {}) {
 
 function overlayCandidatesFromHtml(html) {
   const document = documentFromHtml(html);
-  return overlayCandidateTexts(cardForJob(document, JOB));
+  return overlayAppliedCandidateTexts(cardForJob(document, JOB));
 }
 
 function stageHit(jobId = JOB.id) {
@@ -251,6 +254,49 @@ describe("HiringCafe applied-state readers", () => {
       appliedStateFromHtml(listWith(overlayMarkup({ row: true, applied: true, decoy: true })), JOB),
     ).toMatchObject({ marked: true, canMark: false });
     expect(isListCardApplied(firstCard)).toBe(false);
+  });
+
+  test("does not treat a card that only says Applied as marked or skipped", async () => {
+    const html = listWith("", { extra: `<span>Applied</span>` });
+    const card = cardForJob(documentFromHtml(html), JOB);
+    expect(overlayCandidateTexts(card)).toEqual(expect.arrayContaining([APPLIED_TOGGLE_TEXT]));
+    expect(overlayAppliedCandidateTexts(card)).toEqual([]);
+    expect(appliedStateFromHtml(html, JOB)).toMatchObject({ marked: false, canMark: false });
+    expect(markStateRoot(html, JOB)).toBeNull();
+    const harness = markHarness({ htmlAfterHover: html });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result.already).toBeUndefined();
+    expect(result.marked).toBe(false);
+    expect(result.reason).toBe(NOT_MARKED_REASON.HOVER_MISSED);
+    const marked = [];
+    const next = await pickNextJob({
+      jobs: [{ id: JOB.id, listApplied: false }],
+      lastJobId: "",
+      handledIds: new Set(),
+      noteJobDecision: () => {},
+      markJob: async (id) => marked.push(id),
+      readApplied: async (job) => appliedStateFromHtml(html, job),
+      markAppliedEnabled: true,
+    });
+    expect(next).toMatchObject({ id: JOB.id });
+    expect(marked).toEqual([]);
+  });
+
+  test("markStateRoot without this job's card does not use another overlay", () => {
+    const html = listPageHtml({
+      cards: [
+        cardMarkup(`/job/labor-production-reqddd4444444444`, "5h", {
+          overlay: overlayMarkup({ applied: true }),
+        }),
+      ],
+    });
+    expect(cardForJob(documentFromHtml(html), JOB)).toBeNull();
+    expect(markStateRoot(html, JOB)).toBeNull();
   });
 
   test("ignores Applied and App Tracker in the nav or card outside the overlay", () => {
@@ -474,7 +520,7 @@ describe("markAppliedOnCard", () => {
         return { found: true };
       },
       readPage: async () => ({
-        html: listWith(""),
+        html: listWith(overlayMarkup({ live: true })),
         url: "https://hiringcafe.com/classic",
         status: 200,
       }),
@@ -521,7 +567,7 @@ describe("markAppliedOnCard", () => {
         return { found: true };
       },
       readPage: async () => ({
-        html: listWith(overlayMarkup()),
+        html: listWith(clicked ? overlayMarkup({ live: true }) : overlayMarkup()),
         url: "https://hiringcafe.com/classic",
         status: 200,
       }),

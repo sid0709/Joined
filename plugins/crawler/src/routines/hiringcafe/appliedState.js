@@ -159,15 +159,20 @@ export function overlayCandidateTexts(root) {
   return texts;
 }
 
-/** Overlay on this job's card, else the Mark Applied control's container. */
+/** Applied-state texts from this card's hover overlay only. Finding stays card-wide. */
+export function overlayAppliedCandidateTexts(root) {
+  return overlayCandidateTexts(overlayRoot(root));
+}
+
+/** Overlay on this job's card, else that card's Mark Applied container. Never another card. */
 export function markStateRoot(html, job = {}) {
   const document = asRoot(html);
   if (!document) return null;
   const card = cardForJob(document, job);
-  const overlay = overlayRoot(card || document);
+  if (!card) return null;
+  const overlay = overlayRoot(card);
   if (overlay) return overlay;
-  const mark = findMarkAppliedControl(card || document);
-  return mark?.parentElement || null;
+  return findMarkAppliedControl(card)?.parentElement || null;
 }
 
 export function hasMarkAppliedControl(root) {
