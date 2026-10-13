@@ -7,8 +7,9 @@ import {
   CARD_OVERLAY,
   jobCardSelector,
   jobCardSelectorForJobs,
-  MARK_APPLIED,
+  MARK_APPLIED_CONTROL,
   MARK_APPLIED_TEXT,
+  MARK_OVERLAY_CANDIDATE_MAX_CHARS,
   MARK_TOAST,
   MARK_TOAST_TEXT,
   SIGN_IN_DIALOG,
@@ -63,13 +64,46 @@ export function hasAppliedCheck(root) {
   return hasExactText(node, APPLIED_CHECK_TEXT) || APPLIED_CHECK_RE.test(textOf(node));
 }
 
-export function hasMarkAppliedControl(root) {
+function exactVisibleMatches(root, needle) {
+  const want = normalizeText(needle);
+  if (!want || !root) return [];
+  const matches = [];
+  for (const node of queryAll(root, MARK_APPLIED_CONTROL)) {
+    if (normalizeText(textOf(node)) === want && isVisibleElement(node)) matches.push(node);
+  }
+  matches.sort((left, right) => {
+    const leftKids = left.childElementCount || 0;
+    const rightKids = right.childElementCount || 0;
+    if (leftKids !== rightKids) return leftKids - rightKids;
+    const leftButton = left.tagName === "BUTTON" ? 0 : 1;
+    const rightButton = right.tagName === "BUTTON" ? 0 : 1;
+    return leftButton - rightButton;
+  });
+  return matches;
+}
+
+/** Visible button/div/span whose trimmed text is exactly `Mark Applied`. */
+export function findMarkAppliedControl(root) {
+  return exactVisibleMatches(asRoot(root), MARK_APPLIED_TEXT)[0] || null;
+}
+
+export function overlayCandidateTexts(root) {
   const node = asRoot(root);
-  if (!node) return false;
-  const control = queryOne(node, MARK_APPLIED);
-  return Boolean(
-    control && isVisibleElement(control) && normalizeText(textOf(control)) === MARK_APPLIED_TEXT,
-  );
+  if (!node) return [];
+  const seen = new Set();
+  const texts = [];
+  for (const candidate of queryAll(node, MARK_APPLIED_CONTROL)) {
+    const text = normalizeText(textOf(candidate));
+    if (!text || text.length > MARK_OVERLAY_CANDIDATE_MAX_CHARS) continue;
+    if (!isVisibleElement(candidate) || seen.has(text)) continue;
+    seen.add(text);
+    texts.push(text);
+  }
+  return texts;
+}
+
+export function hasMarkAppliedControl(root) {
+  return Boolean(findMarkAppliedControl(root));
 }
 
 export function hasMarkToast(html) {

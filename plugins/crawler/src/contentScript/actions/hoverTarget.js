@@ -1,8 +1,15 @@
 import { queryAll } from "../../routineKit/extract.js";
 import {
+  findMarkAppliedControl,
+  overlayCandidateTexts,
+} from "../../routines/hiringcafe/appliedState.js";
+import {
+  MARK_APPLIED_CONTROL,
+  MARK_APPLIED_TEXT,
   MARK_HOVER_OFFSET,
   MARK_HOVER_STEPS,
   MARK_OVERLAY_POLL_MS,
+  MARK_OVERLAY_WAIT_MS,
   SCROLL_SETTLE_MS,
 } from "../../routines/hiringcafe/constants.js";
 
@@ -21,12 +28,74 @@ function numberOr(value, fallback = 0) {
 
 export function viewportOf(explicit) {
   if (explicit && typeof explicit === "object") {
-    return { width: numberOr(explicit.width), height: numberOr(explicit.height) };
+    return {
+      width: numberOr(explicit.width),
+      height: numberOr(explicit.height),
+      visualWidth: numberOr(explicit.visualWidth, numberOr(explicit.width)),
+      visualHeight: numberOr(explicit.visualHeight, numberOr(explicit.height)),
+      offsetLeft: numberOr(explicit.offsetLeft),
+      offsetTop: numberOr(explicit.offsetTop),
+      scale: numberOr(explicit.scale, 1) || 1,
+      zoom: numberOr(explicit.zoom, 1) || 1,
+    };
   }
-  if (typeof window === "undefined") return { width: 0, height: 0 };
+  if (typeof window === "undefined") {
+    return {
+      width: 0,
+      height: 0,
+      visualWidth: 0,
+      visualHeight: 0,
+      offsetLeft: 0,
+      offsetTop: 0,
+      scale: 1,
+      zoom: 1,
+    };
+  }
+  return visualViewportOf(window);
+}
+
+/** Browser zoom and pinch-zoom. `innerWidth` grows when Chrome zoom is under 100%. */
+export function pageZoomOf(win = typeof window === "undefined" ? undefined : window) {
+  if (!win) return 1;
+  const visual = win.visualViewport;
+  const scale = Number(visual?.scale);
+  if (Number.isFinite(scale) && scale > 0 && Math.abs(scale - 1) > 0.01) return scale;
+  const inner = Number(win.innerWidth);
+  const visualWidth = Number(visual?.width);
+  if (inner > 0 && visualWidth > 0 && Math.abs(visualWidth / inner - 1) > 0.01) {
+    return visualWidth / inner;
+  }
+  const outer = Number(win.outerWidth);
+  if (inner > 0 && outer > 0 && Math.abs(outer / inner - 1) > 0.01) return outer / inner;
+  return 1;
+}
+
+export function visualViewportOf(win = typeof window === "undefined" ? undefined : window) {
+  if (!win) {
+    return {
+      width: 0,
+      height: 0,
+      visualWidth: 0,
+      visualHeight: 0,
+      offsetLeft: 0,
+      offsetTop: 0,
+      scale: 1,
+      zoom: 1,
+    };
+  }
+  const visual = win.visualViewport;
+  const width = numberOr(win.innerWidth);
+  const height = numberOr(win.innerHeight);
+  const scale = numberOr(visual?.scale, 1) || 1;
   return {
-    width: numberOr(window.innerWidth),
-    height: numberOr(window.innerHeight),
+    width,
+    height,
+    visualWidth: numberOr(visual?.width, width),
+    visualHeight: numberOr(visual?.height, height),
+    offsetLeft: numberOr(visual?.offsetLeft),
+    offsetTop: numberOr(visual?.offsetTop),
+    scale,
+    zoom: pageZoomOf(win),
   };
 }
 
@@ -199,8 +268,10 @@ export function formatHoverDiagnostics(diag) {
     `viewport=${numberOr(view.width)}x${numberOr(view.height)}`,
     `scroll=${numberOr(scroll.x)},${numberOr(scroll.y)}`,
     `dpr=${diag.dpr ?? 1}`,
+    `zoom=${numberOr(diag.zoom, 1) || 1}`,
     `hit=${hitLabel || "none"}`,
     `overlay=${diag.overlay ? "yes" : "no"}`,
+    `candidates=${Array.isArray(diag.candidates) && diag.candidates.length ? diag.candidates.join("|") : "none"}`,
   ].join(" ");
 }
 
@@ -243,8 +314,10 @@ export async function hoverTargetInDocument(
       viewport: view,
       scroll: scrollOf(),
       dpr: dprOf(),
+      zoom: view.zoom || pageZoomOf(),
       hit: { tag: "", classes: "" },
       overlay: false,
+      candidates: [],
     },
   };
   if (!card) {
@@ -257,8 +330,10 @@ export async function hoverTargetInDocument(
     viewport: view,
     scroll: scrollOf(),
     dpr: dprOf(),
+    zoom: view.zoom || pageZoomOf(),
     hit: { tag: resolved.hit.tag, classes: resolved.hit.classes },
     overlay: false,
+    candidates: overlayCandidateTexts(card),
   };
   if (!resolved.hit.ok) {
     return {
@@ -285,15 +360,23 @@ export function overlayTargetInDocument(
   viewport,
 ) {
   const card = queryAll(root, selector)[nth];
-  if (!card) return { found: false };
-  const clickSel = clickSelector || selector;
-  const target = pickMatch(queryAll(card, clickSel), { contains, exact });
-  if (!target) return { found: false };
-  return { found: true, ...pointFromRect(rectOf(target), viewport) };
+  const candidates = overlayCandidateTexts(card);
+  if (!card) return { found: false, candidates };
+  const needle = String(contains || MARK_APPLIED_TEXT).trim() || MARK_APPLIED_TEXT;
+  const lookingForMark = !contains || needle === MARK_APPLIED_TEXT;
+  let target = lookingForMark ? findMarkAppliedControl(card) : null;
+  if (!target) {
+    target = pickMatch(queryAll(card, clickSelector || MARK_APPLIED_CONTROL), {
+      contains: needle,
+      exact: exact || lookingForMark,
+    });
+  }
+  if (!target) return { found: false, candidates };
+  return { found: true, candidates, ...pointFromRect(rectOf(target), viewport) };
 }
 
 export async function waitForOverlayTarget(root, payload = {}, now = Date.now) {
-  const timeout = Math.max(0, numberOr(payload.wait));
+  const timeout = Math.max(0, numberOr(payload.wait, MARK_OVERLAY_WAIT_MS));
   const deadline = now() + timeout;
   for (;;) {
     const found = overlayTargetInDocument(root, payload);

@@ -12,6 +12,7 @@ import {
   stopRunKeepaliveIfIdle,
 } from "./background/runKeepalive.js";
 import { drainScrapeQueue, startScrapeQueue } from "./background/scrapeQueueWorker.js";
+import { ungroupBoundTab } from "./background/tabGroup.js";
 import { persistJobApiUrlToStorage, persistSpiritApiUrlToStorage } from "./config/env.js";
 import { ROUTINE_TAB_CLOSED_ACTION } from "./routineKit/protocol.js";
 
@@ -29,19 +30,21 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  const bind = handleBoundTabRemoved(tabId, {
+  void handleBoundTabRemoved(tabId, {
     releaseDebugger,
     abortInFlightNavigate,
+    ungroupBoundTab,
     stopKeepalive: stopRunKeepaliveIfIdle,
+  }).then((bind) => {
+    if (!bind) return;
+    chrome.runtime
+      .sendMessage({
+        action: ROUTINE_TAB_CLOSED_ACTION,
+        tabId,
+        payload: { tabId, routineId: bind.routineId, message: BOUND_TAB_CLOSED_MESSAGE },
+      })
+      .catch(() => {});
   });
-  if (!bind) return;
-  chrome.runtime
-    .sendMessage({
-      action: ROUTINE_TAB_CLOSED_ACTION,
-      tabId,
-      payload: { tabId, routineId: bind.routineId, message: BOUND_TAB_CLOSED_MESSAGE },
-    })
-    .catch(() => {});
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

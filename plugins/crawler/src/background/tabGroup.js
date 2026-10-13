@@ -12,6 +12,8 @@ export function tabGroupSpec(routineId) {
 
 /**
  * Put the bound tab in a named Chrome tab group for this routine, in that window.
+ * The group is temporary: `ungroupBoundTab` removes the tab from it when the
+ * run ends (stop, finish, block, or tab close). We do not leave the label up.
  */
 export async function groupBoundTab(tab, routineId, io = chrome) {
   const spec = tabGroupSpec(routineId);
@@ -42,4 +44,14 @@ export async function groupBoundTab(tab, routineId, io = chrome) {
     });
   }
   return groupId;
+}
+
+/** Take the crawl tab out of its named group so the label does not linger. */
+export async function ungroupBoundTab(tabId, io = chrome) {
+  const id = Number(tabId);
+  if (!Number.isFinite(id) || typeof io.tabs?.ungroup !== "function") {
+    return { ungrouped: false };
+  }
+  await io.tabs.ungroup(id).catch(() => {});
+  return { ungrouped: true };
 }

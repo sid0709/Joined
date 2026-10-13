@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { TAB_GROUP_BY_ROUTINE, groupBoundTab, tabGroupSpec } from "./tabGroup.js";
+import { TAB_GROUP_BY_ROUTINE, groupBoundTab, tabGroupSpec, ungroupBoundTab } from "./tabGroup.js";
 
 function groupIo({ existing = [], created = 44 } = {}) {
   const grouped = [];
@@ -64,6 +64,20 @@ describe("routine tab groups", () => {
     };
     await expect(groupBoundTab({ id: 6, windowId: 2 }, "jobright", io)).resolves.toBe(15);
     expect(io.grouped).toEqual([{ tabIds: [6], createProperties: { windowId: 2 } }]);
+  });
+
+  test("ungroups the bound tab when the run ends", async () => {
+    const ungrouped = [];
+    const io = {
+      tabs: {
+        ungroup: async (tabId) => {
+          ungrouped.push(tabId);
+        },
+      },
+    };
+    await expect(ungroupBoundTab(21, io)).resolves.toEqual({ ungrouped: true });
+    expect(ungrouped).toEqual([21]);
+    await expect(ungroupBoundTab(21, {})).resolves.toEqual({ ungrouped: false });
   });
 
   test("uses chrome.tabs.group when io is omitted", async () => {

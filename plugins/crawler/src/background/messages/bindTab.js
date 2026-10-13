@@ -8,7 +8,7 @@ import {
   saveBoundTab,
 } from "../boundTab.js";
 import { startRunKeepalive, stopRunKeepaliveIfIdle } from "../runKeepalive.js";
-import { groupBoundTab } from "../tabGroup.js";
+import { groupBoundTab, ungroupBoundTab } from "../tabGroup.js";
 
 import { releaseDebugger } from "./debuggerMouse.js";
 
@@ -17,6 +17,7 @@ const defaultIo = {
     get: (tabId) => chrome.tabs.get(tabId),
   },
   groupBoundTab,
+  ungroupBoundTab,
   startKeepalive: startRunKeepalive,
   stopKeepalive: stopRunKeepaliveIfIdle,
   releaseDebugger,
@@ -40,10 +41,11 @@ function alarmsOf(io) {
   return io.alarms ?? globalThis.chrome?.alarms;
 }
 
-export function unbindCrawlTab(tabId, io = defaultIo) {
+export async function unbindCrawlTab(tabId, io = defaultIo) {
   const removed = removeBoundTab(tabId);
   const id = Number(tabId);
-  io.releaseDebugger?.(id);
+  await io.releaseDebugger?.(id);
+  await io.ungroupBoundTab?.(id);
   io.stopKeepalive?.(alarmsOf(io), listBoundTabs().length);
   return { removed, tabId: id };
 }
@@ -55,19 +57,17 @@ export function handleBindTab(message, sendResponse, io = defaultIo) {
 }
 
 export function handleUnbindTab(message, sendResponse, io = defaultIo) {
-  try {
-    const tabId = message.tabId ?? message.payload?.tabId;
-    sendResponse({ success: true, result: unbindCrawlTab(tabId, io) });
-  } catch (error) {
-    sendResponse({ success: false, error: String(error?.message || error) });
-  }
+  const tabId = message.tabId ?? message.payload?.tabId;
+  Promise.resolve(unbindCrawlTab(tabId, io))
+    .then((result) => sendResponse({ success: true, result }))
+    .catch((error) => sendResponse({ success: false, error: String(error?.message || error) }));
 }
 
-export function handleBoundTabRemoved(tabId, io = {}) {
+export async function handleBoundTabRemoved(tabId, io = {}) {
   const bind = getBoundTab(tabId);
   if (!bind) return null;
   const next = { ...defaultIo, ...io };
-  unbindCrawlTab(tabId, next);
   next.abortInFlightNavigate?.(tabId);
+  await unbindCrawlTab(tabId, next);
   return bind;
 }

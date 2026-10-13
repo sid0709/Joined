@@ -71,12 +71,42 @@ export async function ensureDebugger(tabId, chromeDebugger = defaultChromeDebugg
 }
 
 export async function releaseDebugger(tabId, chromeDebugger = defaultChromeDebugger) {
-  if (!attachedTabs.has(tabId)) return { detached: false };
   attachedTabs.delete(tabId);
-  if (typeof chromeDebugger?.detach === "function") {
-    await chromeDebugger.detach({ tabId }).catch(() => {});
-  }
+  if (typeof chromeDebugger?.detach !== "function") return { detached: false };
+  await chromeDebugger.detach({ tabId }).catch(() => {});
   return { detached: true };
+}
+
+export function layoutZoomOf(metrics, fallback = 1) {
+  const visual = metrics?.cssVisualViewport;
+  const layout = metrics?.cssLayoutViewport;
+  const scale = Number(visual?.scale);
+  if (Number.isFinite(scale) && scale > 0 && Math.abs(scale - 1) > 0.01) return scale;
+  const visualWidth = Number(visual?.clientWidth);
+  const layoutWidth = Number(layout?.clientWidth);
+  if (visualWidth > 0 && layoutWidth > 0 && Math.abs(visualWidth / layoutWidth - 1) > 0.01) {
+    return visualWidth / layoutWidth;
+  }
+  const fallbackZoom = Number(fallback);
+  return Number.isFinite(fallbackZoom) && fallbackZoom > 0 ? fallbackZoom : 1;
+}
+
+export function toCdpPoint(point, zoom = 1) {
+  const factor = Number(zoom);
+  const scale = Number.isFinite(factor) && factor > 0 ? factor : 1;
+  return {
+    x: (Number(point?.x) || 0) * scale,
+    y: (Number(point?.y) || 0) * scale,
+  };
+}
+
+async function pageLayoutZoom(send, fallback = 1) {
+  try {
+    const metrics = await send("Page.getLayoutMetrics");
+    return { zoom: layoutZoomOf(metrics, fallback), metrics };
+  } catch {
+    return { zoom: fallback, metrics: null };
+  }
 }
 
 export async function emulateBackgroundFocus(tabId, chromeDebugger) {
@@ -150,26 +180,37 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
   let pressed = false;
   let diagnosticsText = "";
   let diagnostics = null;
+  const layout = await pageLayoutZoom(send, 1);
   for (const offset of offsets) {
     const hover = await hoverTargetOf(tabId, { ...payload, ...offset }, sendToContentScript);
     diagnosticsText = hover?.diagnosticsText || diagnosticsText;
     diagnostics = hover?.diagnostics || diagnostics;
+    const zoom = layoutZoomOf(layout.metrics, hover?.diagnostics?.zoom || layout.zoom);
     if (!hover?.found) continue;
     hovered = true;
     const path = Array.isArray(hover.approach) && hover.approach.length ? hover.approach : [hover];
-    await moveAlong(send, path);
+    await moveAlong(
+      send,
+      path.map((point) => toCdpPoint(point, zoom)),
+    );
     if (payload.op !== "hoverClick") {
       return { found: true, hovered: true, pressed: false, diagnostics, diagnosticsText };
     }
     const overlay = await overlayTargetOf(tabId, payload, sendToContentScript);
-    diagnostics = { ...(hover.diagnostics || diagnostics || {}), overlay: Boolean(overlay?.found) };
+    diagnostics = {
+      ...(hover.diagnostics || diagnostics || {}),
+      overlay: Boolean(overlay?.found),
+      candidates: overlay?.candidates || hover.diagnostics?.candidates || [],
+      zoom,
+    };
     diagnosticsText = formatHoverDiagnostics(diagnostics);
     if (!overlay?.found) continue;
-    await send("Input.dispatchMouseEvent", mouseMoved(overlay));
-    await send("Input.dispatchMouseEvent", mousePressed(overlay));
+    const clickAt = toCdpPoint(overlay, zoom);
+    await send("Input.dispatchMouseEvent", mouseMoved(clickAt));
+    await send("Input.dispatchMouseEvent", mousePressed(clickAt));
     pressed = true;
     try {
-      await send("Input.dispatchMouseEvent", mouseReleased(overlay));
+      await send("Input.dispatchMouseEvent", mouseReleased(clickAt));
     } catch {
       return { found: true, hovered: true, pressed: true, diagnostics, diagnosticsText };
     }
@@ -177,7 +218,7 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
       found: true,
       hovered: true,
       pressed: true,
-      diagnostics: { ...hover.diagnostics, overlay: true },
+      diagnostics: { ...diagnostics, overlay: true },
       diagnosticsText,
     };
   }

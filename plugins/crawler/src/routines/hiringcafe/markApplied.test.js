@@ -152,6 +152,7 @@ describe("HiringCafe applied-state readers", () => {
     const unmarked = listWith(overlayMarkup());
     const marked = listWith(overlayMarkup({ applied: true }));
     expect(hasMarkAppliedControl(unmarked)).toBe(true);
+    expect(hasMarkAppliedControl(listWith(overlayMarkup({ control: "button" })))).toBe(true);
     expect(hasAppliedCheck(unmarked)).toBe(false);
     expect(appliedStateFromHtml(marked, JOB)).toMatchObject({ marked: true, canMark: false });
     expect(hasMarkToast(`${unmarked}${toastMarkup()}`)).toBe(true);
@@ -170,7 +171,7 @@ describe("HiringCafe applied-state readers", () => {
     expect(markConfirmed({ applied: false, toast: false, fetchOk: false })).toBe(false);
     expect(jobCardSelector(JOB)).toContain('href$="/job/help-desk-coordinator-reqaaa1111111111"');
     expect(cardSelectorForJob(JOB)).toContain("help-desk-coordinator-reqaaa1111111111");
-    expect(MARK_OVERLAY_WAIT_MS).toBe(400);
+    expect(MARK_OVERLAY_WAIT_MS).toBe(1_500);
   });
 
   test("reads Applied ✓ only on the matched card, not a sibling", () => {

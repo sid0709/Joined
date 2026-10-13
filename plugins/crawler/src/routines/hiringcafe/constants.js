@@ -24,8 +24,11 @@ export const POSTED_TEXT_RE = /posted\s+.+/i;
 
 export const NEXT_PAGE = 'button[aria-label="Next page"], a[aria-label="Next page"]';
 export const CARD_OVERLAY = "div.absolute.top-0.right-0";
-export const MARK_APPLIED = `${CARD_OVERLAY} div.bg-white`;
+/** Live overlay is a `<button class="bg-white">`, not only `div.bg-white`. */
+export const MARK_APPLIED_CONTROL = "button, div, span, p, a";
+export const MARK_APPLIED = `${CARD_OVERLAY} ${MARK_APPLIED_CONTROL}`;
 export const MARK_APPLIED_TEXT = "Mark Applied";
+export const MARK_OVERLAY_CANDIDATE_MAX_CHARS = 40;
 export const APPLIED_CHECK_TEXT = "Applied ✓";
 export const APPLIED_CHECK_RE = /applied\s*✓/i;
 export const MARK_TOAST_TEXT = "Job marked successfully";
@@ -48,7 +51,7 @@ export const MARK_APPLIED_STORAGE_KEY = "hiringcafeMarkAppliedEnabledV1";
 export const MARK_HOVER_MS = 250;
 export const MARK_HOVER_STEPS = 4;
 export const SCROLL_SETTLE_MS = 50;
-export const MARK_OVERLAY_WAIT_MS = 400;
+export const MARK_OVERLAY_WAIT_MS = 1_500;
 export const MARK_OVERLAY_POLL_MS = 50;
 export const MARK_CONFIRM_MS = 1_000;
 export const MARK_APPLIED_WAIT_MS = 1_000;

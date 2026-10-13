@@ -10,6 +10,7 @@ import {
   hitInsideCard,
   hoverTargetInDocument,
   overlayTargetInDocument,
+  pageZoomOf,
   viewportHoverPoint,
   waitForOverlayTarget,
 } from "./hoverTarget.js";
@@ -54,6 +55,21 @@ function cardDocument({ overlay = true, width = 320, height = 220, left = 20, to
   }
   return { document, card };
 }
+
+describe("pageZoomOf", () => {
+  test("reads pinch-zoom scale and outer/inner browser zoom", () => {
+    expect(pageZoomOf()).toBe(1);
+    expect(pageZoomOf({ visualViewport: { scale: 0.83, width: 1280 }, innerWidth: 1534 })).toBe(
+      0.83,
+    );
+    expect(pageZoomOf({ visualViewport: { scale: 1, width: 1280 }, innerWidth: 1534 })).toBeCloseTo(
+      1280 / 1534,
+    );
+    expect(
+      pageZoomOf({ visualViewport: { scale: 1, width: 1534 }, innerWidth: 1534, outerWidth: 1280 }),
+    ).toBeCloseTo(1280 / 1534);
+  });
+});
 
 describe("viewportHoverPoint", () => {
   test("uses the card offset when it stays on the card and in the viewport", () => {
@@ -108,11 +124,13 @@ describe("formatHoverDiagnostics", () => {
         viewport: { width: 800, height: 600 },
         scroll: { x: 0, y: 400 },
         dpr: 2,
+        zoom: 1,
         hit: { tag: "DIV", classes: "job-card hc-card" },
         overlay: false,
+        candidates: [],
       }),
     ).toBe(
-      "rect=10,20 320x220 viewport=800x600 scroll=0,400 dpr=2 hit=DIV.job-card.hc-card overlay=no",
+      "rect=10,20 320x220 viewport=800x600 scroll=0,400 dpr=2 zoom=1 hit=DIV.job-card.hc-card overlay=no candidates=none",
     );
   });
 });
@@ -181,7 +199,12 @@ describe("overlayTargetInDocument", () => {
         { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
         { width: 800, height: 600 },
       ),
-    ).toEqual({ found: true, x: 296, y: 60 });
+    ).toMatchObject({
+      found: true,
+      x: 296,
+      y: 60,
+      candidates: expect.arrayContaining(["Mark Applied"]),
+    });
     expect(
       overlayTargetInDocument(document, {
         selector: CARD,
@@ -189,7 +212,39 @@ describe("overlayTargetInDocument", () => {
         contains: "Save for later",
         exact: true,
       }),
-    ).toEqual({ found: false });
+    ).toMatchObject({ found: false });
+  });
+
+  test("finds a live button.bg-white Mark Applied without a div.bg-white selector", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div class="job-card">
+          <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
+          <button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>
+        </div>
+      </div></div>
+    </body></html>`);
+    const button = document.querySelector("button");
+    button.getBoundingClientRect = () => ({
+      left: 200,
+      top: 40,
+      width: 80,
+      height: 20,
+      right: 280,
+      bottom: 60,
+    });
+    expect(
+      overlayTargetInDocument(
+        document,
+        { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
+        { width: 800, height: 600 },
+      ),
+    ).toMatchObject({
+      found: true,
+      x: 240,
+      y: 50,
+      candidates: expect.arrayContaining(["Mark Applied"]),
+    });
   });
 
   test("waitForOverlayTarget returns as soon as the overlay is present", async () => {
@@ -204,12 +259,12 @@ describe("overlayTargetInDocument", () => {
     const missing = cardDocument({ overlay: false }).document;
     await expect(
       waitForOverlayTarget(missing, { selector: CARD, clickSelector: MARK, wait: 0 }, () => 0),
-    ).resolves.toEqual({ found: false });
+    ).resolves.toMatchObject({ found: false });
     let tick = 0;
     await expect(
       waitForOverlayTarget(missing, { selector: CARD, clickSelector: MARK, wait: 200 }, () =>
         tick++ === 0 ? 0 : 500,
       ),
-    ).resolves.toEqual({ found: false });
+    ).resolves.toMatchObject({ found: false });
   });
 });

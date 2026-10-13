@@ -8,11 +8,13 @@ import {
   emulateBackgroundFocus,
   ensureDebugger,
   hasDebuggerApi,
+  layoutZoomOf,
   mouseMoved,
   mousePressed,
   mouseReleased,
   releaseDebugger,
   resetDebuggerSession,
+  toCdpPoint,
 } from "./debuggerMouse.js";
 
 function chromeDebugger() {
@@ -117,7 +119,7 @@ describe("debugger mouse events", () => {
     expect(hasDebuggerApi({})).toBe(false);
     expect(hasDebuggerApi({ attach: async () => {}, sendCommand: async () => {} })).toBe(true);
     await expect(attachDebugger(1, {})).rejects.toThrow("chrome.debugger is not available");
-    expect(await releaseDebugger(99, chromeDebugger())).toEqual({ detached: false });
+    expect(await releaseDebugger(99, chromeDebugger())).toEqual({ detached: true });
   });
 
   test("skips an offset whose hover target is not inside the card", async () => {
@@ -137,6 +139,7 @@ describe("debugger mouse events", () => {
     expect(result.diagnosticsText).toContain("hit=BODY");
     expect(debug.commands.filter((item) => item?.method)).toEqual([
       { method: "Emulation.setFocusEmulationEnabled", params: { enabled: true } },
+      { method: "Page.getLayoutMetrics", params: undefined },
     ]);
     expect(debug.commands.some((item) => item?.method === "Input.dispatchMouseEvent")).toBe(false);
   });
@@ -292,6 +295,38 @@ describe("debugger mouse events", () => {
     expect(result.hovered).toBe(true);
     expect(result.pressed).toBe(false);
     expect(result.diagnosticsText).toContain("overlay=no");
+  });
+
+  test("scales CDP coordinates by Page.getLayoutMetrics zoom", async () => {
+    expect(layoutZoomOf({ cssVisualViewport: { scale: 0.83 } })).toBe(0.83);
+    expect(
+      layoutZoomOf({
+        cssVisualViewport: { clientWidth: 1280, scale: 1 },
+        cssLayoutViewport: { clientWidth: 1534 },
+      }),
+    ).toBeCloseTo(1280 / 1534);
+    expect(toCdpPoint({ x: 100, y: 200 }, 0.83)).toEqual({ x: 83, y: 166 });
+    const debug = chromeDebugger();
+    debug.sendCommand = async (_target, method, params) => {
+      debug.commands.push({ method, params });
+      if (method === "Page.getLayoutMetrics") {
+        return { cssVisualViewport: { clientWidth: 1280, scale: 0.83 } };
+      }
+    };
+    await dispatchTrustedMouse(
+      2,
+      { op: "hover", selector: ".card", x: 100, y: 100 },
+      {
+        chromeDebugger: debug,
+        tabs: tabsIo({ active: false }),
+        sendToContentScript: async () => ({
+          result: { found: true, x: 100, y: 200, approach: [{ x: 100, y: 200 }] },
+        }),
+      },
+    );
+    expect(debug.commands.filter((item) => item?.method === "Input.dispatchMouseEvent")).toEqual([
+      { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 83, y: 166 }) },
+    ]);
   });
 
   test("hover-only sends the approach mouseMoved sequence and keeps the session", async () => {

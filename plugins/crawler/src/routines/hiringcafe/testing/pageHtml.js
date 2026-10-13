@@ -115,11 +115,15 @@ export function groupedHits() {
   ];
 }
 
-export function overlayMarkup({ applied = false } = {}) {
+export function overlayMarkup({ applied = false, control = "div" } = {}) {
   if (applied) {
     return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><span>Applied ✓</span><button class="bg-pink-600">App Tracker</button></div></div>`;
   }
-  return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><div class="flex-none cursor-pointer">Save</div><div class="bg-white">Mark Applied</div></div></div>`;
+  const mark =
+    control === "button"
+      ? `<button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>`
+      : `<div class="bg-white">Mark Applied</div>`;
+  return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><div class="flex-none cursor-pointer">Save</div>${mark}</div></div>`;
 }
 
 export function carouselMarkup(size = 3, current = 1) {
