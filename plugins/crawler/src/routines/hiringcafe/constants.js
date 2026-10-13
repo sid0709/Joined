@@ -15,6 +15,8 @@ export const MAX_PAGE = 1000;
 /** List cards. Prefer `__NEXT_DATA__.props.pageProps.ssrHits` over these; groups share a card. */
 export const JOB_RESULTS = '[data-testid="job-results"]';
 export const JOB_CARD = '[data-testid="job-results"] .hc-card-grid > div';
+/** Live visual card. The hover hit walks up to this, then the overlay layer. */
+export const CARD_ROOT = "div.relative.bg-white.rounded-xl";
 export const JOB_LINK = 'a[href^="/job/"]';
 export const NEXT_DATA_SCRIPT = "#__NEXT_DATA__";
 export const JSON_LD_SCRIPT = 'script[type*="ld"]';
@@ -23,9 +25,14 @@ export const POSTED_CHIP = "div.absolute.top-2.right-2 span";
 export const POSTED_TEXT_RE = /posted\s+.+/i;
 
 export const NEXT_PAGE = 'button[aria-label="Next page"], a[aria-label="Next page"]';
+/** Full-card hover chrome. Live hit walks through this before the card. */
+export const CARD_HOVER_LAYER = "div.cursor-zoom-in";
+/** Save / Mark Applied cluster. Live also has `z-10`. */
 export const CARD_OVERLAY = "div.absolute.top-0.right-0";
-/** Live hover row. Distinct from the card header's `flex justify-between`. */
-export const CARD_OVERLAY_ROW = "div.flex.justify-between";
+/** Applied + check SVG chip. Distinct from the posted-date `top-2 right-2`. */
+export const CARD_APPLIED_CHIP = "div.absolute.font-bold.top-2.right-2";
+/** Live hover row under the cursor at card offset 100,100. */
+export const CARD_OVERLAY_ROW = "div.flex.justify-between.items-end";
 /** Live overlay is a `<button class="bg-white">`, not only `div.bg-white`. */
 export const MARK_APPLIED_CONTROL = "button, div, span, p, a";
 export const MARK_APPLIED = `${CARD_OVERLAY} ${MARK_APPLIED_CONTROL}`;

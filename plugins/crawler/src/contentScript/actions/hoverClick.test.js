@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { parseHTML } from "linkedom";
 
+import { listWithRealCard, readRealDom } from "../../routines/hiringcafe/testing/realDom.js";
+
 import { hoverAt, hoverClickInDocument, pickMatch } from "./hoverClick.js";
 
 const CARD = '[data-testid="job-results"] .hc-card-grid > div';
@@ -86,24 +88,18 @@ describe("hoverClickInDocument", () => {
     expect(clicks).toBe(1);
   });
 
-  test("ancestor overlay hit clicks Mark Applied and not the job link", () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <div class="job-card">
-          <div class="flex justify-between">
-            <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
-            <button class="bg-white">Mark Applied</button>
-          </div>
-        </div>
-      </div></div>
-    </body></html>`);
-    let linkClicks = 0;
+  test("clicks the real hover-layer Mark Applied button and not the footer job link", () => {
+    const document = parseHTML(listWithRealCard(readRealDom("card-unapplied-hover.html"))).document;
     let markClicks = 0;
-    document.querySelector("a").addEventListener("click", () => {
-      linkClicks += 1;
-    });
-    document.querySelector("button").addEventListener("click", () => {
+    let linkClicks = 0;
+    const button = [...document.querySelectorAll("button")].find(
+      (node) => node.textContent.trim() === "Mark Applied",
+    );
+    button.addEventListener("click", () => {
       markClicks += 1;
+    });
+    document.querySelector('a[href^="/job/"]').addEventListener("click", () => {
+      linkClicks += 1;
     });
     expect(
       hoverClickInDocument(document, {
@@ -115,33 +111,6 @@ describe("hoverClickInDocument", () => {
     ).toEqual({ found: true, hovered: true });
     expect(markClicks).toBe(1);
     expect(linkClicks).toBe(0);
-  });
-
-  test("clicks Mark Applied when the whole card is wrapped in the job link", () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <a href="/job/help-desk-coordinator-reqaaa1111111111">
-          <div class="job-card">
-            <div class="absolute top-0 right-0">
-              <button class="bg-white">Mark Applied</button>
-            </div>
-          </div>
-        </a>
-      </div></div>
-    </body></html>`);
-    let markClicks = 0;
-    document.querySelector("button").addEventListener("click", () => {
-      markClicks += 1;
-    });
-    expect(
-      hoverClickInDocument(document, {
-        selector: "a[href^='/job/'] > div",
-        clickSelector: "button",
-        contains: "Mark Applied",
-        exact: true,
-      }),
-    ).toEqual({ found: true, hovered: true });
-    expect(markClicks).toBe(1);
   });
 
   test("returns found false when the card or Mark Applied is missing", () => {

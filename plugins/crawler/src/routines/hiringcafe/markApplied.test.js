@@ -20,6 +20,7 @@ import {
   markStateRoot,
   overlayAppliedCandidateTexts,
   overlayCandidateTexts,
+  overlayRoot,
   stageUpdateSucceeded,
 } from "./appliedState.js";
 import {
@@ -245,14 +246,21 @@ describe("HiringCafe applied-state readers", () => {
     expect(hasMarkAppliedControl(live)).toBe(false);
   });
 
-  test("finds Mark Applied in a live flex justify-between row next to an empty decoy overlay", () => {
-    const html = listWith(overlayMarkup({ row: true, decoy: true }));
+  test("finds Mark Applied in the hover layer even when the hit is the sibling overlay row", () => {
+    const html = listWith(overlayMarkup());
     const firstCard = queryOne(documentFromHtml(html), JOB_CARD);
+    const row = firstCard.querySelector("div.flex.justify-between.items-end");
+    const button = [...firstCard.querySelectorAll("button")].find(
+      (node) => node.textContent.trim() === MARK_APPLIED_TEXT,
+    );
+    expect(row?.contains(button)).toBe(false);
+    expect(overlayRoot(row)?.className).toContain("cursor-zoom-in");
     expect(overlayCandidateTexts(firstCard)).toEqual(expect.arrayContaining([MARK_APPLIED_TEXT]));
     expect(appliedStateFromHtml(html, JOB)).toMatchObject({ marked: false, canMark: true });
-    expect(
-      appliedStateFromHtml(listWith(overlayMarkup({ row: true, applied: true, decoy: true })), JOB),
-    ).toMatchObject({ marked: true, canMark: false });
+    expect(appliedStateFromHtml(listWith(overlayMarkup({ applied: true })), JOB)).toMatchObject({
+      marked: true,
+      canMark: false,
+    });
     expect(isListCardApplied(firstCard)).toBe(false);
   });
 
@@ -638,8 +646,8 @@ describe("markAppliedOnCard", () => {
 
   test("clicks Mark Applied in a live flex justify-between overlay", async () => {
     const harness = markHarness({
-      htmlAfterHover: listWith(overlayMarkup({ row: true, decoy: true })),
-      htmlAfterClick: listWith(overlayMarkup({ row: true, applied: true }), { toast: true }),
+      htmlAfterHover: listWith(overlayMarkup()),
+      htmlAfterClick: listWith(overlayMarkup({ applied: true }), { toast: true }),
     });
     const result = await markAppliedOnCard({
       job: JOB,
@@ -654,7 +662,7 @@ describe("markAppliedOnCard", () => {
 
   test("skips a feed card whose hover overlay already shows Applied", async () => {
     const harness = markHarness({
-      htmlAfterHover: listWith(overlayMarkup({ row: true, applied: true, decoy: true })),
+      htmlAfterHover: listWith(overlayMarkup({ applied: true })),
     });
     const result = await markAppliedOnCard({
       job: JOB,

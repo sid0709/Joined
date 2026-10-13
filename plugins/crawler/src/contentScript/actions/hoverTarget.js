@@ -1,7 +1,9 @@
 import { queryAll } from "../../routineKit/extract.js";
 import {
-  findMarkAppliedControl,
+  findMarkAppliedInOverlay,
   overlayAppliedCandidateTexts,
+  overlayFromHit,
+  overlayRoot,
 } from "../../routines/hiringcafe/appliedState.js";
 import {
   MARK_APPLIED_CONTROL,
@@ -17,21 +19,8 @@ import { wait } from "./dom";
 import { pickMatch } from "./hoverClick";
 import { scrollElementIntoView } from "./scroll";
 
-const ANCHOR = "a";
-
-/** Link strictly inside the card that does not wrap the card itself. */
-function innerCardLink(node, card) {
-  const link = node?.closest?.(ANCHOR);
-  if (!link || !card) return null;
-  if (!card.contains(link) || link === card || link.contains(card)) return null;
-  return link;
-}
-
-function hitRevealsOverlay(node, target, card) {
-  if (!node || !target) return false;
-  if (node === target || target.contains?.(node)) return true;
-  if (node === card || !card.contains?.(node) || !node.contains?.(target)) return false;
-  return !innerCardLink(node, card);
+function hitIsControl(node, target) {
+  return Boolean(node && target && (node === target || target.contains?.(node)));
 }
 
 export function clamp(value, min, max) {
@@ -234,9 +223,9 @@ function describeHit(node) {
 export function hitInsideCard(card, x, y, elementFromPoint) {
   const node = typeof elementFromPoint === "function" ? elementFromPoint(x, y) : null;
   const info = describeHit(node);
-  if (!node || !card) return { ok: false, ...info };
+  if (!node || !card) return { ok: false, node: null, ...info };
   const inside = node === card || Boolean(card.contains?.(node));
-  return { ok: inside, ...info };
+  return { ok: inside, node, ...info };
 }
 
 function elementFromPointOf(root, explicit) {
@@ -333,6 +322,7 @@ export async function hoverTargetInDocument(
   }
   const hitAt = elementFromPointOf(root, elementFromPoint);
   const resolved = resolvePoint(card, { x, y }, view, hitAt);
+  const overlay = resolved.hit.ok ? overlayFromHit(resolved.hit.node, card) : null;
   const diagnostics = {
     rect: resolved.rect,
     viewport: view,
@@ -340,8 +330,8 @@ export async function hoverTargetInDocument(
     dpr: dprOf(),
     zoom: view.zoom || pageZoomOf(),
     hit: { tag: resolved.hit.tag, classes: resolved.hit.classes },
-    overlay: false,
-    candidates: overlayAppliedCandidateTexts(card),
+    overlay: Boolean(overlay),
+    candidates: overlayAppliedCandidateTexts(overlay || card),
   };
   if (!resolved.hit.ok) {
     return {
@@ -369,21 +359,22 @@ export function overlayTargetInDocument(
   elementFromPoint,
 ) {
   const card = queryAll(root, selector)[nth];
-  const candidates = overlayAppliedCandidateTexts(card);
+  const overlay = overlayRoot(card);
+  const candidates = overlayAppliedCandidateTexts(overlay || card);
   if (!card) return { found: false, candidates };
   const needle = String(contains || MARK_APPLIED_TEXT).trim() || MARK_APPLIED_TEXT;
   const lookingForMark = !contains || needle === MARK_APPLIED_TEXT;
-  let target = lookingForMark ? findMarkAppliedControl(card) : null;
-  if (!target) {
-    target = pickMatch(queryAll(card, clickSelector || MARK_APPLIED_CONTROL), {
+  let target = lookingForMark ? findMarkAppliedInOverlay(card) : null;
+  if (!target && !lookingForMark) {
+    target = pickMatch(queryAll(overlay || card, clickSelector || MARK_APPLIED_CONTROL), {
       contains: needle,
-      exact: exact || lookingForMark,
+      exact,
     });
   }
   if (!target) return { found: false, candidates };
   const point = pointFromRect(rectOf(target), viewport);
   const node = elementFromPointOf(root, elementFromPoint)(point.x, point.y);
-  if (!hitRevealsOverlay(node, target, card)) {
+  if (!hitIsControl(node, target)) {
     return { found: false, candidates, hit: describeHit(node) };
   }
   return { found: true, candidates, ...point };

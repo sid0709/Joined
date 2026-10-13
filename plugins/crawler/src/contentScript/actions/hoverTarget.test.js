@@ -234,7 +234,14 @@ describe("overlayTargetInDocument", () => {
       <div data-testid="job-results"><div class="hc-card-grid">
         <div class="job-card">
           <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
-          <button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>
+          <div class="absolute inset-y-0 left-0 w-full cursor-zoom-in">
+            <div class="absolute top-0 right-0 z-10">
+              <button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>
+            </div>
+            <div class="absolute bottom-0 w-full p-2 h-full">
+              <div class="flex justify-between items-end"></div>
+            </div>
+          </div>
         </div>
       </div></div>
     </body></html>`);
@@ -258,186 +265,8 @@ describe("overlayTargetInDocument", () => {
       found: true,
       x: 240,
       y: 50,
-      candidates: [],
-    });
-  });
-
-  test("lists Mark Applied candidates when hover hits DIV.flex.justify-between on the card", async () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <div class="job-card">
-          <div class="flex justify-between"><a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a></div>
-          <div class="absolute top-0 right-0"></div>
-          <div class="flex justify-between">
-            <div>Save</div>
-            <button class="bg-white">Mark Applied</button>
-          </div>
-        </div>
-      </div></div>
-    </body></html>`);
-    const card = document.querySelector(CARD);
-    card.getBoundingClientRect = () => ({
-      left: 20,
-      top: 40,
-      width: 320,
-      height: 220,
-      right: 340,
-      bottom: 260,
-    });
-    card.scrollIntoView = () => {};
-    const hit = document.querySelector("div.flex.justify-between");
-    const result = await hoverTargetInDocument(
-      document,
-      { selector: CARD, x: 100, y: 100 },
-      { width: 800, height: 600 },
-      () => hit,
-    );
-    expect(result.found).toBe(true);
-    expect(result.diagnostics.hit).toMatchObject({ tag: "DIV", classes: "flex justify-between" });
-    expect(result.diagnostics.candidates).toEqual(expect.arrayContaining(["Mark Applied"]));
-    expect(result.diagnosticsText).toContain("hit=DIV.flex.justify-between");
-    expect(result.diagnosticsText).toContain("Mark Applied");
-  });
-
-  test("lists Mark Applied when the hit is DIV.flex.justify-between beside an empty decoy overlay", () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <div class="job-card">
-          <div class="flex justify-between"><a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a></div>
-          <div class="absolute top-0 right-0"></div>
-          <div class="flex justify-between">
-            <div>Save</div>
-            <button class="bg-white">Mark Applied</button>
-          </div>
-        </div>
-      </div></div>
-    </body></html>`);
-    const card = document.querySelector(CARD);
-    card.getBoundingClientRect = () => ({
-      left: 20,
-      top: 40,
-      width: 320,
-      height: 220,
-      right: 340,
-      bottom: 260,
-    });
-    const hit = [...document.querySelectorAll("div.flex.justify-between")].find((row) =>
-      row.textContent.includes("Mark Applied"),
-    );
-    document.elementFromPoint = () => hit;
-    expect(
-      overlayTargetInDocument(document, {
-        selector: CARD,
-        clickSelector: MARK,
-        contains: "Mark Applied",
-        exact: true,
-      }),
-    ).toMatchObject({
-      found: true,
       candidates: expect.arrayContaining(["Mark Applied"]),
     });
-  });
-
-  test("ancestor hit on the overlay row does not treat the job link as the target", () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <div class="job-card">
-          <div class="flex justify-between">
-            <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
-            <button class="bg-white">Mark Applied</button>
-          </div>
-        </div>
-      </div></div>
-    </body></html>`);
-    const button = document.querySelector("button");
-    button.getBoundingClientRect = () => ({
-      left: 200,
-      top: 40,
-      width: 80,
-      height: 20,
-      right: 280,
-      bottom: 60,
-    });
-    document.elementFromPoint = () => document.querySelector("div.flex.justify-between");
-    expect(
-      overlayTargetInDocument(
-        document,
-        { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
-        { width: 800, height: 600 },
-      ),
-    ).toMatchObject({ found: true, x: 240, y: 50 });
-  });
-
-  test("rejects an ancestor hit when a link wraps the overlay or Mark Applied", () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <div class="job-card">
-          <a href="/job/help-desk-coordinator-reqaaa1111111111">
-            <div class="absolute top-0 right-0">
-              <button class="bg-white">Mark Applied</button>
-            </div>
-          </a>
-        </div>
-      </div></div>
-    </body></html>`);
-    const button = document.querySelector("button");
-    button.getBoundingClientRect = () => ({
-      left: 200,
-      top: 40,
-      width: 80,
-      height: 20,
-      right: 280,
-      bottom: 60,
-    });
-    const link = document.querySelector("a");
-    document.elementFromPoint = () => link;
-    expect(
-      overlayTargetInDocument(
-        document,
-        { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
-        { width: 800, height: 600 },
-      ),
-    ).toMatchObject({ found: false, hit: { tag: "A" } });
-  });
-
-  test("accepts overlay hits when the whole card is wrapped in the job link", () => {
-    const { document } = parseHTML(`<!DOCTYPE html><html><body>
-      <div data-testid="job-results"><div class="hc-card-grid">
-        <a href="/job/help-desk-coordinator-reqaaa1111111111">
-          <div class="job-card">
-            <div class="absolute top-0 right-0">
-              <button class="bg-white">Mark Applied</button>
-            </div>
-          </div>
-        </a>
-      </div></div>
-    </body></html>`);
-    const card = document.querySelector("a[href^='/job/'] > div");
-    const overlay = document.querySelector("div.absolute.top-0.right-0");
-    const button = document.querySelector("button");
-    button.getBoundingClientRect = () => ({
-      left: 200,
-      top: 40,
-      width: 80,
-      height: 20,
-      right: 280,
-      bottom: 60,
-    });
-    document.elementFromPoint = () => overlay;
-    expect(
-      overlayTargetInDocument(
-        document,
-        {
-          selector: "a[href^='/job/'] > div",
-          clickSelector: MARK,
-          contains: "Mark Applied",
-          exact: true,
-        },
-        { width: 800, height: 600 },
-      ),
-    ).toMatchObject({ found: true, x: 240, y: 50 });
-    expect(card.contains(overlay)).toBe(true);
-    expect(document.querySelector("a").contains(card)).toBe(true);
   });
 
   test("does not treat card-wide Applied text as overlay candidates", () => {

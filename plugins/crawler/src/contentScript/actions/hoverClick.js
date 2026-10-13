@@ -1,5 +1,8 @@
 import { queryAll } from "../../routineKit/extract.js";
-import { findMarkAppliedControl } from "../../routines/hiringcafe/appliedState.js";
+import {
+  findMarkAppliedControl,
+  findMarkAppliedInOverlay,
+} from "../../routines/hiringcafe/appliedState.js";
 import { MARK_APPLIED_TEXT } from "../../routines/hiringcafe/constants.js";
 
 import { clickLikeHuman } from "./dom";
@@ -48,8 +51,9 @@ export function hoverAt(element, { x = 100, y = 100 } = {}) {
 function clickMatch(root, { selector, contains, exact = false, nth = 0 } = {}) {
   const needle = String(contains || "").trim();
   const target =
-    (needle === MARK_APPLIED_TEXT || !needle ? findMarkAppliedControl(root) : null) ||
-    pickMatch(queryAll(root, selector), { nth, contains, exact });
+    (needle === MARK_APPLIED_TEXT || !needle
+      ? findMarkAppliedInOverlay(root) || findMarkAppliedControl(root)
+      : null) || pickMatch(queryAll(root, selector), { nth, contains, exact });
   if (!target) return { found: false };
   clickLikeHuman(target);
   return { found: true };

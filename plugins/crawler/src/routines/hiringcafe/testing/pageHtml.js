@@ -115,33 +115,32 @@ export function groupedHits() {
   ];
 }
 
-export function overlayMarkup({
-  applied = false,
-  control = "div",
-  live = false,
-  row = false,
-  decoy = false,
-} = {}) {
-  const decoyHtml = decoy ? `<div class="absolute top-0 right-0"></div>` : "";
-  if (row) {
-    const inner = applied
-      ? `<button class="bg-white">Applied</button><button class="bg-pink-600">App Tracker</button>`
-      : `<div class="flex-none cursor-pointer">Save</div><button class="bg-white">Mark Applied</button>`;
-    return `${decoyHtml}<div class="flex justify-between">${inner}</div>`;
+function hoverLayerMarkup(cluster, rowExtra = "") {
+  return `<div class="absolute inset-y-0 left-0 w-full cursor-zoom-in"><div class="absolute inset-y-0 left-0 bg-black w-full opacity-50"></div>${cluster}<div class="absolute bottom-0 w-full p-2 h-full"><div class="flex justify-between items-end text-sm w-full space-x-2 h-full"><button type="button">Apply Directly</button>${rowExtra}</div></div></div>`;
+}
+
+/** Live hover chrome: Mark Applied is a sibling of the justify-between row. */
+export function overlayMarkup({ applied = false, control = "button", live = false } = {}) {
+  if (applied === true && !live) {
+    return hoverLayerMarkup(
+      `<div class="flex items-center space-x-2 absolute font-bold top-2 right-2 text-white"><span class="text-sm flex items-center space-x-1"><span>Applied</span><svg></svg></span></div><div class="absolute top-0 right-0 z-10 m-2 flex flex-col items-start text-xs font-bold"><div class="flex items-center space-x-2"></div></div>`,
+      `<a class="bg-pink-50 text-pink-600 font-bold rounded px-4 py-2 text-xs" href="/myhiringcafe/tracker">App Tracker</a>`,
+    );
   }
-  if (live) {
+  if (live || applied === "toggle" || applied === "tracker") {
     const toggle = applied === "tracker" ? "" : `<button class="bg-white">Applied</button>`;
     const tracker = applied === "toggle" ? "" : `<button class="bg-pink-600">App Tracker</button>`;
-    return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2">${toggle}${tracker}</div></div>`;
-  }
-  if (applied) {
-    return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><span>Applied ✓</span><button class="bg-pink-600">App Tracker</button></div></div>`;
+    return hoverLayerMarkup(
+      `<div class="absolute top-0 right-0 z-10"><div class="flex items-center space-x-2">${toggle}${tracker}</div></div>`,
+    );
   }
   const mark =
-    control === "button"
-      ? `<button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>`
-      : `<div class="bg-white">Mark Applied</div>`;
-  return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><div class="flex-none cursor-pointer">Save</div>${mark}</div></div>`;
+    control === "div"
+      ? `<div class="bg-white">Mark Applied</div>`
+      : `<button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>`;
+  return hoverLayerMarkup(
+    `<div class="absolute top-0 right-0 z-10 m-2 flex flex-col items-start text-xs font-bold"><div class="flex items-center space-x-2"><button type="button">Save</button>${mark}</div></div>`,
+  );
 }
 
 export function carouselMarkup(size = 3, current = 1) {
