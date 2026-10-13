@@ -44,10 +44,12 @@ export function isMarkAppliedEnabled(enabled) {
 
 function noteMark(onActivity, label, kind = "waitFor", onNotice, ok = true) {
   onActivity?.({ phase: "dismiss", label, kind });
-  if (!ok) {
-    console.warn(label);
-    onNotice?.(label, false);
+  if (ok) {
+    onNotice?.(label, true);
+    return;
   }
+  console.warn(label);
+  onNotice?.(label, false);
 }
 
 async function pause(rest, skipDelays, ms) {
@@ -298,7 +300,7 @@ export async function markAppliedOnCard({
   }
   if (ready.marked) {
     const log = alreadyMarkedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, already: true, log };
   }
 
@@ -307,7 +309,7 @@ export async function markAppliedOnCard({
   const clicked = await clickMarkOnCard({ job, call, skipDelays });
   if (clicked?.already && !clicked?.found && !clicked?.pressed) {
     const log = alreadyMarkedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, already: true, log };
   }
   if (!clicked?.found) {
@@ -337,7 +339,7 @@ export async function markAppliedOnCard({
   }
   if (confirmed.marked) {
     const log = markedAppliedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, log };
   }
   const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
@@ -375,7 +377,7 @@ export async function markAppliedOnDetail({
   const root = markStateRoot(page.html, job);
   if (root && appliedFromCandidateTexts(overlayCandidateTexts(root))) {
     const log = alreadyMarkedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, already: true, via: "detail", log };
   }
   if (!hasMarkAppliedControl(page.html)) {
@@ -412,7 +414,7 @@ export async function markAppliedOnDetail({
   }
   if (confirmed.marked) {
     const log = markedAppliedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, via: "detail", log };
   }
   const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
@@ -443,7 +445,7 @@ export async function resolveMarkAfterDetail(detailMark, options) {
   }
   if (ready.marked) {
     const log = alreadyMarkedLog(options?.job?.id || "");
-    noteMark(options?.onActivity, log);
+    noteMark(options?.onActivity, log, "waitFor", options?.onNotice, true);
     return { marked: true, already: true, via: "reread", log };
   }
   const reason = detailMark?.reason || NOT_MARKED_REASON.NOT_CONFIRMED;

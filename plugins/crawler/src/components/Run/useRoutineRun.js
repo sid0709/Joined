@@ -366,10 +366,12 @@ export function useRoutineRun() {
         setPace((current) => mergePace(current, next));
       },
       onNotice: (message, ok) => {
-        if (!ok) {
-          setExtractError((current) => appendNotice(current, message));
-          notification.warning(message, { key: `run-notice-${message}`, autoHideDuration: 4000 });
+        if (ok) {
+          notification.success(message, { key: `run-notice-${message}`, autoHideDuration: 3000 });
+          return;
         }
+        setExtractError((current) => appendNotice(current, message));
+        notification.warning(message, { key: `run-notice-${message}`, autoHideDuration: 4000 });
       },
       onFinished: (message) => {
         notification.success(message, { key: "run-finished", autoHideDuration: 3000 });

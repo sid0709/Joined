@@ -10,9 +10,9 @@ import {
   MARK_APPLIED_TEXT,
   MARK_HOVER_OFFSET,
   MARK_HOVER_STEPS,
+  MARK_CARD_RECT_WAIT_MS,
   MARK_OVERLAY_POLL_MS,
   MARK_OVERLAY_WAIT_MS,
-  SCROLL_SETTLE_MS,
 } from "../../routines/hiringcafe/constants.js";
 
 import { wait } from "./dom";
@@ -294,15 +294,22 @@ function resolvePoint(card, offset, viewport, elementFromPoint) {
   return { point: preferred, hit, rect };
 }
 
-export async function hoverTargetInDocument(
-  root,
-  { selector, nth = 0, x = MARK_HOVER_OFFSET.x, y = MARK_HOVER_OFFSET.y } = {},
-  viewport,
-  elementFromPoint,
-) {
-  scrollElementIntoView(root, { selector, block: "center", inline: "nearest" });
-  if (SCROLL_SETTLE_MS > 0) await wait(SCROLL_SETTLE_MS);
-  const card = queryAll(root, selector)[nth];
+function hasPaintedRect(rect) {
+  return numberOr(rect?.width) > 0 && numberOr(rect?.height) > 0;
+}
+
+async function locateCard(root, { selector, nth = 0, waitMs }, now) {
+  const deadline = now() + Math.max(0, numberOr(waitMs));
+  for (;;) {
+    scrollElementIntoView(root, { selector, nth, block: "center", inline: "nearest" });
+    const card = queryAll(root, selector)[nth];
+    if (card && hasPaintedRect(rectOf(card))) return card;
+    if (now() >= deadline) return card || null;
+    await wait(MARK_OVERLAY_POLL_MS);
+  }
+}
+
+function hoverLocatedCard(root, card, { x, y }, viewport, elementFromPoint) {
   const view = viewportOf(viewport);
   const empty = {
     found: false,
@@ -350,6 +357,25 @@ export async function hoverTargetInDocument(
     diagnostics,
     diagnosticsText: formatHoverDiagnostics(diagnostics),
   };
+}
+
+export async function hoverTargetInDocument(
+  root,
+  {
+    selector,
+    nth = 0,
+    x = MARK_HOVER_OFFSET.x,
+    y = MARK_HOVER_OFFSET.y,
+    wait: waitMs = MARK_CARD_RECT_WAIT_MS,
+  } = {},
+  viewport,
+  elementFromPoint,
+  now = Date.now,
+) {
+  const locate = () => locateCard(root, { selector, nth, waitMs }, now);
+  const first = hoverLocatedCard(root, await locate(), { x, y }, viewport, elementFromPoint);
+  if (first.found) return first;
+  return hoverLocatedCard(root, await locate(), { x, y }, viewport, elementFromPoint);
 }
 
 export function overlayTargetInDocument(

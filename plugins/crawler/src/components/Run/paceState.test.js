@@ -53,6 +53,23 @@ describe("mergePace", () => {
     expect(third.marked).toBe(0);
   });
 
+  test("does not keep Job marked applied success lines for the errors banner", () => {
+    const success = mergePace(null, {
+      markDelta: { marked: 1, notMarked: 0, reason: "", log: "Job a marked applied" },
+    });
+    expect(success.marked).toBe(1);
+    expect(success.markLogs).toEqual([]);
+    const mixed = mergePace(success, {
+      markDelta: {
+        marked: 0,
+        notMarked: 1,
+        reason: "hover missed overlay",
+        log: "Job b not marked applied: hover missed overlay",
+      },
+    });
+    expect(mixed.markLogs).toEqual(["Job b not marked applied: hover missed overlay"]);
+  });
+
   test("definedEntries drops undefined keys and appendNotice lists each line", () => {
     expect(definedEntries({ jobIndex: 3, jobsOnPage: undefined })).toEqual({ jobIndex: 3 });
     expect(appendNotice(null, "")).toBeNull();

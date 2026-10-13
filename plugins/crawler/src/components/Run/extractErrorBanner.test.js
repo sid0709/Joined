@@ -43,4 +43,22 @@ describe("extractErrorBanner", () => {
     const reasons = Object.values(NOT_MARKED_REASON);
     expect(extractErrorBanner("", reasons).description).toBe(reasons.join(" · "));
   });
+
+  test("does not put Job marked applied success lines on the extraction banner", () => {
+    expect(extractErrorBanner(null, [], ["Job reqaaa1111111111 marked applied"])).toBeNull();
+    expect(
+      extractErrorBanner(
+        "Job reqaaa1111111111 marked applied",
+        [],
+        [
+          "Job reqaaa1111111111 marked applied",
+          "Job reqbbb2222222222 not marked applied: hover missed overlay",
+        ],
+      ),
+    ).toEqual({
+      status: "warning",
+      title: "Mark Applied",
+      description: "Job reqbbb2222222222 not marked applied: hover missed overlay",
+    });
+  });
 });

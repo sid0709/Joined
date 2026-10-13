@@ -64,6 +64,8 @@ export const MARK_HOVER_STEPS = 4;
 export const SCROLL_SETTLE_MS = 50;
 export const MARK_OVERLAY_WAIT_MS = 1_500;
 export const MARK_OVERLAY_POLL_MS = 50;
+/** Virtualized cards can paint at 0×0 until they are scrolled into view. */
+export const MARK_CARD_RECT_WAIT_MS = 1_500;
 /** Drop the CDP link guard if `releaseMarkLink` never arrives. */
 export const MARK_LINK_GUARD_MS = 2_000;
 export const MARK_CONFIRM_MS = 1_000;
@@ -277,6 +279,12 @@ export function markedReasonsLabel(reasons = []) {
 
 export function markedAppliedLog(jobId) {
   return `Job ${jobId} marked applied`;
+}
+
+const MARKED_APPLIED_LOG_RE = /^Job \S+ marked applied$/i;
+
+export function isMarkedAppliedLog(value) {
+  return MARKED_APPLIED_LOG_RE.test(String(value || "").trim());
 }
 
 export function alreadyMarkedLog(jobId) {

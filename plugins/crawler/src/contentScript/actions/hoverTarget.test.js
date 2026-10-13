@@ -157,9 +157,52 @@ describe("hoverTargetInDocument", () => {
     expect(result.approach.at(-1)).toEqual({ x: 120, y: 140 });
     expect(result.diagnosticsText).toContain("viewport=800x600");
     expect(result.diagnostics.dpr).toBe(1);
-    const missing = await hoverTargetInDocument(document, { selector: "[data-missing]" });
+    const missing = await hoverTargetInDocument(document, {
+      selector: "[data-missing]",
+      wait: 0,
+    });
     expect(missing.found).toBe(false);
     expect(missing.diagnosticsText).toContain("hit=none");
+  });
+
+  test("waits for a non-zero card rect after scrollIntoView center", async () => {
+    const { document, card } = cardDocument({ width: 0, height: 0, left: 0, top: 0 });
+    const started = Date.now();
+    card.getBoundingClientRect = () => {
+      if (Date.now() - started < 80) {
+        return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 };
+      }
+      return { left: 20, top: 40, width: 320, height: 220, right: 340, bottom: 260 };
+    };
+    const result = await hoverTargetInDocument(
+      document,
+      { selector: CARD, x: 100, y: 100, wait: 200 },
+      { width: 800, height: 600 },
+      () => card,
+    );
+    expect(result).toMatchObject({ found: true, x: 120, y: 140 });
+    expect(card.scrolled).toBe(true);
+  });
+
+  test("re-queries the card and retries hover once after a 0x0 miss", async () => {
+    const { document, card } = cardDocument({ width: 0, height: 0, left: 0, top: 0 });
+    let scrolls = 0;
+    card.scrollIntoView = () => {
+      scrolls += 1;
+      card.scrolled = true;
+    };
+    card.getBoundingClientRect = () =>
+      scrolls < 2
+        ? { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 }
+        : { left: 20, top: 40, width: 320, height: 220, right: 340, bottom: 260 };
+    const result = await hoverTargetInDocument(
+      document,
+      { selector: CARD, x: 100, y: 100, wait: 0 },
+      { width: 800, height: 600 },
+      () => (scrolls < 2 ? null : card),
+    );
+    expect(scrolls).toBeGreaterThanOrEqual(2);
+    expect(result).toMatchObject({ found: true, x: 120, y: 140 });
   });
 
   test("re-checks elementFromPoint after clamping to the visible card", async () => {

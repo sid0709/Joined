@@ -1,4 +1,8 @@
-import { MARK_APPLIED_LABEL, markedReasonsLabel } from "../../routines/hiringcafe/constants";
+import {
+  MARK_APPLIED_LABEL,
+  isMarkedAppliedLog,
+  markedReasonsLabel,
+} from "../../routines/hiringcafe/constants";
 
 export const EXTRACT_ERROR_TITLE = "Extraction error";
 
@@ -15,7 +19,9 @@ function uniqueLogs(values) {
 
 /** Props for the LiveRunCard extraction-error Banner, or null when none. */
 export function extractErrorBanner(extractError, markReasons = [], markLogs = []) {
-  const logs = uniqueLogs([...(markLogs ?? []), extractError]);
+  const logs = uniqueLogs([...(markLogs ?? []), extractError]).filter(
+    (log) => !isMarkedAppliedLog(log),
+  );
   const reasons = markedReasonsLabel(markReasons);
   if (!logs.length && !reasons) return null;
   const isMark = Boolean(reasons) || logs.some((log) => /not marked applied/i.test(log));

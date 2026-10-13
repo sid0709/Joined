@@ -399,6 +399,21 @@ describe("markAppliedOnCard", () => {
     expect(result.log).toContain("marked applied");
   });
 
+  test("routes Job marked applied to the success notice, not the errors banner", async () => {
+    const notices = [];
+    const harness = markHarness();
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+      onNotice: (message, ok) => notices.push({ message, ok }),
+    });
+    expect(result.marked).toBe(true);
+    expect(notices).toEqual([{ message: result.log, ok: true }]);
+    expect(result.log).toBe("Job reqaaa1111111111 marked applied");
+  });
+
   test("does not send a synthetic click after hoverClick has pressed", async () => {
     const ops = [];
     let html = listWith(overlayMarkup());

@@ -25,7 +25,7 @@ export function mergePace(current, next = {}) {
   const markReasons = [...(current?.markReasons ?? [])];
   if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
   const markLogs = [...(current?.markLogs ?? [])];
-  if (next.markDelta?.log) markLogs.push(next.markDelta.log);
+  if (next.markDelta?.log && next.markDelta.notMarked) markLogs.push(next.markDelta.log);
   return {
     ...current,
     ...definedEntries(next),
