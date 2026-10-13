@@ -11,7 +11,6 @@ import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import {
   RoutineBlockedError,
   RoutineFinishedError,
-  RoutineStepError,
   RoutineStoppedError,
 } from "../../routineKit/runner.js";
 
@@ -34,6 +33,7 @@ import {
   MAX_PAGE,
   NAVIGATE_WAIT_MS,
   PAGE_DELAY_MS,
+  PAGE_STUCK_AFTER_NEXT_MESSAGE,
   PAGE_UNPROCESSED_MESSAGE,
   RETRY_PAUSE_MS,
   SIGN_IN_TO_SAVE_MESSAGE,
@@ -50,7 +50,7 @@ import { isJobDetailReady } from "./detailReady.js";
 import { cardsAfterCursor, isJobHandled } from "./handled.js";
 import { isHeartSaved, isListCardSaved } from "./heart.js";
 import { advanceCursor, canAdvanceBuiltinPage, cardIdKey, cursorForTab } from "./lists.js";
-import { clickNextPage, firstCardId, rememberObservedListUrl } from "./paginate.js";
+import { clickNextPage, openListForCursor, rememberObservedListUrl } from "./paginate.js";
 import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { isSignedOutSession } from "./signedOut.js";
@@ -75,7 +75,7 @@ function warnIfPageEmpty(hooks, page, cardCount) {
 }
 
 async function finishIfNothingLeft(store, parsed, pageIds, lastPageIds) {
-  if ((!parsed.nextPageUrl && parsed.cards.length === 0) || (pageIds && pageIds === lastPageIds)) {
+  if (!parsed.hasNextPage && (parsed.cards.length === 0 || (pageIds && pageIds === lastPageIds))) {
     await store.clearCursor();
     throw new RoutineFinishedError("Nothing left to process on Built In");
   }
@@ -134,9 +134,6 @@ function sameUrl(left, right) {
 
 async function readVisiblePage(call) {
   const result = await call("html");
-  if (!result?.html && !detectPageBlock(result).blocked) {
-    throw new RoutineStepError("The page did not return HTML");
-  }
   return {
     html: result?.html || "",
     url: result?.url || "",
@@ -146,9 +143,8 @@ async function readVisiblePage(call) {
 
 async function ensureCursor(store, tab) {
   const existing = await store.loadCursor();
-  if (existing?.lists?.length) return existing;
   const cursor = cursorForTab(tab.url, existing);
-  await store.saveCursor(cursor);
+  if (cursor !== existing) await store.saveCursor(cursor);
   return cursor;
 }
 
@@ -156,6 +152,7 @@ async function finishOrAdvanceListPage({
   store,
   parsed,
   pageIds,
+  listPageUrl,
   cursor,
   handledIds,
   clickNext,
@@ -170,7 +167,7 @@ async function finishOrAdvanceListPage({
       allHandled,
     })
   ) {
-    if (parsed.cards.length === 0 && !parsed.nextPageUrl) {
+    if (parsed.cards.length === 0 && !parsed.hasNextPage) {
       await store.clearCursor();
       throw new RoutineFinishedError("Nothing left to process on Built In");
     }
@@ -182,16 +179,22 @@ async function finishOrAdvanceListPage({
     await store.clearCursor();
     throw new RoutineFinishedError("Nothing left to process on Built In");
   }
-  const moved = await clickNext(firstCardId(parsed.cards));
-  if (!moved?.advanced) {
+  const moved = await clickNext({
+    previousPageIds: pageIds,
+    previousUrl: listPageUrl,
+  });
+  if (!moved?.found) {
     await store.clearCursor();
     throw new RoutineFinishedError("Nothing left to process on Built In");
+  }
+  if (!moved.advanced) {
+    throw new RoutineBlockedError(PAGE_STUCK_AFTER_NEXT_MESSAGE);
   }
   let next = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
   next = rememberObservedListUrl(next, moved.page?.url || "");
   await store.saveCursor(next);
   await pause(PAGE_DELAY_MS);
-  return next;
+  return { cursor: next, page: moved.page };
 }
 
 /** Parse, report fields, and enqueue. Skips stay on the caller so the cursor can move. */
@@ -378,6 +381,27 @@ export async function runBuiltInPass(ctx, progress) {
     return page;
   };
 
+  const clickNext = (previous) =>
+    clickNextPage({
+      call,
+      readPage: () => readVisiblePage(call),
+      rest,
+      skipDelays,
+      checkStopped: ctx.checkStopped,
+      onActivity: hooks.onActivity,
+      ...previous,
+    });
+
+  const openList = (label, phase, alreadyOpen) =>
+    openListForCursor({
+      cursor,
+      openVisible,
+      clickNext,
+      alreadyOpen,
+      label,
+      phase,
+    });
+
   const queryHeart = (jobId) =>
     call("shadow", { host: jobSaveSelector(jobId), inner: HEART_INNER, action: "query" });
 
@@ -439,6 +463,7 @@ export async function runBuiltInPass(ctx, progress) {
   const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
   progress.tick();
   cursor = await ensureCursor(store, tab);
+  let pendingListPage = null;
 
   for (;;) {
     ctx.checkStopped();
@@ -446,7 +471,7 @@ export async function runBuiltInPass(ctx, progress) {
       await store.clearCursor();
       throw new RoutineFinishedError("Built In crawl hit the page cap");
     }
-    const listUrl = cursor.lists[cursor.listIndex];
+    const listUrl = cursor.lists[cursor.listIndex] || cursor.startUrl;
     if (!listUrl) {
       await store.clearCursor();
       throw new RoutineFinishedError("Nothing left to process on Built In");
@@ -458,8 +483,9 @@ export async function runBuiltInPass(ctx, progress) {
       kind: "waitFor",
     });
     emitCursor();
-    const listPage = await openVisible(listUrl, `Opening page ${cursor.page}`);
-    if (await handleBlock(listPage, listUrl)) continue;
+    const listPage = await openList(`Opening page ${cursor.page}`, "open", pendingListPage);
+    pendingListPage = null;
+    if (await handleBlock(listPage, listPage.url || listUrl)) continue;
     const observed = rememberObservedListUrl(cursor, listPage.url || listUrl);
     if (observed !== cursor) {
       cursor = observed;
@@ -475,24 +501,18 @@ export async function runBuiltInPass(ctx, progress) {
     const card = await pickNextCard(parsed.cards, cursor.lastJobId);
 
     if (!card) {
-      cursor = await finishOrAdvanceListPage({
+      const advanced = await finishOrAdvanceListPage({
         store,
         parsed,
         pageIds,
+        listPageUrl: listPage.url || listUrl,
         cursor,
         handledIds,
-        clickNext: (previousFirstId) =>
-          clickNextPage({
-            call,
-            readPage: () => readVisiblePage(call),
-            rest,
-            skipDelays,
-            checkStopped: ctx.checkStopped,
-            previousFirstId,
-            onActivity: hooks.onActivity,
-          }),
+        clickNext,
         pause,
       });
+      cursor = advanced.cursor;
+      pendingListPage = advanced.page;
       continue;
     }
 
@@ -511,15 +531,15 @@ export async function runBuiltInPass(ctx, progress) {
     }
     noteCardDecision(card.id, CARD_DECISION_OPENED, "open", "click");
 
-    const restoreList = () => cursor.lists[cursor.listIndex] || listUrl;
+    const returnToList = () => openList("Returning to job list", "settle");
     const opened = await openVisible(card.url, "Opening job");
     if (await handleBlock(opened, card.url)) {
-      await openVisible(restoreList(), "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
     const detailPage = await waitForDetailReady();
     if (await handleBlock(detailPage, card.url)) {
-      await openVisible(restoreList(), "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
 
@@ -538,19 +558,19 @@ export async function runBuiltInPass(ctx, progress) {
       noteCardDecision(jobId, CARD_SKIP_DETAIL_SAVED);
       await markJob(jobId);
       if (extracted.detailId !== jobId) await markJob(extracted.detailId);
-      await openVisible(restoreList(), "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
     if (extracted.skipped) {
       await advancePast(jobId);
-      await openVisible(restoreList(), "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
     await markJob(jobId);
     if (extracted.detailId !== jobId) await markJob(extracted.detailId);
 
-    const listAfter = await openVisible(restoreList(), "Returning to job list", "settle");
-    if (await handleBlock(listAfter, restoreList())) {
+    const listAfter = await returnToList();
+    if (await handleBlock(listAfter, listAfter.url || listUrl)) {
       backoff.onSuccess();
       progress.tick();
       return;

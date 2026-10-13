@@ -7,6 +7,9 @@ import {
   JOB_CARD,
   JOB_CARD_TITLE,
   JOBS_PATH,
+  NEXT_DISABLED_ATTR,
+  NEXT_DISABLED_CLASS,
+  NEXT_DISABLED_VALUE,
   NEXT_PAGE,
   SAVE_HOST,
   SAVED_BADGE,
@@ -57,8 +60,20 @@ export function parseNextPageUrl(document, pageUrl) {
   return href ? resolveUrl(href, pageUrl) : null;
 }
 
+const DISABLED_CLASS_RE = new RegExp(`\\b${NEXT_DISABLED_CLASS}\\b`, "i");
+
+/** Next is usable only when it is present and not aria-disabled / disabled. */
+export function isNextPageEnabled(next) {
+  if (!next) return false;
+  if (next.getAttribute?.(NEXT_DISABLED_ATTR) === NEXT_DISABLED_VALUE) return false;
+  if (next.hasAttribute?.("disabled")) return false;
+  const className = String(next.getAttribute?.("class") || next.className || "");
+  return !DISABLED_CLASS_RE.test(className);
+}
+
 /**
- * Cards and pagination for a Built In list page. Last page: no next link, or 0 cards.
+ * Cards and pagination for a Built In list page. Last page: Next missing or
+ * disabled, or 0 cards.
  */
 export function parseList(html, pageUrl = `${BUILTIN_ORIGIN}${JOBS_PATH}`) {
   const document = documentFromHtml(html);
@@ -72,7 +87,7 @@ export function parseList(html, pageUrl = `${BUILTIN_ORIGIN}${JOBS_PATH}`) {
   }
   const nextLink = queryOne(document, NEXT_PAGE);
   const nextPageUrl = parseNextPageUrl(document, pageUrl);
-  const hasNextPage = Boolean(nextLink);
+  const hasNextPage = isNextPageEnabled(nextLink);
   return {
     cards,
     nextPageUrl,

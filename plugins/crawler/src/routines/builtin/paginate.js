@@ -1,5 +1,5 @@
 import { LIST_CHANGE_MS, LIST_CHANGE_POLL_MS, NEXT_PAGE, NEXT_PAGE_LABEL } from "./constants.js";
-import { exactJobsListUrl } from "./lists.js";
+import { cardIdKey, exactJobsListUrl, pageFromListUrl } from "./lists.js";
 import { parseList } from "./parseList.js";
 
 export function firstCardId(cards) {
@@ -18,12 +18,34 @@ export function rememberObservedListUrl(cursor, url) {
   return { ...cursor, lists: next };
 }
 
-export async function waitForFirstCardChange({
+/** Restore a landed ?page= URL. Empty means click Next forward from startUrl. */
+export function restoreListUrl(cursor) {
+  const stored = cursor?.lists?.[cursor.listIndex] || "";
+  const startUrl = cursor?.startUrl || stored;
+  const page = Number.isInteger(cursor?.page) && cursor.page > 1 ? cursor.page : 1;
+  if (stored && pageFromListUrl(stored) === page) return stored;
+  if (stored && stored !== startUrl) return stored;
+  return page <= 1 ? stored || startUrl : "";
+}
+
+export function clickForwardCount(cursor) {
+  const page = Number.isInteger(cursor?.page) && cursor.page > 1 ? cursor.page : 1;
+  return page - 1;
+}
+
+export function listResultsChanged(previous, current) {
+  if (current.pageIds && current.pageIds !== previous.pageIds) return true;
+  if (previous.url && current.url && current.url !== previous.url) return true;
+  return false;
+}
+
+export async function waitForListChange({
   readPage,
   rest,
   skipDelays,
   checkStopped,
-  previousFirstId,
+  previousPageIds,
+  previousUrl,
   parse = parseList,
   now = Date.now,
   timeoutMs = LIST_CHANGE_MS,
@@ -31,49 +53,90 @@ export async function waitForFirstCardChange({
   const readParsed = async () => {
     const page = await readPage();
     const parsed = parse(page.html, page.url);
-    return { page, parsed, firstId: firstCardId(parsed.cards) };
+    const pageIds = cardIdKey(parsed.cards);
+    return { page, parsed, pageIds, firstId: firstCardId(parsed.cards) };
   };
-  if (skipDelays) {
-    const snapshot = await readParsed();
-    return { ...snapshot, changed: snapshot.firstId !== previousFirstId };
-  }
+  const previous = { pageIds: previousPageIds, url: previousUrl };
+  const withChange = (snapshot) => ({
+    ...snapshot,
+    changed: listResultsChanged(previous, { pageIds: snapshot.pageIds, url: snapshot.page.url }),
+  });
+  if (skipDelays) return withChange(await readParsed());
   const deadline = now() + timeoutMs;
   while (now() < deadline) {
     checkStopped();
     await rest(LIST_CHANGE_POLL_MS);
-    const snapshot = await readParsed();
-    if (snapshot.firstId !== previousFirstId) return { ...snapshot, changed: true };
+    const snapshot = withChange(await readParsed());
+    if (snapshot.changed) return snapshot;
   }
-  const snapshot = await readParsed();
-  return { ...snapshot, changed: snapshot.firstId !== previousFirstId };
+  return withChange(await readParsed());
 }
 
-/** Click Built In's Next control and wait until the first job id changes. */
+async function clickAndWait(call, waitArgs) {
+  const clicked = await call("click", { selector: NEXT_PAGE });
+  if (!clicked?.found) return { advanced: false, found: false };
+  const snapshot = await waitForListChange(waitArgs);
+  if (!snapshot.changed) return { advanced: false, found: true, stuck: true, ...snapshot };
+  return { advanced: true, found: true, ...snapshot };
+}
+
+/** Click Built In's Next control and wait until the card set or URL changes. */
 export async function clickNextPage({
   call,
   readPage,
   rest,
   skipDelays,
   checkStopped,
-  previousFirstId,
+  previousPageIds,
+  previousUrl,
   onActivity,
   parse,
   now,
   timeoutMs,
 }) {
   onActivity?.({ phase: "open", label: NEXT_PAGE_LABEL, kind: "click" });
-  const clicked = await call("click", { selector: NEXT_PAGE });
-  if (!clicked?.found) return { advanced: false };
-  const snapshot = await waitForFirstCardChange({
+  const waitArgs = {
     readPage,
     rest,
     skipDelays,
     checkStopped,
-    previousFirstId,
+    previousPageIds,
+    previousUrl,
     parse,
     now,
     timeoutMs,
-  });
-  if (!snapshot.changed) return { advanced: false, ...snapshot };
-  return { advanced: true, ...snapshot };
+  };
+  const first = await clickAndWait(call, waitArgs);
+  if (first.advanced || !first.found) return first;
+  onActivity?.({ phase: "open", label: NEXT_PAGE_LABEL, kind: "click" });
+  const retried = await clickAndWait(call, waitArgs);
+  if (retried.advanced) return retried;
+  return { ...retried, found: first.found || retried.found, stuck: true };
+}
+
+export async function openListForCursor({
+  cursor,
+  openVisible,
+  clickNext,
+  alreadyOpen,
+  label,
+  phase = "open",
+  parse = parseList,
+}) {
+  if (alreadyOpen) return alreadyOpen;
+  const direct = restoreListUrl(cursor);
+  if (direct) return openVisible(direct, label, phase);
+  const start = cursor.startUrl || cursor.lists?.[0];
+  let page = await openVisible(start, label, phase);
+  const hops = clickForwardCount(cursor);
+  for (let index = 0; index < hops; index += 1) {
+    const parsed = parse(page.html, page.url);
+    const moved = await clickNext({
+      previousPageIds: cardIdKey(parsed.cards),
+      previousUrl: page.url,
+    });
+    if (!moved?.advanced) return page;
+    page = moved.page;
+  }
+  return page;
 }

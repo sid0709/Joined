@@ -1,12 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
 import { LIST_CHANGE_POLL_MS, NEXT_PAGE, NEXT_PAGE_LABEL } from "./constants.js";
-import { emptyCursor } from "./lists.js";
+import { cardIdKey, emptyCursor } from "./lists.js";
 import {
+  clickForwardCount,
   clickNextPage,
   firstCardId,
+  listResultsChanged,
   rememberObservedListUrl,
-  waitForFirstCardChange,
+  restoreListUrl,
+  waitForListChange,
 } from "./paginate.js";
 import { installDomParser } from "./testing/domParser.js";
 import { loadFixture } from "./testing/loadFixture.js";
@@ -18,6 +21,8 @@ const FILTERED =
 const LIST_HTML = loadFixture("list.html");
 const LAST_HTML = loadFixture("list-last.html");
 const PAGE_TWO_HTML = loadFixture("list-saved.html");
+const PINNED_FIRST_HTML = LIST_HTML.replaceAll("11111111", "33333333");
+const LIST_PAGE_IDS = cardIdKey([{ id: "9256204" }, { id: "11111111" }]);
 
 describe("builtin click pagination", () => {
   test("remembers the observed list URL without rewriting params", () => {
@@ -31,15 +36,34 @@ describe("builtin click pagination", () => {
     expect(firstCardId([])).toBe("");
   });
 
-  test("waits until the first job id changes", async () => {
+  test("restores a landed page URL and otherwise clicks forward", () => {
+    const start = emptyCursor([FILTERED], FILTERED);
+    expect(restoreListUrl(start)).toBe(FILTERED);
+    expect(clickForwardCount(start)).toBe(0);
+    const landed = { ...start, page: 2, lists: [`${FILTERED}&page=2`] };
+    expect(restoreListUrl(landed)).toBe(`${FILTERED}&page=2`);
+    expect(restoreListUrl({ ...start, page: 3 })).toBe("");
+    expect(clickForwardCount({ ...start, page: 3 })).toBe(2);
+    expect(
+      listResultsChanged({ pageIds: "a", url: FILTERED }, { pageIds: "a\nb", url: FILTERED }),
+    ).toBe(true);
+    expect(
+      listResultsChanged(
+        { pageIds: LIST_PAGE_IDS, url: FILTERED },
+        { pageIds: LIST_PAGE_IDS, url: `${FILTERED}&page=2` },
+      ),
+    ).toBe(true);
+  });
+
+  test("waits through a slow load until the card set changes", async () => {
     let now = 0;
     let reads = 0;
-    const result = await waitForFirstCardChange({
+    const result = await waitForListChange({
       readPage: async () => {
         reads += 1;
         return {
-          html: reads === 1 ? LIST_HTML : PAGE_TWO_HTML,
-          url: reads === 1 ? FILTERED : `${FILTERED}&page=2`,
+          html: reads < 3 ? LIST_HTML : PAGE_TWO_HTML,
+          url: reads < 3 ? FILTERED : `${FILTERED}&page=2`,
         };
       },
       rest: async () => {
@@ -47,42 +71,58 @@ describe("builtin click pagination", () => {
       },
       skipDelays: false,
       checkStopped: () => {},
-      previousFirstId: "9256204",
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
       now: () => now,
       timeoutMs: 1_000,
     });
     expect(result.changed).toBe(true);
-    expect(result.firstId).toBe("22222222");
+    expect(result.pageIds).toBe("22222222");
     expect(result.page.url).toBe(`${FILTERED}&page=2`);
   });
 
-  test("reports no change when the first job id stays put", async () => {
-    const result = await waitForFirstCardChange({
+  test("treats a pinned first card as a change when the rest of the set moves", async () => {
+    const result = await waitForListChange({
+      readPage: async () => ({ html: PINNED_FIRST_HTML, url: `${FILTERED}&page=2` }),
+      rest: async () => {},
+      skipDelays: true,
+      checkStopped: () => {},
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
+    });
+    expect(result.changed).toBe(true);
+    expect(result.firstId).toBe("9256204");
+    expect(result.pageIds).toContain("33333333");
+  });
+
+  test("reports no change when the card set and URL stay put", async () => {
+    const result = await waitForListChange({
       readPage: async () => ({ html: LIST_HTML, url: FILTERED }),
       rest: async () => {},
       skipDelays: true,
       checkStopped: () => {},
-      previousFirstId: "9256204",
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
     });
     expect(result.changed).toBe(false);
-    expect(result.firstId).toBe("9256204");
 
     let now = 0;
-    const timedOut = await waitForFirstCardChange({
+    const timedOut = await waitForListChange({
       readPage: async () => ({ html: LIST_HTML, url: FILTERED }),
       rest: async () => {
         now += LIST_CHANGE_POLL_MS;
       },
       skipDelays: false,
       checkStopped: () => {},
-      previousFirstId: "9256204",
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
       now: () => now,
       timeoutMs: LIST_CHANGE_POLL_MS,
     });
     expect(timedOut.changed).toBe(false);
   });
 
-  test("clicks Next and stops when the control is missing", async () => {
+  test("clicks Next, retries a stuck page, and stops when the control is missing", async () => {
     const activities = [];
     const clicks = [];
     const missing = await clickNextPage({
@@ -94,10 +134,11 @@ describe("builtin click pagination", () => {
       rest: async () => {},
       skipDelays: true,
       checkStopped: () => {},
-      previousFirstId: "9256204",
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
       onActivity: (activity) => activities.push(activity),
     });
-    expect(missing).toEqual({ advanced: false });
+    expect(missing).toEqual({ advanced: false, found: false });
     expect(clicks).toEqual([{ op: "click", payload: { selector: NEXT_PAGE } }]);
     expect(activities).toEqual([{ phase: "open", label: NEXT_PAGE_LABEL, kind: "click" }]);
 
@@ -107,22 +148,29 @@ describe("builtin click pagination", () => {
       rest: async () => {},
       skipDelays: true,
       checkStopped: () => {},
-      previousFirstId: "11111111",
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
       onActivity: () => {},
     });
     expect(advanced.advanced).toBe(true);
     expect(advanced.firstId).toBe("9256204");
 
+    const stuckClicks = [];
     const stuck = await clickNextPage({
-      call: async () => ({ found: true }),
+      call: async () => {
+        stuckClicks.push(NEXT_PAGE);
+        return { found: true };
+      },
       readPage: async () => ({ html: LIST_HTML, url: FILTERED }),
       rest: async () => {},
       skipDelays: true,
       checkStopped: () => {},
-      previousFirstId: "9256204",
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
       onActivity: () => {},
     });
     expect(stuck.advanced).toBe(false);
-    expect(stuck.firstId).toBe("9256204");
+    expect(stuck.stuck).toBe(true);
+    expect(stuckClicks).toHaveLength(2);
   });
 });

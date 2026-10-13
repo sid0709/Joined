@@ -140,7 +140,7 @@ describe("handled skip", () => {
         lastPageIds: "",
         pageProcessed: 3,
         lists: ["https://builtin.com/jobs"],
-        writtenBy: "2.4.5",
+        writtenBy: "2.5.8",
       },
     });
     const store = createBuiltinStore(storage);
@@ -158,6 +158,21 @@ describe("handled skip", () => {
     expect(storage.snapshot()[CURSOR_STORAGE_KEY_V1]).toBeNull();
   });
 
+  test("ignores crawl cursors written before 2.5.8", async () => {
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY]: {
+        listIndex: 0,
+        page: 4,
+        lastJobId: "old",
+        lists: ["https://builtin.com/jobs"],
+        startUrl: "https://builtin.com/jobs",
+        writtenBy: "2.5.5",
+      },
+    });
+    const store = createBuiltinStore(storage);
+    expect(await store.loadCursor()).toBeNull();
+  });
+
   test("Start from page 1 keeps a filtered list URL including every param", async () => {
     const filtered =
       "https://builtin.com/jobs?daysSinceUpdated=1&city=&state=&country=USA&allLocations=true";
@@ -171,7 +186,7 @@ describe("handled skip", () => {
         pageProcessed: 3,
         lists: [paged],
         startUrl: filtered,
-        writtenBy: "2.5.5",
+        writtenBy: "2.5.8",
       },
     });
     const store = createBuiltinStore(storage);

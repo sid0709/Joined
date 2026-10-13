@@ -16,6 +16,7 @@ import {
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
   CARD_SKIP_SAVED_BADGE,
+  CURSOR_STORAGE_KEY,
   CURSOR_STORAGE_KEY_V1,
   EMPTY_PAGE_ONE_LABEL,
   HANDLED_STORAGE_KEY,
@@ -27,6 +28,7 @@ import {
   JOB_PAGE_SAVE,
   NEXT_PAGE,
   PAGE_PARAM,
+  PAGE_STUCK_AFTER_NEXT_MESSAGE,
   PAGE_UNPROCESSED_MESSAGE,
   SIGN_IN_TO_SAVE_MESSAGE,
   SIGN_UP_MODAL_TEXT,
@@ -72,10 +74,10 @@ function advanceFilteredListUrl(href) {
   }
 }
 
-function applyNextPageClick(tab, { nextFound, paginatedListHtml }) {
+function applyNextPageClick(tab, { nextFound, nextMoves, paginatedListHtml }) {
   if (!nextFound) return { found: false };
   const isList = /\/jobs/.test(tab.url) && !/\/job\//.test(tab.url);
-  if (isList) {
+  if (isList && nextMoves) {
     tab.url = advanceFilteredListUrl(tab.url);
     tab.htmlOverride = paginatedListHtml ?? loadFixture("list-empty.html");
     tab.status = 200;
@@ -103,6 +105,8 @@ function builtinTab({
   heartShowsModal = false,
   saveOnClick = 1,
   nextFound = true,
+  nextMoves = true,
+  emptyHtmlReads = 0,
 } = {}) {
   const tab = { url: listUrl, status: 200, htmlOverride: null };
   const clicks = [];
@@ -123,6 +127,10 @@ function builtinTab({
   };
   const exec = async (op) => {
     if (op.op === "html") {
+      if (emptyHtmlReads > 0) {
+        emptyHtmlReads -= 1;
+        return { html: "", url: tab.url, status: tab.status };
+      }
       if (loginWall) {
         return {
           html: "<html><body>Sign in</body></html>",
@@ -175,7 +183,7 @@ function builtinTab({
     if (op.op === "click") {
       clicks.push(op.selector);
       if (op.selector === NEXT_PAGE) {
-        return applyNextPageClick(tab, { nextFound, paginatedListHtml });
+        return applyNextPageClick(tab, { nextFound, nextMoves, paginatedListHtml });
       }
       return { found: true };
     }
@@ -930,6 +938,96 @@ describe("BuiltInRoutine", () => {
     expect(restarted).toHaveLength(1);
     expect(fromPage1.navigates).toContain(FILTERED_LIST_URL);
     expect(fromPage1.navigates.some((href) => href === LIST_URL)).toBe(false);
+  });
+
+  test("migrates a pre-2.5.8 cursor to the tab's current filtered URL at page 1", async () => {
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY]: {
+        listIndex: 0,
+        page: 4,
+        lastJobId: "11623491",
+        lists: [LIST_URL],
+        startUrl: LIST_URL,
+        writtenBy: "2.5.5",
+      },
+    });
+    const store = createBuiltinStore(storage);
+    const page = builtinTab({
+      listUrl: FILTERED_LIST_URL,
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
+    expect(page.navigates).toContain(FILTERED_LIST_URL);
+  });
+
+  test("blocks with the cursor kept when Next exists but results do not change", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list.html"),
+      nextMoves: false,
+      details: {
+        [JOB_A]: loadFixture("detail-external.html"),
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    await expect(collectJobs(store, page.exec)).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
+    });
+    expect(page.clicks.filter((selector) => selector === NEXT_PAGE).length).toBeGreaterThan(1);
+    expect(await store.loadCursor()).toMatchObject({ page: 1 });
+  });
+
+  test("finishes on a disabled Next without clearing after a stuck click", async () => {
+    const listHtml = loadFixture("list-last.html").replace(
+      "</body>",
+      `<nav id="pagination"><a aria-label="Go to Next Page" href="/jobs?page=2" aria-disabled="true" class="disabled">Next</a></nav></body>`,
+    );
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml,
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.clicks).not.toContain(NEXT_PAGE);
+    expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("clicks Next forward when the stored list URL has no page param", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 2,
+      lastJobId: "",
+      lists: [FILTERED_LIST_URL],
+      startUrl: FILTERED_LIST_URL,
+    });
+    const page = builtinTab({
+      listUrl: JOB_A,
+      listHtml: loadFixture("list.html"),
+      paginatedListHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.clicks).toContain(NEXT_PAGE);
+    expect(page.navigates).toContain(FILTERED_LIST_URL);
+    expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
+  });
+
+  test("tolerates empty HTML while the list reloads", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+      emptyHtmlReads: 1,
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
   });
 
   test("does not change JobRight's visible listDetail contract", () => {

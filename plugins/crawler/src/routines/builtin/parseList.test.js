@@ -43,6 +43,14 @@ describe("parseList", () => {
     expect(parseNextPageUrl(documentFromHtml(loadFixture("list-last.html")), LIST_URL)).toBeNull();
   });
 
+  test("treats a disabled Next control as the last page", () => {
+    const html = `<!DOCTYPE html><html><body><div id="job-card-9256204" data-id="job-card"><a data-id="job-card-title" href="/job/role/9256204" data-alias="/job/role/9256204">Role</a></div><nav id="pagination"><a aria-label="Go to Next Page" href="/jobs?page=2" aria-disabled="true" class="page-link disabled">Next</a></nav></body></html>`;
+    const parsed = parseList(html, LIST_URL);
+    expect(parsed.cards).toHaveLength(1);
+    expect(parsed.hasNextPage).toBe(false);
+    expect(parsed.isLastPage).toBe(true);
+  });
+
   test("treats zero cards as the last page even when pagination is present", () => {
     const parsed = parseList(loadFixture("list-empty.html"), LIST_URL);
     expect(parsed.cards).toHaveLength(0);
