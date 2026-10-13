@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { parseHTML } from "linkedom";
 
+import { MARK_LINK_GUARD_MS } from "../../routines/hiringcafe/constants.js";
+
 import { installMarkLinkGuard, releaseMarkLinkGuard } from "./markLinkGuard.js";
 
 afterEach(() => {
@@ -72,6 +74,28 @@ describe("installMarkLinkGuard", () => {
       releaseMarkLinkGuard();
     }
     expect(removed).toEqual(added);
+    let leftoverPrevented = false;
+    document.addEventListener("click", (event) => {
+      leftoverPrevented = event.defaultPrevented;
+    });
+    button.click();
+    expect(leftoverPrevented).toBe(false);
+  });
+
+  test("auto-releases if the release message is lost", async () => {
+    const document = wrapCardDocument();
+    const button = document.querySelector("button");
+    expect(MARK_LINK_GUARD_MS).toBe(2_000);
+    expect(
+      installMarkLinkGuard(document, {
+        selector: "a[href^='/job/'] > div",
+        clickSelector: "button",
+        contains: "Mark Applied",
+        exact: true,
+        timeout: 5,
+      }),
+    ).toEqual({ guarded: true });
+    await new Promise((resolve) => setTimeout(resolve, 20));
     let leftoverPrevented = false;
     document.addEventListener("click", (event) => {
       leftoverPrevented = event.defaultPrevented;

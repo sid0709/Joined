@@ -64,6 +64,8 @@ export const MARK_HOVER_STEPS = 4;
 export const SCROLL_SETTLE_MS = 50;
 export const MARK_OVERLAY_WAIT_MS = 1_500;
 export const MARK_OVERLAY_POLL_MS = 50;
+/** Drop the CDP link guard if `releaseMarkLink` never arrives. */
+export const MARK_LINK_GUARD_MS = 2_000;
 export const MARK_CONFIRM_MS = 1_000;
 export const MARK_APPLIED_WAIT_MS = 1_000;
 export const MARK_APPLIED_LABEL = "Mark Applied";

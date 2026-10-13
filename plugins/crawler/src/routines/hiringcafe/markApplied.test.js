@@ -7,6 +7,7 @@ import {
   appliedStateFromHtml,
   cardForJob,
   cardSelectorForJob,
+  findMarkAppliedControl,
   hasAppliedCheck,
   hasAppliedState,
   hasAppTracker,
@@ -192,6 +193,9 @@ describe("HiringCafe applied-state readers", () => {
     expect(isListCardApplied(firstCard(faded("opacity-50 grayscale pointer-events-none")))).toBe(
       false,
     );
+    expect(
+      isListCardApplied(firstCard(listWith("", { extra: `<span>Applied<svg></svg></span>` }))),
+    ).toBe(false);
   });
 
   test("reads Applied ✓ and Mark Applied from the hover overlay", () => {
@@ -244,6 +248,25 @@ describe("HiringCafe applied-state readers", () => {
     ).toBe(false);
     expect(appliedFromCandidateTexts([])).toBe(false);
     expect(hasMarkAppliedControl(live)).toBe(false);
+    expect(
+      appliedStateFromHtml(
+        listWith(
+          `<div class="absolute inset-y-0 left-0 w-full cursor-zoom-in"><div class="absolute top-0 right-0 z-10"><button class="bg-white">Mark Applied</button><button class="bg-white">Applied</button><button class="bg-pink-600">App Tracker</button></div></div>`,
+        ),
+        JOB,
+      ),
+    ).toMatchObject({ marked: false, canMark: true });
+  });
+
+  test("does not treat a hidden Mark Applied as a visible control", () => {
+    const html = listWith(overlayMarkup());
+    const document = documentFromHtml(html);
+    const button = [...document.querySelectorAll("button")].find(
+      (node) => node.textContent.trim() === MARK_APPLIED_TEXT,
+    );
+    button.hidden = true;
+    expect(findMarkAppliedControl(document)).toBeNull();
+    expect(hasMarkAppliedControl(html)).toBe(true);
   });
 
   test("finds Mark Applied in the hover layer even when the hit is the sibling overlay row", () => {

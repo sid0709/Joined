@@ -130,10 +130,10 @@ export function overlayFromHit(hit, card) {
   return overlayRoot(hit) || overlayRoot(card);
 }
 
-/** Visible `Applied ✓` on the list card. Opacity/grayscale classes are not a skip. */
+/** Visible Applied + check on `CARD_APPLIED_CHIP` only. Opacity/grayscale are not a skip. */
 export function isListCardApplied(card) {
   if (!card) return false;
-  return hasAppliedCheck(card);
+  return queryAll(card, CARD_APPLIED_CHIP).some((chip) => hasAppliedCheck(chip));
 }
 
 function sortExactMatches(matches) {
@@ -158,9 +158,7 @@ function exactMatches(root, needle) {
 }
 
 function exactVisibleMatches(root, needle) {
-  const matches = exactMatches(asRoot(root), needle);
-  const visible = matches.filter((node) => isVisibleElement(node));
-  return visible.length ? visible : matches;
+  return exactMatches(asRoot(root), needle).filter((node) => isVisibleElement(node));
 }
 
 function hasAppliedCheckIcon(root) {
@@ -299,7 +297,7 @@ export function appliedStateFromHtml(html, job = {}) {
   const document = documentFromHtml(html);
   const card = cardForJob(document, job);
   const overlay = overlayRoot(card);
-  const marked = Boolean(overlay && hasAppliedState(overlay));
+  const marked = Boolean(overlay && hasAppliedState(overlay) && !hasMarkAppliedText(overlay));
   return {
     found: Boolean(card),
     marked,
