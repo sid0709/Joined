@@ -170,7 +170,7 @@ describe("parseList grouping", () => {
     expect(parsed.jobs.map((job) => job.id)).toContain(extra.requisition_id);
   });
 
-  test("flags greyed and Applied ✓ list cards as listApplied without hover", () => {
+  test("flags Applied ✓ list cards as listApplied and ignores opacity classes", () => {
     const parsed = parseList(
       listPageHtml({
         hits: groupedHits(),
@@ -179,14 +179,16 @@ describe("parseList grouping", () => {
             overlay: overlayMarkup({ applied: true }),
             carousel: carouselMarkup(3, 1),
           }),
-          cardMarkup("/job/labor-production-reqddd4444444444", "5h", { greyed: true }),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h", {
+            className: "opacity-50 pointer-events-none",
+          }),
         ],
       }),
       LIST_URL,
     );
     expect(parsed.jobs.find((job) => job.id === "reqaaa1111111111")?.listApplied).toBe(true);
     expect(parsed.jobs.find((job) => job.id === "reqbbb2222222222")?.listApplied).toBe(false);
-    expect(parsed.jobs.find((job) => job.id === "reqddd4444444444")?.listApplied).toBe(true);
+    expect(parsed.jobs.find((job) => job.id === "reqddd4444444444")?.listApplied).toBe(false);
   });
 
   test("treats only ssrIsLastPage as the last page", () => {

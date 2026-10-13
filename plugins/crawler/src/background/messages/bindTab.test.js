@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import { BOUND_TAB_MISSING_MESSAGE } from "../../routineKit/protocol.js";
 import { getBoundTab, listBoundTabs, resetBoundTabs } from "../boundTab.js";
+import { RUN_KEEPALIVE_ALARM, stopRunKeepaliveIfIdle } from "../runKeepalive.js";
 
 import {
   bindCrawlTab,
@@ -32,7 +33,7 @@ function io() {
     tabs: { get: async () => TAB },
     groupBoundTab: async () => 9,
     startKeepalive: () => keepalives.push("start"),
-    stopKeepalive: (count) => keepalives.push(["stop", count]),
+    stopKeepalive: (alarms, boundCount) => keepalives.push(["stop", boundCount, alarms]),
     releaseDebugger: (tabId) => released.push(tabId),
     abortInFlightNavigate: (tabId) => aborted.push(tabId),
   };
@@ -57,23 +58,56 @@ describe("bindCrawlTab", () => {
     await expect(bindCrawlTab({}, io())).rejects.toThrow(BOUND_TAB_MISSING_MESSAGE);
   });
 
-  test("unbinds and stops keepalive when no binds remain", async () => {
+  test("unbinds, releases the debugger, and stops keepalive when no binds remain", async () => {
     const next = io();
+    const alarms = { clear: () => {} };
+    next.alarms = alarms;
     await saveThenUnbind(next);
     expect(unbindCrawlTab(21, next)).toEqual({ removed: true, tabId: 21 });
     expect(listBoundTabs()).toEqual([]);
-    expect(next.keepalives).toContainEqual(["stop", 0]);
+    expect(next.released).toEqual([21]);
+    expect(next.keepalives).toContainEqual(["stop", 0, alarms]);
   });
 
-  test("handleBoundTabRemoved releases the debugger and aborts navigate", async () => {
+  test("clears the keepalive alarm when the last bound tab is unbound", async () => {
+    const cleared = [];
+    const alarms = { clear: (name) => cleared.push(name) };
+    globalThis.chrome = { alarms };
     const next = io();
+    next.stopKeepalive = stopRunKeepaliveIfIdle;
+    await bindCrawlTab({ tabId: 21, windowId: 5, routineId: "builtin" }, next);
+    unbindCrawlTab(21, next);
+    expect(cleared).toEqual([RUN_KEEPALIVE_ALARM]);
+    delete globalThis.chrome;
+  });
+
+  test("handleBoundTabRemoved releases the debugger, stops keepalive, and aborts navigate", async () => {
+    const next = io();
+    const alarms = { clear: () => {} };
+    next.alarms = alarms;
     await bindCrawlTab({ tabId: 21, windowId: 5, routineId: "jobright" }, next);
     const bind = handleBoundTabRemoved(21, next);
     expect(bind.routineId).toBe("jobright");
     expect(next.released).toEqual([21]);
     expect(next.aborted).toEqual([21]);
+    expect(next.keepalives).toContainEqual(["stop", 0, alarms]);
     expect(getBoundTab(21)).toBeNull();
     expect(handleBoundTabRemoved(99, next)).toBeNull();
+  });
+
+  test("handleBoundTabRemoved still stops keepalive when io omits stopKeepalive", async () => {
+    const cleared = [];
+    const alarms = { clear: (name) => cleared.push(name) };
+    globalThis.chrome = { alarms };
+    const next = io();
+    await bindCrawlTab({ tabId: 21, windowId: 5, routineId: "builtin" }, next);
+    handleBoundTabRemoved(21, {
+      releaseDebugger: next.releaseDebugger,
+      abortInFlightNavigate: next.abortInFlightNavigate,
+    });
+    expect(cleared).toEqual([RUN_KEEPALIVE_ALARM]);
+    expect(next.released).toEqual([21]);
+    delete globalThis.chrome;
   });
 
   test("uses chrome.tabs.get when io is omitted", async () => {

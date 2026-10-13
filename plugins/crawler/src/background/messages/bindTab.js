@@ -10,6 +10,8 @@ import {
 import { startRunKeepalive, stopRunKeepaliveIfIdle } from "../runKeepalive.js";
 import { groupBoundTab } from "../tabGroup.js";
 
+import { releaseDebugger } from "./debuggerMouse.js";
+
 const defaultIo = {
   tabs: {
     get: (tabId) => chrome.tabs.get(tabId),
@@ -17,6 +19,8 @@ const defaultIo = {
   groupBoundTab,
   startKeepalive: startRunKeepalive,
   stopKeepalive: stopRunKeepaliveIfIdle,
+  releaseDebugger,
+  alarms: () => globalThis.chrome?.alarms,
 };
 
 export async function bindCrawlTab(payload = {}, io = defaultIo) {
@@ -31,10 +35,17 @@ export async function bindCrawlTab(payload = {}, io = defaultIo) {
   return bind;
 }
 
+function alarmsOf(io) {
+  if (typeof io.alarms === "function") return io.alarms();
+  return io.alarms ?? globalThis.chrome?.alarms;
+}
+
 export function unbindCrawlTab(tabId, io = defaultIo) {
   const removed = removeBoundTab(tabId);
-  io.stopKeepalive?.(listBoundTabs().length);
-  return { removed, tabId: Number(tabId) };
+  const id = Number(tabId);
+  io.releaseDebugger?.(id);
+  io.stopKeepalive?.(alarmsOf(io), listBoundTabs().length);
+  return { removed, tabId: id };
 }
 
 export function handleBindTab(message, sendResponse, io = defaultIo) {
@@ -55,8 +66,8 @@ export function handleUnbindTab(message, sendResponse, io = defaultIo) {
 export function handleBoundTabRemoved(tabId, io = {}) {
   const bind = getBoundTab(tabId);
   if (!bind) return null;
-  unbindCrawlTab(tabId, io);
-  io.releaseDebugger?.(tabId);
-  io.abortInFlightNavigate?.(tabId);
+  const next = { ...defaultIo, ...io };
+  unbindCrawlTab(tabId, next);
+  next.abortInFlightNavigate?.(tabId);
   return bind;
 }

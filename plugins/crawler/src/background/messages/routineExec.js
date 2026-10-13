@@ -62,7 +62,7 @@ async function runFetchWatch(op, tab, payload, io) {
 // Side panel → background: run one routine op in the target tab and relay its response.
 export function handleRoutineExec(message, sendResponse, io = defaultIo) {
   (async () => {
-    const resolveTab = io.resolveBoundTab ?? io.resolveTargetTab ?? resolveBoundTab;
+    const resolveTab = io.resolveBoundTab ?? resolveBoundTab;
     let tab;
     try {
       tab = await resolveTab(message);
@@ -126,6 +126,13 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
         sendResponse({ success: true, result });
         return;
       } catch (error) {
+        if (error?.pressed === true) {
+          sendResponse({
+            success: true,
+            result: { found: true, hovered: true, pressed: true },
+          });
+          return;
+        }
         console.warn("trusted mouse failed; falling back to the isolated world", error);
       }
     }

@@ -18,7 +18,6 @@ import {
   isBoundTabClosedError,
   ROUTINE_BIND_TAB_ACTION,
   ROUTINE_TAB_CLOSED_ACTION,
-  ROUTINE_UNBIND_TAB_ACTION,
 } from "../../routineKit/protocol";
 import {
   RoutineBlockedError,
@@ -27,6 +26,7 @@ import {
   runRoutinePass,
 } from "../../routineKit/runner";
 
+import { endBoundRun } from "./endBoundRun";
 import { ingestAcceptFromOutcome } from "./ingestAccept";
 import { toJobPayload } from "./jobPayload";
 import { appendNotice, mergePace } from "./paceState";
@@ -220,11 +220,7 @@ export function useRoutineRun() {
     abortRef.current?.abort();
     const tabId = targetRef.current?.tab?.id;
     if (Number.isFinite(tabId)) {
-      void sendRuntimeMessage({
-        action: ROUTINE_UNBIND_TAB_ACTION,
-        tabId,
-        payload: { tabId },
-      }).catch(() => {});
+      void endBoundRun(tabId, { execRoutineOp, sendRuntimeMessage });
     }
     if (runStartedAt.current) {
       setElapsedMs(Date.now() - runStartedAt.current);

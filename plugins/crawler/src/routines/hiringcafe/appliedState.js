@@ -51,21 +51,10 @@ function asRoot(root) {
   return typeof root === "string" ? documentFromHtml(root) : root;
 }
 
-export const GREYED_CARD_CLASS_RE =
-  /opacity-(?:[1-9]\d?|100)|grayscale|pointer-events-none|\bapplied\b/i;
-export const GREYED_CARD_STYLE_RE = /opacity\s*:\s*0?\.\d+|grayscale|filter:\s*[^;]*gray/i;
-
-export function isGreyedAppliedCard(card) {
-  if (!card) return false;
-  const className = String(card.getAttribute?.("class") || card.className || "");
-  const style = String(card.getAttribute?.("style") || "");
-  return GREYED_CARD_CLASS_RE.test(className) || GREYED_CARD_STYLE_RE.test(style);
-}
-
-/** List-card Applied ✓ or greyed-out card. No hover. */
+/** Visible `Applied ✓` on the list card. Opacity/grayscale classes are not a skip. */
 export function isListCardApplied(card) {
   if (!card) return false;
-  return hasAppliedCheck(card) || isGreyedAppliedCard(card);
+  return hasAppliedCheck(card);
 }
 
 export function hasAppliedCheck(root) {

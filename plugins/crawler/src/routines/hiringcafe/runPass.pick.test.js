@@ -9,7 +9,7 @@ const FRESH = { id: "reqfresh11111111", listApplied: false };
 const APPLIED = { id: "reqapplied111111", listApplied: true };
 
 describe("pickNextJob list-card Applied skip", () => {
-  test("skips greyed Applied ✓ cards before hover or open", async () => {
+  test("skips Applied ✓ list cards before hover or open and never marks them handled", async () => {
     const decisions = [];
     const outcomes = [];
     const marked = [];
@@ -32,7 +32,7 @@ describe("pickNextJob list-card Applied skip", () => {
     expect(next).toEqual(FRESH);
     expect(decisions).toEqual([{ id: APPLIED.id, decision: CARD_SKIP_ALREADY_APPLIED }]);
     expect(outcomes).toEqual([SCRAPE_OUTCOMES.DUPLICATE]);
-    expect(marked).toEqual([APPLIED.id]);
+    expect(marked).toEqual([]);
     expect(appliedReads).toEqual([FRESH.id]);
     expect(paces).toEqual([
       expect.objectContaining({

@@ -6,7 +6,11 @@ import { routeMessage } from "./background/messageRouter.js";
 import { handleBoundTabRemoved } from "./background/messages/bindTab.js";
 import { releaseDebugger } from "./background/messages/debuggerMouse.js";
 import { abortInFlightNavigate } from "./background/messages/navigateTab.js";
-import { handleKeepaliveAlarm, handleKeepaliveConnect } from "./background/runKeepalive.js";
+import {
+  handleKeepaliveAlarm,
+  handleKeepaliveConnect,
+  stopRunKeepaliveIfIdle,
+} from "./background/runKeepalive.js";
 import { drainScrapeQueue, startScrapeQueue } from "./background/scrapeQueueWorker.js";
 import { persistJobApiUrlToStorage, persistSpiritApiUrlToStorage } from "./config/env.js";
 import { ROUTINE_TAB_CLOSED_ACTION } from "./routineKit/protocol.js";
@@ -28,6 +32,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   const bind = handleBoundTabRemoved(tabId, {
     releaseDebugger,
     abortInFlightNavigate,
+    stopKeepalive: stopRunKeepaliveIfIdle,
   });
   if (!bind) return;
   chrome.runtime

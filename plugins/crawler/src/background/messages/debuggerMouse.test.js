@@ -213,6 +213,31 @@ describe("debugger mouse events", () => {
     expect(debug.commands.filter((item) => item === "attach")).toHaveLength(1);
   });
 
+  test("returns pressed after a press even when the release command throws", async () => {
+    const debug = chromeDebugger();
+    debug.sendCommand = async (_target, method, params) => {
+      debug.commands.push({ method, params });
+      if (method === "Input.dispatchMouseEvent" && params.type === "mouseReleased") {
+        throw new Error("tab closed during release");
+      }
+    };
+    const result = await dispatchTrustedMouse(
+      7,
+      { op: "hoverClick", selector: ".card", offsets: [{ x: 100, y: 100 }] },
+      {
+        chromeDebugger: debug,
+        tabs: tabsIo({ active: false }),
+        sendToContentScript: async (_tabId, message) => {
+          if (message.payload.op === "hoverTarget") {
+            return { result: { found: true, x: 12, y: 18, approach: [{ x: 12, y: 18 }] } };
+          }
+          return { result: { found: true, x: 20, y: 30 } };
+        },
+      },
+    );
+    expect(result).toMatchObject({ found: true, hovered: true, pressed: true });
+  });
+
   test("returns found once a press has been sent", async () => {
     const result = await dispatchTrustedMouse(
       7,

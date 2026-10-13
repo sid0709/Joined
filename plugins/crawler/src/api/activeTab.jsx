@@ -14,8 +14,9 @@ export const toPageTab = (tab) => ({
 });
 
 /**
- * Tracks the focused browser tab, so every panel knows which page it would act on.
- * The value is `{ id, url, title }`, or null when the focused tab is not a web page.
+ * Popup-only: which page the Start button would bind. Routine runs never read
+ * this after bind — they drive the stored tabId. The active-tab query below
+ * is not on the crawl path.
  */
 export function ActiveTabProvider({ children }) {
   const [tab, setTab] = useState(null);

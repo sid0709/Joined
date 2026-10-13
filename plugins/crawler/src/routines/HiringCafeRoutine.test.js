@@ -504,7 +504,7 @@ describe("HiringCafeRoutine", () => {
     expect(notices.some((message) => /not marked applied/i.test(message))).toBe(false);
   });
 
-  test("skips greyed Applied ✓ list cards before hover or open", async () => {
+  test("skips Applied ✓ list cards before hover or open", async () => {
     const paces = [];
     const activities = [];
     const page = hiringCafeTab({
@@ -513,18 +513,22 @@ describe("HiringCafeRoutine", () => {
         cards: [
           cardMarkup("/job/help-desk-coordinator-reqaaa1111111111", "3h", {
             overlay: overlayMarkup({ applied: true }),
-            greyed: true,
             carousel: carouselMarkup(3, 1),
           }),
-          cardMarkup("/job/labor-production-reqddd4444444444", "5h"),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h", {
+            className: "opacity-50 pointer-events-none",
+          }),
         ],
       }),
     });
-    const records = await collectJobs(createHiringCafeStore(memoryStorage()), page.exec, {
+    const store = createHiringCafeStore(memoryStorage());
+    const records = await collectJobs(store, page.exec, {
       onPace: (next) => paces.push(next),
       onActivity: (activity) => activities.push(activity),
     });
     expect(records.map((record) => record.requisitionId)).not.toContain("reqaaa1111111111");
+    expect(records.map((record) => record.requisitionId)).toContain("reqddd4444444444");
+    expect([...(await store.loadHandledIds())]).not.toContain("reqaaa1111111111");
     expect(page.hovers).not.toContain("reqaaa1111111111");
     expect(page.navigates.some((url) => url.includes("reqaaa1111111111"))).toBe(false);
     expect(activities.some((activity) => /skipped \(applied\)/.test(activity.label))).toBe(true);

@@ -163,7 +163,6 @@ export async function pickNextJob({
       noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
       recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
       emitAppliedSkip(emitCursor, candidate, jobs);
-      if (!isJobHandled(candidate, handledIds)) await markJob(candidate.id);
       continue;
     }
     if (isJobHandled(candidate, handledIds)) {

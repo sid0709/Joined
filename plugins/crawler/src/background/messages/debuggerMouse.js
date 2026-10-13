@@ -168,7 +168,11 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
     await send("Input.dispatchMouseEvent", mouseMoved(overlay));
     await send("Input.dispatchMouseEvent", mousePressed(overlay));
     pressed = true;
-    await send("Input.dispatchMouseEvent", mouseReleased(overlay));
+    try {
+      await send("Input.dispatchMouseEvent", mouseReleased(overlay));
+    } catch {
+      return { found: true, hovered: true, pressed: true, diagnostics, diagnosticsText };
+    }
     return {
       found: true,
       hovered: true,

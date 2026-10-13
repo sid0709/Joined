@@ -9,7 +9,6 @@ import {
   hasMarkAppliedControl,
   hasMarkToast,
   hasVisibleSignInModal,
-  isGreyedAppliedCard,
   isHiringCafeSignedOut,
   isListCardApplied,
   isSignedOutWall,
@@ -129,20 +128,24 @@ function markHarness({
 }
 
 describe("HiringCafe applied-state readers", () => {
-  test("detects Applied ✓ and greyed list cards without hovering", () => {
+  test("detects Applied ✓ list cards and ignores opacity or pointer-events classes", () => {
     const firstCard = (html) => queryOne(documentFromHtml(html), JOB_CARD);
     const applied = listWith(overlayMarkup({ applied: true }));
-    const greyed = listPageHtml({
-      cards: [cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", { greyed: true })],
-    });
     const fresh = listWith(overlayMarkup());
+    const faded = (className) =>
+      listPageHtml({
+        cards: [cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", { className })],
+      });
     expect(isListCardApplied(firstCard(applied))).toBe(true);
     expect(hasAppliedCheck(applied)).toBe(true);
-    expect(isGreyedAppliedCard(firstCard(greyed))).toBe(true);
-    expect(isListCardApplied(firstCard(greyed))).toBe(true);
     expect(isListCardApplied(firstCard(fresh))).toBe(false);
-    expect(isGreyedAppliedCard(null)).toBe(false);
     expect(isListCardApplied(null)).toBe(false);
+    expect(isListCardApplied(firstCard(faded("opacity-100")))).toBe(false);
+    expect(isListCardApplied(firstCard(faded("opacity-50")))).toBe(false);
+    expect(isListCardApplied(firstCard(faded("pointer-events-none")))).toBe(false);
+    expect(isListCardApplied(firstCard(faded("opacity-50 grayscale pointer-events-none")))).toBe(
+      false,
+    );
   });
 
   test("reads Applied ✓ and Mark Applied from the hover overlay", () => {

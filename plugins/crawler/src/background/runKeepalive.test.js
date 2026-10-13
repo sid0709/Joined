@@ -35,6 +35,14 @@ describe("run keepalive", () => {
     expect(startRunKeepalive({})).toEqual({ armed: false });
   });
 
+  test("clears the alarm when a number is passed where alarms were expected", () => {
+    const alarms = alarmsIo();
+    globalThis.chrome = { alarms };
+    expect(stopRunKeepaliveIfIdle(0)).toEqual({ cleared: true });
+    expect(alarms.calls).toEqual([["clear", RUN_KEEPALIVE_ALARM]]);
+    delete globalThis.chrome;
+  });
+
   test("keeps the alarm while a panel port or bind is live", () => {
     const alarms = alarmsIo();
     globalThis.chrome = { alarms };

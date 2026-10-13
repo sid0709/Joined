@@ -21,6 +21,10 @@ export function startRunKeepalive(alarms = globalThis.chrome?.alarms) {
 }
 
 export function stopRunKeepaliveIfIdle(alarms = globalThis.chrome?.alarms, boundCount = 0) {
+  if (typeof alarms === "number") {
+    boundCount = alarms;
+    alarms = globalThis.chrome?.alarms;
+  }
   if (ports.size > 0 || boundCount > 0) return { cleared: false };
   if (typeof alarms?.clear === "function") void alarms.clear(RUN_KEEPALIVE_ALARM);
   return { cleared: true };
