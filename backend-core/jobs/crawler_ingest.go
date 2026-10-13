@@ -27,8 +27,8 @@ const (
 	maxCrawlerDuplicateWindowDays     = 365
 	// crawlerFallbackSource names the board when the crawler does not.
 	crawlerFallbackSource = "crawler"
-	applyLinkKeyField     = "applyLinkKey"
 	ingestedViaField      = "ingestedVia"
+	duplicateDateLayout   = "Jan 2, 2006"
 )
 
 // CrawledCompany is the employer a board showed on a job. Name and logo are the
@@ -108,6 +108,7 @@ type CrawlerJobResult struct {
 	Created    bool   `json:"created"`
 	Duplicate  bool   `json:"duplicate"`
 	TempJobID  string `json:"tempJobId,omitempty"`
+	JobID      string `json:"jobId,omitempty"`
 	Reason     string `json:"reason,omitempty"`
 	Error      string `json:"error,omitempty"`
 	StatusCode int    `json:"statusCode"`
@@ -330,56 +331,105 @@ func crawledTempDocument(id bson.ObjectID, job CrawledJob, createdBy string, now
 		{Key: "companyLink", Value: website},
 		{Key: "description", Value: strings.TrimSpace(job.Description)},
 		{Key: "applyLink", Value: apply},
-		{Key: applyLinkKeyField, Value: CanonicalApplyURL(apply)},
 		{Key: "createdAt", Value: now.UTC()},
 		{Key: "createdBy", Value: createdBy},
 		{Key: "source", Value: source},
 		{Key: ingestedViaField, Value: CrawlerIngest},
 		{Key: crawlerMetadataKey, Value: metadata},
 	}
+	doc = append(doc, matchKeySet(crawledCompanyName(job), job.Title, apply)...)
 	if posted := parseCrawledPostedAt(job, now); !posted.IsZero() {
 		doc = append(doc, bson.E{Key: "postedAt", Value: posted})
 	}
 	return doc
 }
 
-// ensureCrawlerIndexes indexes temp_jobs for the duplicate check. Creating an
-// existing index is a no-op.
-func (s *Store) ensureCrawlerIndexes(ctx context.Context) error {
-	_, err := s.dest().Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: applyLinkKeyField, Value: 1}, {Key: "createdAt", Value: -1}},
-		Options: options.Index().SetName("crawler_apply_link_key"),
-	})
-	if err != nil && !indexAlreadyExists(err) {
-		return fmt.Errorf("ensure crawler index: %w", err)
-	}
-	return nil
+// crawlerDuplicate is the stored job a crawled job repeats.
+type crawlerDuplicate struct {
+	tempJobID string
+	jobID     string
+	reason    string
 }
 
-// findRecentTempJob returns the temp job with the same canonical apply link created
-// after since, or nil.
-func (s *Store) findRecentTempJob(ctx context.Context, key string, since time.Time) (*struct {
-	ID        bson.ObjectID `bson:"_id"`
-	CreatedAt time.Time     `bson:"createdAt"`
-}, error) {
-	var found struct {
-		ID        bson.ObjectID `bson:"_id"`
-		CreatedAt time.Time     `bson:"createdAt"`
+type matchedRow struct {
+	ID           bson.ObjectID `bson:"_id"`
+	CreatedAt    time.Time     `bson:"createdAt"`
+	ImportedAt   time.Time     `bson:"importedAt"`
+	PostedAt     time.Time     `bson:"postedAt"`
+	ApplyLinkKey string        `bson:"applyLinkKey"`
+}
+
+func (row matchedRow) matchedOn(applyKey string) string {
+	if applyKey != "" && row.ApplyLinkKey == applyKey {
+		return "same apply link"
 	}
-	err := s.dest().FindOne(ctx,
-		bson.D{
-			{Key: applyLinkKeyField, Value: key},
-			{Key: "createdAt", Value: bson.D{{Key: "$gte", Value: since.UTC()}}},
-		},
-		options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 1}, {Key: "createdAt", Value: 1}}),
-	).Decode(&found)
+	return "same company and title"
+}
+
+func findMatchedRow(ctx context.Context, coll *mongo.Collection, filter bson.D) (*matchedRow, error) {
+	var row matchedRow
+	err := coll.FindOne(ctx, filter, options.FindOne().SetProjection(bson.D{
+		{Key: "_id", Value: 1},
+		{Key: "createdAt", Value: 1},
+		{Key: "importedAt", Value: 1},
+		{Key: "postedAt", Value: 1},
+		{Key: applyLinkKeyField, Value: 1},
+	})).Decode(&row)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &found, nil
+	return &row, nil
+}
+
+// findCrawlerDuplicate looks for the same job (same canonical apply link, or same
+// normalized company and title) staged in temp_jobs since `since` (createdAt, or
+// importedAt for imported rows), or in jobs posted since `since`.
+func (s *Store) findCrawlerDuplicate(ctx context.Context, job CrawledJob, since time.Time) (*crawlerDuplicate, error) {
+	applyKey := CanonicalApplyURL(crawledApplyURL(job))
+	same := sameJobFilter(applyKey, NormalizeCompany(crawledCompanyName(job)), NormalizeTitle(job.Title))
+	if same == nil {
+		return nil, nil
+	}
+	sinceUTC := since.UTC()
+	temp, err := findMatchedRow(ctx, s.dest(), bson.D{{Key: "$and", Value: bson.A{
+		same,
+		bson.D{{Key: "$or", Value: bson.A{
+			bson.D{{Key: "createdAt", Value: bson.D{{Key: "$gte", Value: sinceUTC}}}},
+			bson.D{{Key: "importedAt", Value: bson.D{{Key: "$gte", Value: sinceUTC}}}},
+		}}},
+	}}})
+	if err != nil {
+		return nil, fmt.Errorf("find temp job duplicate: %w", err)
+	}
+	if temp != nil {
+		staged := temp.CreatedAt
+		if staged.IsZero() {
+			staged = temp.ImportedAt
+		}
+		return &crawlerDuplicate{
+			tempJobID: temp.ID.Hex(),
+			reason: fmt.Sprintf("Already in temp jobs since %s (%s)",
+				staged.UTC().Format(duplicateDateLayout), temp.matchedOn(applyKey)),
+		}, nil
+	}
+	published, err := findMatchedRow(ctx, s.structured(), bson.D{{Key: "$and", Value: bson.A{
+		same,
+		bson.D{{Key: "postedAt", Value: bson.D{{Key: "$gte", Value: sinceUTC}}}},
+	}}})
+	if err != nil {
+		return nil, fmt.Errorf("find job duplicate: %w", err)
+	}
+	if published != nil {
+		return &crawlerDuplicate{
+			jobID: published.ID.Hex(),
+			reason: fmt.Sprintf("Already in jobs, posted %s (%s)",
+				published.PostedAt.UTC().Format(duplicateDateLayout), published.matchedOn(applyKey)),
+		}, nil
+	}
+	return nil, nil
 }
 
 func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob, createdBy string, now time.Time) CrawlerJobResult {
@@ -395,8 +445,7 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 		result.StatusCode = 500
 		return result
 	}
-	key := CanonicalApplyURL(crawledApplyURL(job))
-	existing, err := s.findRecentTempJob(ctx, key, now.Add(-crawlerDuplicateWindow(job.DuplicateWindowDays)))
+	existing, err := s.findCrawlerDuplicate(ctx, job, now.Add(-crawlerDuplicateWindow(job.DuplicateWindowDays)))
 	if err != nil {
 		result.Error = "could not check for duplicates"
 		result.StatusCode = 500
@@ -405,8 +454,9 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 	if existing != nil {
 		result.Success = true
 		result.Duplicate = true
-		result.TempJobID = existing.ID.Hex()
-		result.Reason = fmt.Sprintf("Already in temp jobs since %s", existing.CreatedAt.UTC().Format("Jan 2, 2006"))
+		result.TempJobID = existing.tempJobID
+		result.JobID = existing.jobID
+		result.Reason = existing.reason
 		result.StatusCode = 200
 		return result
 	}
@@ -424,11 +474,12 @@ func (s *Store) ingestCrawledJob(ctx context.Context, index int, job CrawledJob,
 }
 
 // IngestCrawledJobs stages each crawled job in temp_jobs for AI analysis, skipping
-// one whose apply link is already there within the job's duplicate window. When
+// the same job (same apply link, or same company and title) already in temp_jobs
+// or jobs within the job's duplicate window (see findCrawlerDuplicate). When
 // the employer is not already in companies or temp_companies, and the board gave
 // a name, website, and logo, it stages that company in temp_companies.
 func (s *Store) IngestCrawledJobs(ctx context.Context, batch CrawlerBatch, now time.Time) (CrawlerIngestResult, error) {
-	if err := s.ensureCrawlerIndexes(ctx); err != nil {
+	if err := s.ensureMatchKeyIndexes(ctx); err != nil {
 		return CrawlerIngestResult{}, err
 	}
 	if err := ensureCompanyIndexes(ctx, s.stagedCompanies()); err != nil && !indexAlreadyExists(err) {

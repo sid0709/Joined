@@ -54,6 +54,10 @@ type storedSearchJob struct {
 	ReviewedAt            time.Time     `bson:"reviewedAt,omitempty"`
 	Job                   SearchJob     `bson:"job"`
 	DedupeKey             string        `bson:"dedupeKey,omitempty"`
+	// Match keys the crawler's duplicate check looks jobs up by (match_keys.go).
+	ApplyLinkKey string `bson:"applyLinkKey,omitempty"`
+	CompanyKey   string `bson:"companyKey,omitempty"`
+	TitleKey     string `bson:"titleKey,omitempty"`
 	// SourceCompanyID is the temp job's source company, kept so the job can still be
 	// linked to its company once the temp job is dropped.
 	SourceCompanyID string `bson:"sourceCompanyId,omitempty"`

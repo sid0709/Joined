@@ -143,6 +143,14 @@ func migrateCatalog(store *jobs.Store, mongoURI string) {
 	} else {
 		slog.Info("backfill job provenance", "updated", updated)
 	}
+	keysCtx, cancelKeys := context.WithTimeout(context.Background(), backfillTimeout)
+	keyed, err := store.BackfillMatchKeys(keysCtx)
+	cancelKeys()
+	if err != nil {
+		slog.Error("backfill job match keys", "error", config.Redact(err, mongoURI))
+	} else if keyed > 0 {
+		slog.Info("backfill job match keys", "updated", keyed)
+	}
 	purgeCtx, cancelPurge := context.WithTimeout(context.Background(), backfillTimeout)
 	purged, err := store.PurgePublishedTemp(purgeCtx)
 	cancelPurge()
