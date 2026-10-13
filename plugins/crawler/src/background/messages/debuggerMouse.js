@@ -79,19 +79,17 @@ export async function releaseDebugger(tabId, chromeDebugger = defaultChromeDebug
 
 /**
  * CDP `Input.dispatchMouseEvent` is already CSS pixels. Do not scale by browser
- * zoom. Only shift by cssVisualViewport pinch offsets and pageX/pageY.
+ * zoom. Only subtract cssVisualViewport pinch offsets (offsetX / offsetY).
  */
 export function toCdpPoint(point, metrics) {
   const x = Number(point?.x) || 0;
   const y = Number(point?.y) || 0;
   const visual = metrics?.cssVisualViewport;
   if (!visual) return { x, y };
-  const layout = metrics?.cssLayoutViewport;
-  const pinchX = Number(visual.offsetX) || 0;
-  const pinchY = Number(visual.offsetY) || 0;
-  const pageDx = (Number(visual.pageX) || 0) - (Number(layout?.pageX) || 0);
-  const pageDy = (Number(visual.pageY) || 0) - (Number(layout?.pageY) || 0);
-  return { x: x - pinchX - pageDx, y: y - pinchY - pageDy };
+  return {
+    x: x - (Number(visual.offsetX) || 0),
+    y: y - (Number(visual.offsetY) || 0),
+  };
 }
 
 async function pageLayoutMetrics(send) {

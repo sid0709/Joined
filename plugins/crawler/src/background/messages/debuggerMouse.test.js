@@ -329,10 +329,15 @@ describe("debugger mouse events", () => {
     ).toEqual(point);
     expect(
       toCdpPoint(point, {
-        cssVisualViewport: { offsetX: 12, offsetY: 8, pageX: 40, pageY: 10 },
+        cssVisualViewport: {
+          offsetX: 12,
+          offsetY: 8,
+          pageX: 52,
+          pageY: 8,
+        },
         cssLayoutViewport: { pageX: 40, pageY: 0 },
       }),
-    ).toEqual({ x: 88, y: 182 });
+    ).toEqual({ x: 88, y: 192 });
     const debug = chromeDebugger();
     debug.sendCommand = async (_target, method, params) => {
       debug.commands.push({ method, params });
@@ -363,6 +368,38 @@ describe("debugger mouse events", () => {
     );
     expect(debug.commands.filter((item) => item?.method === "Input.dispatchMouseEvent")).toEqual([
       { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 100, y: 200 }) },
+    ]);
+  });
+
+  test("shifts a pinch-zoom point by offsetX/offsetY only", async () => {
+    const debug = chromeDebugger();
+    debug.sendCommand = async (_target, method, params) => {
+      debug.commands.push({ method, params });
+      if (method === "Page.getLayoutMetrics") {
+        return {
+          cssVisualViewport: {
+            offsetX: 12,
+            offsetY: 8,
+            pageX: 52,
+            pageY: 8,
+          },
+          cssLayoutViewport: { pageX: 40, pageY: 0 },
+        };
+      }
+    };
+    await dispatchTrustedMouse(
+      2,
+      { op: "hover", selector: ".card" },
+      {
+        chromeDebugger: debug,
+        tabs: tabsIo({ active: false }),
+        sendToContentScript: async () => ({
+          result: { found: true, x: 100, y: 200, approach: [{ x: 100, y: 200 }] },
+        }),
+      },
+    );
+    expect(debug.commands.filter((item) => item?.method === "Input.dispatchMouseEvent")).toEqual([
+      { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 88, y: 192 }) },
     ]);
   });
 
