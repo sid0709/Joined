@@ -1,15 +1,20 @@
 import { NAVIGATE_WAIT_MS, NEXT_PAGE, NEXT_PAGE_LABEL, NEXT_PAGE_POLL_MS } from "./constants.js";
-import { isClassicListUrl, pageFromListUrl } from "./lists.js";
+import { isClassicListUrl, pageFromListUrl, sameListFilters } from "./lists.js";
 
-function landedOn(page, pageIndex) {
+function landedOn(page, listUrl, pageIndex) {
   return Boolean(
-    page?.html && isClassicListUrl(page.url) && pageFromListUrl(page.url) === pageIndex,
+    page?.html &&
+    isClassicListUrl(page.url) &&
+    pageFromListUrl(page.url) === pageIndex &&
+    sameListFilters(page.url, listUrl),
   );
 }
 
 /**
- * Click HiringCafe's Next page link and wait for `?page=<pageIndex>` to load.
- * Returns the landed page, or null so the caller opens the URL itself.
+ * Click HiringCafe's Next page link and wait for `?page=<pageIndex>` of the
+ * same search to load. A landing that dropped the filters (`searchState`)
+ * does not count. Returns the landed page, or null so the caller opens the
+ * filtered URL itself.
  */
 export async function clickNextPage({
   call,
@@ -17,6 +22,7 @@ export async function clickNextPage({
   rest,
   skipDelays,
   checkStopped,
+  listUrl,
   pageIndex,
   onActivity,
   now = Date.now,
@@ -28,14 +34,14 @@ export async function clickNextPage({
   const read = () => readPage().catch(() => null);
   if (skipDelays) {
     const page = await read();
-    return landedOn(page, pageIndex) ? page : null;
+    return landedOn(page, listUrl, pageIndex) ? page : null;
   }
   const deadline = now() + NAVIGATE_WAIT_MS;
   while (now() < deadline) {
     checkStopped?.();
     await rest(NEXT_PAGE_POLL_MS);
     const page = await read();
-    if (landedOn(page, pageIndex)) return page;
+    if (landedOn(page, listUrl, pageIndex)) return page;
   }
   return null;
 }

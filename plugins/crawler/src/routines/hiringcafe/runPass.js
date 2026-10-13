@@ -21,6 +21,7 @@ import {
   CARD_SKIP_INGEST_TIMEOUT,
   CARD_SKIP_METADATA_SIZE,
   CARD_SKIP_NO_URL,
+  FILTERS_CHANGED_NOTICE,
   NOT_MARKED_REASON,
   INVALID_STREAK,
   INVALID_STREAK_MESSAGE,
@@ -41,7 +42,15 @@ import {
 } from "./constants.js";
 import { expandShortGroups } from "./expandGroups.js";
 import { isJobHandled, jobsAfterCursor } from "./handled.js";
-import { advanceCursor, crawlListUrl, emptyCursor, jobIdKey, listUrlForPage } from "./lists.js";
+import {
+  advanceCursor,
+  crawlListUrl,
+  emptyCursor,
+  isClassicListUrl,
+  jobIdKey,
+  listUrlForPage,
+  sameListFilters,
+} from "./lists.js";
 import {
   markAppliedOnCard,
   markAppliedOnDetail,
@@ -128,11 +137,19 @@ function nextInvalidStreak(streak) {
   return next;
 }
 
-async function ensureCursor(store, tab) {
+/**
+ * Resume the saved cursor unless a run starts on a classic list with other
+ * filters: the tab's search wins, so a stale cursor never drops `searchState`.
+ */
+async function ensureCursor(store, tab, { firstPass = false, onNotice } = {}) {
   const existing = await store.loadCursor();
-  if (existing?.lists?.length) return existing;
-  const cursor = emptyCursor([crawlListUrl(tab.url)]);
+  const savedList = existing?.lists?.[existing.listIndex ?? 0];
+  const tabList = isClassicListUrl(tab.url) ? crawlListUrl(tab.url) : "";
+  const adoptTab = firstPass && tabList && savedList && !sameListFilters(savedList, tabList);
+  if (existing?.lists?.length && !adoptTab) return existing;
+  const cursor = emptyCursor([tabList || crawlListUrl(tab.url)]);
   await store.saveCursor(cursor);
+  if (adoptTab) onNotice?.(FILTERS_CHANGED_NOTICE, true);
   return cursor;
 }
 
@@ -362,6 +379,7 @@ export async function runHiringCafePass(ctx, progress) {
       rest,
       skipDelays,
       checkStopped: ctx.checkStopped,
+      listUrl: cursor.lists[cursor.listIndex],
       pageIndex: cursor.page,
       onActivity: hooks.onActivity,
     });
@@ -421,7 +439,10 @@ export async function runHiringCafePass(ctx, progress) {
   await ensureMarkDebugger(call, markAppliedEnabled);
   const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
   progress.tick();
-  cursor = await ensureCursor(store, tab);
+  cursor = await ensureCursor(store, tab, {
+    firstPass: Boolean(hooks.firstPass),
+    onNotice: hooks.onNotice,
+  });
 
   for (;;) {
     ctx.checkStopped();

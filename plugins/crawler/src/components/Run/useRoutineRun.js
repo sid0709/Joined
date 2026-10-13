@@ -396,13 +396,21 @@ export function useRoutineRun() {
     let active = true;
 
     const run = async () => {
+      // A start or resume: routines may re-read the page the user is on (e.g. its filters).
+      let firstPass = true;
       while (active) {
         if (abortRef.current?.signal?.aborted) break;
         const hooks = passHooksRef.current;
         const { routine } = targetRef.current;
         setPassCount((count) => count + 1);
+        const isFirstPass = firstPass;
+        firstPass = false;
         try {
-          await runRoutinePass(routine, { ...hooks, signal: abortRef.current?.signal });
+          await runRoutinePass(routine, {
+            ...hooks,
+            firstPass: isFirstPass,
+            signal: abortRef.current?.signal,
+          });
         } catch (err) {
           if (err instanceof RoutineStoppedError || abortRef.current?.signal?.aborted) break;
           if (isBoundTabClosedError(err)) {

@@ -14,6 +14,7 @@ import BuiltInRoutine from "./BuiltInRoutine.js";
 import {
   CHALLENGE_WAIT_LABEL,
   MARK_APPLIED_TEXT,
+  FILTERS_CHANGED_NOTICE,
   NEXT_PAGE,
   SIGN_IN_TO_MARK_MESSAGE,
   START_FROM_PAGE_ONE_LABEL,
@@ -40,6 +41,17 @@ import { ROUTINES } from "./index.js";
 import "./hiringcafe/testing/domParser.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
+const FILTERED_LIST_URL =
+  "https://hiringcafe.com/classic?searchState=%7B%22workplaceTypes%22%3A%5B%22Remote%22%5D%2C%22dateFetchedPastNDays%22%3A2%7D";
+const SEARCH_STATE = new URL(FILTERED_LIST_URL).searchParams.get("searchState");
+
+function listNavigates(page) {
+  return page.navigates.filter((url) => /\/classic/.test(url));
+}
+
+function keepsFilters(url) {
+  return new URL(url).searchParams.get("searchState") === SEARCH_STATE;
+}
 const routine = {
   ...HiringCafeRoutine,
   options: { ...HiringCafeRoutine.options, fieldPauseMs: 0 },
@@ -64,6 +76,7 @@ function hiringCafeTab({
   timeoutOnce = null,
   alreadyApplied = [],
   viewAllJobs = null,
+  nextDropsFilters = false,
 } = {}) {
   let url = listUrl;
   let status = 200;
@@ -233,7 +246,9 @@ function hiringCafeTab({
       const selector = String(op.selector || "");
       if (selector.includes('aria-label="Next page"')) {
         const next = new URL(url);
-        next.searchParams.set("page", String(Number(next.searchParams.get("page") || 0) + 1));
+        const page = String(Number(next.searchParams.get("page") || 0) + 1);
+        if (nextDropsFilters) next.search = "";
+        next.searchParams.set("page", page);
         url = next.href;
         status = 200;
         htmlOverride = null;
@@ -720,5 +735,47 @@ describe("HiringCafeRoutine", () => {
     expect(markedCards.filter((card) => card === "reqaaa1111111111")).toHaveLength(1);
     expect(records.map((record) => record.requisitionId)).toContain("reqbbb2222222222");
     expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
+  });
+  test("a run started on a filtered list replaces a stale unfiltered cursor", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({ listIndex: 0, page: 3, lastJobId: "old", lists: [LIST_URL] });
+    const page = hiringCafeTab({ listUrl: FILTERED_LIST_URL });
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      firstPass: true,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(notices).toContain(FILTERS_CHANGED_NOTICE);
+    expect(records.length).toBeGreaterThan(0);
+    expect(listNavigates(page).every(keepsFilters)).toBe(true);
+  });
+
+  test("resumes the saved cursor when the tab shows the same filters", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({ listIndex: 0, page: 0, lastJobId: "", lists: [FILTERED_LIST_URL] });
+    const notices = [];
+    await collectJobs(store, hiringCafeTab({ listUrl: FILTERED_LIST_URL }).exec, {
+      firstPass: true,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(notices).not.toContain(FILTERS_CHANGED_NOTICE);
+  });
+
+  test("mid-run passes keep the cursor's filters even off the filtered list", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({ listIndex: 0, page: 0, lastJobId: "", lists: [FILTERED_LIST_URL] });
+    const page = hiringCafeTab({ listUrl: LIST_URL });
+    await collectJobs(store, page.exec, { firstPass: false });
+    expect(listNavigates(page).length).toBeGreaterThan(0);
+    expect(listNavigates(page).every(keepsFilters)).toBe(true);
+  });
+
+  test("a Next click that drops searchState falls back to the filtered page URL", async () => {
+    const page = hiringCafeTab({ listUrl: FILTERED_LIST_URL, nextDropsFilters: true });
+    await collectJobs(createHiringCafeStore(memoryStorage()), page.exec, { firstPass: true });
+    expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
+    const nextPage = listNavigates(page).find((url) => /[?&]page=1/.test(url));
+    expect(nextPage).toBeDefined();
+    expect(keepsFilters(nextPage)).toBe(true);
   });
 });

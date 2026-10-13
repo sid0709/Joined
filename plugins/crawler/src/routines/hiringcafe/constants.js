@@ -122,6 +122,8 @@ export function stuckPageMessage(count = STUCK_PAGE_FAILURES) {
 }
 
 export const START_PAGE_KEY = "hiringcafe:start";
+export const FILTERS_CHANGED_NOTICE =
+  "HiringCafe filters changed. Crawling this search from page 1.";
 export const START_FROM_PAGE_ONE_LABEL = "Start from page 1";
 export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 jobs";
 export const CHALLENGE_WAIT_LABEL = "Waiting for Cloudflare verification";
