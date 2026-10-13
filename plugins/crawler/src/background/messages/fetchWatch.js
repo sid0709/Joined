@@ -18,12 +18,15 @@ export function installFetchWatchInDocument(urlIncludes) {
     const url = String(request?.url || request || "");
     if (!urlIncludes || url.includes(urlIncludes)) {
       let body = "";
+      let requestBody = "";
       try {
         body = await result.clone().text();
       } catch {
         body = "";
       }
-      hits.push({ url, status: result.status, body });
+      const init = args[1];
+      if (typeof init?.body === "string") requestBody = init.body;
+      hits.push({ url, status: result.status, body, request: requestBody });
     }
     return result;
   };

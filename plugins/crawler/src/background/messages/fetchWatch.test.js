@@ -27,13 +27,16 @@ describe("fetchWatch", () => {
       expect(installFetchWatchInDocument("/api/updateMarketplaceJobStageForUser")).toMatchObject({
         watching: true,
       });
-      await globalThis.fetch("https://hiringcafe.com/api/updateMarketplaceJobStageForUser");
+      await globalThis.fetch("https://hiringcafe.com/api/updateMarketplaceJobStageForUser", {
+        body: '{"requisition_id":"reqaaa1111111111"}',
+      });
       await globalThis.fetch("https://hiringcafe.com/api/other");
       expect(readFetchWatchInDocument().hits).toEqual([
         {
           url: "https://hiringcafe.com/api/updateMarketplaceJobStageForUser",
           status: 200,
           body: "Update successful",
+          request: '{"requisition_id":"reqaaa1111111111"}',
         },
       ]);
       expect(installFetchWatchInDocument("/api/updateMarketplaceJobStageForUser")).toMatchObject({
@@ -59,7 +62,7 @@ describe("fetchWatch", () => {
       expect(installFetchWatchInDocument("")).toMatchObject({ watching: true });
       await globalThis.fetch({ url: "https://hiringcafe.com/api/other" });
       expect(readFetchWatchInDocument().hits).toEqual([
-        { url: "https://hiringcafe.com/api/other", status: 204, body: "" },
+        { url: "https://hiringcafe.com/api/other", status: 204, body: "", request: "" },
       ]);
       expect(clearFetchWatchInDocument()).toEqual({ watching: false, hits: [] });
     } finally {

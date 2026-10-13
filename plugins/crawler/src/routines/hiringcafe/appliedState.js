@@ -16,6 +16,7 @@ import {
   MARK_TOAST_TEXT,
   SIGN_IN_DIALOG,
   SIGN_IN_DIALOG_RE,
+  UPDATE_STAGE_PATH,
 } from "./constants.js";
 import { documentFromHtml, textOf } from "./html.js";
 import { readSignedIn } from "./parseNextData.js";
@@ -52,6 +53,14 @@ export function cardForJob(document, job) {
 function asRoot(root) {
   if (!root) return null;
   return typeof root === "string" ? documentFromHtml(root) : root;
+}
+
+/** Hover overlay only. Nav tabs and the rest of the card do not count. */
+export function overlayRoot(root) {
+  const node = asRoot(root);
+  if (!node) return null;
+  if (node.nodeType === 1 && node.matches?.(CARD_OVERLAY)) return node;
+  return queryOne(node, CARD_OVERLAY);
 }
 
 /** Visible `Applied ✓` on the list card. Opacity/grayscale classes are not a skip. */
@@ -119,9 +128,10 @@ export function findMarkAppliedControl(root) {
 export function overlayCandidateTexts(root) {
   const node = asRoot(root);
   if (!node) return [];
+  const scope = overlayRoot(node) || node;
   const seen = new Set();
   const texts = [];
-  for (const candidate of queryAll(node, MARK_APPLIED_CONTROL)) {
+  for (const candidate of queryAll(scope, MARK_APPLIED_CONTROL)) {
     const text = normalizeText(textOf(candidate));
     if (!text || text.length > MARK_OVERLAY_CANDIDATE_MAX_CHARS) continue;
     if (!isVisibleElement(candidate) || seen.has(text)) continue;
@@ -131,16 +141,34 @@ export function overlayCandidateTexts(root) {
   return texts;
 }
 
+/** Overlay on this job's card, else the Mark Applied control's container. */
+export function markStateRoot(html, job = {}) {
+  const document = asRoot(html);
+  if (!document) return null;
+  const card = cardForJob(document, job);
+  if (card) return overlayRoot(card);
+  const overlay = overlayRoot(document);
+  if (overlay) return overlay;
+  const mark = findMarkAppliedControl(document);
+  return mark?.parentElement || null;
+}
+
 export function hasMarkAppliedControl(root) {
   return Boolean(findMarkAppliedControl(root));
 }
 
-export function hasMarkToast(html) {
+function toastPresent(html) {
   if (!html) return false;
   const document = documentFromHtml(html);
   return queryAll(document, MARK_TOAST).some((node) =>
     normalizeText(textOf(node)).includes(MARK_TOAST_TEXT),
   );
+}
+
+/** True when the toast is present. Pass `beforeHtml` to require it appeared after the click. */
+export function hasMarkToast(html, beforeHtml) {
+  if (beforeHtml !== undefined) return !toastPresent(beforeHtml) && toastPresent(html);
+  return toastPresent(html);
 }
 
 export function hasVisibleSignInModal(html) {
@@ -166,29 +194,34 @@ export function isSignedOutWall(html) {
 export function appliedStateFromHtml(html, job = {}) {
   const document = documentFromHtml(html);
   const card = cardForJob(document, job);
-  const overlay = card ? queryOne(card, CARD_OVERLAY) || card : null;
-  const marked =
-    Boolean(overlay && hasAppliedState(overlay)) || Boolean(card && hasAppliedState(card));
+  const overlay = overlayRoot(card);
+  const marked = Boolean(overlay && hasAppliedState(overlay));
   return {
     found: Boolean(card),
     marked,
-    canMark: Boolean(
-      !marked &&
-      ((overlay && hasMarkAppliedControl(overlay)) || (card && hasMarkAppliedControl(card))),
-    ),
+    canMark: Boolean(!marked && overlay && hasMarkAppliedControl(overlay)),
     toast: hasMarkToast(html),
     signedOut: isHiringCafeSignedOut(html),
   };
 }
 
-export function stageUpdateSucceeded(hits = []) {
+function requestMentionsJob(hit, jobId) {
+  const url = String(hit?.url || "");
+  const request = String(hit?.request || hit?.requestBody || "");
+  return url.includes(jobId) || request.includes(jobId);
+}
+
+export function stageUpdateSucceeded(hits = [], job = {}) {
+  const jobId = String(job?.id || "").trim();
+  if (!jobId) return false;
   return hits.some((hit) => {
     const url = String(hit?.url || "");
     const body = String(hit?.body || "");
     return (
-      url.includes("/api/updateMarketplaceJobStageForUser") &&
+      url.includes(UPDATE_STAGE_PATH) &&
       hit?.status === 200 &&
-      /update successful/i.test(body)
+      /update successful/i.test(body) &&
+      requestMentionsJob(hit, jobId)
     );
   });
 }

@@ -7,6 +7,7 @@ import {
   hasMarkToast,
   isHiringCafeSignedOut,
   markConfirmed,
+  markStateRoot,
   stageUpdateSucceeded,
 } from "./appliedState.js";
 import {
@@ -96,7 +97,7 @@ async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, select
     last = await hoverCard(call, selector, offset).catch(() => ({ found: false }));
     const overlay = await overlayProbe(call, selector, skipDelays ? 0 : MARK_OVERLAY_WAIT_MS);
     const page = await readPage();
-    const candidates = overlayCandidates(overlay, last);
+    const candidates = overlayCandidates(overlay);
     const state = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates);
     const overlaySeen = Boolean(overlay?.found || state.canMark || state.marked);
     last = {
@@ -180,12 +181,12 @@ export async function readAppliedOnCard({
   return { ...state, signedOut: state.signedOut, page, hovered };
 }
 
-async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
+async function confirmAfterClick({ job, call, rest, skipDelays, readPage, beforeHtml = "" }) {
   await pause(rest, skipDelays, MARK_CONFIRM_MS);
   const hits = await stageUpdateHits(call);
-  const fetchOk = stageUpdateSucceeded(hits);
+  const fetchOk = stageUpdateSucceeded(hits, job);
   let page = await readPage();
-  const toast = hasMarkToast(page.html);
+  const toast = hasMarkToast(page.html, beforeHtml);
   if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, toast, fetchOk };
   }
@@ -296,7 +297,14 @@ export async function markAppliedOnCard({
     noteMark(onActivity, log, "waitFor", onNotice, false);
     return { marked: false, log, reason, diagnostics };
   }
-  const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
+  const confirmed = await confirmAfterClick({
+    job,
+    call,
+    rest,
+    skipDelays,
+    readPage,
+    beforeHtml: ready.page?.html || "",
+  });
   if (confirmed.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, log: SIGN_IN_TO_MARK_MESSAGE };
@@ -335,12 +343,13 @@ export async function markAppliedOnDetail({
   if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
-  if (hasAppliedState(page.html)) {
+  const root = markStateRoot(page.html, job);
+  if (root && hasAppliedState(root)) {
     const log = alreadyMarkedLog(jobId);
     noteMark(onActivity, log);
     return { marked: true, already: true, via: "detail", log };
   }
-  if (!hasMarkAppliedControl(page.html)) {
+  if (!hasMarkAppliedControl(root || page.html)) {
     return { marked: false, via: "detail", skipped: true, log: "" };
   }
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
@@ -360,7 +369,14 @@ export async function markAppliedOnDetail({
       log: "",
     };
   }
-  const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
+  const confirmed = await confirmAfterClick({
+    job,
+    call,
+    rest,
+    skipDelays,
+    readPage,
+    beforeHtml: page.html,
+  });
   if (confirmed.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };

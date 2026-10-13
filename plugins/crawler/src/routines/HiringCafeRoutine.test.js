@@ -217,7 +217,12 @@ function hiringCafeTab({
     if (op.op === "watchedFetches") {
       return {
         hits: [
-          { url: `https://hiringcafe.com${UPDATE_STAGE_PATH}`, status: 200, body: UPDATE_STAGE_OK },
+          {
+            url: `https://hiringcafe.com${UPDATE_STAGE_PATH}`,
+            status: 200,
+            body: UPDATE_STAGE_OK,
+            request: hoveredId,
+          },
         ],
       };
     }

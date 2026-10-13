@@ -144,18 +144,23 @@ export function toastMarkup() {
   return `<div role="status" class="toast">Job marked successfully</div>`;
 }
 
+export function trackerNavMarkup() {
+  return `<nav><a href="/applied">Applied</a><button type="button">App Tracker</button></nav>`;
+}
+
 export function signInDialogMarkup() {
   return `<div role="dialog">Sign in so we can update your job tracker</div>`;
 }
 
 export function cardMarkup(href, postedRaw = "", extras = {}) {
   const overlay = extras.overlay || "";
+  const extra = extras.extra || "";
   const carousel = extras.carousel || "";
   const viewAll = extras.viewAll || "";
   const className =
     extras.className || (extras.greyed ? "opacity-50 grayscale pointer-events-none" : "");
   const classes = className ? ` class="${className}"` : "";
-  return `<div${classes}><a href="${href}">Job Posting</a>${overlay}${carousel}${viewAll}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
+  return `<div${classes}><a href="${href}">Job Posting</a>${extra}${overlay}${carousel}${viewAll}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
 }
 
 export function listPageHtml({
@@ -169,6 +174,7 @@ export function listPageHtml({
   toast = false,
   extraHits,
   viewAll,
+  nav = "",
 } = {}) {
   const visibleCards = cards ?? [
     cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", {
@@ -194,6 +200,7 @@ export function listPageHtml({
     buildId: "test-build",
   };
   return `<!DOCTYPE html><html><body>
+    ${nav}
     <div data-testid="job-results"><div class="hc-card-grid">${visibleCards.join("")}</div></div>
     ${toast ? toastMarkup() : ""}
     ${viewAll || ""}
