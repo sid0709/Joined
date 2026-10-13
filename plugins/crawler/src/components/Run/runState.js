@@ -1,4 +1,4 @@
-import { SCRAPE_OUTCOMES } from "../../api/scrapeRunStats";
+import { createScrapeRunStats, SCRAPE_OUTCOMES } from "../../api/scrapeRunStats";
 
 /** How many recently read jobs the Run tab lists. */
 export const RECENT_JOBS_LIMIT = 6;
@@ -137,9 +137,39 @@ export const EMPTY_PACE_COUNTS = Object.freeze({
   markReasons: Object.freeze([]),
 });
 
-/** Stopped and PAGE_STUCK / blocked resumes keep run-long heart and mark totals. */
-export function keepsPaceOnResume(status) {
+const PAUSED_STATUS_META = Object.freeze({
+  stopped: { dot: "neutral", title: "Stopped" },
+  blocked: { dot: "orange", title: "Blocked" },
+});
+
+/** Stopped and PAGE_STUCK / blocked are the same paused resume state. */
+export function isStoppedOrBlocked(status) {
   return status === "stopped" || status === "blocked";
+}
+
+/** Stopped and PAGE_STUCK / blocked resumes keep run-long heart, mark, and result totals. */
+export function keepsPaceOnResume(status) {
+  return isStoppedOrBlocked(status);
+}
+
+/** Status dot and title for the live run card. BLOCKED uses the paused family with STOPPED. */
+export function runStatusMeta(status) {
+  if (status === "running") return { dot: "accent", title: "Running", isPulsing: true };
+  if (status === "finished") return { dot: "success", title: "Finished" };
+  if (isStoppedOrBlocked(status)) return PAUSED_STATUS_META[status];
+  return PAUSED_STATUS_META.stopped;
+}
+
+/** Keep Saved/Duplicate/Failed/Blocked/Incomplete on resume; zero them for a new run. */
+export function statsAfterStart(current, { reset = false } = {}) {
+  if (reset || !current) return createScrapeRunStats();
+  return {
+    registered: current.registered ?? 0,
+    duplicate: current.duplicate ?? 0,
+    validation: current.validation ?? 0,
+    blocked: current.blocked ?? 0,
+    failed: current.failed ?? 0,
+  };
 }
 
 /** Keep hearted/marked counts on resume; zero them for a new run. */

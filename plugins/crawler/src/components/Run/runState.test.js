@@ -16,9 +16,12 @@ import {
   fieldStatus,
   hitRate,
   isActiveQueueRun,
+  isStoppedOrBlocked,
   keepsPaceOnResume,
   outcomeSegments,
   paceAfterStart,
+  runStatusMeta,
+  statsAfterStart,
   pendingFields,
   RECENT_JOBS_LIMIT,
   recordFieldHit,
@@ -191,5 +194,30 @@ describe("run state", () => {
     expect(keepsPaceOnResume("idle")).toBe(false);
     expect(keepsPaceOnResume("finished")).toBe(false);
     expect(paceAfterStart(prior, { resetHearts: !keepsPaceOnResume("blocked") })).toEqual(prior);
+  });
+
+  test("keeps result counters on STOPPED or BLOCKED resume and zeros them for a new run", () => {
+    const prior = {
+      registered: 3,
+      duplicate: 1,
+      validation: 0,
+      blocked: 0,
+      failed: 0,
+    };
+    expect(statsAfterStart(prior)).toEqual(prior);
+    expect(statsAfterStart(prior, { reset: !keepsPaceOnResume("stopped") })).toEqual(prior);
+    expect(statsAfterStart(prior, { reset: !keepsPaceOnResume("blocked") })).toEqual(prior);
+    expect(statsAfterStart(prior, { reset: true })).toEqual(createScrapeRunStats());
+    expect(statsAfterStart(null)).toEqual(createScrapeRunStats());
+    expect(statsAfterStart(prior, { reset: !keepsPaceOnResume("idle") })).toEqual(
+      createScrapeRunStats(),
+    );
+    expect(isStoppedOrBlocked("stopped")).toBe(true);
+    expect(isStoppedOrBlocked("blocked")).toBe(true);
+    expect(isStoppedOrBlocked("running")).toBe(false);
+    expect(runStatusMeta("stopped").title).toBe("Stopped");
+    expect(runStatusMeta("blocked").title).toBe("Blocked");
+    expect(runStatusMeta("running").title).toBe("Running");
+    expect(runStatusMeta("idle").title).toBe("Stopped");
   });
 });

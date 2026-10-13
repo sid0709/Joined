@@ -32,6 +32,7 @@ import {
   keepsPaceOnResume,
   paceAfterStart,
   pendingFields,
+  statsAfterStart,
   recordFieldHit,
   updateRecentJob,
 } from "./runState";
@@ -411,7 +412,8 @@ export function useRoutineRun() {
         action: "scrapeQueue:clear",
         payload: { beginRunId: runIdRef.current },
       }).catch(() => null);
-      setRunStats(createScrapeRunStats());
+      const resetTotals = Boolean(options.resetHearts) || !keepsPaceOnResume(status);
+      setRunStats((current) => statsAfterStart(current, { reset: resetTotals }));
       setQueueCounts(EMPTY_QUEUE);
       setRecentJobs([]);
       setFieldHits({});
@@ -421,11 +423,7 @@ export function useRoutineRun() {
       setProgress(0);
       setActivity(null);
       setElapsedMs(0);
-      setPace((current) =>
-        paceAfterStart(current, {
-          resetHearts: Boolean(options.resetHearts) || !keepsPaceOnResume(status),
-        }),
-      );
+      setPace((current) => paceAfterStart(current, { resetHearts: resetTotals }));
       setWarning(null);
       setExtractError(null);
       applyQueueSnapshot(cleared?.state);

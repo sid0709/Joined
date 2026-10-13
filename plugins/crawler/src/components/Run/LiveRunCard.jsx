@@ -22,15 +22,8 @@ import {
 
 import { extractErrorBanner } from "./extractErrorBanner";
 import FieldChecklist from "./FieldChecklist";
-import { RUN_STEPS, runStepIndex } from "./runState";
+import { runStatusMeta, RUN_STEPS, runStepIndex } from "./runState";
 import { RUN_STATUS } from "./useRoutineRun";
-
-const STATUS_META = {
-  [RUN_STATUS.RUNNING]: { dot: "accent", title: "Running", isPulsing: true },
-  [RUN_STATUS.FINISHED]: { dot: "success", title: "Finished" },
-  [RUN_STATUS.STOPPED]: { dot: "neutral", title: "Stopped" },
-  [RUN_STATUS.BLOCKED]: { dot: "orange", title: "Blocked" },
-};
 
 const formatPercent = (value) => `${Math.round(value)}%`;
 
@@ -118,7 +111,7 @@ function PaceStats({ pace, routine }) {
 
 /** The current run: only the components the active routine declared. */
 export default function LiveRunCard({ run, routine }) {
-  const meta = STATUS_META[run.status] ?? STATUS_META[RUN_STATUS.STOPPED];
+  const meta = runStatusMeta(run.status);
   const isRunning = run.status === RUN_STATUS.RUNNING;
   const activeStep = isRunning ? runStepIndex(run.activity?.phase) : RUN_STEPS.length;
   const showStepper = hasRunComponent(routine, RUN_COMPONENT.STEPPER);
