@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
+import {
+  BOUND_TAB_CLOSED_MESSAGE,
+  BOUND_TAB_MISSING_MESSAGE,
+  ROUTINE_OP_ACTION,
+} from "../../routineKit/protocol.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
+import { BoundTabError } from "../boundTab.js";
 
 import { handleRoutineExec } from "./routineExec.js";
 
@@ -32,16 +37,49 @@ function io(overrides = {}) {
 }
 
 describe("handleRoutineExec", () => {
-  test("fails when no page tab is focused", async () => {
+  test("fails when the bound tab is missing", async () => {
     await expect(
       exec({ payload: {} }, io({ resolveTargetTab: async () => null })),
     ).resolves.toEqual({
       success: false,
-      error: "No page tab found. Focus the site and try again.",
+      error: BOUND_TAB_MISSING_MESSAGE,
     });
   });
 
-  test("navigates the focused tab", async () => {
+  test("stops cleanly when the bound tab was closed", async () => {
+    await expect(
+      exec(
+        { tabId: 9, payload: { op: "html" } },
+        io({
+          resolveBoundTab: async () => {
+            throw new BoundTabError(BOUND_TAB_CLOSED_MESSAGE);
+          },
+        }),
+      ),
+    ).resolves.toEqual({
+      success: false,
+      error: BOUND_TAB_CLOSED_MESSAGE,
+      closed: true,
+    });
+  });
+
+  test("sleeps in the service worker so background tabs keep timers", async () => {
+    const slept = [];
+    await expect(
+      exec(
+        { payload: { op: "sleep", ms: 25 } },
+        io({
+          handleSleep: async (payload) => {
+            slept.push(payload.ms);
+            return { slept: true, ms: payload.ms };
+          },
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { slept: true, ms: 25 } });
+    expect(slept).toEqual([25]);
+  });
+
+  test("navigates the bound tab", async () => {
     const calls = [];
     const result = await exec(
       { payload: { op: "navigate", url: "https://builtin.com/jobs?page=2", timeout: 9 } },
@@ -137,6 +175,15 @@ describe("handleRoutineExec", () => {
     ).resolves.toEqual({ success: false, error: "Shadow ops are limited to Built In" });
   });
 
+  test("rejects debugger attach when the tab URL is not a URL", async () => {
+    await expect(
+      exec(
+        { payload: { op: "attachDebugger" } },
+        io({ resolveTargetTab: async () => ({ id: 1, url: "not-a-url" }) }),
+      ),
+    ).resolves.toEqual({ success: false, error: "Debugger attach is limited to HiringCafe" });
+  });
+
   test("rejects a shadow op when the tab URL is not a URL", async () => {
     await expect(
       exec(
@@ -211,6 +258,28 @@ describe("handleRoutineExec", () => {
       success: false,
       error: "The page did not answer the routine op",
     });
+  });
+
+  test("reads and clears a MAIN-world fetch watch on HiringCafe", async () => {
+    const hiring = { id: 3, url: "https://hiringcafe.com/classic" };
+    await expect(
+      exec(
+        { payload: { op: "watchedFetches" } },
+        io({
+          resolveTargetTab: async () => hiring,
+          readFetchWatchInMainWorld: async (tabId) => ({ hits: [{ tabId }] }),
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { hits: [{ tabId: 3 }] } });
+    await expect(
+      exec(
+        { payload: { op: "unwatchFetch" } },
+        io({
+          resolveTargetTab: async () => hiring,
+          clearFetchWatchInMainWorld: async () => ({ watching: false, hits: [] }),
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { watching: false, hits: [] } });
   });
 
   test("installs a MAIN-world fetch watch on HiringCafe", async () => {
@@ -314,6 +383,19 @@ describe("handleRoutineExec", () => {
     });
   });
 
+  test("surfaces a navigate throw after the tab resolves", async () => {
+    await expect(
+      exec(
+        { payload: { op: "navigate", url: "https://builtin.com/jobs?page=2" } },
+        io({
+          navigateTab: async () => {
+            throw new Error("navigate exploded");
+          },
+        }),
+      ),
+    ).resolves.toEqual({ success: false, error: "navigate exploded" });
+  });
+
   test("surfaces an unexpected handler error", async () => {
     await expect(
       exec(
@@ -324,6 +406,6 @@ describe("handleRoutineExec", () => {
           },
         }),
       ),
-    ).resolves.toEqual({ success: false, error: "tab gone" });
+    ).resolves.toEqual({ success: false, error: "tab gone", closed: false });
   });
 });

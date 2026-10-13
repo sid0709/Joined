@@ -20,6 +20,7 @@ import {
   groupedHits,
   interimHits,
   listPageHtml,
+  overlayMarkup,
   viewAllDialogMarkup,
 } from "./testing/pageHtml.js";
 import "./testing/domParser.js";
@@ -167,6 +168,25 @@ describe("parseList grouping", () => {
       LIST_URL,
     );
     expect(parsed.jobs.map((job) => job.id)).toContain(extra.requisition_id);
+  });
+
+  test("flags greyed and Applied ✓ list cards as listApplied without hover", () => {
+    const parsed = parseList(
+      listPageHtml({
+        hits: groupedHits(),
+        cards: [
+          cardMarkup("/job/help-desk-coordinator-reqaaa1111111111", "3h", {
+            overlay: overlayMarkup({ applied: true }),
+            carousel: carouselMarkup(3, 1),
+          }),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h", { greyed: true }),
+        ],
+      }),
+      LIST_URL,
+    );
+    expect(parsed.jobs.find((job) => job.id === "reqaaa1111111111")?.listApplied).toBe(true);
+    expect(parsed.jobs.find((job) => job.id === "reqbbb2222222222")?.listApplied).toBe(false);
+    expect(parsed.jobs.find((job) => job.id === "reqddd4444444444")?.listApplied).toBe(true);
   });
 
   test("treats only ssrIsLastPage as the last page", () => {

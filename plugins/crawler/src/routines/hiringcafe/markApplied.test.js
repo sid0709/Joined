@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import { queryOne } from "../../routineKit/extract.js";
+
 import {
   appliedStateFromHtml,
   cardSelectorForJob,
@@ -7,13 +9,16 @@ import {
   hasMarkAppliedControl,
   hasMarkToast,
   hasVisibleSignInModal,
+  isGreyedAppliedCard,
   isHiringCafeSignedOut,
+  isListCardApplied,
   isSignedOutWall,
   markConfirmed,
   stageUpdateSucceeded,
 } from "./appliedState.js";
 import {
   APPLIED_CHECK_TEXT,
+  JOB_CARD,
   MARK_APPLIED_TEXT,
   MARK_OVERLAY_WAIT_MS,
   MARK_TOAST_TEXT,
@@ -23,6 +28,7 @@ import {
   UPDATE_STAGE_PATH,
   jobCardSelector,
 } from "./constants.js";
+import { documentFromHtml } from "./html.js";
 import {
   markAppliedForJob,
   markAppliedOnCard,
@@ -123,6 +129,22 @@ function markHarness({
 }
 
 describe("HiringCafe applied-state readers", () => {
+  test("detects Applied ✓ and greyed list cards without hovering", () => {
+    const firstCard = (html) => queryOne(documentFromHtml(html), JOB_CARD);
+    const applied = listWith(overlayMarkup({ applied: true }));
+    const greyed = listPageHtml({
+      cards: [cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", { greyed: true })],
+    });
+    const fresh = listWith(overlayMarkup());
+    expect(isListCardApplied(firstCard(applied))).toBe(true);
+    expect(hasAppliedCheck(applied)).toBe(true);
+    expect(isGreyedAppliedCard(firstCard(greyed))).toBe(true);
+    expect(isListCardApplied(firstCard(greyed))).toBe(true);
+    expect(isListCardApplied(firstCard(fresh))).toBe(false);
+    expect(isGreyedAppliedCard(null)).toBe(false);
+    expect(isListCardApplied(null)).toBe(false);
+  });
+
   test("reads Applied ✓ and Mark Applied from the hover overlay", () => {
     const unmarked = listWith(overlayMarkup());
     const marked = listWith(overlayMarkup({ applied: true }));

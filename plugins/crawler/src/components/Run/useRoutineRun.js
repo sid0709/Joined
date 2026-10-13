@@ -1,8 +1,9 @@
+/* global chrome */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { assertCompleteJob, IncompleteJobDataError } from "../../api/jobValidation";
 import { useRuntime } from "../../api/runtimeContext";
-import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
+import { execRoutineOp, hasExtensionRuntime, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
   createScrapeRunStats,
   incrementScrapeRunStats,
@@ -10,7 +11,15 @@ import {
   SCRAPE_OUTCOMES,
 } from "../../api/scrapeRunStats";
 import useNotification from "../../api/useNotification";
+import { RUN_KEEPALIVE_PORT } from "../../background/runKeepalive";
 import { QUIET_STEP_KINDS } from "../../routineKit/describe";
+import {
+  BOUND_TAB_CLOSED_MESSAGE,
+  isBoundTabClosedError,
+  ROUTINE_BIND_TAB_ACTION,
+  ROUTINE_TAB_CLOSED_ACTION,
+  ROUTINE_UNBIND_TAB_ACTION,
+} from "../../routineKit/protocol";
 import {
   RoutineBlockedError,
   RoutineFinishedError,
@@ -209,6 +218,14 @@ export function useRoutineRun() {
 
   const endRun = useCallback((nextStatus) => {
     abortRef.current?.abort();
+    const tabId = targetRef.current?.tab?.id;
+    if (Number.isFinite(tabId)) {
+      void sendRuntimeMessage({
+        action: ROUTINE_UNBIND_TAB_ACTION,
+        tabId,
+        payload: { tabId },
+      }).catch(() => {});
+    }
     if (runStartedAt.current) {
       setElapsedMs(Date.now() - runStartedAt.current);
       runStartedAt.current = null;
@@ -223,6 +240,16 @@ export function useRoutineRun() {
   // Queue state and per-job results from the background.
   useEffect(() => {
     const listener = (message) => {
+      if (message?.action === ROUTINE_TAB_CLOSED_ACTION) {
+        const closedId = message.tabId ?? message.payload?.tabId;
+        if (closedId === targetRef.current?.tab?.id) {
+          notification.fail(new Error(message.payload?.message || BOUND_TAB_CLOSED_MESSAGE), {
+            key: "run-tab-closed",
+            autoHideDuration: 4000,
+          });
+          endRun(RUN_STATUS.STOPPED);
+        }
+      }
       if (message?.action === "scrapeQueue:state") {
         applyQueueSnapshot(message.payload);
       }
@@ -262,6 +289,8 @@ export function useRoutineRun() {
     applyQueueSnapshot,
     notifyFailure,
     resolveIngestWaiter,
+    endRun,
+    notification,
   ]);
 
   useEffect(() => {
@@ -272,10 +301,32 @@ export function useRoutineRun() {
     return () => window.clearInterval(interval);
   }, [status]);
 
+  useEffect(() => {
+    if (status !== RUN_STATUS.RUNNING) return undefined;
+    const connect = globalThis.chrome?.runtime?.connect;
+    if (typeof connect !== "function") return undefined;
+    const port = connect({ name: RUN_KEEPALIVE_PORT });
+    return () => {
+      try {
+        port.disconnect();
+      } catch {
+        // The service worker may already have dropped the port.
+      }
+    };
+  }, [status]);
+
   // The loop reads the latest callbacks through this ref, so a re-render never restarts it.
   useEffect(() => {
     passHooksRef.current = {
-      exec: (payload) => execRoutineOp(targetRef.current?.tab.id, payload),
+      exec: async (payload) => {
+        try {
+          return await execRoutineOp(targetRef.current?.tab.id, payload);
+        } catch (error) {
+          if (isBoundTabClosedError(error)) endRun(RUN_STATUS.STOPPED);
+          throw error;
+        }
+      },
+      sleep: (ms) => execRoutineOp(targetRef.current?.tab.id, { op: "sleep", ms }),
       onProgress: setProgress,
       onActivity: (next) => {
         // A pass's field states reset when it starts reading, so a pass that ends early
@@ -382,14 +433,23 @@ export function useRoutineRun() {
     try {
       targetRef.current = { tab, routine };
       setTarget({ tab, routine });
+      const previousRunId = runIdRef.current;
       runIdRef.current = newRunId();
       queueKeys.current.clear();
       earlyResults.current.clear();
       countedOutcomes.current.clear();
-      // Drop leftover queue items from earlier failed retries (delayed nextAttemptAt).
+      await sendRuntimeMessage({
+        action: ROUTINE_BIND_TAB_ACTION,
+        tabId: tab.id,
+        payload: { tabId: tab.id, windowId: tab.windowId, routineId: routine.id },
+      }).catch((error) => {
+        if (hasExtensionRuntime()) throw error;
+        return null;
+      });
+      // Drop leftover items from this panel's last run only. Concurrent windows keep theirs.
       const cleared = await sendRuntimeMessage({
         action: "scrapeQueue:clear",
-        payload: { beginRunId: runIdRef.current },
+        payload: { runId: previousRunId, beginRunId: runIdRef.current },
       }).catch(() => null);
       setRunStats(createScrapeRunStats());
       setQueueCounts(EMPTY_QUEUE);

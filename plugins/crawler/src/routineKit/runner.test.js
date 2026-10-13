@@ -219,6 +219,18 @@ describe("runRoutinePass", () => {
     expect(new RoutineBlockedError("blocked").name).toBe("RoutineBlockedError");
   });
 
+  test("uses hooks.sleep so waits stay alive in a background service worker", async () => {
+    const slept = [];
+    const paused = makeRoutine({ strategy: { open: [pause(12)] } });
+    await runRoutinePass(paused, {
+      exec: fakePage().exec,
+      sleep: async (ms) => {
+        slept.push(ms);
+      },
+    });
+    expect(slept).toContain(12);
+  });
+
   test("gives up on a page that never answers", async () => {
     const pass = runRoutinePass(makeRoutine({ strategy: { open: [highlight(".card")] } }), {
       exec: () => new Promise(() => {}),

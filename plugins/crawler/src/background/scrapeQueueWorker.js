@@ -269,7 +269,7 @@ export function handleScrapeQueueClear(message, sendResponse) {
     if (runId) {
       scrapeQueueState.items = scrapeQueueState.items.filter((item) => item.runId !== runId);
       delete scrapeQueueState.runs[runId];
-    } else {
+    } else if (!beginRunId) {
       scrapeQueueState = normalizeQueueState();
     }
     if (beginRunId) {

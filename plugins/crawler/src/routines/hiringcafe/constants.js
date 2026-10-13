@@ -191,6 +191,7 @@ export function resumeLabelFromCursor(cursor) {
 
 export function cardDecisionLabel(jobId, decision) {
   if (decision === CARD_DECISION_OPENED) return `Job ${jobId} opened`;
+  if (decision === CARD_SKIP_ALREADY_APPLIED) return `Job ${jobId} skipped (applied)`;
   return `Job ${jobId} skipped: ${decision}`;
 }
 
@@ -247,8 +248,8 @@ export function jobCardSelectorForJobs(jobs) {
   return [...new Set((jobs ?? []).map((item) => jobCardSelector(item)).filter(Boolean))].join(", ");
 }
 
-export function markedCountLabel(marked = 0, notMarked = 0) {
-  return `${marked} marked · ${notMarked} not marked`;
+export function markedCountLabel(marked = 0, notMarked = 0, skippedApplied = 0) {
+  return `${marked} marked · ${notMarked} not marked · ${skippedApplied} skipped (applied)`;
 }
 
 export function markedReasonsLabel(reasons = []) {

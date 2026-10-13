@@ -13,12 +13,6 @@ const defaultChromeDebugger = {
   sendCommand: (target, method, params) => chrome.debugger?.sendCommand?.(target, method, params),
 };
 
-const defaultTabs = {
-  get: (tabId) => chrome.tabs?.get?.(tabId),
-  update: (tabId, props) => chrome.tabs?.update?.(tabId, props),
-  updateWindow: (windowId, props) => chrome.windows?.update?.(windowId, props),
-};
-
 export function mouseEvent(type, point, extras = {}) {
   return {
     type,
@@ -85,15 +79,16 @@ export async function releaseDebugger(tabId, chromeDebugger = defaultChromeDebug
   return { detached: true };
 }
 
-export async function focusCrawlTab(tabId, tabsIo = defaultTabs) {
+export async function emulateBackgroundFocus(tabId, chromeDebugger) {
+  if (typeof chromeDebugger?.sendCommand !== "function") return { emulated: false };
   try {
-    const tab = await tabsIo.get?.(tabId);
-    if (tab && tab.active !== true) await tabsIo.update?.(tabId, { active: true });
-    if (tab?.windowId != null) await tabsIo.updateWindow?.(tab.windowId, { focused: true });
+    await chromeDebugger.sendCommand({ tabId }, "Emulation.setFocusEmulationEnabled", {
+      enabled: true,
+    });
+    return { emulated: true };
   } catch {
-    /* chrome.tabs may be missing in tests; background tabs skip hover */
+    return { emulated: false };
   }
-  return { focused: true, active: true };
 }
 
 async function hoverTargetOf(tabId, payload, sendToContentScript) {
@@ -146,9 +141,8 @@ async function moveAlong(send, points) {
 export async function dispatchTrustedMouse(tabId, payload, io = {}) {
   const sendToContentScript = io.sendToContentScript;
   const chromeDebugger = io.chromeDebugger ?? defaultChromeDebugger;
-  const tabsIo = io.tabs ?? defaultTabs;
-  await focusCrawlTab(tabId, tabsIo);
   await ensureDebugger(tabId, chromeDebugger);
+  await emulateBackgroundFocus(tabId, chromeDebugger);
   const target = { tabId };
   const send = (method, params) => chromeDebugger.sendCommand(target, method, params);
   const offsets = hoverOffsets(payload);

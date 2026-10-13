@@ -2,7 +2,8 @@ import { hostMatches } from "../../routineKit/match.js";
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { HIRINGCAFE_HOSTS } from "../../routines/hiringcafe/constants.js";
-import { resolveTargetTab, sendToContentScript } from "../tabs.js";
+import { BoundTabError, resolveBoundTab } from "../boundTab.js";
+import { sendToContentScript } from "../tabs.js";
 
 import { dispatchTrustedMouse, ensureDebugger, releaseDebugger } from "./debuggerMouse.js";
 import {
@@ -12,12 +13,13 @@ import {
 } from "./fetchWatch.js";
 import { abortInFlightNavigate, navigateTab } from "./navigateTab.js";
 import { clickShadowInMainWorld } from "./shadowClick.js";
+import { handleSleep } from "./sleep.js";
 
 const FETCH_WATCH_OPS = new Set(["watchFetch", "watchedFetches", "unwatchFetch"]);
 const TRUSTED_MOUSE_OPS = new Set(["hover", "hoverClick"]);
 
 const defaultIo = {
-  resolveTargetTab,
+  resolveBoundTab,
   sendToContentScript,
   navigateTab,
   abortInFlightNavigate,
@@ -28,6 +30,7 @@ const defaultIo = {
   installFetchWatchInMainWorld,
   readFetchWatchInMainWorld,
   clearFetchWatchInMainWorld,
+  handleSleep,
 };
 
 function shadowHosts(payload) {
@@ -59,14 +62,34 @@ async function runFetchWatch(op, tab, payload, io) {
 // Side panel → background: run one routine op in the target tab and relay its response.
 export function handleRoutineExec(message, sendResponse, io = defaultIo) {
   (async () => {
-    const tab = await io.resolveTargetTab(message);
+    const resolveTab = io.resolveBoundTab ?? io.resolveTargetTab ?? resolveBoundTab;
+    let tab;
+    try {
+      tab = await resolveTab(message);
+    } catch (error) {
+      const closed = error instanceof BoundTabError || error?.closed === true;
+      sendResponse({
+        success: false,
+        error: String(error?.message || error),
+        closed,
+      });
+      return;
+    }
     if (!tab?.id) {
-      sendResponse({ success: false, error: "No page tab found. Focus the site and try again." });
+      sendResponse({
+        success: false,
+        error: "No bound crawl tab. Start the run from the page tab.",
+      });
       return;
     }
     const op = message.payload?.op;
+    if (op === "sleep") {
+      const result = await (io.handleSleep ?? handleSleep)(message.payload, io.sleepTimers);
+      sendResponse({ success: true, result });
+      return;
+    }
     if (op === "abortFetches") {
-      io.abortInFlightNavigate();
+      io.abortInFlightNavigate?.(tab.id);
       await (io.releaseDebugger ?? releaseDebugger)(tab.id, io.chromeDebugger).catch(() => {});
     }
     if (op === "attachDebugger") {

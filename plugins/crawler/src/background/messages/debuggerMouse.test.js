@@ -5,8 +5,8 @@ import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
 import {
   attachDebugger,
   dispatchTrustedMouse,
+  emulateBackgroundFocus,
   ensureDebugger,
-  focusCrawlTab,
   hasDebuggerApi,
   mouseMoved,
   mousePressed,
@@ -135,17 +135,26 @@ describe("debugger mouse events", () => {
     );
     expect(result).toMatchObject({ found: false, hovered: false, pressed: false });
     expect(result.diagnosticsText).toContain("hit=BODY");
-    expect(debug.commands.filter((item) => item?.method)).toEqual([]);
+    expect(debug.commands.filter((item) => item?.method)).toEqual([
+      { method: "Emulation.setFocusEmulationEnabled", params: { enabled: true } },
+    ]);
+    expect(debug.commands.some((item) => item?.method === "Input.dispatchMouseEvent")).toBe(false);
   });
 
-  test("focuses the crawl tab before moving", async () => {
-    const tabs = tabsIo({ active: false });
-    await focusCrawlTab(7, tabs);
-    expect(tabs.calls).toEqual([
-      { op: "get", tabId: 7 },
-      { op: "update", tabId: 7, props: { active: true } },
-      { op: "updateWindow", windowId: 9, props: { focused: true } },
+  test("emulates focus on a background tab instead of activating it", async () => {
+    const debug = chromeDebugger();
+    expect(await emulateBackgroundFocus(7, debug)).toEqual({ emulated: true });
+    expect(debug.commands).toEqual([
+      { method: "Emulation.setFocusEmulationEnabled", params: { enabled: true } },
     ]);
+    expect(await emulateBackgroundFocus(7, {})).toEqual({ emulated: false });
+    expect(
+      await emulateBackgroundFocus(7, {
+        sendCommand: async () => {
+          throw new Error("unsupported");
+        },
+      }),
+    ).toEqual({ emulated: false });
   });
 
   test("moves along the approach path then clicks the overlay without detaching", async () => {
@@ -189,7 +198,11 @@ describe("debugger mouse events", () => {
     expect(result.found).toBe(true);
     expect(result.pressed).toBe(true);
     expect(ops).toEqual(["hoverTarget", "overlayTarget"]);
-    expect(tabs.calls.some((call) => call.op === "update")).toBe(true);
+    expect(tabs.calls.some((call) => call.op === "update")).toBe(false);
+    expect(debug.commands).toContainEqual({
+      method: "Emulation.setFocusEmulationEnabled",
+      params: { enabled: true },
+    });
     const moves = debug.commands.filter(
       (item) => item?.method === "Input.dispatchMouseEvent" && item.params.type === "mouseMoved",
     );
@@ -315,7 +328,6 @@ describe("debugger mouse events", () => {
       },
     };
     try {
-      await focusCrawlTab(8);
       await attachDebugger(8);
       await dispatchTrustedMouse(
         8,
@@ -329,8 +341,9 @@ describe("debugger mouse events", () => {
       delete globalThis.chrome;
     }
     expect(calls.map((call) => call[0])).toEqual(
-      expect.arrayContaining(["attach", "detach", "send", "get", "update", "window"]),
+      expect.arrayContaining(["attach", "detach", "send"]),
     );
+    expect(calls.map((call) => call[0])).not.toEqual(expect.arrayContaining(["update", "window"]));
   });
 
   test("attaches once and reuses the session on the next job", async () => {

@@ -3,11 +3,16 @@
 /** How long a same-tab navigation may take before the page counts as hung. */
 export const DEFAULT_NAVIGATE_TIMEOUT_MS = 15_000;
 
-let navigateAbort = null;
+const navigateAborts = new Map();
 
-export function abortInFlightNavigate() {
-  navigateAbort?.abort();
-  navigateAbort = null;
+export function abortInFlightNavigate(tabId) {
+  if (tabId == null) {
+    for (const controller of navigateAborts.values()) controller.abort();
+    navigateAborts.clear();
+    return;
+  }
+  navigateAborts.get(tabId)?.abort();
+  navigateAborts.delete(tabId);
 }
 
 export function sameTabUrl(left, right) {
@@ -54,15 +59,16 @@ export async function navigateTab(tabId, url, timeoutMs = DEFAULT_NAVIGATE_TIMEO
   if (current?.url && sameTabUrl(current.url, url)) {
     return { url: current.url };
   }
-  abortInFlightNavigate();
-  navigateAbort = new AbortController();
-  const { signal } = navigateAbort;
+  abortInFlightNavigate(tabId);
+  const controller = new AbortController();
+  navigateAborts.set(tabId, controller);
+  const { signal } = controller;
   try {
     const pending = waitForTabComplete(tabId, timeoutMs, signal);
-    const updated = await chrome.tabs.update(tabId, { url, active: true });
+    const updated = await chrome.tabs.update(tabId, { url });
     const tab = (await pending) ?? updated;
     return { url: tab?.url || url };
   } finally {
-    navigateAbort = null;
+    if (navigateAborts.get(tabId) === controller) navigateAborts.delete(tabId);
   }
 }

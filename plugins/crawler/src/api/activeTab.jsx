@@ -6,10 +6,11 @@ const ActiveTabContext = createContext(null);
 /** Only web pages can run routines. */
 export const isPageTab = (tab) => Number.isInteger(tab?.id) && /^https?:/i.test(tab.url || "");
 
-const toPageTab = (tab) => ({
+export const toPageTab = (tab) => ({
   id: tab.id,
   url: tab.url,
   title: typeof tab.title === "string" ? tab.title : "",
+  windowId: Number.isFinite(tab.windowId) ? tab.windowId : undefined,
 });
 
 /**

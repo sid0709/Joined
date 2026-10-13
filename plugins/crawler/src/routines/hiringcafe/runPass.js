@@ -135,7 +135,19 @@ async function ensureCursor(store, tab) {
   return cursor;
 }
 
-async function pickNextJob({
+function emitAppliedSkip(emitCursor, candidate, jobs) {
+  const jobIndex = jobs.findIndex((item) => item.id === candidate.id) + 1;
+  emitCursor?.({
+    card: candidate.id,
+    cardIndex: jobIndex,
+    cardsOnPage: jobs.length,
+    jobIndex,
+    jobsOnPage: jobs.length,
+    skipDelta: { skippedApplied: 1 },
+  });
+}
+
+export async function pickNextJob({
   jobs,
   lastJobId,
   handledIds,
@@ -144,8 +156,16 @@ async function pickNextJob({
   markJob,
   readApplied,
   markAppliedEnabled,
+  emitCursor,
 }) {
   for (const candidate of jobsAfterCursor(jobs, lastJobId)) {
+    if (candidate.listApplied) {
+      noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
+      recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+      emitAppliedSkip(emitCursor, candidate, jobs);
+      if (!isJobHandled(candidate, handledIds)) await markJob(candidate.id);
+      continue;
+    }
     if (isJobHandled(candidate, handledIds)) {
       if (!markAppliedEnabled) {
         noteJobDecision(candidate.id, CARD_SKIP_HANDLED);
@@ -412,6 +432,7 @@ export async function runHiringCafePass(ctx, progress) {
       recordOutcome: hooks.recordOutcome,
       markJob,
       markAppliedEnabled,
+      emitCursor,
       readApplied: (candidate) =>
         readAppliedOnCard({
           job: candidate,

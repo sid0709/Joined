@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   CARD_DECISION_OPENED,
+  CARD_SKIP_ALREADY_APPLIED,
   CARD_SKIP_HANDLED,
   HANDLED_MAX_AGE_MS,
   HANDLED_MAX_IDS,
@@ -55,7 +56,11 @@ describe("handled skip", () => {
     expect(cardInvalidDecision(["applyUrl", "description"])).toBe("invalid applyUrl, description");
     expect(cardInvalidDecision()).toBe("invalid job data");
     expect(stuckPageMessage()).toBe("The same HiringCafe page failed 3 times. Crawl stopped.");
-    expect(markedCountLabel()).toBe("0 marked · 0 not marked");
+    expect(markedCountLabel()).toBe("0 marked · 0 not marked · 0 skipped (applied)");
+    expect(markedCountLabel(1, 2, 95)).toBe("1 marked · 2 not marked · 95 skipped (applied)");
+    expect(cardDecisionLabel("reqaaa1111111111", CARD_SKIP_ALREADY_APPLIED)).toBe(
+      "Job reqaaa1111111111 skipped (applied)",
+    );
     expect(markedReasonsLabel(["hover missed overlay", "hover missed overlay"])).toBe(
       "hover missed overlay",
     );

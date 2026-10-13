@@ -1,6 +1,11 @@
-import { ROUTINE_EXEC_ACTION } from "../routineKit/protocol.js";
+import {
+  ROUTINE_BIND_TAB_ACTION,
+  ROUTINE_EXEC_ACTION,
+  ROUTINE_UNBIND_TAB_ACTION,
+} from "../routineKit/protocol.js";
 
 import { handleJobBidMessage } from "./jobBidStore.js";
+import { handleBindTab, handleUnbindTab } from "./messages/bindTab.js";
 import { actionsToForward, forwardToContentScript } from "./messages/forwardToContentScript.js";
 import { handleOpenTabs } from "./messages/openTabs.js";
 import { handleReadLocalFile } from "./messages/readLocalFile.js";
@@ -17,6 +22,16 @@ import {
 export function routeMessage(message, sender, sendResponse) {
   if (message?.action === ROUTINE_EXEC_ACTION) {
     handleRoutineExec(message, sendResponse);
+    return true;
+  }
+
+  if (message?.action === ROUTINE_BIND_TAB_ACTION) {
+    handleBindTab(message, sendResponse);
+    return true;
+  }
+
+  if (message?.action === ROUTINE_UNBIND_TAB_ACTION) {
+    handleUnbindTab(message, sendResponse);
     return true;
   }
 

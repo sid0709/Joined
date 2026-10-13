@@ -21,6 +21,7 @@ export function mergePace(current, next = {}) {
   const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
   const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
   const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
+  const skippedApplied = (current?.skippedApplied ?? 0) + (next.skipDelta?.skippedApplied ?? 0);
   const markReasons = [...(current?.markReasons ?? [])];
   if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
   const markLogs = [...(current?.markLogs ?? [])];
@@ -32,9 +33,11 @@ export function mergePace(current, next = {}) {
     notHearted,
     marked,
     notMarked,
+    skippedApplied,
     markReasons,
     markLogs,
     heartDelta: undefined,
     markDelta: undefined,
+    skipDelta: undefined,
   };
 }

@@ -91,7 +91,7 @@ describe("navigateTab", () => {
   test("updates the same tab and waits until it finishes loading", async () => {
     const chrome = installChrome({ completeDelayMs: 5 });
     await expect(navigateTab(TAB_ID, JOB_URL, SHORT_TIMEOUT_MS)).resolves.toEqual({ url: JOB_URL });
-    expect(chrome.updates).toEqual([{ id: TAB_ID, url: JOB_URL, active: true }]);
+    expect(chrome.updates).toEqual([{ id: TAB_ID, url: JOB_URL }]);
     expect(chrome.listeners.size).toBe(0);
   });
 
@@ -114,7 +114,7 @@ describe("navigateTab", () => {
     expect(() => abortInFlightNavigate()).not.toThrow();
   });
 
-  test("a later navigate aborts the earlier one", async () => {
+  test("a later navigate on the same tab aborts the earlier one", async () => {
     installChrome({ fireComplete: false });
     const first = navigateTab(TAB_ID, JOB_URL, 500);
     await delay(5);
@@ -122,5 +122,47 @@ describe("navigateTab", () => {
     const second = navigateTab(TAB_ID, OTHER_JOB_URL, SHORT_TIMEOUT_MS);
     await expect(first).rejects.toThrow("Routine stopped");
     await expect(second).resolves.toEqual({ url: OTHER_JOB_URL });
+  });
+
+  test("concurrent navigates in separate tabs do not abort each other", async () => {
+    const listeners = new Set();
+    const tabs = {
+      [TAB_ID]: { id: TAB_ID, url: LIST_URL, status: "complete" },
+      [OTHER_TAB_ID]: { id: OTHER_TAB_ID, url: LIST_URL, status: "complete" },
+    };
+    const updates = [];
+    globalThis.chrome = {
+      tabs: {
+        get: async (id) => {
+          if (!tabs[id]) throw new Error("No tab");
+          return { ...tabs[id] };
+        },
+        update: async (id, props) => {
+          updates.push({ id, ...props });
+          Object.assign(tabs[id], props);
+          tabs[id].status = "loading";
+          setTimeout(() => {
+            tabs[id].status = "complete";
+            for (const listener of [...listeners])
+              listener(id, { status: "complete" }, { ...tabs[id] });
+          }, 5);
+          return { ...tabs[id] };
+        },
+        onUpdated: {
+          addListener: (fn) => listeners.add(fn),
+          removeListener: (fn) => listeners.delete(fn),
+        },
+      },
+    };
+    const [first, second] = await Promise.all([
+      navigateTab(TAB_ID, JOB_URL, SHORT_TIMEOUT_MS),
+      navigateTab(OTHER_TAB_ID, OTHER_JOB_URL, SHORT_TIMEOUT_MS),
+    ]);
+    expect(first).toEqual({ url: JOB_URL });
+    expect(second).toEqual({ url: OTHER_JOB_URL });
+    expect(updates).toEqual([
+      { id: TAB_ID, url: JOB_URL },
+      { id: OTHER_TAB_ID, url: OTHER_JOB_URL },
+    ]);
   });
 });

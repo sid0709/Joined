@@ -42,6 +42,17 @@ describe("mergePace", () => {
     expect(second.markLogs).toEqual(["Job a not marked", "Job b not marked"]);
   });
 
+  test("counts skipped (applied) from skipDelta without treating it as not-marked", () => {
+    const first = mergePace(null, { skipDelta: { skippedApplied: 1 } });
+    const second = mergePace(first, {
+      markDelta: { marked: 0, notMarked: 1, reason: "hover missed overlay", log: "Job b" },
+    });
+    const third = mergePace(second, { skipDelta: { skippedApplied: 2 } });
+    expect(third.skippedApplied).toBe(3);
+    expect(third.notMarked).toBe(1);
+    expect(third.marked).toBe(0);
+  });
+
   test("definedEntries drops undefined keys and appendNotice lists each line", () => {
     expect(definedEntries({ jobIndex: 3, jobsOnPage: undefined })).toEqual({ jobIndex: 3 });
     expect(appendNotice(null, "")).toBeNull();

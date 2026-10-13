@@ -74,6 +74,7 @@ function hiringCafeTab({
   let viewAllOpen = false;
   const appliedIds = new Set(alreadyApplied);
   const clicks = [];
+  const hovers = [];
   const navigates = [];
   const fetches = [];
   const attaches = [];
@@ -195,11 +196,13 @@ function hiringCafeTab({
     }
     if (op.op === "hover") {
       hoveredId = idFromSelector(op.selector);
+      hovers.push(hoveredId);
       overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
       return { found: true };
     }
     if (op.op === "hoverClick") {
       hoveredId = idFromSelector(op.selector);
+      hovers.push(hoveredId);
       clicks.push(op);
       if (appliedIds.has(hoveredId)) {
         overlay = overlayMarkup({ applied: true });
@@ -243,7 +246,7 @@ function hiringCafeTab({
     }
     return {};
   };
-  return { exec, navigates, fetches, clicks, attaches };
+  return { exec, navigates, fetches, clicks, hovers, attaches };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -499,6 +502,33 @@ describe("HiringCafeRoutine", () => {
     ).toBe(true);
     expect(page.attaches.length).toBeGreaterThan(0);
     expect(notices.some((message) => /not marked applied/i.test(message))).toBe(false);
+  });
+
+  test("skips greyed Applied ✓ list cards before hover or open", async () => {
+    const paces = [];
+    const activities = [];
+    const page = hiringCafeTab({
+      listHtml: listPageHtml({
+        hits: groupedHits(),
+        cards: [
+          cardMarkup("/job/help-desk-coordinator-reqaaa1111111111", "3h", {
+            overlay: overlayMarkup({ applied: true }),
+            greyed: true,
+            carousel: carouselMarkup(3, 1),
+          }),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h"),
+        ],
+      }),
+    });
+    const records = await collectJobs(createHiringCafeStore(memoryStorage()), page.exec, {
+      onPace: (next) => paces.push(next),
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(records.map((record) => record.requisitionId)).not.toContain("reqaaa1111111111");
+    expect(page.hovers).not.toContain("reqaaa1111111111");
+    expect(page.navigates.some((url) => url.includes("reqaaa1111111111"))).toBe(false);
+    expect(activities.some((activity) => /skipped \(applied\)/.test(activity.label))).toBe(true);
+    expect(paces.some((pace) => pace.skipDelta?.skippedApplied === 1)).toBe(true);
   });
 
   test("skips a job whose hover overlay already shows Applied ✓", async () => {

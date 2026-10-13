@@ -1,5 +1,6 @@
 import { queryAll, queryOne } from "../../routineKit/extract.js";
 
+import { isListCardApplied } from "./appliedState.js";
 import {
   CARD_DOT,
   FIRST_PAGE_INDEX,
@@ -41,9 +42,11 @@ function hrefsByRequisition(document, pageUrl) {
   const found = new Map();
   const posted = new Map();
   const dots = new Map();
+  const applied = new Map();
   const extras = [];
   for (const card of queryAll(document, JOB_CARD)) {
     const cardDots = queryAll(card, CARD_DOT).length;
+    const listApplied = isListCardApplied(card);
     let primaryId = "";
     for (const link of queryAll(card, JOB_LINK)) {
       const href = link.getAttribute("href") || "";
@@ -56,10 +59,11 @@ function hrefsByRequisition(document, pageUrl) {
         found.set(id, url);
         posted.set(id, textOf(queryOne(card, POSTED_CHIP)));
       }
+      if (listApplied) applied.set(id, true);
     }
     if (primaryId && cardDots) dots.set(primaryId, cardDots);
   }
-  return { hrefs: found, posted, dots, extras };
+  return { hrefs: found, posted, dots, extras, applied };
 }
 
 export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: new Map() }) {
@@ -83,6 +87,7 @@ export function parseJobHit(hit, pageUrl, cards = { hrefs: new Map(), posted: ne
     applyUrl: asText(hit?.apply_url),
     postedRaw: cards.posted.get(id) || "",
     cardJobId: liveHref ? id : "",
+    listApplied: cards.applied?.get(id) === true,
     groupIds: [],
     groupIndex: 1,
     groupSize: 1,
@@ -159,6 +164,7 @@ export function parseList(html, pageUrl = `${HIRINGCAFE_ORIGIN}/classic`) {
       postedRaw: cards.posted.get(extra.id) || "",
       cardJobId: extra.id,
       cardDots: cards.dots?.get(extra.id) || 0,
+      listApplied: cards.applied?.get(extra.id) === true,
       groupIds: [extra.id],
       groupIndex: 1,
       groupSize: 1,

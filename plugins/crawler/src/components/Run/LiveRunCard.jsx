@@ -87,7 +87,7 @@ function PaceStats({ pace, routine }) {
       {showMarked ? (
         <Badge
           variant="neutral"
-          label={markedCountLabel(pace.marked ?? 0, pace.notMarked ?? 0)}
+          label={markedCountLabel(pace.marked ?? 0, pace.notMarked ?? 0, pace.skippedApplied ?? 0)}
           description={markedReasonsLabel(pace.markReasons) || "Mark Applied this run"}
         />
       ) : null}
