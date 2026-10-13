@@ -313,16 +313,20 @@ export function useRoutineRun() {
 
   // The loop reads the latest callbacks through this ref, so a re-render never restarts it.
   useEffect(() => {
-    passHooksRef.current = {
-      exec: async (payload) => {
-        try {
-          return await execRoutineOp(targetRef.current?.tab.id, payload);
-        } catch (error) {
-          if (isBoundTabClosedError(error)) endRun(RUN_STATUS.STOPPED);
-          throw error;
+    const execOp = async (payload) => {
+      try {
+        return await execRoutineOp(targetRef.current?.tab.id, payload);
+      } catch (error) {
+        if (isBoundTabClosedError(error) || abortRef.current?.signal?.aborted) {
+          endRun(RUN_STATUS.STOPPED);
+          throw new RoutineStoppedError();
         }
-      },
-      sleep: (ms) => execRoutineOp(targetRef.current?.tab.id, { op: "sleep", ms }),
+        throw error;
+      }
+    };
+    passHooksRef.current = {
+      exec: execOp,
+      sleep: (ms) => execOp({ op: "sleep", ms }),
       onProgress: setProgress,
       onActivity: (next) => {
         // A pass's field states reset when it starts reading, so a pass that ends early
@@ -387,13 +391,18 @@ export function useRoutineRun() {
 
     const run = async () => {
       while (active) {
+        if (abortRef.current?.signal?.aborted) break;
         const hooks = passHooksRef.current;
         const { routine } = targetRef.current;
         setPassCount((count) => count + 1);
         try {
           await runRoutinePass(routine, { ...hooks, signal: abortRef.current?.signal });
         } catch (err) {
-          if (err instanceof RoutineStoppedError) break;
+          if (err instanceof RoutineStoppedError || abortRef.current?.signal?.aborted) break;
+          if (isBoundTabClosedError(err)) {
+            endRun(RUN_STATUS.STOPPED);
+            break;
+          }
           void hooks.exec({ op: "clear" }).catch(() => {});
           setProgress(0);
           if (err instanceof RoutineBlockedError) {
@@ -421,7 +430,7 @@ export function useRoutineRun() {
     return () => {
       active = false;
     };
-  }, [status]);
+  }, [status, endRun]);
 
   /** Start running `routine` in `tab`. The caller has already checked startBlocker. */
   const start = async (tab, routine) => {

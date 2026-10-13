@@ -115,7 +115,20 @@ export function groupedHits() {
   ];
 }
 
-export function overlayMarkup({ applied = false, control = "div", live = false } = {}) {
+export function overlayMarkup({
+  applied = false,
+  control = "div",
+  live = false,
+  row = false,
+  decoy = false,
+} = {}) {
+  const decoyHtml = decoy ? `<div class="absolute top-0 right-0"></div>` : "";
+  if (row) {
+    const inner = applied
+      ? `<button class="bg-white">Applied</button><button class="bg-pink-600">App Tracker</button>`
+      : `<div class="flex-none cursor-pointer">Save</div><button class="bg-white">Mark Applied</button>`;
+    return `${decoyHtml}<div class="flex justify-between">${inner}</div>`;
+  }
   if (live) {
     const toggle = applied === "tracker" ? "" : `<button class="bg-white">Applied</button>`;
     const tracker = applied === "toggle" ? "" : `<button class="bg-pink-600">App Tracker</button>`;
@@ -160,7 +173,7 @@ export function cardMarkup(href, postedRaw = "", extras = {}) {
   const className =
     extras.className || (extras.greyed ? "opacity-50 grayscale pointer-events-none" : "");
   const classes = className ? ` class="${className}"` : "";
-  return `<div${classes}><a href="${href}">Job Posting</a>${extra}${overlay}${carousel}${viewAll}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
+  return `<div${classes}><div class="flex justify-between"><a href="${href}">Job Posting</a><span>${postedRaw}</span></div>${extra}${overlay}${carousel}${viewAll}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
 }
 
 export function listPageHtml({

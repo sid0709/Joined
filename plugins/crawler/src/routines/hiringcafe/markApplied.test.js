@@ -235,8 +235,22 @@ describe("HiringCafe applied-state readers", () => {
     expect(appliedFromCandidateTexts([APP_TRACKER_TEXT])).toBe(true);
     expect(appliedFromCandidateTexts([APPLIED_TOGGLE_TEXT])).toBe(true);
     expect(appliedFromCandidateTexts([MARK_APPLIED_TEXT, "Save"])).toBe(false);
+    expect(
+      appliedFromCandidateTexts([MARK_APPLIED_TEXT, APPLIED_TOGGLE_TEXT, APP_TRACKER_TEXT]),
+    ).toBe(false);
     expect(appliedFromCandidateTexts([])).toBe(false);
     expect(hasMarkAppliedControl(live)).toBe(false);
+  });
+
+  test("finds Mark Applied in a live flex justify-between row next to an empty decoy overlay", () => {
+    const html = listWith(overlayMarkup({ row: true, decoy: true }));
+    const firstCard = queryOne(documentFromHtml(html), JOB_CARD);
+    expect(overlayCandidateTexts(firstCard)).toEqual(expect.arrayContaining([MARK_APPLIED_TEXT]));
+    expect(appliedStateFromHtml(html, JOB)).toMatchObject({ marked: false, canMark: true });
+    expect(
+      appliedStateFromHtml(listWith(overlayMarkup({ row: true, applied: true, decoy: true })), JOB),
+    ).toMatchObject({ marked: true, canMark: false });
+    expect(isListCardApplied(firstCard)).toBe(false);
   });
 
   test("ignores Applied and App Tracker in the nav or card outside the overlay", () => {
@@ -574,6 +588,51 @@ describe("markAppliedOnCard", () => {
       signedOut: true,
       log: SIGN_IN_TO_MARK_MESSAGE,
     });
+  });
+
+  test("clicks Mark Applied in a live flex justify-between overlay", async () => {
+    const harness = markHarness({
+      htmlAfterHover: listWith(overlayMarkup({ row: true, decoy: true })),
+      htmlAfterClick: listWith(overlayMarkup({ row: true, applied: true }), { toast: true }),
+    });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result.marked).toBe(true);
+    expect(result.already).toBeUndefined();
+    expect(harness.ops.some((op) => op.op === "hoverClick")).toBe(true);
+  });
+
+  test("skips a feed card whose hover overlay already shows Applied", async () => {
+    const harness = markHarness({
+      htmlAfterHover: listWith(overlayMarkup({ row: true, applied: true, decoy: true })),
+    });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result).toMatchObject({ marked: true, already: true });
+    expect(harness.ops.some((op) => op.op === "hoverClick")).toBe(false);
+  });
+
+  test("does not count a Cloudflare pause as a hover miss", async () => {
+    const harness = markHarness({
+      htmlAfterHover: `<html><head><title>Just a moment...</title></head><body><div class="cf-turnstile"></div></body></html>`,
+    });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result).toMatchObject({ marked: false, challenge: true });
+    expect(result.reason).toBeUndefined();
+    expect(harness.ops.some((op) => op.op === "hoverClick")).toBe(false);
   });
 
   test("still clicks when Applied and App Tracker are only in the nav or card", async () => {

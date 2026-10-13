@@ -24,6 +24,8 @@ export const POSTED_TEXT_RE = /posted\s+.+/i;
 
 export const NEXT_PAGE = 'button[aria-label="Next page"], a[aria-label="Next page"]';
 export const CARD_OVERLAY = "div.absolute.top-0.right-0";
+/** Live hover row. Distinct from the card header's `flex justify-between`. */
+export const CARD_OVERLAY_ROW = "div.flex.justify-between";
 /** Live overlay is a `<button class="bg-white">`, not only `div.bg-white`. */
 export const MARK_APPLIED_CONTROL = "button, div, span, p, a";
 export const MARK_APPLIED = `${CARD_OVERLAY} ${MARK_APPLIED_CONTROL}`;

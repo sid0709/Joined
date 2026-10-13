@@ -42,6 +42,33 @@ describe("pickNextJob list-card Applied skip", () => {
     ]);
   });
 
+  test("skips a feed card whose hover overlay already shows Applied", async () => {
+    const decisions = [];
+    const paces = [];
+    const marked = [];
+    const overlayApplied = { id: "reqoverlay111111", listApplied: false };
+    const next = await pickNextJob({
+      jobs: [overlayApplied, FRESH],
+      lastJobId: "",
+      handledIds: new Set(),
+      noteJobDecision: (id, decision) => decisions.push({ id, decision }),
+      recordOutcome: () => {},
+      markJob: async (id) => marked.push(id),
+      readApplied: async (job) => ({ marked: job.id === overlayApplied.id }),
+      markAppliedEnabled: true,
+      emitCursor: (extra) => paces.push(extra),
+    });
+    expect(next).toEqual(FRESH);
+    expect(decisions).toEqual([{ id: overlayApplied.id, decision: CARD_SKIP_ALREADY_APPLIED }]);
+    expect(marked).toEqual([overlayApplied.id]);
+    expect(paces).toEqual([
+      expect.objectContaining({
+        card: overlayApplied.id,
+        skipDelta: { skippedApplied: 1 },
+      }),
+    ]);
+  });
+
   test("does not re-mark an already-handled Applied card", async () => {
     const marked = [];
     const next = await pickNextJob({

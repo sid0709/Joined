@@ -53,6 +53,25 @@ function isHiringCafeTab(tabUrl) {
   }
 }
 
+async function releaseDebuggerAfterTabGone(message, error, sendResponse, io) {
+  const op = message.payload?.op;
+  const tabId = Number(message.tabId ?? message.payload?.tabId);
+  if (op === "detachDebugger" || op === "abortFetches") {
+    if (op === "abortFetches") io.abortInFlightNavigate?.(tabId);
+    const result = await (io.releaseDebugger ?? releaseDebugger)(tabId).catch(() => ({
+      detached: true,
+    }));
+    sendResponse({ success: true, result });
+    return;
+  }
+  const closed = error instanceof BoundTabError || error?.closed === true;
+  sendResponse({
+    success: false,
+    error: String(error?.message || error),
+    closed,
+  });
+}
+
 async function runFetchWatch(op, tab, payload, io) {
   if (op === "watchFetch") return io.installFetchWatchInMainWorld(tab.id, payload);
   if (op === "watchedFetches") return io.readFetchWatchInMainWorld(tab.id);
@@ -67,12 +86,7 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
     try {
       tab = await resolveTab(message);
     } catch (error) {
-      const closed = error instanceof BoundTabError || error?.closed === true;
-      sendResponse({
-        success: false,
-        error: String(error?.message || error),
-        closed,
-      });
+      await releaseDebuggerAfterTabGone(message, error, sendResponse, io);
       return;
     }
     if (!tab?.id) {

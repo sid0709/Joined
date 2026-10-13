@@ -46,6 +46,25 @@ describe("handleRoutineExec", () => {
     );
   });
 
+  test("detaches the debugger when Stop runs after the tab is gone", async () => {
+    const released = [];
+    await expect(
+      exec(
+        { tabId: 9, payload: { op: "detachDebugger" } },
+        io({
+          resolveBoundTab: async () => {
+            throw new BoundTabError(BOUND_TAB_CLOSED_MESSAGE);
+          },
+          releaseDebugger: async (tabId) => {
+            released.push(tabId);
+            return { detached: true, tabId };
+          },
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { detached: true, tabId: 9 } });
+    expect(released).toEqual([9]);
+  });
+
   test("stops cleanly when the bound tab was closed", async () => {
     await expect(
       exec(

@@ -83,6 +83,12 @@ describe("bound crawl tab", () => {
     });
     expect(getBoundTab(11)).toBeNull();
     expect(isBoundTabClosedError(new BoundTabError())).toBe(true);
+    expect(isBoundTabClosedError(new Error(BOUND_TAB_MISSING_MESSAGE))).toBe(true);
+    expect(
+      isBoundTabClosedError(
+        new Error("Could not establish connection. Receiving end does not exist."),
+      ),
+    ).toBe(true);
     expect(isBoundTabClosedError(new Error("other"))).toBe(false);
   });
 

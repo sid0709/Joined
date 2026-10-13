@@ -10,10 +10,12 @@ import {
   markStateRoot,
   stageUpdateSucceeded,
 } from "./appliedState.js";
+import { isHiringCafeChallenge } from "./challenge.js";
 import {
   alreadyMarkedLog,
   carouselShowSelector,
   CAROUSEL_NEXT,
+  CHALLENGE_WAIT_LABEL,
   JOB_LINK,
   MARK_APPLIED,
   MARK_APPLIED_LABEL,
@@ -97,7 +99,7 @@ async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, select
     last = await hoverCard(call, selector, offset).catch(() => ({ found: false }));
     const overlay = await overlayProbe(call, selector, skipDelays ? 0 : MARK_OVERLAY_WAIT_MS);
     const page = await readPage();
-    const candidates = overlayCandidates(overlay);
+    const candidates = overlayCandidates(overlay, last);
     const state = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates);
     const overlaySeen = Boolean(overlay?.found || state.canMark || state.marked);
     last = {
@@ -106,6 +108,7 @@ async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, select
       diagnostics: { ...(last.diagnostics || {}), overlay: overlaySeen, candidates },
       diagnosticsText: last.diagnosticsText,
     };
+    if (isHiringCafeChallenge(page)) return { hovered: last, state, page };
     if (overlay?.found || state.canMark || state.marked) return { hovered: last, state, page };
     if (skipDelays) continue;
     await pause(rest, skipDelays, MARK_OVERLAY_POLL_MS);
@@ -175,6 +178,9 @@ export async function readAppliedOnCard({
     readPage,
     selector,
   });
+  if (isHiringCafeChallenge(page)) {
+    return { found: Boolean(hovered?.found), marked: false, challenge: true, page, hovered };
+  }
   if (isHiringCafeSignedOut(page.html)) {
     return { found: Boolean(hovered?.found), marked: false, signedOut: true, page, hovered };
   }
@@ -271,6 +277,10 @@ export async function markAppliedOnCard({
     return { marked: false, log, reason: NOT_MARKED_REASON.NO_SELECTOR };
   }
   const ready = await readAppliedOnCard({ job, call, rest, skipDelays, readPage });
+  if (ready.challenge) {
+    noteMark(onActivity, CHALLENGE_WAIT_LABEL);
+    return { marked: false, challenge: true, log: CHALLENGE_WAIT_LABEL };
+  }
   if (ready.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, log: SIGN_IN_TO_MARK_MESSAGE };
@@ -290,6 +300,11 @@ export async function markAppliedOnCard({
     return { marked: true, already: true, log };
   }
   if (!clicked?.found) {
+    const after = await readPage().catch(() => ready.page);
+    if (isHiringCafeChallenge(after) || isHiringCafeChallenge(ready.page)) {
+      noteMark(onActivity, CHALLENGE_WAIT_LABEL);
+      return { marked: false, challenge: true, log: CHALLENGE_WAIT_LABEL };
+    }
     const reason = ready.canMark ? NOT_MARKED_REASON.CLICK_MISSED : NOT_MARKED_REASON.HOVER_MISSED;
     const diagnostics =
       clicked?.diagnosticsText || ready.hovered?.diagnosticsText || ready.diagnosticsText || "";
@@ -340,6 +355,9 @@ export async function markAppliedOnDetail({
     return { marked: false, skipped: true, via: "detail", log: "" };
   }
   const page = await readPage();
+  if (isHiringCafeChallenge(page)) {
+    return { marked: false, challenge: true, via: "detail", log: CHALLENGE_WAIT_LABEL };
+  }
   if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
@@ -349,7 +367,7 @@ export async function markAppliedOnDetail({
     noteMark(onActivity, log);
     return { marked: true, already: true, via: "detail", log };
   }
-  if (!hasMarkAppliedControl(root || page.html)) {
+  if (!hasMarkAppliedControl(page.html)) {
     return { marked: false, via: "detail", skipped: true, log: "" };
   }
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
@@ -405,7 +423,7 @@ export function detailClickedNothing(result) {
  * Applied state and do not click again (a second click can undo the mark).
  */
 export async function resolveMarkAfterDetail(detailMark, options) {
-  if (detailMark?.signedOut) return detailMark;
+  if (detailMark?.signedOut || detailMark?.challenge) return detailMark;
   if (detailMark?.marked || detailMark?.already) return detailMark;
   if (detailClickedNothing(detailMark)) return markAppliedOnCard(options);
   const ready = await readAppliedOnCard(options);

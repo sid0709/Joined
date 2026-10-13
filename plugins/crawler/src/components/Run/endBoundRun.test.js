@@ -20,7 +20,10 @@ describe("endBoundRun", () => {
         },
       }),
     ).resolves.toEqual({ detached: true, unbound: true });
-    expect(ops).toEqual([{ tabId: 21, payload: { op: "detachDebugger" } }]);
+    expect(ops).toEqual([
+      { tabId: 21, payload: { op: "abortFetches" } },
+      { tabId: 21, payload: { op: "detachDebugger" } },
+    ]);
     expect(sent).toEqual([
       { action: ROUTINE_UNBIND_TAB_ACTION, tabId: 21, payload: { tabId: 21 } },
     ]);

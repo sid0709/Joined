@@ -172,10 +172,12 @@ export async function pickNextJob({
         continue;
       }
       const applied = await readApplied(candidate);
+      if (applied.challenge) return { challenge: true };
       if (applied.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
       if (applied.marked) {
         noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
         recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+        emitAppliedSkip(emitCursor, candidate, jobs);
         continue;
       }
       noteJobDecision(candidate.id, CARD_DECISION_MARK_ONLY);
@@ -184,10 +186,12 @@ export async function pickNextJob({
     }
     if (!markAppliedEnabled) return candidate;
     const applied = await readApplied(candidate);
+    if (applied.challenge) return { challenge: true };
     if (applied.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
     if (applied.marked) {
       noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
       recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+      emitAppliedSkip(emitCursor, candidate, jobs);
       await markJob(candidate.id);
       continue;
     }
@@ -197,6 +201,9 @@ export async function pickNextJob({
 }
 
 function markDeltaOf(result) {
+  if (result?.challenge) {
+    return { marked: 0, notMarked: 0, reason: "", log: result.log || "" };
+  }
   return {
     marked: result?.marked ? 1 : 0,
     notMarked: result?.marked ? 0 : 1,
@@ -333,6 +340,22 @@ export async function runHiringCafePass(ctx, progress) {
   });
   const readPage = () => readVisiblePage(call);
 
+  const skipPickedChallenge = async (job, pageUrl, pageIds, parsed) => {
+    if (job?.challenge) {
+      await handleBlock(await readPage(), pageUrl);
+      return true;
+    }
+    if (job) return false;
+    if (parsed.isLastPage) {
+      await store.clearCursor();
+      throw new RoutineFinishedError("Nothing left to process on HiringCafe");
+    }
+    cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
+    await store.saveCursor(cursor);
+    await pause(PAGE_DELAY_MS);
+    return true;
+  };
+
   const handleBlock = async (page, intendedUrl) => {
     const detected = detectHiringCafeBlock(page);
     if (!detected.blocked) return false;
@@ -441,16 +464,7 @@ export async function runHiringCafePass(ctx, progress) {
           readPage,
         }),
     });
-    if (!job) {
-      if (parsed.isLastPage) {
-        await store.clearCursor();
-        throw new RoutineFinishedError("Nothing left to process on HiringCafe");
-      }
-      cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
-      await store.saveCursor(cursor);
-      await pause(PAGE_DELAY_MS);
-      continue;
-    }
+    if (await skipPickedChallenge(job, pageUrl, pageIds, parsed)) continue;
 
     const jobIndex = parsed.jobs.findIndex((item) => item.id === job.id) + 1;
     emitCursor({

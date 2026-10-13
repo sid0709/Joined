@@ -6,6 +6,7 @@ import { ROUTINE_UNBIND_TAB_ACTION } from "../../routineKit/protocol";
  */
 export async function endBoundRun(tabId, io = {}) {
   if (!Number.isFinite(tabId)) return { detached: false, unbound: false };
+  await io.execRoutineOp?.(tabId, { op: "abortFetches" })?.catch?.(() => {});
   await io.execRoutineOp?.(tabId, { op: "detachDebugger" })?.catch?.(() => {});
   await io
     .sendRuntimeMessage?.({

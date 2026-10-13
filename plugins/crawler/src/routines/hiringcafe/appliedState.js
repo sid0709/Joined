@@ -7,6 +7,7 @@ import {
   APPLIED_CHECK_TEXT,
   APPLIED_TOGGLE_TEXT,
   CARD_OVERLAY,
+  CARD_OVERLAY_ROW,
   jobCardSelector,
   jobCardSelectorForJobs,
   MARK_APPLIED_CONTROL,
@@ -55,12 +56,31 @@ function asRoot(root) {
   return typeof root === "string" ? documentFromHtml(root) : root;
 }
 
-/** Hover overlay only. Nav tabs and the rest of the card do not count. */
+function isOverlayShell(node) {
+  return Boolean(node?.matches?.(CARD_OVERLAY) || node?.matches?.(CARD_OVERLAY_ROW));
+}
+
+function isMarkOverlay(node) {
+  if (!node) return false;
+  if (hasMarkAppliedControl(node) || hasAppliedCheck(node)) return true;
+  if (hasAppliedToggle(node) && hasAppTracker(node)) return true;
+  return Boolean(node.matches?.(CARD_OVERLAY) && (hasAppliedToggle(node) || hasAppTracker(node)));
+}
+
+/** Hover overlay only. Empty `top-0 right-0` decoys and the card itself do not count. */
 export function overlayRoot(root) {
   const node = asRoot(root);
   if (!node) return null;
-  if (node.nodeType === 1 && node.matches?.(CARD_OVERLAY)) return node;
-  return queryOne(node, CARD_OVERLAY);
+  if (node.nodeType === 1 && isOverlayShell(node) && isMarkOverlay(node)) {
+    return node.closest?.(CARD_OVERLAY) || node;
+  }
+  for (const overlay of queryAll(node, CARD_OVERLAY)) {
+    if (isMarkOverlay(overlay)) return overlay;
+  }
+  for (const row of queryAll(node, CARD_OVERLAY_ROW)) {
+    if (isMarkOverlay(row)) return row.closest?.(CARD_OVERLAY) || row;
+  }
+  return null;
 }
 
 /** Visible `Applied ✓` on the list card. Opacity/grayscale classes are not a skip. */
@@ -107,10 +127,9 @@ export function hasAppliedState(root) {
 }
 
 export function appliedFromCandidateTexts(candidates = []) {
-  return (candidates ?? []).some((value) => {
-    const text = normalizeText(value);
-    if (!text) return false;
-    if (text === MARK_APPLIED_TEXT) return false;
+  const texts = (candidates ?? []).map((value) => normalizeText(value)).filter(Boolean);
+  if (texts.some((text) => text === MARK_APPLIED_TEXT)) return false;
+  return texts.some((text) => {
     return (
       text === APPLIED_CHECK_TEXT ||
       text === APPLIED_TOGGLE_TEXT ||
@@ -128,10 +147,9 @@ export function findMarkAppliedControl(root) {
 export function overlayCandidateTexts(root) {
   const node = asRoot(root);
   if (!node) return [];
-  const scope = overlayRoot(node) || node;
   const seen = new Set();
   const texts = [];
-  for (const candidate of queryAll(scope, MARK_APPLIED_CONTROL)) {
+  for (const candidate of queryAll(node, MARK_APPLIED_CONTROL)) {
     const text = normalizeText(textOf(candidate));
     if (!text || text.length > MARK_OVERLAY_CANDIDATE_MAX_CHARS) continue;
     if (!isVisibleElement(candidate) || seen.has(text)) continue;
@@ -146,10 +164,9 @@ export function markStateRoot(html, job = {}) {
   const document = asRoot(html);
   if (!document) return null;
   const card = cardForJob(document, job);
-  if (card) return overlayRoot(card);
-  const overlay = overlayRoot(document);
+  const overlay = overlayRoot(card || document);
   if (overlay) return overlay;
-  const mark = findMarkAppliedControl(document);
+  const mark = findMarkAppliedControl(card || document);
   return mark?.parentElement || null;
 }
 
@@ -199,7 +216,10 @@ export function appliedStateFromHtml(html, job = {}) {
   return {
     found: Boolean(card),
     marked,
-    canMark: Boolean(!marked && overlay && hasMarkAppliedControl(overlay)),
+    canMark: Boolean(
+      !marked &&
+      ((overlay && hasMarkAppliedControl(overlay)) || (card && hasMarkAppliedControl(card))),
+    ),
     toast: hasMarkToast(html),
     signedOut: isHiringCafeSignedOut(html),
   };

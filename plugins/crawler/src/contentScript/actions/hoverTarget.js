@@ -366,7 +366,12 @@ export function overlayTargetInDocument(
   if (!target) return { found: false, candidates };
   const point = pointFromRect(rectOf(target), viewport);
   const node = elementFromPointOf(root, elementFromPoint)(point.x, point.y);
-  const inside = Boolean(node && (node === target || target.contains?.(node)));
+  const inside = Boolean(
+    node &&
+    (node === target ||
+      target.contains?.(node) ||
+      (node !== card && card.contains?.(node) && node.contains?.(target))),
+  );
   if (!inside) {
     return { found: false, candidates, hit: describeHit(node) };
   }
