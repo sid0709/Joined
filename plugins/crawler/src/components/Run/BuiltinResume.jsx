@@ -10,11 +10,7 @@ import {
 } from "../../routines/builtin/constants";
 import { createBuiltinStore } from "../../routines/builtin/store";
 
-/** Reset the Built In page cursor, then start the run. */
-export async function resetCursorAndStart(store, onStart) {
-  await store.resetToPage1();
-  await onStart?.();
-}
+import { resetCursorAndStart } from "./resetCursorAndStart";
 
 /** Resume page/card plus reset controls for the Built In Run panel. */
 export default function BuiltinResume({ hidden = false, onStart, isDisabled = false }) {

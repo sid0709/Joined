@@ -29,18 +29,20 @@ import {
   addRecentJob,
   applyPaceUpdate,
   fieldStatus,
+  keepsPaceOnResume,
   paceAfterStart,
   pendingFields,
   recordFieldHit,
   updateRecentJob,
 } from "./runState";
 
-/** Run states: "idle" (never run), "running", "finished" (nothing left), "stopped". */
+/** Run states: "idle", "running", "finished", "stopped", "blocked" (PAGE_STUCK / sign-in). */
 export const RUN_STATUS = Object.freeze({
   IDLE: "idle",
   RUNNING: "running",
   FINISHED: "finished",
   STOPPED: "stopped",
+  BLOCKED: "blocked",
 });
 
 const INGEST_ACCEPT_TIMEOUT_MS = 20_000;
@@ -345,7 +347,7 @@ export function useRoutineRun() {
       onBlocked: (message) => {
         setWarning(message);
         notification.warning(message, { key: "run-blocked", autoHideDuration: 8000 });
-        endRun(RUN_STATUS.STOPPED);
+        endRun(RUN_STATUS.BLOCKED);
       },
       recordOutcome,
       notifyFailure,
@@ -421,7 +423,7 @@ export function useRoutineRun() {
       setElapsedMs(0);
       setPace((current) =>
         paceAfterStart(current, {
-          resetHearts: Boolean(options.resetHearts) || status !== RUN_STATUS.STOPPED,
+          resetHearts: Boolean(options.resetHearts) || !keepsPaceOnResume(status),
         }),
       );
       setWarning(null);

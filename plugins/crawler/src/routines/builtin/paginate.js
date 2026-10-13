@@ -124,7 +124,7 @@ export async function clickNextPage({
 async function retryNextIfUnchanged(call, waitArgs, onActivity) {
   const latest = await waitForListChange({ ...waitArgs, skipDelays: true });
   if (latest.changed) {
-    return { ...latest, advanced: false, found: true, stuck: true };
+    return { ...latest, advanced: true, found: true };
   }
   onActivity?.({ phase: "open", label: NEXT_PAGE_LABEL, kind: "click" });
   const retried = await clickAndWait(call, waitArgs);

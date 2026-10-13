@@ -203,10 +203,35 @@ describe("builtin click pagination", () => {
       onActivity: () => {},
     });
     expect(clicks).toHaveLength(1);
-    expect(result.advanced).toBe(false);
-    expect(result.stuck).toBe(true);
+    expect(result.advanced).toBe(true);
+    expect(result.stuck).toBeUndefined();
     expect(result.page.url).toBe(`${FILTERED}&page=2`);
     expect(result.pageIds).toBe("22222222");
+  });
+
+  test("retries Next only when the re-read is still page N, then accepts a later advance", async () => {
+    const clicks = [];
+    let reads = 0;
+    const result = await clickNextPage({
+      call: async () => {
+        clicks.push(NEXT_PAGE);
+        return { found: true };
+      },
+      readPage: async () => {
+        reads += 1;
+        if (reads <= 2) return { html: LIST_HTML, url: FILTERED };
+        return { html: PAGE_TWO_HTML, url: `${FILTERED}&page=2` };
+      },
+      rest: async () => {},
+      skipDelays: true,
+      checkStopped: () => {},
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
+      onActivity: () => {},
+    });
+    expect(clicks).toHaveLength(2);
+    expect(result.advanced).toBe(true);
+    expect(result.page.url).toBe(`${FILTERED}&page=2`);
   });
 
   test("pauses before each click-forward hop and blocks when Next does not advance", async () => {
@@ -249,5 +274,62 @@ describe("builtin click pagination", () => {
       message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
     });
     expect(blockedPauses).toEqual([PAGE_DELAY_MS]);
+
+    const already = { html: LIST_HTML, url: FILTERED };
+    expect(
+      await openListForCursor({
+        cursor,
+        openVisible: async () => {
+          throw new Error("should not open");
+        },
+        clickNext: async () => {
+          throw new Error("should not hop");
+        },
+        alreadyOpen: already,
+        label: "Opening page 3",
+      }),
+    ).toBe(already);
+
+    const landedPage = { ...emptyCursor([`${FILTERED}&page=2`], FILTERED), page: 2 };
+    const opened = [];
+    expect(
+      await openListForCursor({
+        cursor: landedPage,
+        openVisible: async (url) => {
+          opened.push(url);
+          return { html: PAGE_TWO_HTML, url };
+        },
+        clickNext: async () => {
+          throw new Error("should not hop");
+        },
+        label: "Opening page 2",
+      }),
+    ).toMatchObject({ url: `${FILTERED}&page=2` });
+    expect(opened).toEqual([`${FILTERED}&page=2`]);
+
+    const noPauseHops = [];
+    await openListForCursor({
+      cursor,
+      openVisible: async () => startPage,
+      clickNext: async () => {
+        noPauseHops.push("next");
+        return { advanced: true, page: pageTwo };
+      },
+      label: "Opening page 3",
+    });
+    expect(noPauseHops).toHaveLength(2);
+
+    await expect(
+      openListForCursor({
+        cursor,
+        openVisible: async () => startPage,
+        clickNext: async () => undefined,
+        label: "Opening page 3",
+        pause: async () => {},
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
+    });
   });
 });

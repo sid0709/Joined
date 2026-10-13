@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { CURSOR_STORAGE_KEY } from "../../routines/builtin/constants.js";
 import { createBuiltinStore, memoryStorage } from "../../routines/builtin/store.js";
 
-import { resetCursorAndStart } from "./BuiltinResume.jsx";
+import { resetCursorAndStart } from "./resetCursorAndStart.js";
 
 describe("BuiltinResume", () => {
   test("Start from page 1 resets the cursor and starts the run", async () => {

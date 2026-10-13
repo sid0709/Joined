@@ -137,6 +137,11 @@ export const EMPTY_PACE_COUNTS = Object.freeze({
   markReasons: Object.freeze([]),
 });
 
+/** Stopped and PAGE_STUCK / blocked resumes keep run-long heart and mark totals. */
+export function keepsPaceOnResume(status) {
+  return status === "stopped" || status === "blocked";
+}
+
 /** Keep hearted/marked counts on resume; zero them for a new run. */
 export function paceAfterStart(current, { resetHearts = false } = {}) {
   if (resetHearts || !current) {

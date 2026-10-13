@@ -16,6 +16,7 @@ import {
   fieldStatus,
   hitRate,
   isActiveQueueRun,
+  keepsPaceOnResume,
   outcomeSegments,
   paceAfterStart,
   pendingFields,
@@ -178,5 +179,17 @@ describe("run state", () => {
       hearted: 36,
       notHearted: 3,
     });
+    expect(
+      applyPaceUpdate(prior, { markDelta: { marked: 1, notMarked: 0, reason: "applied" } }),
+    ).toMatchObject({
+      marked: 1,
+      notMarked: 0,
+      markReasons: ["applied"],
+    });
+    expect(keepsPaceOnResume("stopped")).toBe(true);
+    expect(keepsPaceOnResume("blocked")).toBe(true);
+    expect(keepsPaceOnResume("idle")).toBe(false);
+    expect(keepsPaceOnResume("finished")).toBe(false);
+    expect(paceAfterStart(prior, { resetHearts: !keepsPaceOnResume("blocked") })).toEqual(prior);
   });
 });

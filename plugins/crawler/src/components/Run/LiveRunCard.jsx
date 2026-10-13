@@ -29,6 +29,7 @@ const STATUS_META = {
   [RUN_STATUS.RUNNING]: { dot: "accent", title: "Running", isPulsing: true },
   [RUN_STATUS.FINISHED]: { dot: "success", title: "Finished" },
   [RUN_STATUS.STOPPED]: { dot: "neutral", title: "Stopped" },
+  [RUN_STATUS.BLOCKED]: { dot: "orange", title: "Blocked" },
 };
 
 const formatPercent = (value) => `${Math.round(value)}%`;
