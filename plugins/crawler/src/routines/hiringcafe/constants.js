@@ -78,6 +78,9 @@ export const MARK_CARD_RECT_WAIT_MS = 1_500;
 /** Drop the CDP link guard if `releaseMarkLink` never arrives. */
 export const MARK_LINK_GUARD_MS = 2_000;
 export const MARK_CONFIRM_MS = 1_000;
+/** After a click, keep looking for the API 200, the toast, or the dimmed card this long. */
+export const MARK_CONFIRM_TIMEOUT_MS = 8_000;
+export const MARK_CONFIRM_POLL_MS = 500;
 export const MARK_APPLIED_WAIT_MS = 1_000;
 export const MARK_APPLIED_LABEL = "Mark Applied";
 export const SIGN_IN_TO_MARK_MESSAGE =
@@ -127,6 +130,7 @@ export const FILTERS_CHANGED_NOTICE =
 export const START_FROM_PAGE_ONE_LABEL = "Start from page 1";
 export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 jobs";
 export const CHALLENGE_WAIT_LABEL = "Waiting for Cloudflare verification";
+export const PAGE_LOADING_LABEL = "Waiting for the page to load";
 export const CHALLENGE_NOTICE = "Complete the Cloudflare check. The crawl continues after it.";
 /** Server cap is 64 KiB; stay well under so ingest cannot reject on size. */
 export const METADATA_LIMIT_BYTES = 48 * 1024;

@@ -653,6 +653,9 @@ export async function runHiringCafePass(ctx, progress) {
     const jobIndexOf = (jobId) => parsed.jobs.findIndex((item) => item.id === jobId) + 1;
     const fetched = await fetchHiringCafeDetails({
       call,
+      rest,
+      skipDelays,
+      checkStopped: ctx.checkStopped,
       jobs: batch.jobs.filter((job) => !job.markOnly),
       onActivity: hooks.onActivity,
     });

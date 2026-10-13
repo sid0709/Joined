@@ -21,6 +21,9 @@ import {
   CARD_DECISION_OPENED,
   CARD_SKIP_DETAIL_SAVED,
   CARD_SKIP_HANDLED,
+  CARD_SKIP_INGEST_NOT_ACCEPTED,
+  CARD_SKIP_INGEST_REJECTED,
+  CARD_SKIP_INGEST_TIMEOUT,
   CARD_SKIP_HEART_SAVED,
   CARD_SKIP_NO_URL,
   CARD_SKIP_SAVED_BADGE,
@@ -235,11 +238,31 @@ export async function prepareOpenedJob(ctx, progress, card, detailPage, handledI
   return { jobId, detailId, detail, record, issues, invalidStreak };
 }
 
+/** Batch prepare ignores local handled memory: only Built In's own Saved state skips a job. */
+const UNTRUSTED_HANDLED = new Set();
+
+/** The server rejected or never confirmed a job: say so, and leave its heart unsaved. */
+function noteIngestSkip(hooks, jobId, accepted) {
+  const decision =
+    accepted === false
+      ? CARD_SKIP_INGEST_REJECTED
+      : accepted == null
+        ? CARD_SKIP_INGEST_TIMEOUT
+        : CARD_SKIP_INGEST_NOT_ACCEPTED;
+  hooks.onActivity?.({
+    phase: "dismiss",
+    label: cardDecisionLabel(jobId, decision),
+    kind: "waitFor",
+  });
+  hooks.onNotice?.(cardDecisionLabel(jobId, decision), false);
+}
+
 /** Enqueue a prepared record. An incomplete record becomes a skip with the next streak. */
 export async function submitPreparedJob(ctx, prepared) {
   const { hooks } = ctx;
+  let accepted;
   try {
-    await hooks.onRecord?.(prepared.record);
+    accepted = await hooks.onRecord?.(prepared.record);
   } catch (error) {
     if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
       const fields = error.issues?.length ? error.issues : prepared.issues;
@@ -257,6 +280,7 @@ export async function submitPreparedJob(ctx, prepared) {
     jobId: prepared.jobId,
     detailId: prepared.detailId,
     detail: prepared.detail,
+    accepted,
     invalidStreak: 0,
   };
 }
@@ -502,12 +526,14 @@ export async function runBuiltInPass(ctx, progress) {
     let opens = 0;
     for (const candidate of cardsAfterCursor(cards, lastJobId)) {
       if (opens >= DETAIL_TAB_BATCH) break;
-      if (isJobHandled(candidate, handledIds)) {
+      const heart = await queryHeart(candidate.id);
+      // The heart decides. Local handled memory only skips a card whose heart
+      // cannot be read; a visibly unsaved heart is always opened in full.
+      if (!heart?.found && isJobHandled(candidate, handledIds)) {
         noteCardDecision(candidate.id, CARD_SKIP_HANDLED);
         entries.push({ card: candidate, action: "processed" });
         continue;
       }
-      const heart = await queryHeart(candidate.id);
       if (
         isListCardSaved({
           heart,
@@ -556,18 +582,46 @@ export async function runBuiltInPass(ctx, progress) {
         detailPage = await waitForDetailReady();
         if (await handleBlock(detailPage, card.url)) break;
       }
+      // Only Built In's own Saved state skips a job here; local memory may predate the server.
       const prepared = await prepareOpenedJob(
         ctx,
         progress,
         card,
         detailPage,
-        handledIds,
+        UNTRUSTED_HANDLED,
         invalidStreak,
       );
       invalidStreak = prepared.invalidStreak;
       settled.push({ ...entry, prepared });
     }
     return { settled, leftList };
+  };
+
+  /** Save one list-card heart and count it on the panel. */
+  const saveHeart = async (card, { cardsOnPage, cardIndexOf }) => {
+    const cardIndex = cardIndexOf(card.id);
+    hooks.onActivity?.({
+      phase: "open",
+      label: `Page ${cursor.page} · card ${cardIndex} of ${cardsOnPage}`,
+      kind: "click",
+    });
+    await call("highlight", { selector: jobCardSelector(card.id) }).catch(() => {});
+    const heart = await saveListCardHeart({
+      jobId: card.id,
+      call,
+      rest,
+      checkStopped: ctx.checkStopped,
+      skipDelays,
+      onActivity: hooks.onActivity,
+      readPage: () => readVisiblePage(call),
+    });
+    emitCursor({
+      card: card.id,
+      cardIndex,
+      cardsOnPage,
+      heartDelta: { hearted: heart.saved ? 1 : 0, notHearted: heart.saved ? 0 : 1 },
+    });
+    if (heart.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
   };
 
   /** Move the cursor card by card in page order, saving each new job's heart. */
@@ -594,33 +648,16 @@ export async function runBuiltInPass(ctx, progress) {
         await advancePast(card.id);
         continue;
       }
+      if (prepared.accepted !== true) {
+        // The server did not confirm this job, so it stays unhearted and is retried later.
+        noteIngestSkip(hooks, card.id, prepared.accepted);
+        await advancePast(card.id);
+        continue;
+      }
       invalidStreak = 0;
       await markJob(card.id);
       if (prepared.detailId !== card.id) await markJob(prepared.detailId);
-      if (!canHeart) continue;
-      const cardIndex = cardIndexOf(card.id);
-      hooks.onActivity?.({
-        phase: "open",
-        label: `Page ${cursor.page} · card ${cardIndex} of ${cardsOnPage}`,
-        kind: "click",
-      });
-      await call("highlight", { selector: jobCardSelector(card.id) }).catch(() => {});
-      const heart = await saveListCardHeart({
-        jobId: card.id,
-        call,
-        rest,
-        checkStopped: ctx.checkStopped,
-        skipDelays,
-        onActivity: hooks.onActivity,
-        readPage: () => readVisiblePage(call),
-      });
-      emitCursor({
-        card: card.id,
-        cardIndex,
-        cardsOnPage,
-        heartDelta: { hearted: heart.saved ? 1 : 0, notHearted: heart.saved ? 0 : 1 },
-      });
-      if (heart.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_SAVE_MESSAGE);
+      if (canHeart) await saveHeart(card, { cardsOnPage, cardIndexOf });
     }
   };
 
@@ -690,7 +727,14 @@ export async function runBuiltInPass(ctx, progress) {
     const cardsOnPage = parsed.cards.length;
     const cardIndexOf = (cardId) => parsed.cards.findIndex((item) => item.id === cardId) + 1;
     emitCursor({ card: toOpen[0].id, cardIndex: cardIndexOf(toOpen[0].id), cardsOnPage });
-    const fetched = await fetchBuiltInDetails({ call, jobs: toOpen, onActivity: hooks.onActivity });
+    const fetched = await fetchBuiltInDetails({
+      call,
+      rest,
+      skipDelays,
+      checkStopped: ctx.checkStopped,
+      jobs: toOpen,
+      onActivity: hooks.onActivity,
+    });
     progress.tick();
     const { settled, leftList } = await prepareCards(entries, fetched);
 
@@ -704,7 +748,8 @@ export async function runBuiltInPass(ctx, progress) {
       }),
     );
 
-    let canHeart = submits.some((entry) => !entry.prepared.skipped);
+    const accepted = (entry) => entry.prepared.accepted === true;
+    let canHeart = submits.some(accepted);
     if (canHeart || leftList) {
       const listAfter = await openList("Returning to job list", "settle");
       if (await handleBlock(listAfter, listAfter.url || listUrl)) canHeart = false;
@@ -716,7 +761,7 @@ export async function runBuiltInPass(ctx, progress) {
     }
     await settleCards(settled, { canHeart, cardsOnPage, cardIndexOf });
     // Like a failed single card: keep going in this pass until something is saved.
-    if (!submits.some((entry) => !entry.prepared.skipped)) continue;
+    if (!submits.some(accepted)) continue;
     backoff.onSuccess();
     progress.tick();
     return;

@@ -1,14 +1,15 @@
 import { fetchDetailPages } from "../../routineKit/detailTabs.js";
 
-import { JSON_LD_SCRIPT, TITLE_HEADING } from "./constants.js";
 import { isJobDetailReady } from "./detailReady.js";
 
-/** Built In job pages in background tabs: ready once the h1, JSON-LD, and jobPostInit land. */
-export function fetchBuiltInDetails({ call, jobs, onActivity }) {
+/** Built In job pages in background tabs, read once jobPostInit, JSON-LD, and the h1 land. */
+export function fetchBuiltInDetails({ call, rest, skipDelays, checkStopped, jobs, onActivity }) {
   return fetchDetailPages({
     call,
+    rest,
+    skipDelays,
+    checkStopped,
     jobs,
-    readySelectors: [TITLE_HEADING, JSON_LD_SCRIPT],
     isReady: isJobDetailReady,
     onActivity,
   });

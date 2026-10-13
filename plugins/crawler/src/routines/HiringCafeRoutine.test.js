@@ -41,6 +41,8 @@ import { ROUTINES } from "./index.js";
 import "./hiringcafe/testing/domParser.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
+const CLOUDFLARE_HTML =
+  "<html><head><title>Just a moment...</title></head><body><div class='cf-turnstile'></div></body></html>";
 const FILTERED_LIST_URL =
   "https://hiringcafe.com/classic?searchState=%7B%22workplaceTypes%22%3A%5B%22Remote%22%5D%2C%22dateFetchedPastNDays%22%3A2%7D";
 const SEARCH_STATE = new URL(FILTERED_LIST_URL).searchParams.get("searchState");
@@ -132,7 +134,7 @@ function hiringCafeTab({
     return { html: "", url: href };
   };
   const idleOpResult = (op) => {
-    if (op.op === "openDetailTabs") return detailTabsResult(op);
+    if (/DetailTabs$/.test(op.op)) return detailTabsResult(op);
     if (op.op === "attachDebugger") {
       attaches.push(op);
       return { attached: true };
@@ -167,18 +169,40 @@ function hiringCafeTab({
         }),
       ],
     });
+  // Background job tabs. A page the crawl tab would block, time out, or challenge
+  // reads as a Cloudflare check here, so it falls back to the crawl tab.
+  const jobTabs = new Map();
+  const closedTabs = [];
+  let nextTabId = 1000;
+  const failsInTab = (href) =>
+    challengeOnce || blockWhen?.(href) || blockOnce?.(href) || timeoutOnce?.(href);
   const detailTabsResult = (op) => {
-    tabBatches.push(op.urls);
-    // Blocked, timed-out, or challenged pages fail here and fall back to the crawl tab.
-    const fails = (href) =>
-      challengeOnce || blockWhen?.(href) || blockOnce?.(href) || timeoutOnce?.(href);
-    return {
-      pages: op.urls.map((href) =>
-        fails(href)
-          ? { url: href, challenge: true }
-          : { url: href, finalUrl: href, html: pageFor(href).html },
-      ),
-    };
+    if (op.op === "openDetailTabs") {
+      tabBatches.push(op.urls);
+      const tabs = op.urls.map((href) => {
+        const tabId = nextTabId++;
+        jobTabs.set(tabId, href);
+        return { url: href, tabId };
+      });
+      return { tabs };
+    }
+    if (op.op === "readDetailTabs") {
+      return {
+        pages: op.tabIds.map((tabId) => {
+          const href = jobTabs.get(tabId);
+          const html = failsInTab(href) ? CLOUDFLARE_HTML : pageFor(href).html;
+          return { tabId, url: href, loading: false, html };
+        }),
+      };
+    }
+    if (op.op === "closeDetailTabs") {
+      for (const tabId of op.tabIds) {
+        jobTabs.delete(tabId);
+        closedTabs.push(tabId);
+      }
+      return { closed: op.tabIds.length };
+    }
+    return { reloaded: op.tabIds.length };
   };
   const exec = async (op) => {
     const idle = idleOpResult(op);
@@ -294,7 +318,7 @@ function hiringCafeTab({
     }
     return {};
   };
-  return { exec, navigates, fetches, clicks, hovers, attaches, tabBatches };
+  return { exec, navigates, fetches, clicks, hovers, attaches, tabBatches, jobTabs, closedTabs };
 }
 
 async function collectJobs(store, exec, extra = {}) {

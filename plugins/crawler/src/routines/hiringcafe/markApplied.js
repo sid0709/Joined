@@ -24,6 +24,8 @@ import {
   MARK_APPLIED_TEXT,
   MARK_APPLIED_WAIT_MS,
   MARK_CONFIRM_MS,
+  MARK_CONFIRM_POLL_MS,
+  MARK_CONFIRM_TIMEOUT_MS,
   MARK_HOVER_MS,
   MARK_HOVER_OFFSETS,
   MARK_OVERLAY_POLL_MS,
@@ -60,10 +62,13 @@ async function watchStageUpdate(call) {
   await call("watchFetch", { urlIncludes: UPDATE_STAGE_PATH }).catch(() => {});
 }
 
-async function stageUpdateHits(call) {
+async function readStageHits(call) {
   const watched = await call("watchedFetches").catch(() => ({ hits: [] }));
-  await call("unwatchFetch").catch(() => {});
   return watched?.hits ?? [];
+}
+
+async function stopStageWatch(call) {
+  await call("unwatchFetch").catch(() => {});
 }
 
 async function hoverCard(call, selector, offset = MARK_HOVER_OFFSETS[0]) {
@@ -220,23 +225,42 @@ export async function readAppliedOnCard({
   return { ...state, signedOut: state.signedOut, page, hovered };
 }
 
-async function confirmAfterClick({ job, call, rest, skipDelays, readPage, beforeHtml = "" }) {
+const MARK_CONFIRM_POLLS = MARK_CONFIRM_TIMEOUT_MS / MARK_CONFIRM_POLL_MS;
+
+/**
+ * HiringCafe flips the card only after its API answers, which can take a few
+ * seconds. Poll for the stage 200, the toast, or the dimmed resting card
+ * instead of looking once, so a slow answer is not reported as a miss.
+ */
+async function pollMarkConfirmed({ job, call, rest, skipDelays, readPage, beforeHtml }) {
   await pause(rest, skipDelays, MARK_CONFIRM_MS);
-  const hits = await stageUpdateHits(call);
-  const fetchOk = stageUpdateSucceeded(hits, job);
-  let page = await readPage();
-  const toast = hasMarkToast(page.html, beforeHtml);
-  if (isHiringCafeSignedOut(page.html)) {
-    return { marked: false, signedOut: true, toast, fetchOk };
+  await call("unhover").catch(() => {});
+  let toast = false;
+  let fetchOk = false;
+  for (let poll = 0; poll < MARK_CONFIRM_POLLS; poll += 1) {
+    if (poll) await pause(rest, skipDelays, MARK_CONFIRM_POLL_MS);
+    fetchOk = fetchOk || stageUpdateSucceeded(await readStageHits(call), job);
+    const page = await readPage();
+    toast = toast || hasMarkToast(page.html, beforeHtml);
+    if (isHiringCafeSignedOut(page.html)) return { done: true, signedOut: true, toast, fetchOk };
+    const applied = appliedStateFromHtml(page.html, job).marked;
+    if (fetchOk || toast || applied) return { done: true, marked: true, toast, fetchOk, applied };
   }
-  const resting = await readWithoutHover({ job, call, rest, skipDelays, readPage });
-  if (resting?.marked) {
-    return { marked: true, signedOut: false, toast, fetchOk, applied: true };
-  }
+  return { done: false, toast, fetchOk };
+}
+
+async function confirmAfterClick({ job, call, rest, skipDelays, readPage, beforeHtml = "" }) {
+  const polled = await pollMarkConfirmed({ job, call, rest, skipDelays, readPage, beforeHtml });
+  await stopStageWatch(call);
+  const { toast, fetchOk } = polled;
+  if (polled.signedOut) return { marked: false, signedOut: true, toast, fetchOk };
+  if (polled.done)
+    return { marked: true, signedOut: false, toast, fetchOk, applied: polled.applied };
+  // Nothing within the window: one last look through the hover overlay. Never click again.
   const selector = exactCardSelector(job);
   await hoverCard(call, selector);
   await pause(rest, skipDelays, MARK_HOVER_MS);
-  page = await readPage();
+  const page = await readPage();
   const overlay = await overlayProbe(call, selector);
   const candidates = appliedCandidatesFromPage(page.html, job, overlay);
   const cardApplied = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates).marked;

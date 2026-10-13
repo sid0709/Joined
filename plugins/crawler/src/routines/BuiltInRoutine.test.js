@@ -85,6 +85,8 @@ function applyNextPageClick(tab, { nextFound, nextMoves, paginatedListHtml }) {
   return { found: true };
 }
 
+const LOADING_HTML = "<html><body><p>loading</p></body></html>";
+
 function builtinTab({
   listHtml = loadFixture("list.html"),
   listUrl = LIST_URL,
@@ -127,25 +129,48 @@ function builtinTab({
     return { html: "", url: href };
   };
   // Background job tabs: a page the crawl tab would block, delay, or time out fails here.
+  // Background job tabs. A page the crawl tab would block, delay, or time out
+  // never becomes ready here, so it times out and falls back to the crawl tab.
+  const jobTabs = new Map();
+  const closedTabs = [];
+  let nextTabId = 2000;
+  const failsInTab = (href) =>
+    loginWall ||
+    Number(delayedReady[href]) > 0 ||
+    blockWhen?.(href) ||
+    blockOnce?.(href) ||
+    timeoutWhen?.(href) ||
+    timeoutOnce?.(href);
   const detailTabsResult = (op) => {
-    tabBatches.push(op.urls);
-    const fails = (href) =>
-      loginWall ||
-      Number(delayedReady[href]) > 0 ||
-      blockWhen?.(href) ||
-      blockOnce?.(href) ||
-      timeoutWhen?.(href) ||
-      timeoutOnce?.(href);
-    return {
-      pages: op.urls.map((href) =>
-        fails(href)
-          ? { url: href, error: "not ready" }
-          : { url: href, finalUrl: href, html: pageFor(href).html },
-      ),
-    };
+    if (op.op === "openDetailTabs") {
+      tabBatches.push(op.urls);
+      const tabs = op.urls.map((href) => {
+        const tabId = nextTabId++;
+        jobTabs.set(tabId, href);
+        return { url: href, tabId };
+      });
+      return { tabs };
+    }
+    if (op.op === "readDetailTabs") {
+      return {
+        pages: op.tabIds.map((tabId) => {
+          const href = jobTabs.get(tabId);
+          const html = failsInTab(href) ? LOADING_HTML : pageFor(href).html;
+          return { tabId, url: href, loading: false, html };
+        }),
+      };
+    }
+    if (op.op === "closeDetailTabs") {
+      for (const tabId of op.tabIds) {
+        jobTabs.delete(tabId);
+        closedTabs.push(tabId);
+      }
+      return { closed: op.tabIds.length };
+    }
+    return { reloaded: op.tabIds.length };
   };
   const exec = async (op) => {
-    if (op.op === "openDetailTabs") return detailTabsResult(op);
+    if (/DetailTabs$/.test(op.op)) return detailTabsResult(op);
     if (op.op === "html") {
       if (emptyHtmlReads > 0) {
         emptyHtmlReads -= 1;
@@ -235,7 +260,18 @@ function builtinTab({
     }
     return {};
   };
-  return { exec, clicks, navigates, fetches, shadows, scrolls, tabBatches, tab };
+  return {
+    exec,
+    clicks,
+    navigates,
+    fetches,
+    shadows,
+    scrolls,
+    tabBatches,
+    tab,
+    jobTabs,
+    closedTabs,
+  };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -247,7 +283,13 @@ async function collectJobs(store, exec, extra = {}) {
         exec,
         store,
         skipDelays: true,
-        onRecord: onRecord ?? ((record) => records.push(record)),
+        // The server accepts each job, so its heart may be saved.
+        onRecord:
+          onRecord ??
+          ((record) => {
+            records.push(record);
+            return true;
+          }),
         ...hooks,
       });
     }
@@ -558,7 +600,7 @@ describe("BuiltInRoutine", () => {
         exec: page.exec,
         store: createBuiltinStore(memoryStorage()),
         skipDelays: true,
-        onRecord: () => {},
+        onRecord: () => true,
       }),
     ).rejects.toMatchObject({
       name: "RoutineBlockedError",
@@ -591,7 +633,7 @@ describe("BuiltInRoutine", () => {
     expect([...(await store.loadHandledIds())]).toContain("9256204");
   });
 
-  test("skips handled IDs and already-saved hearts, then finishes when next page is gone", async () => {
+  test("reopens handled IDs with an unsaved heart, skips saved hearts, then finishes", async () => {
     const storage = memoryStorage({
       [HANDLED_STORAGE_KEY]: { 9256204: Date.now() },
     });
@@ -608,6 +650,8 @@ describe("BuiltInRoutine", () => {
       onActivity: (activity) => activities.push(activity),
     });
     expect(openedUrls(page)).toContain(JOB_B);
+    // Handled locally but its heart is unsaved, so it is opened in full again.
+    expect(openedUrls(page)).toContain(JOB_A);
     expect(page.navigates).not.toContain(JOB_A);
     expect(records.some((record) => record.badges?.includes("Easy Apply"))).toBe(true);
 
@@ -628,6 +672,22 @@ describe("BuiltInRoutine", () => {
     ).toBe(true);
     expect(
       activities.some(
+        (activity) => activity.label === cardDecisionLabel("9256204", CARD_DECISION_OPENED),
+      ),
+    ).toBe(true);
+
+    // With no readable heart, local handled memory is the only signal left.
+    const unreadable = builtinTab({ listHtml: loadFixture("list.html"), shadowFound: false });
+    const unreadableActivities = [];
+    await collectJobs(
+      createBuiltinStore(memoryStorage({ [HANDLED_STORAGE_KEY]: { 9256204: Date.now() } })),
+      unreadable.exec,
+      {
+        onActivity: (activity) => unreadableActivities.push(activity),
+      },
+    );
+    expect(
+      unreadableActivities.some(
         (activity) => activity.label === cardDecisionLabel("9256204", CARD_SKIP_HANDLED),
       ),
     ).toBe(true);
@@ -690,7 +750,8 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
     expect(blocks).toBeGreaterThanOrEqual(3);
     expect(records).toHaveLength(1);
-    expect(openedUrls(page).filter((href) => href === JOB_A).length).toBeGreaterThanOrEqual(3);
+    // The job tab waited through the 403s instead of giving up on the job.
+    expect(openedUrls(page)).toContain(JOB_A);
   });
 
   test("pauses the run after repeated sign-in redirects", async () => {
@@ -1097,5 +1158,60 @@ describe("BuiltInRoutine", () => {
     expect(page.navigates.filter((href) => /\/job\//.test(href))).toEqual([]);
     const heartClicks = page.shadows.filter((shadow) => shadow.action === "click");
     expect(heartClicks.length).toBe(records.length);
+  });
+
+  test("reopens a handled card whose heart is still unsaved and hearts it once accepted", async () => {
+    const store = createBuiltinStore(
+      memoryStorage({ [HANDLED_STORAGE_KEY]: { 9256204: Date.now() } }),
+    );
+    const page = builtinTab({ listHtml: loadFixture("list.html") });
+    const records = await collectJobs(store, page.exec);
+    expect(openedUrls(page)).toContain(JOB_A);
+    expect(records.map((record) => record.applyUrl)).toContain(JOB_A);
+    const clicked = page.shadows
+      .filter((shadow) => shadow.action === "click")
+      .map((shadow) => entityIdFromSaveHost(shadow.host));
+    expect(clicked).toContain("9256204");
+  });
+
+  test("never saves a heart the server did not accept", async () => {
+    for (const answer of [false, null]) {
+      const page = builtinTab({ listHtml: loadFixture("list.html") });
+      const notices = [];
+      await collectJobs(createBuiltinStore(memoryStorage()), page.exec, {
+        onRecord: () => answer,
+        onNotice: (message) => notices.push(message),
+      }).catch(() => {});
+      expect(page.shadows.filter((shadow) => shadow.action === "click")).toEqual([]);
+      expect(notices.some((message) => /heart not saved/.test(message))).toBe(true);
+    }
+  });
+
+  test("keeps a job tab open until the page is fully loaded, then closes every tab", async () => {
+    const page = builtinTab({ listHtml: loadFixture("list.html"), delayedReady: { [JOB_B]: 1 } });
+    await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    // JOB_B never loads in its tab, so it is only given up after the full wait, then read in the crawl tab.
+    expect(page.navigates).toContain(JOB_B);
+    expect(page.navigates).not.toContain(JOB_A);
+    expect(page.jobTabs.size).toBe(0);
+    expect(page.closedTabs.length).toBe(page.tabBatches.flat().length);
+  });
+
+  test("skips a handled card whose heart is already saved, without clicking it", async () => {
+    const store = createBuiltinStore(
+      memoryStorage({ [HANDLED_STORAGE_KEY]: { 9256204: Date.now() } }),
+    );
+    const page = builtinTab({ listHtml: loadFixture("list.html"), hearts: { 9256204: true } });
+    const activities = [];
+    await collectJobs(store, page.exec, { onActivity: (activity) => activities.push(activity) });
+    const clicked = page.shadows
+      .filter((shadow) => shadow.action === "click")
+      .map((shadow) => entityIdFromSaveHost(shadow.host));
+    expect(clicked).not.toContain("9256204");
+    expect(
+      activities.some(
+        (activity) => activity.label === cardDecisionLabel("9256204", CARD_SKIP_HEART_SAVED),
+      ),
+    ).toBe(true);
   });
 });
