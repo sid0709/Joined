@@ -180,9 +180,10 @@ func crawledAtRFC3339(job CrawledJob) string {
 	if raw == "" {
 		return ""
 	}
-	parsed, err := time.Parse(time.RFC3339, raw)
-	if err != nil {
-		return ""
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339} {
+		if parsed, err := time.Parse(layout, raw); err == nil {
+			return parsed.UTC().Format(time.RFC3339)
+		}
 	}
-	return parsed.UTC().Format(time.RFC3339)
+	return ""
 }

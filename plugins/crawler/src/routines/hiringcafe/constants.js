@@ -15,6 +15,8 @@ export const MAX_PAGE = 1000;
 /** List cards. Prefer `__NEXT_DATA__.props.pageProps.ssrHits` over these; groups share a card. */
 export const JOB_RESULTS = '[data-testid="job-results"]';
 export const JOB_CARD = '[data-testid="job-results"] .hc-card-grid > div';
+/** Live visual card. The hover hit walks up to this, then the overlay layer. */
+export const CARD_ROOT = "div.relative.bg-white.rounded-xl";
 export const JOB_LINK = 'a[href^="/job/"]';
 export const NEXT_DATA_SCRIPT = "#__NEXT_DATA__";
 export const JSON_LD_SCRIPT = 'script[type*="ld"]';
@@ -23,11 +25,23 @@ export const POSTED_CHIP = "div.absolute.top-2.right-2 span";
 export const POSTED_TEXT_RE = /posted\s+.+/i;
 
 export const NEXT_PAGE = 'button[aria-label="Next page"], a[aria-label="Next page"]';
+/** Full-card hover chrome. Live hit walks through this before the card. */
+export const CARD_HOVER_LAYER = "div.cursor-zoom-in";
+/** Save / Mark Applied cluster. Live also has `z-10`. */
 export const CARD_OVERLAY = "div.absolute.top-0.right-0";
-export const MARK_APPLIED = `${CARD_OVERLAY} div.bg-white`;
+/** Applied + check SVG chip. Distinct from the posted-date `top-2 right-2`. */
+export const CARD_APPLIED_CHIP = "div.absolute.font-bold.top-2.right-2";
+/** Live hover row under the cursor at card offset 100,100. */
+export const CARD_OVERLAY_ROW = "div.flex.justify-between.items-end";
+/** Live overlay is a `<button class="bg-white">`, not only `div.bg-white`. */
+export const MARK_APPLIED_CONTROL = "button, div, span, p, a";
+export const MARK_APPLIED = `${CARD_OVERLAY} ${MARK_APPLIED_CONTROL}`;
 export const MARK_APPLIED_TEXT = "Mark Applied";
+export const MARK_OVERLAY_CANDIDATE_MAX_CHARS = 40;
 export const APPLIED_CHECK_TEXT = "Applied ✓";
 export const APPLIED_CHECK_RE = /applied\s*✓/i;
+/** Live toggle label after a mark. Distinct from `Mark Applied`. */
+export const APPLIED_TOGGLE_TEXT = "Applied";
 export const MARK_TOAST_TEXT = "Job marked successfully";
 export const MARK_TOAST = '[role="status"], [role="alert"], [class*="toast"]';
 export const APP_TRACKER_TEXT = "App Tracker";
@@ -46,6 +60,14 @@ export const MARK_HOVER_OFFSETS = Object.freeze([
 export const MARK_APPLIED_DEFAULT = true;
 export const MARK_APPLIED_STORAGE_KEY = "hiringcafeMarkAppliedEnabledV1";
 export const MARK_HOVER_MS = 250;
+export const MARK_HOVER_STEPS = 4;
+export const SCROLL_SETTLE_MS = 50;
+export const MARK_OVERLAY_WAIT_MS = 1_500;
+export const MARK_OVERLAY_POLL_MS = 50;
+/** Virtualized cards can paint at 0×0 until they are scrolled into view. */
+export const MARK_CARD_RECT_WAIT_MS = 1_500;
+/** Drop the CDP link guard if `releaseMarkLink` never arrives. */
+export const MARK_LINK_GUARD_MS = 2_000;
 export const MARK_CONFIRM_MS = 1_000;
 export const MARK_APPLIED_WAIT_MS = 1_000;
 export const MARK_APPLIED_LABEL = "Mark Applied";
@@ -107,6 +129,8 @@ export const CARD_SKIP_DETAIL_HANDLED = "job page already handled";
 export const CARD_SKIP_ALREADY_APPLIED = "already marked applied";
 export const CARD_SKIP_METADATA_SIZE = "metadata too large";
 export const CARD_SKIP_INGEST_REJECTED = "ingest rejected";
+export const CARD_SKIP_INGEST_TIMEOUT = "ingest timed out";
+export const CARD_SKIP_INGEST_NOT_ACCEPTED = "ingest not accepted";
 
 export const POSTED_AT_SOURCE = Object.freeze({
   ESTIMATED_PUBLISH_DATE: "estimated_publish_date",
@@ -119,8 +143,10 @@ export const NOT_MARKED_REASON = Object.freeze({
   NO_SELECTOR: "no card selector",
   HOVER_MISSED: "hover missed overlay",
   CLICK_MISSED: "Mark Applied click missed",
-  NOT_CONFIRMED: "no Applied ✓, toast, or stage 200",
+  NOT_CONFIRMED: "no Applied, App Tracker, toast, or stage 200",
   INGEST_REJECTED: "ingest rejected",
+  INGEST_TIMEOUT: "ingest timed out",
+  NOT_ACCEPTED: "ingest not accepted",
 });
 
 export const COMPENSATION_PERIODS = Object.freeze([
@@ -183,6 +209,7 @@ export function resumeLabelFromCursor(cursor) {
 
 export function cardDecisionLabel(jobId, decision) {
   if (decision === CARD_DECISION_OPENED) return `Job ${jobId} opened`;
+  if (decision === CARD_SKIP_ALREADY_APPLIED) return `Job ${jobId} skipped (applied)`;
   return `Job ${jobId} skipped: ${decision}`;
 }
 
@@ -239,8 +266,8 @@ export function jobCardSelectorForJobs(jobs) {
   return [...new Set((jobs ?? []).map((item) => jobCardSelector(item)).filter(Boolean))].join(", ");
 }
 
-export function markedCountLabel(marked = 0, notMarked = 0) {
-  return `${marked} marked · ${notMarked} not marked`;
+export function markedCountLabel(marked = 0, notMarked = 0, skippedApplied = 0) {
+  return `${marked} marked · ${notMarked} not marked · ${skippedApplied} skipped (applied)`;
 }
 
 export function markedReasonsLabel(reasons = []) {
@@ -254,13 +281,23 @@ export function markedAppliedLog(jobId) {
   return `Job ${jobId} marked applied`;
 }
 
+const MARKED_APPLIED_LOG_RE = /^Job \S+ marked applied$/i;
+
+export function isMarkedAppliedLog(value) {
+  return MARKED_APPLIED_LOG_RE.test(String(value || "").trim());
+}
+
 export function alreadyMarkedLog(jobId) {
   return `Job ${jobId} already marked applied`;
 }
 
-export function notMarkedLog(jobId, reason = "") {
+export function notMarkedLog(jobId, reason = "", diagnostics = "") {
   const detail = String(reason || "").trim();
-  return detail ? `Job ${jobId} not marked applied: ${detail}` : `Job ${jobId} not marked applied`;
+  const extra = String(diagnostics || "").trim();
+  const base = detail
+    ? `Job ${jobId} not marked applied: ${detail}`
+    : `Job ${jobId} not marked applied`;
+  return extra ? `${base} · ${extra}` : base;
 }
 
 export function groupShortfallLabel(collapseKey, captured, dots) {

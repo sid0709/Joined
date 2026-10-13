@@ -6,8 +6,9 @@ export function isInjectableTabUrl(url) {
 }
 
 /**
- * Side panel clicks often leave currentWindow ambiguous (or focused on DevTools).
- * Prefer an explicit tabId, then last-focused window, then any normal window's active tab.
+ * Inspector / popup helper only. Routine runs never call this — they bind a
+ * tabId on Start and drive it with `resolveBoundTab`. Active-tab queries here
+ * only pick a page for Inspector highlights when the message has no tabId.
  */
 export async function resolveTargetTab(message) {
   const explicitTabId = message?.tabId ?? message?.payload?.tabId;

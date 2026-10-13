@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
+import {
+  BOUND_TAB_CLOSED_MESSAGE,
+  BOUND_TAB_MISSING_MESSAGE,
+  ROUTINE_OP_ACTION,
+} from "../../routineKit/protocol.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
+import { BoundTabError } from "../boundTab.js";
 
 import { handleRoutineExec } from "./routineExec.js";
 
@@ -16,7 +21,7 @@ function exec(message, io) {
 
 function io(overrides = {}) {
   return {
-    resolveTargetTab: async () => BUILTIN_TAB,
+    resolveBoundTab: async () => BUILTIN_TAB,
     sendToContentScript: async () => ({ success: true, result: { isolated: true } }),
     navigateTab: async () => ({ url: "https://www.builtin.com/jobs?page=2" }),
     abortInFlightNavigate: () => {},
@@ -24,21 +29,76 @@ function io(overrides = {}) {
     installFetchWatchInMainWorld: async () => ({ watching: true, hits: [] }),
     readFetchWatchInMainWorld: async () => ({ hits: [] }),
     clearFetchWatchInMainWorld: async () => ({ watching: false, hits: [] }),
+    dispatchTrustedMouse: async () => ({ found: true, hovered: true }),
+    ensureDebugger: async () => ({ attached: true, reused: false }),
+    releaseDebugger: async () => ({ detached: true }),
     ...overrides,
   };
 }
 
 describe("handleRoutineExec", () => {
-  test("fails when no page tab is focused", async () => {
+  test("fails when the bound tab is missing", async () => {
+    await expect(exec({ payload: {} }, io({ resolveBoundTab: async () => null }))).resolves.toEqual(
+      {
+        success: false,
+        error: BOUND_TAB_MISSING_MESSAGE,
+      },
+    );
+  });
+
+  test("detaches the debugger when Stop runs after the tab is gone", async () => {
+    const released = [];
     await expect(
-      exec({ payload: {} }, io({ resolveTargetTab: async () => null })),
+      exec(
+        { tabId: 9, payload: { op: "detachDebugger" } },
+        io({
+          resolveBoundTab: async () => {
+            throw new BoundTabError(BOUND_TAB_CLOSED_MESSAGE);
+          },
+          releaseDebugger: async (tabId) => {
+            released.push(tabId);
+            return { detached: true, tabId };
+          },
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { detached: true, tabId: 9 } });
+    expect(released).toEqual([9]);
+  });
+
+  test("stops cleanly when the bound tab was closed", async () => {
+    await expect(
+      exec(
+        { tabId: 9, payload: { op: "html" } },
+        io({
+          resolveBoundTab: async () => {
+            throw new BoundTabError(BOUND_TAB_CLOSED_MESSAGE);
+          },
+        }),
+      ),
     ).resolves.toEqual({
       success: false,
-      error: "No page tab found. Focus the site and try again.",
+      error: BOUND_TAB_CLOSED_MESSAGE,
+      closed: true,
     });
   });
 
-  test("navigates the focused tab", async () => {
+  test("sleeps in the service worker so background tabs keep timers", async () => {
+    const slept = [];
+    await expect(
+      exec(
+        { payload: { op: "sleep", ms: 25 } },
+        io({
+          handleSleep: async (payload) => {
+            slept.push(payload.ms);
+            return { slept: true, ms: payload.ms };
+          },
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { slept: true, ms: 25 } });
+    expect(slept).toEqual([25]);
+  });
+
+  test("navigates the bound tab", async () => {
     const calls = [];
     const result = await exec(
       { payload: { op: "navigate", url: "https://builtin.com/jobs?page=2", timeout: 9 } },
@@ -120,7 +180,7 @@ describe("handleRoutineExec", () => {
     await expect(
       exec(
         { payload: { op: "shadow", action: "click", hosts: ["jobright.ai"] } },
-        io({ resolveTargetTab: async () => OTHER_TAB }),
+        io({ resolveBoundTab: async () => OTHER_TAB }),
       ),
     ).resolves.toEqual({ success: true, result: { found: true, clicked: true, which: "heart" } });
   });
@@ -129,16 +189,25 @@ describe("handleRoutineExec", () => {
     await expect(
       exec(
         { payload: { op: "shadow", action: "click" } },
-        io({ resolveTargetTab: async () => OTHER_TAB }),
+        io({ resolveBoundTab: async () => OTHER_TAB }),
       ),
     ).resolves.toEqual({ success: false, error: "Shadow ops are limited to Built In" });
+  });
+
+  test("rejects debugger attach when the tab URL is not a URL", async () => {
+    await expect(
+      exec(
+        { payload: { op: "attachDebugger" } },
+        io({ resolveBoundTab: async () => ({ id: 1, url: "not-a-url" }) }),
+      ),
+    ).resolves.toEqual({ success: false, error: "Debugger attach is limited to HiringCafe" });
   });
 
   test("rejects a shadow op when the tab URL is not a URL", async () => {
     await expect(
       exec(
         { payload: { op: "shadow", action: "query" } },
-        io({ resolveTargetTab: async () => ({ id: 1, url: "not-a-url" }) }),
+        io({ resolveBoundTab: async () => ({ id: 1, url: "not-a-url" }) }),
       ),
     ).resolves.toEqual({ success: false, error: "Shadow ops are limited to Built In" });
   });
@@ -153,15 +222,52 @@ describe("handleRoutineExec", () => {
 
   test("aborts in-flight navigates then runs the page op", async () => {
     const aborted = [];
+    const released = [];
     const result = await exec(
       { payload: { op: "abortFetches" } },
       io({
         abortInFlightNavigate: () => aborted.push(true),
+        releaseDebugger: async (tabId) => {
+          released.push(tabId);
+          return { detached: true };
+        },
         sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
       }),
     );
     expect(aborted).toEqual([true]);
+    expect(released).toEqual([4]);
     expect(result).toEqual({ success: true, result: { aborted: true } });
+  });
+
+  test("attaches the debugger on HiringCafe only", async () => {
+    const attached = [];
+    const result = await exec(
+      { payload: { op: "attachDebugger" } },
+      io({
+        resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        ensureDebugger: async (tabId) => {
+          attached.push(tabId);
+          return { attached: true, reused: false };
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { attached: true, reused: false } });
+    expect(attached).toEqual([3]);
+    await expect(exec({ payload: { op: "attachDebugger" } }, io())).resolves.toEqual({
+      success: false,
+      error: "Debugger attach is limited to HiringCafe",
+    });
+  });
+
+  test("detaches the debugger session", async () => {
+    const result = await exec(
+      { payload: { op: "detachDebugger" } },
+      io({
+        resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        releaseDebugger: async (tabId) => ({ detached: true, tabId }),
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { detached: true, tabId: 3 } });
   });
 
   test("answers with a page-timeout when the content script is silent", async () => {
@@ -173,12 +279,34 @@ describe("handleRoutineExec", () => {
     });
   });
 
+  test("reads and clears a MAIN-world fetch watch on HiringCafe", async () => {
+    const hiring = { id: 3, url: "https://hiringcafe.com/classic" };
+    await expect(
+      exec(
+        { payload: { op: "watchedFetches" } },
+        io({
+          resolveBoundTab: async () => hiring,
+          readFetchWatchInMainWorld: async (tabId) => ({ hits: [{ tabId }] }),
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { hits: [{ tabId: 3 }] } });
+    await expect(
+      exec(
+        { payload: { op: "unwatchFetch" } },
+        io({
+          resolveBoundTab: async () => hiring,
+          clearFetchWatchInMainWorld: async () => ({ watching: false, hits: [] }),
+        }),
+      ),
+    ).resolves.toEqual({ success: true, result: { watching: false, hits: [] } });
+  });
+
   test("installs a MAIN-world fetch watch on HiringCafe", async () => {
     const calls = [];
     const result = await exec(
       { payload: { op: "watchFetch", urlIncludes: "/api/updateMarketplaceJobStageForUser" } },
       io({
-        resolveTargetTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
         installFetchWatchInMainWorld: async (tabId, payload) => {
           calls.push({ tabId, payload });
           return { watching: true, hits: [] };
@@ -194,6 +322,103 @@ describe("handleRoutineExec", () => {
     ]);
   });
 
+  test("dispatches trusted debugger mouse on HiringCafe hoverClick", async () => {
+    const calls = [];
+    const result = await exec(
+      {
+        payload: {
+          op: "hoverClick",
+          selector: ".card",
+          clickSelector: ".mark",
+          offsets: [{ x: 100, y: 100 }],
+        },
+      },
+      io({
+        resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        dispatchTrustedMouse: async (tabId, payload) => {
+          calls.push({ tabId, payload });
+          return { found: true, hovered: true };
+        },
+        sendToContentScript: async () => {
+          throw new Error("synthetic hover must not run on HiringCafe");
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { found: true, hovered: true } });
+    expect(calls).toEqual([
+      {
+        tabId: 3,
+        payload: {
+          op: "hoverClick",
+          selector: ".card",
+          clickSelector: ".mark",
+          offsets: [{ x: 100, y: 100 }],
+        },
+      },
+    ]);
+  });
+
+  test("does not fall back to synthetic hover after a trusted press", async () => {
+    const isolated = [];
+    const error = new Error("release failed after press");
+    error.pressed = true;
+    const result = await exec(
+      { payload: { op: "hoverClick", selector: ".card" } },
+      io({
+        resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic" }),
+        dispatchTrustedMouse: async () => {
+          throw error;
+        },
+        sendToContentScript: async () => {
+          isolated.push("synthetic");
+          return { success: true, result: { found: true, pressed: false } };
+        },
+      }),
+    );
+    expect(result).toEqual({
+      success: true,
+      result: { found: true, hovered: true, pressed: true },
+    });
+    expect(isolated).toEqual([]);
+  });
+
+  test("falls back to the content script when trusted mouse throws", async () => {
+    const isolated = [];
+    const result = await exec(
+      { payload: { op: "hover", selector: ".card", x: 100, y: 100 } },
+      io({
+        resolveBoundTab: async () => ({ id: 3, url: "https://hiring.cafe/classic" }),
+        dispatchTrustedMouse: async () => {
+          throw new Error("debugger denied");
+        },
+        sendToContentScript: async (tabId, message) => {
+          isolated.push({ tabId, message });
+          return { success: true, result: { found: true } };
+        },
+      }),
+    );
+    expect(result).toEqual({ success: true, result: { found: true } });
+    expect(isolated[0].tabId).toBe(3);
+    expect(isolated[0].message.payload.op).toBe("hover");
+  });
+
+  test("keeps synthetic hover off HiringCafe", async () => {
+    const isolated = [];
+    await exec(
+      { payload: { op: "hover", selector: ".card" } },
+      io({
+        dispatchTrustedMouse: async () => {
+          throw new Error("HiringCafe-only");
+        },
+        sendToContentScript: async (_tabId, message) => {
+          isolated.push(message.payload.op);
+          return { success: true, result: { found: true } };
+        },
+      }),
+    );
+    expect(isolated).toEqual(["hover"]);
+  });
+
   test("rejects fetch watch off HiringCafe", async () => {
     await expect(exec({ payload: { op: "watchFetch" } }, io())).resolves.toEqual({
       success: false,
@@ -201,16 +426,29 @@ describe("handleRoutineExec", () => {
     });
   });
 
+  test("surfaces a navigate throw after the tab resolves", async () => {
+    await expect(
+      exec(
+        { payload: { op: "navigate", url: "https://builtin.com/jobs?page=2" } },
+        io({
+          navigateTab: async () => {
+            throw new Error("navigate exploded");
+          },
+        }),
+      ),
+    ).resolves.toEqual({ success: false, error: "navigate exploded" });
+  });
+
   test("surfaces an unexpected handler error", async () => {
     await expect(
       exec(
         { payload: {} },
         io({
-          resolveTargetTab: async () => {
+          resolveBoundTab: async () => {
             throw new Error("tab gone");
           },
         }),
       ),
-    ).resolves.toEqual({ success: false, error: "tab gone" });
+    ).resolves.toEqual({ success: false, error: "tab gone", closed: false });
   });
 });

@@ -115,11 +115,32 @@ export function groupedHits() {
   ];
 }
 
-export function overlayMarkup({ applied = false } = {}) {
-  if (applied) {
-    return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><span>Applied ✓</span><button class="bg-pink-600">App Tracker</button></div></div>`;
+function hoverLayerMarkup(cluster, rowExtra = "") {
+  return `<div class="absolute inset-y-0 left-0 w-full cursor-zoom-in"><div class="absolute inset-y-0 left-0 bg-black w-full opacity-50"></div>${cluster}<div class="absolute bottom-0 w-full p-2 h-full"><div class="flex justify-between items-end text-sm w-full space-x-2 h-full"><button type="button">Apply Directly</button>${rowExtra}</div></div></div>`;
+}
+
+/** Live hover chrome: Mark Applied is a sibling of the justify-between row. */
+export function overlayMarkup({ applied = false, control = "button", live = false } = {}) {
+  if (applied === true && !live) {
+    return hoverLayerMarkup(
+      `<div class="flex items-center space-x-2 absolute font-bold top-2 right-2 text-white"><span class="text-sm flex items-center space-x-1"><span>Applied</span><svg></svg></span></div><div class="absolute top-0 right-0 z-10 m-2 flex flex-col items-start text-xs font-bold"><div class="flex items-center space-x-2"></div></div>`,
+      `<a class="bg-pink-50 text-pink-600 font-bold rounded px-4 py-2 text-xs" href="/myhiringcafe/tracker">App Tracker</a>`,
+    );
   }
-  return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><div class="flex-none cursor-pointer">Save</div><div class="bg-white">Mark Applied</div></div></div>`;
+  if (live || applied === "toggle" || applied === "tracker") {
+    const toggle = applied === "tracker" ? "" : `<button class="bg-white">Applied</button>`;
+    const tracker = applied === "toggle" ? "" : `<button class="bg-pink-600">App Tracker</button>`;
+    return hoverLayerMarkup(
+      `<div class="absolute top-0 right-0 z-10"><div class="flex items-center space-x-2">${toggle}${tracker}</div></div>`,
+    );
+  }
+  const mark =
+    control === "div"
+      ? `<div class="bg-white">Mark Applied</div>`
+      : `<button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>`;
+  return hoverLayerMarkup(
+    `<div class="absolute top-0 right-0 z-10 m-2 flex flex-col items-start text-xs font-bold"><div class="flex items-center space-x-2"><button type="button">Save</button>${mark}</div></div>`,
+  );
 }
 
 export function carouselMarkup(size = 3, current = 1) {
@@ -135,14 +156,23 @@ export function toastMarkup() {
   return `<div role="status" class="toast">Job marked successfully</div>`;
 }
 
+export function trackerNavMarkup() {
+  return `<nav><a href="/applied">Applied</a><button type="button">App Tracker</button></nav>`;
+}
+
 export function signInDialogMarkup() {
   return `<div role="dialog">Sign in so we can update your job tracker</div>`;
 }
 
 export function cardMarkup(href, postedRaw = "", extras = {}) {
   const overlay = extras.overlay || "";
+  const extra = extras.extra || "";
   const carousel = extras.carousel || "";
-  return `<div><a href="${href}">Job Posting</a>${overlay}${carousel}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
+  const viewAll = extras.viewAll || "";
+  const className =
+    extras.className || (extras.greyed ? "opacity-50 grayscale pointer-events-none" : "");
+  const classes = className ? ` class="${className}"` : "";
+  return `<div${classes}><div class="flex justify-between"><a href="${href}">Job Posting</a><span>${postedRaw}</span></div>${extra}${overlay}${carousel}${viewAll}<div class="absolute top-2 right-2"><span>${postedRaw}</span></div></div>`;
 }
 
 export function listPageHtml({
@@ -156,6 +186,7 @@ export function listPageHtml({
   toast = false,
   extraHits,
   viewAll,
+  nav = "",
 } = {}) {
   const visibleCards = cards ?? [
     cardMarkup(`/job/help-desk-coordinator-reqaaa1111111111`, "3h", {
@@ -181,6 +212,7 @@ export function listPageHtml({
     buildId: "test-build",
   };
   return `<!DOCTYPE html><html><body>
+    ${nav}
     <div data-testid="job-results"><div class="hc-card-grid">${visibleCards.join("")}</div></div>
     ${toast ? toastMarkup() : ""}
     ${viewAll || ""}

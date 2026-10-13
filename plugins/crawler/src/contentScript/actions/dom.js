@@ -46,6 +46,29 @@ function isElementInViewport(element) {
   );
 }
 
+const ANCHOR = "a";
+
+/** preventDefault on an ancestor <a> only. No stopPropagation; no button listener. */
+export function preventLinkNavigation(element) {
+  const link = element?.closest?.(ANCHOR);
+  if (!link || link === element) return () => {};
+  const blockLink = (event) => {
+    event.preventDefault();
+  };
+  try {
+    link.addEventListener("click", blockLink);
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      link.removeEventListener("click", blockLink);
+    } catch {
+      /* best effort */
+    }
+  };
+}
+
 export function clickLikeHuman(element) {
   if (!element) return;
   // Only scroll when the element isn't already visible, and use 'nearest'

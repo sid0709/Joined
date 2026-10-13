@@ -105,7 +105,13 @@ function createContext(routine, hooks) {
     return result ?? {};
   };
   const rest = async (ms) => {
-    if (ms > 0) await sleep(ms, hooks.signal);
+    if (ms <= 0) return;
+    checkStopped();
+    if (typeof hooks.sleep === "function") {
+      await Promise.race([hooks.sleep(ms), sleep(ms, hooks.signal)]);
+    } else {
+      await sleep(ms, hooks.signal);
+    }
     checkStopped();
   };
   return { routine, hooks, call, rest, checkStopped };

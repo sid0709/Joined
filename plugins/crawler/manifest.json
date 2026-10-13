@@ -1,9 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Joined Scrapper",
-  "version": "2.5.8",
+  "version": "2.5.19",
   "description": "Joined staff browser tool to scrape job listings into the admin pool.",
-  "permissions": ["sidePanel", "activeTab", "scripting", "tabs", "storage", "alarms"],
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "tabGroups",
+    "storage",
+    "alarms",
+    "debugger"
+  ],
   "host_permissions": ["http://*/*", "https://*/*"],
   "side_panel": {
     "default_path": "index.html"

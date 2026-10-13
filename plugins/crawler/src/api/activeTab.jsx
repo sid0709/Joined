@@ -6,15 +6,17 @@ const ActiveTabContext = createContext(null);
 /** Only web pages can run routines. */
 export const isPageTab = (tab) => Number.isInteger(tab?.id) && /^https?:/i.test(tab.url || "");
 
-const toPageTab = (tab) => ({
+export const toPageTab = (tab) => ({
   id: tab.id,
   url: tab.url,
   title: typeof tab.title === "string" ? tab.title : "",
+  windowId: Number.isFinite(tab.windowId) ? tab.windowId : undefined,
 });
 
 /**
- * Tracks the focused browser tab, so every panel knows which page it would act on.
- * The value is `{ id, url, title }`, or null when the focused tab is not a web page.
+ * Popup-only: which page the Start button would bind. Routine runs never read
+ * this after bind — they drive the stored tabId. The active-tab query below
+ * is not on the crawl path.
  */
 export function ActiveTabProvider({ children }) {
   const [tab, setTab] = useState(null);

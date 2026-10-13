@@ -65,7 +65,7 @@ describe("isInjectableTabUrl", () => {
   });
 });
 
-describe("resolveTargetTab", () => {
+describe("resolveTargetTab (inspector / popup only — not the run path)", () => {
   test("returns an explicit injectable tabId", async () => {
     installChrome();
     await expect(resolveTargetTab({ tabId: 4 })).resolves.toEqual(PAGE);

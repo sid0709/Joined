@@ -74,8 +74,10 @@ function hiringCafeTab({
   let viewAllOpen = false;
   const appliedIds = new Set(alreadyApplied);
   const clicks = [];
+  const hovers = [];
   const navigates = [];
   const fetches = [];
+  const attaches = [];
   const defaultDetails = Object.fromEntries(
     groupedHits().map((hit) => {
       const href = jobUrl(hit.requisition_id, hit.job_information.title);
@@ -111,6 +113,21 @@ function hiringCafeTab({
     if (isList) return { html: listHtml, url: href };
     return { html: "", url: href };
   };
+  const idleOpResult = (op) => {
+    if (op.op === "attachDebugger") {
+      attaches.push(op);
+      return { attached: true };
+    }
+    if (op.op === "highlight" || op.op === "clear" || op.op === "scroll") return {};
+    if (op.op === "overlayTarget") {
+      return {
+        found: Boolean(
+          overlay && overlay.includes(MARK_APPLIED_TEXT) && !overlay.includes("Applied ✓"),
+        ),
+      };
+    }
+    return null;
+  };
   const idFromSelector = (selector) => {
     const hrefs = [...String(selector || "").matchAll(/href\$="([^"]+)"/g)].map(
       (match) => match[1],
@@ -132,6 +149,8 @@ function hiringCafeTab({
       ],
     });
   const exec = async (op) => {
+    const idle = idleOpResult(op);
+    if (idle) return idle;
     if (op.op === "html") {
       if (remainingChallenge > 0) {
         remainingChallenge -= 1;
@@ -144,7 +163,10 @@ function hiringCafeTab({
       const page = htmlOverride == null ? pageFor(url) : { html: htmlOverride, url };
       let html = /\/classic/.test(url) && overlay ? listWithOverlay() : page.html;
       if (/\/classic/.test(url) && viewAllOpen && viewAllJobs) {
-        html += viewAllDialogMarkup(viewAllJobs);
+        const dialog = viewAllDialogMarkup(viewAllJobs);
+        html = html.includes('class="hc-card-grid"><div>')
+          ? html.replace('class="hc-card-grid"><div>', `class="hc-card-grid"><div>${dialog}`)
+          : `${html}${dialog}`;
       }
       return { html, url, status };
     }
@@ -172,14 +194,15 @@ function hiringCafeTab({
       }
       return { url, status };
     }
-    if (op.op === "highlight" || op.op === "clear" || op.op === "scroll") return {};
     if (op.op === "hover") {
       hoveredId = idFromSelector(op.selector);
+      hovers.push(hoveredId);
       overlay = appliedIds.has(hoveredId) ? overlayMarkup({ applied: true }) : overlayMarkup();
       return { found: true };
     }
     if (op.op === "hoverClick") {
       hoveredId = idFromSelector(op.selector);
+      hovers.push(hoveredId);
       clicks.push(op);
       if (appliedIds.has(hoveredId)) {
         overlay = overlayMarkup({ applied: true });
@@ -194,7 +217,12 @@ function hiringCafeTab({
     if (op.op === "watchedFetches") {
       return {
         hits: [
-          { url: `https://hiringcafe.com${UPDATE_STAGE_PATH}`, status: 200, body: UPDATE_STAGE_OK },
+          {
+            url: `https://hiringcafe.com${UPDATE_STAGE_PATH}`,
+            status: 200,
+            body: UPDATE_STAGE_OK,
+            request: hoveredId,
+          },
         ],
       };
     }
@@ -223,7 +251,7 @@ function hiringCafeTab({
     }
     return {};
   };
-  return { exec, navigates, fetches, clicks };
+  return { exec, navigates, fetches, clicks, hovers, attaches };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -235,7 +263,12 @@ async function collectJobs(store, exec, extra = {}) {
         exec,
         store,
         skipDelays: true,
-        onRecord: onRecord ?? ((record) => records.push(record)),
+        onRecord:
+          onRecord ??
+          ((record) => {
+            records.push(record);
+            return true;
+          }),
         ...hooks,
       });
     }
@@ -472,7 +505,39 @@ describe("HiringCafeRoutine", () => {
         (click) => click.op === "hoverClick" && click.contains === MARK_APPLIED_TEXT,
       ),
     ).toBe(true);
+    expect(page.attaches.length).toBeGreaterThan(0);
     expect(notices.some((message) => /not marked applied/i.test(message))).toBe(false);
+  });
+
+  test("skips Applied ✓ list cards before hover or open", async () => {
+    const paces = [];
+    const activities = [];
+    const page = hiringCafeTab({
+      listHtml: listPageHtml({
+        hits: groupedHits(),
+        cards: [
+          cardMarkup("/job/help-desk-coordinator-reqaaa1111111111", "3h", {
+            overlay: overlayMarkup({ applied: true }),
+            carousel: carouselMarkup(3, 1),
+          }),
+          cardMarkup("/job/labor-production-reqddd4444444444", "5h", {
+            className: "opacity-50 pointer-events-none",
+          }),
+        ],
+      }),
+    });
+    const store = createHiringCafeStore(memoryStorage());
+    const records = await collectJobs(store, page.exec, {
+      onPace: (next) => paces.push(next),
+      onActivity: (activity) => activities.push(activity),
+    });
+    expect(records.map((record) => record.requisitionId)).not.toContain("reqaaa1111111111");
+    expect(records.map((record) => record.requisitionId)).toContain("reqddd4444444444");
+    expect([...(await store.loadHandledIds())]).not.toContain("reqaaa1111111111");
+    expect(page.hovers).not.toContain("reqaaa1111111111");
+    expect(page.navigates.some((url) => url.includes("reqaaa1111111111"))).toBe(false);
+    expect(activities.some((activity) => /skipped \(applied\)/.test(activity.label))).toBe(true);
+    expect(paces.some((pace) => pace.skipDelta?.skippedApplied === 1)).toBe(true);
   });
 
   test("skips a job whose hover overlay already shows Applied ✓", async () => {
@@ -516,10 +581,56 @@ describe("HiringCafeRoutine", () => {
   test("does not mark handled or Applied when ingest rejects", async () => {
     const store = createHiringCafeStore(memoryStorage());
     const page = hiringCafeTab();
-    const records = await collectJobs(store, page.exec, { onRecord: () => false });
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      onRecord: () => false,
+      onNotice: (message) => notices.push(message),
+    });
     expect(records).toEqual([]);
     expect([...(await store.loadHandledIds())]).toEqual([]);
     expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+    expect(notices.some((message) => /ingest rejected/i.test(message))).toBe(true);
+  });
+
+  test("does not Mark Applied when ingest accept times out", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    const page = hiringCafeTab();
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      onRecord: () => null,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(records).toEqual([]);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
+    expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+    expect(notices.some((message) => /ingest timed out/i.test(message))).toBe(true);
+  });
+
+  test("updates the panel cursor as each job is opened", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveMarkAppliedEnabled(false);
+    const paces = [];
+    await collectJobs(store, hiringCafeTab().exec, {
+      onPace: (next) => paces.push(next),
+    });
+    const withIndex = paces.filter((pace) => pace.jobIndex);
+    expect(withIndex.map((pace) => pace.jobIndex)).toContain(1);
+    expect(Math.max(...withIndex.map((pace) => pace.jobIndex))).toBeGreaterThan(1);
+    expect(withIndex.every((pace) => pace.jobsOnPage >= 1)).toBe(true);
+  });
+
+  test("does not Mark Applied when ingest is not accepted", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    const page = hiringCafeTab();
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      onRecord: () => undefined,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(records).toEqual([]);
+    expect([...(await store.loadHandledIds())]).toEqual([]);
+    expect(page.clicks.some((click) => click.contains === MARK_APPLIED_TEXT)).toBe(false);
+    expect(notices.some((message) => /ingest not accepted/i.test(message))).toBe(true);
   });
 
   test("skips enqueue when metadata is over the client size cap", async () => {

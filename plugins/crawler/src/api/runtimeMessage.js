@@ -1,5 +1,5 @@
 /* global chrome */
-import { ROUTINE_EXEC_ACTION } from "../routineKit/protocol";
+import { isBoundTabClosedError, ROUTINE_EXEC_ACTION } from "../routineKit/protocol";
 
 /** True inside the extension; false in the plain `bun run dev:crawler` page. */
 export const hasExtensionRuntime = () =>
@@ -13,10 +13,19 @@ export function sendRuntimeMessage(message) {
       return;
     }
     chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-      else if (response?.success === false)
-        reject(new Error(response.error || "Background request failed"));
-      else resolve(response);
+      if (chrome.runtime.lastError) {
+        const error = new Error(chrome.runtime.lastError.message);
+        if (isBoundTabClosedError(error)) error.closed = true;
+        reject(error);
+        return;
+      }
+      if (response?.success === false) {
+        const error = new Error(response.error || "Background request failed");
+        if (response.closed || isBoundTabClosedError(error)) error.closed = true;
+        reject(error);
+        return;
+      }
+      resolve(response);
     });
   });
 }

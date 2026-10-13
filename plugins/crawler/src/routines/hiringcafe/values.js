@@ -249,6 +249,7 @@ export function hiringCafeMetadata(job, extras = {}) {
   assignProvided(metadata, "companyWebsite", extras.companyWebsite);
   assignProvided(metadata, "logoSrc", extras.domLogo);
   assignProvided(metadata, "cardHref", extras.cardHref);
+  assignProvided(metadata, "crawledAt", extras.crawledAt);
   return metadata;
 }
 

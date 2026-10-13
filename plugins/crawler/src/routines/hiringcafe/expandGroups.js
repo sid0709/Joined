@@ -4,10 +4,12 @@ import {
   JOB_LINK,
   MARK_HOVER_MS,
   NAVIGATE_WAIT_MS,
+  PAGE_DELAY_MS,
   VIEW_ALL_CONTROL,
   VIEW_ALL_PANEL,
   VIEW_ALL_TEXT,
   carouselShowSelector,
+  jitterMs,
   jobCardSelector,
   jobPathFromHref,
   requisitionIdFromHref,
@@ -23,10 +25,7 @@ function hrefRecord(href, pageUrl, title = "") {
   return { id, url: resolveUrl(href, pageUrl), title: asText(title), href };
 }
 
-export function jobLinksFrom(html, pageUrl, rootSelector) {
-  if (!html) return [];
-  const document = documentFromHtml(html);
-  const roots = rootSelector ? queryAll(document, rootSelector) : [document];
+function collectJobLinks(roots, pageUrl) {
   const seen = new Set();
   const found = [];
   for (const root of roots) {
@@ -40,8 +39,36 @@ export function jobLinksFrom(html, pageUrl, rootSelector) {
   return found;
 }
 
-export function viewAllJobLinks(html, pageUrl) {
-  return jobLinksFrom(html, pageUrl, VIEW_ALL_PANEL);
+export function jobLinksFrom(html, pageUrl, rootSelector) {
+  if (!html) return [];
+  const document = documentFromHtml(html);
+  const roots = rootSelector ? queryAll(document, rootSelector) : [document];
+  return collectJobLinks(roots, pageUrl);
+}
+
+function cardRootForJob(document, host) {
+  const href = jobPathFromHref(host?.cardHref || host?.url || host?.href);
+  if (!href) return null;
+  for (const link of queryAll(document, JOB_LINK)) {
+    if (jobPathFromHref(link.getAttribute("href") || "") !== href) continue;
+    let node = link.parentElement;
+    while (node) {
+      const parentClass = String(node.parentElement?.getAttribute?.("class") || "");
+      if (parentClass.includes("hc-card-grid")) return node;
+      node = node.parentElement;
+    }
+    return link.parentElement;
+  }
+  return null;
+}
+
+export function viewAllJobLinks(html, pageUrl, host) {
+  if (!html) return [];
+  const document = documentFromHtml(html);
+  const card = host && typeof host === "object" ? cardRootForJob(document, host) : null;
+  if (card) return collectJobLinks(queryAll(card, VIEW_ALL_PANEL), pageUrl);
+  const root = typeof host === "string" && host ? `${host} ${VIEW_ALL_PANEL}` : VIEW_ALL_PANEL;
+  return jobLinksFrom(html, pageUrl, root);
 }
 
 function jobFromLink(extra, host, pageUrl) {
@@ -117,6 +144,7 @@ export async function expandShortGroups({
   skipDelays = false,
   readPage,
   pageUrl,
+  random = Math.random,
 } = {}) {
   if (!parsed?.shortfalls?.length || typeof call !== "function" || typeof readPage !== "function") {
     return parsed;
@@ -162,9 +190,10 @@ export async function expandShortGroups({
       } catch {
         /* tab may already be on the list */
       }
+      await pause(rest, skipDelays, jitterMs(PAGE_DELAY_MS, random));
       after = await readPage();
     }
-    extras.push(...viewAllJobLinks(after.html, pageUrl));
+    extras.push(...viewAllJobLinks(after.html, pageUrl, host));
     extras.push(...jobLinksFrom(after.html || before.html, pageUrl, selector));
     next = mergeLinksIntoGroup(next, extras, shortfall.collapseKey, pageUrl);
   }

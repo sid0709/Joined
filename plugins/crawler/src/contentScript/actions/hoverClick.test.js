@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { parseHTML } from "linkedom";
 
+import { listWithRealCard, readRealDom } from "../../routines/hiringcafe/testing/realDom.js";
+
 import { hoverAt, hoverClickInDocument, pickMatch } from "./hoverClick.js";
 
 const CARD = '[data-testid="job-results"] .hc-card-grid > div';
@@ -60,6 +62,55 @@ describe("hoverClickInDocument", () => {
       }),
     ).toEqual({ found: true, hovered: true });
     expect(clicks).toBe(1);
+  });
+
+  test("clicks a live Mark Applied button that is not div.bg-white", () => {
+    const document = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div>
+          <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
+          <button class="p-2 bg-white hover:bg-gray-100 rounded flex-none text-black">Mark Applied</button>
+        </div>
+      </div></div>
+    </body></html>`).document;
+    let clicks = 0;
+    document.querySelector("button").addEventListener("click", () => {
+      clicks += 1;
+    });
+    expect(
+      hoverClickInDocument(document, {
+        selector: CARD,
+        clickSelector: MARK,
+        contains: "Mark Applied",
+        exact: true,
+      }),
+    ).toEqual({ found: true, hovered: true });
+    expect(clicks).toBe(1);
+  });
+
+  test("clicks the real hover-layer Mark Applied button and not the footer job link", () => {
+    const document = parseHTML(listWithRealCard(readRealDom("card-unapplied-hover.html"))).document;
+    let markClicks = 0;
+    let linkClicks = 0;
+    const button = [...document.querySelectorAll("button")].find(
+      (node) => node.textContent.trim() === "Mark Applied",
+    );
+    button.addEventListener("click", () => {
+      markClicks += 1;
+    });
+    document.querySelector('a[href^="/job/"]').addEventListener("click", () => {
+      linkClicks += 1;
+    });
+    expect(
+      hoverClickInDocument(document, {
+        selector: CARD,
+        clickSelector: MARK,
+        contains: "Mark Applied",
+        exact: true,
+      }),
+    ).toEqual({ found: true, hovered: true });
+    expect(markClicks).toBe(1);
+    expect(linkClicks).toBe(0);
   });
 
   test("returns found false when the card or Mark Applied is missing", () => {

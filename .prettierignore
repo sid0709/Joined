@@ -11,3 +11,4 @@ blob-report
 .claude/CLAUDE.md
 next-env.d.ts
 *.tsbuildinfo
+plugins/crawler/src/routines/hiringcafe/testing/real-dom/**

@@ -1,8 +1,9 @@
+/* global chrome */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { assertCompleteJob, IncompleteJobDataError } from "../../api/jobValidation";
 import { useRuntime } from "../../api/runtimeContext";
-import { execRoutineOp, sendRuntimeMessage } from "../../api/runtimeMessage";
+import { execRoutineOp, hasExtensionRuntime, sendRuntimeMessage } from "../../api/runtimeMessage";
 import {
   createScrapeRunStats,
   incrementScrapeRunStats,
@@ -10,7 +11,14 @@ import {
   SCRAPE_OUTCOMES,
 } from "../../api/scrapeRunStats";
 import useNotification from "../../api/useNotification";
+import { RUN_KEEPALIVE_PORT } from "../../background/runKeepalive";
 import { QUIET_STEP_KINDS } from "../../routineKit/describe";
+import {
+  BOUND_TAB_CLOSED_MESSAGE,
+  isBoundTabClosedError,
+  ROUTINE_BIND_TAB_ACTION,
+  ROUTINE_TAB_CLOSED_ACTION,
+} from "../../routineKit/protocol";
 import {
   RoutineBlockedError,
   RoutineFinishedError,
@@ -18,7 +26,10 @@ import {
   runRoutinePass,
 } from "../../routineKit/runner";
 
+import { endBoundRun } from "./endBoundRun";
+import { ingestAcceptFromOutcome } from "./ingestAccept";
 import { toJobPayload } from "./jobPayload";
+import { appendNotice, mergePace } from "./paceState";
 import {
   applyActiveQueueSnapshot,
   EMPTY_QUEUE,
@@ -27,7 +38,6 @@ import {
 } from "./routineRunSession";
 import {
   addRecentJob,
-  applyPaceUpdate,
   fieldStatus,
   keepsPaceOnResume,
   paceAfterStart,
@@ -48,14 +58,6 @@ export const RUN_STATUS = Object.freeze({
 
 const INGEST_ACCEPT_TIMEOUT_MS = 20_000;
 const INGEST_ACCEPT_RETRIES = 1;
-
-function isIngestAccepted(outcome) {
-  return outcome === SCRAPE_OUTCOMES.REGISTERED || outcome === SCRAPE_OUTCOMES.DUPLICATE;
-}
-
-function isIngestRejected(outcome) {
-  return outcome === SCRAPE_OUTCOMES.FAILED || outcome === SCRAPE_OUTCOMES.VALIDATION;
-}
 
 /**
  * A routine run: start/stop, the pass loop, and everything the Run tab shows about it.
@@ -141,11 +143,7 @@ export function useRoutineRun() {
       if (already) {
         ingestOutcomes.current.delete(id);
         earlyResults.current.delete(id);
-        if (isIngestRejected(already)) {
-          resolve(false);
-          return;
-        }
-        resolve(isIngestAccepted(already) ? true : null);
+        resolve(ingestAcceptFromOutcome(already));
         return;
       }
       let attempts = 0;
@@ -156,11 +154,7 @@ export function useRoutineRun() {
           if (late) {
             ingestOutcomes.current.delete(id);
             earlyResults.current.delete(id);
-            if (isIngestRejected(late)) {
-              resolve(false);
-              return;
-            }
-            resolve(isIngestAccepted(late) ? true : null);
+            resolve(ingestAcceptFromOutcome(late));
             return;
           }
           if (attempts < INGEST_ACCEPT_RETRIES) {
@@ -172,11 +166,7 @@ export function useRoutineRun() {
         }, INGEST_ACCEPT_TIMEOUT_MS);
         ingestWaiters.current.set(id, (outcome) => {
           clearTimeout(timer);
-          if (isIngestRejected(outcome)) {
-            resolve(false);
-            return;
-          }
-          resolve(isIngestAccepted(outcome) ? true : null);
+          resolve(ingestAcceptFromOutcome(outcome));
         });
       };
       arm();
@@ -215,9 +205,11 @@ export function useRoutineRun() {
             earlyResults.current.delete(response.id);
             applyItemResult(entry.key, early);
           }
-          if (!targetRef.current?.routine?.options?.waitForIngestAccept) return;
-          const accepted = early ? isIngestAccepted(early) : await waitForIngestAccept(response.id);
-          if (accepted === false) return false;
+          if (!targetRef.current?.routine?.options?.waitForIngestAccept) return true;
+          const accepted = early
+            ? ingestAcceptFromOutcome(early)
+            : await waitForIngestAccept(response.id);
+          return accepted;
         })
         .catch((error) => {
           applyItemResult(entry.key, SCRAPE_OUTCOMES.FAILED);
@@ -230,6 +222,10 @@ export function useRoutineRun() {
 
   const endRun = useCallback((nextStatus) => {
     abortRef.current?.abort();
+    const tabId = targetRef.current?.tab?.id;
+    if (Number.isFinite(tabId)) {
+      void endBoundRun(tabId, { execRoutineOp, sendRuntimeMessage });
+    }
     if (runStartedAt.current) {
       setElapsedMs(Date.now() - runStartedAt.current);
       runStartedAt.current = null;
@@ -244,6 +240,16 @@ export function useRoutineRun() {
   // Queue state and per-job results from the background.
   useEffect(() => {
     const listener = (message) => {
+      if (message?.action === ROUTINE_TAB_CLOSED_ACTION) {
+        const closedId = message.tabId ?? message.payload?.tabId;
+        if (closedId === targetRef.current?.tab?.id) {
+          notification.fail(new Error(message.payload?.message || BOUND_TAB_CLOSED_MESSAGE), {
+            key: "run-tab-closed",
+            autoHideDuration: 4000,
+          });
+          endRun(RUN_STATUS.STOPPED);
+        }
+      }
       if (message?.action === "scrapeQueue:state") {
         applyQueueSnapshot(message.payload);
       }
@@ -283,6 +289,8 @@ export function useRoutineRun() {
     applyQueueSnapshot,
     notifyFailure,
     resolveIngestWaiter,
+    endRun,
+    notification,
   ]);
 
   useEffect(() => {
@@ -293,10 +301,36 @@ export function useRoutineRun() {
     return () => window.clearInterval(interval);
   }, [status]);
 
+  useEffect(() => {
+    if (status !== RUN_STATUS.RUNNING) return undefined;
+    const connect = globalThis.chrome?.runtime?.connect;
+    if (typeof connect !== "function") return undefined;
+    const port = connect({ name: RUN_KEEPALIVE_PORT });
+    return () => {
+      try {
+        port.disconnect();
+      } catch {
+        // The service worker may already have dropped the port.
+      }
+    };
+  }, [status]);
+
   // The loop reads the latest callbacks through this ref, so a re-render never restarts it.
   useEffect(() => {
+    const execOp = async (payload) => {
+      try {
+        return await execRoutineOp(targetRef.current?.tab.id, payload);
+      } catch (error) {
+        if (isBoundTabClosedError(error) || abortRef.current?.signal?.aborted) {
+          endRun(RUN_STATUS.STOPPED);
+          throw new RoutineStoppedError();
+        }
+        throw error;
+      }
+    };
     passHooksRef.current = {
-      exec: (payload) => execRoutineOp(targetRef.current?.tab.id, payload),
+      exec: execOp,
+      sleep: (ms) => execOp({ op: "sleep", ms }),
       onProgress: setProgress,
       onActivity: (next) => {
         // A pass's field states reset when it starts reading, so a pass that ends early
@@ -333,13 +367,15 @@ export function useRoutineRun() {
       },
       onRecord: submitJob,
       onPace: (next) => {
-        setPace((current) => applyPaceUpdate(current, next));
+        setPace((current) => mergePace(current, next));
       },
       onNotice: (message, ok) => {
-        if (!ok) {
-          setExtractError(message);
-          notification.warning(message, { key: "run-notice", autoHideDuration: 4000 });
+        if (ok) {
+          notification.success(message, { key: `run-notice-${message}`, autoHideDuration: 3000 });
+          return;
         }
+        setExtractError((current) => appendNotice(current, message));
+        notification.warning(message, { key: `run-notice-${message}`, autoHideDuration: 4000 });
       },
       onFinished: (message) => {
         notification.success(message, { key: "run-finished", autoHideDuration: 3000 });
@@ -361,13 +397,18 @@ export function useRoutineRun() {
 
     const run = async () => {
       while (active) {
+        if (abortRef.current?.signal?.aborted) break;
         const hooks = passHooksRef.current;
         const { routine } = targetRef.current;
         setPassCount((count) => count + 1);
         try {
           await runRoutinePass(routine, { ...hooks, signal: abortRef.current?.signal });
         } catch (err) {
-          if (err instanceof RoutineStoppedError) break;
+          if (err instanceof RoutineStoppedError || abortRef.current?.signal?.aborted) break;
+          if (isBoundTabClosedError(err)) {
+            endRun(RUN_STATUS.STOPPED);
+            break;
+          }
           void hooks.exec({ op: "clear" }).catch(() => {});
           setProgress(0);
           if (err instanceof RoutineBlockedError) {
@@ -395,7 +436,7 @@ export function useRoutineRun() {
     return () => {
       active = false;
     };
-  }, [status]);
+  }, [status, endRun]);
 
   /** Start running `routine` in `tab`. The caller has already checked startBlocker. */
   const start = async (tab, routine, options = {}) => {
@@ -403,14 +444,23 @@ export function useRoutineRun() {
     try {
       targetRef.current = { tab, routine };
       setTarget({ tab, routine });
+      const previousRunId = runIdRef.current;
       runIdRef.current = newRunId();
       queueKeys.current.clear();
       earlyResults.current.clear();
       countedOutcomes.current.clear();
-      // Drop leftover queue items from earlier failed retries (delayed nextAttemptAt).
+      await sendRuntimeMessage({
+        action: ROUTINE_BIND_TAB_ACTION,
+        tabId: tab.id,
+        payload: { tabId: tab.id, windowId: tab.windowId, routineId: routine.id },
+      }).catch((error) => {
+        if (hasExtensionRuntime()) throw error;
+        return null;
+      });
+      // Drop leftover items from this panel's last run only. Concurrent windows keep theirs.
       const cleared = await sendRuntimeMessage({
         action: "scrapeQueue:clear",
-        payload: { beginRunId: runIdRef.current },
+        payload: { runId: previousRunId, beginRunId: runIdRef.current },
       }).catch(() => null);
       const resetTotals = Boolean(options.resetHearts) || !keepsPaceOnResume(status);
       setRunStats((current) => statsAfterStart(current, { reset: resetTotals }));

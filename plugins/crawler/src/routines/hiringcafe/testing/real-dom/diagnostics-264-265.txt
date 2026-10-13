@@ -1,0 +1,7 @@
+run-264 (v2.5.11): every Mark Applied error:
+not marked applied: hover missed overlay · rect=… hit=DIV.flex.justify-between… overlay=no candidates=none
+(panel: 0 marked · 32 not marked · 0 skipped (applied))
+run-265 (v2.5.12):
+Mark Applied … not marked applied: hover missed overlay · rect=0,0 0x0 viewport=1534x1049 … hit=none overlay=none candidates=none  (jobs 647det3s8lfu8jpj, voruvtbqrh70xwti)
+(panel: 0 marked · 2 not marked · 44 skipped (applied))
+Note: run-264 text captured from screenshots/summaries; exact rect values elided ("…") in source report.

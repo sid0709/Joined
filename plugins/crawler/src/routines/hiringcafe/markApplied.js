@@ -1,17 +1,23 @@
 import {
+  appliedFromCandidateTexts,
   appliedStateFromHtml,
+  cardForJob,
   cardSelectorForJob,
-  hasAppliedCheck,
   hasMarkAppliedControl,
   hasMarkToast,
   isHiringCafeSignedOut,
   markConfirmed,
+  markStateRoot,
+  overlayAppliedCandidateTexts,
+  overlayCandidateTexts,
   stageUpdateSucceeded,
 } from "./appliedState.js";
+import { isHiringCafeChallenge } from "./challenge.js";
 import {
   alreadyMarkedLog,
   carouselShowSelector,
   CAROUSEL_NEXT,
+  CHALLENGE_WAIT_LABEL,
   JOB_LINK,
   MARK_APPLIED,
   MARK_APPLIED_LABEL,
@@ -20,6 +26,8 @@ import {
   MARK_CONFIRM_MS,
   MARK_HOVER_MS,
   MARK_HOVER_OFFSETS,
+  MARK_OVERLAY_POLL_MS,
+  MARK_OVERLAY_WAIT_MS,
   NOT_MARKED_REASON,
   SIGN_IN_TO_MARK_MESSAGE,
   UPDATE_STAGE_PATH,
@@ -36,10 +44,12 @@ export function isMarkAppliedEnabled(enabled) {
 
 function noteMark(onActivity, label, kind = "waitFor", onNotice, ok = true) {
   onActivity?.({ phase: "dismiss", label, kind });
-  if (!ok) {
-    console.warn(label);
-    onNotice?.(label, false);
+  if (ok) {
+    onNotice?.(label, true);
+    return;
   }
+  console.warn(label);
+  onNotice?.(label, false);
 }
 
 async function pause(rest, skipDelays, ms) {
@@ -60,17 +70,69 @@ async function hoverCard(call, selector, offset = MARK_HOVER_OFFSETS[0]) {
   return call("hover", { selector, ...offset });
 }
 
+function overlayCandidates(...sources) {
+  for (const source of sources) {
+    const list = source?.candidates || source?.diagnostics?.candidates;
+    if (Array.isArray(list) && list.length) return list;
+  }
+  return [];
+}
+
+function appliedCandidatesFromPage(html, job, ...probes) {
+  const fromOverlay = overlayAppliedCandidateTexts(cardForJob(documentFromHtml(html), job));
+  if (fromOverlay.length) return fromOverlay;
+  for (const probe of probes) {
+    if (probe?.found) return overlayCandidates(probe);
+  }
+  return [];
+}
+
+function overlayProbe(call, selector, wait = 0) {
+  return call("overlayTarget", {
+    selector,
+    clickSelector: MARK_APPLIED,
+    contains: MARK_APPLIED_TEXT,
+    exact: true,
+    wait,
+  }).catch(() => ({ found: false, candidates: [] }));
+}
+
+function appliedOverlayState(state, candidates) {
+  const already = Boolean(state.marked || appliedFromCandidateTexts(candidates));
+  return {
+    ...state,
+    marked: already,
+    canMark: already ? false : state.canMark,
+  };
+}
+
 async function hoverUntilOverlay({ job, call, rest, skipDelays, readPage, selector }) {
   let last = { found: false };
   for (const offset of MARK_HOVER_OFFSETS) {
     last = await hoverCard(call, selector, offset).catch(() => ({ found: false }));
-    await pause(rest, skipDelays, MARK_HOVER_MS);
+    const overlay = await overlayProbe(call, selector, skipDelays ? 0 : MARK_OVERLAY_WAIT_MS);
     const page = await readPage();
-    const state = appliedStateFromHtml(page.html, job);
-    if (state.canMark || state.marked) return { hovered: last, state, page };
+    const candidates = appliedCandidatesFromPage(page.html, job, overlay);
+    const state = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates);
+    const overlaySeen = Boolean(overlay?.found || state.canMark || state.marked);
+    last = {
+      ...last,
+      candidates,
+      diagnostics: { ...(last.diagnostics || {}), overlay: overlaySeen, candidates },
+      diagnosticsText: last.diagnosticsText,
+    };
+    if (isHiringCafeChallenge(page)) return { hovered: last, state, page };
+    if (overlay?.found || state.canMark || state.marked) return { hovered: last, state, page };
+    if (skipDelays) continue;
+    await pause(rest, skipDelays, MARK_OVERLAY_POLL_MS);
   }
   const page = await readPage();
-  return { hovered: last, state: appliedStateFromHtml(page.html, job), page };
+  const candidates = appliedCandidatesFromPage(page.html, job);
+  return {
+    hovered: last,
+    state: appliedOverlayState(appliedStateFromHtml(page.html, job), candidates),
+    page,
+  };
 }
 
 function shownRequisitionId(html, job) {
@@ -129,26 +191,37 @@ export async function readAppliedOnCard({
     readPage,
     selector,
   });
-  if (isHiringCafeSignedOut(page.html)) {
-    return { found: Boolean(hovered?.found), marked: false, signedOut: true, page };
+  if (isHiringCafeChallenge(page)) {
+    return { found: Boolean(hovered?.found), marked: false, challenge: true, page, hovered };
   }
-  return { ...state, signedOut: state.signedOut, page };
+  if (isHiringCafeSignedOut(page.html)) {
+    return { found: Boolean(hovered?.found), marked: false, signedOut: true, page, hovered };
+  }
+  return { ...state, signedOut: state.signedOut, page, hovered };
 }
 
-async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
+async function confirmAfterClick({ job, call, rest, skipDelays, readPage, beforeHtml = "" }) {
   await pause(rest, skipDelays, MARK_CONFIRM_MS);
   const hits = await stageUpdateHits(call);
-  const fetchOk = stageUpdateSucceeded(hits);
+  const fetchOk = stageUpdateSucceeded(hits, job);
   let page = await readPage();
-  const toast = hasMarkToast(page.html);
+  const toast = hasMarkToast(page.html, beforeHtml);
   if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, toast, fetchOk };
   }
-  await hoverCard(call, exactCardSelector(job));
+  const selector = exactCardSelector(job);
+  await hoverCard(call, selector);
   await pause(rest, skipDelays, MARK_HOVER_MS);
   page = await readPage();
-  const cardApplied = appliedStateFromHtml(page.html, job).marked;
-  const marked = markConfirmed({ applied: cardApplied, toast, fetchOk });
+  const overlay = await overlayProbe(call, selector);
+  const candidates = appliedCandidatesFromPage(page.html, job, overlay);
+  const cardApplied = appliedOverlayState(appliedStateFromHtml(page.html, job), candidates).marked;
+  const marked = markConfirmed({
+    applied: cardApplied,
+    tracker: cardApplied,
+    toast,
+    fetchOk,
+  });
   return {
     marked,
     signedOut: isHiringCafeSignedOut(page.html),
@@ -161,28 +234,40 @@ async function confirmAfterClick({ job, call, rest, skipDelays, readPage }) {
 async function clickMarkOnCard({ job, call, skipDelays }) {
   const selector = exactCardSelector(job);
   const wait = skipDelays ? 0 : MARK_APPLIED_WAIT_MS;
-  const hovered = await call("hoverClick", {
-    selector,
-    clickSelector: MARK_APPLIED,
-    contains: MARK_APPLIED_TEXT,
-    exact: true,
-    offsets: MARK_HOVER_OFFSETS,
-    wait,
-  }).catch(() => ({ found: false }));
-  if (hovered?.found) return hovered;
-  await hoverCard(call, selector);
-  return call("click", {
-    selector: `${selector} ${MARK_APPLIED}`,
-    contains: MARK_APPLIED_TEXT,
-    exact: true,
-    wait,
-  });
+  await call("scroll", { selector }).catch(() => {});
+  let hovered;
+  try {
+    hovered = await call("hoverClick", {
+      selector,
+      clickSelector: MARK_APPLIED,
+      contains: MARK_APPLIED_TEXT,
+      exact: true,
+      offsets: MARK_HOVER_OFFSETS,
+      wait,
+      overlayWait: skipDelays ? 0 : MARK_OVERLAY_WAIT_MS,
+    });
+  } catch {
+    // A press may have already POSTed; do not click again.
+    return { found: true, hovered: true, pressed: true };
+  }
+  const candidates = overlayCandidates(hovered);
+  if (appliedFromCandidateTexts(candidates)) {
+    return {
+      ...hovered,
+      candidates,
+      found: Boolean(hovered?.found || hovered?.pressed),
+      already: true,
+    };
+  }
+  if (hovered?.found || hovered?.pressed) return { ...hovered, candidates, found: true };
+  // Never click a second time. The overlay is a toggle; a retry un-applies.
+  return { ...hovered, candidates, found: false };
 }
 
 /**
  * Hover the specific grouped job's card and click Mark Applied in the same
- * turn (the overlay is hover-only). Confirm via toast, the stage API 200, or
- * Applied ✓ on that one card.
+ * turn (the overlay is hover-only). Confirm via toast, the stage API 200,
+ * Applied / App Tracker, or the toggle flipping to Applied. Click once.
  */
 export async function markAppliedOnCard({
   job,
@@ -205,33 +290,56 @@ export async function markAppliedOnCard({
     return { marked: false, log, reason: NOT_MARKED_REASON.NO_SELECTOR };
   }
   const ready = await readAppliedOnCard({ job, call, rest, skipDelays, readPage });
+  if (ready.challenge) {
+    noteMark(onActivity, CHALLENGE_WAIT_LABEL);
+    return { marked: false, challenge: true, log: CHALLENGE_WAIT_LABEL };
+  }
   if (ready.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, log: SIGN_IN_TO_MARK_MESSAGE };
   }
   if (ready.marked) {
     const log = alreadyMarkedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, already: true, log };
   }
 
   noteMark(onActivity, MARK_APPLIED_LABEL, "click");
   await watchStageUpdate(call);
   const clicked = await clickMarkOnCard({ job, call, skipDelays });
-  if (!clicked?.found) {
-    const reason = ready.canMark ? NOT_MARKED_REASON.CLICK_MISSED : NOT_MARKED_REASON.HOVER_MISSED;
-    const log = notMarkedLog(jobId, reason);
-    noteMark(onActivity, log, "waitFor", onNotice, false);
-    return { marked: false, log, reason };
+  if (clicked?.already && !clicked?.found && !clicked?.pressed) {
+    const log = alreadyMarkedLog(jobId);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
+    return { marked: true, already: true, log };
   }
-  const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
+  if (!clicked?.found) {
+    const after = await readPage().catch(() => ready.page);
+    if (isHiringCafeChallenge(after) || isHiringCafeChallenge(ready.page)) {
+      noteMark(onActivity, CHALLENGE_WAIT_LABEL);
+      return { marked: false, challenge: true, log: CHALLENGE_WAIT_LABEL };
+    }
+    const reason = ready.canMark ? NOT_MARKED_REASON.CLICK_MISSED : NOT_MARKED_REASON.HOVER_MISSED;
+    const diagnostics =
+      clicked?.diagnosticsText || ready.hovered?.diagnosticsText || ready.diagnosticsText || "";
+    const log = notMarkedLog(jobId, reason, diagnostics);
+    noteMark(onActivity, log, "waitFor", onNotice, false);
+    return { marked: false, log, reason, diagnostics };
+  }
+  const confirmed = await confirmAfterClick({
+    job,
+    call,
+    rest,
+    skipDelays,
+    readPage,
+    beforeHtml: ready.page?.html || "",
+  });
   if (confirmed.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, log: SIGN_IN_TO_MARK_MESSAGE };
   }
   if (confirmed.marked) {
     const log = markedAppliedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, log };
   }
   const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
@@ -242,8 +350,8 @@ export async function markAppliedOnCard({
 
 /**
  * Detail-page Mark Applied is unverified on the live map. Use it when the
- * control or Applied ✓ is actually on the page; otherwise the caller falls
- * back to the list-card carousel.
+ * control or Applied state is actually on the page; otherwise the caller
+ * falls back to the list-card carousel.
  */
 export async function markAppliedOnDetail({
   job,
@@ -260,12 +368,16 @@ export async function markAppliedOnDetail({
     return { marked: false, skipped: true, via: "detail", log: "" };
   }
   const page = await readPage();
+  if (isHiringCafeChallenge(page)) {
+    return { marked: false, challenge: true, via: "detail", log: CHALLENGE_WAIT_LABEL };
+  }
   if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
-  if (hasAppliedCheck(page.html)) {
+  const root = markStateRoot(page.html, job);
+  if (root && appliedFromCandidateTexts(overlayCandidateTexts(root))) {
     const log = alreadyMarkedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, already: true, via: "detail", log };
   }
   if (!hasMarkAppliedControl(page.html)) {
@@ -288,14 +400,21 @@ export async function markAppliedOnDetail({
       log: "",
     };
   }
-  const confirmed = await confirmAfterClick({ job, call, rest, skipDelays, readPage });
+  const confirmed = await confirmAfterClick({
+    job,
+    call,
+    rest,
+    skipDelays,
+    readPage,
+    beforeHtml: page.html,
+  });
   if (confirmed.signedOut) {
     noteMark(onActivity, SIGN_IN_TO_MARK_MESSAGE);
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
   if (confirmed.marked) {
     const log = markedAppliedLog(jobId);
-    noteMark(onActivity, log);
+    noteMark(onActivity, log, "waitFor", onNotice, true);
     return { marked: true, via: "detail", log };
   }
   const log = notMarkedLog(jobId, NOT_MARKED_REASON.NOT_CONFIRMED);
@@ -314,10 +433,10 @@ export function detailClickedNothing(result) {
 
 /**
  * Card fallback only when detail never clicked. After NOT_CONFIRMED, re-read
- * Applied ✓ and do not click again (a second click can undo the mark).
+ * Applied state and do not click again (a second click can undo the mark).
  */
 export async function resolveMarkAfterDetail(detailMark, options) {
-  if (detailMark?.signedOut) return detailMark;
+  if (detailMark?.signedOut || detailMark?.challenge) return detailMark;
   if (detailMark?.marked || detailMark?.already) return detailMark;
   if (detailClickedNothing(detailMark)) return markAppliedOnCard(options);
   const ready = await readAppliedOnCard(options);
@@ -326,7 +445,7 @@ export async function resolveMarkAfterDetail(detailMark, options) {
   }
   if (ready.marked) {
     const log = alreadyMarkedLog(options?.job?.id || "");
-    noteMark(options?.onActivity, log);
+    noteMark(options?.onActivity, log, "waitFor", options?.onNotice, true);
     return { marked: true, already: true, via: "reread", log };
   }
   const reason = detailMark?.reason || NOT_MARKED_REASON.NOT_CONFIRMED;

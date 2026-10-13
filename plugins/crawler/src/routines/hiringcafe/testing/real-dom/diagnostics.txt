@@ -1,0 +1,6 @@
+Run 266 panel "Mark Applied" warning (Stopped, Pass 6, 02:29). Counters: 0 marked · 5 not marked · 0 skipped (applied); Page 1 · job 6 of 129.
+Job 6wfmqg0lc17jeb8e not marked applied: hover missed overlay · rect=112,316.125 319.75x416.5 viewport=1534x1049 scroll=0,222 dpr=1 zoom=1 hit=DIV.flex.justify-between.items-end.text-sm.w-full.space-x-2.h-full overlay=no candidates=none
+Job irlr3g6t2hase9u7 not marked applied: hover missed overlay · rect=112,316.125 319.75x416.5 viewport=1534x1049 scroll=0,222 dpr=1 zoom=1 hit=DIV.flex.justify-between.items-end.text-sm.w-full.space-x-2.h-full overlay=no candidates=none
+Job giu7v0b972v1t9zv not marked applied: hover missed overlay · rect=463.75,316.125 319.75x416.5 viewport=1534x1049 scroll=0,222 dpr=1 zoom=1 hit=DIV.flex.justify-between.items-end.text-sm.w-full.space-x-2.h-full overlay=no candidates=none
+Job bozjoscgq4y86c0z not marked applied: hover missed overlay · rect=463.75,316.125 319.75x416.5 viewport=1534x1049 scroll=0,222 dpr=1 zoom=1 hit=DIV.flex.justify-between.items-end.text-sm.w-full.space-x-2.h-full overlay=no candidates=none
+Job 5k3y848ki237lj0u not marked applied: hover missed overlay · rect=815.5,316.125 319.75x416.5 viewport=1534x1049 scroll=0,222 dpr=1 zoom=1 hit=(truncated in panel; same DIV.flex.justify-between... pattern) 

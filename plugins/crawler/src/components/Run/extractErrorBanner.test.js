@@ -30,15 +30,35 @@ describe("extractErrorBanner", () => {
     });
   });
 
-  test("surfaces each not-marked reason code on the errors banner", () => {
+  test("lists every not-marked job log on the errors banner", () => {
+    const logs = [
+      "Job reqaaa1111111111 not marked applied: hover missed overlay",
+      "Job reqbbb2222222222 not marked applied: hover missed overlay",
+    ];
+    expect(extractErrorBanner(logs.join("\n"), [], logs)).toEqual({
+      status: "warning",
+      title: "Mark Applied",
+      description: logs.join(" · "),
+    });
     const reasons = Object.values(NOT_MARKED_REASON);
+    expect(extractErrorBanner("", reasons).description).toBe(reasons.join(" · "));
+  });
+
+  test("does not put Job marked applied success lines on the extraction banner", () => {
+    expect(extractErrorBanner(null, [], ["Job reqaaa1111111111 marked applied"])).toBeNull();
     expect(
-      extractErrorBanner("Job reqaaa1111111111 not marked applied: hover missed overlay", reasons),
+      extractErrorBanner(
+        "Job reqaaa1111111111 marked applied",
+        [],
+        [
+          "Job reqaaa1111111111 marked applied",
+          "Job reqbbb2222222222 not marked applied: hover missed overlay",
+        ],
+      ),
     ).toEqual({
       status: "warning",
       title: "Mark Applied",
-      description: `${reasons.join(" · ")} · Job reqaaa1111111111 not marked applied: hover missed overlay`,
+      description: "Job reqbbb2222222222 not marked applied: hover missed overlay",
     });
-    expect(extractErrorBanner("", reasons).description).toBe(reasons.join(" · "));
   });
 });

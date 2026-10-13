@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { VIEW_ALL_CONTROL, VIEW_ALL_TEXT } from "./constants.js";
+import { PAGE_DELAY_MS, VIEW_ALL_CONTROL, VIEW_ALL_TEXT } from "./constants.js";
 import { expandShortGroups, jobLinksFrom, viewAllJobLinks } from "./expandGroups.js";
 import { parseList } from "./parseList.js";
 import {
@@ -29,11 +29,35 @@ describe("jobLinksFrom", () => {
 });
 
 describe("viewAllJobLinks", () => {
-  test("reads job hrefs from the View all panel only", () => {
-    const links = viewAllJobLinks(viewAllDialogMarkup(INTERIM_JOBS.slice(0, 2)), LIST_URL);
-    expect(links.map((link) => link.id)).toEqual(
+  test("reads job hrefs from the card's own View all dialog", () => {
+    const own = viewAllDialogMarkup(INTERIM_JOBS.slice(0, 2));
+    const sibling = viewAllDialogMarkup([
+      {
+        path: "/job/other-role-zzzzzzzzzzzzzzzz",
+        title: "Other",
+        requisitionId: "zzzzzzzzzzzzzzzz",
+      },
+    ]);
+    const html = listPageHtml({
+      hits: interimHits().slice(0, 3),
+      cards: [
+        cardMarkup(INTERIM_JOBS[0].path, "35m", {
+          carousel: carouselMarkup(4, 1),
+          viewAll: own,
+        }),
+        cardMarkup("/job/other-role-zzzzzzzzzzzzzzzz", "1h", { viewAll: sibling }),
+      ],
+    });
+    const host = {
+      id: INTERIM_JOBS[0].requisitionId,
+      url: `https://hiringcafe.com${INTERIM_JOBS[0].path}`,
+    };
+    expect(viewAllJobLinks(html, LIST_URL, host).map((link) => link.id)).toEqual(
       INTERIM_JOBS.slice(0, 2).map((job) => job.requisitionId),
     );
+    expect(
+      viewAllJobLinks(html, LIST_URL, host).some((link) => link.id === "zzzzzzzzzzzzzzzz"),
+    ).toBe(false);
   });
 });
 
@@ -67,8 +91,12 @@ describe("expandShortGroups", () => {
     });
     const opened = listPageHtml({
       hits: interimHits().slice(0, 3),
-      cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
-      viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+      cards: [
+        cardMarkup(INTERIM_JOBS[0].path, "35m", {
+          carousel: carouselMarkup(4, 1),
+          viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+        }),
+      ],
     });
     const clicks = [];
     let html = truncated;
@@ -111,10 +139,16 @@ describe("expandShortGroups", () => {
     const opened = listPageHtml({
       hits: interimHits().slice(0, 3),
       cards: [
-        cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) }),
-        cardMarkup(siblingPath, "1h"),
+        cardMarkup(INTERIM_JOBS[0].path, "35m", {
+          carousel: carouselMarkup(4, 1),
+          viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+        }),
+        cardMarkup(siblingPath, "1h", {
+          viewAll: `${viewAllDialogMarkup([
+            { path: siblingPath, title: "Unrelated", requisitionId: "zzzzzzzzzzzzzzzz" },
+          ])}<a href="${strayPath}">Stray</a>`,
+        }),
       ],
-      viewAll: `${viewAllDialogMarkup(INTERIM_JOBS)}<a href="${strayPath}">Stray</a>`,
     });
     const parsed = parseList(truncated, LIST_URL);
     expect(parsed.jobs).toHaveLength(3);
@@ -177,25 +211,40 @@ describe("expandShortGroups", () => {
     });
     const opened = listPageHtml({
       hits: interimHits().slice(0, 3),
-      cards: [cardMarkup(INTERIM_JOBS[0].path, "35m", { carousel: carouselMarkup(4, 1) })],
-      viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+      cards: [
+        cardMarkup(INTERIM_JOBS[0].path, "35m", {
+          carousel: carouselMarkup(4, 1),
+          viewAll: viewAllDialogMarkup(INTERIM_JOBS),
+        }),
+      ],
     });
     const parsed = parseList(truncated, LIST_URL);
     let html = truncated;
+    let url = LIST_URL;
     const rested = [];
     await expandShortGroups({
       parsed,
       pageUrl: LIST_URL,
       skipDelays: false,
+      random: () => 0.5,
       rest: async (ms) => {
         rested.push(ms);
       },
-      readPage: async () => ({ html, url: LIST_URL }),
+      readPage: async () => ({ html, url }),
       call: async (op, payload = {}) => {
-        if (op === "click" && payload.contains === VIEW_ALL_TEXT) html = opened;
+        if (op === "click" && payload.contains === VIEW_ALL_TEXT) {
+          url = `https://hiringcafe.com${INTERIM_JOBS[3].path}`;
+          html = `<html><body><a href="${INTERIM_JOBS[3].path}">left the list</a></body></html>`;
+        }
+        if (op === "navigate") {
+          url = payload.url;
+          html = opened;
+        }
         return { found: true };
       },
     });
     expect(rested.length).toBeGreaterThan(0);
+    expect(rested).toContain(6000);
+    expect(rested.some((ms) => ms >= PAGE_DELAY_MS.min && ms <= PAGE_DELAY_MS.max)).toBe(true);
   });
 });

@@ -16,9 +16,12 @@ import {
   CARD_SKIP_ALREADY_APPLIED,
   CARD_SKIP_DETAIL_HANDLED,
   CARD_SKIP_HANDLED,
+  CARD_SKIP_INGEST_NOT_ACCEPTED,
   CARD_SKIP_INGEST_REJECTED,
+  CARD_SKIP_INGEST_TIMEOUT,
   CARD_SKIP_METADATA_SIZE,
   CARD_SKIP_NO_URL,
+  NOT_MARKED_REASON,
   INVALID_STREAK,
   INVALID_STREAK_MESSAGE,
   JOB_DELAY_MS,
@@ -33,6 +36,7 @@ import {
   emptyPageLabel,
   jobCardSelector,
   jitterMs,
+  notMarkedLog,
   stuckPageMessage,
 } from "./constants.js";
 import { expandShortGroups } from "./expandGroups.js";
@@ -61,6 +65,11 @@ function jobRecord(detail) {
   return record;
 }
 
+async function ensureMarkDebugger(call, enabled) {
+  if (!enabled) return;
+  await call("attachDebugger").catch(() => {});
+}
+
 function warnIfPageEmpty(hooks, page, jobCount) {
   if (jobCount !== 0) return;
   const label = emptyPageLabel(page);
@@ -72,7 +81,7 @@ function warnIfPageEmpty(hooks, page, jobCount) {
   console.warn(label);
 }
 
-async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage }) {
+async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage, random }) {
   const url = listPage.url || pageUrl;
   return expandShortGroups({
     parsed: parseList(listPage.html, url),
@@ -81,6 +90,7 @@ async function listedJobs(listPage, pageUrl, { call, rest, skipDelays, readPage 
     skipDelays,
     readPage,
     pageUrl: url,
+    random,
   });
 }
 
@@ -125,7 +135,19 @@ async function ensureCursor(store, tab) {
   return cursor;
 }
 
-async function pickNextJob({
+function emitAppliedSkip(emitCursor, candidate, jobs) {
+  const jobIndex = jobs.findIndex((item) => item.id === candidate.id) + 1;
+  emitCursor?.({
+    card: candidate.id,
+    cardIndex: jobIndex,
+    cardsOnPage: jobs.length,
+    jobIndex,
+    jobsOnPage: jobs.length,
+    skipDelta: { skippedApplied: 1 },
+  });
+}
+
+export async function pickNextJob({
   jobs,
   lastJobId,
   handledIds,
@@ -134,8 +156,15 @@ async function pickNextJob({
   markJob,
   readApplied,
   markAppliedEnabled,
+  emitCursor,
 }) {
   for (const candidate of jobsAfterCursor(jobs, lastJobId)) {
+    if (candidate.listApplied) {
+      noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
+      recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+      emitAppliedSkip(emitCursor, candidate, jobs);
+      continue;
+    }
     if (isJobHandled(candidate, handledIds)) {
       if (!markAppliedEnabled) {
         noteJobDecision(candidate.id, CARD_SKIP_HANDLED);
@@ -143,10 +172,12 @@ async function pickNextJob({
         continue;
       }
       const applied = await readApplied(candidate);
+      if (applied.challenge) return { challenge: true };
       if (applied.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
       if (applied.marked) {
         noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
         recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+        emitAppliedSkip(emitCursor, candidate, jobs);
         continue;
       }
       noteJobDecision(candidate.id, CARD_DECISION_MARK_ONLY);
@@ -155,10 +186,12 @@ async function pickNextJob({
     }
     if (!markAppliedEnabled) return candidate;
     const applied = await readApplied(candidate);
+    if (applied.challenge) return { challenge: true };
     if (applied.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
     if (applied.marked) {
       noteJobDecision(candidate.id, CARD_SKIP_ALREADY_APPLIED);
       recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+      emitAppliedSkip(emitCursor, candidate, jobs);
       await markJob(candidate.id);
       continue;
     }
@@ -168,11 +201,33 @@ async function pickNextJob({
 }
 
 function markDeltaOf(result) {
+  if (result?.challenge) {
+    return { marked: 0, notMarked: 0, reason: "", log: result.log || "" };
+  }
   return {
     marked: result?.marked ? 1 : 0,
     notMarked: result?.marked ? 0 : 1,
     reason: result?.marked ? "" : String(result?.reason || result?.log || "").trim(),
     log: result?.log || "",
+  };
+}
+
+function ingestSkipOf(accepted) {
+  if (accepted === false) {
+    return {
+      decision: CARD_SKIP_INGEST_REJECTED,
+      reason: NOT_MARKED_REASON.INGEST_REJECTED,
+    };
+  }
+  if (accepted === null) {
+    return {
+      decision: CARD_SKIP_INGEST_TIMEOUT,
+      reason: NOT_MARKED_REASON.INGEST_TIMEOUT,
+    };
+  }
+  return {
+    decision: CARD_SKIP_INGEST_NOT_ACCEPTED,
+    reason: NOT_MARKED_REASON.NOT_ACCEPTED,
   };
 }
 
@@ -228,17 +283,29 @@ export async function runHiringCafePass(ctx, progress) {
   const pageFailures = new Map();
 
   const emitCursor = (extra = {}) => {
+    const jobIndex = extra.jobIndex ?? extra.cardIndex;
+    const jobsOnPage = extra.jobsOnPage ?? extra.cardsOnPage;
     const snapshot = {
       page: displayPage(cursor?.page),
       card: extra.card ?? cursor?.lastJobId ?? "",
-      cardIndex: extra.cardIndex,
-      cardsOnPage: extra.cardsOnPage,
-      jobIndex: extra.jobIndex ?? extra.cardIndex,
-      jobsOnPage: extra.jobsOnPage ?? extra.cardsOnPage,
       blockCount: backoff.blockCount,
       blocks: backoff.blocks.map((entry) => ({ kind: entry.kind, at: entry.at })),
       ...extra,
     };
+    if (jobIndex != null) {
+      snapshot.jobIndex = jobIndex;
+      snapshot.cardIndex = extra.cardIndex ?? jobIndex;
+    } else {
+      delete snapshot.jobIndex;
+      delete snapshot.cardIndex;
+    }
+    if (jobsOnPage != null) {
+      snapshot.jobsOnPage = jobsOnPage;
+      snapshot.cardsOnPage = extra.cardsOnPage ?? jobsOnPage;
+    } else {
+      delete snapshot.jobsOnPage;
+      delete snapshot.cardsOnPage;
+    }
     hooks.onPace?.(snapshot);
   };
 
@@ -272,6 +339,23 @@ export async function runHiringCafePass(ctx, progress) {
     checkStopped: ctx.checkStopped,
   });
   const readPage = () => readVisiblePage(call);
+
+  const skipPickedChallenge = async (job, pageUrl, pageIds, parsed) => {
+    if (job?.challenge) {
+      await handleBlock(await readPage(), pageUrl);
+      await pause(PAGE_DELAY_MS);
+      return true;
+    }
+    if (job) return false;
+    if (parsed.isLastPage) {
+      await store.clearCursor();
+      throw new RoutineFinishedError("Nothing left to process on HiringCafe");
+    }
+    cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
+    await store.saveCursor(cursor);
+    await pause(PAGE_DELAY_MS);
+    return true;
+  };
 
   const handleBlock = async (page, intendedUrl) => {
     const detected = detectHiringCafeBlock(page);
@@ -323,6 +407,7 @@ export async function runHiringCafePass(ctx, progress) {
   };
 
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
+  await ensureMarkDebugger(call, markAppliedEnabled);
   const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
   progress.tick();
   cursor = await ensureCursor(store, tab);
@@ -355,6 +440,7 @@ export async function runHiringCafePass(ctx, progress) {
       rest,
       skipDelays,
       readPage,
+      random: hooks.random ?? Math.random,
     });
     const pageIds = jobIdKey(parsed.jobs);
     warnIfPageEmpty(hooks, cursor.page, parsed.jobs.length);
@@ -369,6 +455,7 @@ export async function runHiringCafePass(ctx, progress) {
       recordOutcome: hooks.recordOutcome,
       markJob,
       markAppliedEnabled,
+      emitCursor,
       readApplied: (candidate) =>
         readAppliedOnCard({
           job: candidate,
@@ -378,16 +465,7 @@ export async function runHiringCafePass(ctx, progress) {
           readPage,
         }),
     });
-    if (!job) {
-      if (parsed.isLastPage) {
-        await store.clearCursor();
-        throw new RoutineFinishedError("Nothing left to process on HiringCafe");
-      }
-      cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
-      await store.saveCursor(cursor);
-      await pause(PAGE_DELAY_MS);
-      continue;
-    }
+    if (await skipPickedChallenge(job, pageUrl, pageIds, parsed)) continue;
 
     const jobIndex = parsed.jobs.findIndex((item) => item.id === job.id) + 1;
     emitCursor({
@@ -510,9 +588,20 @@ export async function runHiringCafePass(ctx, progress) {
       }
       throw error;
     }
-    if (accepted === false) {
-      noteJobDecision(jobId, CARD_SKIP_INGEST_REJECTED);
+    if (accepted !== true) {
+      const { decision, reason } = ingestSkipOf(accepted);
+      const log = notMarkedLog(jobId, reason);
+      noteJobDecision(jobId, decision);
+      hooks.onNotice?.(log, false);
       hooks.recordOutcome?.(SCRAPE_OUTCOMES.FAILED);
+      emitCursor({
+        card: jobId,
+        cardIndex: jobIndex,
+        cardsOnPage: parsed.jobs.length,
+        jobIndex,
+        jobsOnPage: parsed.jobs.length,
+        markDelta: { marked: 0, notMarked: 1, reason, log },
+      });
       await advancePast(jobId);
       await openVisible(pageUrl, "Returning to job list", "settle");
       continue;

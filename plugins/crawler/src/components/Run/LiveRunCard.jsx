@@ -80,7 +80,11 @@ function PaceStats({ pace, routine }) {
       {showMarked ? (
         <Badge
           variant="neutral"
-          label={markedCountLabel(pace?.marked ?? 0, pace?.notMarked ?? 0)}
+          label={markedCountLabel(
+            pace?.marked ?? 0,
+            pace?.notMarked ?? 0,
+            pace?.skippedApplied ?? 0,
+          )}
           description={markedReasonsLabel(pace?.markReasons) || "Mark Applied this run"}
         />
       ) : null}
@@ -117,7 +121,11 @@ export default function LiveRunCard({ run, routine }) {
   const showStepper = hasRunComponent(routine, RUN_COMPONENT.STEPPER);
   const showPace = hasRunComponent(routine, RUN_COMPONENT.PACE);
   const showFields = hasRunComponent(routine, RUN_COMPONENT.FIELD_GROUPS);
-  const extractionBanner = extractErrorBanner(run.extractError, run.pace?.markReasons);
+  const extractionBanner = extractErrorBanner(
+    run.extractError,
+    run.pace?.markReasons,
+    run.pace?.markLogs,
+  );
 
   return (
     <Card padding={4}>

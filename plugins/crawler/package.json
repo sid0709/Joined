@@ -1,8 +1,8 @@
 {
   "name": "joined-scrapper",
   "private": true,
-  "version": "2.5.8",
-  "releaseDate": "2026-10-12",
+  "version": "2.5.19",
+  "releaseDate": "2026-10-13",
   "type": "module",
   "scripts": {
     "dev": "vite",
