@@ -81,6 +81,17 @@ export const HEART_CONFIRM_MS = 5_000;
 export const HEART_READY_MS = 5_000;
 export const HEART_POLL_MS = 200;
 export const HEART_TARGET_WAIT_MS = 1_500;
+/** Page-side MutationObserver waits (content-script op), Built In only. */
+export const BUILTIN_WAIT_OP = "builtinWait";
+export const WAIT_UNTIL = Object.freeze({
+  HEART: "heart",
+  HEART_SAVED: "heartSaved",
+  DETAIL: "detail",
+  LIST_READY: "listReady",
+  LIST_CHANGE: "listChange",
+});
+/** Alpine and `my-item` hydrate after DOMContentLoaded; past this, read the list as is. */
+export const LIST_READY_MS = 5_000;
 export const HEART_CLICK_HEART = "heart";
 export const HEART_CLICK_SVG = "svg";
 export const HEART_CLICK_HOST = "host";

@@ -14,6 +14,8 @@ import BuiltInRoutine from "./BuiltInRoutine.js";
 import {
   CHALLENGE_WAIT_LABEL,
   MARK_APPLIED_TEXT,
+  FILTERS_CHANGED_NOTICE,
+  NEXT_PAGE,
   SIGN_IN_TO_MARK_MESSAGE,
   START_FROM_PAGE_ONE_LABEL,
   UPDATE_STAGE_OK,
@@ -39,6 +41,17 @@ import { ROUTINES } from "./index.js";
 import "./hiringcafe/testing/domParser.js";
 
 const LIST_URL = "https://hiringcafe.com/classic";
+const FILTERED_LIST_URL =
+  "https://hiringcafe.com/classic?searchState=%7B%22workplaceTypes%22%3A%5B%22Remote%22%5D%2C%22dateFetchedPastNDays%22%3A2%7D";
+const SEARCH_STATE = new URL(FILTERED_LIST_URL).searchParams.get("searchState");
+
+function listNavigates(page) {
+  return page.navigates.filter((url) => /\/classic/.test(url));
+}
+
+function keepsFilters(url) {
+  return new URL(url).searchParams.get("searchState") === SEARCH_STATE;
+}
 const routine = {
   ...HiringCafeRoutine,
   options: { ...HiringCafeRoutine.options, fieldPauseMs: 0 },
@@ -53,7 +66,7 @@ function jobUrl(id, title) {
 }
 
 function hiringCafeTab({
-  listHtml = listPageHtml(),
+  listHtml: customListHtml,
   listUrl = LIST_URL,
   details,
   paginatedListHtml,
@@ -63,7 +76,11 @@ function hiringCafeTab({
   timeoutOnce = null,
   alreadyApplied = [],
   viewAllJobs = null,
+  nextDropsFilters = false,
 } = {}) {
+  // Hover overlays redraw the default two cards; a test's own list keeps its cards.
+  const listHtml = customListHtml ?? listPageHtml();
+  const redrawsOverlay = customListHtml == null;
   let url = listUrl;
   let status = 200;
   let htmlOverride = null;
@@ -78,6 +95,7 @@ function hiringCafeTab({
   const navigates = [];
   const fetches = [];
   const attaches = [];
+  const tabBatches = [];
   const defaultDetails = Object.fromEntries(
     groupedHits().map((hit) => {
       const href = jobUrl(hit.requisition_id, hit.job_information.title);
@@ -114,6 +132,7 @@ function hiringCafeTab({
     return { html: "", url: href };
   };
   const idleOpResult = (op) => {
+    if (op.op === "openDetailTabs") return detailTabsResult(op);
     if (op.op === "attachDebugger") {
       attaches.push(op);
       return { attached: true };
@@ -148,6 +167,19 @@ function hiringCafeTab({
         }),
       ],
     });
+  const detailTabsResult = (op) => {
+    tabBatches.push(op.urls);
+    // Blocked, timed-out, or challenged pages fail here and fall back to the crawl tab.
+    const fails = (href) =>
+      challengeOnce || blockWhen?.(href) || blockOnce?.(href) || timeoutOnce?.(href);
+    return {
+      pages: op.urls.map((href) =>
+        fails(href)
+          ? { url: href, challenge: true }
+          : { url: href, finalUrl: href, html: pageFor(href).html },
+      ),
+    };
+  };
   const exec = async (op) => {
     const idle = idleOpResult(op);
     if (idle) return idle;
@@ -161,7 +193,7 @@ function hiringCafeTab({
         };
       }
       const page = htmlOverride == null ? pageFor(url) : { html: htmlOverride, url };
-      let html = /\/classic/.test(url) && overlay ? listWithOverlay() : page.html;
+      let html = /\/classic/.test(url) && overlay && redrawsOverlay ? listWithOverlay() : page.html;
       if (/\/classic/.test(url) && viewAllOpen && viewAllJobs) {
         const dialog = viewAllDialogMarkup(viewAllJobs);
         html = html.includes('class="hc-card-grid"><div>')
@@ -230,6 +262,17 @@ function hiringCafeTab({
     if (op.op === "click") {
       clicks.push(op);
       const selector = String(op.selector || "");
+      if (selector.includes('aria-label="Next page"')) {
+        const next = new URL(url);
+        const page = String(Number(next.searchParams.get("page") || 0) + 1);
+        if (nextDropsFilters) next.search = "";
+        next.searchParams.set("page", page);
+        url = next.href;
+        status = 200;
+        htmlOverride = null;
+        overlay = "";
+        return { found: true };
+      }
       const show = selector.match(/Show job (\d+)/i);
       const groupIds = ["reqaaa1111111111", "reqbbb2222222222", "reqccc3333333333"];
       if (show) {
@@ -251,7 +294,7 @@ function hiringCafeTab({
     }
     return {};
   };
-  return { exec, navigates, fetches, clicks, hovers, attaches };
+  return { exec, navigates, fetches, clicks, hovers, attaches, tabBatches };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -404,7 +447,10 @@ describe("HiringCafeRoutine", () => {
       "reqccc3333333333",
       "reqddd4444444444",
     ]);
-    expect(page.navigates.filter((url) => /\/job\//.test(url))).toHaveLength(4);
+    // All four open together in background tabs; the crawl tab never leaves the list.
+    expect(page.tabBatches).toHaveLength(1);
+    expect(page.tabBatches[0]).toHaveLength(4);
+    expect(page.navigates.filter((url) => /\/job\//.test(url))).toHaveLength(0);
     expect(page.fetches).toEqual([]);
   });
 
@@ -679,5 +725,98 @@ describe("HiringCafeRoutine", () => {
       { onActivity: (activity) => activities.push(activity) },
     );
     expect(activities.some((activity) => activity.label === "Page 2 has 0 jobs")).toBe(true);
+  });
+  test("clicks Next page when every job on the page is done", async () => {
+    const page = hiringCafeTab();
+    await collectJobs(createHiringCafeStore(memoryStorage()), page.exec);
+    expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
+    expect(page.navigates.some((url) => /[?&]page=1/.test(url))).toBe(false);
+  });
+
+  test("tries a mark-only job once, then moves on to the next card", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.markHandled("reqaaa1111111111", await store.loadHandledIds());
+    const page = hiringCafeTab();
+    const exec = async (op) => {
+      if (op.op === "hoverClick" && /reqaaa1111111111/.test(op.selector)) {
+        return { found: true, hovered: true };
+      }
+      if (op.op === "watchedFetches") return { hits: [] };
+      return page.exec(op);
+    };
+    const markedCards = [];
+    const records = await collectJobs(store, exec, {
+      onPace: (pace) => {
+        if (!pace.markDelta) return;
+        markedCards.push(pace.card);
+        // Fail fast instead of looping forever if the cursor stops advancing.
+        if (markedCards.length > 10) throw new Error("mark-only job re-picked every pass");
+      },
+    });
+    expect(markedCards.filter((card) => card === "reqaaa1111111111")).toHaveLength(1);
+    expect(records.map((record) => record.requisitionId)).toContain("reqbbb2222222222");
+    expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
+  });
+  test("a run started on a filtered list replaces a stale unfiltered cursor", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({ listIndex: 0, page: 3, lastJobId: "old", lists: [LIST_URL] });
+    const page = hiringCafeTab({ listUrl: FILTERED_LIST_URL });
+    const notices = [];
+    const records = await collectJobs(store, page.exec, {
+      firstPass: true,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(notices).toContain(FILTERS_CHANGED_NOTICE);
+    expect(records.length).toBeGreaterThan(0);
+    expect(listNavigates(page).every(keepsFilters)).toBe(true);
+  });
+
+  test("resumes the saved cursor when the tab shows the same filters", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({ listIndex: 0, page: 0, lastJobId: "", lists: [FILTERED_LIST_URL] });
+    const notices = [];
+    await collectJobs(store, hiringCafeTab({ listUrl: FILTERED_LIST_URL }).exec, {
+      firstPass: true,
+      onNotice: (message) => notices.push(message),
+    });
+    expect(notices).not.toContain(FILTERS_CHANGED_NOTICE);
+  });
+
+  test("mid-run passes keep the cursor's filters even off the filtered list", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.saveCursor({ listIndex: 0, page: 0, lastJobId: "", lists: [FILTERED_LIST_URL] });
+    const page = hiringCafeTab({ listUrl: LIST_URL });
+    await collectJobs(store, page.exec, { firstPass: false });
+    expect(listNavigates(page).length).toBeGreaterThan(0);
+    expect(listNavigates(page).every(keepsFilters)).toBe(true);
+  });
+
+  test("a Next click that drops searchState falls back to the filtered page URL", async () => {
+    const page = hiringCafeTab({ listUrl: FILTERED_LIST_URL, nextDropsFilters: true });
+    await collectJobs(createHiringCafeStore(memoryStorage()), page.exec, { firstPass: true });
+    expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
+    const nextPage = listNavigates(page).find((url) => /[?&]page=1/.test(url));
+    expect(nextPage).toBeDefined();
+    expect(keepsFilters(nextPage)).toBe(true);
+  });
+  test("a job tab that hits a challenge opens in the crawl tab instead", async () => {
+    const blocked = (href) => /reqbbb2222222222/.test(href);
+    const page = hiringCafeTab({ blockOnce: blocked });
+    const records = await collectJobs(createHiringCafeStore(memoryStorage()), page.exec);
+    expect(records.map((record) => record.requisitionId)).toContain("reqbbb2222222222");
+    expect(page.tabBatches[0].some(blocked)).toBe(true);
+    // Only the challenged job used the crawl tab; after its back-off the next batch's tab read it.
+    expect(page.navigates.filter((url) => /\/job\//.test(url))).toEqual([
+      expect.stringContaining("reqbbb2222222222"),
+    ]);
+    expect(page.tabBatches.length).toBeGreaterThan(1);
+  });
+
+  test("marks every job in the batch on the list without reloading it per job", async () => {
+    const page = hiringCafeTab();
+    await collectJobs(createHiringCafeStore(memoryStorage()), page.exec);
+    const listLoads = page.navigates.filter((url) => /\/classic/.test(url));
+    expect(page.clicks.filter((click) => click.op === "hoverClick")).toHaveLength(4);
+    expect(listLoads.filter((url) => !/[?&]page=/.test(url))).toHaveLength(0);
   });
 });

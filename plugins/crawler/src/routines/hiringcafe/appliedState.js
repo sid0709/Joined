@@ -7,6 +7,8 @@ import {
   APPLIED_CHECK_TEXT,
   APPLIED_TOGGLE_TEXT,
   CARD_APPLIED_CHIP,
+  CARD_APPLIED_DIM_CLASS,
+  CARD_BODY_CLASS,
   CARD_HOVER_LAYER,
   CARD_OVERLAY,
   CARD_OVERLAY_ROW,
@@ -130,9 +132,35 @@ export function overlayFromHit(hit, card) {
   return overlayRoot(hit) || overlayRoot(card);
 }
 
-/** Visible Applied + check on `CARD_APPLIED_CHIP` only. Opacity/grayscale are not a skip. */
+function cardBody(card) {
+  const root = card?.matches?.(CARD_ROOT) ? card : queryOne(card, CARD_ROOT);
+  if (!root) return null;
+  return (
+    [...(root.children ?? [])].find((child) => child.classList?.contains(CARD_BODY_CLASS)) || null
+  );
+}
+
+/** The mouse is on this card: its hover layer is in the DOM and every card looks dimmed. */
+export function isCardHovered(card) {
+  return Boolean(card && queryOne(card, CARD_HOVER_LAYER));
+}
+
+/**
+ * Applied state of the job the card shows now, read without hover: HiringCafe
+ * adds `text-gray-400` to the card body once that job is marked Applied. Null
+ * when hovered (hover dims every card) or when the card body is missing.
+ */
+export function cardDimmedState(card) {
+  if (!card || isCardHovered(card)) return null;
+  const body = cardBody(card);
+  if (!body) return null;
+  return body.classList.contains(CARD_APPLIED_DIM_CLASS);
+}
+
+/** Dimmed card body with no hover, or the hover-only Applied + check chip. */
 export function isListCardApplied(card) {
   if (!card) return false;
+  if (cardDimmedState(card) === true) return true;
   return queryAll(card, CARD_APPLIED_CHIP).some((chip) => hasAppliedCheck(chip));
 }
 
@@ -297,9 +325,13 @@ export function appliedStateFromHtml(html, job = {}) {
   const document = documentFromHtml(html);
   const card = cardForJob(document, job);
   const overlay = overlayRoot(card);
-  const marked = Boolean(overlay && hasAppliedState(overlay) && !hasMarkAppliedText(overlay));
+  const dimmed = cardDimmedState(card);
+  const marked = Boolean(
+    dimmed === true || (overlay && hasAppliedState(overlay) && !hasMarkAppliedText(overlay)),
+  );
   return {
     found: Boolean(card),
+    dimmed,
     marked,
     canMark: Boolean(
       !marked &&

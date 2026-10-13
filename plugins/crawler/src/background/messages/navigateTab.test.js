@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
+import { NAVIGATE_UNTIL_DOM_READY } from "../../routineKit/protocol.js";
+
 import {
   abortInFlightNavigate,
   DEFAULT_NAVIGATE_TIMEOUT_MS,
@@ -93,6 +95,37 @@ describe("navigateTab", () => {
     await expect(navigateTab(TAB_ID, JOB_URL, SHORT_TIMEOUT_MS)).resolves.toEqual({ url: JOB_URL });
     expect(chrome.updates).toEqual([{ id: TAB_ID, url: JOB_URL }]);
     expect(chrome.listeners.size).toBe(0);
+  });
+
+  test("DOM-ready mode resolves at the top frame's DOMContentLoaded", async () => {
+    const chrome = installChrome({ fireComplete: false });
+    const domListeners = new Set();
+    globalThis.chrome.webNavigation = {
+      onDOMContentLoaded: {
+        addListener: (fn) => domListeners.add(fn),
+        removeListener: (fn) => domListeners.delete(fn),
+      },
+    };
+    const pending = navigateTab(TAB_ID, JOB_URL, SHORT_TIMEOUT_MS, NAVIGATE_UNTIL_DOM_READY);
+    await delay(0);
+    for (const listener of [...domListeners]) {
+      listener({ tabId: OTHER_TAB_ID, frameId: 0, url: OTHER_JOB_URL });
+      listener({ tabId: TAB_ID, frameId: 3, url: OTHER_JOB_URL });
+      listener({ tabId: TAB_ID, frameId: 0, url: `${JOB_URL}/` });
+    }
+    await expect(pending).resolves.toEqual({ url: `${JOB_URL}/` });
+    expect(domListeners.size).toBe(0);
+    expect(chrome.listeners.size).toBe(0);
+  });
+
+  test("DOM-ready mode still accepts tab complete", async () => {
+    installChrome({ completeDelayMs: 5 });
+    globalThis.chrome.webNavigation = {
+      onDOMContentLoaded: { addListener: () => {}, removeListener: () => {} },
+    };
+    await expect(
+      navigateTab(TAB_ID, JOB_URL, SHORT_TIMEOUT_MS, NAVIGATE_UNTIL_DOM_READY),
+    ).resolves.toEqual({ url: JOB_URL });
   });
 
   test("times out when the page never completes", async () => {

@@ -27,6 +27,22 @@ export function isClassicListUrl(url) {
   }
 }
 
+/** Path plus sorted query without `?page=`: the filters (`searchState`, ...) a list shows. */
+export function listFilterKey(url) {
+  try {
+    const parsed = new URL(stripPageParam(url));
+    parsed.searchParams.sort();
+    return `${parsed.pathname.replace(/\/$/, "")}?${parsed.searchParams.toString()}`;
+  } catch {
+    return "";
+  }
+}
+
+export function sameListFilters(left, right) {
+  const key = listFilterKey(left);
+  return Boolean(key) && key === listFilterKey(right);
+}
+
 export function isJobDetailUrl(url) {
   try {
     const parsed = new URL(url);

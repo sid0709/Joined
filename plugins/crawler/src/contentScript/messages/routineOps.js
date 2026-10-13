@@ -1,7 +1,9 @@
 import { clickSaveInDocument } from "../../background/messages/shadowClick.js";
 import { extractField, queryAll, waitForMatches } from "../../routineKit/extract.js";
 import { assertFetchUrl, hostMatches } from "../../routineKit/match.js";
-import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
+import { cancelObservers } from "../../routineKit/observeUntil.js";
+import { BUILTIN_HOSTS, BUILTIN_WAIT_OP } from "../../routines/builtin/constants.js";
+import { runBuiltinWait } from "../../routines/builtin/pageWait.js";
 import { clickLikeHuman } from "../actions/dom";
 import { hoverAt, hoverClickInDocument, pickMatch } from "../actions/hoverClick";
 import { hoverTargetInDocument, waitForOverlayTarget } from "../actions/hoverTarget";
@@ -55,7 +57,14 @@ const OPS = {
   abortFetches: () => {
     for (const controller of inFlightFetches.values()) controller.abort();
     inFlightFetches.clear();
+    cancelObservers({ aborted: true });
     return { aborted: true };
+  },
+  [BUILTIN_WAIT_OP]: (payload) => {
+    if (!hostMatches(location.hostname, BUILTIN_HOSTS)) {
+      throw new Error("Built In waits are limited to Built In");
+    }
+    return runBuiltinWait(document, payload);
   },
   click: async ({ selector, nth = 0, wait = 0, contains, exact = false }) => {
     const matches = await waitForMatches(document, selector, wait);
@@ -73,6 +82,8 @@ const OPS = {
     hoverAt(target, { x, y });
     return { found: true };
   },
+  // Only the trusted (CDP) mouse can leave a card; the isolated world has no pointer to move.
+  unhover: () => ({ moved: false }),
   hoverClick: async ({
     selector,
     clickSelector,

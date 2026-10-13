@@ -7,6 +7,7 @@ import {
 } from "../../../contentScript/actions/hoverTarget.js";
 import {
   appliedStateFromHtml,
+  cardDimmedState,
   findMarkAppliedInOverlay,
   hasAppliedCheck,
   isListCardApplied,
@@ -22,19 +23,23 @@ import {
   MARK_APPLIED_TEXT,
 } from "../constants.js";
 import { documentFromHtml } from "../html.js";
+import { readAppliedOnCard } from "../markApplied.js";
 import { pickNextJob } from "../runPass.js";
 
 import {
   APPLIED_JOB,
+  APPLIED_REST_JOB,
   LIVE_CARD_RECT,
   LIVE_MARK_CENTER,
   LIVE_MARK_RECT,
   LIVE_VIEWPORT,
   REAL_DOM_FILES,
   UNAPPLIED_JOB,
+  UNAPPLIED_REST_JOB,
   listWithRealCard,
   readRealDom,
 } from "./realDom.js";
+import "./domParser.js";
 
 function documentWithRealCard(name) {
   const html = listWithRealCard(readRealDom(name));
@@ -186,5 +191,53 @@ describe("real HiringCafe DOM fixtures", () => {
     expect(text).toContain("44 skipped (applied)");
     expect(text).toContain("hover missed overlay");
     expect(text).toContain("hit=DIV.flex.justify-between");
+  });
+  test("a resting card reads Applied from the dimmed card body, not hover", () => {
+    const applied = documentWithRealCard("card-applied-rest.html");
+    const unapplied = documentWithRealCard("card-unapplied-rest.html");
+    expect(cardDimmedState(applied.card)).toBe(true);
+    expect(cardDimmedState(unapplied.card)).toBe(false);
+    expect(isListCardApplied(applied.card)).toBe(true);
+    expect(isListCardApplied(unapplied.card)).toBe(false);
+    expect(appliedStateFromHtml(applied.html, APPLIED_REST_JOB)).toMatchObject({
+      dimmed: true,
+      marked: true,
+    });
+    expect(appliedStateFromHtml(unapplied.html, UNAPPLIED_REST_JOB)).toMatchObject({
+      dimmed: false,
+      marked: false,
+    });
+  });
+
+  test("hover dims every card, so a hovered card's gray body is not a verdict", () => {
+    const unapplied = documentWithRealCard("card-unapplied-hover.html");
+    const applied = documentWithRealCard("card-applied-hover.html");
+    expect(cardDimmedState(unapplied.card)).toBeNull();
+    expect(cardDimmedState(applied.card)).toBeNull();
+    expect(isListCardApplied(unapplied.card)).toBe(false);
+  });
+
+  test("readAppliedOnCard decides a resting card without hovering it", async () => {
+    for (const [name, job, marked] of [
+      ["card-applied-rest.html", APPLIED_REST_JOB, true],
+      ["card-unapplied-rest.html", UNAPPLIED_REST_JOB, false],
+    ]) {
+      const { html } = documentWithRealCard(name);
+      const ops = [];
+      const state = await readAppliedOnCard({
+        job,
+        call: async (op) => {
+          ops.push(op);
+          return {};
+        },
+        skipDelays: true,
+        carousel: false,
+        readPage: async () => ({ html: `<html><body>${html}</body></html>`, url: "" }),
+      });
+      expect(state.marked).toBe(marked);
+      expect(ops).toContain("unhover");
+      expect(ops).not.toContain("hover");
+      expect(ops).not.toContain("hoverClick");
+    }
   });
 });

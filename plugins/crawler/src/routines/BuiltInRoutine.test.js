@@ -116,6 +116,7 @@ function builtinTab({
   const scrolls = [];
   const heartsState = { ...hearts };
   const clickCounts = {};
+  const tabBatches = [];
   const pageFor = (href) => {
     if (details[href]) return { html: details[href], url: href };
     const isList = /\/jobs/.test(href) && !/\/job\//.test(href);
@@ -125,7 +126,26 @@ function builtinTab({
     if (isList) return { html: listHtml, url: href };
     return { html: "", url: href };
   };
+  // Background job tabs: a page the crawl tab would block, delay, or time out fails here.
+  const detailTabsResult = (op) => {
+    tabBatches.push(op.urls);
+    const fails = (href) =>
+      loginWall ||
+      Number(delayedReady[href]) > 0 ||
+      blockWhen?.(href) ||
+      blockOnce?.(href) ||
+      timeoutWhen?.(href) ||
+      timeoutOnce?.(href);
+    return {
+      pages: op.urls.map((href) =>
+        fails(href)
+          ? { url: href, error: "not ready" }
+          : { url: href, finalUrl: href, html: pageFor(href).html },
+      ),
+    };
+  };
   const exec = async (op) => {
+    if (op.op === "openDetailTabs") return detailTabsResult(op);
     if (op.op === "html") {
       if (emptyHtmlReads > 0) {
         emptyHtmlReads -= 1;
@@ -215,7 +235,7 @@ function builtinTab({
     }
     return {};
   };
-  return { exec, clicks, navigates, fetches, shadows, scrolls };
+  return { exec, clicks, navigates, fetches, shadows, scrolls, tabBatches, tab };
 }
 
 async function collectJobs(store, exec, extra = {}) {
@@ -235,6 +255,11 @@ async function collectJobs(store, exec, extra = {}) {
     if (!(error instanceof RoutineFinishedError)) throw error;
   }
   return records;
+}
+
+/** Job pages the run opened: in background tabs or, as a fallback, in the crawl tab. */
+function openedUrls(page) {
+  return [...page.navigates, ...page.tabBatches.flat()];
 }
 
 describe("BuiltInRoutine", () => {
@@ -258,7 +283,7 @@ describe("BuiltInRoutine", () => {
     expect(BuiltInRoutine.version).toBe(3);
   });
 
-  test("navigates the same tab, reads the ingest shape, and never background-fetches", async () => {
+  test("reads the ingest shape from a job tab and never background-fetches", async () => {
     const store = createBuiltinStore(memoryStorage());
     const page = builtinTab({
       listHtml: loadFixture("list-last.html"),
@@ -276,8 +301,10 @@ describe("BuiltInRoutine", () => {
       x: "https://x.com/zscaler",
     });
     expect(easy.salary).toBe("113K-162K Annually");
-    expect(page.navigates).toContain(JOB_A);
-    expect(page.navigates).toContain(LIST_URL);
+    expect(page.tabBatches).toEqual([[JOB_A]]);
+    // The job opened in a background tab, so the crawl tab never left the list.
+    expect(page.navigates.filter((href) => /\/job\//.test(href))).toEqual([]);
+    expect(page.tab.url).toBe(LIST_URL);
     expect(page.fetches).toEqual([]);
     expect(page.clicks.some((selector) => selector === JOB_CARD_TITLE)).toBe(false);
     expect(page.clicks.some((selector) => String(selector).includes("heart-button"))).toBe(false);
@@ -325,8 +352,8 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(store, page.exec, {
       onActivity: (activity) => activities.push(activity),
     });
-    expect(page.navigates).toContain(JOB_A);
-    expect(page.navigates).toContain(JOB_B);
+    expect(openedUrls(page)).toContain(JOB_A);
+    expect(openedUrls(page)).toContain(JOB_B);
     expect(records.length).toBeGreaterThan(0);
     expect(
       activities.some(
@@ -388,7 +415,7 @@ describe("BuiltInRoutine", () => {
       details: { [JOB_A]: loadFixture("detail-signed-in.html") },
     });
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
-    expect(page.navigates).toContain(JOB_A);
+    expect(openedUrls(page)).toContain(JOB_A);
     expect(records).toHaveLength(1);
     expect(page.shadows.some((op) => op.action === "click")).toBe(false);
   });
@@ -430,8 +457,8 @@ describe("BuiltInRoutine", () => {
       recordOutcome: (outcome) => outcomes.push(outcome),
     });
     expect(records).toHaveLength(1);
-    expect(page.navigates).toContain(JOB_A);
-    expect(page.navigates).toContain(JOB_B);
+    expect(openedUrls(page)).toContain(JOB_A);
+    expect(openedUrls(page)).toContain(JOB_B);
     expect(
       activities.some(
         (activity) =>
@@ -580,7 +607,7 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(store, page.exec, {
       onActivity: (activity) => activities.push(activity),
     });
-    expect(page.navigates).toContain(JOB_B);
+    expect(openedUrls(page)).toContain(JOB_B);
     expect(page.navigates).not.toContain(JOB_A);
     expect(records.some((record) => record.badges?.includes("Easy Apply"))).toBe(true);
 
@@ -620,7 +647,7 @@ describe("BuiltInRoutine", () => {
     const page = builtinTab();
     const records = await collectJobs(store, page.exec);
     expect(records.some((record) => record.title.includes("Staff/ Principal Engineer"))).toBe(true);
-    expect(page.navigates).toContain(JOB_B);
+    expect(openedUrls(page)).toContain(JOB_B);
     expect(page.navigates).not.toContain(JOB_A);
 
     const stopper = new AbortController();
@@ -663,7 +690,7 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
     expect(blocks).toBeGreaterThanOrEqual(3);
     expect(records).toHaveLength(1);
-    expect(page.navigates.filter((href) => href === JOB_A).length).toBeGreaterThanOrEqual(3);
+    expect(openedUrls(page).filter((href) => href === JOB_A).length).toBeGreaterThanOrEqual(3);
   });
 
   test("pauses the run after repeated sign-in redirects", async () => {
@@ -723,7 +750,7 @@ describe("BuiltInRoutine", () => {
         (notice) => !notice.ok && /extract failed \(detail DOM collapsed\)/.test(notice.message),
       ),
     ).toBe(true);
-    expect(page.navigates).toContain(JOB_B);
+    expect(openedUrls(page)).toContain(JOB_B);
   });
 
   test("stops after 5 invalid cards in a row", async () => {
@@ -771,7 +798,7 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(store, page.exec);
     expect(records).toHaveLength(1);
     expect(page.navigates.some((href) => /[?&]page=35\b/.test(href))).toBe(false);
-    expect(page.navigates).toContain(LIST_URL);
+    expect(page.tab.url).toBe(LIST_URL);
     expect(storage.snapshot()[CURSOR_STORAGE_KEY_V1]).toBeNull();
   });
 
@@ -871,7 +898,7 @@ describe("BuiltInRoutine", () => {
           );
         }),
     ).toBe(true);
-    expect(page.navigates).toContain(FILTERED_LIST_URL);
+    expect(new URL(page.tab.url).searchParams.get("daysSinceUpdated")).toBe("1");
     expect(await store.loadCursor()).toBeNull();
   });
 
@@ -960,7 +987,7 @@ describe("BuiltInRoutine", () => {
     const records = await collectJobs(store, page.exec);
     expect(records).toHaveLength(1);
     expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
-    expect(page.navigates).toContain(FILTERED_LIST_URL);
+    expect(page.tab.url).toBe(FILTERED_LIST_URL);
   });
 
   test("blocks with the cursor kept when Next exists but results do not change", async () => {
@@ -1060,5 +1087,15 @@ describe("BuiltInRoutine", () => {
     expect(JobRightRoutine.runView.components).not.toContain("pace");
     expect(JobRightRoutine.strategy.kind).toBe("listDetail");
     expect(JobRightRoutine.strategy.open.some((step) => step.kind === "click")).toBe(true);
+  });
+
+  test("opens every new card on the page in one batch of tabs, then saves each heart", async () => {
+    const page = builtinTab();
+    const records = await collectJobs(createBuiltinStore(memoryStorage()), page.exec);
+    expect(records.length).toBeGreaterThan(1);
+    expect(page.tabBatches[0]).toEqual(expect.arrayContaining([JOB_A, JOB_B]));
+    expect(page.navigates.filter((href) => /\/job\//.test(href))).toEqual([]);
+    const heartClicks = page.shadows.filter((shadow) => shadow.action === "click");
+    expect(heartClicks.length).toBe(records.length);
   });
 });

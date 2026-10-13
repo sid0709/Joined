@@ -117,7 +117,7 @@ func (s *Store) upsertDeduped(ctx context.Context, doc storedSearchJob) error {
 	_, err = s.structured().ReplaceOne(
 		ctx,
 		bson.D{{Key: "_id", Value: save.ID}},
-		save,
+		save.withMatchKeys(),
 		options.Replace().SetUpsert(true),
 	)
 	if err == nil || !mongo.IsDuplicateKeyError(err) {
@@ -133,7 +133,7 @@ func (s *Store) upsertDeduped(ctx context.Context, doc storedSearchJob) error {
 	_, err = s.structured().ReplaceOne(
 		ctx,
 		bson.D{{Key: "_id", Value: save.ID}},
-		save,
+		save.withMatchKeys(),
 		options.Replace().SetUpsert(true),
 	)
 	return err

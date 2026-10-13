@@ -44,7 +44,10 @@ func (s *Store) UpdateCompany(ctx context.Context, id string, input CompanyWrite
 	}
 	if name := doc.displayName(); name != "" && name != previous {
 		_, err = s.structured().UpdateMany(ctx, bson.D{{Key: "job.companyId", Value: doc.ID}}, bson.D{
-			{Key: "$set", Value: bson.D{{Key: "job.company", Value: name}}},
+			{Key: "$set", Value: bson.D{
+				{Key: "job.company", Value: name},
+				{Key: companyKeyField, Value: NormalizeCompany(name)},
+			}},
 		})
 		if err != nil {
 			return AdminCompany{}, err

@@ -11,6 +11,8 @@ import {
   heartFailedLog,
   heartRetryLog,
   heartSavedLog,
+  BUILTIN_WAIT_OP,
+  WAIT_UNTIL,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
 import "./testing/domParser.js";
@@ -230,5 +232,65 @@ describe("saveListCardHeart", () => {
       log: heartRetryLog(JOB_ID),
     });
     expect(harness.clicks()).toBe(1);
+  });
+
+  test("waits in the page for the heart and its saved state, without polling", async () => {
+    const ops = [];
+    let clicked = false;
+    const call = async (op, payload = {}) => {
+      ops.push({ op, ...payload });
+      if (op === BUILTIN_WAIT_OP) {
+        const saved = clicked && payload.until === WAIT_UNTIL.HEART_SAVED;
+        return { until: payload.until, matched: true, ...heartState(saved) };
+      }
+      if (op === "shadow" && payload.action === "click") clicked = true;
+      return {};
+    };
+    const rests = [];
+    await expect(
+      saveListCardHeart({
+        jobId: JOB_ID,
+        call,
+        rest: async (ms) => rests.push(ms),
+        checkStopped: () => {},
+        skipDelays: false,
+        readPage: async () => ({ html: "" }),
+      }),
+    ).resolves.toEqual({ saved: true, log: heartSavedLog(JOB_ID) });
+    expect(ops.filter((op) => op.op === BUILTIN_WAIT_OP).map((op) => op.until)).toEqual([
+      WAIT_UNTIL.HEART,
+      WAIT_UNTIL.HEART_SAVED,
+    ]);
+    expect(ops.filter((op) => op.op === "shadow" && op.action === "query")).toEqual([]);
+    expect(rests).toEqual([]);
+  });
+
+  test("a card the page reports as saved skips the click", async () => {
+    const ops = [];
+    const call = async (op, payload = {}) => {
+      ops.push({ op, ...payload });
+      if (op === BUILTIN_WAIT_OP) {
+        return {
+          until: payload.until,
+          matched: true,
+          ...heartState(false, false),
+          cardSaved: true,
+        };
+      }
+      return {};
+    };
+    await expect(
+      saveListCardHeart({
+        jobId: JOB_ID,
+        call,
+        rest: async () => {},
+        checkStopped: () => {},
+        skipDelays: false,
+        readPage: async () => {
+          throw new Error("no full-page read needed");
+        },
+      }),
+    ).resolves.toMatchObject({ saved: true, alreadySaved: true });
+    expect(ops.some((op) => op.action === "click")).toBe(false);
   });
 });

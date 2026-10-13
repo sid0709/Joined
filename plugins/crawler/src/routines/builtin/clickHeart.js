@@ -11,13 +11,24 @@ import {
   heartFailedLog,
   heartRetryLog,
   heartSavedLog,
+  WAIT_UNTIL,
 } from "./constants.js";
 import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
 import { isHeartSaved, isListCardSaved } from "./heart.js";
 import { parseList } from "./parseList.js";
 import { isSignedOutSession } from "./signedOut.js";
+import { waitInPage } from "./waitInPage.js";
 
+/**
+ * Heart state once ready (or saved). The page answers the moment the shadow DOM
+ * changes; the 200ms poll stays only for pages that cannot run that wait.
+ */
 async function pollHeart({ jobId, call, rest, checkStopped, skipDelays, limitMs, wantSaved }) {
+  if (!skipDelays) {
+    const until = wantSaved ? WAIT_UNTIL.HEART_SAVED : WAIT_UNTIL.HEART;
+    const waited = await waitInPage(call, until, { jobId }, limitMs);
+    if (waited) return waited;
+  }
   let state = await call("shadow", {
     host: jobSaveSelector(jobId),
     inner: HEART_INNER,
@@ -102,7 +113,7 @@ export async function saveListCardHeart({
     });
   }
   if (!ready?.found) {
-    if (await listCardAlreadySaved(readPage, jobId)) {
+    if (ready?.cardSaved || (await listCardAlreadySaved(readPage, jobId))) {
       return finishHeart(onActivity, heartAlreadySavedLog(jobId), {
         saved: true,
         alreadySaved: true,
@@ -132,7 +143,7 @@ export async function saveListCardHeart({
     if (isHeartSaved(after)) {
       return finishHeart(onActivity, log, { saved: true });
     }
-    if (await listCardAlreadySaved(readPage, jobId)) {
+    if (after?.cardSaved || (await listCardAlreadySaved(readPage, jobId))) {
       return finishHeart(onActivity, heartAlreadySavedLog(jobId), {
         saved: true,
         alreadySaved: true,

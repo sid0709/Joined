@@ -40,7 +40,7 @@ Settings come from `VITE_*` values in `plugins/crawler/.env`; copy `.env.example
 | ---------------------------- | ----------------------------------------------------------------------------------------- |
 | `VITE_API_URL`               | The Joined admin API base. Locally `http://127.0.0.1:8081` (admin-backend's `HTTP_ADDR`). |
 | `VITE_CRAWLER_INGEST_TOKEN`  | The same value as `CRAWLER_INGEST_TOKEN` in `admin-backend/.env`.                         |
-| `VITE_DUPLICATE_WINDOW_DAYS` | Days (1–365) a job with the same apply link counts as a duplicate.                        |
+| `VITE_DUPLICATE_WINDOW_DAYS` | Days (1–365) a matching job in `temp_jobs` or `jobs` counts as a duplicate (see below).   |
 | `VITE_SCRAPE_SOURCE`         | Optional. The `createdBy` value staff filter on. Default `joined-scrapper`.               |
 
 The panel's Start button stays disabled, and says which setting is missing, until these are set.
@@ -88,4 +88,4 @@ The extension is composed of three main parts:
 - **Content Script (`contentScript.js`):** Runs on the page with DOM access. It answers routine ops (count, highlight, click, extract) and watches for job applications.
 - **Side Panel (`index.html` + React):** The UI staff use to pick routines, run them, and inspect selectors.
 
-The background script sends scraped jobs in batches to the Joined admin API, `POST /v1/public/crawler/jobs` with the ingest token as a bearer token. The API stages each job in `JoinedDB.temp_jobs`, skipping one whose apply link is already there inside the duplicate window, and the admin console's analyze step turns staged jobs into search records. The panel checks the API through `GET /health`.
+The background script sends scraped jobs in batches to the Joined admin API, `POST /v1/public/crawler/jobs` with the ingest token as a bearer token. The API stages each job in `JoinedDB.temp_jobs`, and the admin console's analyze step turns staged jobs into search records. A job is skipped as a duplicate when the same job is already in `temp_jobs` (staged inside the duplicate window) or in `jobs` (posted inside the window). The same job means the same apply link (tracking parameters, `www.`, case, and trailing slash ignored), or the same company and the same title (case and spacing ignored). The panel checks the API through `GET /health`.

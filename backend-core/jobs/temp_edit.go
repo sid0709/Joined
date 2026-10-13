@@ -39,22 +39,22 @@ func (s *Store) UpdateTempJob(ctx context.Context, idHex string, patch TempJobPa
 	if err != nil {
 		return nil, err
 	}
-	result, err := s.dest().UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{
-		{Key: "$set", Value: bson.D{
-			{Key: "title", Value: patch.Title},
-			{Key: "companyName", Value: patch.CompanyName},
-			{Key: "companyLink", Value: patch.CompanyLink},
-			{Key: "applyLink", Value: patch.ApplyLink},
-			{Key: "description", Value: patch.Description},
-			{Key: "metadata.companyLogo", Value: patch.CompanyLogo},
-			{Key: "metadata.details.location", Value: patch.Location},
-			{Key: "metadata.details.remote", Value: patch.Remote},
-			{Key: "metadata.details.seniority", Value: patch.Seniority},
-			{Key: "metadata.details.time", Value: patch.Time},
-			{Key: "metadata.details.salary", Value: patch.Salary},
-			{Key: "updatedAt", Value: now},
-		}},
-	})
+	set := bson.D{
+		{Key: "title", Value: patch.Title},
+		{Key: "companyName", Value: patch.CompanyName},
+		{Key: "companyLink", Value: patch.CompanyLink},
+		{Key: "applyLink", Value: patch.ApplyLink},
+		{Key: "description", Value: patch.Description},
+		{Key: "metadata.companyLogo", Value: patch.CompanyLogo},
+		{Key: "metadata.details.location", Value: patch.Location},
+		{Key: "metadata.details.remote", Value: patch.Remote},
+		{Key: "metadata.details.seniority", Value: patch.Seniority},
+		{Key: "metadata.details.time", Value: patch.Time},
+		{Key: "metadata.details.salary", Value: patch.Salary},
+		{Key: "updatedAt", Value: now},
+	}
+	set = append(set, matchKeySet(patch.CompanyName, patch.Title, patch.ApplyLink)...)
+	result, err := s.dest().UpdateOne(ctx, bson.D{{Key: "_id", Value: id}}, bson.D{{Key: "$set", Value: set}})
 	if err != nil {
 		return nil, err
 	}

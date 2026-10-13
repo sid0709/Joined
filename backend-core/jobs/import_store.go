@@ -165,7 +165,7 @@ func (s *Store) Stage(ctx context.Context, rec ImportRecord) error {
 		{Key: "source", Value: rec.Source},
 		{Key: "sourceRef", Value: rec.ExternalID},
 	}
-	update := bson.D{{Key: "$set", Value: bson.D{
+	set := bson.D{
 		{Key: "title", Value: rec.Title},
 		{Key: "companyName", Value: rec.Company},
 		{Key: "description", Value: rec.Description},
@@ -176,7 +176,9 @@ func (s *Store) Stage(ctx context.Context, rec ImportRecord) error {
 		{Key: "dedupeKey", Value: rec.DedupeRecord().Key()},
 		{Key: "importedAt", Value: time.Now().UTC()},
 		{Key: "metadata.details.location", Value: rec.Location},
-	}}}
+	}
+	set = append(set, matchKeySet(rec.Company, rec.Title, rec.ApplyURL)...)
+	update := bson.D{{Key: "$set", Value: set}}
 	_, err := s.dest().UpdateOne(ctx, filter, update, options.UpdateOne().SetUpsert(true))
 	if err != nil {
 		return fmt.Errorf("stage imported job: %w", err)

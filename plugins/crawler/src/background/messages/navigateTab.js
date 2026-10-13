@@ -1,5 +1,7 @@
 /* global chrome */
 
+import { NAVIGATE_UNTIL_DOM_READY } from "../../routineKit/protocol.js";
+
 /** How long a same-tab navigation may take before the page counts as hung. */
 export const DEFAULT_NAVIGATE_TIMEOUT_MS = 15_000;
 
@@ -29,15 +31,17 @@ export function sameTabUrl(left, right) {
   }
 }
 
-function waitForTabComplete(tabId, timeoutMs, signal) {
+function waitForTabLoad(tabId, timeoutMs, signal, until) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new Error("Routine stopped"));
       return;
     }
+    const domEvents = until === NAVIGATE_UNTIL_DOM_READY ? chrome.webNavigation : null;
     const finish = (fn) => {
       clearTimeout(timer);
       chrome.tabs.onUpdated.removeListener(onUpdated);
+      domEvents?.onDOMContentLoaded.removeListener(onDomReady);
       signal?.removeEventListener("abort", onAbort);
       fn();
     };
@@ -48,13 +52,24 @@ function waitForTabComplete(tabId, timeoutMs, signal) {
     const onUpdated = (id, info, tab) => {
       if (id === tabId && info.status === "complete") finish(() => resolve(tab));
     };
+    // The top frame's HTML is parsed; images, ads, and trackers may still be loading.
+    const onDomReady = (details) => {
+      if (details.tabId === tabId && details.frameId === 0) {
+        finish(() => resolve({ url: details.url }));
+      }
+    };
     chrome.tabs.onUpdated.addListener(onUpdated);
+    domEvents?.onDOMContentLoaded.addListener(onDomReady);
     signal?.addEventListener("abort", onAbort, { once: true });
   });
 }
 
-/** Navigate the target tab in place and wait until it finishes loading. */
-export async function navigateTab(tabId, url, timeoutMs = DEFAULT_NAVIGATE_TIMEOUT_MS) {
+/**
+ * Navigate the target tab in place and wait until it finishes loading. With
+ * `until: NAVIGATE_UNTIL_DOM_READY`, resolve at the top frame's DOMContentLoaded
+ * (or `complete`, whichever is first); the routine waits for the nodes it needs.
+ */
+export async function navigateTab(tabId, url, timeoutMs = DEFAULT_NAVIGATE_TIMEOUT_MS, until) {
   const current = await chrome.tabs.get(tabId);
   if (current?.url && sameTabUrl(current.url, url)) {
     return { url: current.url };
@@ -64,7 +79,7 @@ export async function navigateTab(tabId, url, timeoutMs = DEFAULT_NAVIGATE_TIMEO
   navigateAborts.set(tabId, controller);
   const { signal } = controller;
   try {
-    const pending = waitForTabComplete(tabId, timeoutMs, signal);
+    const pending = waitForTabLoad(tabId, timeoutMs, signal, until);
     const updated = await chrome.tabs.update(tabId, { url });
     const tab = (await pending) ?? updated;
     return { url: tab?.url || url };

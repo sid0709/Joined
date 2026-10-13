@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import { SCRAPE_OUTCOMES } from "../../api/scrapeRunStats.js";
+import { DETAIL_TAB_BATCH } from "../../routineKit/detailTabs.js";
 
 import { CARD_SKIP_ALREADY_APPLIED } from "./constants.js";
-import { pickNextJob } from "./runPass.js";
+import { pickJobBatch, pickNextJob } from "./runPass.js";
 
 const FRESH = { id: "reqfresh11111111", listApplied: false };
 const APPLIED = { id: "reqapplied111111", listApplied: true };
@@ -84,5 +85,41 @@ describe("pickNextJob list-card Applied skip", () => {
     });
     expect(next).toBeNull();
     expect(marked).toEqual([]);
+  });
+});
+
+describe("pickJobBatch", () => {
+  test("picks at most DETAIL_TAB_BATCH unhandled jobs in page order", async () => {
+    const jobs = Array.from({ length: DETAIL_TAB_BATCH + 5 }, (_, index) => ({
+      id: `job${index}`,
+      url: `https://hiringcafe.com/job/x-job${index}`,
+    }));
+    const batch = await pickJobBatch({
+      jobs,
+      lastJobId: "job1",
+      limit: DETAIL_TAB_BATCH,
+      handledIds: new Set(["job3"]),
+      noteJobDecision: () => {},
+      markJob: async () => {},
+      readApplied: async () => ({ marked: false }),
+      markAppliedEnabled: false,
+    });
+    expect(batch.jobs).toHaveLength(DETAIL_TAB_BATCH);
+    expect(batch.jobs[0].id).toBe("job2");
+    expect(batch.jobs.map((job) => job.id)).not.toContain("job3");
+  });
+
+  test("a challenge before the first pick stops the batch", async () => {
+    const batch = await pickJobBatch({
+      jobs: [{ id: "a" }, { id: "b" }],
+      lastJobId: "",
+      limit: DETAIL_TAB_BATCH,
+      handledIds: new Set(),
+      noteJobDecision: () => {},
+      markJob: async () => {},
+      readApplied: async () => ({ challenge: true }),
+      markAppliedEnabled: true,
+    });
+    expect(batch).toEqual({ challenge: true, jobs: [] });
   });
 });

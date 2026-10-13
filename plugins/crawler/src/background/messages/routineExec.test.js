@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   BOUND_TAB_CLOSED_MESSAGE,
   BOUND_TAB_MISSING_MESSAGE,
+  NAVIGATE_UNTIL_DOM_READY,
   ROUTINE_OP_ACTION,
 } from "../../routineKit/protocol.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
@@ -101,16 +102,30 @@ describe("handleRoutineExec", () => {
   test("navigates the bound tab", async () => {
     const calls = [];
     const result = await exec(
-      { payload: { op: "navigate", url: "https://builtin.com/jobs?page=2", timeout: 9 } },
+      {
+        payload: {
+          op: "navigate",
+          url: "https://builtin.com/jobs?page=2",
+          timeout: 9,
+          until: NAVIGATE_UNTIL_DOM_READY,
+        },
+      },
       io({
-        navigateTab: async (tabId, url, timeout) => {
-          calls.push({ tabId, url, timeout });
+        navigateTab: async (tabId, url, timeout, until) => {
+          calls.push({ tabId, url, timeout, until });
           return { url };
         },
       }),
     );
     expect(result).toEqual({ success: true, result: { url: "https://builtin.com/jobs?page=2" } });
-    expect(calls).toEqual([{ tabId: 4, url: "https://builtin.com/jobs?page=2", timeout: 9 }]);
+    expect(calls).toEqual([
+      {
+        tabId: 4,
+        url: "https://builtin.com/jobs?page=2",
+        timeout: 9,
+        until: NAVIGATE_UNTIL_DOM_READY,
+      },
+    ]);
   });
 
   test("clicks the heart in the MAIN world on Built In", async () => {
@@ -237,6 +252,61 @@ describe("handleRoutineExec", () => {
     expect(aborted).toEqual([true]);
     expect(released).toEqual([4]);
     expect(result).toEqual({ success: true, result: { aborted: true } });
+  });
+
+  test("opens job tabs beside the crawl tab and Stop closes them", async () => {
+    const opened = [];
+    const closed = [];
+    const tabsIo = {
+      resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic", windowId: 2 }),
+      openDetailTabs: async (owner, payload) => {
+        opened.push({ owner: owner.id, urls: payload.urls });
+        return { pages: [] };
+      },
+      closeDetailTabs: async (tabId) => closed.push(tabId),
+      releaseDebugger: async () => ({ detached: true }),
+      sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
+    };
+    const result = await exec(
+      { payload: { op: "openDetailTabs", urls: ["https://hiringcafe.com/job/a-1"] } },
+      io(tabsIo),
+    );
+    expect(result).toEqual({ success: true, result: { pages: [] } });
+    expect(opened).toEqual([{ owner: 3, urls: ["https://hiringcafe.com/job/a-1"] }]);
+    await exec({ payload: { op: "abortFetches" } }, io(tabsIo));
+    expect(closed).toEqual([3]);
+  });
+
+  test("closes job tabs even when closing or releasing the debugger fails", async () => {
+    const closed = [];
+    const failing = {
+      closeDetailTabs: async (tabId) => {
+        closed.push(tabId);
+        throw new Error("tabs gone");
+      },
+      releaseDebugger: async () => {
+        throw new Error("debugger gone");
+      },
+    };
+    const gone = await exec(
+      { tabId: 9, payload: { op: "abortFetches" } },
+      io({
+        ...failing,
+        resolveBoundTab: async () => {
+          throw new BoundTabError("The crawl tab was closed. The run stopped.");
+        },
+      }),
+    );
+    expect(gone).toEqual({ success: true, result: { detached: true } });
+    const live = await exec(
+      { payload: { op: "abortFetches" } },
+      io({
+        ...failing,
+        sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
+      }),
+    );
+    expect(live).toEqual({ success: true, result: { aborted: true } });
+    expect(closed).toEqual([9, 4]);
   });
 
   test("attaches the debugger on HiringCafe only", async () => {
