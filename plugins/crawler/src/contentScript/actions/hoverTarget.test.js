@@ -400,6 +400,46 @@ describe("overlayTargetInDocument", () => {
     ).toMatchObject({ found: false, hit: { tag: "A" } });
   });
 
+  test("accepts overlay hits when the whole card is wrapped in the job link", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <a href="/job/help-desk-coordinator-reqaaa1111111111">
+          <div class="job-card">
+            <div class="absolute top-0 right-0">
+              <button class="bg-white">Mark Applied</button>
+            </div>
+          </div>
+        </a>
+      </div></div>
+    </body></html>`);
+    const card = document.querySelector("a[href^='/job/'] > div");
+    const overlay = document.querySelector("div.absolute.top-0.right-0");
+    const button = document.querySelector("button");
+    button.getBoundingClientRect = () => ({
+      left: 200,
+      top: 40,
+      width: 80,
+      height: 20,
+      right: 280,
+      bottom: 60,
+    });
+    document.elementFromPoint = () => overlay;
+    expect(
+      overlayTargetInDocument(
+        document,
+        {
+          selector: "a[href^='/job/'] > div",
+          clickSelector: MARK,
+          contains: "Mark Applied",
+          exact: true,
+        },
+        { width: 800, height: 600 },
+      ),
+    ).toMatchObject({ found: true, x: 240, y: 50 });
+    expect(card.contains(overlay)).toBe(true);
+    expect(document.querySelector("a").contains(card)).toBe(true);
+  });
+
   test("does not treat card-wide Applied text as overlay candidates", () => {
     const { document } = parseHTML(`<!DOCTYPE html><html><body>
       <div data-testid="job-results"><div class="hc-card-grid">

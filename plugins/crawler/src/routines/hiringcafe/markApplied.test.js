@@ -785,8 +785,8 @@ describe("markAppliedOnDetail", () => {
     expect(result).toMatchObject({ marked: true, already: true, via: "detail" });
   });
 
-  test("does not click detail Mark Applied when its container is already Applied", async () => {
-    const html = `<!DOCTYPE html><html><body>
+  test("clicks detail Mark Applied when its container also shows Applied", async () => {
+    let html = `<!DOCTYPE html><html><body>
       <h1>Help Desk Coordinator</h1>
       <div class="mark-wrap">
         <button class="bg-white">Applied</button>
@@ -795,18 +795,31 @@ describe("markAppliedOnDetail", () => {
       </div>
     </body></html>`;
     expect(markStateRoot(html, JOB)?.className).toBe("mark-wrap");
+    let clicked = false;
     const result = await markAppliedOnDetail({
       job: JOB,
       skipDelays: true,
       call: async (op, payload = {}) => {
         if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
-          throw new Error("must not click — detail container already Applied");
+          clicked = true;
+          html = `<!DOCTYPE html><html><body>
+            <h1>Help Desk Coordinator</h1>
+            <div class="mark-wrap">
+              <button class="bg-white">Applied</button>
+              <button class="bg-pink-600">App Tracker</button>
+            </div>
+            <div role="status" class="toast">${MARK_TOAST_TEXT}</div>
+          </body></html>`;
+          return { found: true };
         }
+        if (op === "watchedFetches") return { hits: [stageHit()] };
         return { found: true };
       },
       readPage: async () => ({ html, url: "https://hiringcafe.com/job/x", status: 200 }),
     });
-    expect(result).toMatchObject({ marked: true, already: true, via: "detail" });
+    expect(clicked).toBe(true);
+    expect(result).toMatchObject({ marked: true, via: "detail" });
+    expect(result.already).toBeUndefined();
   });
 
   test("still clicks detail Mark Applied when only the nav shows Applied", async () => {

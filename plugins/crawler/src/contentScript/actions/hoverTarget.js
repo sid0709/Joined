@@ -19,11 +19,19 @@ import { scrollElementIntoView } from "./scroll";
 
 const ANCHOR = "a";
 
+/** Link strictly inside the card that does not wrap the card itself. */
+function innerCardLink(node, card) {
+  const link = node?.closest?.(ANCHOR);
+  if (!link || !card) return null;
+  if (!card.contains(link) || link === card || link.contains(card)) return null;
+  return link;
+}
+
 function hitRevealsOverlay(node, target, card) {
   if (!node || !target) return false;
   if (node === target || target.contains?.(node)) return true;
   if (node === card || !card.contains?.(node) || !node.contains?.(target)) return false;
-  return !node.closest?.(ANCHOR);
+  return !innerCardLink(node, card);
 }
 
 export function clamp(value, min, max) {

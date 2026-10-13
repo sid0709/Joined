@@ -46,6 +46,34 @@ function isElementInViewport(element) {
   );
 }
 
+const ANCHOR = "a";
+
+function preventLinkNavigation(element) {
+  const link = element?.closest?.(ANCHOR);
+  if (!link || link === element) return () => {};
+  const blockLink = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  try {
+    element.addEventListener("click", (event) => event.stopPropagation(), { once: true });
+  } catch {
+    /* best effort */
+  }
+  try {
+    link.addEventListener("click", blockLink, true);
+  } catch {
+    /* best effort */
+  }
+  return () => {
+    try {
+      link.removeEventListener("click", blockLink, true);
+    } catch {
+      /* best effort */
+    }
+  };
+}
+
 export function clickLikeHuman(element) {
   if (!element) return;
   // Only scroll when the element isn't already visible, and use 'nearest'
@@ -77,10 +105,13 @@ export function clickLikeHuman(element) {
   } catch {
     /* best effort */
   }
+  const releaseLink = preventLinkNavigation(element);
   try {
     element.click?.();
   } catch {
     /* best effort */
+  } finally {
+    releaseLink?.();
   }
 }
 

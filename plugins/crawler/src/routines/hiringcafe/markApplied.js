@@ -3,13 +3,13 @@ import {
   appliedStateFromHtml,
   cardForJob,
   cardSelectorForJob,
-  hasAppliedState,
   hasMarkAppliedControl,
   hasMarkToast,
   isHiringCafeSignedOut,
   markConfirmed,
   markStateRoot,
   overlayAppliedCandidateTexts,
+  overlayCandidateTexts,
   stageUpdateSucceeded,
 } from "./appliedState.js";
 import { isHiringCafeChallenge } from "./challenge.js";
@@ -373,7 +373,7 @@ export async function markAppliedOnDetail({
     return { marked: false, signedOut: true, via: "detail", log: SIGN_IN_TO_MARK_MESSAGE };
   }
   const root = markStateRoot(page.html, job);
-  if (root && hasAppliedState(root)) {
+  if (root && appliedFromCandidateTexts(overlayCandidateTexts(root))) {
     const log = alreadyMarkedLog(jobId);
     noteMark(onActivity, log);
     return { marked: true, already: true, via: "detail", log };
