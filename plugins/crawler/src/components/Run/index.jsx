@@ -37,7 +37,7 @@ function startLabel(routine, resumeLabel) {
   return `Start ${routine.label}`;
 }
 
-function RunActionBar({ run, routine, blocker, onStart, resumeLabel }) {
+function RunActionBar({ run, routine, blocker, onStart, onResetAndStart, resumeLabel }) {
   const isRunning = run.status === RUN_STATUS.RUNNING;
   return (
     <div className="crawler-action-bar">
@@ -63,7 +63,12 @@ function RunActionBar({ run, routine, blocker, onStart, resumeLabel }) {
             width="100%"
           />
         )}
-        {!isRunning && routine?.id === "builtin" ? <BuiltinResume /> : null}
+        {!isRunning && routine?.id === "builtin" ? (
+          <BuiltinResume
+            onStart={onResetAndStart}
+            isDisabled={Boolean(blocker) || run.isStarting}
+          />
+        ) : null}
         {!isRunning && blocker ? (
           <Text type="supporting" color="secondary" justify="center">
             {blocker}
@@ -130,6 +135,7 @@ export default function RunPanel({ onBrowseRoutines }) {
         blocker={blocker}
         resumeLabel={resume.label}
         onStart={() => run.start(activeTab, chosenRoutine)}
+        onResetAndStart={() => run.start(activeTab, chosenRoutine, { resetHearts: true })}
       />
     </div>
   );

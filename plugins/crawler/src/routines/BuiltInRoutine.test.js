@@ -16,6 +16,7 @@ import {
   CARD_SKIP_HANDLED,
   CARD_SKIP_HEART_SAVED,
   CARD_SKIP_SAVED_BADGE,
+  CURSOR_STORAGE_KEY,
   CURSOR_STORAGE_KEY_V1,
   EMPTY_PAGE_ONE_LABEL,
   HANDLED_STORAGE_KEY,
@@ -25,6 +26,9 @@ import {
   INVALID_STREAK_MESSAGE,
   JOB_CARD_TITLE,
   JOB_PAGE_SAVE,
+  NEXT_PAGE,
+  PAGE_PARAM,
+  PAGE_STUCK_AFTER_NEXT_MESSAGE,
   PAGE_UNPROCESSED_MESSAGE,
   SIGN_IN_TO_SAVE_MESSAGE,
   SIGN_UP_MODAL_TEXT,
@@ -45,6 +49,9 @@ import JobRightRoutine from "./JobRightRoutine.js";
 import { ROUTINES } from "./index.js";
 
 const LIST_URL = "https://builtin.com/jobs";
+const FILTERED_LIST_URL =
+  "https://builtin.com/jobs?daysSinceUpdated=1&city=&state=&country=USA&allLocations=true";
+const FILTERED_PAGE_TWO_URL = `${FILTERED_LIST_URL}&page=2`;
 const JOB_A =
   "https://builtin.com/job/staff-principal-engineer-oct-mte-material-engineering/9256204";
 const JOB_B =
@@ -54,6 +61,29 @@ const JOB_SAVED =
 const JOB_HPE = "https://builtin.com/job/software-development-engineer-test/11623103";
 
 const routine = { ...BuiltInRoutine, options: { ...BuiltInRoutine.options, fieldPauseMs: 0 } };
+
+function advanceFilteredListUrl(href) {
+  try {
+    const parsed = new URL(href);
+    const current = Number(parsed.searchParams.get(PAGE_PARAM));
+    const page = Number.isInteger(current) && current >= 1 ? current + 1 : 2;
+    parsed.searchParams.set(PAGE_PARAM, String(page));
+    return parsed.href;
+  } catch {
+    return href;
+  }
+}
+
+function applyNextPageClick(tab, { nextFound, nextMoves, paginatedListHtml }) {
+  if (!nextFound) return { found: false };
+  const isList = /\/jobs/.test(tab.url) && !/\/job\//.test(tab.url);
+  if (isList && nextMoves) {
+    tab.url = advanceFilteredListUrl(tab.url);
+    tab.htmlOverride = paginatedListHtml ?? loadFixture("list-empty.html");
+    tab.status = 200;
+  }
+  return { found: true };
+}
 
 function builtinTab({
   listHtml = loadFixture("list.html"),
@@ -74,10 +104,11 @@ function builtinTab({
   heartStaysUnsaved = false,
   heartShowsModal = false,
   saveOnClick = 1,
+  nextFound = true,
+  nextMoves = true,
+  emptyHtmlReads = 0,
 } = {}) {
-  let url = listUrl;
-  let status = 200;
-  let htmlOverride = null;
+  const tab = { url: listUrl, status: 200, htmlOverride: null };
   const clicks = [];
   const navigates = [];
   const fetches = [];
@@ -96,6 +127,10 @@ function builtinTab({
   };
   const exec = async (op) => {
     if (op.op === "html") {
+      if (emptyHtmlReads > 0) {
+        emptyHtmlReads -= 1;
+        return { html: "", url: tab.url, status: tab.status };
+      }
       if (loginWall) {
         return {
           html: "<html><body>Sign in</body></html>",
@@ -103,15 +138,19 @@ function builtinTab({
           status: 200,
         };
       }
-      const remaining = delayedReady[url];
+      const remaining = delayedReady[tab.url];
       if (Number(remaining) > 0) {
-        delayedReady[url] = remaining - 1;
-        return { html: "<html><body><p>loading</p></body></html>", url, status };
+        delayedReady[tab.url] = remaining - 1;
+        return {
+          html: "<html><body><p>loading</p></body></html>",
+          url: tab.url,
+          status: tab.status,
+        };
       }
       return {
-        html: htmlOverride ?? pageFor(url).html,
-        url,
-        status,
+        html: tab.htmlOverride ?? pageFor(tab.url).html,
+        url: tab.url,
+        status: tab.status,
       };
     }
     if (op.op === "fetch") {
@@ -127,22 +166,25 @@ function builtinTab({
         timeoutOnce = null;
         throw new Error('Page op "navigate" timed out after 15 ms');
       }
-      url = loginWall ? "https://builtin.com/auth/login" : op.url;
+      tab.url = loginWall ? "https://builtin.com/auth/login" : op.url;
       if (blockWhen?.(op.url)) {
-        status = 403;
-        htmlOverride = "access denied";
+        tab.status = 403;
+        tab.htmlOverride = "access denied";
       } else if (blockOnce && blockOnce(op.url)) {
-        status = 403;
-        htmlOverride = "access denied";
+        tab.status = 403;
+        tab.htmlOverride = "access denied";
         blockOnce = null;
       } else {
-        status = 200;
-        htmlOverride = null;
+        tab.status = 200;
+        tab.htmlOverride = null;
       }
-      return { url, status };
+      return { url: tab.url, status: tab.status };
     }
     if (op.op === "click") {
       clicks.push(op.selector);
+      if (op.selector === NEXT_PAGE) {
+        return applyNextPageClick(tab, { nextFound, nextMoves, paginatedListHtml });
+      }
       return { found: true };
     }
     if (op.op === "scroll") {
@@ -152,7 +194,7 @@ function builtinTab({
     if (op.op === "shadow") {
       shadows.push({ host: op.host, action: op.action, which: op.which });
       const id = entityIdFromSaveHost(op.host);
-      const pageHtml = htmlOverride ?? pageFor(url).html;
+      const pageHtml = tab.htmlOverride ?? pageFor(tab.url).html;
       const hasHost =
         Boolean(id) && new RegExp(`<my-item\\b[^>]*entity-id=["']?${id}\\b`, "i").test(pageHtml);
       if (!shadowFound || !hasHost) return { found: false, open: false, classes: "", prefix: "" };
@@ -161,7 +203,7 @@ function builtinTab({
         if (clickCounts[id] >= saveOnClick) heartsState[id] = true;
       }
       if (op.action === "click" && heartShowsModal) {
-        htmlOverride = `${pageFor(url).html}<dialog>${SIGN_UP_MODAL_TEXT}</dialog>`;
+        tab.htmlOverride = `${pageFor(tab.url).html}<dialog>${SIGN_UP_MODAL_TEXT}</dialog>`;
       }
       const saved = Boolean(id && heartsState[id]);
       return {
@@ -792,6 +834,223 @@ describe("BuiltInRoutine", () => {
       }),
     ).toEqual([]);
     expect(activities.some((activity) => activity.label === EMPTY_PAGE_ONE_LABEL)).toBe(true);
+  });
+
+  test("keeps every list filter param when Start, resume, and Next stay on the tab URL", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listUrl: FILTERED_LIST_URL,
+      listHtml: loadFixture("list.html"),
+      paginatedListHtml: loadFixture("list-empty.html"),
+      details: {
+        [JOB_A]: loadFixture("detail-external.html"),
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(2);
+    expect(page.clicks).toContain(NEXT_PAGE);
+    expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
+    expect(
+      page.navigates.every(
+        (href) =>
+          !/\/jobs/.test(href) || /\/job\//.test(href) || href.includes("daysSinceUpdated=1"),
+      ),
+    ).toBe(true);
+    expect(
+      page.navigates
+        .filter((href) => /\/jobs/.test(href) && !/\/job\//.test(href))
+        .every((href) => {
+          const parsed = new URL(href);
+          return (
+            parsed.searchParams.get("daysSinceUpdated") === "1" &&
+            parsed.searchParams.get("city") === "" &&
+            parsed.searchParams.get("state") === "" &&
+            parsed.searchParams.get("country") === "USA" &&
+            parsed.searchParams.get("allLocations") === "true"
+          );
+        }),
+    ).toBe(true);
+    expect(page.navigates).toContain(FILTERED_LIST_URL);
+    expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("treats a missing Next control as the last page", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list.html"),
+      nextFound: false,
+      details: {
+        [JOB_A]: loadFixture("detail-external.html"),
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(2);
+    expect(page.clicks).toContain(NEXT_PAGE);
+    expect(page.navigates.some((href) => /[?&]page=2\b/.test(href))).toBe(false);
+    expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("resumes and Start-from-page-1 restore the stored filtered URL only", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 2,
+      lastJobId: "",
+      lists: [FILTERED_PAGE_TWO_URL],
+      startUrl: FILTERED_LIST_URL,
+    });
+    const resume = builtinTab({
+      listUrl: LIST_URL,
+      listHtml: loadFixture("list.html"),
+      paginatedListHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const resumed = await collectJobs(store, resume.exec);
+    expect(resumed).toHaveLength(1);
+    expect(resume.navigates).toContain(FILTERED_PAGE_TWO_URL);
+    expect(resume.navigates.some((href) => href === LIST_URL)).toBe(false);
+    expect(resume.clicks).not.toContain(NEXT_PAGE);
+
+    await store.clearHandled();
+    await store.saveCursor({
+      listIndex: 0,
+      page: 4,
+      lastJobId: "11623491",
+      lists: [FILTERED_PAGE_TWO_URL],
+      startUrl: FILTERED_LIST_URL,
+      pageProcessed: 3,
+    });
+    await store.resetToPage1();
+    expect(await store.loadCursor()).toMatchObject({
+      page: 1,
+      lastJobId: "",
+      lists: [FILTERED_LIST_URL],
+      startUrl: FILTERED_LIST_URL,
+    });
+    const fromPage1 = builtinTab({
+      listUrl: JOB_A,
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const restarted = await collectJobs(store, fromPage1.exec);
+    expect(restarted).toHaveLength(1);
+    expect(fromPage1.navigates).toContain(FILTERED_LIST_URL);
+    expect(fromPage1.navigates.some((href) => href === LIST_URL)).toBe(false);
+  });
+
+  test("migrates a pre-2.5.8 cursor to the tab's current filtered URL at page 1", async () => {
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY]: {
+        listIndex: 0,
+        page: 4,
+        lastJobId: "11623491",
+        lists: [LIST_URL],
+        startUrl: LIST_URL,
+        writtenBy: "2.5.5",
+      },
+    });
+    const store = createBuiltinStore(storage);
+    const page = builtinTab({
+      listUrl: FILTERED_LIST_URL,
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
+    expect(page.navigates).toContain(FILTERED_LIST_URL);
+  });
+
+  test("blocks with the cursor kept when Next exists but results do not change", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list.html"),
+      nextMoves: false,
+      details: {
+        [JOB_A]: loadFixture("detail-external.html"),
+        [JOB_B]: loadFixture("detail-easyapply.html"),
+      },
+    });
+    await expect(collectJobs(store, page.exec)).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
+    });
+    expect(page.clicks.filter((selector) => selector === NEXT_PAGE).length).toBeGreaterThan(1);
+    expect(await store.loadCursor()).toMatchObject({ page: 1 });
+  });
+
+  test("finishes on a disabled Next without clearing after a stuck click", async () => {
+    const listHtml = loadFixture("list-last.html").replace(
+      "</body>",
+      `<nav id="pagination"><a aria-label="Go to Next Page" href="/jobs?page=2" aria-disabled="true" class="disabled">Next</a></nav></body>`,
+    );
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml,
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.clicks).not.toContain(NEXT_PAGE);
+    expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("clicks Next forward when the stored list URL has no page param", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 2,
+      lastJobId: "",
+      lists: [FILTERED_LIST_URL],
+      startUrl: FILTERED_LIST_URL,
+    });
+    const page = builtinTab({
+      listUrl: JOB_A,
+      listHtml: loadFixture("list.html"),
+      paginatedListHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
+    expect(page.clicks).toContain(NEXT_PAGE);
+    expect(page.navigates).toContain(FILTERED_LIST_URL);
+    expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
+  });
+
+  test("blocks click-forward restore when Next does not advance", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 3,
+      lastJobId: "",
+      lists: [FILTERED_LIST_URL],
+      startUrl: FILTERED_LIST_URL,
+    });
+    const page = builtinTab({
+      listUrl: JOB_A,
+      listHtml: loadFixture("list.html"),
+      nextMoves: false,
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    await expect(collectJobs(store, page.exec)).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
+    });
+    expect(page.clicks).toContain(NEXT_PAGE);
+    expect(await store.loadCursor()).toMatchObject({ page: 3 });
+  });
+
+  test("tolerates empty HTML while the list reloads", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    const page = builtinTab({
+      listHtml: loadFixture("list-last.html"),
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+      emptyHtmlReads: 1,
+    });
+    const records = await collectJobs(store, page.exec);
+    expect(records).toHaveLength(1);
   });
 
   test("does not change JobRight's visible listDetail contract", () => {

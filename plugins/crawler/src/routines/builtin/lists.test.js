@@ -1,7 +1,16 @@
 import { describe, expect, test } from "bun:test";
 
 import { resumeCursorLabel } from "./constants.js";
-import { advanceCursor, canAdvanceBuiltinPage, emptyCursor } from "./lists.js";
+import {
+  advanceCursor,
+  canAdvanceBuiltinPage,
+  cursorForTab,
+  emptyCursor,
+  exactJobsListUrl,
+} from "./lists.js";
+
+const FILTERED =
+  "https://builtin.com/jobs?daysSinceUpdated=1&city=&state=&country=USA&allLocations=true";
 
 describe("builtin lists cursor", () => {
   test("empty and advanced cursors reset pageProcessed", () => {
@@ -13,6 +22,7 @@ describe("builtin lists cursor", () => {
       lastPageIds: "",
       pageProcessed: 0,
       lists: ["https://builtin.com/jobs"],
+      startUrl: "https://builtin.com/jobs",
     });
     expect(
       advanceCursor({ ...cursor, pageProcessed: 3, lastJobId: "1" }, { nextPage: true }),
@@ -22,6 +32,17 @@ describe("builtin lists cursor", () => {
       lastJobId: "",
       pageProcessed: 0,
     });
+  });
+
+  test("keeps the tab's filtered jobs URL exactly as it is", () => {
+    expect(exactJobsListUrl(FILTERED)).toBe(FILTERED);
+    expect(exactJobsListUrl(`${FILTERED}&page=3`)).toBe(`${FILTERED}&page=3`);
+    expect(exactJobsListUrl("https://builtin.com/job/role/1")).toBe("");
+    expect(cursorForTab(FILTERED).lists).toEqual([FILTERED]);
+    expect(cursorForTab(FILTERED).startUrl).toBe(FILTERED);
+    expect(
+      cursorForTab("https://builtin.com/job/role/1", { startUrl: FILTERED, lists: [] }),
+    ).toEqual(emptyCursor([FILTERED], FILTERED));
   });
 
   test("advances a page only after processed cards or a fully handled page", () => {

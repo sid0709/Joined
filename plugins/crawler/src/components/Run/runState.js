@@ -1,4 +1,4 @@
-import { SCRAPE_OUTCOMES } from "../../api/scrapeRunStats";
+import { createScrapeRunStats, SCRAPE_OUTCOMES } from "../../api/scrapeRunStats";
 
 /** How many recently read jobs the Run tab lists. */
 export const RECENT_JOBS_LIMIT = 6;
@@ -127,4 +127,82 @@ export function startBlocker({
   if (!tab) return "Focus a web page to scrape.";
   if (!routine) return `No routine runs on ${hostOf(tab.url)} yet.`;
   return null;
+}
+
+export const EMPTY_PACE_COUNTS = Object.freeze({
+  hearted: 0,
+  notHearted: 0,
+  marked: 0,
+  notMarked: 0,
+  markReasons: Object.freeze([]),
+});
+
+const PAUSED_STATUS_META = Object.freeze({
+  stopped: { dot: "neutral", title: "Stopped" },
+  blocked: { dot: "orange", title: "Blocked" },
+});
+
+/** Stopped and PAGE_STUCK / blocked are the same paused resume state. */
+export function isStoppedOrBlocked(status) {
+  return status === "stopped" || status === "blocked";
+}
+
+/** Stopped and PAGE_STUCK / blocked resumes keep run-long heart, mark, and result totals. */
+export function keepsPaceOnResume(status) {
+  return isStoppedOrBlocked(status);
+}
+
+/** Status dot and title for the live run card. BLOCKED uses the paused family with STOPPED. */
+export function runStatusMeta(status) {
+  if (status === "running") return { dot: "accent", title: "Running", isPulsing: true };
+  if (status === "finished") return { dot: "success", title: "Finished" };
+  if (isStoppedOrBlocked(status)) return PAUSED_STATUS_META[status];
+  return PAUSED_STATUS_META.stopped;
+}
+
+/** Keep Saved/Duplicate/Failed/Blocked/Incomplete on resume; zero them for a new run. */
+export function statsAfterStart(current, { reset = false } = {}) {
+  if (reset || !current) return createScrapeRunStats();
+  return {
+    registered: current.registered ?? 0,
+    duplicate: current.duplicate ?? 0,
+    validation: current.validation ?? 0,
+    blocked: current.blocked ?? 0,
+    failed: current.failed ?? 0,
+  };
+}
+
+/** Keep hearted/marked counts on resume; zero them for a new run. */
+export function paceAfterStart(current, { resetHearts = false } = {}) {
+  if (resetHearts || !current) {
+    return { ...EMPTY_PACE_COUNTS, markReasons: [] };
+  }
+  return {
+    hearted: current.hearted ?? 0,
+    notHearted: current.notHearted ?? 0,
+    marked: current.marked ?? 0,
+    notMarked: current.notMarked ?? 0,
+    markReasons: [...(current.markReasons ?? [])],
+  };
+}
+
+/** Merge a pass pace snapshot without dropping run-long heart/mark totals. */
+export function applyPaceUpdate(current, next) {
+  const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
+  const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
+  const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
+  const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
+  const markReasons = [...(current?.markReasons ?? [])];
+  if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
+  return {
+    ...current,
+    ...next,
+    hearted,
+    notHearted,
+    marked,
+    notMarked,
+    markReasons,
+    heartDelta: undefined,
+    markDelta: undefined,
+  };
 }

@@ -119,6 +119,7 @@ describe("handled skip", () => {
       lastPageIds: "",
       pageProcessed: 0,
       lists: ["https://builtin.com/jobs"],
+      startUrl: "https://builtin.com/jobs",
     });
     await store.clearCursor();
     expect(await store.loadCursor()).toBeNull();
@@ -139,7 +140,7 @@ describe("handled skip", () => {
         lastPageIds: "",
         pageProcessed: 3,
         lists: ["https://builtin.com/jobs"],
-        writtenBy: "2.4.5",
+        writtenBy: "2.5.8",
       },
     });
     const store = createBuiltinStore(storage);
@@ -147,8 +148,56 @@ describe("handled skip", () => {
     await store.resetToPage1();
     const cursor = await store.loadCursor();
     expect(resumeCursorLabel(cursor)).toBe("Start at page 1");
-    expect(cursor).toMatchObject({ page: 1, lastJobId: "", pageProcessed: 0 });
+    expect(cursor).toMatchObject({
+      page: 1,
+      lastJobId: "",
+      pageProcessed: 0,
+      lists: ["https://builtin.com/jobs"],
+      startUrl: "https://builtin.com/jobs",
+    });
     expect(storage.snapshot()[CURSOR_STORAGE_KEY_V1]).toBeNull();
+  });
+
+  test("ignores crawl cursors written before 2.5.8", async () => {
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY]: {
+        listIndex: 0,
+        page: 4,
+        lastJobId: "old",
+        lists: ["https://builtin.com/jobs"],
+        startUrl: "https://builtin.com/jobs",
+        writtenBy: "2.5.5",
+      },
+    });
+    const store = createBuiltinStore(storage);
+    expect(await store.loadCursor()).toBeNull();
+  });
+
+  test("Start from page 1 keeps a filtered list URL including every param", async () => {
+    const filtered =
+      "https://builtin.com/jobs?daysSinceUpdated=1&city=&state=&country=USA&allLocations=true";
+    const paged = `${filtered}&page=4`;
+    const storage = memoryStorage({
+      [CURSOR_STORAGE_KEY]: {
+        listIndex: 0,
+        page: 4,
+        lastJobId: "11623491",
+        lastPageIds: "a",
+        pageProcessed: 3,
+        lists: [paged],
+        startUrl: filtered,
+        writtenBy: "2.5.8",
+      },
+    });
+    const store = createBuiltinStore(storage);
+    await store.resetToPage1();
+    expect(await store.loadCursor()).toMatchObject({
+      page: 1,
+      lastJobId: "",
+      pageProcessed: 0,
+      lists: [filtered],
+      startUrl: filtered,
+    });
   });
 
   test("ignores builtinCrawlCursorV1 and clears the stale key", async () => {

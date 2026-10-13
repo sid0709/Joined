@@ -10,14 +10,13 @@ describe("cursorVersion", () => {
     expect(compareSemver("nope", "2.4.0")).toBeNull();
   });
 
-  test("ignores cursors written by 2.4.0 or older", () => {
+  test("ignores cursors written before 2.5.8", () => {
     expect(isUsableCursorVersion("2.4.0")).toBe(false);
-    expect(isUsableCursorVersion("2.3.9")).toBe(false);
+    expect(isUsableCursorVersion("2.4.1")).toBe(false);
+    expect(isUsableCursorVersion("2.5.5")).toBe(false);
+    expect(isUsableCursorVersion("2.5.7")).toBe(false);
     expect(isUsableCursorVersion("")).toBe(false);
-    expect(isUsableCursorVersion("2.4.1")).toBe(true);
-    expect(isUsableCursorVersion("2.4.2")).toBe(true);
-    expect(isUsableCursorVersion("2.4.3")).toBe(true);
-    expect(isUsableCursorVersion("2.4.4")).toBe(true);
-    expect(isUsableCursorVersion("2.4.7")).toBe(true);
+    expect(isUsableCursorVersion("2.5.8")).toBe(true);
+    expect(isUsableCursorVersion("2.5.9")).toBe(true);
   });
 });

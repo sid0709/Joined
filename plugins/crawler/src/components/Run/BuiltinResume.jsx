@@ -10,8 +10,10 @@ import {
 } from "../../routines/builtin/constants";
 import { createBuiltinStore } from "../../routines/builtin/store";
 
+import { resetCursorAndStart } from "./resetCursorAndStart";
+
 /** Resume page/card plus reset controls for the Built In Run panel. */
-export default function BuiltinResume({ hidden = false }) {
+export default function BuiltinResume({ hidden = false, onStart, isDisabled = false }) {
   const store = useMemo(() => createBuiltinStore(), []);
   const [cursor, setCursor] = useState(null);
 
@@ -25,8 +27,8 @@ export default function BuiltinResume({ hidden = false }) {
 
   if (hidden) return null;
 
-  const resetCursor = async () => {
-    await store.resetToPage1();
+  const resetAndStart = async () => {
+    await resetCursorAndStart(store, onStart);
     await refresh();
   };
 
@@ -45,7 +47,8 @@ export default function BuiltinResume({ hidden = false }) {
         variant="secondary"
         size="sm"
         label={START_FROM_PAGE_1_LABEL}
-        onClick={resetCursor}
+        onClick={resetAndStart}
+        isDisabled={isDisabled}
         width="100%"
       />
       <Text type="supporting" color="secondary" justify="center">

@@ -17,6 +17,9 @@ export const COMPANY_LOGO = 'img[data-id="company-img"]';
 export const COMPANY_PROFILE_LINK = 'a[href^="/company/"]';
 export const NEXT_PAGE = '#pagination a[aria-label="Go to Next Page"]';
 export const PREV_PAGE = '#pagination a[aria-label="Go to Previous Page"]';
+export const NEXT_PAGE_LABEL = "Next page";
+export const LIST_CHANGE_MS = 10_000;
+export const LIST_CHANGE_POLL_MS = 200;
 
 /** List-card heart: open shadowRoot on `my-item`, inner `div.heart`. Never the job-page Save. */
 export const SAVE_HOST = 'my-item[entity-type="job"]';
@@ -62,8 +65,8 @@ export const HANDLED_STORAGE_KEY = "builtinHandledJobIdsV1";
 /** #169 wrote page cursors here while only paginating. V2 discards that key. */
 export const CURSOR_STORAGE_KEY_V1 = "builtinCrawlCursorV1";
 export const CURSOR_STORAGE_KEY = "builtinCrawlCursorV2";
-/** Cursors written by 2.4.0 or older are ignored. */
-export const CURSOR_MIN_WRITTEN_BY = "2.4.1";
+/** Cursors written before 2.5.8 rebuilt list URLs and are ignored. */
+export const CURSOR_MIN_WRITTEN_BY = "2.5.8";
 export const HANDLED_MAX_IDS = 50_000;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const HANDLED_MAX_AGE_DAYS = 90;
@@ -99,9 +102,14 @@ export const SCROLL_INLINE = "nearest";
 export const EMPTY_PAGE_ONE_LABEL = "Page 1 has 0 cards";
 export const PAGE_UNPROCESSED_MESSAGE =
   "This Built In page had no processed cards. Cursor stayed put.";
+export const PAGE_STUCK_AFTER_NEXT_MESSAGE =
+  "Built In Next did not load new results. Cursor stayed put.";
+export const NEXT_DISABLED_ATTR = "aria-disabled";
+export const NEXT_DISABLED_VALUE = "true";
+export const NEXT_DISABLED_CLASS = "disabled";
 export const START_FROM_PAGE_1_LABEL = "Start from page 1";
 export const START_FROM_PAGE_1_HINT =
-  "Clears builtinCrawlCursorV2 so the next run starts at page 1, card 1.";
+  "Clears builtinCrawlCursorV2 to page 1, card 1, keeps the stored filtered list URL, and starts the run.";
 export const CLEAR_HANDLED_LABEL = "Clear saved job IDs";
 export const CLEAR_HANDLED_CONFIRM =
   "Clear locally remembered Built In job IDs? The next run will reopen jobs already scraped.";

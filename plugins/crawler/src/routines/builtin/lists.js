@@ -45,8 +45,30 @@ export function crawlListUrl(currentUrl) {
   return `${originOf(currentUrl) || BUILTIN_ORIGIN}${JOBS_PATH}`;
 }
 
-export function emptyCursor(lists = []) {
-  return { listIndex: 0, page: 1, lastJobId: "", lastPageIds: "", pageProcessed: 0, lists };
+/** The jobs list URL exactly as the tab has it. Never strip or rebuild params. */
+export function exactJobsListUrl(url) {
+  return isJobsListUrl(url) ? url : "";
+}
+
+export function emptyCursor(lists = [], startUrl = "") {
+  return {
+    listIndex: 0,
+    page: 1,
+    lastJobId: "",
+    lastPageIds: "",
+    pageProcessed: 0,
+    lists,
+    startUrl: startUrl || lists[0] || "",
+  };
+}
+
+/** Resume a stored list URL, or start on the tab's current filtered jobs URL. */
+export function cursorForTab(currentUrl, existing) {
+  if (existing?.lists?.length) return existing;
+  const exact = exactJobsListUrl(currentUrl);
+  const startUrl = existing?.startUrl || exact;
+  const listUrl = exact || startUrl || `${originOf(currentUrl) || BUILTIN_ORIGIN}${JOBS_PATH}`;
+  return emptyCursor([listUrl], startUrl || listUrl);
 }
 
 export function cardIdKey(cards) {

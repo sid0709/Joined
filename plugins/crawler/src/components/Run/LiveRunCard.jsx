@@ -22,14 +22,8 @@ import {
 
 import { extractErrorBanner } from "./extractErrorBanner";
 import FieldChecklist from "./FieldChecklist";
-import { RUN_STEPS, runStepIndex } from "./runState";
+import { runStatusMeta, RUN_STEPS, runStepIndex } from "./runState";
 import { RUN_STATUS } from "./useRoutineRun";
-
-const STATUS_META = {
-  [RUN_STATUS.RUNNING]: { dot: "accent", title: "Running", isPulsing: true },
-  [RUN_STATUS.FINISHED]: { dot: "success", title: "Finished" },
-  [RUN_STATUS.STOPPED]: { dot: "neutral", title: "Stopped" },
-};
 
 const formatPercent = (value) => `${Math.round(value)}%`;
 
@@ -57,7 +51,6 @@ function blockReasons(pace) {
 }
 
 function PaceStats({ pace, routine }) {
-  if (!pace) return null;
   const showRate = hasRunStat(routine, RUN_STAT.JOBS_PER_SECOND);
   const showConcurrency = hasRunStat(routine, RUN_STAT.CONCURRENCY);
   const showCursor = hasRunStat(routine, RUN_STAT.CURSOR);
@@ -69,7 +62,7 @@ function PaceStats({ pace, routine }) {
   if (!showRate && !showConcurrency && !showCursor && !showBlocks && !showHearts && !showMarked) {
     return null;
   }
-  if (!showRate && !showConcurrency && !cursor && !pace.blockCount && !showHearts && !showMarked) {
+  if (!showRate && !showConcurrency && !cursor && !pace?.blockCount && !showHearts && !showMarked) {
     return null;
   }
   return (
@@ -80,28 +73,28 @@ function PaceStats({ pace, routine }) {
       {showHearts ? (
         <Badge
           variant="neutral"
-          label={heartedCountLabel(pace.hearted ?? 0, pace.notHearted ?? 0)}
+          label={heartedCountLabel(pace?.hearted ?? 0, pace?.notHearted ?? 0)}
           description="List-card hearts this run"
         />
       ) : null}
       {showMarked ? (
         <Badge
           variant="neutral"
-          label={markedCountLabel(pace.marked ?? 0, pace.notMarked ?? 0)}
-          description={markedReasonsLabel(pace.markReasons) || "Mark Applied this run"}
+          label={markedCountLabel(pace?.marked ?? 0, pace?.notMarked ?? 0)}
+          description={markedReasonsLabel(pace?.markReasons) || "Mark Applied this run"}
         />
       ) : null}
       {showRate ? (
         <Badge
           variant="blue"
-          label={`${pace.jobsPerSecond ?? 0} jobs/s`}
+          label={`${pace?.jobsPerSecond ?? 0} jobs/s`}
           description="Live ingest pace"
         />
       ) : null}
       {showConcurrency ? (
         <Badge
           variant="neutral"
-          label={`${pace.concurrency ?? 0} concurrent`}
+          label={`${pace?.concurrency ?? 0} concurrent`}
           description="Current fetch concurrency"
         />
       ) : null}
@@ -118,7 +111,7 @@ function PaceStats({ pace, routine }) {
 
 /** The current run: only the components the active routine declared. */
 export default function LiveRunCard({ run, routine }) {
-  const meta = STATUS_META[run.status] ?? STATUS_META[RUN_STATUS.STOPPED];
+  const meta = runStatusMeta(run.status);
   const isRunning = run.status === RUN_STATUS.RUNNING;
   const activeStep = isRunning ? runStepIndex(run.activity?.phase) : RUN_STEPS.length;
   const showStepper = hasRunComponent(routine, RUN_COMPONENT.STEPPER);

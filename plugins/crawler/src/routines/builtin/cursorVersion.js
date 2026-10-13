@@ -19,7 +19,7 @@ export function compareSemver(left, right) {
   return 0;
 }
 
-/** True when the cursor was written after 2.4.0 (V1 pagination-only cursors are not). */
+/** True when the cursor was written by 2.5.8 or newer (URL-rewrite cursors are not). */
 export function isUsableCursorVersion(writtenBy, min = CURSOR_MIN_WRITTEN_BY) {
   const cmp = compareSemver(writtenBy, min);
   return cmp != null && cmp >= 0;
