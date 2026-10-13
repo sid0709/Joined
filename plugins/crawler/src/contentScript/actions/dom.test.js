@@ -3,6 +3,7 @@ import { parseHTML } from "linkedom";
 
 import {
   clickLikeHuman,
+  preventLinkNavigation,
   randomBetween,
   setNativeValue,
   supportsSelectionRange,
@@ -106,7 +107,23 @@ describe("clickLikeHuman", () => {
     expect(clicks).toEqual([1]);
   });
 
-  test("prevents navigation when the clicked control sits inside a link", () => {
+  test("does not guard ancestor links for generic callers", () => {
+    const document = linkedomDocument(`<!DOCTYPE html><html><body>
+      <a href="/job/help-desk-coordinator-reqaaa1111111111">
+        <button id="btn">Go</button>
+      </a>
+    </body></html>`);
+    let documentClicks = 0;
+    document.addEventListener("click", () => {
+      documentClicks += 1;
+    });
+    clickLikeHuman(document.getElementById("btn"));
+    expect(documentClicks).toBe(1);
+  });
+});
+
+describe("preventLinkNavigation", () => {
+  test("preventDefault on the ancestor link still lets a document listener fire", () => {
     const document = linkedomDocument(`<!DOCTYPE html><html><body>
       <a href="/job/help-desk-coordinator-reqaaa1111111111">
         <button id="btn">Mark Applied</button>
@@ -114,16 +131,55 @@ describe("clickLikeHuman", () => {
     </body></html>`);
     const link = document.querySelector("a");
     const button = document.getElementById("btn");
-    let markClicks = 0;
-    let linkNavigated = false;
-    button.addEventListener("click", () => {
-      markClicks += 1;
+    let documentClicks = 0;
+    let defaultPreventedAtDocument = false;
+    document.addEventListener("click", (event) => {
+      documentClicks += 1;
+      defaultPreventedAtDocument = event.defaultPrevented;
     });
-    link.addEventListener("click", (event) => {
-      linkNavigated = !event.defaultPrevented;
+    const release = preventLinkNavigation(button);
+    try {
+      button.click();
+    } finally {
+      release();
+    }
+    expect(documentClicks).toBe(1);
+    expect(defaultPreventedAtDocument).toBe(true);
+    expect(link.contains(button)).toBe(true);
+  });
+
+  test("removes the link listener even when the click throws", () => {
+    const document = linkedomDocument(`<!DOCTYPE html><html><body>
+      <a href="/job/help-desk-coordinator-reqaaa1111111111">
+        <button id="btn">Mark Applied</button>
+      </a>
+    </body></html>`);
+    const link = document.querySelector("a");
+    const button = document.getElementById("btn");
+    const added = [];
+    const removed = [];
+    const nativeAdd = link.addEventListener.bind(link);
+    const nativeRemove = link.removeEventListener.bind(link);
+    link.addEventListener = (type, fn, options) => {
+      added.push(fn);
+      return nativeAdd(type, fn, options);
+    };
+    link.removeEventListener = (type, fn, options) => {
+      removed.push(fn);
+      return nativeRemove(type, fn, options);
+    };
+    const release = preventLinkNavigation(button);
+    try {
+      throw new Error("click failed");
+    } catch {
+      release();
+    }
+    expect(removed).toEqual(added);
+    let leftoverPrevented = false;
+    document.addEventListener("click", (event) => {
+      leftoverPrevented = event.defaultPrevented;
     });
-    clickLikeHuman(button);
-    expect(markClicks).toBe(1);
-    expect(linkNavigated).toBe(false);
+    button.click();
+    expect(leftoverPrevented).toBe(false);
   });
 });

@@ -5,6 +5,12 @@ import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
 import { clickLikeHuman } from "../actions/dom";
 import { hoverAt, hoverClickInDocument, pickMatch } from "../actions/hoverClick";
 import { hoverTargetInDocument, waitForOverlayTarget } from "../actions/hoverTarget";
+import {
+  GUARD_MARK_LINK_OP,
+  RELEASE_MARK_LINK_OP,
+  installMarkLinkGuard,
+  releaseMarkLinkGuard,
+} from "../actions/markLinkGuard";
 import { scrollElementIntoView } from "../actions/scroll";
 import { clearHighlights, highlightElements } from "../highlighter";
 
@@ -108,6 +114,8 @@ const OPS = {
       wait,
     });
   },
+  [GUARD_MARK_LINK_OP]: (payload) => installMarkLinkGuard(document, payload),
+  [RELEASE_MARK_LINK_OP]: () => releaseMarkLinkGuard(),
   extract: async ({ field }) => {
     await waitForMatches(document, field.selector, field.wait);
     return extractField(document, field);

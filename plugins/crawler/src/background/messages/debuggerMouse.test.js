@@ -199,7 +199,7 @@ describe("debugger mouse events", () => {
     );
     expect(result.found).toBe(true);
     expect(result.pressed).toBe(true);
-    expect(ops).toEqual(["hoverTarget", "overlayTarget"]);
+    expect(ops).toEqual(["hoverTarget", "overlayTarget", "guardMarkLink", "releaseMarkLink"]);
     expect(tabs.calls.some((call) => call.op === "update")).toBe(false);
     expect(debug.commands).toContainEqual({
       method: "Emulation.setFocusEmulationEnabled",
@@ -217,6 +217,7 @@ describe("debugger mouse events", () => {
 
   test("returns pressed after a press even when the release command throws", async () => {
     const debug = chromeDebugger();
+    const ops = [];
     debug.sendCommand = async (_target, method, params) => {
       debug.commands.push({ method, params });
       if (method === "Input.dispatchMouseEvent" && params.type === "mouseReleased") {
@@ -230,6 +231,7 @@ describe("debugger mouse events", () => {
         chromeDebugger: debug,
         tabs: tabsIo({ active: false }),
         sendToContentScript: async (_tabId, message) => {
+          ops.push(message.payload.op);
           if (message.payload.op === "hoverTarget") {
             return { result: { found: true, x: 12, y: 18, approach: [{ x: 12, y: 18 }] } };
           }
@@ -238,6 +240,7 @@ describe("debugger mouse events", () => {
       },
     );
     expect(result).toMatchObject({ found: true, hovered: true, pressed: true });
+    expect(ops).toEqual(["hoverTarget", "overlayTarget", "guardMarkLink", "releaseMarkLink"]);
   });
 
   test("returns found once a press has been sent", async () => {
@@ -269,6 +272,7 @@ describe("debugger mouse events", () => {
   });
 
   test("returns hovered without a click when the overlay never appears", async () => {
+    const ops = [];
     const result = await dispatchTrustedMouse(
       7,
       { op: "hoverClick", selector: ".card", offsets: [{ x: 100, y: 100 }] },
@@ -276,6 +280,7 @@ describe("debugger mouse events", () => {
         chromeDebugger: chromeDebugger(),
         tabs: tabsIo({ active: true }),
         sendToContentScript: async (_tabId, message) => {
+          ops.push(message.payload.op);
           if (message.payload.op === "hoverTarget")
             return {
               result: {
@@ -294,6 +299,7 @@ describe("debugger mouse events", () => {
     expect(result.hovered).toBe(true);
     expect(result.pressed).toBe(false);
     expect(result.diagnosticsText).toContain("overlay=no");
+    expect(ops).toEqual(["hoverTarget", "overlayTarget"]);
   });
 
   test("keeps CSS-pixel CDP coords at 90%, 100%, and 110% zoom and with the side panel", async () => {
@@ -405,6 +411,7 @@ describe("debugger mouse events", () => {
 
   test("marks a press throw so routine exec does not fall back to synthetic hover", async () => {
     const debug = chromeDebugger();
+    const ops = [];
     debug.sendCommand = async (_target, method, params) => {
       debug.commands.push({ method, params });
       if (method === "Input.dispatchMouseEvent" && params.type === "mousePressed") {
@@ -419,6 +426,7 @@ describe("debugger mouse events", () => {
           chromeDebugger: debug,
           tabs: tabsIo({ active: false }),
           sendToContentScript: async (_tabId, message) => {
+            ops.push(message.payload.op);
             if (message.payload.op === "hoverTarget") {
               return { result: { found: true, x: 12, y: 18, approach: [{ x: 12, y: 18 }] } };
             }
@@ -427,6 +435,7 @@ describe("debugger mouse events", () => {
         },
       ),
     ).rejects.toMatchObject({ message: "press failed", pressed: true });
+    expect(ops).toEqual(["hoverTarget", "overlayTarget", "guardMarkLink", "releaseMarkLink"]);
   });
 
   test("hover-only sends the approach mouseMoved sequence and keeps the session", async () => {

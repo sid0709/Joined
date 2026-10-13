@@ -1,4 +1,8 @@
 import { formatHoverDiagnostics } from "../../contentScript/actions/hoverTarget.js";
+import {
+  GUARD_MARK_LINK_OP,
+  RELEASE_MARK_LINK_OP,
+} from "../../contentScript/actions/markLinkGuard.js";
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
 import { MARK_OVERLAY_WAIT_MS } from "../../routines/hiringcafe/constants.js";
 
@@ -154,6 +158,32 @@ async function moveAlong(send, points) {
   }
 }
 
+async function withMarkLinkGuard(tabId, payload, sendToContentScript, run) {
+  try {
+    await sendToContentScript(tabId, {
+      action: ROUTINE_OP_ACTION,
+      payload: {
+        op: GUARD_MARK_LINK_OP,
+        selector: payload.selector,
+        clickSelector: payload.clickSelector,
+        nth: payload.nth,
+        contains: payload.contains,
+        exact: payload.exact,
+      },
+    });
+  } catch {
+    /* best effort */
+  }
+  try {
+    return await run();
+  } finally {
+    await sendToContentScript(tabId, {
+      action: ROUTINE_OP_ACTION,
+      payload: { op: RELEASE_MARK_LINK_OP },
+    }).catch(() => {});
+  }
+}
+
 /**
  * Real pointer input: CDP `Input.dispatchMouseEvent` is trusted. Synthetic
  * mouseover/mouseenter is not. Attach once per run; move from outside the
@@ -196,26 +226,28 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
     if (!overlay?.found) continue;
     const clickAt = toCdpPoint(overlay, metrics);
     await send("Input.dispatchMouseEvent", mouseMoved(clickAt));
-    try {
-      await send("Input.dispatchMouseEvent", mousePressed(clickAt));
-    } catch (error) {
-      const next = error instanceof Error ? error : new Error(String(error));
-      next.pressed = true;
-      throw next;
-    }
-    pressed = true;
-    try {
-      await send("Input.dispatchMouseEvent", mouseReleased(clickAt));
-    } catch {
-      return { found: true, hovered: true, pressed: true, diagnostics, diagnosticsText };
-    }
-    return {
-      found: true,
-      hovered: true,
-      pressed: true,
-      diagnostics: { ...diagnostics, overlay: true },
-      diagnosticsText,
-    };
+    return await withMarkLinkGuard(tabId, payload, sendToContentScript, async () => {
+      try {
+        await send("Input.dispatchMouseEvent", mousePressed(clickAt));
+      } catch (error) {
+        const next = error instanceof Error ? error : new Error(String(error));
+        next.pressed = true;
+        throw next;
+      }
+      pressed = true;
+      try {
+        await send("Input.dispatchMouseEvent", mouseReleased(clickAt));
+      } catch {
+        return { found: true, hovered: true, pressed: true, diagnostics, diagnosticsText };
+      }
+      return {
+        found: true,
+        hovered: true,
+        pressed: true,
+        diagnostics: { ...diagnostics, overlay: true },
+        diagnosticsText,
+      };
+    });
   }
   if (pressed) return { found: true, hovered: true, pressed: true, diagnostics, diagnosticsText };
   return { found: false, hovered, pressed: false, diagnostics, diagnosticsText };

@@ -48,26 +48,21 @@ function isElementInViewport(element) {
 
 const ANCHOR = "a";
 
-function preventLinkNavigation(element) {
+/** preventDefault on an ancestor <a> only. No stopPropagation; no button listener. */
+export function preventLinkNavigation(element) {
   const link = element?.closest?.(ANCHOR);
   if (!link || link === element) return () => {};
   const blockLink = (event) => {
     event.preventDefault();
-    event.stopPropagation();
   };
   try {
-    element.addEventListener("click", (event) => event.stopPropagation(), { once: true });
+    link.addEventListener("click", blockLink);
   } catch {
-    /* best effort */
-  }
-  try {
-    link.addEventListener("click", blockLink, true);
-  } catch {
-    /* best effort */
+    return () => {};
   }
   return () => {
     try {
-      link.removeEventListener("click", blockLink, true);
+      link.removeEventListener("click", blockLink);
     } catch {
       /* best effort */
     }
@@ -105,13 +100,10 @@ export function clickLikeHuman(element) {
   } catch {
     /* best effort */
   }
-  const releaseLink = preventLinkNavigation(element);
   try {
     element.click?.();
   } catch {
     /* best effort */
-  } finally {
-    releaseLink?.();
   }
 }
 

@@ -117,7 +117,7 @@ describe("hoverClickInDocument", () => {
     expect(linkClicks).toBe(0);
   });
 
-  test("does not navigate when Mark Applied sits inside a wrapping job link", () => {
+  test("clicks Mark Applied when the whole card is wrapped in the job link", () => {
     const { document } = parseHTML(`<!DOCTYPE html><html><body>
       <div data-testid="job-results"><div class="hc-card-grid">
         <a href="/job/help-desk-coordinator-reqaaa1111111111">
@@ -129,14 +129,9 @@ describe("hoverClickInDocument", () => {
         </a>
       </div></div>
     </body></html>`);
-    const link = document.querySelector("a");
     let markClicks = 0;
-    let linkNavigated = false;
     document.querySelector("button").addEventListener("click", () => {
       markClicks += 1;
-    });
-    link.addEventListener("click", (event) => {
-      linkNavigated = !event.defaultPrevented;
     });
     expect(
       hoverClickInDocument(document, {
@@ -147,7 +142,6 @@ describe("hoverClickInDocument", () => {
       }),
     ).toEqual({ found: true, hovered: true });
     expect(markClicks).toBe(1);
-    expect(linkNavigated).toBe(false);
   });
 
   test("returns found false when the card or Mark Applied is missing", () => {
