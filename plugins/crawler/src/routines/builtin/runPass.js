@@ -400,6 +400,7 @@ export async function runBuiltInPass(ctx, progress) {
       alreadyOpen,
       label,
       phase,
+      pause,
     });
 
   const queryHeart = (jobId) =>

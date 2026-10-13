@@ -1,12 +1,19 @@
 import { describe, expect, test } from "bun:test";
 
-import { LIST_CHANGE_POLL_MS, NEXT_PAGE, NEXT_PAGE_LABEL } from "./constants.js";
+import {
+  LIST_CHANGE_POLL_MS,
+  NEXT_PAGE,
+  NEXT_PAGE_LABEL,
+  PAGE_DELAY_MS,
+  PAGE_STUCK_AFTER_NEXT_MESSAGE,
+} from "./constants.js";
 import { cardIdKey, emptyCursor } from "./lists.js";
 import {
   clickForwardCount,
   clickNextPage,
   firstCardId,
   listResultsChanged,
+  openListForCursor,
   rememberObservedListUrl,
   restoreListUrl,
   waitForListChange,
@@ -172,5 +179,75 @@ describe("builtin click pagination", () => {
     expect(stuck.advanced).toBe(false);
     expect(stuck.stuck).toBe(true);
     expect(stuckClicks).toHaveLength(2);
+  });
+
+  test("does not skip page N+1 by re-clicking Next after a late load", async () => {
+    const clicks = [];
+    let reads = 0;
+    const result = await clickNextPage({
+      call: async () => {
+        clicks.push(NEXT_PAGE);
+        return { found: true };
+      },
+      readPage: async () => {
+        reads += 1;
+        // Timed-out wait still sees page N. The pre-retry re-read sees N+1.
+        if (reads === 1) return { html: LIST_HTML, url: FILTERED };
+        return { html: PAGE_TWO_HTML, url: `${FILTERED}&page=2` };
+      },
+      rest: async () => {},
+      skipDelays: true,
+      checkStopped: () => {},
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
+      onActivity: () => {},
+    });
+    expect(clicks).toHaveLength(1);
+    expect(result.advanced).toBe(false);
+    expect(result.stuck).toBe(true);
+    expect(result.page.url).toBe(`${FILTERED}&page=2`);
+    expect(result.pageIds).toBe("22222222");
+  });
+
+  test("pauses before each click-forward hop and blocks when Next does not advance", async () => {
+    const pauses = [];
+    const hops = [];
+    const startPage = { html: LIST_HTML, url: FILTERED };
+    const pageTwo = { html: PAGE_TWO_HTML, url: `${FILTERED}&page=2` };
+    const cursor = { ...emptyCursor([FILTERED], FILTERED), page: 3 };
+    expect(restoreListUrl(cursor)).toBe("");
+
+    const landed = await openListForCursor({
+      cursor,
+      openVisible: async () => startPage,
+      clickNext: async () => {
+        hops.push("next");
+        return { advanced: true, page: pageTwo };
+      },
+      label: "Opening page 3",
+      pause: async (range) => {
+        pauses.push(range);
+      },
+    });
+    expect(landed).toEqual(pageTwo);
+    expect(hops).toHaveLength(2);
+    expect(pauses).toEqual([PAGE_DELAY_MS, PAGE_DELAY_MS]);
+
+    const blockedPauses = [];
+    await expect(
+      openListForCursor({
+        cursor,
+        openVisible: async () => startPage,
+        clickNext: async () => ({ advanced: false, found: true, stuck: true }),
+        label: "Opening page 3",
+        pause: async (range) => {
+          blockedPauses.push(range);
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
+    });
+    expect(blockedPauses).toEqual([PAGE_DELAY_MS]);
   });
 });

@@ -1,4 +1,13 @@
-import { LIST_CHANGE_MS, LIST_CHANGE_POLL_MS, NEXT_PAGE, NEXT_PAGE_LABEL } from "./constants.js";
+import { RoutineBlockedError } from "../../routineKit/runner.js";
+
+import {
+  LIST_CHANGE_MS,
+  LIST_CHANGE_POLL_MS,
+  NEXT_PAGE,
+  NEXT_PAGE_LABEL,
+  PAGE_DELAY_MS,
+  PAGE_STUCK_AFTER_NEXT_MESSAGE,
+} from "./constants.js";
 import { cardIdKey, exactJobsListUrl, pageFromListUrl } from "./lists.js";
 import { parseList } from "./parseList.js";
 
@@ -108,10 +117,32 @@ export async function clickNextPage({
   };
   const first = await clickAndWait(call, waitArgs);
   if (first.advanced || !first.found) return first;
+  return retryNextIfUnchanged(call, waitArgs, onActivity);
+}
+
+/** Re-read URL and cards before a second Next. Retry only if both stayed put. */
+async function retryNextIfUnchanged(call, waitArgs, onActivity) {
+  const latest = await waitForListChange({ ...waitArgs, skipDelays: true });
+  if (latest.changed) {
+    return { ...latest, advanced: false, found: true, stuck: true };
+  }
   onActivity?.({ phase: "open", label: NEXT_PAGE_LABEL, kind: "click" });
   const retried = await clickAndWait(call, waitArgs);
   if (retried.advanced) return retried;
-  return { ...retried, found: first.found || retried.found, stuck: true };
+  return { ...retried, found: true, stuck: true };
+}
+
+async function clickForwardHop(page, clickNext, parse, pause) {
+  await pause?.(PAGE_DELAY_MS);
+  const parsed = parse(page.html, page.url);
+  const moved = await clickNext({
+    previousPageIds: cardIdKey(parsed.cards),
+    previousUrl: page.url,
+  });
+  if (!moved?.advanced) {
+    throw new RoutineBlockedError(PAGE_STUCK_AFTER_NEXT_MESSAGE);
+  }
+  return moved.page;
 }
 
 export async function openListForCursor({
@@ -122,6 +153,7 @@ export async function openListForCursor({
   label,
   phase = "open",
   parse = parseList,
+  pause,
 }) {
   if (alreadyOpen) return alreadyOpen;
   const direct = restoreListUrl(cursor);
@@ -130,13 +162,7 @@ export async function openListForCursor({
   let page = await openVisible(start, label, phase);
   const hops = clickForwardCount(cursor);
   for (let index = 0; index < hops; index += 1) {
-    const parsed = parse(page.html, page.url);
-    const moved = await clickNext({
-      previousPageIds: cardIdKey(parsed.cards),
-      previousUrl: page.url,
-    });
-    if (!moved?.advanced) return page;
-    page = moved.page;
+    page = await clickForwardHop(page, clickNext, parse, pause);
   }
   return page;
 }

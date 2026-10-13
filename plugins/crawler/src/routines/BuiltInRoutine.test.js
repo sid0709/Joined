@@ -1019,6 +1019,29 @@ describe("BuiltInRoutine", () => {
     expect(page.navigates.some((href) => href === LIST_URL)).toBe(false);
   });
 
+  test("blocks click-forward restore when Next does not advance", async () => {
+    const store = createBuiltinStore(memoryStorage());
+    await store.saveCursor({
+      listIndex: 0,
+      page: 3,
+      lastJobId: "",
+      lists: [FILTERED_LIST_URL],
+      startUrl: FILTERED_LIST_URL,
+    });
+    const page = builtinTab({
+      listUrl: JOB_A,
+      listHtml: loadFixture("list.html"),
+      nextMoves: false,
+      details: { [JOB_A]: loadFixture("detail-signed-in.html") },
+    });
+    await expect(collectJobs(store, page.exec)).rejects.toMatchObject({
+      name: "RoutineBlockedError",
+      message: PAGE_STUCK_AFTER_NEXT_MESSAGE,
+    });
+    expect(page.clicks).toContain(NEXT_PAGE);
+    expect(await store.loadCursor()).toMatchObject({ page: 3 });
+  });
+
   test("tolerates empty HTML while the list reloads", async () => {
     const store = createBuiltinStore(memoryStorage());
     const page = builtinTab({
