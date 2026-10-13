@@ -31,6 +31,8 @@ export const MARK_APPLIED_TEXT = "Mark Applied";
 export const MARK_OVERLAY_CANDIDATE_MAX_CHARS = 40;
 export const APPLIED_CHECK_TEXT = "Applied ✓";
 export const APPLIED_CHECK_RE = /applied\s*✓/i;
+/** Live toggle label after a mark. Distinct from `Mark Applied`. */
+export const APPLIED_TOGGLE_TEXT = "Applied";
 export const MARK_TOAST_TEXT = "Job marked successfully";
 export const MARK_TOAST = '[role="status"], [role="alert"], [class*="toast"]';
 export const APP_TRACKER_TEXT = "App Tracker";
@@ -128,7 +130,7 @@ export const NOT_MARKED_REASON = Object.freeze({
   NO_SELECTOR: "no card selector",
   HOVER_MISSED: "hover missed overlay",
   CLICK_MISSED: "Mark Applied click missed",
-  NOT_CONFIRMED: "no Applied ✓, toast, or stage 200",
+  NOT_CONFIRMED: "no Applied, App Tracker, toast, or stage 200",
   INGEST_REJECTED: "ingest rejected",
   INGEST_TIMEOUT: "ingest timed out",
   NOT_ACCEPTED: "ingest not accepted",

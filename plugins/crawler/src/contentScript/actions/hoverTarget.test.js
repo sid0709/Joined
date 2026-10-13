@@ -262,6 +262,31 @@ describe("overlayTargetInDocument", () => {
     });
   });
 
+  test("returns Applied and App Tracker candidates when the toggle already flipped", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div class="job-card">
+          <a href="/job/help-desk-coordinator-reqaaa1111111111">Job Posting</a>
+          <div class="absolute top-0 right-0">
+            <button class="bg-white">Applied</button>
+            <button class="bg-pink-600">App Tracker</button>
+          </div>
+        </div>
+      </div></div>
+    </body></html>`);
+    expect(
+      overlayTargetInDocument(document, {
+        selector: CARD,
+        clickSelector: MARK,
+        contains: "Mark Applied",
+        exact: true,
+      }),
+    ).toMatchObject({
+      found: false,
+      candidates: expect.arrayContaining(["Applied", "App Tracker"]),
+    });
+  });
+
   test("waitForOverlayTarget returns as soon as the overlay is present", async () => {
     const { document } = cardDocument({ overlay: true });
     await expect(

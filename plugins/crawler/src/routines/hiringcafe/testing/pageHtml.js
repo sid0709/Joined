@@ -115,7 +115,12 @@ export function groupedHits() {
   ];
 }
 
-export function overlayMarkup({ applied = false, control = "div" } = {}) {
+export function overlayMarkup({ applied = false, control = "div", live = false } = {}) {
+  if (live) {
+    const toggle = applied === "tracker" ? "" : `<button class="bg-white">Applied</button>`;
+    const tracker = applied === "toggle" ? "" : `<button class="bg-pink-600">App Tracker</button>`;
+    return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2">${toggle}${tracker}</div></div>`;
+  }
   if (applied) {
     return `<div class="absolute top-0 right-0"><div class="flex items-center space-x-2"><span>Applied ✓</span><button class="bg-pink-600">App Tracker</button></div></div>`;
   }

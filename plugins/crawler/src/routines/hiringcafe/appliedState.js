@@ -2,8 +2,10 @@ import { queryAll, queryOne } from "../../routineKit/extract.js";
 import { isVisibleElement } from "../builtin/visible.js";
 
 import {
+  APP_TRACKER_TEXT,
   APPLIED_CHECK_RE,
   APPLIED_CHECK_TEXT,
+  APPLIED_TOGGLE_TEXT,
   CARD_OVERLAY,
   jobCardSelector,
   jobCardSelectorForJobs,
@@ -58,12 +60,6 @@ export function isListCardApplied(card) {
   return hasAppliedCheck(card);
 }
 
-export function hasAppliedCheck(root) {
-  const node = asRoot(root);
-  if (!node) return false;
-  return hasExactText(node, APPLIED_CHECK_TEXT) || APPLIED_CHECK_RE.test(textOf(node));
-}
-
 function exactVisibleMatches(root, needle) {
   const want = normalizeText(needle);
   if (!want || !root) return [];
@@ -80,6 +76,39 @@ function exactVisibleMatches(root, needle) {
     return leftButton - rightButton;
   });
   return matches;
+}
+
+export function hasAppliedCheck(root) {
+  const node = asRoot(root);
+  if (!node) return false;
+  return hasExactText(node, APPLIED_CHECK_TEXT) || APPLIED_CHECK_RE.test(textOf(node));
+}
+
+export function hasAppliedToggle(root) {
+  return Boolean(exactVisibleMatches(asRoot(root), APPLIED_TOGGLE_TEXT)[0]);
+}
+
+export function hasAppTracker(root) {
+  return Boolean(exactVisibleMatches(asRoot(root), APP_TRACKER_TEXT)[0]);
+}
+
+/** Overlay already flipped: Applied ✓, Applied, or App Tracker. */
+export function hasAppliedState(root) {
+  return hasAppliedCheck(root) || hasAppliedToggle(root) || hasAppTracker(root);
+}
+
+export function appliedFromCandidateTexts(candidates = []) {
+  return (candidates ?? []).some((value) => {
+    const text = normalizeText(value);
+    if (!text) return false;
+    if (text === MARK_APPLIED_TEXT) return false;
+    return (
+      text === APPLIED_CHECK_TEXT ||
+      text === APPLIED_TOGGLE_TEXT ||
+      text === APP_TRACKER_TEXT ||
+      APPLIED_CHECK_RE.test(text)
+    );
+  });
 }
 
 /** Visible button/div/span whose trimmed text is exactly `Mark Applied`. */
@@ -139,12 +168,13 @@ export function appliedStateFromHtml(html, job = {}) {
   const card = cardForJob(document, job);
   const overlay = card ? queryOne(card, CARD_OVERLAY) || card : null;
   const marked =
-    Boolean(overlay && hasAppliedCheck(overlay)) || Boolean(card && hasAppliedCheck(card));
+    Boolean(overlay && hasAppliedState(overlay)) || Boolean(card && hasAppliedState(card));
   return {
     found: Boolean(card),
     marked,
     canMark: Boolean(
-      (overlay && hasMarkAppliedControl(overlay)) || (card && hasMarkAppliedControl(card)),
+      !marked &&
+      ((overlay && hasMarkAppliedControl(overlay)) || (card && hasMarkAppliedControl(card))),
     ),
     toast: hasMarkToast(html),
     signedOut: isHiringCafeSignedOut(html),
@@ -163,6 +193,6 @@ export function stageUpdateSucceeded(hits = []) {
   });
 }
 
-export function markConfirmed({ applied, toast, fetchOk }) {
-  return Boolean(applied || toast || fetchOk);
+export function markConfirmed({ applied, tracker, toast, fetchOk }) {
+  return Boolean(applied || tracker || toast || fetchOk);
 }

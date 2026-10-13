@@ -3,9 +3,12 @@ import { describe, expect, test } from "bun:test";
 import { queryOne } from "../../routineKit/extract.js";
 
 import {
+  appliedFromCandidateTexts,
   appliedStateFromHtml,
   cardSelectorForJob,
   hasAppliedCheck,
+  hasAppliedState,
+  hasAppTracker,
   hasMarkAppliedControl,
   hasMarkToast,
   hasVisibleSignInModal,
@@ -16,7 +19,9 @@ import {
   stageUpdateSucceeded,
 } from "./appliedState.js";
 import {
+  APP_TRACKER_TEXT,
   APPLIED_CHECK_TEXT,
+  APPLIED_TOGGLE_TEXT,
   JOB_CARD,
   MARK_APPLIED_TEXT,
   MARK_OVERLAY_WAIT_MS,
@@ -73,6 +78,15 @@ function listWith(overlay, extras = {}) {
   });
 }
 
+function overlayCandidatesFromHtml(html) {
+  const texts = [];
+  if (html.includes(MARK_APPLIED_TEXT)) texts.push(MARK_APPLIED_TEXT);
+  if (html.includes(APPLIED_CHECK_TEXT)) texts.push(APPLIED_CHECK_TEXT);
+  if (html.includes(`>${APPLIED_TOGGLE_TEXT}<`)) texts.push(APPLIED_TOGGLE_TEXT);
+  if (html.includes(APP_TRACKER_TEXT)) texts.push(APP_TRACKER_TEXT);
+  return texts;
+}
+
 function markHarness({
   htmlAfterHover,
   htmlAfterClick,
@@ -93,13 +107,24 @@ function markHarness({
       return { found: true, diagnosticsText };
     }
     if (op === "overlayTarget") {
-      return { found: html.includes(MARK_APPLIED_TEXT) && !html.includes("Applied ✓") };
+      const candidates = overlayCandidatesFromHtml(html);
+      return {
+        found: html.includes(MARK_APPLIED_TEXT) && !appliedFromCandidateTexts(candidates),
+        candidates,
+      };
     }
     if (op === "hoverClick" || (op === "click" && payload.contains === MARK_APPLIED_TEXT)) {
       if (op === "hoverClick" && !marked) html = htmlAfterHover ?? listWith(overlayMarkup());
-      const canClick = html.includes(MARK_APPLIED_TEXT) && !html.includes("Applied ✓");
+      const candidates = overlayCandidatesFromHtml(html);
+      const canClick = html.includes(MARK_APPLIED_TEXT) && !appliedFromCandidateTexts(candidates);
       if (!canClick) {
-        return { found: false, hovered: op === "hoverClick", diagnosticsText };
+        return {
+          found: false,
+          hovered: op === "hoverClick",
+          diagnosticsText,
+          candidates,
+          diagnostics: { overlay: false, candidates },
+        };
       }
       marked = true;
       html = htmlAfterClick ?? listWith(overlayMarkup({ applied: true }), { toast: true });
@@ -111,6 +136,7 @@ function markHarness({
         hovered: true,
         pressed: hoverClickPressed !== false,
         diagnosticsText,
+        candidates: overlayCandidatesFromHtml(html),
       };
     }
     if (op === "click") return { found: true };
@@ -169,9 +195,32 @@ describe("HiringCafe applied-state readers", () => {
     expect(markConfirmed({ applied: false, toast: true, fetchOk: false })).toBe(true);
     expect(markConfirmed({ applied: false, toast: false, fetchOk: true })).toBe(true);
     expect(markConfirmed({ applied: false, toast: false, fetchOk: false })).toBe(false);
+    expect(markConfirmed({ applied: false, tracker: true, toast: false, fetchOk: false })).toBe(
+      true,
+    );
     expect(jobCardSelector(JOB)).toContain('href$="/job/help-desk-coordinator-reqaaa1111111111"');
     expect(cardSelectorForJob(JOB)).toContain("help-desk-coordinator-reqaaa1111111111");
     expect(MARK_OVERLAY_WAIT_MS).toBe(1_500);
+  });
+
+  test("treats live Applied and App Tracker as marked for hover, not list skip", () => {
+    const firstCard = (html) => queryOne(documentFromHtml(html), JOB_CARD);
+    const live = listWith(overlayMarkup({ live: true }));
+    const toggleOnly = listWith(overlayMarkup({ live: true, applied: "toggle" }));
+    const trackerOnly = listWith(overlayMarkup({ live: true, applied: "tracker" }));
+    expect(isListCardApplied(firstCard(live))).toBe(false);
+    expect(hasAppliedCheck(live)).toBe(false);
+    expect(hasAppliedState(live)).toBe(true);
+    expect(hasAppTracker(live)).toBe(true);
+    expect(appliedStateFromHtml(live, JOB)).toMatchObject({ marked: true, canMark: false });
+    expect(appliedStateFromHtml(toggleOnly, JOB)).toMatchObject({ marked: true, canMark: false });
+    expect(appliedStateFromHtml(trackerOnly, JOB)).toMatchObject({ marked: true, canMark: false });
+    expect(appliedFromCandidateTexts(["Applied", "App Tracker"])).toBe(true);
+    expect(appliedFromCandidateTexts([APP_TRACKER_TEXT])).toBe(true);
+    expect(appliedFromCandidateTexts([APPLIED_TOGGLE_TEXT])).toBe(true);
+    expect(appliedFromCandidateTexts([MARK_APPLIED_TEXT, "Save"])).toBe(false);
+    expect(appliedFromCandidateTexts([])).toBe(false);
+    expect(hasMarkAppliedControl(live)).toBe(false);
   });
 
   test("reads Applied ✓ only on the matched card, not a sibling", () => {
@@ -363,8 +412,130 @@ describe("markAppliedOnCard", () => {
       readPage: harness.readPage,
     });
     expect(result.marked).toBe(false);
-    expect(result.reason).toBe("no Applied ✓, toast, or stage 200");
-    expect(result.log).toContain("not marked applied: no Applied ✓, toast, or stage 200");
+    expect(result.reason).toBe(NOT_MARKED_REASON.NOT_CONFIRMED);
+    expect(result.log).toContain(`not marked applied: ${NOT_MARKED_REASON.NOT_CONFIRMED}`);
+  });
+
+  test("does not click when the live overlay already shows Applied and App Tracker", async () => {
+    const harness = markHarness({ htmlAfterHover: listWith(overlayMarkup({ live: true })) });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result).toMatchObject({ marked: true, already: true });
+    expect(harness.ops.some((op) => op.op === "hoverClick")).toBe(false);
+    expect(harness.ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(
+      false,
+    );
+  });
+
+  test("treats overlay candidates Applied and App Tracker as already marked", async () => {
+    const ops = [];
+    const result = await markAppliedOnCard({
+      job: JOB,
+      skipDelays: true,
+      call: async (op, payload = {}) => {
+        ops.push({ op, ...payload });
+        if (op === "overlayTarget") {
+          return { found: false, candidates: [APPLIED_TOGGLE_TEXT, APP_TRACKER_TEXT] };
+        }
+        if (op === "hoverClick" || (op === "click" && payload.contains === MARK_APPLIED_TEXT)) {
+          throw new Error("must not click — overlay already Applied");
+        }
+        return { found: true };
+      },
+      readPage: async () => ({
+        html: listWith(""),
+        url: "https://hiringcafe.com/classic",
+        status: 200,
+      }),
+    });
+    expect(result).toMatchObject({ marked: true, already: true });
+    expect(ops.some((op) => op.op === "hoverClick")).toBe(false);
+    expect(ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(false);
+  });
+
+  test("confirms from live Applied and App Tracker without toast or stage 200", async () => {
+    const harness = markHarness({
+      htmlAfterClick: listWith(overlayMarkup({ live: true })),
+      fetchHits: [],
+    });
+    const result = await markAppliedOnCard({
+      job: JOB,
+      call: harness.call,
+      skipDelays: true,
+      readPage: harness.readPage,
+    });
+    expect(result.marked).toBe(true);
+    expect(result.already).toBeUndefined();
+  });
+
+  test("confirms when post-click overlay candidates flip to Applied", async () => {
+    let clicked = false;
+    const result = await markAppliedOnCard({
+      job: JOB,
+      skipDelays: true,
+      call: async (op, payload = {}) => {
+        if (op === "overlayTarget") {
+          return clicked
+            ? { found: false, candidates: [APPLIED_TOGGLE_TEXT, APP_TRACKER_TEXT] }
+            : { found: true, candidates: [MARK_APPLIED_TEXT] };
+        }
+        if (op === "hoverClick") {
+          clicked = true;
+          return { found: true, hovered: true, pressed: true, candidates: [MARK_APPLIED_TEXT] };
+        }
+        if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
+          throw new Error("second click must not run");
+        }
+        if (op === "watchedFetches") return { hits: [] };
+        return { found: true };
+      },
+      readPage: async () => ({
+        html: listWith(overlayMarkup()),
+        url: "https://hiringcafe.com/classic",
+        status: 200,
+      }),
+    });
+    expect(result.marked).toBe(true);
+    expect(result.already).toBeUndefined();
+  });
+
+  test("does not click a second time when hoverClick misses and verification is unclear", async () => {
+    const ops = [];
+    const result = await markAppliedOnCard({
+      job: JOB,
+      skipDelays: true,
+      call: async (op, payload = {}) => {
+        ops.push({ op, ...payload });
+        if (op === "overlayTarget") return { found: true, candidates: [MARK_APPLIED_TEXT] };
+        if (op === "hoverClick") {
+          return {
+            found: false,
+            hovered: true,
+            pressed: false,
+            diagnosticsText: "overlay=no candidates=Mark Applied",
+            candidates: [MARK_APPLIED_TEXT],
+          };
+        }
+        if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
+          throw new Error("second click must not run when verification is unclear");
+        }
+        if (op === "watchedFetches") return { hits: [] };
+        return { found: true };
+      },
+      readPage: async () => ({
+        html: listWith(overlayMarkup()),
+        url: "https://hiringcafe.com/classic",
+        status: 200,
+      }),
+    });
+    expect(result.marked).toBe(false);
+    expect(result.reason).toBe(NOT_MARKED_REASON.CLICK_MISSED);
+    expect(ops.filter((op) => op.op === "hoverClick")).toHaveLength(1);
+    expect(ops.some((op) => op.op === "click" && op.contains === MARK_APPLIED_TEXT)).toBe(false);
   });
 
   test("pauses when the sign-in wall is showing", async () => {
@@ -437,6 +608,22 @@ describe("markAppliedOnDetail", () => {
     const result = await markAppliedOnDetail({
       job: JOB,
       call: async () => ({ found: true }),
+      skipDelays: true,
+      readPage: async () => ({ html, url: "https://hiringcafe.com/job/x", status: 200 }),
+    });
+    expect(result).toMatchObject({ marked: true, already: true, via: "detail" });
+  });
+
+  test("treats live Applied and App Tracker on the detail page as already marked", async () => {
+    const html = listWith(overlayMarkup({ live: true }));
+    const result = await markAppliedOnDetail({
+      job: JOB,
+      call: async (op, payload = {}) => {
+        if (op === "click" && payload.contains === MARK_APPLIED_TEXT) {
+          throw new Error("must not click — detail already Applied");
+        }
+        return { found: true };
+      },
       skipDelays: true,
       readPage: async () => ({ html, url: "https://hiringcafe.com/job/x", status: 200 }),
     });
@@ -596,7 +783,7 @@ describe("resolveMarkAfterDetail", () => {
         marked: false,
         via: "detail",
         reason: NOT_MARKED_REASON.NOT_CONFIRMED,
-        log: "Job reqaaa1111111111 not marked applied: no Applied ✓, toast, or stage 200",
+        log: `Job reqaaa1111111111 not marked applied: ${NOT_MARKED_REASON.NOT_CONFIRMED}`,
       },
       { job: JOB, call: harness.call, skipDelays: true, readPage: harness.readPage },
     );
@@ -627,7 +814,7 @@ describe("resolveMarkAfterDetail", () => {
         marked: false,
         via: "detail",
         reason: NOT_MARKED_REASON.NOT_CONFIRMED,
-        log: "Job reqaaa1111111111 not marked applied: no Applied ✓, toast, or stage 200",
+        log: `Job reqaaa1111111111 not marked applied: ${NOT_MARKED_REASON.NOT_CONFIRMED}`,
       },
       { job: JOB, call: harness.call, skipDelays: true, readPage: harness.readPage },
     );
