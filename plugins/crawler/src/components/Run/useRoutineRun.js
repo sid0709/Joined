@@ -27,7 +27,9 @@ import {
 } from "./routineRunSession";
 import {
   addRecentJob,
+  applyPaceUpdate,
   fieldStatus,
+  paceAfterStart,
   pendingFields,
   recordFieldHit,
   updateRecentJob,
@@ -328,25 +330,7 @@ export function useRoutineRun() {
       },
       onRecord: submitJob,
       onPace: (next) => {
-        setPace((current) => {
-          const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
-          const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
-          const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
-          const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
-          const markReasons = [...(current?.markReasons ?? [])];
-          if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
-          return {
-            ...current,
-            ...next,
-            hearted,
-            notHearted,
-            marked,
-            notMarked,
-            markReasons,
-            heartDelta: undefined,
-            markDelta: undefined,
-          };
-        });
+        setPace((current) => applyPaceUpdate(current, next));
       },
       onNotice: (message, ok) => {
         if (!ok) {
@@ -411,7 +395,7 @@ export function useRoutineRun() {
   }, [status]);
 
   /** Start running `routine` in `tab`. The caller has already checked startBlocker. */
-  const start = async (tab, routine) => {
+  const start = async (tab, routine, options = {}) => {
     setIsStarting(true);
     try {
       targetRef.current = { tab, routine };
@@ -435,7 +419,11 @@ export function useRoutineRun() {
       setProgress(0);
       setActivity(null);
       setElapsedMs(0);
-      setPace(null);
+      setPace((current) =>
+        paceAfterStart(current, {
+          resetHearts: Boolean(options.resetHearts) || status !== RUN_STATUS.STOPPED,
+        }),
+      );
       setWarning(null);
       setExtractError(null);
       applyQueueSnapshot(cleared?.state);

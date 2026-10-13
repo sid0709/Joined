@@ -109,7 +109,7 @@ export const NEXT_DISABLED_VALUE = "true";
 export const NEXT_DISABLED_CLASS = "disabled";
 export const START_FROM_PAGE_1_LABEL = "Start from page 1";
 export const START_FROM_PAGE_1_HINT =
-  "Clears builtinCrawlCursorV2 to page 1, card 1, and keeps the stored filtered list URL.";
+  "Clears builtinCrawlCursorV2 to page 1, card 1, keeps the stored filtered list URL, and starts the run.";
 export const CLEAR_HANDLED_LABEL = "Clear saved job IDs";
 export const CLEAR_HANDLED_CONFIRM =
   "Clear locally remembered Built In job IDs? The next run will reopen jobs already scraped.";

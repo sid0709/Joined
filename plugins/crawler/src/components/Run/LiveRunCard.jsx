@@ -57,7 +57,6 @@ function blockReasons(pace) {
 }
 
 function PaceStats({ pace, routine }) {
-  if (!pace) return null;
   const showRate = hasRunStat(routine, RUN_STAT.JOBS_PER_SECOND);
   const showConcurrency = hasRunStat(routine, RUN_STAT.CONCURRENCY);
   const showCursor = hasRunStat(routine, RUN_STAT.CURSOR);
@@ -69,7 +68,7 @@ function PaceStats({ pace, routine }) {
   if (!showRate && !showConcurrency && !showCursor && !showBlocks && !showHearts && !showMarked) {
     return null;
   }
-  if (!showRate && !showConcurrency && !cursor && !pace.blockCount && !showHearts && !showMarked) {
+  if (!showRate && !showConcurrency && !cursor && !pace?.blockCount && !showHearts && !showMarked) {
     return null;
   }
   return (
@@ -80,28 +79,28 @@ function PaceStats({ pace, routine }) {
       {showHearts ? (
         <Badge
           variant="neutral"
-          label={heartedCountLabel(pace.hearted ?? 0, pace.notHearted ?? 0)}
+          label={heartedCountLabel(pace?.hearted ?? 0, pace?.notHearted ?? 0)}
           description="List-card hearts this run"
         />
       ) : null}
       {showMarked ? (
         <Badge
           variant="neutral"
-          label={markedCountLabel(pace.marked ?? 0, pace.notMarked ?? 0)}
-          description={markedReasonsLabel(pace.markReasons) || "Mark Applied this run"}
+          label={markedCountLabel(pace?.marked ?? 0, pace?.notMarked ?? 0)}
+          description={markedReasonsLabel(pace?.markReasons) || "Mark Applied this run"}
         />
       ) : null}
       {showRate ? (
         <Badge
           variant="blue"
-          label={`${pace.jobsPerSecond ?? 0} jobs/s`}
+          label={`${pace?.jobsPerSecond ?? 0} jobs/s`}
           description="Live ingest pace"
         />
       ) : null}
       {showConcurrency ? (
         <Badge
           variant="neutral"
-          label={`${pace.concurrency ?? 0} concurrent`}
+          label={`${pace?.concurrency ?? 0} concurrent`}
           description="Current fetch concurrency"
         />
       ) : null}

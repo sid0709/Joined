@@ -128,3 +128,46 @@ export function startBlocker({
   if (!routine) return `No routine runs on ${hostOf(tab.url)} yet.`;
   return null;
 }
+
+export const EMPTY_PACE_COUNTS = Object.freeze({
+  hearted: 0,
+  notHearted: 0,
+  marked: 0,
+  notMarked: 0,
+  markReasons: Object.freeze([]),
+});
+
+/** Keep hearted/marked counts on resume; zero them for a new run. */
+export function paceAfterStart(current, { resetHearts = false } = {}) {
+  if (resetHearts || !current) {
+    return { ...EMPTY_PACE_COUNTS, markReasons: [] };
+  }
+  return {
+    hearted: current.hearted ?? 0,
+    notHearted: current.notHearted ?? 0,
+    marked: current.marked ?? 0,
+    notMarked: current.notMarked ?? 0,
+    markReasons: [...(current.markReasons ?? [])],
+  };
+}
+
+/** Merge a pass pace snapshot without dropping run-long heart/mark totals. */
+export function applyPaceUpdate(current, next) {
+  const hearted = (current?.hearted ?? 0) + (next.heartDelta?.hearted ?? 0);
+  const notHearted = (current?.notHearted ?? 0) + (next.heartDelta?.notHearted ?? 0);
+  const marked = (current?.marked ?? 0) + (next.markDelta?.marked ?? 0);
+  const notMarked = (current?.notMarked ?? 0) + (next.markDelta?.notMarked ?? 0);
+  const markReasons = [...(current?.markReasons ?? [])];
+  if (next.markDelta?.reason) markReasons.push(next.markDelta.reason);
+  return {
+    ...current,
+    ...next,
+    hearted,
+    notHearted,
+    marked,
+    notMarked,
+    markReasons,
+    heartDelta: undefined,
+    markDelta: undefined,
+  };
+}

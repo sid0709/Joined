@@ -10,11 +10,14 @@ import {
 
 import {
   addRecentJob,
+  applyPaceUpdate,
+  EMPTY_PACE_COUNTS,
   fieldRunSummary,
   fieldStatus,
   hitRate,
   isActiveQueueRun,
   outcomeSegments,
+  paceAfterStart,
   pendingFields,
   RECENT_JOBS_LIMIT,
   recordFieldHit,
@@ -152,5 +155,28 @@ describe("run state", () => {
     expect(startBlocker({ ...ready, routine: null, tab: { id: 1, url: "nope" } })).toBe(
       "No routine runs on this page yet.",
     );
+  });
+
+  test("keeps hearted counts on resume and zeros them for a new run", () => {
+    const prior = { hearted: 35, notHearted: 3, marked: 0, notMarked: 0, markReasons: [] };
+    expect(paceAfterStart(prior)).toEqual(prior);
+    expect(paceAfterStart(prior, { resetHearts: true })).toEqual({
+      ...EMPTY_PACE_COUNTS,
+      markReasons: [],
+    });
+    expect(paceAfterStart(null)).toEqual({
+      ...EMPTY_PACE_COUNTS,
+      markReasons: [],
+    });
+    expect(applyPaceUpdate(prior, { page: 3, card: "9256204" })).toMatchObject({
+      page: 3,
+      card: "9256204",
+      hearted: 35,
+      notHearted: 3,
+    });
+    expect(applyPaceUpdate(prior, { heartDelta: { hearted: 1, notHearted: 0 } })).toMatchObject({
+      hearted: 36,
+      notHearted: 3,
+    });
   });
 });
