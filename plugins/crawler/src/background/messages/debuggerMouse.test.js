@@ -8,7 +8,6 @@ import {
   emulateBackgroundFocus,
   ensureDebugger,
   hasDebuggerApi,
-  layoutZoomOf,
   mouseMoved,
   mousePressed,
   mouseReleased,
@@ -297,20 +296,58 @@ describe("debugger mouse events", () => {
     expect(result.diagnosticsText).toContain("overlay=no");
   });
 
-  test("scales CDP coordinates by Page.getLayoutMetrics zoom", async () => {
-    expect(layoutZoomOf({ cssVisualViewport: { scale: 0.83 } })).toBe(0.83);
+  test("keeps CSS-pixel CDP coords at 90%, 100%, and 110% zoom and with the side panel", async () => {
+    const point = { x: 100, y: 200 };
+    expect(toCdpPoint(point)).toEqual(point);
+    for (const scale of [0.9, 1, 1.1]) {
+      expect(
+        toCdpPoint(point, {
+          cssVisualViewport: {
+            scale,
+            clientWidth: 1280 / scale,
+            offsetX: 0,
+            offsetY: 0,
+            pageX: 0,
+            pageY: 0,
+          },
+          cssLayoutViewport: { clientWidth: 1280 / scale, pageX: 0, pageY: 0 },
+        }),
+      ).toEqual(point);
+    }
     expect(
-      layoutZoomOf({
-        cssVisualViewport: { clientWidth: 1280, scale: 1 },
-        cssLayoutViewport: { clientWidth: 1534 },
+      toCdpPoint(point, {
+        cssVisualViewport: {
+          scale: 1,
+          clientWidth: 980,
+          offsetX: 0,
+          offsetY: 0,
+          pageX: 0,
+          pageY: 0,
+        },
+        cssLayoutViewport: { clientWidth: 980, pageX: 0, pageY: 0 },
       }),
-    ).toBeCloseTo(1280 / 1534);
-    expect(toCdpPoint({ x: 100, y: 200 }, 0.83)).toEqual({ x: 83, y: 166 });
+    ).toEqual(point);
+    expect(
+      toCdpPoint(point, {
+        cssVisualViewport: { offsetX: 12, offsetY: 8, pageX: 40, pageY: 10 },
+        cssLayoutViewport: { pageX: 40, pageY: 0 },
+      }),
+    ).toEqual({ x: 88, y: 182 });
     const debug = chromeDebugger();
     debug.sendCommand = async (_target, method, params) => {
       debug.commands.push({ method, params });
       if (method === "Page.getLayoutMetrics") {
-        return { cssVisualViewport: { clientWidth: 1280, scale: 0.83 } };
+        return {
+          cssVisualViewport: {
+            scale: 0.9,
+            clientWidth: 1422,
+            offsetX: 0,
+            offsetY: 0,
+            pageX: 0,
+            pageY: 0,
+          },
+          cssLayoutViewport: { clientWidth: 1422, pageX: 0, pageY: 0 },
+        };
       }
     };
     await dispatchTrustedMouse(
@@ -325,8 +362,34 @@ describe("debugger mouse events", () => {
       },
     );
     expect(debug.commands.filter((item) => item?.method === "Input.dispatchMouseEvent")).toEqual([
-      { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 83, y: 166 }) },
+      { method: "Input.dispatchMouseEvent", params: mouseMoved({ x: 100, y: 200 }) },
     ]);
+  });
+
+  test("marks a press throw so routine exec does not fall back to synthetic hover", async () => {
+    const debug = chromeDebugger();
+    debug.sendCommand = async (_target, method, params) => {
+      debug.commands.push({ method, params });
+      if (method === "Input.dispatchMouseEvent" && params.type === "mousePressed") {
+        throw new Error("press failed");
+      }
+    };
+    await expect(
+      dispatchTrustedMouse(
+        7,
+        { op: "hoverClick", selector: ".card", offsets: [{ x: 100, y: 100 }] },
+        {
+          chromeDebugger: debug,
+          tabs: tabsIo({ active: false }),
+          sendToContentScript: async (_tabId, message) => {
+            if (message.payload.op === "hoverTarget") {
+              return { result: { found: true, x: 12, y: 18, approach: [{ x: 12, y: 18 }] } };
+            }
+            return { result: { found: true, x: 20, y: 30 } };
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ message: "press failed", pressed: true });
   });
 
   test("hover-only sends the approach mouseMoved sequence and keeps the session", async () => {

@@ -77,35 +77,28 @@ export async function releaseDebugger(tabId, chromeDebugger = defaultChromeDebug
   return { detached: true };
 }
 
-export function layoutZoomOf(metrics, fallback = 1) {
+/**
+ * CDP `Input.dispatchMouseEvent` is already CSS pixels. Do not scale by browser
+ * zoom. Only shift by cssVisualViewport pinch offsets and pageX/pageY.
+ */
+export function toCdpPoint(point, metrics) {
+  const x = Number(point?.x) || 0;
+  const y = Number(point?.y) || 0;
   const visual = metrics?.cssVisualViewport;
+  if (!visual) return { x, y };
   const layout = metrics?.cssLayoutViewport;
-  const scale = Number(visual?.scale);
-  if (Number.isFinite(scale) && scale > 0 && Math.abs(scale - 1) > 0.01) return scale;
-  const visualWidth = Number(visual?.clientWidth);
-  const layoutWidth = Number(layout?.clientWidth);
-  if (visualWidth > 0 && layoutWidth > 0 && Math.abs(visualWidth / layoutWidth - 1) > 0.01) {
-    return visualWidth / layoutWidth;
-  }
-  const fallbackZoom = Number(fallback);
-  return Number.isFinite(fallbackZoom) && fallbackZoom > 0 ? fallbackZoom : 1;
+  const pinchX = Number(visual.offsetX) || 0;
+  const pinchY = Number(visual.offsetY) || 0;
+  const pageDx = (Number(visual.pageX) || 0) - (Number(layout?.pageX) || 0);
+  const pageDy = (Number(visual.pageY) || 0) - (Number(layout?.pageY) || 0);
+  return { x: x - pinchX - pageDx, y: y - pinchY - pageDy };
 }
 
-export function toCdpPoint(point, zoom = 1) {
-  const factor = Number(zoom);
-  const scale = Number.isFinite(factor) && factor > 0 ? factor : 1;
-  return {
-    x: (Number(point?.x) || 0) * scale,
-    y: (Number(point?.y) || 0) * scale,
-  };
-}
-
-async function pageLayoutZoom(send, fallback = 1) {
+async function pageLayoutMetrics(send) {
   try {
-    const metrics = await send("Page.getLayoutMetrics");
-    return { zoom: layoutZoomOf(metrics, fallback), metrics };
+    return (await send("Page.getLayoutMetrics")) || null;
   } catch {
-    return { zoom: fallback, metrics: null };
+    return null;
   }
 }
 
@@ -180,18 +173,17 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
   let pressed = false;
   let diagnosticsText = "";
   let diagnostics = null;
-  const layout = await pageLayoutZoom(send, 1);
+  const metrics = await pageLayoutMetrics(send);
   for (const offset of offsets) {
     const hover = await hoverTargetOf(tabId, { ...payload, ...offset }, sendToContentScript);
     diagnosticsText = hover?.diagnosticsText || diagnosticsText;
     diagnostics = hover?.diagnostics || diagnostics;
-    const zoom = layoutZoomOf(layout.metrics, hover?.diagnostics?.zoom || layout.zoom);
     if (!hover?.found) continue;
     hovered = true;
     const path = Array.isArray(hover.approach) && hover.approach.length ? hover.approach : [hover];
     await moveAlong(
       send,
-      path.map((point) => toCdpPoint(point, zoom)),
+      path.map((point) => toCdpPoint(point, metrics)),
     );
     if (payload.op !== "hoverClick") {
       return { found: true, hovered: true, pressed: false, diagnostics, diagnosticsText };
@@ -201,13 +193,18 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
       ...(hover.diagnostics || diagnostics || {}),
       overlay: Boolean(overlay?.found),
       candidates: overlay?.candidates || hover.diagnostics?.candidates || [],
-      zoom,
     };
     diagnosticsText = formatHoverDiagnostics(diagnostics);
     if (!overlay?.found) continue;
-    const clickAt = toCdpPoint(overlay, zoom);
+    const clickAt = toCdpPoint(overlay, metrics);
     await send("Input.dispatchMouseEvent", mouseMoved(clickAt));
-    await send("Input.dispatchMouseEvent", mousePressed(clickAt));
+    try {
+      await send("Input.dispatchMouseEvent", mousePressed(clickAt));
+    } catch (error) {
+      const next = error instanceof Error ? error : new Error(String(error));
+      next.pressed = true;
+      throw next;
+    }
     pressed = true;
     try {
       await send("Input.dispatchMouseEvent", mouseReleased(clickAt));

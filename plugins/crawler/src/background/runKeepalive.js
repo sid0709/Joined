@@ -1,5 +1,7 @@
 /* global chrome */
 
+import { listBoundTabs } from "./boundTab.js";
+
 export const RUN_KEEPALIVE_PORT = "routine:keepalive";
 export const RUN_KEEPALIVE_ALARM = "crawlerRunKeepalive";
 export const RUN_KEEPALIVE_PERIOD_MINUTES = 1;
@@ -36,6 +38,7 @@ export function handleKeepaliveConnect(port) {
   startRunKeepalive();
   port.onDisconnect.addListener(() => {
     ports.delete(port);
+    stopRunKeepaliveIfIdle(undefined, listBoundTabs().length);
   });
   return true;
 }

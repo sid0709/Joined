@@ -52,22 +52,24 @@ function cardDocument({ overlay = true, width = 320, height = 220, left = 20, to
       right: left + width - 8,
       bottom: top + 32,
     });
+    document.elementFromPoint = (x, y) => {
+      const rect = mark.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return mark;
+      return document.body;
+    };
+  } else {
+    document.elementFromPoint = () => document.body;
   }
-  return { document, card };
+  return { document, card, mark };
 }
 
 describe("pageZoomOf", () => {
-  test("reads pinch-zoom scale and outer/inner browser zoom", () => {
+  test("reads pinch-zoom scale and ignores outer/inner browser zoom", () => {
     expect(pageZoomOf()).toBe(1);
-    expect(pageZoomOf({ visualViewport: { scale: 0.83, width: 1280 }, innerWidth: 1534 })).toBe(
-      0.83,
-    );
-    expect(pageZoomOf({ visualViewport: { scale: 1, width: 1280 }, innerWidth: 1534 })).toBeCloseTo(
-      1280 / 1534,
-    );
+    expect(pageZoomOf({ visualViewport: { scale: 0.9 } })).toBe(0.9);
     expect(
-      pageZoomOf({ visualViewport: { scale: 1, width: 1534 }, innerWidth: 1534, outerWidth: 1280 }),
-    ).toBeCloseTo(1280 / 1534);
+      pageZoomOf({ visualViewport: { scale: 1, width: 1280 }, innerWidth: 1534, outerWidth: 1280 }),
+    ).toBe(1);
   });
 });
 
@@ -215,6 +217,18 @@ describe("overlayTargetInDocument", () => {
     ).toMatchObject({ found: false });
   });
 
+  test("returns found false when elementFromPoint misses the Mark Applied control", () => {
+    const { document } = cardDocument();
+    expect(
+      overlayTargetInDocument(
+        document,
+        { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
+        { width: 800, height: 600 },
+        () => document.body,
+      ),
+    ).toMatchObject({ found: false, hit: { tag: "BODY" } });
+  });
+
   test("finds a live button.bg-white Mark Applied without a div.bg-white selector", () => {
     const { document } = parseHTML(`<!DOCTYPE html><html><body>
       <div data-testid="job-results"><div class="hc-card-grid">
@@ -233,6 +247,7 @@ describe("overlayTargetInDocument", () => {
       right: 280,
       bottom: 60,
     });
+    document.elementFromPoint = () => button;
     expect(
       overlayTargetInDocument(
         document,

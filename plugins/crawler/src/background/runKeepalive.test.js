@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
+import { resetBoundTabs } from "./boundTab.js";
 import {
   RUN_KEEPALIVE_ALARM,
   RUN_KEEPALIVE_PERIOD_MINUTES,
@@ -14,6 +15,7 @@ import {
 
 beforeEach(() => {
   resetRunKeepalive();
+  resetBoundTabs();
 });
 
 function alarmsIo() {
@@ -59,6 +61,22 @@ describe("run keepalive", () => {
     expect(keepalivePortCount()).toBe(0);
     expect(stopRunKeepaliveIfIdle(undefined, 0)).toEqual({ cleared: true });
     expect(alarms.calls.some((call) => call[0] === "clear")).toBe(true);
+    delete globalThis.chrome;
+  });
+
+  test("clears the alarm on panel disconnect when no tabs are bound", () => {
+    const alarms = alarmsIo();
+    globalThis.chrome = { alarms };
+    const listeners = [];
+    const port = {
+      name: RUN_KEEPALIVE_PORT,
+      onDisconnect: { addListener: (fn) => listeners.push(fn) },
+    };
+    expect(handleKeepaliveConnect(port)).toBe(true);
+    expect(keepalivePortCount()).toBe(1);
+    listeners[0]();
+    expect(keepalivePortCount()).toBe(0);
+    expect(alarms.calls).toContainEqual(["clear", RUN_KEEPALIVE_ALARM]);
     delete globalThis.chrome;
   });
 

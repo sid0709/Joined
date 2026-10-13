@@ -54,20 +54,11 @@ export function viewportOf(explicit) {
   return visualViewportOf(window);
 }
 
-/** Browser zoom and pinch-zoom. `innerWidth` grows when Chrome zoom is under 100%. */
+/** Pinch-zoom scale only. Browser zoom is CSS pixels; do not use outer/inner width. */
 export function pageZoomOf(win = typeof window === "undefined" ? undefined : window) {
   if (!win) return 1;
-  const visual = win.visualViewport;
-  const scale = Number(visual?.scale);
-  if (Number.isFinite(scale) && scale > 0 && Math.abs(scale - 1) > 0.01) return scale;
-  const inner = Number(win.innerWidth);
-  const visualWidth = Number(visual?.width);
-  if (inner > 0 && visualWidth > 0 && Math.abs(visualWidth / inner - 1) > 0.01) {
-    return visualWidth / inner;
-  }
-  const outer = Number(win.outerWidth);
-  if (inner > 0 && outer > 0 && Math.abs(outer / inner - 1) > 0.01) return outer / inner;
-  return 1;
+  const scale = Number(win.visualViewport?.scale);
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
 }
 
 export function visualViewportOf(win = typeof window === "undefined" ? undefined : window) {
@@ -358,6 +349,7 @@ export function overlayTargetInDocument(
   root,
   { selector, clickSelector, nth = 0, contains, exact = false } = {},
   viewport,
+  elementFromPoint,
 ) {
   const card = queryAll(root, selector)[nth];
   const candidates = overlayCandidateTexts(card);
@@ -372,7 +364,13 @@ export function overlayTargetInDocument(
     });
   }
   if (!target) return { found: false, candidates };
-  return { found: true, candidates, ...pointFromRect(rectOf(target), viewport) };
+  const point = pointFromRect(rectOf(target), viewport);
+  const node = elementFromPointOf(root, elementFromPoint)(point.x, point.y);
+  const inside = Boolean(node && (node === target || target.contains?.(node)));
+  if (!inside) {
+    return { found: false, candidates, hit: describeHit(node) };
+  }
+  return { found: true, candidates, ...point };
 }
 
 export async function waitForOverlayTarget(root, payload = {}, now = Date.now) {
