@@ -11,7 +11,6 @@ import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
 import {
   RoutineBlockedError,
   RoutineFinishedError,
-  RoutineStepError,
   RoutineStoppedError,
 } from "../../routineKit/runner.js";
 
@@ -34,6 +33,7 @@ import {
   MAX_PAGE,
   NAVIGATE_WAIT_MS,
   PAGE_DELAY_MS,
+  PAGE_STUCK_AFTER_NEXT_MESSAGE,
   PAGE_UNPROCESSED_MESSAGE,
   RETRY_PAUSE_MS,
   SIGN_IN_TO_SAVE_MESSAGE,
@@ -49,14 +49,8 @@ import { jobCardSelector, jobSaveSelector } from "./cssEscape.js";
 import { isJobDetailReady } from "./detailReady.js";
 import { cardsAfterCursor, isJobHandled } from "./handled.js";
 import { isHeartSaved, isListCardSaved } from "./heart.js";
-import {
-  advanceCursor,
-  canAdvanceBuiltinPage,
-  cardIdKey,
-  crawlListUrl,
-  emptyCursor,
-  listUrlForPage,
-} from "./lists.js";
+import { advanceCursor, canAdvanceBuiltinPage, cardIdKey, cursorForTab } from "./lists.js";
+import { clickNextPage, openListForCursor, rememberObservedListUrl } from "./paginate.js";
 import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { isSignedOutSession } from "./signedOut.js";
@@ -81,7 +75,7 @@ function warnIfPageEmpty(hooks, page, cardCount) {
 }
 
 async function finishIfNothingLeft(store, parsed, pageIds, lastPageIds) {
-  if ((!parsed.nextPageUrl && parsed.cards.length === 0) || (pageIds && pageIds === lastPageIds)) {
+  if (!parsed.hasNextPage && (parsed.cards.length === 0 || (pageIds && pageIds === lastPageIds))) {
     await store.clearCursor();
     throw new RoutineFinishedError("Nothing left to process on Built In");
   }
@@ -140,9 +134,6 @@ function sameUrl(left, right) {
 
 async function readVisiblePage(call) {
   const result = await call("html");
-  if (!result?.html && !detectPageBlock(result).blocked) {
-    throw new RoutineStepError("The page did not return HTML");
-  }
   return {
     html: result?.html || "",
     url: result?.url || "",
@@ -152,10 +143,58 @@ async function readVisiblePage(call) {
 
 async function ensureCursor(store, tab) {
   const existing = await store.loadCursor();
-  if (existing?.lists?.length) return existing;
-  const cursor = emptyCursor([crawlListUrl(tab.url)]);
-  await store.saveCursor(cursor);
+  const cursor = cursorForTab(tab.url, existing);
+  if (cursor !== existing) await store.saveCursor(cursor);
   return cursor;
+}
+
+async function finishOrAdvanceListPage({
+  store,
+  parsed,
+  pageIds,
+  listPageUrl,
+  cursor,
+  handledIds,
+  clickNext,
+  pause,
+}) {
+  const allHandled =
+    parsed.cards.length > 0 && parsed.cards.every((item) => isJobHandled(item, handledIds));
+  if (
+    !canAdvanceBuiltinPage({
+      cardCount: parsed.cards.length,
+      pageProcessed: cursor.pageProcessed ?? 0,
+      allHandled,
+    })
+  ) {
+    if (parsed.cards.length === 0 && !parsed.hasNextPage) {
+      await store.clearCursor();
+      throw new RoutineFinishedError("Nothing left to process on Built In");
+    }
+    throw new RoutineBlockedError(
+      parsed.cards.length === 0 ? emptyPageLabel(cursor.page) : PAGE_UNPROCESSED_MESSAGE,
+    );
+  }
+  if (!parsed.hasNextPage) {
+    await store.clearCursor();
+    throw new RoutineFinishedError("Nothing left to process on Built In");
+  }
+  const moved = await clickNext({
+    previousPageIds: pageIds,
+    previousUrl: listPageUrl,
+  });
+  if (!moved?.found) {
+    await store.clearCursor();
+    throw new RoutineFinishedError("Nothing left to process on Built In");
+  }
+  if (!moved.advanced) {
+    throw new RoutineBlockedError(PAGE_STUCK_AFTER_NEXT_MESSAGE);
+  }
+  let next = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
+  next = rememberObservedListUrl(next, moved.page?.url || "");
+  await store.saveCursor(next);
+  await pause(PAGE_DELAY_MS);
+  return { cursor: next, page: moved.page };
 }
 
 /** Parse, report fields, and enqueue. Skips stay on the caller so the cursor can move. */
@@ -204,7 +243,7 @@ export async function extractOpenedJob(ctx, progress, card, detailPage, handledI
 
 /**
  * One visible job: navigate the same tab to the card href, read the job page,
- * enqueue, then return to ?page=N and click that list-card heart. Never fetches
+ * enqueue, then restore the exact stored list URL and click that list-card heart. Never fetches
  * in the background. A block backs off and resumes; a timeout is retried.
  * 403 / 429 / captcha back off without limit. Repeated sign-in redirects,
  * a signed-out save wall, or N dead-page failures (404/410 or the page never
@@ -342,6 +381,28 @@ export async function runBuiltInPass(ctx, progress) {
     return page;
   };
 
+  const clickNext = (previous) =>
+    clickNextPage({
+      call,
+      readPage: () => readVisiblePage(call),
+      rest,
+      skipDelays,
+      checkStopped: ctx.checkStopped,
+      onActivity: hooks.onActivity,
+      ...previous,
+    });
+
+  const openList = (label, phase, alreadyOpen) =>
+    openListForCursor({
+      cursor,
+      openVisible,
+      clickNext,
+      alreadyOpen,
+      label,
+      phase,
+      pause,
+    });
+
   const queryHeart = (jobId) =>
     call("shadow", { host: jobSaveSelector(jobId), inner: HEART_INNER, action: "query" });
 
@@ -403,6 +464,7 @@ export async function runBuiltInPass(ctx, progress) {
   const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
   progress.tick();
   cursor = await ensureCursor(store, tab);
+  let pendingListPage = null;
 
   for (;;) {
     ctx.checkStopped();
@@ -410,23 +472,28 @@ export async function runBuiltInPass(ctx, progress) {
       await store.clearCursor();
       throw new RoutineFinishedError("Built In crawl hit the page cap");
     }
-    const listUrl = cursor.lists[cursor.listIndex];
+    const listUrl = cursor.lists[cursor.listIndex] || cursor.startUrl;
     if (!listUrl) {
       await store.clearCursor();
       throw new RoutineFinishedError("Nothing left to process on Built In");
     }
 
-    const pageUrl = listUrlForPage(listUrl, cursor.page);
     hooks.onActivity?.({
       phase: "open",
       label: `Page ${cursor.page}`,
       kind: "waitFor",
     });
     emitCursor();
-    const listPage = await openVisible(pageUrl, `Opening page ${cursor.page}`);
-    if (await handleBlock(listPage, pageUrl)) continue;
+    const listPage = await openList(`Opening page ${cursor.page}`, "open", pendingListPage);
+    pendingListPage = null;
+    if (await handleBlock(listPage, listPage.url || listUrl)) continue;
+    const observed = rememberObservedListUrl(cursor, listPage.url || listUrl);
+    if (observed !== cursor) {
+      cursor = observed;
+      await store.saveCursor(cursor);
+    }
 
-    const parsed = parseList(listPage.html, listPage.url || pageUrl);
+    const parsed = parseList(listPage.html, listPage.url || listUrl);
     const pageIds = cardIdKey(parsed.cards);
     warnIfPageEmpty(hooks, cursor.page, parsed.cards.length);
     await finishIfNothingLeft(store, parsed, pageIds, cursor.lastPageIds);
@@ -435,30 +502,18 @@ export async function runBuiltInPass(ctx, progress) {
     const card = await pickNextCard(parsed.cards, cursor.lastJobId);
 
     if (!card) {
-      const allHandled =
-        parsed.cards.length > 0 && parsed.cards.every((item) => isJobHandled(item, handledIds));
-      if (
-        !canAdvanceBuiltinPage({
-          cardCount: parsed.cards.length,
-          pageProcessed: cursor.pageProcessed ?? 0,
-          allHandled,
-        })
-      ) {
-        if (parsed.cards.length === 0 && !parsed.nextPageUrl) {
-          await store.clearCursor();
-          throw new RoutineFinishedError("Nothing left to process on Built In");
-        }
-        throw new RoutineBlockedError(
-          parsed.cards.length === 0 ? emptyPageLabel(cursor.page) : PAGE_UNPROCESSED_MESSAGE,
-        );
-      }
-      if (!parsed.nextPageUrl) {
-        await store.clearCursor();
-        throw new RoutineFinishedError("Nothing left to process on Built In");
-      }
-      cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
-      await store.saveCursor(cursor);
-      await pause(PAGE_DELAY_MS);
+      const advanced = await finishOrAdvanceListPage({
+        store,
+        parsed,
+        pageIds,
+        listPageUrl: listPage.url || listUrl,
+        cursor,
+        handledIds,
+        clickNext,
+        pause,
+      });
+      cursor = advanced.cursor;
+      pendingListPage = advanced.page;
       continue;
     }
 
@@ -477,14 +532,15 @@ export async function runBuiltInPass(ctx, progress) {
     }
     noteCardDecision(card.id, CARD_DECISION_OPENED, "open", "click");
 
+    const returnToList = () => openList("Returning to job list", "settle");
     const opened = await openVisible(card.url, "Opening job");
     if (await handleBlock(opened, card.url)) {
-      await openVisible(pageUrl, "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
     const detailPage = await waitForDetailReady();
     if (await handleBlock(detailPage, card.url)) {
-      await openVisible(pageUrl, "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
 
@@ -503,19 +559,19 @@ export async function runBuiltInPass(ctx, progress) {
       noteCardDecision(jobId, CARD_SKIP_DETAIL_SAVED);
       await markJob(jobId);
       if (extracted.detailId !== jobId) await markJob(extracted.detailId);
-      await openVisible(pageUrl, "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
     if (extracted.skipped) {
       await advancePast(jobId);
-      await openVisible(pageUrl, "Returning to job list", "settle");
+      await returnToList();
       continue;
     }
     await markJob(jobId);
     if (extracted.detailId !== jobId) await markJob(extracted.detailId);
 
-    const listAfter = await openVisible(pageUrl, "Returning to job list", "settle");
-    if (await handleBlock(listAfter, pageUrl)) {
+    const listAfter = await returnToList();
+    if (await handleBlock(listAfter, listAfter.url || listUrl)) {
       backoff.onSuccess();
       progress.tick();
       return;

@@ -10,11 +10,18 @@ import {
 
 import {
   addRecentJob,
+  applyPaceUpdate,
+  EMPTY_PACE_COUNTS,
   fieldRunSummary,
   fieldStatus,
   hitRate,
   isActiveQueueRun,
+  isStoppedOrBlocked,
+  keepsPaceOnResume,
   outcomeSegments,
+  paceAfterStart,
+  runStatusMeta,
+  statsAfterStart,
   pendingFields,
   RECENT_JOBS_LIMIT,
   recordFieldHit,
@@ -152,5 +159,65 @@ describe("run state", () => {
     expect(startBlocker({ ...ready, routine: null, tab: { id: 1, url: "nope" } })).toBe(
       "No routine runs on this page yet.",
     );
+  });
+
+  test("keeps hearted counts on resume and zeros them for a new run", () => {
+    const prior = { hearted: 35, notHearted: 3, marked: 0, notMarked: 0, markReasons: [] };
+    expect(paceAfterStart(prior)).toEqual(prior);
+    expect(paceAfterStart(prior, { resetHearts: true })).toEqual({
+      ...EMPTY_PACE_COUNTS,
+      markReasons: [],
+    });
+    expect(paceAfterStart(null)).toEqual({
+      ...EMPTY_PACE_COUNTS,
+      markReasons: [],
+    });
+    expect(applyPaceUpdate(prior, { page: 3, card: "9256204" })).toMatchObject({
+      page: 3,
+      card: "9256204",
+      hearted: 35,
+      notHearted: 3,
+    });
+    expect(applyPaceUpdate(prior, { heartDelta: { hearted: 1, notHearted: 0 } })).toMatchObject({
+      hearted: 36,
+      notHearted: 3,
+    });
+    expect(
+      applyPaceUpdate(prior, { markDelta: { marked: 1, notMarked: 0, reason: "applied" } }),
+    ).toMatchObject({
+      marked: 1,
+      notMarked: 0,
+      markReasons: ["applied"],
+    });
+    expect(keepsPaceOnResume("stopped")).toBe(true);
+    expect(keepsPaceOnResume("blocked")).toBe(true);
+    expect(keepsPaceOnResume("idle")).toBe(false);
+    expect(keepsPaceOnResume("finished")).toBe(false);
+    expect(paceAfterStart(prior, { resetHearts: !keepsPaceOnResume("blocked") })).toEqual(prior);
+  });
+
+  test("keeps result counters on STOPPED or BLOCKED resume and zeros them for a new run", () => {
+    const prior = {
+      registered: 3,
+      duplicate: 1,
+      validation: 0,
+      blocked: 0,
+      failed: 0,
+    };
+    expect(statsAfterStart(prior)).toEqual(prior);
+    expect(statsAfterStart(prior, { reset: !keepsPaceOnResume("stopped") })).toEqual(prior);
+    expect(statsAfterStart(prior, { reset: !keepsPaceOnResume("blocked") })).toEqual(prior);
+    expect(statsAfterStart(prior, { reset: true })).toEqual(createScrapeRunStats());
+    expect(statsAfterStart(null)).toEqual(createScrapeRunStats());
+    expect(statsAfterStart(prior, { reset: !keepsPaceOnResume("idle") })).toEqual(
+      createScrapeRunStats(),
+    );
+    expect(isStoppedOrBlocked("stopped")).toBe(true);
+    expect(isStoppedOrBlocked("blocked")).toBe(true);
+    expect(isStoppedOrBlocked("running")).toBe(false);
+    expect(runStatusMeta("stopped").title).toBe("Stopped");
+    expect(runStatusMeta("blocked").title).toBe("Blocked");
+    expect(runStatusMeta("running").title).toBe("Running");
+    expect(runStatusMeta("idle").title).toBe("Stopped");
   });
 });

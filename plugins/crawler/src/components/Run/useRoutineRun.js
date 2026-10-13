@@ -39,17 +39,21 @@ import {
 import {
   addRecentJob,
   fieldStatus,
+  keepsPaceOnResume,
+  paceAfterStart,
   pendingFields,
+  statsAfterStart,
   recordFieldHit,
   updateRecentJob,
 } from "./runState";
 
-/** Run states: "idle" (never run), "running", "finished" (nothing left), "stopped". */
+/** Run states: "idle", "running", "finished", "stopped", "blocked" (PAGE_STUCK / sign-in). */
 export const RUN_STATUS = Object.freeze({
   IDLE: "idle",
   RUNNING: "running",
   FINISHED: "finished",
   STOPPED: "stopped",
+  BLOCKED: "blocked",
 });
 
 const INGEST_ACCEPT_TIMEOUT_MS = 20_000;
@@ -380,7 +384,7 @@ export function useRoutineRun() {
       onBlocked: (message) => {
         setWarning(message);
         notification.warning(message, { key: "run-blocked", autoHideDuration: 8000 });
-        endRun(RUN_STATUS.STOPPED);
+        endRun(RUN_STATUS.BLOCKED);
       },
       recordOutcome,
       notifyFailure,
@@ -435,7 +439,7 @@ export function useRoutineRun() {
   }, [status, endRun]);
 
   /** Start running `routine` in `tab`. The caller has already checked startBlocker. */
-  const start = async (tab, routine) => {
+  const start = async (tab, routine, options = {}) => {
     setIsStarting(true);
     try {
       targetRef.current = { tab, routine };
@@ -458,7 +462,8 @@ export function useRoutineRun() {
         action: "scrapeQueue:clear",
         payload: { runId: previousRunId, beginRunId: runIdRef.current },
       }).catch(() => null);
-      setRunStats(createScrapeRunStats());
+      const resetTotals = Boolean(options.resetHearts) || !keepsPaceOnResume(status);
+      setRunStats((current) => statsAfterStart(current, { reset: resetTotals }));
       setQueueCounts(EMPTY_QUEUE);
       setRecentJobs([]);
       setFieldHits({});
@@ -468,7 +473,7 @@ export function useRoutineRun() {
       setProgress(0);
       setActivity(null);
       setElapsedMs(0);
-      setPace(null);
+      setPace((current) => paceAfterStart(current, { resetHearts: resetTotals }));
       setWarning(null);
       setExtractError(null);
       applyQueueSnapshot(cleared?.state);

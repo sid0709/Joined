@@ -96,6 +96,7 @@ function normalizeCursor(raw) {
     lastPageIds: raw.lastPageIds ? String(raw.lastPageIds) : "",
     pageProcessed,
     lists,
+    startUrl: raw.startUrl ? String(raw.startUrl) : lists[0] || "",
   };
 }
 
@@ -136,6 +137,7 @@ export function createBuiltinStore(storage = chromeLocal()) {
         lastPageIds: cursor.lastPageIds || "",
         pageProcessed: cursor.pageProcessed ?? 0,
         lists: cursor.lists ?? [],
+        startUrl: cursor.startUrl || cursor.lists?.[0] || "",
         writtenBy: packageJson.version,
       });
     },
@@ -143,10 +145,13 @@ export function createBuiltinStore(storage = chromeLocal()) {
       await writeKey(storage, CURSOR_STORAGE_KEY_V1, null);
       return writeKey(storage, CURSOR_STORAGE_KEY, null);
     },
-    /** Start from page 1: drop V1 and write a page-1 V2 cursor. */
+    /** Start from page 1: drop V1 and keep the stored filtered list URL. */
     async resetToPage1() {
+      const current = await this.loadCursor();
+      const startUrl = current?.startUrl || current?.lists?.[0] || "";
+      const lists = startUrl ? [startUrl] : [];
       await writeKey(storage, CURSOR_STORAGE_KEY_V1, null);
-      return this.saveCursor(emptyCursor());
+      return this.saveCursor(emptyCursor(lists, startUrl));
     },
     async clearHandled() {
       return writeKey(storage, HANDLED_STORAGE_KEY, {});
