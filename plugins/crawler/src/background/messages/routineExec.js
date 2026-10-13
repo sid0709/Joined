@@ -6,6 +6,7 @@ import { BoundTabError, resolveBoundTab } from "../boundTab.js";
 import { sendToContentScript } from "../tabs.js";
 
 import { dispatchTrustedMouse, ensureDebugger, releaseDebugger } from "./debuggerMouse.js";
+import { closeDetailTabs, openDetailTabs } from "./detailTabs.js";
 import {
   clearFetchWatchInMainWorld,
   installFetchWatchInMainWorld,
@@ -31,6 +32,8 @@ const defaultIo = {
   readFetchWatchInMainWorld,
   clearFetchWatchInMainWorld,
   handleSleep,
+  openDetailTabs,
+  closeDetailTabs,
 };
 
 function shadowHosts(payload) {
@@ -56,6 +59,8 @@ function isHiringCafeTab(tabUrl) {
 async function releaseDebuggerAfterTabGone(message, error, sendResponse, io) {
   const op = message.payload?.op;
   const tabId = Number(message.tabId ?? message.payload?.tabId);
+  // The crawl tab is gone: its job tabs have no run left to read them.
+  await (io.closeDetailTabs ?? closeDetailTabs)(tabId).catch(() => {});
   if (op === "detachDebugger" || op === "abortFetches") {
     if (op === "abortFetches") io.abortInFlightNavigate?.(tabId);
     const result = await (io.releaseDebugger ?? releaseDebugger)(tabId).catch(() => ({
@@ -104,6 +109,7 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
     }
     if (op === "abortFetches") {
       io.abortInFlightNavigate?.(tab.id);
+      await (io.closeDetailTabs ?? closeDetailTabs)(tab.id).catch(() => {});
       await (io.releaseDebugger ?? releaseDebugger)(tab.id, io.chromeDebugger).catch(() => {});
     }
     if (op === "attachDebugger") {
@@ -117,6 +123,11 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
     }
     if (op === "detachDebugger") {
       const result = await (io.releaseDebugger ?? releaseDebugger)(tab.id, io.chromeDebugger);
+      sendResponse({ success: true, result });
+      return;
+    }
+    if (op === "openDetailTabs") {
+      const result = await (io.openDetailTabs ?? openDetailTabs)(tab, message.payload);
       sendResponse({ success: true, result });
       return;
     }

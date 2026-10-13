@@ -254,6 +254,61 @@ describe("handleRoutineExec", () => {
     expect(result).toEqual({ success: true, result: { aborted: true } });
   });
 
+  test("opens job tabs beside the crawl tab and Stop closes them", async () => {
+    const opened = [];
+    const closed = [];
+    const tabsIo = {
+      resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic", windowId: 2 }),
+      openDetailTabs: async (owner, payload) => {
+        opened.push({ owner: owner.id, urls: payload.urls });
+        return { pages: [] };
+      },
+      closeDetailTabs: async (tabId) => closed.push(tabId),
+      releaseDebugger: async () => ({ detached: true }),
+      sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
+    };
+    const result = await exec(
+      { payload: { op: "openDetailTabs", urls: ["https://hiringcafe.com/job/a-1"] } },
+      io(tabsIo),
+    );
+    expect(result).toEqual({ success: true, result: { pages: [] } });
+    expect(opened).toEqual([{ owner: 3, urls: ["https://hiringcafe.com/job/a-1"] }]);
+    await exec({ payload: { op: "abortFetches" } }, io(tabsIo));
+    expect(closed).toEqual([3]);
+  });
+
+  test("closes job tabs even when closing or releasing the debugger fails", async () => {
+    const closed = [];
+    const failing = {
+      closeDetailTabs: async (tabId) => {
+        closed.push(tabId);
+        throw new Error("tabs gone");
+      },
+      releaseDebugger: async () => {
+        throw new Error("debugger gone");
+      },
+    };
+    const gone = await exec(
+      { tabId: 9, payload: { op: "abortFetches" } },
+      io({
+        ...failing,
+        resolveBoundTab: async () => {
+          throw new BoundTabError("The crawl tab was closed. The run stopped.");
+        },
+      }),
+    );
+    expect(gone).toEqual({ success: true, result: { detached: true } });
+    const live = await exec(
+      { payload: { op: "abortFetches" } },
+      io({
+        ...failing,
+        sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
+      }),
+    );
+    expect(live).toEqual({ success: true, result: { aborted: true } });
+    expect(closed).toEqual([9, 4]);
+  });
+
   test("attaches the debugger on HiringCafe only", async () => {
     const attached = [];
     const result = await exec(

@@ -6,6 +6,7 @@ import {
   DEFAULT_BACKOFF_MAX_MS,
 } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
+import { DETAIL_TAB_BATCH } from "../../routineKit/detailTabs.js";
 import { RoutineBlockedError, RoutineFinishedError } from "../../routineKit/runner.js";
 
 import { isHiringCafeSignedOut } from "./appliedState.js";
@@ -25,7 +26,6 @@ import {
   NOT_MARKED_REASON,
   INVALID_STREAK,
   INVALID_STREAK_MESSAGE,
-  JOB_DELAY_MS,
   MAX_PAGE,
   PAGE_DELAY_MS,
   SIGN_IN_TO_MARK_MESSAGE,
@@ -40,6 +40,7 @@ import {
   notMarkedLog,
   stuckPageMessage,
 } from "./constants.js";
+import { fetchHiringCafeDetails } from "./detailTabs.js";
 import { expandShortGroups } from "./expandGroups.js";
 import { isJobHandled, jobsAfterCursor } from "./handled.js";
 import {
@@ -51,12 +52,7 @@ import {
   listUrlForPage,
   sameListFilters,
 } from "./lists.js";
-import {
-  markAppliedOnCard,
-  markAppliedOnDetail,
-  readAppliedOnCard,
-  resolveMarkAfterDetail,
-} from "./markApplied.js";
+import { markAppliedOnCard, readAppliedOnCard } from "./markApplied.js";
 import { clickNextPage } from "./nextPage.js";
 import {
   createOpenVisible,
@@ -218,6 +214,48 @@ export async function pickNextJob({
   return null;
 }
 
+/**
+ * Up to `limit` jobs after the cursor, in page order, using the same skips as
+ * pickNextJob. A challenge before the first pick stops the batch.
+ */
+export async function pickJobBatch({ jobs, lastJobId, limit, ...pickArgs }) {
+  const picked = [];
+  let after = lastJobId;
+  while (picked.length < limit) {
+    const job = await pickNextJob({ ...pickArgs, jobs, lastJobId: after });
+    if (job?.challenge) return picked.length ? { jobs: picked } : { challenge: true, jobs: [] };
+    if (!job) break;
+    picked.push(job);
+    after = job.id;
+  }
+  return { jobs: picked };
+}
+
+/** Report fields, then send every decided record at once and wait for each accept. */
+async function submitBatch(ctx, progress, outcomes) {
+  const submits = outcomes.filter((outcome) => outcome.action === "submit");
+  for (const outcome of submits) await reportDeclaredFields(ctx, progress, outcome.record);
+  if (submits.length) {
+    ctx.hooks.onActivity?.({ phase: "submit", label: `Saving ${submits.length} records` });
+  }
+  await Promise.all(
+    submits.map(async (outcome) => {
+      try {
+        outcome.accepted = await ctx.hooks.onRecord?.(outcome.record);
+      } catch (error) {
+        if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
+          outcome.action = "invalid";
+          outcome.issues = error.issues?.length ? error.issues : outcome.issues;
+          return;
+        }
+        outcome.error = error;
+      }
+    }),
+  );
+  const failed = submits.find((outcome) => outcome.error);
+  if (failed) throw failed.error;
+}
+
 function markDeltaOf(result) {
   if (result?.challenge) {
     return { marked: 0, notMarked: 0, reason: "", log: result.log || "" };
@@ -247,30 +285,6 @@ function ingestSkipOf(accepted) {
     decision: CARD_SKIP_INGEST_NOT_ACCEPTED,
     reason: NOT_MARKED_REASON.NOT_ACCEPTED,
   };
-}
-
-async function finishMarkOnList({
-  marked,
-  emitCursor,
-  jobId,
-  jobIndex,
-  jobsOnPage,
-  backoff,
-  pause,
-  progress,
-}) {
-  emitCursor({
-    card: jobId,
-    cardIndex: jobIndex,
-    cardsOnPage: jobsOnPage,
-    jobIndex,
-    jobsOnPage,
-    markDelta: markDeltaOf(marked),
-  });
-  if (marked.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
-  backoff.onSuccess();
-  await pause(JOB_DELAY_MS);
-  progress.tick();
 }
 
 /**
@@ -435,6 +449,137 @@ export async function runHiringCafePass(ctx, progress) {
     await store.saveCursor(cursor);
   };
 
+  // Decide every job in page order. A job missing from `fetched` (challenge,
+  // timeout) opens in the crawl tab, where the user can clear a challenge.
+  const decideBatch = async (jobs, fetched, jobsOnPage, jobIndexOf) => {
+    const outcomes = [];
+    let leftList = false;
+    for (const job of jobs) {
+      ctx.checkStopped();
+      const jobIndex = jobIndexOf(job.id);
+      emitCursor({
+        card: job.id,
+        cardIndex: jobIndex,
+        cardsOnPage: jobsOnPage,
+        jobIndex,
+        jobsOnPage,
+      });
+      if (job.markOnly) {
+        outcomes.push({ job, action: "mark" });
+        continue;
+      }
+      if (!job.url) {
+        noteJobDecision(job.id, CARD_SKIP_NO_URL);
+        outcomes.push({ job, action: "advance" });
+        continue;
+      }
+      noteJobDecision(job.id, CARD_DECISION_OPENED, "open", "click");
+      let detailPage = fetched.get(job.id);
+      if (!detailPage) {
+        leftList = true;
+        const opened = await openVisible(job.url, "Opening job");
+        if (await handleBlock(opened, job.url)) break;
+        detailPage = await waitForDetailReady();
+        if (await handleBlock(detailPage, job.url)) break;
+      }
+      const detail = parseDetail(detailPage.html, detailPage.url || job.url, {
+        companyName: job.companyName,
+        applyUrl: job.applyUrl,
+        postedRaw: job.postedRaw,
+        cardHref: job.url,
+      });
+      const detailId = detail.meta.id || job.id;
+      if (isJobHandled({ id: detailId }, handledIds)) {
+        noteJobDecision(job.id, CARD_SKIP_DETAIL_HANDLED);
+        hooks.recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
+        outcomes.push({ job, action: "handled", detailId });
+        continue;
+      }
+      const record = jobRecord(detail);
+      const ready = recordReadyToEnqueue(record);
+      if (!ready.ok && ready.reason === "metadata-size") {
+        noteJobDecision(job.id, CARD_SKIP_METADATA_SIZE);
+        outcomes.push({ job, action: "advance" });
+        continue;
+      }
+      if (ready.issues.length) {
+        outcomes.push({ job, action: "invalid", issues: ready.issues });
+        continue;
+      }
+      outcomes.push({ job, action: "submit", record, detailId, issues: ready.issues });
+    }
+    return { outcomes, leftList };
+  };
+
+  // Move the cursor job by job in page order, marking Applied as it goes.
+  const settleBatch = async (outcomes, { canMark, jobsOnPage, jobIndexOf }) => {
+    for (const outcome of outcomes) {
+      ctx.checkStopped();
+      const { job } = outcome;
+      const jobIndex = jobIndexOf(job.id);
+      if (outcome.action === "advance") {
+        await advancePast(job.id);
+        continue;
+      }
+      if (outcome.action === "invalid") {
+        invalidStreak = nextInvalidStreak(invalidStreak);
+        noteJobDecision(job.id, cardInvalidDecision(outcome.issues));
+        await advancePast(job.id);
+        continue;
+      }
+      if (outcome.action === "submit" && outcome.accepted !== true) {
+        const { decision, reason } = ingestSkipOf(outcome.accepted);
+        const log = notMarkedLog(job.id, reason);
+        noteJobDecision(job.id, decision);
+        hooks.onNotice?.(log, false);
+        hooks.recordOutcome?.(SCRAPE_OUTCOMES.FAILED);
+        emitCursor({
+          card: job.id,
+          cardIndex: jobIndex,
+          cardsOnPage: jobsOnPage,
+          jobIndex,
+          jobsOnPage,
+          markDelta: { marked: 0, notMarked: 1, reason, log },
+        });
+        await advancePast(job.id);
+        continue;
+      }
+      if (outcome.action === "submit") invalidStreak = 0;
+      if (outcome.action === "mark") {
+        await advancePast(job.id);
+      } else {
+        await markJob(job.id);
+        if (outcome.detailId && outcome.detailId !== job.id) await markJob(outcome.detailId);
+      }
+      if (!canMark) continue;
+      hooks.onActivity?.({
+        phase: "open",
+        label: `Page ${displayPage(cursor.page)} · job ${jobIndex} of ${jobsOnPage}`,
+        kind: "click",
+      });
+      await call("highlight", { selector: jobCardSelector(job) }).catch(() => {});
+      const marked = await markAppliedOnCard({
+        job,
+        call,
+        rest,
+        skipDelays,
+        onActivity: hooks.onActivity,
+        onNotice: hooks.onNotice,
+        readPage,
+        enabled: markAppliedEnabled,
+      });
+      emitCursor({
+        card: job.id,
+        cardIndex: jobIndex,
+        cardsOnPage: jobsOnPage,
+        jobIndex,
+        jobsOnPage,
+        markDelta: markDeltaOf(marked),
+      });
+      if (marked.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
+    }
+  };
+
   hooks.onActivity?.({ phase: "open", label: "Loading job list", kind: "waitFor" });
   await ensureMarkDebugger(call, markAppliedEnabled);
   const tab = await withRetry(() => readVisiblePage(call), START_PAGE_KEY);
@@ -479,13 +624,17 @@ export async function runHiringCafePass(ctx, progress) {
     warnGroupShortfalls(hooks, parsed.shortfalls);
     await finishIfNothingLeft(store, parsed, pageIds, cursor.lastPageIds);
 
-    const job = await pickNextJob({
+    const batch = await pickJobBatch({
       jobs: parsed.jobs,
       lastJobId: cursor.lastJobId,
+      limit: DETAIL_TAB_BATCH,
       handledIds,
       noteJobDecision,
       recordOutcome: hooks.recordOutcome,
-      markJob,
+      // Applied cards found while picking count as handled; the cursor moves after the batch.
+      markJob: async (jobId) => {
+        handledIds = await store.markHandled(jobId, handledIds);
+      },
       markAppliedEnabled,
       emitCursor,
       readApplied: (candidate) =>
@@ -497,180 +646,32 @@ export async function runHiringCafePass(ctx, progress) {
           readPage,
         }),
     });
-    if (await skipPickedChallenge(job, pageUrl, pageIds, parsed)) continue;
+    const firstPick = batch.challenge ? { challenge: true } : (batch.jobs[0] ?? null);
+    if (await skipPickedChallenge(firstPick, pageUrl, pageIds, parsed)) continue;
 
-    const jobIndex = parsed.jobs.findIndex((item) => item.id === job.id) + 1;
-    emitCursor({
-      card: job.id,
-      cardIndex: jobIndex,
-      cardsOnPage: parsed.jobs.length,
-      jobIndex,
-      jobsOnPage: parsed.jobs.length,
-    });
-    hooks.onActivity?.({
-      phase: "open",
-      label: `Page ${displayPage(cursor.page)} · job ${jobIndex} of ${parsed.jobs.length}`,
-      kind: "click",
-    });
-    await call("highlight", { selector: jobCardSelector(job) }).catch(() => {});
-    const markArgs = {
-      job,
+    const jobsOnPage = parsed.jobs.length;
+    const jobIndexOf = (jobId) => parsed.jobs.findIndex((item) => item.id === jobId) + 1;
+    const fetched = await fetchHiringCafeDetails({
       call,
-      rest,
-      skipDelays,
+      jobs: batch.jobs.filter((job) => !job.markOnly),
       onActivity: hooks.onActivity,
-      onNotice: hooks.onNotice,
-      readPage,
-      enabled: markAppliedEnabled,
-    };
-    if (job.markOnly) {
-      // One attempt per job: a failed mark must not re-pick this card every pass.
-      await advancePast(job.id);
-      await finishMarkOnList({
-        marked: await markAppliedOnCard(markArgs),
-        emitCursor,
-        jobId: job.id,
-        jobIndex,
-        jobsOnPage: parsed.jobs.length,
-        backoff,
-        pause,
-        progress,
-      });
-      return;
-    }
-    if (!job.url) {
-      noteJobDecision(job.id, CARD_SKIP_NO_URL);
-      await advancePast(job.id);
-      continue;
-    }
-    noteJobDecision(job.id, CARD_DECISION_OPENED, "open", "click");
-
-    const opened = await openVisible(job.url, "Opening job");
-    if (await handleBlock(opened, job.url)) {
-      await openVisible(pageUrl, "Returning to job list", "settle");
-      continue;
-    }
-    const detailPage = await waitForDetailReady();
-    if (await handleBlock(detailPage, job.url)) {
-      await openVisible(pageUrl, "Returning to job list", "settle");
-      continue;
-    }
-
+    });
     progress.tick();
-    const detail = parseDetail(detailPage.html, detailPage.url || job.url, {
-      companyName: job.companyName,
-      applyUrl: job.applyUrl,
-      postedRaw: job.postedRaw,
-      cardHref: job.url,
-    });
-    const jobId = job.id;
-    const detailId = detail.meta.id || job.id;
-    if (isJobHandled({ id: detailId }, handledIds)) {
-      noteJobDecision(jobId, CARD_SKIP_DETAIL_HANDLED);
-      hooks.recordOutcome?.(SCRAPE_OUTCOMES.DUPLICATE);
-      await markJob(jobId);
-      if (detailId !== jobId) await markJob(detailId);
-      const listAfterHandled = await openVisible(pageUrl, "Returning to job list", "settle");
-      if (await handleBlock(listAfterHandled, pageUrl)) {
-        backoff.onSuccess();
-        progress.tick();
-        return;
-      }
-      throwIfSignedOut(listAfterHandled.html, markAppliedEnabled);
-      await finishMarkOnList({
-        marked: await markAppliedOnCard(markArgs),
-        emitCursor,
-        jobId,
-        jobIndex,
-        jobsOnPage: parsed.jobs.length,
-        backoff,
-        pause,
-        progress,
-      });
-      return;
-    }
 
-    const record = jobRecord(detail);
-    const ready = recordReadyToEnqueue(record);
-    if (!ready.ok && ready.reason === "metadata-size") {
-      noteJobDecision(jobId, CARD_SKIP_METADATA_SIZE);
-      await advancePast(jobId);
-      await openVisible(pageUrl, "Returning to job list", "settle");
-      continue;
+    const { outcomes, leftList } = await decideBatch(batch.jobs, fetched, jobsOnPage, jobIndexOf);
+    await submitBatch(ctx, progress, outcomes);
+    // Mark Applied on the list once, card by card, moving the cursor in page order.
+    let canMark = markAppliedEnabled && outcomes.some((outcome) => outcome.action !== "advance");
+    if (canMark) {
+      const listAfter = leftList
+        ? await openVisible(pageUrl, "Returning to job list", "settle")
+        : await readPage();
+      if (await handleBlock(listAfter, pageUrl)) canMark = false;
+      else throwIfSignedOut(listAfter.html, markAppliedEnabled);
     }
-    if (ready.issues.length) {
-      invalidStreak = nextInvalidStreak(invalidStreak);
-      noteJobDecision(jobId, cardInvalidDecision(ready.issues));
-      await advancePast(jobId);
-      await openVisible(pageUrl, "Returning to job list", "settle");
-      continue;
-    }
-
-    await reportDeclaredFields(ctx, progress, record);
-    hooks.onActivity?.({ phase: "submit", label: "Saving record" });
-    let accepted;
-    try {
-      accepted = await hooks.onRecord?.(record);
-    } catch (error) {
-      if (error instanceof IncompleteJobDataError || error?.name === "IncompleteJobDataError") {
-        invalidStreak = nextInvalidStreak(invalidStreak);
-        const fields = error.issues?.length ? error.issues : ready.issues;
-        noteJobDecision(jobId, cardInvalidDecision(fields));
-        await advancePast(jobId);
-        await openVisible(pageUrl, "Returning to job list", "settle");
-        continue;
-      }
-      throw error;
-    }
-    if (accepted !== true) {
-      const { decision, reason } = ingestSkipOf(accepted);
-      const log = notMarkedLog(jobId, reason);
-      noteJobDecision(jobId, decision);
-      hooks.onNotice?.(log, false);
-      hooks.recordOutcome?.(SCRAPE_OUTCOMES.FAILED);
-      emitCursor({
-        card: jobId,
-        cardIndex: jobIndex,
-        cardsOnPage: parsed.jobs.length,
-        jobIndex,
-        jobsOnPage: parsed.jobs.length,
-        markDelta: { marked: 0, notMarked: 1, reason, log },
-      });
-      await advancePast(jobId);
-      await openVisible(pageUrl, "Returning to job list", "settle");
-      continue;
-    }
-    invalidStreak = 0;
-    await markJob(jobId);
-    if (detailId !== jobId) await markJob(detailId);
-
-    if (!markAppliedEnabled) {
-      backoff.onSuccess();
-      await pause(JOB_DELAY_MS);
-      progress.tick();
-      return;
-    }
-
-    const detailMark = await markAppliedOnDetail(markArgs);
-    if (detailMark.signedOut) throw new RoutineBlockedError(SIGN_IN_TO_MARK_MESSAGE);
-
-    const listAfter = await openVisible(pageUrl, "Returning to job list", "settle");
-    if (await handleBlock(listAfter, pageUrl)) {
-      backoff.onSuccess();
-      progress.tick();
-      return;
-    }
-    throwIfSignedOut(listAfter.html, markAppliedEnabled);
-    await finishMarkOnList({
-      marked: await resolveMarkAfterDetail(detailMark, markArgs),
-      emitCursor,
-      jobId,
-      jobIndex,
-      jobsOnPage: parsed.jobs.length,
-      backoff,
-      pause,
-      progress,
-    });
+    await settleBatch(outcomes, { canMark, jobsOnPage, jobIndexOf });
+    backoff.onSuccess();
+    progress.tick();
     return;
   }
 }
