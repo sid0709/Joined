@@ -7,9 +7,11 @@ import {
   NEXT_PAGE_LABEL,
   PAGE_DELAY_MS,
   PAGE_STUCK_AFTER_NEXT_MESSAGE,
+  WAIT_UNTIL,
 } from "./constants.js";
 import { cardIdKey, exactJobsListUrl, pageFromListUrl } from "./lists.js";
 import { parseList } from "./parseList.js";
+import { waitInPage } from "./waitInPage.js";
 
 export function firstCardId(cards) {
   return String(cards?.[0]?.id || "");
@@ -48,7 +50,12 @@ export function listResultsChanged(previous, current) {
   return false;
 }
 
+/**
+ * With `call`, the page watches for the new card set and answers at once; the poll
+ * loop runs only when the page cannot (old content script, or a full navigation).
+ */
 export async function waitForListChange({
+  call,
   readPage,
   rest,
   skipDelays,
@@ -71,6 +78,9 @@ export async function waitForListChange({
     changed: listResultsChanged(previous, { pageIds: snapshot.pageIds, url: snapshot.page.url }),
   });
   if (skipDelays) return withChange(await readParsed());
+  if (call && (await waitInPage(call, WAIT_UNTIL.LIST_CHANGE, { previousPageIds }, timeoutMs))) {
+    return withChange(await readParsed());
+  }
   const deadline = now() + timeoutMs;
   while (now() < deadline) {
     checkStopped();
@@ -105,6 +115,7 @@ export async function clickNextPage({
 }) {
   onActivity?.({ phase: "open", label: NEXT_PAGE_LABEL, kind: "click" });
   const waitArgs = {
+    call,
     readPage,
     rest,
     skipDelays,

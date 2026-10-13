@@ -7,6 +7,8 @@ const REAL_DOM_DIR = join(dirname(fileURLToPath(import.meta.url)), "real-dom");
 export const REAL_DOM_FILES = Object.freeze([
   "card-unapplied-hover.html",
   "card-applied-hover.html",
+  "card-unapplied-rest.html",
+  "card-applied-rest.html",
   "elementsFromPoint.txt",
   "diagnostics.txt",
   "diagnostics-264-265.txt",
@@ -26,6 +28,18 @@ export const APPLIED_JOB = Object.freeze({
   url: "https://hiringcafe.com/job/community-health-worker-whole-systems-learning-long-beach-california-6wfmqg0lc17jeb8e",
   cardHref:
     "https://hiringcafe.com/job/community-health-worker-whole-systems-learning-long-beach-california-6wfmqg0lc17jeb8e",
+});
+
+/** Resting (unhovered) cards: Show job 2 of Hennepin is not applied; Show job 1 of Cognizant is. */
+export const UNAPPLIED_REST_JOB = Object.freeze({
+  id: "03bavaf39orwqbpi",
+  cardHref:
+    "https://hiringcafe.com/job/paramedic-emergency-medical-services-hennepin-healthcare-minneapolis-03bavaf39orwqbpi",
+});
+
+export const APPLIED_REST_JOB = Object.freeze({
+  id: "vgidu65etwiwcx7w",
+  cardHref: "https://hiringcafe.com/job/architect-cognizant-united-states-vgidu65etwiwcx7w",
 });
 
 /** Live list card and panel from run 266. */

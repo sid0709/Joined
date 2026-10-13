@@ -4,7 +4,7 @@ import {
   RELEASE_MARK_LINK_OP,
 } from "../../contentScript/actions/markLinkGuard.js";
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
-import { MARK_OVERLAY_WAIT_MS } from "../../routines/hiringcafe/constants.js";
+import { MARK_OVERLAY_WAIT_MS, UNHOVER_POINT } from "../../routines/hiringcafe/constants.js";
 
 const DEBUGGER_PROTOCOL_VERSION = "1.3";
 const ALREADY_ATTACHED_RE = /already attached/i;
@@ -196,6 +196,10 @@ export async function dispatchTrustedMouse(tabId, payload, io = {}) {
   await emulateBackgroundFocus(tabId, chromeDebugger);
   const target = { tabId };
   const send = (method, params) => chromeDebugger.sendCommand(target, method, params);
+  if (payload.op === "unhover") {
+    await send("Input.dispatchMouseEvent", mouseMoved(UNHOVER_POINT));
+    return { moved: true };
+  }
   const offsets = hoverOffsets(payload);
   let hovered = false;
   let pressed = false;

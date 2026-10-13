@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   BOUND_TAB_CLOSED_MESSAGE,
   BOUND_TAB_MISSING_MESSAGE,
+  NAVIGATE_UNTIL_DOM_READY,
   ROUTINE_OP_ACTION,
 } from "../../routineKit/protocol.js";
 import { BUILTIN_HOSTS } from "../../routines/builtin/constants.js";
@@ -101,16 +102,30 @@ describe("handleRoutineExec", () => {
   test("navigates the bound tab", async () => {
     const calls = [];
     const result = await exec(
-      { payload: { op: "navigate", url: "https://builtin.com/jobs?page=2", timeout: 9 } },
+      {
+        payload: {
+          op: "navigate",
+          url: "https://builtin.com/jobs?page=2",
+          timeout: 9,
+          until: NAVIGATE_UNTIL_DOM_READY,
+        },
+      },
       io({
-        navigateTab: async (tabId, url, timeout) => {
-          calls.push({ tabId, url, timeout });
+        navigateTab: async (tabId, url, timeout, until) => {
+          calls.push({ tabId, url, timeout, until });
           return { url };
         },
       }),
     );
     expect(result).toEqual({ success: true, result: { url: "https://builtin.com/jobs?page=2" } });
-    expect(calls).toEqual([{ tabId: 4, url: "https://builtin.com/jobs?page=2", timeout: 9 }]);
+    expect(calls).toEqual([
+      {
+        tabId: 4,
+        url: "https://builtin.com/jobs?page=2",
+        timeout: 9,
+        until: NAVIGATE_UNTIL_DOM_READY,
+      },
+    ]);
   });
 
   test("clicks the heart in the MAIN world on Built In", async () => {

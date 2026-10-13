@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  BUILTIN_WAIT_OP,
   LIST_CHANGE_POLL_MS,
   NEXT_PAGE,
   NEXT_PAGE_LABEL,
   PAGE_DELAY_MS,
   PAGE_STUCK_AFTER_NEXT_MESSAGE,
+  WAIT_UNTIL,
 } from "./constants.js";
 import { cardIdKey, emptyCursor } from "./lists.js";
 import {
@@ -86,6 +88,40 @@ describe("builtin click pagination", () => {
     expect(result.changed).toBe(true);
     expect(result.pageIds).toBe("22222222");
     expect(result.page.url).toBe(`${FILTERED}&page=2`);
+  });
+
+  test("lets the page watch for the new card set instead of polling", async () => {
+    const waits = [];
+    let reads = 0;
+    const result = await waitForListChange({
+      call: async (op, payload) => {
+        waits.push({ op, ...payload });
+        return { until: payload.until, matched: true };
+      },
+      readPage: async () => {
+        reads += 1;
+        return { html: PAGE_TWO_HTML, url: `${FILTERED}&page=2` };
+      },
+      rest: async () => {
+        throw new Error("no poll expected");
+      },
+      skipDelays: false,
+      checkStopped: () => {},
+      previousPageIds: LIST_PAGE_IDS,
+      previousUrl: FILTERED,
+      timeoutMs: 1_000,
+    });
+    expect(waits).toEqual([
+      {
+        op: BUILTIN_WAIT_OP,
+        until: WAIT_UNTIL.LIST_CHANGE,
+        previousPageIds: LIST_PAGE_IDS,
+        timeoutMs: 1_000,
+      },
+    ]);
+    expect(reads).toBe(1);
+    expect(result.changed).toBe(true);
+    expect(result.pageIds).toBe("22222222");
   });
 
   test("treats a pinned first card as a change when the rest of the set moves", async () => {

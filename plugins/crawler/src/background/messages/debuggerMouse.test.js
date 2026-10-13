@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import { ROUTINE_OP_ACTION } from "../../routineKit/protocol.js";
+import { UNHOVER_POINT } from "../../routines/hiringcafe/constants.js";
 
 import {
   attachDebugger,
@@ -530,5 +531,27 @@ describe("debugger mouse events", () => {
     expect(reused).toEqual({ attached: true, reused: true });
     expect(await releaseDebugger(2, debug)).toEqual({ detached: true });
     expect(debug.commands.filter((item) => item === "detach")).toHaveLength(1);
+  });
+  test("unhover parks the trusted mouse off the cards without asking the page", async () => {
+    resetDebuggerSession();
+    const debug = chromeDebugger();
+    const sent = [];
+    const result = await dispatchTrustedMouse(
+      4,
+      { op: "unhover" },
+      {
+        chromeDebugger: debug,
+        sendToContentScript: async (...args) => {
+          sent.push(args);
+          return {};
+        },
+      },
+    );
+    expect(result).toEqual({ moved: true });
+    expect(sent).toHaveLength(0);
+    const moves = debug.commands.filter((item) => item?.method === "Input.dispatchMouseEvent");
+    expect(moves).toEqual([
+      { method: "Input.dispatchMouseEvent", params: mouseMoved(UNHOVER_POINT) },
+    ]);
   });
 });

@@ -4,6 +4,9 @@ export const ROUTINE_EXEC_ACTION = "routine:exec";
 /** Background → content script: the routine op itself. */
 export const ROUTINE_OP_ACTION = "routine:op";
 
+/** `navigate` payload `until`: resolve at DOMContentLoaded instead of tab `complete`. */
+export const NAVIGATE_UNTIL_DOM_READY = "domContentLoaded";
+
 /** Side panel → background: bind this run to an exact tabId/windowId. */
 export const ROUTINE_BIND_TAB_ACTION = "routine:bindTab";
 

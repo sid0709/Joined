@@ -8,6 +8,7 @@ import {
   isTransientBlock,
 } from "../../routineKit/backoff.js";
 import { reportDeclaredFields } from "../../routineKit/declaredFields.js";
+import { NAVIGATE_UNTIL_DOM_READY } from "../../routineKit/protocol.js";
 import {
   RoutineBlockedError,
   RoutineFinishedError,
@@ -30,6 +31,7 @@ import {
   INVALID_STREAK_MESSAGE,
   JOB_DELAY_MS,
   jitterMs,
+  LIST_READY_MS,
   MAX_PAGE,
   NAVIGATE_WAIT_MS,
   PAGE_DELAY_MS,
@@ -41,6 +43,7 @@ import {
   STUCK_LOGIN_STREAK,
   STUCK_PAGE_FAILURES,
   stuckPageMessage,
+  WAIT_UNTIL,
   cardDecisionLabel,
   cardExtractFailedDecision,
   cardInvalidDecision,
@@ -55,6 +58,7 @@ import { parseDetail, requiredRecordIssues } from "./parseDetail.js";
 import { parseList } from "./parseList.js";
 import { isSignedOutSession } from "./signedOut.js";
 import { createBuiltinStore } from "./store.js";
+import { waitInPage } from "./waitInPage.js";
 
 const START_PAGE_KEY = "builtin:start";
 
@@ -354,12 +358,20 @@ export async function runBuiltInPass(ctx, progress) {
       const current = await readVisiblePage(call);
       if (sameUrl(current.url, url) && current.html) return current;
       hooks.onActivity?.({ phase, label, kind: "click" });
-      await call("navigate", { url, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
+      await call(
+        "navigate",
+        { url, timeout: NAVIGATE_WAIT_MS, until: NAVIGATE_UNTIL_DOM_READY },
+        NAVIGATE_WAIT_MS,
+      );
       return readVisiblePage(call);
     }, url);
   };
 
   const waitForDetailReady = async () => {
+    if (!skipDelays) {
+      const ready = await waitInPage(call, WAIT_UNTIL.DETAIL, {}, DETAIL_READY_MS);
+      if (ready) return readVisiblePage(call);
+    }
     let page = await readVisiblePage(call);
     if (isJobDetailReady(page.html)) return page;
     hooks.onActivity?.({
@@ -402,6 +414,13 @@ export async function runBuiltInPass(ctx, progress) {
       phase,
       pause,
     });
+
+  /** Navigation resolves at DOMContentLoaded; let Alpine and my-item hydrate before parsing. */
+  const settleList = async (page) => {
+    if (skipDelays) return page;
+    const ready = await waitInPage(call, WAIT_UNTIL.LIST_READY, {}, LIST_READY_MS);
+    return ready && !ready.immediate ? readVisiblePage(call) : page;
+  };
 
   const queryHeart = (jobId) =>
     call("shadow", { host: jobSaveSelector(jobId), inner: HEART_INNER, action: "query" });
@@ -484,7 +503,9 @@ export async function runBuiltInPass(ctx, progress) {
       kind: "waitFor",
     });
     emitCursor();
-    const listPage = await openList(`Opening page ${cursor.page}`, "open", pendingListPage);
+    const listPage = await settleList(
+      await openList(`Opening page ${cursor.page}`, "open", pendingListPage),
+    );
     pendingListPage = null;
     if (await handleBlock(listPage, listPage.url || listUrl)) continue;
     const observed = rememberObservedListUrl(cursor, listPage.url || listUrl);

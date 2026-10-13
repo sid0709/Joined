@@ -16,7 +16,7 @@ import { clickShadowInMainWorld } from "./shadowClick.js";
 import { handleSleep } from "./sleep.js";
 
 const FETCH_WATCH_OPS = new Set(["watchFetch", "watchedFetches", "unwatchFetch"]);
-const TRUSTED_MOUSE_OPS = new Set(["hover", "hoverClick"]);
+const TRUSTED_MOUSE_OPS = new Set(["hover", "hoverClick", "unhover"]);
 
 const defaultIo = {
   resolveBoundTab,
@@ -121,7 +121,8 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
       return;
     }
     if (op === "navigate") {
-      const result = await io.navigateTab(tab.id, message.payload.url, message.payload.timeout);
+      const { url, timeout, until } = message.payload;
+      const result = await io.navigateTab(tab.id, url, timeout, until);
       sendResponse({ success: true, result });
       return;
     }

@@ -14,6 +14,7 @@ import BuiltInRoutine from "./BuiltInRoutine.js";
 import {
   CHALLENGE_WAIT_LABEL,
   MARK_APPLIED_TEXT,
+  NEXT_PAGE,
   SIGN_IN_TO_MARK_MESSAGE,
   START_FROM_PAGE_ONE_LABEL,
   UPDATE_STAGE_OK,
@@ -230,6 +231,15 @@ function hiringCafeTab({
     if (op.op === "click") {
       clicks.push(op);
       const selector = String(op.selector || "");
+      if (selector.includes('aria-label="Next page"')) {
+        const next = new URL(url);
+        next.searchParams.set("page", String(Number(next.searchParams.get("page") || 0) + 1));
+        url = next.href;
+        status = 200;
+        htmlOverride = null;
+        overlay = "";
+        return { found: true };
+      }
       const show = selector.match(/Show job (\d+)/i);
       const groupIds = ["reqaaa1111111111", "reqbbb2222222222", "reqccc3333333333"];
       if (show) {
@@ -679,5 +689,36 @@ describe("HiringCafeRoutine", () => {
       { onActivity: (activity) => activities.push(activity) },
     );
     expect(activities.some((activity) => activity.label === "Page 2 has 0 jobs")).toBe(true);
+  });
+  test("clicks Next page when every job on the page is done", async () => {
+    const page = hiringCafeTab();
+    await collectJobs(createHiringCafeStore(memoryStorage()), page.exec);
+    expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
+    expect(page.navigates.some((url) => /[?&]page=1/.test(url))).toBe(false);
+  });
+
+  test("tries a mark-only job once, then moves on to the next card", async () => {
+    const store = createHiringCafeStore(memoryStorage());
+    await store.markHandled("reqaaa1111111111", await store.loadHandledIds());
+    const page = hiringCafeTab();
+    const exec = async (op) => {
+      if (op.op === "hoverClick" && /reqaaa1111111111/.test(op.selector)) {
+        return { found: true, hovered: true };
+      }
+      if (op.op === "watchedFetches") return { hits: [] };
+      return page.exec(op);
+    };
+    const markedCards = [];
+    const records = await collectJobs(store, exec, {
+      onPace: (pace) => {
+        if (!pace.markDelta) return;
+        markedCards.push(pace.card);
+        // Fail fast instead of looping forever if the cursor stops advancing.
+        if (markedCards.length > 10) throw new Error("mark-only job re-picked every pass");
+      },
+    });
+    expect(markedCards.filter((card) => card === "reqaaa1111111111")).toHaveLength(1);
+    expect(records.map((record) => record.requisitionId)).toContain("reqbbb2222222222");
+    expect(page.clicks.some((click) => click.selector === NEXT_PAGE)).toBe(true);
   });
 });

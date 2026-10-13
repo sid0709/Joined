@@ -172,6 +172,24 @@ export async function carouselToJob({ job, call, rest, skipDelays = false, readP
   return { found: shownId === job.id, shownId };
 }
 
+/**
+ * Park the trusted mouse off the cards, then read the shown job's dimmed card
+ * body. Null when the card is still hovered or has no live body, so the
+ * caller falls back to the hover overlay.
+ */
+async function readWithoutHover({ job, call, rest, skipDelays, readPage }) {
+  await call("unhover").catch(() => {});
+  await pause(rest, skipDelays, MARK_HOVER_MS);
+  const page = await readPage();
+  if (isHiringCafeChallenge(page)) return { found: false, marked: false, challenge: true, page };
+  if (isHiringCafeSignedOut(page.html)) {
+    return { found: false, marked: false, signedOut: true, page };
+  }
+  const state = appliedStateFromHtml(page.html, job);
+  if (state.dimmed == null) return null;
+  return { ...state, page, hovered: { found: state.found } };
+}
+
 export async function readAppliedOnCard({
   job,
   call,
@@ -183,6 +201,8 @@ export async function readAppliedOnCard({
   if (carousel) await carouselToJob({ job, call, rest, skipDelays, readPage });
   const selector = exactCardSelector(job);
   await call("scroll", { selector }).catch(() => {});
+  const resting = await readWithoutHover({ job, call, rest, skipDelays, readPage });
+  if (resting) return resting;
   const { hovered, state, page } = await hoverUntilOverlay({
     job,
     call,
@@ -208,6 +228,10 @@ async function confirmAfterClick({ job, call, rest, skipDelays, readPage, before
   const toast = hasMarkToast(page.html, beforeHtml);
   if (isHiringCafeSignedOut(page.html)) {
     return { marked: false, signedOut: true, toast, fetchOk };
+  }
+  const resting = await readWithoutHover({ job, call, rest, skipDelays, readPage });
+  if (resting?.marked) {
+    return { marked: true, signedOut: false, toast, fetchOk, applied: true };
   }
   const selector = exactCardSelector(job);
   await hoverCard(call, selector);

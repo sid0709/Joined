@@ -17,6 +17,10 @@ export const JOB_RESULTS = '[data-testid="job-results"]';
 export const JOB_CARD = '[data-testid="job-results"] .hc-card-grid > div';
 /** Live visual card. The hover hit walks up to this, then the overlay layer. */
 export const CARD_ROOT = "div.relative.bg-white.rounded-xl";
+/** Card body under CARD_ROOT. Gets CARD_APPLIED_DIM_CLASS when the shown job is applied. */
+export const CARD_BODY_CLASS = "md:h-[340px]";
+/** Hover dims every card the same way, so it only means Applied with no hover layer. */
+export const CARD_APPLIED_DIM_CLASS = "text-gray-400";
 export const JOB_LINK = 'a[href^="/job/"]';
 export const NEXT_DATA_SCRIPT = "#__NEXT_DATA__";
 export const JSON_LD_SCRIPT = 'script[type*="ld"]';
@@ -24,7 +28,10 @@ export const TITLE_HEADING = "h1";
 export const POSTED_CHIP = "div.absolute.top-2.right-2 span";
 export const POSTED_TEXT_RE = /posted\s+.+/i;
 
+/** Live: `<a aria-label="Next page" href="/classic?page=N">`, a full page load. */
 export const NEXT_PAGE = 'button[aria-label="Next page"], a[aria-label="Next page"]';
+export const NEXT_PAGE_LABEL = "Next page";
+export const NEXT_PAGE_POLL_MS = 200;
 /** Full-card hover chrome. Live hit walks through this before the card. */
 export const CARD_HOVER_LAYER = "div.cursor-zoom-in";
 /** Save / Mark Applied cluster. Live also has `z-10`. */
@@ -49,6 +56,8 @@ export const UPDATE_STAGE_PATH = "/api/updateMarketplaceJobStageForUser";
 export const UPDATE_STAGE_OK = "Update successful";
 export const CAROUSEL_NEXT = 'button[aria-label="Next job at this company"]';
 export const CAROUSEL_PREV = 'button[aria-label="Previous job at this company"]';
+/** Viewport point the trusted mouse parks on so no card stays hovered. */
+export const UNHOVER_POINT = Object.freeze({ x: 1, y: 1 });
 export const MARK_HOVER_OFFSET = Object.freeze({ x: 100, y: 100 });
 export const MARK_HOVER_OFFSETS = Object.freeze([
   Object.freeze({ x: 100, y: 100 }),

@@ -48,6 +48,7 @@ import {
   readAppliedOnCard,
   resolveMarkAfterDetail,
 } from "./markApplied.js";
+import { clickNextPage } from "./nextPage.js";
 import {
   createOpenVisible,
   createWaitForDetailReady,
@@ -354,6 +355,16 @@ export async function runHiringCafePass(ctx, progress) {
     cursor = { ...advanceCursor(cursor, { nextPage: true }), lastPageIds: pageIds };
     await store.saveCursor(cursor);
     await pause(PAGE_DELAY_MS);
+    // Lands on ?page=N for the next loop; if it does not, the loop opens that URL.
+    await clickNextPage({
+      call,
+      readPage,
+      rest,
+      skipDelays,
+      checkStopped: ctx.checkStopped,
+      pageIndex: cursor.page,
+      onActivity: hooks.onActivity,
+    });
     return true;
   };
 
@@ -492,6 +503,8 @@ export async function runHiringCafePass(ctx, progress) {
       enabled: markAppliedEnabled,
     };
     if (job.markOnly) {
+      // One attempt per job: a failed mark must not re-pick this card every pass.
+      await advancePast(job.id);
       await finishMarkOnList({
         marked: await markAppliedOnCard(markArgs),
         emitCursor,
