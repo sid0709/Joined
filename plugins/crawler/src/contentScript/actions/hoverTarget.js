@@ -17,6 +17,15 @@ import { wait } from "./dom";
 import { pickMatch } from "./hoverClick";
 import { scrollElementIntoView } from "./scroll";
 
+const ANCHOR = "a";
+
+function hitRevealsOverlay(node, target, card) {
+  if (!node || !target) return false;
+  if (node === target || target.contains?.(node)) return true;
+  if (node === card || !card.contains?.(node) || !node.contains?.(target)) return false;
+  return !node.closest?.(ANCHOR);
+}
+
 export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -366,13 +375,7 @@ export function overlayTargetInDocument(
   if (!target) return { found: false, candidates };
   const point = pointFromRect(rectOf(target), viewport);
   const node = elementFromPointOf(root, elementFromPoint)(point.x, point.y);
-  const inside = Boolean(
-    node &&
-    (node === target ||
-      target.contains?.(node) ||
-      (node !== card && card.contains?.(node) && node.contains?.(target))),
-  );
-  if (!inside) {
+  if (!hitRevealsOverlay(node, target, card)) {
     return { found: false, candidates, hit: describeHit(node) };
   }
   return { found: true, candidates, ...point };

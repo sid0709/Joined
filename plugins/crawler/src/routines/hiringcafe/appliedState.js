@@ -164,15 +164,19 @@ export function overlayAppliedCandidateTexts(root) {
   return overlayCandidateTexts(overlayRoot(root));
 }
 
-/** Overlay on this job's card, else that card's Mark Applied container. Never another card. */
+/**
+ * Overlay on this job's card, else Mark Applied's immediate container.
+ * With no card, never the first overlay on the page — only that container.
+ */
 export function markStateRoot(html, job = {}) {
   const document = asRoot(html);
   if (!document) return null;
   const card = cardForJob(document, job);
-  if (!card) return null;
-  const overlay = overlayRoot(card);
-  if (overlay) return overlay;
-  return findMarkAppliedControl(card)?.parentElement || null;
+  if (card) {
+    const overlay = overlayRoot(card);
+    if (overlay) return overlay;
+  }
+  return findMarkAppliedControl(card || document)?.parentElement || null;
 }
 
 export function hasMarkAppliedControl(root) {

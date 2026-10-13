@@ -368,6 +368,38 @@ describe("overlayTargetInDocument", () => {
     ).toMatchObject({ found: true, x: 240, y: 50 });
   });
 
+  test("rejects an ancestor hit when a link wraps the overlay or Mark Applied", () => {
+    const { document } = parseHTML(`<!DOCTYPE html><html><body>
+      <div data-testid="job-results"><div class="hc-card-grid">
+        <div class="job-card">
+          <a href="/job/help-desk-coordinator-reqaaa1111111111">
+            <div class="absolute top-0 right-0">
+              <button class="bg-white">Mark Applied</button>
+            </div>
+          </a>
+        </div>
+      </div></div>
+    </body></html>`);
+    const button = document.querySelector("button");
+    button.getBoundingClientRect = () => ({
+      left: 200,
+      top: 40,
+      width: 80,
+      height: 20,
+      right: 280,
+      bottom: 60,
+    });
+    const link = document.querySelector("a");
+    document.elementFromPoint = () => link;
+    expect(
+      overlayTargetInDocument(
+        document,
+        { selector: CARD, clickSelector: MARK, contains: "Mark Applied", exact: true },
+        { width: 800, height: 600 },
+      ),
+    ).toMatchObject({ found: false, hit: { tag: "A" } });
+  });
+
   test("does not treat card-wide Applied text as overlay candidates", () => {
     const { document } = parseHTML(`<!DOCTYPE html><html><body>
       <div data-testid="job-results"><div class="hc-card-grid">
