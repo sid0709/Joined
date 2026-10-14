@@ -18,6 +18,7 @@ import type { BillingSubscription, PremiumPrices } from "@/lib/billing";
 import { SETTINGS_NAV, SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings";
 import { AccountSettings } from "./account-settings";
 import { AlertSettings } from "./alert-settings";
+import { ApplySettings } from "./apply-settings";
 import { BillingSettings } from "./billing-settings";
 import { ConnectionSettings } from "./connection-settings";
 import { DangerSettings } from "./danger-settings";
@@ -53,6 +54,7 @@ export function SettingsWorkspace({
     ),
     notifications: <NotificationSettings />,
     alerts: <AlertSettings signedIn={session !== null} />,
+    applying: <ApplySettings />,
     connections: <ConnectionSettings googleEmail={googleEmail} calendarResult={calendarResult} />,
     privacy: <PrivacySettings />,
     danger: <DangerSettings session={session} />,

@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { Button, useToast } from "sid-ui";
 import type { Job } from "@/lib/jobs";
+import { jobApplyLink } from "@/lib/jobs/apply";
 import { createApplication } from "@/lib/me/pipeline";
 import { signInHref } from "@/lib/routes";
 import { ApplyDialog } from "./apply-dialog";
 import { JobReportDialog } from "./job-report-dialog";
+import { MarkAppliedDialog } from "./mark-applied-dialog";
+import { useAutoMarkApplied } from "./use-auto-mark-applied";
 
 type Options = {
   isSaved: (id: string) => boolean;
   toggleSave: (id: string) => void;
   markApplied: (id: string) => void;
+  /** Jobs already marked as applied never prompt again. */
+  isApplied?: (id: string) => boolean;
   signedIn: boolean;
   hide?: (id: string) => void;
   unhide?: (id: string) => void;
@@ -25,6 +30,7 @@ export function useJobActions({
   isSaved,
   toggleSave,
   markApplied,
+  isApplied,
   signedIn,
   hide,
   unhide,
@@ -32,6 +38,9 @@ export function useJobActions({
   const toast = useToast();
   const [applying, setApplying] = useState<Job | null>(null);
   const [reporting, setReporting] = useState<Job | null>(null);
+  const [marking, setMarking] = useState<Job | null>(null);
+  const [markPending, setMarkPending] = useState(false);
+  const [autoMark, setAutoMark] = useAutoMarkApplied();
 
   const needAccount = () => {
     window.location.assign(signInHref(window.location.pathname));
@@ -42,20 +51,12 @@ export function useJobActions({
       needAccount();
       return;
     }
-    const listing = jobLink(job);
+    const listing = jobApplyLink(job);
     if (listing) {
       window.open(listing, "_blank", "noopener,noreferrer");
-      toast({
-        body: `Opened the listing for ${job.title}. Mark it applied when you’re done.`,
-        endContent: (
-          <Button
-            label="I applied"
-            size="sm"
-            variant="ghost"
-            onClick={() => void recordExternal(job)}
-          />
-        ),
-      });
+      if (isApplied?.(job.id)) return;
+      if (autoMark) void recordExternal(job);
+      else setMarking(job);
       return;
     }
     if (job.source === "direct") {
@@ -69,13 +70,25 @@ export function useJobActions({
     try {
       await createApplication({ jobId: job.id });
       markApplied(job.id);
-      toast({ body: `Application sent to ${job.company}. Track it in My applications.` });
+      toast({ body: `Marked ${job.title} as applied. Track it in My applications.` });
+      return true;
     } catch (error) {
       toast({
         body: error instanceof Error ? error.message : "Could not record the application.",
         type: "error",
       });
+      return false;
     }
+  };
+
+  const confirmMarked = async (job: Job, remember: boolean) => {
+    setMarkPending(true);
+    const marked = await recordExternal(job);
+    setMarkPending(false);
+    if (!marked) return;
+    // Only a confirmed "Mark as applied" saves the choice; "Not now" never does.
+    if (remember) setAutoMark(true);
+    setMarking(null);
   };
 
   const save = (job: Job) => {
@@ -96,7 +109,7 @@ export function useJobActions({
   };
 
   const share = async (job: Job) => {
-    const listing = jobLink(job);
+    const listing = jobApplyLink(job);
     if (!listing) {
       toast({ body: "This listing has no application link.", type: "error" });
       return;
@@ -139,6 +152,13 @@ export function useJobActions({
           toast({ body: `Application sent to ${job.company}. Track it in My applications.` });
         }}
       />
+      <MarkAppliedDialog
+        key={marking?.id ?? "closed"}
+        job={marking}
+        pending={markPending}
+        onConfirm={(job, remember) => void confirmMarked(job, remember)}
+        onOpenChange={(open) => (open || markPending ? undefined : setMarking(null))}
+      />
       <JobReportDialog
         key={reporting?.id ?? "closed"}
         job={reporting}
@@ -151,8 +171,3 @@ export function useJobActions({
 }
 
 export type JobActions = ReturnType<typeof useJobActions>;
-
-function jobLink(job: Job) {
-  const link = job.applyLink?.trim();
-  return link ? link : null;
-}

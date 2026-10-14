@@ -21,7 +21,10 @@ import {
 } from "sid-ui";
 import { LISTS, SORTS, formatCount, type Job, type ListKey, type SortKey } from "@/lib/jobs";
 import type { JobFit } from "@/lib/jobs/fit";
+import { AsyncState } from "@/components/async-state";
+import { resolveAsyncStatus } from "@/lib/async-state";
 import { JobResultCard } from "./job-result-card";
+import { JobResultsSkeleton } from "./job-skeletons";
 import { PAGE_SIZE } from "./use-job-search";
 
 const SORT_WIDTH = 180;
@@ -47,7 +50,11 @@ type Props = {
   appliedIds: string[];
   onSelect: (job: Job) => void;
   onToggleSave: (job: Job) => void;
+  onApply?: (job: Job) => void;
   onReport?: (job: Job) => void;
+  isLoading?: boolean;
+  error?: string | null;
+  onRetry: () => void;
   onClearFilters: () => void;
   canClear: boolean;
 };
@@ -112,13 +119,18 @@ export function JobResults({
   appliedIds,
   onSelect,
   onToggleSave,
+  onApply,
   onReport,
+  isLoading = false,
+  error,
+  onRetry,
   onClearFilters,
   canClear,
 }: Props) {
   const topRef = useRef<HTMLElement>(null);
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = Math.min(page * PAGE_SIZE, total);
+  const status = resolveAsyncStatus({ isLoading, error, isEmpty: jobs.length === 0 });
 
   // A page is long now; start the next one at its first result, not where the last one ended.
   const changePage = (next: number) => {
@@ -153,9 +165,13 @@ export function JobResults({
 
       <HStack hAlign="between" vAlign="center" gap={2} wrap="wrap">
         <Text type="supporting" color="secondary" hasTabularNumbers>
-          {total === 0
-            ? "No results"
-            : `Showing ${from}–${to} of ${exact ? "" : "about "}${formatCount(total, exact ? "job" : "relevant job")}`}
+          {isLoading
+            ? "Loading jobs…"
+            : error
+              ? "Couldn’t load jobs"
+              : total === 0
+                ? "No results"
+                : `Showing ${from}–${to} of ${exact ? "" : "about "}${formatCount(total, exact ? "job" : "relevant job")}`}
         </Text>
         <Selector
           label="Sort by"
@@ -170,16 +186,23 @@ export function JobResults({
         />
       </HStack>
 
-      {jobs.length === 0 ? (
-        <Card variant="muted" padding={6}>
-          <Empty
-            list={list}
-            canClear={canClear}
-            onClearFilters={onClearFilters}
-            onShowAll={() => onListChange("all")}
-          />
-        </Card>
-      ) : (
+      <AsyncState
+        status={status}
+        loading={<JobResultsSkeleton />}
+        error={error}
+        errorTitle="We couldn’t load jobs"
+        onRetry={onRetry}
+        empty={
+          <Card variant="muted" padding={6}>
+            <Empty
+              list={list}
+              canClear={canClear}
+              onClearFilters={onClearFilters}
+              onShowAll={() => onListChange("all")}
+            />
+          </Card>
+        }
+      >
         <Stack gap={3} role="list" aria-label="Job results">
           {jobs.map((job) => (
             <div key={job.id} role="listitem">
@@ -191,12 +214,13 @@ export function JobResults({
                 applied={appliedIds.includes(job.id)}
                 onSelect={() => onSelect(job)}
                 onToggleSave={() => onToggleSave(job)}
+                onApply={onApply ? () => onApply(job) : undefined}
                 onReport={onReport ? () => onReport(job) : undefined}
               />
             </div>
           ))}
         </Stack>
-      )}
+      </AsyncState>
 
       {pageCount > 1 ? (
         <HStack hAlign="center">

@@ -1,9 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Glyph, HStack, IconButton, Stack, SelectableCard, Text, ToggleButton } from "sid-ui";
+import {
+  Button,
+  Glyph,
+  HStack,
+  IconButton,
+  Stack,
+  SelectableCard,
+  Text,
+  ToggleButton,
+} from "sid-ui";
 import { formatCount, formatPosted, jobHasLogoFile, type Job } from "@/lib/jobs";
 import { ROUTES } from "@/lib/routes";
+import { canApplyToJob } from "@/lib/jobs/apply";
 import { hasFitScore, type JobFit } from "@/lib/jobs/fit";
 import { CompanyLogo } from "./company-logo";
 import { JobTags } from "./job-tags";
@@ -18,6 +28,8 @@ export type JobResultCardProps = {
   applied: boolean;
   onSelect: () => void;
   onToggleSave: () => void;
+  /** Shows an Apply button that skips the preview. Omit to hide it. */
+  onApply?: () => void;
   onReport?: () => void;
 };
 
@@ -30,6 +42,7 @@ export function JobResultCard({
   applied,
   onSelect,
   onToggleSave,
+  onApply,
   onReport,
 }: JobResultCardProps) {
   const router = useRouter();
@@ -102,6 +115,21 @@ export function JobResultCard({
                 </Text>
               ) : null}
             </Stack>
+          ) : null}
+          {onApply && canApplyToJob(job) ? (
+            // A click here must not reach the card, or it would open the preview too.
+            <HStack hAlign="end">
+              <span onClick={(event) => event.stopPropagation()}>
+                <Button
+                  label={applied ? "Applied" : "Apply"}
+                  variant={applied ? "secondary" : "primary"}
+                  size="sm"
+                  icon={<Glyph name={applied ? "check" : "share"} />}
+                  isDisabled={applied}
+                  onClick={onApply}
+                />
+              </span>
+            </HStack>
           ) : null}
         </Stack>
       </HStack>
