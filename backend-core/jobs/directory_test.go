@@ -3,6 +3,8 @@ package jobs
 import (
 	"net/url"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func TestPublishableNeedsARealWriteUp(t *testing.T) {
@@ -48,5 +50,23 @@ func TestDirectoryQueriesFallBackToSafeDefaults(t *testing.T) {
 	sorted := ParseJobQuery(url.Values{"sort": {JobSortTitle}})
 	if sorted.Sort != JobSortTitle || sorted.Desc {
 		t.Fatalf("sorted job query = %+v", sorted)
+	}
+}
+
+func TestJobQueryFiltersByApplyLink(t *testing.T) {
+	query := ParseJobQuery(url.Values{"link": {"  boards.greenhouse.io/acme?gh_jid=1  "}})
+	if query.Link != "boards.greenhouse.io/acme?gh_jid=1" {
+		t.Fatalf("link = %q", query.Link)
+	}
+	filter := jobDirectoryFilter(query)
+	if len(filter) != 1 || filter[0].Key != "applyLink" {
+		t.Fatalf("filter = %+v", filter)
+	}
+	pattern, _ := filter[0].Value.(bson.D)[0].Value.(string)
+	if pattern != `boards\.greenhouse\.io/acme\?gh_jid=1` {
+		t.Fatalf("pattern = %q, want the link matched literally", pattern)
+	}
+	if len(jobDirectoryFilter(ParseJobQuery(url.Values{"link": {"   "}}))) != 0 {
+		t.Fatal("a blank link should not filter")
 	}
 }

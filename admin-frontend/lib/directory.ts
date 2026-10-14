@@ -29,6 +29,9 @@ export const COMPLETION_OPTIONS: FilterOption[] = [
 /** The completion filter's URL parameter; the API takes it as minCompletion and maxCompletion. */
 export const COMPLETION_PARAM = "completion";
 
+/** The URL and API parameter that keeps jobs whose apply link contains the text. */
+export const LINK_PARAM = "link";
+
 export function yesNoOptions(any: string, yes: string, no: string): FilterOption[] {
   return [
     { value: "", label: any },
@@ -56,7 +59,7 @@ export function directoryParams(
   pageSize: number,
 ) {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-  for (const key of ["q", "sort", "dir", ...filters.map((filter) => filter.param)]) {
+  for (const key of ["q", LINK_PARAM, "sort", "dir", ...filters.map((filter) => filter.param)]) {
     const value = current.get(key);
     if (value) params.set(key, value);
   }
