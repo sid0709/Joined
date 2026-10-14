@@ -246,6 +246,7 @@ export function JobSearch({
               appliedIds={search.appliedIds}
               onSelect={select}
               onToggleSave={actions.save}
+              onApply={actions.apply}
               onReport={actions.report}
               onClearFilters={search.reset}
               canClear={search.refinementCount > 0 || Boolean(filters.q || filters.where)}

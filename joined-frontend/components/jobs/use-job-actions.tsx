@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, useToast } from "sid-ui";
 import type { Job } from "@/lib/jobs";
+import { jobApplyLink } from "@/lib/jobs/apply";
 import { createApplication } from "@/lib/me/pipeline";
 import { signInHref } from "@/lib/routes";
 import { ApplyDialog } from "./apply-dialog";
@@ -50,7 +51,7 @@ export function useJobActions({
       needAccount();
       return;
     }
-    const listing = jobLink(job);
+    const listing = jobApplyLink(job);
     if (listing) {
       window.open(listing, "_blank", "noopener,noreferrer");
       if (isApplied?.(job.id)) return;
@@ -108,7 +109,7 @@ export function useJobActions({
   };
 
   const share = async (job: Job) => {
-    const listing = jobLink(job);
+    const listing = jobApplyLink(job);
     if (!listing) {
       toast({ body: "This listing has no application link.", type: "error" });
       return;
@@ -170,8 +171,3 @@ export function useJobActions({
 }
 
 export type JobActions = ReturnType<typeof useJobActions>;
-
-function jobLink(job: Job) {
-  const link = job.applyLink?.trim();
-  return link ? link : null;
-}
