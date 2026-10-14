@@ -42,7 +42,7 @@ const NO_FITS: NonNullable<JobSearchPage["fits"]> = {};
 export function useJobSearch(
   initial: JobFilters,
   initialResult: JobSearchPage,
-  lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean; loadError?: string },
+  lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean; loadError?: string | null },
 ) {
   const [filters, setFilters] = useState<JobFilters>(initial);
   const [savedIds, setSavedIds] = useState<string[]>(lists.savedIds);
