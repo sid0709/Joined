@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_FILTERS,
   SEARCH_DEBOUNCE_MS,
@@ -42,7 +42,7 @@ const NO_FITS: NonNullable<JobSearchPage["fits"]> = {};
 export function useJobSearch(
   initial: JobFilters,
   initialResult: JobSearchPage,
-  lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean },
+  lists: { savedIds: string[]; appliedIds: string[]; signedIn: boolean; loadError?: string },
 ) {
   const [filters, setFilters] = useState<JobFilters>(initial);
   const [savedIds, setSavedIds] = useState<string[]>(lists.savedIds);
@@ -52,9 +52,12 @@ export function useJobSearch(
   const [page, setPageState] = useState(initialResult.page);
   const [result, setResult] = useState(initialResult);
   const [matchTotal, setMatchTotal] = useState(initial.list === "all" ? initialResult.total : 0);
-  const [error, setError] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(lists.loadError || null);
+  const [isLoading, setLoading] = useState(false);
   const request = useRef(0);
+  // The key of the request now in flight, so a repeated click doesn't send it twice.
+  const inflight = useRef<string | null>(null);
+  const pageRef = useRef(page);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedIdsRef = useRef(savedIds);
   const filtersRef = useRef(filters);
@@ -63,7 +66,8 @@ export function useJobSearch(
   useEffect(() => {
     savedIdsRef.current = savedIds;
     filtersRef.current = filters;
-  }, [savedIds, filters]);
+    pageRef.current = page;
+  }, [savedIds, filters, page]);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -81,30 +85,38 @@ export function useJobSearch(
     };
   }, []);
 
-  const load = useCallback((nextFilters: JobFilters, nextPage: number) => {
+  const load = useCallback(async (nextFilters: JobFilters, nextPage: number) => {
+    const key = JSON.stringify([nextFilters, nextPage]);
+    if (inflight.current === key) return;
+    inflight.current = key;
     const id = ++request.current;
-    startTransition(async () => {
-      try {
-        const data = await searchJobs(nextFilters, nextPage, savedIdsRef.current);
-        if (id !== request.current) return;
-        setResult(data);
-        if (nextFilters.list === "all") setMatchTotal(data.total);
-        setError(null);
-      } catch (cause) {
-        if (id !== request.current) return;
-        setError(cause instanceof Error ? cause.message : "Could not load jobs");
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await searchJobs(nextFilters, nextPage, savedIdsRef.current);
+      if (id !== request.current) return;
+      setResult(data);
+      if (nextFilters.list === "all") setMatchTotal(data.total);
+    } catch (cause) {
+      if (id !== request.current) return;
+      setError(cause instanceof Error ? cause.message : "Could not load jobs");
+    } finally {
+      // Only the newest request settles the loading state; an older answer is ignored.
+      if (id === request.current) {
+        inflight.current = null;
+        setLoading(false);
       }
-    });
+    }
   }, []);
 
   const schedule = useCallback(
     (nextFilters: JobFilters, nextPage: number, immediate: boolean) => {
       if (timer.current) clearTimeout(timer.current);
       if (immediate) {
-        load(nextFilters, nextPage);
+        void load(nextFilters, nextPage);
         return;
       }
-      timer.current = setTimeout(() => load(nextFilters, nextPage), SEARCH_DEBOUNCE_MS);
+      timer.current = setTimeout(() => void load(nextFilters, nextPage), SEARCH_DEBOUNCE_MS);
     },
     [load],
   );
@@ -170,6 +182,10 @@ export function useJobSearch(
     [signedIn, filters, schedule],
   );
 
+  const retry = useCallback(() => {
+    void load(filtersRef.current, pageRef.current);
+  }, [load]);
+
   const pageJobs = result.jobs.filter((job) => !hiddenIds.includes(job.id));
   const total = result.total;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -216,6 +232,8 @@ export function useJobSearch(
     setPage,
     listCounts,
     error,
+    isLoading,
+    retry,
     selected,
     select: setSelectedId,
     savedIds,
