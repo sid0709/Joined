@@ -23,14 +23,20 @@ type ListQuery struct {
 	HideAnalyzed bool
 }
 
+// trimQuery is search text without surrounding space, cut to MaxQueryLength.
+func trimQuery(raw string) string {
+	text := strings.TrimSpace(raw)
+	if len(text) > MaxQueryLength {
+		text = text[:MaxQueryLength]
+	}
+	return text
+}
+
 func ParseListQuery(pageRaw, sizeRaw, qRaw string) ListQuery {
 	query := ListQuery{
 		Page:     1,
 		PageSize: DefaultPageSize,
-		Q:        strings.TrimSpace(qRaw),
-	}
-	if len(query.Q) > MaxQueryLength {
-		query.Q = query.Q[:MaxQueryLength]
+		Q:        trimQuery(qRaw),
 	}
 	if page, err := strconv.ParseInt(pageRaw, 10, 64); err == nil && page > 0 {
 		query.Page = page

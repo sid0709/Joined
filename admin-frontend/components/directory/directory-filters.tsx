@@ -2,23 +2,32 @@
 
 import { HStack, Selector, Text } from "sid-ui";
 import { SearchBox } from "@/components/search-box";
-import { COMPLETION_OPTIONS, COMPLETION_PARAM, type DirectoryFilter } from "@/lib/directory";
+import {
+  COMPLETION_OPTIONS,
+  COMPLETION_PARAM,
+  LINK_PARAM,
+  type DirectoryFilter,
+} from "@/lib/directory";
 
 /** A directory's search box, its filters, and a completion filter, all kept in the URL. */
 export function DirectoryFilters({
   current,
   filters,
   search,
+  linkSearch,
   summary,
   onChange,
 }: {
   current: URLSearchParams;
   filters: DirectoryFilter[];
   search: { label: string; placeholder: string };
+  /** A second box that searches the listing's link; omit it for directories without one. */
+  linkSearch?: { label: string; placeholder: string };
   summary: string;
   onChange: (values: Record<string, string | number | null>) => void;
 }) {
   const query = current.get("q") ?? "";
+  const link = current.get(LINK_PARAM) ?? "";
   return (
     <HStack gap={3} vAlign="center" wrap="wrap">
       <HStack width={320}>
@@ -30,6 +39,17 @@ export function DirectoryFilters({
           onSearch={(value) => onChange({ q: value, page: 1 })}
         />
       </HStack>
+      {linkSearch ? (
+        <HStack width={320}>
+          <SearchBox
+            key={link}
+            value={link}
+            label={linkSearch.label}
+            placeholder={linkSearch.placeholder}
+            onSearch={(value) => onChange({ [LINK_PARAM]: value, page: 1 })}
+          />
+        </HStack>
+      ) : null}
       {[
         ...filters,
         { param: COMPLETION_PARAM, label: "Completion", options: COMPLETION_OPTIONS },

@@ -28,6 +28,7 @@ import { DirectoryFilters } from "@/components/directory/directory-filters";
 import { SearchJobDrawer } from "@/components/jobs/search-job-drawer";
 import {
   directoryParams,
+  LINK_PARAM,
   sortValues,
   tableSort,
   yesNoOptions,
@@ -37,6 +38,7 @@ import {
 import { formatCount, formatDate, positiveInt } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import {
+  isOpenableLink,
   JOB_SORTS,
   JOB_SOURCES,
   SEARCH_JOBS_PAGE_SIZE,
@@ -171,11 +173,34 @@ export function SearchJobsBrowser() {
       sortValue: (record) => record.analyzedAt,
       render: (record) => <Text color="secondary">{formatDate(record.analyzedAt)}</Text>,
     },
+    {
+      key: "applyLink",
+      header: "Link",
+      align: "end",
+      render: (record) =>
+        isOpenableLink(record.applyLink) ? (
+          // The button opens the posting; the click must not also open the job drawer.
+          <span onClick={(event) => event.stopPropagation()}>
+            <Button
+              label="Open"
+              variant="secondary"
+              size="sm"
+              href={record.applyLink.trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          </span>
+        ) : (
+          <Text color="secondary">None</Text>
+        ),
+    },
   ];
 
   const total = result?.total ?? 0;
   const filtered =
-    FILTERS.some((filter) => searchParams.get(filter.param)) || searchParams.has("q");
+    FILTERS.some((filter) => searchParams.get(filter.param)) ||
+    searchParams.has("q") ||
+    searchParams.has(LINK_PARAM);
   return (
     <Stack gap={5}>
       <PageHeader
@@ -187,6 +212,7 @@ export function SearchJobsBrowser() {
         current={searchParams}
         filters={FILTERS}
         search={{ label: "Search jobs", placeholder: "Title, company, place, team, skill" }}
+        linkSearch={{ label: "Search by apply link", placeholder: "Part of the apply link" }}
         summary={
           result
             ? `${formatCount(total)} jobs · ${formatCount(result.pending)} temp jobs not analyzed`

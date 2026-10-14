@@ -42,6 +42,11 @@ export const JOB_SORTS = {
 } as const;
 export const SEARCH_JOBS_PAGE_SIZE = 25;
 
+/** True for a link that is safe to open in a new tab: web addresses only. */
+export function isOpenableLink(link: string | undefined): link is string {
+  return !!link && /^https?:\/\//i.test(link.trim());
+}
+
 export type SearchPay = {
   min: number;
   max: number;

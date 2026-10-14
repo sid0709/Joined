@@ -26,6 +26,8 @@ var jobSorts = []string{JobSortAnalyzed, JobSortPosted, JobSortTitle, JobSortCom
 // JobQuery is the job directory's search, filters, sort, and page.
 type JobQuery struct {
 	ListQuery
+	// Link keeps only jobs whose apply link contains this text, ignoring case.
+	Link       string
 	Source     string
 	Workplace  string
 	Seniority  string
@@ -45,6 +47,7 @@ type JobQuery struct {
 func ParseJobQuery(values url.Values) JobQuery {
 	query := JobQuery{
 		ListQuery:     ParseListQuery(values.Get("page"), values.Get("pageSize"), values.Get("q")),
+		Link:          trimQuery(values.Get("link")),
 		Source:        strings.TrimSpace(values.Get("source")),
 		Workplace:     strings.TrimSpace(values.Get("workplace")),
 		Seniority:     strings.TrimSpace(values.Get("seniority")),
@@ -133,6 +136,9 @@ func jobDirectoryFilter(query JobQuery) bson.D {
 			or = append(or, bson.D{{Key: key, Value: regex}})
 		}
 		filter = append(filter, bson.E{Key: "$or", Value: or})
+	}
+	if pattern := searchPattern(query.Link); pattern != "" {
+		filter = append(filter, bson.E{Key: "applyLink", Value: bson.D{{Key: "$regex", Value: pattern}, {Key: "$options", Value: "i"}}})
 	}
 	exact := func(key, value string) {
 		if value != "" {
