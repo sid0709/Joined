@@ -15,5 +15,7 @@ export function useAutoMarkApplied() {
     () => readAutoMarkApplied(),
     getAutoMarkAppliedServerSnapshot,
   );
-  return [enabled, writeAutoMarkApplied] as const;
+  // A one-argument setter, so it is safe as an onChange that also passes an event.
+  const setEnabled = (next: boolean) => writeAutoMarkApplied(next);
+  return [enabled, setEnabled] as const;
 }

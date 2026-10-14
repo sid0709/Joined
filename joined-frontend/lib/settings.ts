@@ -2,7 +2,14 @@ import type { GlyphName } from "sid-ui";
 import type { Option } from "@/lib/profile";
 
 export type SettingsSectionId =
-  "account" | "billing" | "notifications" | "alerts" | "applying" | "connections" | "privacy" | "danger";
+  | "account"
+  | "billing"
+  | "notifications"
+  | "alerts"
+  | "applying"
+  | "connections"
+  | "privacy"
+  | "danger";
 
 export type SettingsSection = {
   id: SettingsSectionId;
