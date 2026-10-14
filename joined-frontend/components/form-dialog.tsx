@@ -12,6 +12,7 @@ export function FormDialog({
   title,
   subtitle,
   submitLabel,
+  cancelLabel = "Cancel",
   onSubmit,
   isSubmitDisabled,
   width = DIALOG_WIDTH,
@@ -22,6 +23,7 @@ export function FormDialog({
   title: string;
   subtitle?: string;
   submitLabel: string;
+  cancelLabel?: string;
   onSubmit: () => void;
   isSubmitDisabled?: boolean;
   width?: number;
@@ -38,7 +40,7 @@ export function FormDialog({
         footer={
           <LayoutFooter hasDivider>
             <HStack gap={2} hAlign="end">
-              <Button label="Cancel" variant="ghost" onClick={() => onOpenChange(false)} />
+              <Button label={cancelLabel} variant="ghost" onClick={() => onOpenChange(false)} />
               <Button
                 label={submitLabel}
                 variant="primary"

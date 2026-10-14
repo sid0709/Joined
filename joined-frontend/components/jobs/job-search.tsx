@@ -101,6 +101,7 @@ export function JobSearch({
       track(id, "apply");
       search.markApplied(id);
     },
+    isApplied: (id) => search.appliedIds.includes(id),
     signedIn,
     hide: (id) => {
       track(id, "dismiss");

@@ -2,7 +2,7 @@ import type { GlyphName } from "sid-ui";
 import type { Option } from "@/lib/profile";
 
 export type SettingsSectionId =
-  "account" | "billing" | "notifications" | "alerts" | "connections" | "privacy" | "danger";
+  "account" | "billing" | "notifications" | "alerts" | "applying" | "connections" | "privacy" | "danger";
 
 export type SettingsSection = {
   id: SettingsSectionId;
@@ -49,6 +49,12 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
         label: "Job alerts",
         description: "How often new matches arrive, and how good they need to be.",
         icon: "search",
+      },
+      {
+        id: "applying",
+        label: "Applying",
+        description: "Choose what happens after you click Apply on a job.",
+        icon: "send",
       },
       {
         id: "connections",

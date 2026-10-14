@@ -41,6 +41,7 @@ export function JobPageView({
       void (next ? saveJob(job.id) : unsaveJob(job.id));
     },
     markApplied: () => setApplied(true),
+    isApplied: () => isApplied,
     signedIn,
   });
   const company = companyFromJob(job);
