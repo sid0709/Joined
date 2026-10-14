@@ -28,17 +28,18 @@ import {
   type JobSearchPage,
 } from "@/lib/jobs";
 import { logRankingEvent } from "@/lib/jobs/ranking-events";
-import { loadJob } from "@/lib/jobs/search-action";
 import { ROLE_SUGGESTIONS } from "@/lib/profile";
 import { ROUTES } from "@/lib/routes";
 import { JobActiveFilters } from "./job-active-filters";
 import { JobDetailHeader } from "./job-detail-header";
 import { JobDetailBody, JobDetailPane } from "./job-detail-pane";
+import { JobDetailBodySkeleton } from "./job-skeletons";
 import { JobFilterToolbar } from "./job-filter-toolbar";
 import { JobResults } from "./job-results";
 import { JobSearchBar, type SavedQuery } from "./job-search-bar";
 import { JobSuggestions } from "./job-suggestions";
 import { SavedSearches } from "./saved-searches";
+import { useJobDetail } from "./use-job-detail";
 import { useJobFit } from "./use-job-fits";
 import { useJobActions } from "./use-job-actions";
 import { useJobKeyboard } from "./use-job-keyboard";
@@ -79,13 +80,13 @@ export function JobSearch({
     savedIds,
     appliedIds,
     signedIn,
+    loadError,
   });
   const jobs = search.pageResults;
   const isWide = useMediaQuery(WIDE_QUERY, true);
   const searchRef = useRef<HTMLInputElement>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [drawerJob, setDrawerJob] = useState<Job | null>(null);
-  const [detail, setDetail] = useState<Job | null>(null);
   const [recent, setRecent] = useState<SavedQuery[]>(RECENT_SEARCHES);
 
   const track = (id: string, type: "click" | "save" | "apply" | "dismiss") =>
@@ -120,19 +121,12 @@ export function JobSearch({
     if (selected?.id) router.prefetch(ROUTES.job(selected.id));
   }, [router, selected?.id]);
 
-  useEffect(() => {
-    const id = selected?.id;
-    if (!id) return;
-    let active = true;
-    loadJob(id).then((job) => {
-      if (active && job) setDetail(job);
-    });
-    return () => {
-      active = false;
-    };
-  }, [selected?.id]);
-
-  const detailJob = detail?.id === selected?.id ? detail : selected;
+  const full = useJobDetail(selected?.id);
+  const detailJob = full.job ?? selected;
+  const paneLoad = { isLoading: full.isLoading, error: full.error, onRetry: full.retry };
+  // On narrow screens the drawer opens the selected job, so it shares that one request.
+  const drawerIsSelected = drawerJob !== null && drawerJob.id === selected?.id;
+  const drawerDetail = drawerIsSelected ? detailJob : drawerJob;
 
   const select = (job: Job) => {
     if (job.id !== selected?.id) track(job.id, "click");
@@ -248,27 +242,27 @@ export function JobSearch({
               onToggleSave={actions.save}
               onApply={actions.apply}
               onReport={actions.report}
+              isLoading={search.isLoading}
+              error={search.error}
+              onRetry={search.retry}
               onClearFilters={search.reset}
               canClear={search.refinementCount > 0 || Boolean(filters.q || filters.where)}
             />
           </GridColumn>
           <GridColumn span="hidden" lg={7}>
             <Sticky fill offset={CONTENT_PADDING}>
-              {loadError || search.error ? (
-                <Card variant="muted">
-                  <EmptyState
-                    icon={<Icon icon={icons.list} size="lg" color="secondary" />}
-                    title="Jobs are unavailable"
-                    description={loadError || search.error || undefined}
-                  />
+              {search.isLoading ? (
+                <Card padding={5} elevation="low">
+                  <JobDetailBodySkeleton />
                 </Card>
-              ) : detailJob ? (
+              ) : detailJob && !search.error ? (
                 <JobDetailPane
                   key={detailJob.id}
                   {...detailProps(detailJob)}
                   jobs={jobs}
                   fit={fits[detailJob.id]}
                   fits={fits}
+                  load={paneLoad}
                   showPageLink
                   onSelect={select}
                 />
@@ -320,12 +314,10 @@ export function JobSearch({
       >
         {drawerJob ? (
           <Stack gap={6}>
-            <JobDetailHeader
-              {...detailProps(detail?.id === drawerJob.id ? detail : drawerJob)}
-              showPageLink
-            />
+            <JobDetailHeader {...detailProps(drawerDetail ?? drawerJob)} showPageLink />
             <JobDetailBody
-              job={detail?.id === drawerJob.id ? detail : drawerJob}
+              job={drawerDetail ?? drawerJob}
+              load={drawerIsSelected ? paneLoad : undefined}
               jobs={jobs}
               onSelect={select}
               fit={fits[drawerJob.id]}
