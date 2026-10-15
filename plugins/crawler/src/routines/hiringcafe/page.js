@@ -14,6 +14,7 @@ import {
   DETAIL_READY_MS,
   DETAIL_READY_POLL_MS,
   NAVIGATE_WAIT_MS,
+  PAGE_LOADING_LABEL,
   RETRY_PAUSE_MS,
 } from "./constants.js";
 import { isJobDetailReady } from "./detailReady.js";
@@ -24,6 +25,14 @@ export function isAbortError(error) {
     error?.name === "RoutineStoppedError" ||
     error?.name === "AbortError"
   );
+}
+
+/** The page is between documents (a reload or a Cloudflare check); the next read can work. */
+const TRANSIENT_PAGE_ERROR_RE =
+  /receiving end does not exist|message channel closed|message port closed|frame with id|did not return html/i;
+
+export function isTransientPageError(error) {
+  return TRANSIENT_PAGE_ERROR_RE.test(String(error?.message || error || ""));
 }
 
 export function isTimeoutError(error) {
@@ -72,6 +81,11 @@ export function createWithRetry({ ctx, skipDelays, rest, notePageFailure, onActi
         ) {
           throw error;
         }
+        if (isTransientPageError(error)) {
+          onActivity?.({ phase: "ready", label: PAGE_LOADING_LABEL, kind: "waitFor" });
+          if (!skipDelays) await rest(CHALLENGE_POLL_MS);
+          continue;
+        }
         notePageFailure(pageUrl);
         onActivity?.({
           phase: "ready",
@@ -87,10 +101,16 @@ export function createWithRetry({ ctx, skipDelays, rest, notePageFailure, onActi
 export async function waitForChallengeClear({ ctx, call, rest, skipDelays, onActivity, onNotice }) {
   onActivity?.({ phase: "settle", label: CHALLENGE_WAIT_LABEL, kind: "waitFor" });
   onNotice?.(CHALLENGE_NOTICE, false);
+  // No time limit: the user clears the check. Reads fail while Cloudflare reloads.
   for (;;) {
     ctx.checkStopped();
-    const page = await readVisiblePage(call);
-    if (!isHiringCafeChallenge(page)) return page;
+    let page = null;
+    try {
+      page = await readVisiblePage(call);
+    } catch (error) {
+      if (isAbortError(error) || !isTransientPageError(error)) throw error;
+    }
+    if (page && !isHiringCafeChallenge(page)) return page;
     if (skipDelays) return readVisiblePage(call);
     await rest(CHALLENGE_POLL_MS);
   }
@@ -107,6 +127,7 @@ export function createOpenVisible({ withRetry, call, onActivity }) {
         await call("navigate", { url, timeout: NAVIGATE_WAIT_MS }, NAVIGATE_WAIT_MS);
       } catch (error) {
         const after = await readVisiblePage(call);
+        if (isHiringCafeChallenge(after)) return after;
         if (sameUrl(after.url, url) && after.html) return after;
         throw error;
       }

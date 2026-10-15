@@ -23,7 +23,7 @@ import {
   MARK_APPLIED_TEXT,
 } from "../constants.js";
 import { documentFromHtml } from "../html.js";
-import { readAppliedOnCard } from "../markApplied.js";
+import { markAppliedOnCard, readAppliedOnCard } from "../markApplied.js";
 import { pickNextJob } from "../runPass.js";
 
 import {
@@ -239,5 +239,38 @@ describe("real HiringCafe DOM fixtures", () => {
       expect(ops).not.toContain("hover");
       expect(ops).not.toContain("hoverClick");
     }
+  });
+
+  test("a mark the server confirms slowly still counts once the card dims", async () => {
+    const { html } = documentWithRealCard("card-unapplied-rest.html");
+    const dimmed = html.replace("opacity-100  ", "opacity-100 text-gray-400 ");
+    const before = `<html><body>${html}</body></html>`;
+    const after = `<html><body>${dimmed}</body></html>`;
+    let clicked = false;
+    let readsAfterClick = 0;
+    const ops = [];
+    const result = await markAppliedOnCard({
+      job: UNAPPLIED_REST_JOB,
+      call: async (op) => {
+        ops.push(op);
+        if (op === "hoverClick") {
+          clicked = true;
+          return { found: true, hovered: true, pressed: true };
+        }
+        if (op === "watchedFetches") return { hits: [] };
+        return {};
+      },
+      skipDelays: true,
+      readPage: async () => {
+        if (!clicked) return { html: before, url: "" };
+        readsAfterClick += 1;
+        // HiringCafe dims the card only after its API answers, a few reads later.
+        return { html: readsAfterClick >= 4 ? after : before, url: "" };
+      },
+      enabled: true,
+    });
+    expect(result.marked).toBe(true);
+    expect(ops.filter((op) => op === "hoverClick")).toHaveLength(1);
+    expect(ops).toContain("unwatchFetch");
   });
 });

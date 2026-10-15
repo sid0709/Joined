@@ -254,25 +254,34 @@ describe("handleRoutineExec", () => {
     expect(result).toEqual({ success: true, result: { aborted: true } });
   });
 
-  test("opens job tabs beside the crawl tab and Stop closes them", async () => {
-    const opened = [];
+  test("routes every job-tab op for the crawl tab, and Stop closes its tabs", async () => {
+    const routed = [];
     const closed = [];
     const tabsIo = {
       resolveBoundTab: async () => ({ id: 3, url: "https://hiringcafe.com/classic", windowId: 2 }),
-      openDetailTabs: async (owner, payload) => {
-        opened.push({ owner: owner.id, urls: payload.urls });
-        return { pages: [] };
+      runDetailTabOp: async (op, owner, payload) => {
+        routed.push([op, owner.id, payload.tabIds ?? payload.urls]);
+        return { ok: op };
       },
       closeDetailTabs: async (tabId) => closed.push(tabId),
       releaseDebugger: async () => ({ detached: true }),
       sendToContentScript: async () => ({ success: true, result: { aborted: true } }),
     };
-    const result = await exec(
-      { payload: { op: "openDetailTabs", urls: ["https://hiringcafe.com/job/a-1"] } },
-      io(tabsIo),
-    );
-    expect(result).toEqual({ success: true, result: { pages: [] } });
-    expect(opened).toEqual([{ owner: 3, urls: ["https://hiringcafe.com/job/a-1"] }]);
+    for (const [op, args] of [
+      ["openDetailTabs", { urls: ["https://hiringcafe.com/job/a-1"] }],
+      ["readDetailTabs", { tabIds: [8] }],
+      ["reloadDetailTabs", { tabIds: [8] }],
+      ["closeDetailTabs", { tabIds: [8] }],
+    ]) {
+      const result = await exec({ payload: { op, ...args } }, io(tabsIo));
+      expect(result).toEqual({ success: true, result: { ok: op } });
+    }
+    expect(routed).toEqual([
+      ["openDetailTabs", 3, ["https://hiringcafe.com/job/a-1"]],
+      ["readDetailTabs", 3, [8]],
+      ["reloadDetailTabs", 3, [8]],
+      ["closeDetailTabs", 3, [8]],
+    ]);
     await exec({ payload: { op: "abortFetches" } }, io(tabsIo));
     expect(closed).toEqual([3]);
   });

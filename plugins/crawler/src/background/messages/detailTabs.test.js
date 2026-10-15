@@ -3,122 +3,143 @@ import { parseHTML } from "linkedom";
 
 import {
   closeDetailTabs,
-  DEFAULT_DETAIL_TAB_TIMEOUT_MS,
-  DETAIL_TAB_ABORTED,
   isDetailTabUrl,
+  MAX_DETAIL_TABS,
   openDetailTabs,
   readDetailPage,
+  readDetailTabs,
+  reloadDetailTabs,
+  runDetailTabOp,
 } from "./detailTabs.js";
 
-const OWNER = { id: 7, windowId: 3, index: 4, groupId: 11 };
 const JOB = (n) => `https://hiringcafe.com/job/role-${n}`;
+let nextOwner = 100;
 
-/** Fake chrome: `pageFor(url, reads)` decides what each poll of a tab sees. */
-function fakeIo(pageFor) {
-  let clock = 0;
-  let nextId = 100;
+/** A fresh crawl tab per test, so tracked job tabs never leak between tests. */
+function owner() {
+  nextOwner += 1;
+  return { id: nextOwner, windowId: 3, index: 4, groupId: 11 };
+}
+
+function fakeIo(pageFor = () => ({ url: "", loading: false, html: "<html></html>" })) {
+  let nextId = 500;
   const open = new Map();
-  const removed = [];
-  const grouped = [];
-  let maxOpen = 0;
+  const calls = [];
   return {
-    removed,
-    grouped,
     open,
-    get maxOpen() {
-      return maxOpen;
-    },
-    createTab: async ({ url }) => {
+    calls,
+    createTab: async ({ url, active }) => {
       const id = nextId++;
-      open.set(id, { url, reads: 0 });
-      maxOpen = Math.max(maxOpen, open.size);
+      open.set(id, url);
+      calls.push(["create", url, active]);
       return { id };
     },
     removeTab: async (id) => {
       open.delete(id);
-      removed.push(id);
+      calls.push(["remove", id]);
     },
-    groupTabs: async (options) => grouped.push(options),
-    executeScript: async ({ target }) => {
-      const tab = open.get(target.tabId);
-      tab.reads += 1;
-      return [{ result: pageFor(tab.url, tab.reads) }];
-    },
-    sleep: async (ms) => {
-      clock += ms;
-      await Promise.resolve();
-    },
-    now: () => clock,
+    reloadTab: async (id) => calls.push(["reload", id]),
+    groupTabs: async (options) => calls.push(["group", options.groupId]),
+    executeScript: async ({ target }) => [{ result: pageFor(open.get(target.tabId)) }],
   };
 }
 
-const ready = (url) => ({ url, ready: true, challenge: false, html: `<html>${url}</html>` });
-
-describe("openDetailTabs", () => {
-  test("reads every job page and closes each tab once read", async () => {
-    const io = fakeIo((url, reads) =>
-      reads < 2 ? { ready: false, challenge: false, html: "" } : ready(url),
+describe("detail tabs", () => {
+  test("opens background tabs and keeps them open until closed", async () => {
+    const crawl = owner();
+    const io = fakeIo();
+    const { tabs } = await openDetailTabs(crawl, { urls: [JOB(1), JOB(2)] }, io);
+    expect(tabs.map((tab) => tab.url)).toEqual([JOB(1), JOB(2)]);
+    expect(io.open.size).toBe(2);
+    expect(io.calls.filter(([kind]) => kind === "create").every(([, , active]) => !active)).toBe(
+      true,
     );
-    const urls = [JOB(1), JOB(2), JOB(3)];
-    const { pages } = await openDetailTabs(OWNER, { urls }, io);
-    expect(pages.map((page) => page.html)).toEqual(urls.map((url) => `<html>${url}</html>`));
+    await closeDetailTabs(crawl.id, { tabIds: [tabs[0].tabId] }, io);
+    expect([...io.open.values()]).toEqual([JOB(2)]);
+    await closeDetailTabs(crawl.id, {}, io);
     expect(io.open.size).toBe(0);
-    expect(io.removed).toHaveLength(3);
-    expect(io.grouped.every((call) => call.groupId === OWNER.groupId)).toBe(true);
   });
 
-  test("closes the tab on a challenge, a timeout, and a script error", async () => {
-    const io = fakeIo((url) => {
-      if (url === JOB("challenge")) return { challenge: true, ready: false, html: "" };
-      if (url === JOB("broken")) throw new Error("frame not ready");
-      return { ready: false, challenge: false, html: "" };
+  test("reads only parsed pages, and reports a tab between documents as loading", async () => {
+    const crawl = owner();
+    const io = fakeIo((url) =>
+      url === JOB(1)
+        ? { url, loading: false, html: `<html>${url}</html>` }
+        : { url, loading: true, html: "" },
+    );
+    const { tabs } = await openDetailTabs(crawl, { urls: [JOB(1), JOB(2)] }, io);
+    const { pages } = await readDetailTabs(crawl, { tabIds: tabs.map((tab) => tab.tabId) }, io);
+    expect(pages[0]).toMatchObject({ html: `<html>${JOB(1)}</html>`, loading: false });
+    expect(pages[1]).toMatchObject({ html: "", loading: true });
+    io.executeScript = async () => {
+      throw new Error("Frame with ID 0 is showing error page");
+    };
+    const committing = await readDetailTabs(crawl, { tabIds: [tabs[0].tabId] }, io);
+    expect(committing.pages[0]).toMatchObject({ loading: true, html: "" });
+    await closeDetailTabs(crawl.id, {}, io);
+  });
+
+  test("never reads, reloads, or closes a tab another crawl tab opened", async () => {
+    const first = owner();
+    const second = owner();
+    const io = fakeIo();
+    const { tabs } = await openDetailTabs(first, { urls: [JOB(1)] }, io);
+    const foreign = [tabs[0].tabId, 9999];
+    expect((await readDetailTabs(second, { tabIds: foreign }, io)).pages).toEqual([]);
+    expect(await reloadDetailTabs(second, { tabIds: foreign }, io)).toEqual({ reloaded: 0 });
+    expect(await closeDetailTabs(second.id, { tabIds: foreign }, io)).toEqual({ closed: 0 });
+    expect(io.open.size).toBe(1);
+    expect(await reloadDetailTabs(first, { tabIds: [tabs[0].tabId] }, io)).toEqual({
+      reloaded: 1,
     });
-    const { pages } = await openDetailTabs(
-      OWNER,
-      { urls: [JOB("challenge"), JOB("broken"), JOB("slow")], timeoutMs: 1_000 },
-      io,
-    );
-    expect(pages[0]).toEqual({ url: JOB("challenge"), challenge: true });
-    expect(pages[1].error).toMatch(/timed out/);
-    expect(pages[2].error).toMatch(/timed out/);
-    expect(io.open.size).toBe(0);
-    expect(io.removed).toHaveLength(3);
+    await closeDetailTabs(first.id, {}, io);
   });
 
-  test("never has more tabs open than the concurrency", async () => {
-    const io = fakeIo((url, reads) => (reads < 3 ? { ready: false } : ready(url)));
-    const urls = Array.from({ length: 12 }, (_, n) => JOB(n));
-    await openDetailTabs(OWNER, { urls, concurrency: 4 }, io);
-    expect(io.maxOpen).toBe(4);
-    expect(io.open.size).toBe(0);
-  });
-
-  test("refuses URLs off the supported boards without opening a tab", async () => {
-    const io = fakeIo((url) => ready(url));
-    const { pages } = await openDetailTabs(OWNER, { urls: ["https://evil.example/x"] }, io);
-    expect(pages[0].error).toBeTruthy();
-    expect(io.removed).toHaveLength(0);
+  test("refuses off-board URLs and reports a tab that could not be created", async () => {
+    const crawl = owner();
+    const io = fakeIo();
+    io.groupTabs = async () => {
+      throw new Error("group gone");
+    };
+    const created = await openDetailTabs(crawl, { urls: ["https://evil.example/x", JOB(1)] }, io);
+    expect(created.tabs[0].error).toBeTruthy();
+    expect(created.tabs[1].tabId).toBeDefined();
+    io.createTab = async () => {
+      throw new Error("window closed");
+    };
+    const failed = await openDetailTabs(crawl, { urls: [JOB(2)] }, io);
+    expect(failed.tabs[0]).toEqual({ url: JOB(2), error: "window closed" });
+    io.removeTab = async () => {
+      throw new Error("tab gone");
+    };
+    await closeDetailTabs(crawl.id, {}, io);
+    expect(isDetailTabUrl("not a url")).toBe(false);
     expect(isDetailTabUrl("http://hiringcafe.com/job/x")).toBe(false);
-    expect(isDetailTabUrl(JOB(1))).toBe(true);
   });
 
-  test("Stop closes the tabs still loading and ends the batch", async () => {
-    const io = fakeIo(() => ({ ready: false }));
-    const running = openDetailTabs(OWNER, { urls: [JOB(1), JOB(2)] }, io);
-    await Promise.resolve();
-    await Promise.resolve();
-    await closeDetailTabs(OWNER.id, io);
-    const { pages } = await running;
-    expect(pages.every((page) => page.error === DETAIL_TAB_ABORTED)).toBe(true);
-    expect(io.open.size).toBe(0);
+  test("opens at most MAX_DETAIL_TABS at once", async () => {
+    const crawl = owner();
+    const io = fakeIo();
+    const urls = Array.from({ length: MAX_DETAIL_TABS + 5 }, (_, n) => JOB(n));
+    const { tabs } = await openDetailTabs(crawl, { urls }, io);
+    expect(tabs).toHaveLength(MAX_DETAIL_TABS);
+    await closeDetailTabs(crawl.id, {}, io);
   });
 
-  test("defaults to the 20s per-tab timeout", () => {
-    expect(DEFAULT_DETAIL_TAB_TIMEOUT_MS).toBe(20_000);
+  test("routes each op name", async () => {
+    const crawl = owner();
+    const io = fakeIo();
+    const { tabs } = await runDetailTabOp("openDetailTabs", crawl, { urls: [JOB(1)] }, io);
+    const tabIds = [tabs[0].tabId];
+    expect((await runDetailTabOp("readDetailTabs", crawl, { tabIds }, io)).pages).toHaveLength(1);
+    expect(await runDetailTabOp("reloadDetailTabs", crawl, { tabIds }, io)).toEqual({
+      reloaded: 1,
+    });
+    expect(await runDetailTabOp("closeDetailTabs", crawl, { tabIds }, io)).toEqual({ closed: 1 });
   });
 });
 
-describe("detail tab edge cases", () => {
+describe("chrome defaults and the in-tab reader", () => {
   const saved = {
     chrome: globalThis.chrome,
     document: globalThis.document,
@@ -130,100 +151,52 @@ describe("detail tab edge cases", () => {
     globalThis.location = saved.location;
   });
 
-  test("rejects a malformed URL", () => {
-    expect(isDetailTabUrl("not a url")).toBe(false);
-  });
-
-  test("reports a tab that could not be created, without closing anything", async () => {
-    const io = fakeIo((url) => ready(url));
-    io.createTab = async () => {
-      throw new Error("window closed");
-    };
-    const { pages } = await openDetailTabs(OWNER, { urls: [JOB(1)] }, io);
-    expect(pages[0]).toEqual({ url: JOB(1), error: "window closed" });
-    expect(io.removed).toHaveLength(0);
-  });
-
-  test("a failed group or close never fails the read", async () => {
-    const io = fakeIo((url) => ready(url));
-    io.groupTabs = async () => {
-      throw new Error("group gone");
-    };
-    io.removeTab = async () => {
-      throw new Error("tab gone");
-    };
-    const { pages } = await openDetailTabs(OWNER, { urls: [JOB(1)] }, io);
-    expect(pages[0].html).toBe(`<html>${JOB(1)}</html>`);
-    await closeDetailTabs(OWNER.id, io);
-  });
-
   test("uses chrome.tabs and chrome.scripting by default", async () => {
+    const crawl = owner();
     const calls = [];
     globalThis.chrome = {
       tabs: {
         create: async (props) => {
-          calls.push(["create", props.url, props.active]);
+          calls.push(["create", props.url]);
           return { id: 51 };
         },
         group: async (options) => calls.push(["group", options.groupId]),
+        reload: async (id) => calls.push(["reload", id]),
         remove: async (id) => calls.push(["remove", id]),
       },
       scripting: {
         executeScript: async ({ target }) => {
           calls.push(["read", target.tabId]);
-          return [{ result: ready(JOB(1)) }];
+          return [{ result: { url: JOB(1), loading: false, html: "<html></html>" } }];
         },
       },
     };
-    const { pages } = await openDetailTabs(OWNER, { urls: [JOB(1)] });
-    expect(pages[0].html).toBe(`<html>${JOB(1)}</html>`);
+    await openDetailTabs(crawl, { urls: [JOB(1)] });
+    await readDetailTabs(crawl, { tabIds: [51] });
+    await reloadDetailTabs(crawl, { tabIds: [51] });
+    await closeDetailTabs(crawl.id);
     expect(calls).toEqual([
-      ["create", JOB(1), false],
-      ["group", OWNER.groupId],
+      ["create", JOB(1)],
+      ["group", 11],
       ["read", 51],
+      ["reload", 51],
       ["remove", 51],
     ]);
   });
 
-  function inPage(html, { readyState = "complete", widgetSize = 0 } = {}) {
+  function inPage(html, readyState) {
     const { document } = parseHTML(html);
     Object.defineProperty(document, "readyState", { value: readyState });
-    for (const node of document.querySelectorAll(".cf-turnstile")) {
-      node.getBoundingClientRect = () => ({ width: widgetSize, height: widgetSize });
-    }
     globalThis.document = document;
     globalThis.location = { href: JOB(1) };
   }
 
-  test("readDetailPage returns the HTML once every ready selector is present", () => {
-    inPage(
-      "<html><head><title>Role</title></head><body><h1>Role</h1><script id='__NEXT_DATA__'>{}</script></body></html>",
-    );
-    const page = readDetailPage(["h1", "#__NEXT_DATA__"], "just a moment", ".cf-turnstile");
-    expect(page).toMatchObject({ url: JOB(1), ready: true, challenge: false });
+  test("readDetailPage returns the HTML only once the document has parsed", () => {
+    inPage("<html><body><h1>Role</h1></body></html>", "interactive");
+    const page = readDetailPage();
+    expect(page).toMatchObject({ url: JOB(1), loading: false });
     expect(page.html).toContain("<h1>Role</h1>");
-    expect(readDetailPage(["h1", "#missing"], "", "")).toMatchObject({ ready: false, html: "" });
-  });
-
-  test("readDetailPage waits while the document is still loading", () => {
-    inPage("<html><body><h1>Role</h1></body></html>", { readyState: "loading" });
-    expect(readDetailPage(["h1"], "", "")).toMatchObject({ ready: false, html: "" });
-  });
-
-  test("readDetailPage flags a challenge by title or by a visible widget", () => {
-    inPage("<html><head><title>Just a moment...</title></head><body><h1>x</h1></body></html>");
-    expect(readDetailPage(["h1"], "just a moment", "")).toMatchObject({
-      challenge: true,
-      ready: false,
-    });
-    inPage("<html><body><h1>x</h1><div class='cf-turnstile'></div></body></html>", {
-      widgetSize: 60,
-    });
-    expect(readDetailPage(["h1"], "", ".cf-turnstile")).toMatchObject({ challenge: true });
-    inPage("<html><body><h1>x</h1><div class='cf-turnstile'></div></body></html>");
-    expect(readDetailPage(["h1"], "", ".cf-turnstile")).toMatchObject({
-      challenge: false,
-      ready: true,
-    });
+    inPage("<html><body></body></html>", "loading");
+    expect(readDetailPage()).toEqual({ url: JOB(1), loading: true, html: "" });
   });
 });

@@ -6,7 +6,7 @@ import { BoundTabError, resolveBoundTab } from "../boundTab.js";
 import { sendToContentScript } from "../tabs.js";
 
 import { dispatchTrustedMouse, ensureDebugger, releaseDebugger } from "./debuggerMouse.js";
-import { closeDetailTabs, openDetailTabs } from "./detailTabs.js";
+import { closeDetailTabs, DETAIL_TAB_OPS, runDetailTabOp } from "./detailTabs.js";
 import {
   clearFetchWatchInMainWorld,
   installFetchWatchInMainWorld,
@@ -32,7 +32,7 @@ const defaultIo = {
   readFetchWatchInMainWorld,
   clearFetchWatchInMainWorld,
   handleSleep,
-  openDetailTabs,
+  runDetailTabOp,
   closeDetailTabs,
 };
 
@@ -126,8 +126,8 @@ export function handleRoutineExec(message, sendResponse, io = defaultIo) {
       sendResponse({ success: true, result });
       return;
     }
-    if (op === "openDetailTabs") {
-      const result = await (io.openDetailTabs ?? openDetailTabs)(tab, message.payload);
+    if (DETAIL_TAB_OPS.includes(op)) {
+      const result = await (io.runDetailTabOp ?? runDetailTabOp)(op, tab, message.payload);
       sendResponse({ success: true, result });
       return;
     }
