@@ -186,7 +186,10 @@ export function useJobSearch(
     void load(filtersRef.current, pageRef.current);
   }, [load]);
 
-  const pageJobs = result.jobs.filter((job) => !hiddenIds.includes(job.id));
+  // Applied jobs are done with: they leave the list as soon as they are marked.
+  const pageJobs = result.jobs.filter(
+    (job) => !hiddenIds.includes(job.id) && !appliedIds.includes(job.id),
+  );
   const total = result.total;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const selected = pageJobs.find((job) => job.id === selectedId) ?? pageJobs[0] ?? null;
