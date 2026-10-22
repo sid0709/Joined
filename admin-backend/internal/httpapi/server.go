@@ -132,6 +132,7 @@ func New(store *jobs.Store, scouts *scout.Store, moderation staff.API, reader jo
 	api.HandleFunc("GET /v1/jobs/temp", server.listTempJobs)
 	api.HandleFunc("GET /v1/jobs/scout-temp", server.listScoutTempJobs)
 	api.HandleFunc("POST /v1/jobs/scout-temp/analyze", server.analyzeScoutJobs)
+	api.HandleFunc("POST /v1/jobs/temp/remove", server.removeTempJobs)
 	api.HandleFunc("GET /v1/jobs/temp/{id}", server.getTempJob)
 	api.HandleFunc("PATCH /v1/jobs/temp/{id}", server.updateTempJob)
 	api.HandleFunc("GET /v1/companies", server.listCompanies)

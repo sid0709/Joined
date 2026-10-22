@@ -2,7 +2,9 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -63,4 +65,60 @@ func (s *Store) deletePublishedJobs(ctx context.Context, coll *mongo.Collection)
 		deleted += result.DeletedCount
 	}
 	return deleted, nil
+}
+
+// maxRemoveIDs caps how many temp jobs one admin removal may name. It matches the
+// largest selection the temp jobs page offers.
+const maxRemoveIDs = 1_000
+
+var (
+	ErrNoRemoval     = errors.New("select at least one temp job to remove")
+	ErrTooManyRemove = errors.New("select at most 1000 temp jobs to remove")
+)
+
+// RemoveTempJobs deletes the named temp jobs for good and returns how many existed.
+// Ids that are already gone are skipped, so repeating a removal is safe.
+func (s *Store) RemoveTempJobs(ctx context.Context, idHexes []string) (int64, error) {
+	ids, err := removalObjectIDs(idHexes)
+	if err != nil {
+		return 0, err
+	}
+	var deleted int64
+	for start := 0; start < len(ids); start += purgeBatch {
+		chunk := ids[start:min(start+purgeBatch, len(ids))]
+		result, err := s.dest().DeleteMany(ctx, bson.D{{Key: "_id", Value: bson.D{{Key: "$in", Value: chunk}}}})
+		if err != nil {
+			return deleted, fmt.Errorf("remove temp jobs: %w", err)
+		}
+		deleted += result.DeletedCount
+	}
+	return deleted, nil
+}
+
+// removalObjectIDs trims, dedupes and parses a removal selection.
+func removalObjectIDs(idHexes []string) ([]bson.ObjectID, error) {
+	seen := make(map[bson.ObjectID]struct{}, len(idHexes))
+	ids := make([]bson.ObjectID, 0, len(idHexes))
+	for _, idHex := range idHexes {
+		idHex = strings.TrimSpace(idHex)
+		if idHex == "" {
+			continue
+		}
+		id, err := bson.ObjectIDFromHex(idHex)
+		if err != nil {
+			return nil, ErrInvalidID
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		return nil, ErrNoRemoval
+	}
+	if len(ids) > maxRemoveIDs {
+		return nil, ErrTooManyRemove
+	}
+	return ids, nil
 }
