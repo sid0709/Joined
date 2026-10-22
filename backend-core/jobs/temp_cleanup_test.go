@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -95,5 +96,47 @@ func TestPurgePublishedTempDropsJobsAndCompanies(t *testing.T) {
 	}
 	if n, _ := store.stagedCompanies().CountDocuments(ctx, bson.D{{Key: "id", Value: "waiting-co"}}); n != 1 {
 		t.Fatal("waiting company was dropped")
+	}
+}
+
+func TestRemovalObjectIDsValidatesSelection(t *testing.T) {
+	id := bson.NewObjectID().Hex()
+	ids, err := removalObjectIDs([]string{" " + id + " ", id, ""})
+	if err != nil || len(ids) != 1 {
+		t.Fatalf("ids = %v, err = %v", ids, err)
+	}
+	if _, err := removalObjectIDs([]string{"", " "}); !errors.Is(err, ErrNoRemoval) {
+		t.Fatalf("empty selection err = %v", err)
+	}
+	if _, err := removalObjectIDs([]string{"nope"}); !errors.Is(err, ErrInvalidID) {
+		t.Fatalf("bad id err = %v", err)
+	}
+	many := make([]string, 0, maxRemoveIDs+1)
+	for range maxRemoveIDs + 1 {
+		many = append(many, bson.NewObjectID().Hex())
+	}
+	if _, err := removalObjectIDs(many); !errors.Is(err, ErrTooManyRemove) {
+		t.Fatalf("oversize err = %v", err)
+	}
+}
+
+func TestRemoveTempJobsDeletesOnlySelected(t *testing.T) {
+	store := crawlerTestStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	removed, kept := bson.NewObjectID(), bson.NewObjectID()
+	if _, err := store.dest().InsertMany(ctx, []any{
+		bson.D{{Key: "_id", Value: removed}},
+		bson.D{{Key: "_id", Value: kept}},
+	}); err != nil {
+		t.Fatalf("seed temp jobs: %v", err)
+	}
+	count, err := store.RemoveTempJobs(ctx, []string{removed.Hex(), bson.NewObjectID().Hex()})
+	if err != nil || count != 1 {
+		t.Fatalf("removed = %d, err = %v", count, err)
+	}
+	if n, _ := store.dest().CountDocuments(ctx, bson.D{{Key: "_id", Value: kept}}); n != 1 {
+		t.Fatal("unselected temp job was removed")
 	}
 }

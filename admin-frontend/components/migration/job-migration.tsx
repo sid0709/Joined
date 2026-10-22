@@ -8,6 +8,7 @@ import { MigrationStep } from "@/components/migration/migration-step";
 import { ModelBanner } from "@/components/migration/model-banner";
 import { jobRedoDescription } from "@/lib/analyze-approach";
 import { formatCount } from "@/lib/format";
+import { TEMP_JOBS_REMOVE_PATH } from "@/lib/jobs";
 import {
   isRunning,
   MAX_MIGRATION_SELECTION,
@@ -127,6 +128,7 @@ export function JobMigration() {
         layout="section"
         description={`Or pick listings and analyze just those with ${model}. Finished records appear on Jobs.`}
         maxSelection={MAX_MIGRATION_SELECTION}
+        removePath={TEMP_JOBS_REMOVE_PATH}
         pageSizes={MIGRATION_PAGE_SIZES}
         refreshKey={finished}
         onAnalyze={async (ids) => {

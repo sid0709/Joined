@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  AlertDialog,
   Badge,
   Banner,
   Button,
@@ -45,7 +46,7 @@ function pageSizeOption(value: string | null, sizes: readonly number[], fallback
   return sizes.some((size) => size === parsed) ? parsed : fallback;
 }
 
-type Notice = { status: "success" | "error"; title: string };
+type Notice = { status: "success" | "error"; title: string; hideJobsLink?: boolean };
 
 type TempJobsBrowserProps = {
   title?: string;
@@ -60,6 +61,8 @@ type TempJobsBrowserProps = {
    */
   onAnalyze?: (ids: string[]) => Promise<Notice>;
   maxSelection?: number;
+  /** Where to POST the selected ids to delete them. Leave it out to hide Remove selected. */
+  removePath?: string;
   /** Rows offered in the page-size menu. Scout stays on the smaller set. */
   pageSizes?: readonly number[];
   /** Changing it reloads the list, e.g. when a background analysis ends. */
@@ -81,6 +84,7 @@ export function TempJobsBrowser({
   route = ROUTES.tempJobs,
   analyzePath,
   onAnalyze,
+  removePath,
   maxSelection = MAX_ANALYZE_SELECTION,
   pageSizes = TEMP_JOB_PAGE_SIZES,
   refreshKey = 0,
@@ -112,6 +116,7 @@ export function TempJobsBrowser({
   const [model, setModel] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
     if (refreshKey) reload();
@@ -168,6 +173,32 @@ export function TempJobsBrowser({
       setNotice({
         status: "error",
         title: cause instanceof Error ? cause.message : "Could not analyze the jobs",
+      });
+    }
+  }
+
+  async function removeSelected() {
+    if (!removePath) return;
+    setConfirmRemove(false);
+    setNotice(null);
+    const ids = selected;
+    try {
+      const { removed } = await adminSend<{ removed: number }>(removePath, "POST", {
+        tempJobIds: ids,
+      });
+      setSelected([]);
+      setNotice({
+        status: "success",
+        title: `Removed ${formatCount(removed)} ${removed === 1 ? "job" : "jobs"}.`,
+        hideJobsLink: true,
+      });
+      // Removing the last rows of a page would leave it empty, so step back one page.
+      if (page > 1 && ids.length >= (result?.jobs.length ?? 0)) go({ page: page - 1 });
+      else reload();
+    } catch (cause) {
+      setNotice({
+        status: "error",
+        title: cause instanceof Error ? cause.message : "Could not remove the jobs",
       });
     }
   }
@@ -243,12 +274,22 @@ export function TempJobsBrowser({
       description ??
       `Select listings, then analyze them with ${model || "the model in OPENAI_MODEL"}. Finished records appear on Jobs.`,
     action: (
-      <Button
-        label={selected.length ? `Analyze ${formatCount(selected.length)}` : "Analyze"}
-        variant="primary"
-        clickAction={analyzeSelected}
-        isDisabled={selected.length === 0 || overLimit}
-      />
+      <HStack gap={3} vAlign="center">
+        <Button
+          label={selected.length ? `Analyze ${formatCount(selected.length)}` : "Analyze"}
+          variant="primary"
+          clickAction={analyzeSelected}
+          isDisabled={selected.length === 0 || overLimit}
+        />
+        {removePath ? (
+          <Button
+            label={selected.length ? `Remove ${formatCount(selected.length)}` : "Remove selected"}
+            variant="destructive"
+            clickAction={() => setConfirmRemove(true)}
+            isDisabled={selected.length === 0 || overLimit}
+          />
+        ) : null}
+      </HStack>
     ),
   };
   const body = (
@@ -261,7 +302,9 @@ export function TempJobsBrowser({
           status={notice.status}
           title={notice.title}
           endContent={
-            notice.status === "success" ? <Link href={ROUTES.jobs}>View jobs</Link> : undefined
+            notice.status === "success" && !notice.hideJobsLink ? (
+              <Link href={ROUTES.jobs}>View jobs</Link>
+            ) : undefined
           }
         />
       ) : null}
@@ -330,6 +373,15 @@ export function TempJobsBrowser({
           />
         </HStack>
       ) : null}
+      <AlertDialog
+        isOpen={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title={`Remove ${formatCount(selected.length)} ${selected.length === 1 ? "job" : "jobs"}?`}
+        description="They are deleted from temp jobs for good and are not analyzed. Jobs already published stay."
+        actionLabel="Remove"
+        actionVariant="destructive"
+        onAction={removeSelected}
+      />
       {details && jobId ? (
         <JobDetailDrawer jobId={jobId} onClose={() => go({ job: null })} onSaved={reload} />
       ) : null}

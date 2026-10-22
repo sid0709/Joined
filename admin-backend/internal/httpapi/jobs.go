@@ -86,6 +86,32 @@ func (s *Server) analyzeScoutJobs(w http.ResponseWriter, r *http.Request) {
 	httpkit.WriteJSON(w, http.StatusOK, batch)
 }
 
+// removeTempJobs deletes the selected temp jobs. It never touches published jobs.
+func (s *Server) removeTempJobs(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		TempJobIDs []string `json:"tempJobIds"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, httpkit.MaxWriteBody))
+	if err := decoder.Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		httpkit.WriteError(w, http.StatusBadRequest, "invalid remove request")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
+	defer cancel()
+	removed, err := s.store.RemoveTempJobs(ctx, body.TempJobIDs)
+	if errors.Is(err, jobs.ErrInvalidID) || errors.Is(err, jobs.ErrNoRemoval) || errors.Is(err, jobs.ErrTooManyRemove) {
+		httpkit.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err != nil {
+		slog.Error("remove temp jobs", "error", err)
+		httpkit.WriteError(w, http.StatusInternalServerError, "could not remove the temp jobs")
+		return
+	}
+	httpkit.WriteJSON(w, http.StatusOK, map[string]int64{"removed": removed})
+}
+
 func (s *Server) getTempJob(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), httpkit.RequestTimeout)
 	defer cancel()
