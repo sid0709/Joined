@@ -34,7 +34,13 @@ export default defineRoutine({
   output: ROUTINE_OUTPUTS.JOB,
   declaredFields: BUILTIN_FIELDS,
   runView: BUILTIN_RUN_VIEW,
-  options: { highlightFields: false, fieldPauseMs: 0, allowFetch: false },
+  // Hearts are saved only after the server accepts the job (registered or duplicate).
+  options: {
+    highlightFields: false,
+    fieldPauseMs: 0,
+    allowFetch: false,
+    waitForIngestAccept: true,
+  },
   runPass: runBuiltInPass,
 
   strategy: listDetail({

@@ -19,8 +19,11 @@ export const ROUTINE_TAB_CLOSED_ACTION = "routine:tabClosed";
 export const BOUND_TAB_CLOSED_MESSAGE = "The crawl tab was closed. The run stopped.";
 export const BOUND_TAB_MISSING_MESSAGE = "No bound crawl tab. Start the run from the page tab.";
 
+// "Receiving end does not exist" is not here: it also fires while a page (a
+// Cloudflare check, a reload) replaces the content script. A truly closed tab
+// fails the next op's bound-tab lookup with BoundTabError instead.
 const RUN_GONE_RE =
-  /no bound crawl tab|the crawl tab was closed|receiving end does not exist|no tab with id|the tab was closed/i;
+  /no bound crawl tab|the crawl tab was closed|no tab with id|the tab was closed/i;
 
 export function isBoundTabClosedError(error) {
   const message = String(error?.message || error || "");

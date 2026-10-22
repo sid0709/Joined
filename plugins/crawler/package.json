@@ -1,7 +1,7 @@
 {
   "name": "joined-scrapper",
   "private": true,
-  "version": "2.5.22",
+  "version": "2.5.24",
   "releaseDate": "2026-10-13",
   "type": "module",
   "scripts": {
